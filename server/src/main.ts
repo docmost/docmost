@@ -4,6 +4,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -11,6 +12,13 @@ async function bootstrap() {
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
+    }),
+  );
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
     }),
   );
 

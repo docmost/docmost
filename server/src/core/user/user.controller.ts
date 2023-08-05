@@ -6,32 +6,33 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Req, UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtGuard } from '../auth/guards/JwtGuard';
+import { FastifyRequest } from 'fastify';
+import { User } from './entities/user.entity';
 
+@UseGuards(JwtGuard)
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
-  }
+  @HttpCode(HttpStatus.OK)
+  @Get('me')
+  async getUser(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+    const user: User = await this.userService.findById(jwtPayload.sub);
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
-  }
+    if (!user) {
+      throw new UnauthorizedException('Invalid user');
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+    return { user };
   }
 }

@@ -1,30 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
+import { plainToClass } from 'class-transformer';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectRepository(User) private userRepository: UserRepository) {}
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(private userRepository: UserRepository) {}
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const existingUser: User = await this.findByEmail(createUserDto.email);
+
+    if (existingUser) {
+      throw new BadRequestException('A user with this email already exists');
+    }
+
+    const user: User = plainToClass(User, createUserDto);
+    user.locale = 'en';
+    user.lastLoginAt = new Date();
+
+    return this.userRepository.save(user);
   }
 
-  findAll() {
-    return `This action returns all user`;
+  findById(userId: string) {
+    return this.userRepository.findById(userId);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findByEmail(email: string) {
+    return this.userRepository.findByEmail(email);
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async compareHash(
+    plainPassword: string,
+    passwordHash: string,
+  ): Promise<boolean> {
+    return await bcrypt.compare(plainPassword, passwordHash);
   }
 }

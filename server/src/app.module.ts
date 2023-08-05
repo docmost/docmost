@@ -12,7 +12,7 @@ import { AppDataSource } from './database/typeorm.config';
     EnvironmentModule,
     TypeOrmModule.forRoot({
       ...AppDataSource.options,
-      entities: ['dist/src/**/*.entity.ts'],
+      entities: ['dist/src/**/*.entity.{ts,js}'],
       migrations: ['dist/src/**/migrations/*.{ts,js}'],
       autoLoadEntities: true,
     }),
