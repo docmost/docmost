@@ -5,6 +5,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
+import { TransformHttpResponseInterceptor } from './interceptors/http-response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -21,6 +22,8 @@ async function bootstrap() {
       stopAtFirstError: true,
     }),
   );
+
+  app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
 
   await app.listen(3000);
 }
