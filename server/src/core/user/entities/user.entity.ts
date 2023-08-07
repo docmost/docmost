@@ -3,10 +3,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Workspace } from '../../workspace/entities/workspace.entity';
+import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 
 @Entity('users')
 export class User {
@@ -48,6 +51,16 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Workspace, (workspace) => workspace.creator, {
+    createForeignKeyConstraints: false,
+  })
+  workspaces: Workspace[];
+
+  @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.user, {
+    createForeignKeyConstraints: false,
+  })
+  workspaceUser: WorkspaceUser[];
 
   toJSON() {
     delete this.password;

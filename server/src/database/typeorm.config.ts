@@ -9,6 +9,6 @@ export const AppDataSource: DataSource = new DataSource({
   entities: ['src/**/*.entity.{ts,js}'],
   migrations: ['src/**/migrations/*.{ts,js}'],
   subscribers: [],
-  synchronize: process.env.NODE_ENV === 'development',
+  synchronize: false,
   logging: process.env.NODE_ENV === 'development',
 });

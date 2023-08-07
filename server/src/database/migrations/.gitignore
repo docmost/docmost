@@ -1,0 +1,3 @@
+# don't include frequently changing migrations yet
+*
+!.gitignore

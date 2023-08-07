@@ -5,10 +5,15 @@ import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
 import { plainToClass } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
+import { WorkspaceService } from '../workspace/services/workspace.service';
+import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    private workspaceService: WorkspaceService,
+  ) {}
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser: User = await this.findByEmail(createUserDto.email);
 
@@ -16,11 +21,20 @@ export class UserService {
       throw new BadRequestException('A user with this email already exists');
     }
 
-    const user: User = plainToClass(User, createUserDto);
+    let user: User = plainToClass(User, createUserDto);
     user.locale = 'en';
     user.lastLoginAt = new Date();
 
-    return this.userRepository.save(user);
+    user = await this.userRepository.save(user);
+
+    //TODO: create workspace if it is not a signup to an existing workspace
+    const workspaceDto: CreateWorkspaceDto = {
+      name: user.name, // will be better handled
+    };
+
+    await this.workspaceService.create(workspaceDto, user.id);
+
+    return user;
   }
 
   findById(userId: string) {
