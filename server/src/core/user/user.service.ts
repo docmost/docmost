@@ -3,7 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UserRepository } from './repositories/user.repository';
-import { plainToClass } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
@@ -21,7 +21,7 @@ export class UserService {
       throw new BadRequestException('A user with this email already exists');
     }
 
-    let user: User = plainToClass(User, createUserDto);
+    let user: User = plainToInstance(User, createUserDto);
     user.locale = 'en';
     user.lastLoginAt = new Date();
 

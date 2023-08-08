@@ -1,5 +1,5 @@
 import { IsString, IsUrl, validateSync } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 
 export class EnvironmentVariables {
   @IsString()
@@ -10,7 +10,7 @@ export class EnvironmentVariables {
 }
 
 export function validate(config: Record<string, any>) {
-  const validatedConfig = plainToClass(EnvironmentVariables, config);
+  const validatedConfig = plainToInstance(EnvironmentVariables, config);
 
   const errors = validateSync(validatedConfig);
   if (errors.length > 0) {

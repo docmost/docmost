@@ -4,7 +4,7 @@ import { WorkspaceRepository } from '../repositories/workspace.repository';
 import { WorkspaceUserRepository } from '../repositories/workspace-user.repository';
 import { WorkspaceUser } from '../entities/workspace-user.entity';
 import { Workspace } from '../entities/workspace.entity';
-import { plainToClass } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import { v4 as uuid } from 'uuid';
 import { generateHostname } from '../workspace.util';
 
@@ -19,7 +19,7 @@ export class WorkspaceService {
     createWorkspaceDto: CreateWorkspaceDto,
     userId: string,
   ): Promise<Workspace> {
-    let workspace: Workspace = plainToClass(Workspace, createWorkspaceDto);
+    let workspace: Workspace = plainToInstance(Workspace, createWorkspaceDto);
 
     workspace.inviteCode = uuid();
     workspace.creatorId = userId;
