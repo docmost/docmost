@@ -22,9 +22,10 @@ async function bootstrap() {
       stopAtFirstError: true,
     }),
   );
+  app.enableCors();
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
 
-  await app.listen(3001);
+  await app.listen(process.env.PORT || 3001);
 }
 bootstrap();
