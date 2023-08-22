@@ -10,16 +10,17 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
+import { Page } from '../../page/entities/page.entity';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ length: 255, nullable: true })
   name: string;
 
-  @Column({ unique: true })
+  @Column({ length: 255, unique: true })
   email: string;
 
   @Column({ nullable: true })
@@ -29,12 +30,12 @@ export class User {
   password: string;
 
   @Column({ nullable: true })
-  avatar_url: string;
+  avatarUrl: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 100, nullable: true })
   locale: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 300, nullable: true })
   timezone: string;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -43,7 +44,7 @@ export class User {
   @Column({ nullable: true })
   lastLoginAt: Date;
 
-  @Column({ nullable: true })
+  @Column({ length: 100, nullable: true })
   lastLoginIp: string;
 
   @CreateDateColumn()
@@ -52,15 +53,14 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Workspace, (workspace) => workspace.creator, {
-    createForeignKeyConstraints: false,
-  })
+  @OneToMany(() => Workspace, (workspace) => workspace.creator)
   workspaces: Workspace[];
 
-  @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.user, {
-    createForeignKeyConstraints: false,
-  })
+  @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.user)
   workspaceUser: WorkspaceUser[];
+
+  @OneToMany(() => Page, (page) => page.creator)
+  createdPages;
 
   toJSON() {
     delete this.password;

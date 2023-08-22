@@ -17,28 +17,26 @@ export class WorkspaceUser {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  userId: string;
+
   @ManyToOne(() => User, (user) => user.workspaceUser, {
     onDelete: 'CASCADE',
-    createForeignKeyConstraints: false,
   })
   @JoinColumn({ name: 'userId' })
   user: User;
 
   @Column()
-  userId: string;
+  workspaceId: string;
 
-  @ManyToOne(() => Workspace, (workspace) => workspace.workspaceUser, {
+  @ManyToOne(() => Workspace, (workspace) => workspace.workspaceUsers, {
     onDelete: 'CASCADE',
-    createForeignKeyConstraints: false,
   })
   @JoinColumn({ name: 'workspaceId' })
   workspace: Workspace;
 
-  @Column()
-  workspaceId: string;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  role?: string;
+  @Column({ length: 100, nullable: true })
+  role: string;
 
   @CreateDateColumn()
   createdAt: Date;

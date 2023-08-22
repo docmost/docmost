@@ -15,28 +15,30 @@ export class WorkspaceInvitation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  workspaceId: string;
+
   @ManyToOne(() => Workspace, {
     onDelete: 'CASCADE',
-    createForeignKeyConstraints: false,
   })
   @JoinColumn({ name: 'workspaceId' })
   workspace: Workspace;
 
-  @ManyToOne(() => User, {
-    onDelete: 'SET NULL',
-    createForeignKeyConstraints: false,
-  })
+  @Column()
+  invitedById: string;
+
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'invitedById' })
   invitedBy: User;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ length: 255 })
   email: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  role?: string;
+  @Column({ length: 100, nullable: true })
+  role: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  status?: string;
+  @Column({ length: 100, nullable: true })
+  status: string;
 
   @CreateDateColumn()
   createdAt: Date;
