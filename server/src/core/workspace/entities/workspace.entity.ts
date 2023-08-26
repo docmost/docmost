@@ -27,7 +27,7 @@ export class Workspace {
   @Column({ length: 255, nullable: true })
   logo: string;
 
-  @Column({ length: 255, unique: true })
+  @Column({ length: 255, nullable: true, unique: true })
   hostname: string;
 
   @Column({ length: 255, nullable: true })

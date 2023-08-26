@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { User } from '../../user/entities/user.entity';
 import { CreateUserDto } from '../../user/dto/create-user.dto';
 import { UserService } from '../../user/user.service';
 import { TokenService } from './token.service';
+import { TokensDto } from '../dto/tokens.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,16 +26,16 @@ export class AuthService {
 
     user.lastLoginAt = new Date();
 
-    const token: string = await this.tokenService.generateJwt(user);
+    const tokens: TokensDto = await this.tokenService.generateTokens(user);
 
-    return { user, token };
+    return { tokens };
   }
 
   async register(createUserDto: CreateUserDto) {
     const user: User = await this.userService.create(createUserDto);
 
-    const token: string = await this.tokenService.generateJwt(user);
+    const tokens: TokensDto = await this.tokenService.generateTokens(user);
 
-    return { user, token };
+    return { tokens };
   }
 }

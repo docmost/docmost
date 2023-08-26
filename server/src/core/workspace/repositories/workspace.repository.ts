@@ -7,4 +7,8 @@ export class WorkspaceRepository extends Repository<Workspace> {
   constructor(private dataSource: DataSource) {
     super(Workspace, dataSource.createEntityManager());
   }
+
+  async findById(workspaceId: string) {
+    return this.findOneBy({ id: workspaceId });
+  }
 }

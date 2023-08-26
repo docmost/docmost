@@ -16,15 +16,21 @@ export class WorkspaceService {
   ) {}
 
   async create(
-    createWorkspaceDto: CreateWorkspaceDto,
     userId: string,
+    createWorkspaceDto?: CreateWorkspaceDto,
   ): Promise<Workspace> {
-    let workspace: Workspace = plainToInstance(Workspace, createWorkspaceDto);
+    let workspace: Workspace;
+
+    if (createWorkspaceDto) {
+      workspace = plainToInstance(Workspace, createWorkspaceDto);
+    } else {
+      workspace = new Workspace();
+    }
 
     workspace.inviteCode = uuid();
     workspace.creatorId = userId;
 
-    if (!workspace.hostname?.trim()) {
+    if (workspace.name && !workspace.hostname?.trim()) {
       workspace.hostname = generateHostname(createWorkspaceDto.name);
     }
 
@@ -45,5 +51,34 @@ export class WorkspaceService {
     workspaceUser.role = role;
 
     return this.workspaceUserRepository.save(workspaceUser);
+  }
+
+  async findById(workspaceId: string): Promise<Workspace> {
+    return await this.workspaceRepository.findById(workspaceId);
+  }
+
+  async getUserCurrentWorkspace(
+    userId: string,
+    workspaceId?: string,
+  ): Promise<Workspace> {
+    // TODO: use workspaceId and fetch workspace based on the id
+    // we currently assume the user belongs to one workspace
+    const userWorkspace = await this.workspaceUserRepository.findOne({
+      where: { userId: userId },
+      relations: ['workspace'],
+    });
+
+    return userWorkspace.workspace;
+  }
+
+  async userWorkspaces(userId: string): Promise<Workspace[]> {
+    const workspaces = await this.workspaceUserRepository.find({
+      where: { userId: userId },
+      relations: ['workspace'],
+    });
+
+    return workspaces.map(
+      (userWorkspace: WorkspaceUser) => userWorkspace.workspace,
+    );
   }
 }

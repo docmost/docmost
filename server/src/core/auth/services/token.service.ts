@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../environment/environment.service';
 import { User } from '../../user/entities/user.entity';
 import { FastifyRequest } from 'fastify';
+import { TokensDto } from "../dto/tokens.dto";
 
 @Injectable()
 export class TokenService {
@@ -16,6 +17,13 @@ export class TokenService {
       email: user.email,
     };
     return await this.jwtService.signAsync(payload);
+  }
+
+  async generateTokens(user: User): Promise<TokensDto> {
+    return {
+      accessToken: await this.generateJwt(user),
+      refreshToken: null,
+    };
   }
 
   async verifyJwt(token: string) {

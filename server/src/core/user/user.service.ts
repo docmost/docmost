@@ -7,6 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
+import { Workspace } from "../workspace/entities/workspace.entity";
 
 @Injectable()
 export class UserService {
@@ -27,17 +28,20 @@ export class UserService {
 
     user = await this.userRepository.save(user);
 
-    //TODO: create workspace if it is not a signup to an existing workspace
-    const workspaceDto: CreateWorkspaceDto = {
-      name: user.name, // will be better handled
-    };
-
-    await this.workspaceService.create(workspaceDto, user.id);
+    //TODO: only create workspace if it is not a signup to an existing workspace
+    await this.workspaceService.create(user.id);
 
     return user;
   }
 
-  findById(userId: string) {
+  async getUserInstance(userId: string) {
+    const user: User = await this.findById(userId);
+    const workspace: Workspace =
+      await this.workspaceService.getUserCurrentWorkspace(userId);
+    return { user, workspace };
+  }
+
+  async findById(userId: string) {
     return this.userRepository.findById(userId);
   }
 
@@ -45,7 +49,7 @@ export class UserService {
     return this.userRepository.findByEmail(email);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: number, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }
 

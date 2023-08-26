@@ -1,11 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -13,11 +8,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtGuard } from '../auth/guards/JwtGuard';
 import { FastifyRequest } from 'fastify';
 import { User } from './entities/user.entity';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('user')
@@ -35,5 +29,16 @@ export class UserController {
     }
 
     return { user };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('info')
+  async getUserInfo(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+
+    const data: { workspace: Workspace; user: User } =
+      await this.userService.getUserInstance(jwtPayload.sub);
+
+    return data;
   }
 }
