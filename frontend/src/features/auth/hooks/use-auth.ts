@@ -6,7 +6,6 @@ import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { ILogin, IRegister } from "@/features/auth/types/auth.types";
-import { RESET } from "jotai/vanilla/utils/constants";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +20,7 @@ export default function useAuth() {
     try {
       const res = await login(data);
       setIsLoading(false);
-      await setAuthToken(res.tokens);
+      setAuthToken(res.tokens);
 
       router.push("/home");
     } catch (err) {
@@ -40,7 +39,7 @@ export default function useAuth() {
       const res = await register(data);
       setIsLoading(false);
 
-      await setAuthToken(res.tokens);
+      setAuthToken(res.tokens);
 
       router.push("/home");
     } catch (err) {
@@ -57,7 +56,7 @@ export default function useAuth() {
   };
 
   const handleLogout = async () => {
-    await setAuthToken(RESET);
+    setAuthToken(null);
     setCurrentUser('');
   }
 
