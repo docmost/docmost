@@ -12,9 +12,11 @@ import {
   NavigationMenuType,
 } from '@/components/sidebar/actions/sidebar-actions';
 import ButtonWithIcon from '@/components/ui/button-with-icon';
+import SidebarToggleButton from './sidebar-toggle-button';
 
 export default function Sidebar() {
   const isMobile = useIsMobile();
+
   const [isSidebarOpen] = useAtom(
     isMobile ? mobileSidebarAtom : desktopSidebarAtom
   );
@@ -22,10 +24,25 @@ export default function Sidebar() {
   return (
     <nav
       className={`${
-        isSidebarOpen ? 'w-[270px]' : 'w-[0px]'
-      } flex-grow-0 flex-shrink-0 overflow-hidden border-r duration-300 ease-in-out`}
+        isSidebarOpen ? (isMobile ? 'w-full' : 'w-[270px]') : 'w-[0px]'
+      } ${
+        isMobile && isSidebarOpen
+          ? 'fixed top-0 left-0 h-screen z-[99] bg-background'
+          : ''
+      } flex-grow-0 flex-shrink-0 overflow-hidden border-r duration-500 ease-in-out`}
     >
-      <div className="flex flex-col flex-shrink-0 gap-0.5 p-[10px]">
+      {isMobile && (
+        <>
+          <SidebarToggleButton
+            className={`absolute top-0 ${
+              isSidebarOpen ? 'right-0' : 'left-0'
+            } right-0 m-4`}
+          />
+          <div className="mt-[20px]"></div>
+        </>
+      )}
+
+      <div className={`flex flex-col flex-shrink-0 gap-0.5 p-[10px]`}>
         <div className="h-full">
           <div className="mt-[20px]"></div>
 
