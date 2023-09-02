@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import React, { forwardRef, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface ButtonIconProps {
@@ -8,11 +8,17 @@ interface ButtonIconProps {
 
 type Props = ButtonIconProps & React.ComponentPropsWithoutRef<typeof Button>;
 
-export default function ButtonWithIcon({ icon, children, ...rest }: Props) {
-  return (
-    <Button {...rest} {...(children ? {} : { size: 'icon' })}>
-      <div className={`${children ? 'mr-[8px]' : ''}`}>{icon}</div>
-      {children}
-    </Button>
-  );
-}
+const ButtonWithIcon = forwardRef<HTMLButtonElement, Props>(
+  ({ icon, children, ...rest }, ref) => {
+    return (
+      <Button ref={ref} {...rest} {...(children ? {} : { size: 'icon' })}>
+        <div className={`${children ? 'mr-[8px]' : ''}`}>{icon}</div>
+        {children}
+      </Button>
+    );
+  }
+);
+
+ButtonWithIcon.displayName = 'ButtonWithIcon';
+
+export default ButtonWithIcon;
