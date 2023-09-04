@@ -1,79 +1,56 @@
-import { useIsMobile } from '@/hooks/use-is-mobile';
-import { useAtom } from 'jotai';
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useAtom } from "jotai";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
-} from '@/components/sidebar/atoms/sidebar-atom';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { IconFileText } from '@tabler/icons-react';
-import { SidebarSection } from '@/components/sidebar/sidebar-section';
-import {
-  navigationMenu,
-  NavigationMenuType,
-} from '@/components/sidebar/actions/sidebar-actions';
-import ButtonWithIcon from '@/components/ui/button-with-icon';
-import SidebarToggleButton from './sidebar-toggle-button';
+} from "@/components/sidebar/atoms/sidebar-atom";
+import { MobileSidebarToggle } from "./sidebar-toggle-button";
+import SettingsNav from "@/features/settings/nav/settings-nav";
+import { usePathname } from "next/navigation";
+import React, { useEffect } from "react";
+import Navigation from "@/components/sidebar/navigation/navigation";
 
 export default function Sidebar() {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useAtom(isMobile ? mobileSidebarAtom : desktopSidebarAtom);
+  const isSettings = pathname.startsWith("/settings");
 
-  const [isSidebarOpen] = useAtom(
-    isMobile ? mobileSidebarAtom : desktopSidebarAtom
-  );
+  const mobileClass = "fixed top-0 left-0 h-screen z-50 bg-background";
+  const sidebarWidth = isSidebarOpen ? "w-[270px]" : "w-[0px]";
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [pathname, isMobile, setIsSidebarOpen]);
 
   return (
-    <nav
-      className={`${
-        isSidebarOpen ? (isMobile ? 'w-full' : 'w-[270px]') : 'w-[0px]'
-      } ${
-        isMobile && isSidebarOpen
-          ? 'fixed top-0 left-0 h-screen z-[99] bg-background'
-          : ''
-      } flex-grow-0 flex-shrink-0 overflow-hidden border-r duration-500 ease-in-out`}
-    >
-      {isMobile && (
-        <>
-          <SidebarToggleButton
-            className={`absolute top-0 ${
-              isSidebarOpen ? 'right-0' : 'left-0'
-            } right-0 m-4`}
-          />
-          <div className="mt-[20px]"></div>
-        </>
+    <>
+      {isMobile && isSidebarOpen && (
+        <div className="fixed top-0 left-0 w-full h-screen z-[50] bg-black/60"
+             onClick={closeSidebar}>
+        </div>
       )}
 
-      <div className={`flex flex-col flex-shrink-0 gap-0.5 p-[10px]`}>
-        <div className="h-full">
-          <div className="mt-[20px]"></div>
+      <nav
+        className={`${sidebarWidth} ${isMobile && isSidebarOpen ? mobileClass : ""} 
+        flex-grow-0 flex-shrink-0 overflow-hidden border-r duration-300 z-49`}>
 
-          <SidebarSection className="pb-2 mb-4 select-none border-b">
-            {navigationMenu.map((menu: NavigationMenuType, index: number) => (
-              <ButtonWithIcon
-                key={index}
-                icon={menu.icon}
-                variant={'ghost'}
-                className="w-full flex flex-1 justify-start items-center"
-              >
-                <span className="text-ellipsis overflow-hidden">
-                  {menu.label}
-                </span>
-              </ButtonWithIcon>
-            ))}
-          </SidebarSection>
+        {isMobile && (
+          <MobileSidebarToggle isSidebarOpen={isSidebarOpen} />
+        )}
 
-          <ScrollArea className="h-[70vh]">
-            <div className="space-y-1">
-              <ButtonWithIcon
-                variant="ghost"
-                className="w-full justify-start"
-                icon={<IconFileText size={16} />}
-              >
-                Welcome page
-              </ButtonWithIcon>
-            </div>
-          </ScrollArea>
+        <div className="flex flex-col flex-shrink-0 gap-0.5 p-[10px]">
+          <div className="h-full mt-[8px]">
+            {isSettings ? <SettingsNav /> : <Navigation />}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }

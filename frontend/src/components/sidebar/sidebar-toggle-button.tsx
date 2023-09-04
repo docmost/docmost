@@ -32,10 +32,16 @@ export default function SidebarToggleButton({
 
   return (
     <ButtonWithIcon
-      className={cn(className, 'z-[100]')}
+      className={cn(className, 'z-50')}
       icon={<SidebarIcon size={20} />}
       variant={'ghost'}
       onClick={toggleSidebar}
-    ></ButtonWithIcon>
+    />
+  );
+}
+
+export function MobileSidebarToggle({ isSidebarOpen }) {
+  return (
+    <SidebarToggleButton className={`absolute top-0 ${isSidebarOpen ? "right-0" : "left-0"} right-0 m-4`} />
   );
 }
