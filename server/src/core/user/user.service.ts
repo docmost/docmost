@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -6,8 +10,7 @@ import { UserRepository } from './repositories/user.repository';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { WorkspaceService } from '../workspace/services/workspace.service';
-import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
-import { Workspace } from "../workspace/entities/workspace.entity";
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @Injectable()
 export class UserService {
@@ -49,8 +52,24 @@ export class UserService {
     return this.userRepository.findByEmail(email);
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(userId: string, updateUserDto: UpdateUserDto) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (updateUserDto.name) {
+      user.name = updateUserDto.name;
+    }
+
+    if (updateUserDto.email && user.email != updateUserDto.email) {
+      if (await this.userRepository.findByEmail(updateUserDto.email)) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+      user.email = updateUserDto.email;
+    }
+
+    return this.userRepository.save(user);
   }
 
   async compareHash(

@@ -20,7 +20,7 @@ export class WorkspaceUser {
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.workspaceUser, {
+  @ManyToOne(() => User, (user) => user.workspaceUsers, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'userId' })

@@ -6,12 +6,15 @@ import {
   HttpStatus,
   Req,
   UnauthorizedException,
+  Post,
+  Body,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtGuard } from '../auth/guards/JwtGuard';
 import { FastifyRequest } from 'fastify';
 import { User } from './entities/user.entity';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @UseGuards(JwtGuard)
 @Controller('user')
@@ -40,5 +43,16 @@ export class UserController {
       await this.userService.getUserInstance(jwtPayload.sub);
 
     return data;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('update')
+  async updateUser(
+    @Req() req: FastifyRequest,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const jwtPayload = req['user'];
+
+    return this.userService.update(jwtPayload.sub, updateUserDto);
   }
 }

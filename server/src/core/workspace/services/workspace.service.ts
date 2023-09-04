@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { WorkspaceRepository } from '../repositories/workspace.repository';
 import { WorkspaceUserRepository } from '../repositories/workspace-user.repository';
@@ -7,6 +11,9 @@ import { Workspace } from '../entities/workspace.entity';
 import { plainToInstance } from 'class-transformer';
 import { v4 as uuid } from 'uuid';
 import { generateHostname } from '../workspace.util';
+import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
+import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
+import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 
 @Injectable()
 export class WorkspaceService {
@@ -40,6 +47,33 @@ export class WorkspaceService {
     return workspace;
   }
 
+  async update(
+    workspaceId: string,
+    updateWorkspaceDto: UpdateWorkspaceDto,
+  ): Promise<Workspace> {
+    const workspace = await this.workspaceRepository.findById(workspaceId);
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    if (updateWorkspaceDto.name) {
+      workspace.name = updateWorkspaceDto.name;
+    }
+
+    return this.workspaceRepository.save(workspace);
+  }
+
+  async delete(deleteWorkspaceDto: DeleteWorkspaceDto) {
+    const workspace = await this.workspaceRepository.findById(
+      deleteWorkspaceDto.workspaceId,
+    );
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    return 0;
+  }
+
   async addUserToWorkspace(
     userId: string,
     workspaceId: string,
@@ -53,14 +87,51 @@ export class WorkspaceService {
     return this.workspaceUserRepository.save(workspaceUser);
   }
 
+  async updateWorkspaceUserRole(
+    workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
+    workspaceId: string,
+  ) {
+    const workspaceUser = await this.workspaceUserRepository.findOne({
+      where: { userId: workspaceUserRoleDto.userId, workspaceId: workspaceId },
+    });
+
+    if (!workspaceUser) {
+      throw new BadRequestException('user is not a member of this workspace');
+    }
+
+    if (workspaceUser.role === workspaceUserRoleDto.role) {
+      return workspaceUser;
+    }
+
+    workspaceUser.role = workspaceUserRoleDto.role;
+    // if there is only one workspace owner, prevent the role change
+
+    return this.workspaceUserRepository.save(workspaceUser);
+  }
+
+  async removeUserFromWorkspace(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const workspaceUser = await this.workspaceUserRepository.findOne({
+      where: { userId, workspaceId },
+    });
+
+    if (!workspaceUser) {
+      throw new BadRequestException('User is not a member of this workspace');
+    }
+
+    await this.workspaceUserRepository.delete({
+      userId,
+      workspaceId,
+    });
+  }
+
   async findById(workspaceId: string): Promise<Workspace> {
     return await this.workspaceRepository.findById(workspaceId);
   }
 
-  async getUserCurrentWorkspace(
-    userId: string,
-    workspaceId?: string,
-  ): Promise<Workspace> {
+  async getUserCurrentWorkspace(userId: string): Promise<Workspace> {
     // TODO: use workspaceId and fetch workspace based on the id
     // we currently assume the user belongs to one workspace
     const userWorkspace = await this.workspaceUserRepository.findOne({
@@ -71,7 +142,7 @@ export class WorkspaceService {
     return userWorkspace.workspace;
   }
 
-  async userWorkspaces(userId: string): Promise<Workspace[]> {
+  async getUserWorkspaces(userId: string): Promise<Workspace[]> {
     const workspaces = await this.workspaceUserRepository.find({
       where: { userId: userId },
       relations: ['workspace'],
@@ -80,5 +151,26 @@ export class WorkspaceService {
     return workspaces.map(
       (userWorkspace: WorkspaceUser) => userWorkspace.workspace,
     );
+  }
+
+  async getWorkspaceUsers(workspaceId: string) {
+    const workspace = await this.workspaceRepository.findOne({
+      where: { id: workspaceId },
+      relations: ['workspaceUsers', 'workspaceUsers.user'],
+    });
+
+    if (!workspace) {
+      throw new BadRequestException('Invalid workspace');
+    }
+
+    const users = workspace.workspaceUsers.map((workspaceUser) => {
+      workspaceUser.user.password = '';
+      return {
+        ...workspaceUser.user,
+        workspaceRole: workspaceUser.role,
+      };
+    });
+
+    return { users };
   }
 }

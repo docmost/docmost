@@ -3,6 +3,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -57,10 +59,10 @@ export class User {
   workspaces: Workspace[];
 
   @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.user)
-  workspaceUser: WorkspaceUser[];
+  workspaceUsers: WorkspaceUser[];
 
   @OneToMany(() => Page, (page) => page.creator)
-  createdPages;
+  createdPages: Page[];
 
   toJSON() {
     delete this.password;
