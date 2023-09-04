@@ -12,6 +12,7 @@ export interface IUser {
   lastLoginIp: string;
   createdAt: Date;
   updatedAt: Date;
+  workspaceRole?: string;
 }
 
 export interface ICurrentUserResponse {

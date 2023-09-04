@@ -15,11 +15,10 @@ import { IRegister } from "@/features/auth/types/auth.types";
 
 const formSchema = z.object({
   email: z.string({ required_error: "email is required" }).email({ message: "Invalid email address" }),
-  password: z.string({ required_error: "password is required" }),
+  password: z.string({ required_error: "password is required" }).min(8),
 });
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
-}
+interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function SignUpForm({ className, ...props }: UserAuthFormProps) {
   const { register, handleSubmit, formState: { errors } }

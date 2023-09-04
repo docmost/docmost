@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { toast } from "@/components/ui/use-toast";
 import { login, register } from "@/features/auth/services/auth-service";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { ILogin, IRegister } from "@/features/auth/types/auth.types";
+import toast from "react-hot-toast";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +25,7 @@ export default function useAuth() {
       router.push("/home");
     } catch (err) {
       setIsLoading(false);
-      toast({
-        description: err.response?.data.message,
-        variant: "destructive",
-      });
+      toast.error(err.response?.data.message)
     }
   };
 
@@ -44,10 +41,7 @@ export default function useAuth() {
       router.push("/home");
     } catch (err) {
       setIsLoading(false);
-      toast({
-        description: err.response?.data.message,
-        variant: "destructive",
-      });
+      toast.error(err.response?.data.message)
     }
   };
 
@@ -57,7 +51,7 @@ export default function useAuth() {
 
   const handleLogout = async () => {
     setAuthToken(null);
-    setCurrentUser('');
+    setCurrentUser(null);
   }
 
   return { signIn: handleSignIn, signUp: handleSignUp, isLoading, hasTokens };
