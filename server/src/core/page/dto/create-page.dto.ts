@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional } from 'class-validator';
 
 export class CreatePageDto {
   @IsOptional()
@@ -8,11 +8,5 @@ export class CreatePageDto {
   content?: string;
 
   @IsOptional()
-  parentId?: string;
-
-  @IsString()
-  creatorId: string;
-
-  @IsString()
-  workspaceId: string;
+  parentPageId?: string;
 }

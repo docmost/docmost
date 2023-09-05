@@ -127,13 +127,7 @@ export class WorkspaceService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const workspaceUser = await this.workspaceUserRepository.findOne({
-      where: { userId, workspaceId },
-    });
-
-    if (!workspaceUser) {
-      throw new BadRequestException('User is not a member of this workspace');
-    }
+    await this.validateWorkspaceMember(userId, workspaceId);
 
     await this.workspaceUserRepository.delete({
       userId,
@@ -182,5 +176,18 @@ export class WorkspaceService {
     });
 
     return { users };
+  }
+
+  async validateWorkspaceMember(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const workspaceUser = await this.workspaceUserRepository.findOne({
+      where: { userId, workspaceId },
+    });
+
+    if (!workspaceUser) {
+      throw new BadRequestException('User is not a member of this workspace');
+    }
   }
 }

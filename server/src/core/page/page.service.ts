@@ -1,24 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { PageRepository } from './repositories/page.repository';
 import { CreatePageDto } from './dto/create-page.dto';
+import { Page } from './entities/page.entity';
+import { UpdatePageDto } from './dto/update-page.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class PageService {
   constructor(private pageRepository: PageRepository) {}
 
-  async create(createPageDto: CreatePageDto) {
-    await this.pageRepository.save(createPageDto);
-  }
-
   async findById(pageId: string) {
     return this.pageRepository.findById(pageId);
   }
 
-  async delete(pageId: string) {
-    return this.pageRepository.softDelete(pageId);
+  async create(
+    userId: string,
+    workspaceId: string,
+    createPageDto: CreatePageDto,
+  ): Promise<Page> {
+    const page = plainToInstance(Page, createPageDto);
+    page.creatorId = userId;
+    page.workspaceId = workspaceId;
+
+    console.log(page);
+    return await this.pageRepository.save(page);
   }
 
-  async forceDelete(pageId: string) {
-    return this.pageRepository.delete(pageId);
+  async update(pageId: string, updatePageDto: UpdatePageDto): Promise<Page> {
+    const page = await this.pageRepository.preload({
+      id: pageId,
+      ...updatePageDto,
+    } as Page);
+
+    return await this.pageRepository.save(page);
+  }
+
+  async delete(pageId: string): Promise<void> {
+    await this.pageRepository.softDelete(pageId);
+  }
+
+  async forceDelete(pageId: string): Promise<void> {
+    await this.pageRepository.delete(pageId);
+  }
+
+  async lockOrUnlockPage(pageId: string, lock: boolean): Promise<Page> {
+    await this.pageRepository.update(pageId, { isLocked: lock });
+    return await this.pageRepository.findById(pageId);
+  }
+
+  async getRecentPages(limit = 10): Promise<Page[]> {
+    return await this.pageRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+    });
   }
 }
