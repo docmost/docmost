@@ -51,8 +51,7 @@ export class WorkspaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async deleteWorkspace(@Body() deleteWorkspaceDto: DeleteWorkspaceDto,
-  ) {
+  async deleteWorkspace(@Body() deleteWorkspaceDto: DeleteWorkspaceDto) {
     return this.workspaceService.delete(deleteWorkspaceDto);
   }
 
@@ -68,7 +67,7 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('member')
+  @Post('members/add')
   async addWorkspaceMember(
     @Req() req: FastifyRequest,
     @Body() addWorkspaceUserDto: AddWorkspaceUserDto,
@@ -86,7 +85,7 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Delete('member')
+  @Delete('members/delete')
   async removeWorkspaceMember(
     @Req() req: FastifyRequest,
     @Body() removeWorkspaceUserDto: RemoveWorkspaceUserDto,
@@ -103,7 +102,7 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('member/role')
+  @Post('members/role')
   async updateWorkspaceMemberRole(
     @Req() req: FastifyRequest,
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,

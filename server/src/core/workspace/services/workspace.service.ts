@@ -22,6 +22,10 @@ export class WorkspaceService {
     private workspaceUserRepository: WorkspaceUserRepository,
   ) {}
 
+  async findById(workspaceId: string): Promise<Workspace> {
+    return await this.workspaceRepository.findById(workspaceId);
+  }
+
   async create(
     userId: string,
     createWorkspaceDto?: CreateWorkspaceDto,
@@ -63,7 +67,7 @@ export class WorkspaceService {
     return this.workspaceRepository.save(workspace);
   }
 
-  async delete(deleteWorkspaceDto: DeleteWorkspaceDto) {
+  async delete(deleteWorkspaceDto: DeleteWorkspaceDto): Promise<void> {
     const workspace = await this.workspaceRepository.findById(
       deleteWorkspaceDto.workspaceId,
     );
@@ -71,7 +75,9 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    return 0;
+    //TODO
+    // remove all existing users from workspace
+    // delete workspace
   }
 
   async addUserToWorkspace(
@@ -79,6 +85,14 @@ export class WorkspaceService {
     workspaceId: string,
     role: string,
   ): Promise<WorkspaceUser> {
+    const existingWorkspaceUser = await this.workspaceUserRepository.findOne({
+      where: { userId: userId, workspaceId: workspaceId },
+    });
+
+    if (existingWorkspaceUser) {
+      throw new BadRequestException('User already added to this workspace');
+    }
+
     const workspaceUser = new WorkspaceUser();
     workspaceUser.userId = userId;
     workspaceUser.workspaceId = workspaceId;
@@ -104,7 +118,7 @@ export class WorkspaceService {
     }
 
     workspaceUser.role = workspaceUserRoleDto.role;
-    // if there is only one workspace owner, prevent the role change
+    // TODO: if there is only one workspace owner, prevent the role change
 
     return this.workspaceUserRepository.save(workspaceUser);
   }
@@ -125,10 +139,6 @@ export class WorkspaceService {
       userId,
       workspaceId,
     });
-  }
-
-  async findById(workspaceId: string): Promise<Workspace> {
-    return await this.workspaceRepository.findById(workspaceId);
   }
 
   async getUserCurrentWorkspace(userId: string): Promise<Workspace> {
