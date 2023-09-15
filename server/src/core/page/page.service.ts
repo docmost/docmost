@@ -22,17 +22,27 @@ export class PageService {
     page.creatorId = userId;
     page.workspaceId = workspaceId;
 
-    console.log(page);
     return await this.pageRepository.save(page);
   }
 
   async update(pageId: string, updatePageDto: UpdatePageDto): Promise<Page> {
+    const existingPage = await this.pageRepository.findById(pageId);
+    if (!existingPage) {
+      throw new Error(`Page with ID ${pageId} not found`);
+    }
+
     const page = await this.pageRepository.preload({
       id: pageId,
       ...updatePageDto,
     } as Page);
-
     return await this.pageRepository.save(page);
+  }
+
+  async updateState(pageId: string, content: any, ydoc: any): Promise<void> {
+    await this.pageRepository.update(pageId, {
+      content: content,
+      ydoc: ydoc,
+    });
   }
 
   async delete(pageId: string): Promise<void> {

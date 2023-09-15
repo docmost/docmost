@@ -45,6 +45,7 @@ export const renderMenuItem = (menu, index) => {
   if (menu.target) {
     return (
       <NavigationLink
+        key={index}
         href={menu.target}
         icon={menu.icon}
         className="w-full flex flex-1 justify-start items-center"

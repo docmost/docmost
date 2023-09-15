@@ -20,14 +20,14 @@ export class Page {
   @Column({ length: 500, nullable: true })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   content: string;
 
   @Column({ type: 'text', nullable: true })
   html: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  json: any;
+  @Column({ type: 'bytea', nullable: true })
+  ydoc: any;
 
   @Column({ nullable: true })
   slug: string;
