@@ -5,6 +5,7 @@ import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './environment/environment.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppDataSource } from './database/typeorm.config';
+import { CollaborationModule } from './collaboration/collaboration.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AppDataSource } from './database/typeorm.config';
       migrations: ['dist/src/**/migrations/*.{ts,js}'],
       autoLoadEntities: true,
     }),
+    CollaborationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

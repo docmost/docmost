@@ -14,7 +14,11 @@ export default function DashboardLayout({ children }: {
   return (
     <UserProvider>
       <Shell>
-        {children}
+        <div className="w-full flex justify-center z-10 flex-shrink-0">
+          <div className={`w-[900px]`}>
+            {children}
+          </div>
+        </div>
       </Shell>
     </UserProvider>
   );

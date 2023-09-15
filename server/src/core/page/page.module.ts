@@ -11,5 +11,6 @@ import { WorkspaceModule } from '../workspace/workspace.module';
   imports: [TypeOrmModule.forFeature([Page]), AuthModule, WorkspaceModule],
   controllers: [PageController],
   providers: [PageService, PageRepository],
+  exports: [PageService, PageRepository],
 })
 export class PageModule {}

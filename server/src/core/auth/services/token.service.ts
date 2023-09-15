@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../environment/environment.service';
 import { User } from '../../user/entities/user.entity';
 import { FastifyRequest } from 'fastify';
-import { TokensDto } from "../dto/tokens.dto";
+import { TokensDto } from '../dto/tokens.dto';
 
 @Injectable()
 export class TokenService {
