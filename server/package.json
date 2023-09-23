@@ -27,6 +27,8 @@
     "migration:show": "npm run typeorm migration:show"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.417.0",
+    "@aws-sdk/s3-request-presigner": "^3.418.0",
     "@hocuspocus/server": "^2.5.0",
     "@hocuspocus/transformer": "^2.5.0",
     "@nestjs/common": "^10.0.0",
@@ -42,6 +44,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "fastify": "^4.22.2",
+    "fs-extra": "^11.1.1",
+    "mime-types": "^2.1.35",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
@@ -55,7 +59,9 @@
     "@nestjs/testing": "^10.0.0",
     "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.17",
+    "@types/fs-extra": "^11.0.2",
     "@types/jest": "^29.5.2",
+    "@types/mime-types": "^2.1.1",
     "@types/node": "^20.3.1",
     "@types/supertest": "^2.0.12",
     "@types/uuid": "^9.0.3",
