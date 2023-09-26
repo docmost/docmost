@@ -14,6 +14,7 @@
     "@mantine/core": "^7.0.2",
     "@mantine/form": "^7.0.2",
     "@mantine/hooks": "^7.0.2",
+    "@mantine/spotlight": "^7.0.2",
     "@tabler/icons-react": "^2.32.0",
     "@tanstack/react-query": "^4.33.0",
     "@tanstack/react-table": "^8.9.3",

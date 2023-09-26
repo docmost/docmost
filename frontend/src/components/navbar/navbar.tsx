@@ -6,6 +6,7 @@ import {
   Tooltip,
   rem,
 } from '@mantine/core';
+import { spotlight } from '@mantine/spotlight';
 import {
   IconSearch,
   IconPlus,
@@ -19,6 +20,7 @@ import React from 'react';
 import { useAtom } from 'jotai';
 import { settingsModalAtom } from '@/features/settings/modal/atoms/settings-modal-atom';
 import SettingsModal from '@/features/settings/modal/settings-modal';
+import { SearchSpotlight } from '@/features/search/search-spotlight';
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
@@ -53,6 +55,11 @@ export function Navbar() {
   const [, setSettingsModalOpen] = useAtom(settingsModalAtom);
 
   const handleMenuItemClick = (label: string) => {
+
+    if (label === 'Search') {
+      spotlight.open();
+    }
+
     if (label === 'Settings') {
       setSettingsModalOpen(true);
     }
@@ -112,6 +119,7 @@ export function Navbar() {
         </div>
       </nav>
 
+      <SearchSpotlight />
       <SettingsModal />
     </>
   );
