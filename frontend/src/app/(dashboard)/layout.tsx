@@ -1,9 +1,9 @@
-"use client"
+'use client';
 
-import dynamic from "next/dynamic";
-import { UserProvider } from "@/features/user/user-provider";
+import dynamic from 'next/dynamic';
+import { UserProvider } from '@/features/user/user-provider';
 
-const Shell = dynamic(() => import("./shell"), {
+const Shell = dynamic(() => import('./shell'), {
   ssr: false,
 });
 
@@ -14,11 +14,7 @@ export default function DashboardLayout({ children }: {
   return (
     <UserProvider>
       <Shell>
-        <div className="w-full flex justify-center z-10 flex-shrink-0">
-          <div className={`w-[900px]`}>
-            {children}
-          </div>
-        </div>
+        {children}
       </Shell>
     </UserProvider>
   );
