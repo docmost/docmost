@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@hocuspocus/provider": "^2.5.0",
-    "@mantine/core": "^7.0.0",
-    "@mantine/form": "^7.0.0",
-    "@mantine/hooks": "^7.0.0",
+    "@mantine/core": "^7.0.2",
+    "@mantine/form": "^7.0.2",
+    "@mantine/hooks": "^7.0.2",
     "@tabler/icons-react": "^2.32.0",
     "@tanstack/react-query": "^4.33.0",
     "@tanstack/react-table": "^8.9.3",
@@ -42,12 +42,10 @@
     "@types/node": "20.4.8",
     "@types/react": "18.2.18",
     "@types/react-dom": "18.2.7",
-    "autoprefixer": "^10.4.16",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.13",
     "optics-ts": "^2.4.1",
     "postcss": "^8.4.30",
-    "postcss-preset-env": "^9.1.4",
     "postcss-preset-mantine": "^1.7.0",
     "postcss-simple-vars": "^7.0.1"
   }

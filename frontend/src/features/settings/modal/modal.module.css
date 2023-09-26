@@ -41,10 +41,11 @@
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-sm);
   font-weight: 500;
+  user-select: none;
 
   @mixin hover {
     background-color: light-dark(
-      var(--mantine-color-gray-0),
+      var(--mantine-color-gray-1),
       var(--mantine-color-dark-6)
     );
     color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
@@ -54,7 +55,7 @@
     }
   }
 
-  & [data-active] {
+  &[data-active] {
     &,
     & :hover {
       background-color: var(--mantine-color-blue-light);
