@@ -13,7 +13,7 @@
 .section {
     margin-left: calc(var(--mantine-spacing-md) * -1);
     margin-right: calc(var(--mantine-spacing-md) * -1);
-    margin-bottom: var(--mantine-spacing-md);
+    margin-bottom: var(--mantine-spacing-sm);
 
     &:not(:last-of-type) {
         border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));

@@ -1,0 +1,33 @@
+.app {
+    height: 100%;
+}
+
+.treeRoot {
+    list-style-type: none;
+    padding-inline-start: 0px;
+    padding: rem(1px);
+    position: relative;
+}
+
+.treeRoot ul {
+    list-style-type: none;
+    padding-inline-start: 0px;
+    position: relative;
+    padding-bottom: 5px;
+}
+
+.treeRoot > li:after {
+    display: none;
+}
+
+.draggingSource {
+    opacity: 0.3;
+}
+
+.placeholderContainer {
+    position: relative;
+}
+
+.dropTarget {
+    background-color: #e8f0fe;
+}

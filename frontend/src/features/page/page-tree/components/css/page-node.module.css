@@ -1,0 +1,52 @@
+.root {
+    align-items: center;
+    display: flex;
+    height: rem(32px);
+    cursor: pointer;
+    padding: rem(8px) var(--mantine-spacing-xs);
+    border-radius: var(--mantine-radius-sm);
+    font-size: var(--mantine-font-size-xs);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    line-height: 1;
+    font-weight: 500;
+
+    &:hover {
+        background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+        color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    }
+}
+
+.arrow {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    height: rem(24px);
+    justify-content: center;
+    width: rem(24px);
+    transition: transform linear 0.1s;
+    transform: rotate(0deg);
+}
+
+.arrow > div {
+    align-items: center;
+    display: flex;
+}
+
+.arrow.isOpen {
+    transform: rotate(90deg);
+}
+
+.icon {
+    display: flex;
+}
+
+.sidebarItemIcon {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    margin-right: var(--mantine-spacing-sm);
+    width: rem(20px);
+    height: rem(20px);
+}
+
+.label {
+    padding-inline-start: rem(8px);
+}

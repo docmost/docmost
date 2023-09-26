@@ -3,8 +3,9 @@
 import { useAtom } from 'jotai';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 
-export default function HomeB() {
+export default function Home() {
   const [currentUser] = useAtom(currentUserAtom);
+
 
   return (
     <>

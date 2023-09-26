@@ -21,6 +21,7 @@ import { useAtom } from 'jotai';
 import { settingsModalAtom } from '@/features/settings/modal/atoms/settings-modal-atom';
 import SettingsModal from '@/features/settings/modal/settings-modal';
 import { SearchSpotlight } from '@/features/search/search-spotlight';
+import PageTree from '@/features/page/page-tree/page-tree';
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
@@ -42,13 +43,7 @@ const primaryMenu: PrimaryMenuItem[] = [
 const pages: PageItem[] = [
   { emoji: '👍', label: 'Sales' },
   { emoji: '🚚', label: 'Deliveries' },
-  { emoji: '💸', label: 'Discounts' },
-  { emoji: '💰', label: 'Profits' },
   { emoji: '✨', label: 'Reports' },
-  { emoji: '🛒', label: 'Orders' },
-  { emoji: '📅', label: 'Events' },
-  { emoji: '🙈', label: 'Debts' },
-  { emoji: '💁‍♀️', label: 'Customers' },
 ];
 
 export function Navbar() {
@@ -101,6 +96,7 @@ export function Navbar() {
           <div className={classes.menuItems}>{primaryMenuItems}</div>
         </div>
 
+
         <div className={classes.section}>
           <Group className={classes.pagesHeader} justify="space-between">
             <Text size="xs" fw={500} c="dimmed">
@@ -114,6 +110,20 @@ export function Navbar() {
                 />
               </ActionIcon>
             </Tooltip>
+          </Group>
+
+          <div className={classes.pages}>
+            <PageTree />
+          </div>
+
+        </div>
+
+
+        <div className={classes.section}>
+          <Group className={classes.pagesHeader} justify="space-between">
+            <Text size="xs" fw={500} c="dimmed">
+              Favorites
+            </Text>
           </Group>
           <div className={classes.pages}>{pageLinks}</div>
         </div>

@@ -1,0 +1,20 @@
+.root {
+    align-items: "center";
+    background-color: #1967d2;
+    border-radius: 4px;
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+    color: #fff;
+    display: inline-grid;
+    font-size: 14px;
+    gap: 8px;
+    grid-template-columns: auto auto;
+    padding: 4px 8px;
+    pointer-events: none;
+}
+
+.icon,
+.label {
+    align-items: center;
+    display: flex;
+}
