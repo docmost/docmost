@@ -1,23 +1,15 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { MoonIcon, SunIcon } from "@radix-ui/react-icons"
-import { useTheme } from "next-themes"
-
-import { Button } from "@/components/ui/button"
+import { Button, Group, useMantineColorScheme } from '@mantine/core';
 
 export function ThemeToggle() {
-    const { setTheme, theme } = useTheme()
+    const { setColorScheme } = useMantineColorScheme();
 
     return (
-        <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        >
-            <SunIcon className="h-[1.5rem] w-[1.3rem] dark:hidden" />
-            <MoonIcon className="hidden h-5 w-5 dark:block" />
-            <span className="sr-only">Toggle theme</span>
-        </Button>
-    )
+      <Group justify="center" mt="xl">
+          <Button onClick={() => setColorScheme('light')}>Light</Button>
+          <Button onClick={() => setColorScheme('dark')}>Dark</Button>
+          <Button onClick={() => setColorScheme('auto')}>Auto</Button>
+      </Group>
+    );
 }

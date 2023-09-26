@@ -1,23 +1,54 @@
 'use client';
 
-import Sidebar from '@/components/sidebar/sidebar';
-import TopBar from '@/components/sidebar/topbar';
+import { desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
+import { useToggleSidebar } from '@/components/navbar/hooks/use-toggle-sidebar';
+import { Navbar } from '@/components/navbar/navbar';
+import { AppShell, Burger, Group } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { useAtom } from 'jotai';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
+  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
+  const [desktopOpened] = useAtom(desktopSidebarAtom);
+  const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
+
+
   return (
-    <div className="flex justify-start min-h-screen">
-      <Sidebar />
+    <AppShell
+      layout="alt"
+      header={{ height: 45 }}
+      navbar={{
+        width: 300,
+        breakpoint: 'sm',
+        collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
+      }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md">
+          <Burger
+            opened={mobileOpened}
+            onClick={toggleMobile}
+            hiddenFrom="sm"
+            size="sm"
+          />
+          <Burger
+            opened={desktopOpened}
+            onClick={toggleDesktop}
+            visibleFrom="sm"
+            size="sm"
+          />
 
-      <div className="flex flex-col w-full overflow-hidden">
-        <TopBar />
+          Header
 
-        <main
-          className="overflow-y-auto overscroll-none w-full p-8"
-          style={{ height: 'calc(100vh - 50px)' }}
-        >
-          {children}
-        </main>
-      </div>
-    </div>
+        </Group>
+      </AppShell.Header>
+
+      <AppShell.Navbar>
+        <Navbar />
+      </AppShell.Navbar>
+
+      <AppShell.Main>{children}</AppShell.Main>
+    </AppShell>
   );
 }
