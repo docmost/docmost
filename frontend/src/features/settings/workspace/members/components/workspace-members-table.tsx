@@ -4,7 +4,7 @@ import { useAtom } from 'jotai';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 import { useQuery } from '@tanstack/react-query';
 import { getWorkspaceUsers } from '@/features/workspace/services/workspace-service';
-import { Table } from '@mantine/core';
+import { Group, Table, Avatar, Text, Badge } from '@mantine/core';
 
 export default function WorkspaceMembersTable() {
   const [currentUser] = useAtom(currentUserAtom);
@@ -22,11 +22,11 @@ export default function WorkspaceMembersTable() {
     <>
       {isSuccess &&
 
-        <Table>
+        <Table verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Name</Table.Th>
-              <Table.Th>Email</Table.Th>
+              <Table.Th>Status</Table.Th>
               <Table.Th>Role</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -36,8 +36,27 @@ export default function WorkspaceMembersTable() {
             {
               data['users']?.map((user, index) => (
                 <Table.Tr key={index}>
-                  <Table.Td>{user.name}</Table.Td>
-                  <Table.Td>{user.email}</Table.Td>
+
+                  <Table.Td>
+                    <Group gap="sm">
+                      <Avatar size={40} src={user.name} radius={40} />
+                      <div>
+                        <Text fz="sm" fw={500}>
+                          {user.name}
+                        </Text>
+                        <Text fz="xs" c="dimmed">
+                          {user.email}
+                        </Text>
+                      </div>
+                    </Group>
+                  </Table.Td>
+
+                  <Table.Td>
+                    <Badge variant="light">
+                      Active
+                    </Badge>
+                  </Table.Td>
+
                   <Table.Td>{user.workspaceRole}</Table.Td>
                 </Table.Tr>
               ))
