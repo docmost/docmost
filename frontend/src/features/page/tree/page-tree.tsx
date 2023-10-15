@@ -18,21 +18,19 @@ import clsx from 'clsx';
 
 import styles from './styles/tree.module.css';
 import { ActionIcon, Menu, rem } from '@mantine/core';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom } from 'jotai';
 import { FillFlexParent } from './components/fill-flex-parent';
 import { TreeNode } from './types';
 import { treeApiAtom } from './atoms/tree-api-atom';
 import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
 import { IPage } from '@/features/page/types/page.types';
 import { getPages } from '@/features/page/services/page-service';
-import { workspacePageOrderAtom } from '@/features/page/tree/atoms/workspace-page-order-atom';
 import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
 
 export default function PageTree() {
   const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
   const [, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
-  //const [workspacePageOrder, setWorkspacePageOrder] = useAtom(workspacePageOrderAtom)
-  const { data: pageOrderData, isLoading, error } = useWorkspacePageOrder();
+  const { data: pageOrderData } = useWorkspacePageOrder();
 
   const fetchAndSetTreeData = async () => {
     if (pageOrderData?.childrenIds) {

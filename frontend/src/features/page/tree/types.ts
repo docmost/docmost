@@ -4,4 +4,4 @@ export type TreeNode = {
     icon?: string
     slug?: string
     children: TreeNode[]
-  }
+}
