@@ -2,32 +2,34 @@ import {
   Controller,
   Post,
   Body,
-  Delete,
-  Get,
-  Param,
   Req,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { PageService } from './page.service';
+import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { FastifyRequest } from 'fastify';
 import { JwtGuard } from '../auth/guards/JwtGuard';
 import { WorkspaceService } from '../workspace/services/workspace.service';
+import { MovePageDto } from './dto/move-page.dto';
+import { PageDetailsDto } from './dto/page-details.dto';
+import { DeletePageDto } from './dto/delete-page.dto';
+import { PageOrderingService } from './services/page-ordering.service';
 
 @UseGuards(JwtGuard)
 @Controller('page')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
+    private readonly pageOrderService: PageOrderingService,
     private readonly workspaceService: WorkspaceService,
   ) {}
 
-  @Get('/info/:id')
-  async getPage(@Param('id') pageId: string) {
-    return this.pageService.findById(pageId);
+  @Post('/details')
+  async getPage(@Body() input: PageDetailsDto) {
+    return this.pageService.findById(input.id);
   }
 
   @HttpCode(HttpStatus.CREATED)
@@ -42,21 +44,58 @@ export class PageController {
     const workspaceId = (
       await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
     ).id;
-
-    //const workspaceId = 'f9a12ec1-6b94-4191-b1d7-32ab93b330dc';
     return this.pageService.create(userId, workspaceId, createPageDto);
   }
 
-  @Post('update/:id')
-  async update(
-    @Param('id') pageId: string,
-    @Body() updatePageDto: UpdatePageDto,
-  ) {
-    return this.pageService.update(pageId, updatePageDto);
+  @Post('update')
+  async update(@Body() updatePageDto: UpdatePageDto) {
+    return this.pageService.update(updatePageDto.id, updatePageDto);
   }
 
-  @Delete('delete/:id')
-  async delete(@Param('id') pageId: string) {
-    await this.pageService.delete(pageId);
+  @Post('delete')
+  async delete(@Body() deletePageDto: DeletePageDto) {
+    await this.pageService.delete(deletePageDto.id);
+  }
+
+  @Post('restore')
+  async restore(@Body() deletePageDto: DeletePageDto) {
+    await this.pageService.restore(deletePageDto.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('move')
+  async movePage(@Body() movePageDto: MovePageDto) {
+    return this.pageOrderService.movePage(movePageDto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('list')
+  async getWorkspacePages(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+    const workspaceId = (
+      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+    ).id;
+    return this.pageService.getByWorkspaceId(workspaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('list/order')
+  async getWorkspacePageOrder(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+    const workspaceId = (
+      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+    ).id;
+    return this.pageOrderService.getWorkspacePageOrder(workspaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('tree')
+  async workspacePageTree(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+    const workspaceId = (
+      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+    ).id;
+
+    return this.pageOrderService.convertToTree(workspaceId);
   }
 }

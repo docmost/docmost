@@ -23,7 +23,11 @@ export class WorkspaceService {
   ) {}
 
   async findById(workspaceId: string): Promise<Workspace> {
-    return await this.workspaceRepository.findById(workspaceId);
+    return this.workspaceRepository.findById(workspaceId);
+  }
+
+  async save(workspace: Workspace) {
+    return this.workspaceRepository.save(workspace);
   }
 
   async create(

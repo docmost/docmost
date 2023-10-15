@@ -2,7 +2,7 @@
 
 import { useAtom } from 'jotai';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import useCurrentUser from '@/features/user/hooks/use-current-user';
 
 export function UserProvider({ children }: React.PropsWithChildren) {

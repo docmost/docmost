@@ -9,6 +9,7 @@ export interface IWorkspace {
   inviteCode: string;
   settings: any;
   creatorId: string;
+  pageOrder?:[]
   createdAt: Date;
   updatedAt: Date;
 }

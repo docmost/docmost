@@ -21,16 +21,13 @@ import { useAtom } from 'jotai';
 import { settingsModalAtom } from '@/features/settings/modal/atoms/settings-modal-atom';
 import SettingsModal from '@/features/settings/modal/settings-modal';
 import { SearchSpotlight } from '@/features/search/search-spotlight';
+import PageTree from '@/features/page/tree/page-tree';
+import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom';
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
   label: string;
   onClick?: () => void;
-}
-
-interface PageItem {
-  emoji: string;
-  label: string;
 }
 
 const primaryMenu: PrimaryMenuItem[] = [
@@ -39,23 +36,11 @@ const primaryMenu: PrimaryMenuItem[] = [
   { icon: IconFilePlus, label: 'New Page' },
 ];
 
-const pages: PageItem[] = [
-  { emoji: '👍', label: 'Sales' },
-  { emoji: '🚚', label: 'Deliveries' },
-  { emoji: '💸', label: 'Discounts' },
-  { emoji: '💰', label: 'Profits' },
-  { emoji: '✨', label: 'Reports' },
-  { emoji: '🛒', label: 'Orders' },
-  { emoji: '📅', label: 'Events' },
-  { emoji: '🙈', label: 'Debts' },
-  { emoji: '💁‍♀️', label: 'Customers' },
-];
-
 export function Navbar() {
   const [, setSettingsModalOpen] = useAtom(settingsModalAtom);
+  const [tree] = useAtom(treeApiAtom);
 
   const handleMenuItemClick = (label: string) => {
-
     if (label === 'Search') {
       spotlight.open();
     }
@@ -65,29 +50,25 @@ export function Navbar() {
     }
   };
 
+  function handleCreatePage() {
+    tree?.create({ parentId: null, type: 'internal', index: 0 });
+  }
+
   const primaryMenuItems = primaryMenu.map((menuItem) => (
-    <UnstyledButton key={menuItem.label} className={classes.menu}
-                    onClick={() => handleMenuItemClick(menuItem.label)}
+    <UnstyledButton
+      key={menuItem.label}
+      className={classes.menu}
+      onClick={() => handleMenuItemClick(menuItem.label)}
     >
       <div className={classes.menuItemInner}>
-        <menuItem.icon size={20} className={classes.menuItemIcon} stroke={1.5} />
+        <menuItem.icon
+          size={20}
+          className={classes.menuItemIcon}
+          stroke={1.5}
+        />
         <span>{menuItem.label}</span>
       </div>
     </UnstyledButton>
-  ));
-
-  const pageLinks = pages.map((page) => (
-    <a
-      href="#"
-      onClick={(event) => event.preventDefault()}
-      key={page.label}
-      className={classes.pageLink}
-    >
-      <span style={{ marginRight: rem(9), fontSize: rem(16) }}>
-        {page.emoji}
-      </span>{' '}
-      {page.label}
-    </a>
   ));
 
   return (
@@ -106,8 +87,13 @@ export function Navbar() {
             <Text size="xs" fw={500} c="dimmed">
               Pages
             </Text>
+
             <Tooltip label="Create page" withArrow position="right">
-              <ActionIcon variant="default" size={18}>
+              <ActionIcon
+                variant="default"
+                size={18}
+                onClick={handleCreatePage}
+              >
                 <IconPlus
                   style={{ width: rem(12), height: rem(12) }}
                   stroke={1.5}
@@ -115,7 +101,11 @@ export function Navbar() {
               </ActionIcon>
             </Tooltip>
           </Group>
-          <div className={classes.pages}>{pageLinks}</div>
+
+          <div className={classes.pages}>
+            <PageTree />
+          </div>
+
         </div>
       </nav>
 

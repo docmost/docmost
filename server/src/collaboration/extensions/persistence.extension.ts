@@ -1,6 +1,6 @@
 import { Extension, onLoadDocumentPayload, onStoreDocumentPayload } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { PageService } from '../../core/page/page.service';
+import { PageService } from '../../core/page/services/page.service';
 import { Injectable } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 

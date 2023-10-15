@@ -9,5 +9,4 @@ export default function useCurrentUser(): UseQueryResult<ICurrentUserResponse> {
       return await getUserInfo();
     },
   });
-
 }
