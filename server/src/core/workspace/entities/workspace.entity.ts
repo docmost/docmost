@@ -7,7 +7,6 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-  ManyToMany,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { WorkspaceUser } from './workspace-user.entity';

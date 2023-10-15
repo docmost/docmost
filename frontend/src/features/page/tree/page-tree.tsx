@@ -1,11 +1,9 @@
 import { NodeApi, NodeRendererProps, Tree, TreeApi } from 'react-arborist';
-import { pageData } from '@/features/page/tree/data';
 import {
   IconArrowsLeftRight,
   IconChevronDown,
   IconChevronRight,
   IconCornerRightUp,
-  IconDots,
   IconDotsVertical,
   IconEdit,
   IconFileDescription,
@@ -15,26 +13,42 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import clsx from 'clsx';
 
-import styles from './tree.module.css';
+import styles from './styles/tree.module.css';
 import { ActionIcon, Menu, rem } from '@mantine/core';
-import { atom, useAtom } from 'jotai';
-import { useDynamicTree } from './hooks/use-dynamic-tree';
+import { useAtom, useAtomValue } from 'jotai';
 import { FillFlexParent } from './components/fill-flex-parent';
-import { Data } from './types';
+import { TreeNode } from './types';
 import { treeApiAtom } from './atoms/tree-api-atom';
+import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
+import { IPage } from '@/features/page/types/page.types';
+import { getPages } from '@/features/page/services/page-service';
+import { workspacePageOrderAtom } from '@/features/page/tree/atoms/workspace-page-order-atom';
+import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
 
 export default function PageTree() {
-  const { data, setData, controllers } = useDynamicTree();
+  const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
+  const [, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
+  //const [workspacePageOrder, setWorkspacePageOrder] = useAtom(workspacePageOrderAtom)
+  const { data: pageOrderData, isLoading, error } = useWorkspacePageOrder();
 
-  const [, setTree] = useAtom<TreeApi<Data>>(treeApiAtom);
-
+  const fetchAndSetTreeData = async () => {
+    if (pageOrderData?.childrenIds) {
+      try {
+        const pages = await getPages();
+        const treeData = convertToTree(pages, pageOrderData.childrenIds);
+        setData(treeData);
+      } catch (err) {
+        console.error('Error fetching tree data: ', err);
+      }
+    }
+  };
 
   useEffect(() => {
-    setData(pageData);
-  }, [setData]);
+    fetchAndSetTreeData();
+  }, [pageOrderData?.childrenIds]);
 
   return (
     <div className={styles.treeContainer}>
@@ -91,7 +105,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
   );
 }
 
-function CreateNode({ node }: { node: NodeApi<Data> }) {
+function CreateNode({ node }: { node: NodeApi<TreeNode> }) {
   const [tree] = useAtom(treeApiAtom);
 
   function handleCreate() {
@@ -105,13 +119,10 @@ function CreateNode({ node }: { node: NodeApi<Data> }) {
   );
 }
 
-function NodeMenu({ node }: { node: NodeApi<Data> }) {
+function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
   const [tree] = useAtom(treeApiAtom);
 
   function handleDelete() {
-    const sib = node.nextSibling;
-    const parent = node.parent;
-    tree?.focus(sib || parent, { scroll: false });
     tree?.delete(node);
   }
 
@@ -177,7 +188,7 @@ function NodeMenu({ node }: { node: NodeApi<Data> }) {
   );
 }
 
-function PageArrow({ node }: { node: NodeApi<Data> }) {
+function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
   return (
     <span onClick={() => node.toggle()}>
       {node.isInternal ? (
@@ -195,7 +206,7 @@ function PageArrow({ node }: { node: NodeApi<Data> }) {
   );
 }
 
-function Input({ node }: { node: NodeApi<Data> }) {
+function Input({ node }: { node: NodeApi<TreeNode> }) {
   return (
     <input
       autoFocus
@@ -212,3 +223,32 @@ function Input({ node }: { node: NodeApi<Data> }) {
     />
   );
 }
+
+function convertToTree(pages: IPage[], pageOrder: string[]): TreeNode[] {
+  const pageMap: { [id: string]: IPage } = {};
+  pages.forEach(page => {
+    pageMap[page.id] = page;
+  });
+
+  function buildTreeNode(id: string): TreeNode | undefined {
+    const page = pageMap[id];
+    if (!page) return;
+
+    const node: TreeNode = {
+      id: page.id,
+      name: page.title,
+      children: [],
+    };
+
+    if (page.icon) node.icon = page.icon;
+
+    if (page.childrenIds && page.childrenIds.length > 0) {
+      node.children = page.childrenIds.map(childId => buildTreeNode(childId)).filter(Boolean) as TreeNode[];
+    }
+
+    return node;
+  }
+
+  return pageOrder.map(id => buildTreeNode(id)).filter(Boolean) as TreeNode[];
+}
+

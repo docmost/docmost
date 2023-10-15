@@ -1,5 +1,5 @@
 import { atom } from "jotai";
 import { TreeApi } from 'react-arborist';
-import { Data } from "../types";
+import { TreeNode } from "../types";
 
-export const treeApiAtom = atom<TreeApi<Data> | null>(null);
+export const treeApiAtom = atom<TreeApi<TreeNode> | null>(null);

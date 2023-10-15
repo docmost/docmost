@@ -30,27 +30,10 @@ interface PrimaryMenuItem {
   onClick?: () => void;
 }
 
-interface PageItem {
-  emoji: string;
-  label: string;
-}
-
 const primaryMenu: PrimaryMenuItem[] = [
   { icon: IconSearch, label: 'Search' },
   { icon: IconSettings, label: 'Settings' },
   { icon: IconFilePlus, label: 'New Page' },
-];
-
-const pages: PageItem[] = [
-  { emoji: '👍', label: 'Sales' },
-  { emoji: '🚚', label: 'Deliveries' },
-  { emoji: '💸', label: 'Discounts' },
-  { emoji: '💰', label: 'Profits' },
-  { emoji: '✨', label: 'Reports' },
-  { emoji: '🛒', label: 'Orders' },
-  { emoji: '📅', label: 'Events' },
-  { emoji: '🙈', label: 'Debts' },
-  { emoji: '💁‍♀️', label: 'Customers' },
 ];
 
 export function Navbar() {
@@ -68,7 +51,7 @@ export function Navbar() {
   };
 
   function handleCreatePage() {
-    tree?.create({ type: 'internal', index: 0 });
+    tree?.create({ parentId: null, type: 'internal', index: 0 });
   }
 
   const primaryMenuItems = primaryMenu.map((menuItem) => (
@@ -86,20 +69,6 @@ export function Navbar() {
         <span>{menuItem.label}</span>
       </div>
     </UnstyledButton>
-  ));
-
-  const pageLinks = pages.map((page) => (
-    <a
-      href="#"
-      onClick={(event) => event.preventDefault()}
-      key={page.label}
-      className={classes.pageLink}
-    >
-      <span style={{ marginRight: rem(9), fontSize: rem(16) }}>
-        {page.emoji}
-      </span>{' '}
-      {page.label}
-    </a>
   ));
 
   return (
@@ -137,7 +106,6 @@ export function Navbar() {
             <PageTree />
           </div>
 
-          <div className={classes.pages}>{pageLinks}</div>
         </div>
       </nav>
 

@@ -1,9 +1,7 @@
-export type Data = {
+export type TreeNode = {
     id: string
     name: string
     icon?: string
     slug?: string
-    selected?: boolean
-    children: Data[]
+    children: TreeNode[]
   }
-  

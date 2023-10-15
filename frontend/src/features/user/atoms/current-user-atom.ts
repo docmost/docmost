@@ -1,4 +1,3 @@
-import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 
 import { ICurrentUserResponse } from "@/features/user/types/user.types";
