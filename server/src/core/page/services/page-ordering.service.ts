@@ -50,11 +50,6 @@ export class PageOrderingService {
           manager,
         );
 
-        console.log(movedPageId);
-        console.log(workspaceOrdering.childrenIds);
-        console.log(dto.after);
-        console.log(dto.before);
-
         orderPageList(workspaceOrdering.childrenIds, dto);
 
         console.log(workspaceOrdering.childrenIds);

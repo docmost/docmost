@@ -8,10 +8,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToOne,
 } from 'typeorm';
 import { Workspace } from '../../workspace/entities/workspace.entity';
-import { Page } from './page.entity';
 
 @Entity('page_ordering')
 @Unique(['entityId', 'entityType'])
