@@ -29,7 +29,7 @@ export function usePersistence<T>() {
     setData(tree.data);
 
     const currentTreeData = args.parentId ? tree.find(args.parentId).children : tree.data;
-    const afterId = currentTreeData[args.index - 2]?.id || null;
+    const afterId = currentTreeData[args.index - 2]?.id || null; //TODO: fix after Id bug
     const beforeId = !afterId && currentTreeData[args.index + 1]?.id || null;
 
     const params: IMovePage= {

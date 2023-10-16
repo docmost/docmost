@@ -1,19 +1,12 @@
-import {
-  OnGatewayConnection,
-  WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
 import { Server as HocuspocusServer } from '@hocuspocus/server';
 import { IncomingMessage } from 'http';
-import WebSocket, { Server } from 'ws';
+import WebSocket from 'ws';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
+import { Injectable } from '@nestjs/common';
 
-@WebSocketGateway({ path: '/collaboration' })
-export class CollaborationGateway implements OnGatewayConnection {
-  @WebSocketServer()
-  server: Server;
-
+@Injectable()
+export class CollaborationGateway {
   constructor(
     private authenticationExtension: AuthenticationExtension,
     private persistenceExtension: PersistenceExtension,
@@ -27,5 +20,9 @@ export class CollaborationGateway implements OnGatewayConnection {
 
   handleConnection(client: WebSocket, request: IncomingMessage): any {
     this.hocuspocus.handleConnection(client, request);
+  }
+
+  handleDestroy() {
+    this.hocuspocus.destroy();
   }
 }

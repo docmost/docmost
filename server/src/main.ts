@@ -6,7 +6,6 @@ import {
 } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './interceptors/http-response.interceptor';
-import { WsAdapter } from '@nestjs/platform-ws';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -26,7 +25,7 @@ async function bootstrap() {
   app.enableCors();
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
-  app.useWebSocketAdapter(new WsAdapter(app));
+  app.enableShutdownHooks();
 
   await app.listen(process.env.PORT || 3001);
 }
