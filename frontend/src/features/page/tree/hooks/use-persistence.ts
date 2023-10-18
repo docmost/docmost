@@ -11,9 +11,11 @@ import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
 import { createPage, deletePage, movePage, updatePage } from '@/features/page/services/page-service';
 import { v4 as uuidv4 } from 'uuid';
 import { IMovePage } from '@/features/page/types/page.types';
+import { useRouter } from 'next/navigation';
 
 export function usePersistence<T>() {
   const [data, setData] = useAtom<T[]>(treeDataAtom);
+  const router = useRouter();
 
   const tree = useMemo(
     () =>
@@ -28,9 +30,11 @@ export function usePersistence<T>() {
     }
     setData(tree.data);
 
+    const newDragIndex = tree.find(args.dragIds[0])?.childIndex;
+
     const currentTreeData = args.parentId ? tree.find(args.parentId).children : tree.data;
-    const afterId = currentTreeData[args.index - 2]?.id || null; //TODO: fix after Id bug
-    const beforeId = !afterId && currentTreeData[args.index + 1]?.id || null;
+    const afterId = currentTreeData[newDragIndex - 1]?.id || null;
+    const beforeId = !afterId && currentTreeData[newDragIndex + 1]?.id || null;
 
     const params: IMovePage= {
       id: args.dragIds[0],
@@ -74,6 +78,7 @@ export function usePersistence<T>() {
 
     try {
       await createPage(payload);
+      router.push(`/p/${payload.id}`);
     } catch (error) {
       console.error('Error creating the page:', error);
     }
