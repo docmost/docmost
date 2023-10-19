@@ -1,3 +1,5 @@
+'use client'
+
 import {
   UnstyledButton,
   Text,
@@ -21,8 +23,12 @@ import { useAtom } from 'jotai';
 import { settingsModalAtom } from '@/features/settings/modal/atoms/settings-modal-atom';
 import SettingsModal from '@/features/settings/modal/settings-modal';
 import { SearchSpotlight } from '@/features/search/search-spotlight';
-import PageTree from '@/features/page/tree/page-tree';
 import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom';
+import dynamic from 'next/dynamic';
+
+const PageTree = dynamic(() => import("@/features/page/tree/page-tree"), {
+  ssr: false,
+});
 
 interface PrimaryMenuItem {
   icon: React.ElementType;

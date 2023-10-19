@@ -1,5 +1,7 @@
 import '@mantine/core/styles.css';
 import '@mantine/spotlight/styles.css';
+import '@mantine/tiptap/styles.css';
+
 import type { Metadata } from 'next';
 import { TanstackProvider } from '@/components/providers/tanstack-provider';
 import CustomToaster from '@/components/ui/custom-toaster';

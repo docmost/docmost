@@ -1,3 +1,5 @@
+'use client';
+
 import { NodeApi, NodeRendererProps, Tree, TreeApi } from 'react-arborist';
 import {
   IconArrowsLeftRight,
@@ -26,11 +28,13 @@ import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
 import { IPage } from '@/features/page/types/page.types';
 import { getPages } from '@/features/page/services/page-service';
 import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function PageTree() {
   const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
-  const [, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
+  const [tree, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
   const { data: pageOrderData } = useWorkspacePageOrder();
+  const pathname = usePathname();
 
   const fetchAndSetTreeData = async () => {
     if (pageOrderData?.childrenIds) {
@@ -47,6 +51,13 @@ export default function PageTree() {
   useEffect(() => {
     fetchAndSetTreeData();
   }, [pageOrderData?.childrenIds]);
+
+  useEffect(() => {
+    const pageId = pathname?.split('/')[2];
+      setTimeout(() => {
+        tree?.select(pageId);
+      }, 100);
+  }, [tree, pathname]);
 
   return (
     <div className={styles.treeContainer}>
@@ -75,12 +86,25 @@ export default function PageTree() {
 }
 
 function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/p/${node.id}`);
+  }
+
+  if (node.willReceiveDrop && node.isClosed){
+    setTimeout(() => {
+      if (node.state.willReceiveDrop) node.open();
+    }, 650);
+  }
+
   return (
     <>
       <div
         style={style}
         className={clsx(styles.node, node.state)}
         ref={dragHandle}
+        onClick={handleClick}
       >
         <PageArrow node={node} />
 
@@ -188,7 +212,12 @@ function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
 
 function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
   return (
-    <span onClick={() => node.toggle()}>
+    <span onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      node.toggle();
+    }}>
+
       {node.isInternal ? (
         node.children && node.children.length > 0 ? (
           node.isOpen ? (

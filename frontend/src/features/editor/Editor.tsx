@@ -12,7 +12,7 @@ import { useAtom } from 'jotai/index';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
 import useCollaborationUrl from '@/features/editor/hooks/use-collaboration-url';
-import '@/features/editor/css/editor.css';
+import '@/features/editor/styles/editor.css';
 
 interface EditorProps{
   pageId: string,
@@ -25,7 +25,6 @@ const getRandomColor = () => getRandomElement(colors)
 export default function Editor({ pageId }: EditorProps ) {
   const [token] = useAtom(authTokensAtom);
   const collaborationURL = useCollaborationUrl();
-
   const [provider, setProvider] = useState<any>();
   const [doc, setDoc] = useState<Y.Doc>()
 
@@ -37,7 +36,7 @@ export default function Editor({ pageId }: EditorProps ) {
         url: collaborationURL,
         name: pageId,
         document: ydoc,
-        token: token.accessToken,
+        token: token?.accessToken,
       });
 
       setDoc(ydoc);
@@ -48,11 +47,14 @@ export default function Editor({ pageId }: EditorProps ) {
         provider.destroy();
       };
     }
-  }, [collaborationURL, pageId, token]);
+  }, [pageId, token]);
+  console.log(token)
 
   if(!doc || !provider){
     return null;
   }
+
+  console.log(doc)
 
   return (
     <TiptapEditor ydoc={doc} provider={provider} />
@@ -84,12 +86,6 @@ function TiptapEditor({ ydoc, provider }: TiptapEditorProps) {
 
   const editor = useEditor({
     extensions: extensions,
-    editorProps: {
-      attributes: {
-        class:
-          "min-h-[500px] flex-1 p-4",
-      },
-    },
   });
 
   useEffect(() => {

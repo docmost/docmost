@@ -11,8 +11,6 @@ export default function Page() {
   const { pageId } = useParams();
 
   return (
-    <div className="w-full h-[500px]">
       <Editor pageId={pageId as string} />
-    </div>
   );
 }

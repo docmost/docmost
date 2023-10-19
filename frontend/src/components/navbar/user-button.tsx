@@ -1,3 +1,5 @@
+'use client';
+
 import { UnstyledButton, Group, Avatar, Text, rem } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
 import classes from './user-button.module.css';
