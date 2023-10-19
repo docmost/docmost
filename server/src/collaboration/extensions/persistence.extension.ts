@@ -1,4 +1,8 @@
-import { Extension, onLoadDocumentPayload, onStoreDocumentPayload } from '@hocuspocus/server';
+import {
+  Extension,
+  onLoadDocumentPayload,
+  onStoreDocumentPayload,
+} from '@hocuspocus/server';
 import * as Y from 'yjs';
 import { PageService } from '../../core/page/services/page.service';
 import { Injectable } from '@nestjs/common';
@@ -24,6 +28,8 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page.ydoc) {
+      console.log('ydoc loaded from db');
+
       const doc = new Y.Doc();
       const dbState = new Uint8Array(page.ydoc);
 
@@ -32,10 +38,16 @@ export class PersistenceExtension implements Extension {
     }
 
     // if no ydoc state in db convert json in page.content to Ydoc.
-    const ydoc = TiptapTransformer.toYdoc(page.content, 'default');
+    if (page.content) {
+      console.log('converting json to ydoc');
 
-    Y.encodeStateAsUpdate(ydoc);
-    return ydoc;
+      const ydoc = TiptapTransformer.toYdoc(page.content, 'default');
+      Y.encodeStateAsUpdate(ydoc);
+      return ydoc;
+    }
+
+    console.log('creating fresh ydoc');
+    return new Y.Doc();
   }
 
   async onStoreDocument(data: onStoreDocumentPayload) {
@@ -47,11 +59,7 @@ export class PersistenceExtension implements Extension {
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
     try {
-      await this.pageService.updateState(
-        pageId,
-        tiptapJson,
-        ydocState,
-      );
+      await this.pageService.updateState(pageId, tiptapJson, ydocState);
     } catch (err) {
       console.error(`Failed to update page ${documentName}`);
     }
