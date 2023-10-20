@@ -38,7 +38,6 @@
     "@nestjs/mapped-types": "^2.0.2",
     "@nestjs/platform-fastify": "^10.2.7",
     "@nestjs/platform-socket.io": "^10.2.7",
-    "@nestjs/platform-ws": "^10.2.7",
     "@nestjs/typeorm": "^10.0.0",
     "@nestjs/websockets": "^10.2.7",
     "bcrypt": "^5.1.1",
