@@ -39,7 +39,7 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): any {
-    this.collaborationGateway.handleDestroy();
-    this.collabWsAdapter.close();
+    this.collaborationGateway.destroy();
+    this.collabWsAdapter.destroy();
   }
 }

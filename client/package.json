@@ -9,7 +9,7 @@
     "preview": "vite preview --port 3000"
   },
   "dependencies": {
-    "@hocuspocus/provider": "^2.7.0",
+    "@hocuspocus/provider": "^2.7.1",
     "@mantine/core": "^7.1.5",
     "@mantine/form": "^7.1.5",
     "@mantine/hooks": "^7.1.5",
