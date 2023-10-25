@@ -13,7 +13,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 
 import styles from './styles/tree.module.css';
@@ -33,6 +33,8 @@ export default function PageTree() {
   const [tree, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
   const { data: pageOrderData } = useWorkspacePageOrder();
   const location = useLocation();
+  const rootElement = useRef<HTMLDivElement>();
+
 
   const fetchAndSetTreeData = async () => {
     if (pageOrderData?.childrenIds) {
@@ -58,7 +60,7 @@ export default function PageTree() {
   }, [tree, location.pathname]);
 
   return (
-    <div className={styles.treeContainer}>
+    <div ref={rootElement} className={styles.treeContainer}>
       <FillFlexParent>
         {(dimens) => (
           <Tree
@@ -74,6 +76,7 @@ export default function PageTree() {
             padding={15}
             rowHeight={30}
             overscanCount={5}
+            dndRootElement={rootElement.current}
           >
             {Node}
           </Tree>

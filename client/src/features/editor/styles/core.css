@@ -1,0 +1,96 @@
+.ProseMirror {
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+    color: light-dark(var(--mantine-color-default-color), var(--mantine-color-dark-0));
+    font-size: var(--mantine-font-size-md);
+    line-height: var(--mantine-line-height-lg);
+    font-weight: 400;
+    width: 100%;
+
+    > * + * {
+        margin-top: 0.75em;
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    ul,
+    ol {
+        padding: 0 1rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        line-height: 1.1;
+    }
+
+    code {
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+        color: #616161;
+    }
+
+    pre {
+        padding: var(--mantine-spacing-xs);
+        margin: var(--mantine-spacing-md) 0;
+        font-family: var(--mantine-font-family-monospace);
+        border-radius: var(--mantine-radius-sm);
+
+        @mixin light {
+            background-color: var(--mantine-color-gray-0);
+            color: var(--mantine-color-black);
+
+        }
+
+        @mixin dark {
+            background-color: var(--mantine-color-dark-8);
+            color: var(--mantine-color-white);
+        }
+
+        code {
+            color: inherit;
+            padding: 0;
+            background: none;
+            font-size: inherit;
+        }
+    }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    blockquote {
+        padding-left: 25px;
+        border-left: 2px solid var(--mantine-color-gray-6);
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+        margin: 0;
+    }
+
+    hr {
+        border: none;
+        border-top: 2px solid #ced4da;
+        margin: 2rem 0;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    hr.ProseMirror-selectednode {
+        border-top: 1px solid #68CEF8;
+    }
+
+    .ProseMirror-selectednode {
+        outline: 2px solid #70CFF8;
+    }
+}
+
+.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+}
+

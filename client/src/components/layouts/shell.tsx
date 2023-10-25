@@ -19,6 +19,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         breakpoint: 'sm',
         collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
       }}
+      aside={{ width: 300, breakpoint: 'md', collapsed: { desktop: false, mobile: true } }}
       padding="md"
     >
       <AppShell.Header>
@@ -45,7 +46,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <Navbar />
       </AppShell.Navbar>
 
-      <AppShell.Main>{children}</AppShell.Main>
+
+      <AppShell.Main>
+        {children}
+      </AppShell.Main>
+
+      <AppShell.Aside>
+        TODO
+      </AppShell.Aside>
     </AppShell>
   );
 }
