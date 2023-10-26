@@ -26,7 +26,7 @@ import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
 import { IPage } from '@/features/page/types/page.types';
 import { getPages } from '@/features/page/services/page-service';
 import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
-import { useLocation, useNavigate} from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function PageTree() {
   const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
@@ -37,7 +37,7 @@ export default function PageTree() {
 
 
   const fetchAndSetTreeData = async () => {
-    if (pageOrderData?.childrenIds) {
+    if (pageOrderData.childrenIds) {
       try {
         const pages = await getPages();
         const treeData = convertToTree(pages, pageOrderData.childrenIds);
@@ -54,9 +54,9 @@ export default function PageTree() {
 
   useEffect(() => {
     const pageId = location.pathname.split('/')[2];
-      setTimeout(() => {
-        tree?.select(pageId);
-      }, 100);
+    setTimeout(() => {
+      tree?.select(pageId);
+    }, 100);
   }, [tree, location.pathname]);
 
   return (
@@ -91,9 +91,9 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
 
   const handleClick = () => {
     navigate(`/p/${node.id}`);
-  }
+  };
 
-  if (node.willReceiveDrop && node.isClosed){
+  if (node.willReceiveDrop && node.isClosed) {
     setTimeout(() => {
       if (node.state.willReceiveDrop) node.open();
     }, 650);
@@ -213,24 +213,25 @@ function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
 
 function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
   return (
-    <span onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      node.toggle();
-    }}>
+    <ActionIcon size={20} variant="subtle" color="gray"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  node.toggle();
+                }}>
 
       {node.isInternal ? (
         node.children && node.children.length > 0 ? (
           node.isOpen ? (
-            <IconChevronDown size={18} />
+            <IconChevronDown stroke={2} size={18} />
           ) : (
-            <IconChevronRight size={18} />
+            <IconChevronRight stroke={2} size={18} />
           )
         ) : (
           <IconChevronRight size={18} style={{ visibility: 'hidden' }} />
         )
       ) : null}
-    </span>
+    </ActionIcon>
   );
 }
 
