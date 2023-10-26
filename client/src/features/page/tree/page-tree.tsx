@@ -37,7 +37,7 @@ export default function PageTree() {
 
 
   const fetchAndSetTreeData = async () => {
-    if (pageOrderData.childrenIds) {
+    if (pageOrderData?.childrenIds) {
       try {
         const pages = await getPages();
         const treeData = convertToTree(pages, pageOrderData.childrenIds);
