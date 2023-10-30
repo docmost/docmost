@@ -8,19 +8,19 @@ import {
 } from 'react-arborist';
 import { useAtom } from 'jotai';
 import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
-import { createPage, deletePage, movePage, updatePage } from '@/features/page/services/page-service';
+import { createPage, deletePage, movePage } from '@/features/page/services/page-service';
 import { v4 as uuidv4 } from 'uuid';
 import { IMovePage } from '@/features/page/types/page.types';
 import { useNavigate} from 'react-router-dom';
 import { TreeNode } from '@/features/page/tree/types';
-
+import usePage from '@/features/page/hooks/usePage';
 
 export function usePersistence<T>() {
   const [data, setData] = useAtom(treeDataAtom);
+  const { updatePageMutation } = usePage();
   const navigate = useNavigate();
 
   const tree = useMemo(() => new SimpleTree<TreeNode>(data), [data]);
-
 
   const onMove: MoveHandler<T> = (args: { parentId, index, parentNode, dragNodes, dragIds }) => {
     for (const id of args.dragIds) {
@@ -57,7 +57,7 @@ export function usePersistence<T>() {
     setData(tree.data);
 
     try {
-      updatePage({ id, title: name });
+      updatePageMutation({ id, title: name });
     } catch (error) {
       console.error('Error updating page title:', error);
     }

@@ -1,34 +1,41 @@
 import { useMutation, useQuery, UseQueryResult } from '@tanstack/react-query';
-import { ICurrentUserResponse } from '@/features/user/types/user.types';
-import { getUserInfo } from '@/features/user/services/user-service';
 import { createPage, deletePage, getPageById, updatePage } from '@/features/page/services/page-service';
 import { IPage } from '@/features/page/types/page.types';
+import { useAtom } from 'jotai/index';
+import { pageAtom } from '@/features/page/atoms/page-atom';
 
-
-export default function usePage() {
+export default function usePage(pageId?: string) {
+  const [page, setPage] = useAtom(pageAtom<IPage>(pageId));
 
   const createMutation = useMutation(
     (data: Partial<IPage>) => createPage(data),
   );
 
-  const getPageByIdQuery = (id: string) => ({
-    queryKey: ['page', id],
-    queryFn: async () => getPageById(id),
-  });
+  const pageQueryResult: UseQueryResult<IPage, unknown> = useQuery(
+    ['page', pageId],
+    () => getPageById(pageId as string),
+    {
+      enabled: !!pageId,
+    },
+  );
 
   const updateMutation = useMutation(
     (data: Partial<IPage>) => updatePage(data),
+    {
+      onSuccess: (updatedPageData) => {
+        setPage(updatedPageData);
+      },
+    },
   );
 
-
-  const deleteMutation = useMutation(
+  const removeMutation = useMutation(
     (id: string) => deletePage(id),
   );
 
   return {
     create: createMutation.mutate,
-    getPageById: getPageByIdQuery,
-    update: updateMutation.mutate,
-    delete: deleteMutation.mutate,
+    pageQuery: pageQueryResult,
+    updatePageMutation: updateMutation.mutate,
+    remove: removeMutation.mutate,
   };
 }

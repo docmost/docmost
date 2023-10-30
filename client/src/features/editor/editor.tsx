@@ -31,6 +31,10 @@ import SlashCommand from '@/features/editor/extensions/slash-command';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
 import { Heading } from '@tiptap/extension-heading';
+import usePage from '@/features/page/hooks/usePage';
+import { useDebouncedValue } from '@mantine/hooks';
+import { pageAtom } from '@/features/page/atoms/page-atom';
+import { IPage } from '@/features/page/types/page.types';
 
 interface EditorProps {
   pageId: string,
@@ -85,16 +89,54 @@ export default function Editor({ pageId }: EditorProps) {
   }
 
   const isSynced = isLocalSynced || isRemoteSynced;
-  return (isSynced && <TiptapEditor ydoc={yDoc} provider={provider} />);
+  return (isSynced && <TiptapEditor ydoc={yDoc} provider={provider} pageId={pageId} />);
 }
 
 interface TiptapEditorProps {
   ydoc: Y.Doc,
-  provider: HocuspocusProvider
+  provider: HocuspocusProvider,
+  pageId: string,
 }
 
-function TiptapEditor({ ydoc, provider }: TiptapEditorProps) {
+function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   const [currentUser] = useAtom(currentUserAtom);
+  const [page, setPage] = useAtom(pageAtom<IPage>(pageId));
+  const [debouncedTitleState, setDebouncedTitleState] = useState('');
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
+  const { updatePageMutation } = usePage();
+
+  const titleEditor = useEditor({
+    extensions: [
+      Document.extend({
+        content: 'heading',
+      }),
+      Heading.configure({
+        levels: [1],
+      }),
+      Text,
+      Placeholder.configure({
+        placeholder: 'Untitled',
+      }),
+    ],
+    onUpdate({ editor }) {
+      const currentTitle = editor.getText();
+      setDebouncedTitleState(currentTitle);
+    },
+    content: page.title,
+  });
+
+  useEffect(() => {
+    setTimeout(() => {
+      titleEditor?.commands.focus('start');
+      window.scrollTo(0, 0);
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    if (debouncedTitle !== "") {
+      updatePageMutation({ id: pageId, title: debouncedTitle });
+    }
+  }, [debouncedTitle]);
 
   const extensions = [
     StarterKit.configure({
@@ -132,29 +174,6 @@ function TiptapEditor({ ydoc, provider }: TiptapEditorProps) {
     Color,
     SlashCommand,
   ];
-
-  const titleEditor = useEditor({
-    extensions: [
-      Document.extend({
-        content: 'heading',
-      }),
-      Heading.configure({
-        levels: [1],
-      }),
-      Text,
-      Placeholder.configure({
-        placeholder: 'Untitled',
-      }),
-    ],
-  });
-
-  useEffect(() => {
-    // TODO: there must be a better way
-    setTimeout(() => {
-      titleEditor?.commands.focus('start');
-      window.scrollTo(0, 0);
-    }, 50);
-  }, []);
 
   const editor = useEditor({
     extensions: extensions,
@@ -206,13 +225,11 @@ function TiptapEditor({ ydoc, provider }: TiptapEditorProps) {
     }
   }
 
-
   return (
     <>
       <div className={classes.editor}>
         {editor && <EditorBubbleMenu editor={editor} />}
-        <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown}
-        />
+        <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />
         <EditorContent editor={editor} />
       </div>
     </>
