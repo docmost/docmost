@@ -27,9 +27,10 @@ export class PageController {
     private readonly workspaceService: WorkspaceService,
   ) {}
 
+  @HttpCode(HttpStatus.OK)
   @Post('/details')
   async getPage(@Body() input: PageDetailsDto) {
-    return this.pageService.findById(input.id);
+    return this.pageService.findWithoutYDoc(input.id);
   }
 
   @HttpCode(HttpStatus.CREATED)
@@ -47,16 +48,19 @@ export class PageController {
     return this.pageService.create(userId, workspaceId, createPageDto);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('update')
   async update(@Body() updatePageDto: UpdatePageDto) {
     return this.pageService.update(updatePageDto.id, updatePageDto);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('delete')
   async delete(@Body() deletePageDto: DeletePageDto) {
     await this.pageService.delete(deletePageDto.id);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('restore')
   async restore(@Body() deletePageDto: DeletePageDto) {
     await this.pageService.restore(deletePageDto.id);

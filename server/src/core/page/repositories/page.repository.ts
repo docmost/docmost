@@ -11,4 +11,30 @@ export class PageRepository extends Repository<Page> {
   async findById(pageId: string) {
     return this.findOneBy({ id: pageId });
   }
+
+  async findWithoutYDoc(pageId: string) {
+    return this.dataSource
+      .createQueryBuilder(Page, 'page')
+      .where('page.id = :id', { id: pageId })
+      .select([
+        'page.id',
+        'page.title',
+        'page.slug',
+        'page.icon',
+        'page.coverPhoto',
+        'page.editor',
+        'page.shareId',
+        'page.parentPageId',
+        'page.creatorId',
+        'page.workspaceId',
+        'page.isLocked',
+        'page.status',
+        'page.publishedAt',
+        'page.createdAt',
+        'page.updatedAt',
+        'page.deletedAt',
+        'page.children',
+      ])
+      .getOne();
+  }
 }

@@ -28,6 +28,10 @@ export class PageService {
     return this.pageRepository.findById(pageId);
   }
 
+  async findWithoutYDoc(pageId: string) {
+    return this.pageRepository.findWithoutYDoc(pageId);
+  }
+
   async create(
     userId: string,
     workspaceId: string,
@@ -59,17 +63,12 @@ export class PageService {
   }
 
   async update(pageId: string, updatePageDto: UpdatePageDto): Promise<Page> {
-    const existingPage = await this.pageRepository.findOne({
-      where: { id: pageId },
-    });
-
-    if (!existingPage) {
+    const result = await this.pageRepository.update(pageId, updatePageDto);
+    if (result.affected === 0) {
       throw new BadRequestException(`Page not found`);
     }
 
-    Object.assign(existingPage, updatePageDto);
-
-    return await this.pageRepository.save(existingPage);
+    return await this.pageRepository.findWithoutYDoc(pageId);
   }
 
   async updateState(pageId: string, content: any, ydoc: any): Promise<void> {
