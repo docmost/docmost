@@ -19,7 +19,7 @@ import { DeletePageDto } from './dto/delete-page.dto';
 import { PageOrderingService } from './services/page-ordering.service';
 
 @UseGuards(JwtGuard)
-@Controller('page')
+@Controller('pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
@@ -73,7 +73,7 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list')
+  @Post()
   async getWorkspacePages(@Req() req: FastifyRequest) {
     const jwtPayload = req['user'];
     const workspaceId = (
@@ -83,7 +83,7 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list/order')
+  @Post('ordering')
   async getWorkspacePageOrder(@Req() req: FastifyRequest) {
     const jwtPayload = req['user'];
     const workspaceId = (
