@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
+import { Comment } from '../../comment/entities/comment.entity';
 
 @Entity('pages')
 export class Page {
@@ -68,7 +69,7 @@ export class Page {
   status: string;
 
   @Column({ type: 'date', nullable: true })
-  publishedAt: string;
+  publishedAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -85,4 +86,7 @@ export class Page {
 
   @OneToMany(() => Page, (page) => page.parentPage, { onDelete: 'CASCADE' })
   childPages: Page[];
+
+  @OneToMany(() => Comment, (comment) => comment.page)
+  comments: Comment[];
 }

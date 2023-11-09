@@ -3,8 +3,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -13,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
+import { Comment } from '../../comment/entities/comment.entity';
 
 @Entity('users')
 export class User {
@@ -63,6 +62,9 @@ export class User {
 
   @OneToMany(() => Page, (page) => page.creator)
   createdPages: Page[];
+
+  @OneToMany(() => Comment, (comment) => comment.creator)
+  comments: Comment[];
 
   toJSON() {
     delete this.password;

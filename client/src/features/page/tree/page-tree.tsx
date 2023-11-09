@@ -56,7 +56,7 @@ export default function PageTree() {
       tree?.select(pageId);
       tree?.scrollTo(pageId, 'center');
     }, 200);
-  }, [tree]);
+  }, [tree, pageId]);
 
   return (
     <div ref={rootElement} className={classes.treeContainer}>

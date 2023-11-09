@@ -1,11 +1,14 @@
 import { BubbleMenu, BubbleMenuProps, isNodeSelection } from '@tiptap/react';
 import { FC, useState } from 'react';
-import { IconBold, IconCode, IconItalic, IconStrikethrough, IconUnderline } from '@tabler/icons-react';
+import { IconBold, IconCode, IconItalic, IconStrikethrough, IconUnderline, IconMessage } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './bubble-menu.module.css';
 import { ActionIcon, rem, Tooltip } from '@mantine/core';
 import { ColorSelector } from './color-selector';
 import { NodeSelector } from './node-selector';
+import { draftCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
+import { useAtom } from 'jotai';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface BubbleMenuItem {
   name: string;
@@ -17,6 +20,9 @@ export interface BubbleMenuItem {
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'>;
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
+  const [showCommentPopup, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
+  const [draftCommentId, setDraftCommentId] = useAtom<string | null>(draftCommentIdAtom);
+
   const items: BubbleMenuItem[] = [
     {
       name: 'bold',
@@ -49,6 +55,20 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       icon: IconCode,
     },
   ];
+
+  const commentItem: BubbleMenuItem = {
+
+    name: 'comment',
+    isActive: () => props.editor.isActive('comment'),
+    command: () => {
+      const commentId = uuidv4();
+
+      props.editor.chain().focus().setCommentDecoration().run();
+      setDraftCommentId(commentId);
+      setShowCommentPopup(true);
+    },
+    icon: IconMessage,
+  };
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
@@ -92,7 +112,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
       <ActionIcon.Group>
         {items.map((item, index) => (
-          <Tooltip key={index} label={item.name}>
+          <Tooltip key={index} label={item.name} withArrow>
 
             <ActionIcon key={index} variant="default" size="lg" radius="0" aria-label={item.name}
                         className={clsx({ [classes.active]: item.isActive() })}
@@ -114,6 +134,15 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsLinkSelectorOpen(false);
         }}
       />
+
+      <Tooltip label={commentItem.name} withArrow>
+
+        <ActionIcon variant="default" size="lg" radius="0" aria-label={commentItem.name}
+                    style={{ border: 'none' }}
+                    onClick={commentItem.command}>
+          <IconMessage style={{ width: rem(16) }} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
 
     </BubbleMenu>
   );

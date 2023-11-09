@@ -7,6 +7,8 @@
 }
 
 .aside {
+    background: var(--mantine-color-gray-light);
+
     [data-layout='alt'] & {
         --_section-top: var(--_section-top, var(--app-shell-header-offset, 0px));
         --_section-height: var(

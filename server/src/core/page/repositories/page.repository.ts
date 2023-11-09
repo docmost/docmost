@@ -33,7 +33,6 @@ export class PageRepository extends Repository<Page> {
         'page.createdAt',
         'page.updatedAt',
         'page.deletedAt',
-        'page.children',
       ])
       .getOne();
   }

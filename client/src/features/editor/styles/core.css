@@ -94,3 +94,7 @@
     cursor: col-resize;
 }
 
+.comment-mark {
+    background: rgba(0,203,15,0.2);
+    border-bottom: 2px solid #0ca678;
+}

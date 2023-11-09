@@ -12,6 +12,7 @@ import { User } from '../../user/entities/user.entity';
 import { WorkspaceUser } from './workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { WorkspaceInvitation } from './workspace-invitation.entity';
+import { Comment } from '../../comment/entities/comment.entity';
 
 @Entity('workspaces')
 export class Workspace {
@@ -66,4 +67,7 @@ export class Workspace {
 
   @OneToMany(() => Page, (page) => page.workspace)
   pages: Page[];
+
+  @OneToMany(() => Comment, (comment) => comment.workspace)
+  comments: Comment[];
 }

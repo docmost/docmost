@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai/index';
-import usePage from '@/features/page/hooks/usePage';
+import usePage from '@/features/page/hooks/use-page';
 import Editor from '@/features/editor/editor';
 import { pageAtom } from '@/features/page/atoms/page-atom';
 
