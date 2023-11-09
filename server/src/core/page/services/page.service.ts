@@ -24,6 +24,13 @@ export class PageService {
     private pageOrderingService: PageOrderingService,
   ) {}
 
+  async findWithBasic(pageId: string) {
+    return this.pageRepository.findOne({
+      where: { id: pageId },
+      select: ['id', 'title'],
+    });
+  }
+
   async findById(pageId: string) {
     return this.pageRepository.findById(pageId);
   }

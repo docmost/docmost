@@ -1,40 +1,29 @@
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { StarterKit } from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { Collaboration } from '@tiptap/extension-collaboration';
-import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
 import useCollaborationUrl from '@/features/editor/hooks/use-collaboration-url';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { Highlight } from '@tiptap/extension-highlight';
-import { Superscript } from '@tiptap/extension-superscript';
-import SubScript from '@tiptap/extension-subscript';
-import { Link } from '@tiptap/extension-link';
-import { Underline } from '@tiptap/extension-underline';
-import { Typography } from '@tiptap/extension-typography';
-import { TaskItem } from '@tiptap/extension-task-item';
-import { TaskList } from '@tiptap/extension-task-list';
 import classes from '@/features/editor/styles/editor.module.css';
 import '@/features/editor/styles/index.css';
-import { TrailingNode } from '@/features/editor/extensions/trailing-node';
-import DragAndDrop from '@/features/editor/extensions/drag-handle';
 import { EditorBubbleMenu } from '@/features/editor/components/bubble-menu/bubble-menu';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import SlashCommand from '@/features/editor/extensions/slash-command';
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
 import { Heading } from '@tiptap/extension-heading';
-import usePage from '@/features/page/hooks/usePage';
+import usePage from '@/features/page/hooks/use-page';
 import { useDebouncedValue } from '@mantine/hooks';
 import { pageAtom } from '@/features/page/atoms/page-atom';
 import { IPage } from '@/features/page/types/page.types';
+import { Comment } from '@/features/editor/extensions/comment/comment';
+import { desktopAsideAtom } from '@/components/navbar/atoms/sidebar-atom';
+import { activeCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
+import CommentDialog from '@/features/comment/components/comment-dialog';
+import { editorAtom } from '@/features/editor/atoms/editorAtom';
+import { collabExtensions, mainExtensions } from '@/features/editor/extensions';
 
 interface EditorProps {
   pageId: string,
@@ -100,10 +89,14 @@ interface TiptapEditorProps {
 
 function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   const [currentUser] = useAtom(currentUserAtom);
+  const [, setEditor] = useAtom(editorAtom);
   const [page, setPage] = useAtom(pageAtom<IPage>(pageId));
   const [debouncedTitleState, setDebouncedTitleState] = useState('');
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const { updatePageMutation } = usePage();
+  const [desktopAsideOpened, setDesktopAsideOpened] = useAtom<boolean>(desktopAsideAtom);
+  const [activeCommentId, setActiveCommentId] = useAtom<string | null>(activeCommentIdAtom);
+  const [showCommentPopup, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
 
   const titleEditor = useEditor({
     extensions: [
@@ -133,46 +126,20 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   }, []);
 
   useEffect(() => {
-    if (debouncedTitle !== "") {
+    if (debouncedTitle !== '') {
       updatePageMutation({ id: pageId, title: debouncedTitle });
     }
   }, [debouncedTitle]);
 
   const extensions = [
-    StarterKit.configure({
-      history: false,
-      dropcursor: {
-        width: 3,
-        color: '#70CFF8',
+    ...mainExtensions,
+    ...collabExtensions(ydoc, provider),
+    Comment.configure({
+      HTMLAttributes: {
+        class: 'comment-mark',
       },
     }),
-    Collaboration.configure({
-      document: ydoc,
-    }),
-    CollaborationCursor.configure({
-      provider,
-    }),
-    Placeholder.configure({
-      placeholder: 'Enter "/" for commands',
-    }),
-    TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    TaskList,
-    TaskItem.configure({
-      nested: true,
-    }),
-    Underline,
-    Link,
-    Superscript,
-    SubScript,
-    Highlight.configure({
-      multicolor: true,
-    }),
-    Typography,
-    TrailingNode,
-    DragAndDrop,
-    TextStyle,
-    Color,
-    SlashCommand,
+
   ];
 
   const editor = useEditor({
@@ -189,6 +156,11 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
           }
         },
       },
+    },
+    onCreate({ editor }) {
+      if (editor) {
+        setEditor(editor);
+      }
     },
     onUpdate({ editor }) {
       const { selection } = editor.state;
@@ -225,6 +197,29 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
     }
   }
 
+  const handleActiveCommentEvent = (event) => {
+    const { commentId } = event.detail;
+    setActiveCommentId(commentId);
+    setDesktopAsideOpened(true);
+
+    const selector = `div[data-comment-id="${commentId}"]`;
+    const commentElement = document.querySelector(selector);
+    commentElement?.scrollIntoView();
+  };
+
+  useEffect(() => {
+    document.addEventListener('ACTIVE_COMMENT_EVENT', handleActiveCommentEvent);
+    return () => {
+      document.removeEventListener('ACTIVE_COMMENT_EVENT', handleActiveCommentEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    setActiveCommentId(null);
+    setDesktopAsideOpened(false);
+    setShowCommentPopup(false);
+  }, [pageId]);
+
   return (
     <>
       <div className={classes.editor}>
@@ -232,6 +227,10 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
         <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />
         <EditorContent editor={editor} />
       </div>
+
+      {showCommentPopup && (
+        <CommentDialog editor={editor} pageId={pageId} />
+      )}
     </>
   );
 }

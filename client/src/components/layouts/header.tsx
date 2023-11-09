@@ -1,5 +1,4 @@
 import {
-  Group,
   ActionIcon,
   Menu,
   Button,
@@ -13,6 +12,7 @@ import {
   IconLock,
   IconShare,
   IconTrash,
+  IconMessage,
 } from '@tabler/icons-react';
 import React from 'react';
 
@@ -22,6 +22,10 @@ export default function Header() {
       <Button variant="default" style={{ border: 'none' }} size="compact-sm">
         Share
       </Button>
+
+      <ActionIcon variant="default" style={{ border: 'none' }}>
+        <IconMessage size={20} stroke={2} />
+      </ActionIcon>
 
       <PageActionMenu />
     </>

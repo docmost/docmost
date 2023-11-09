@@ -1,4 +1,4 @@
-import { desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
+import { desktopAsideAtom, desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { useToggleSidebar } from '@/components/navbar/hooks/use-toggle-sidebar';
 import { Navbar } from '@/components/navbar/navbar';
 import { ActionIcon, UnstyledButton, ActionIconGroup, AppShell, Avatar, Burger, Group } from '@mantine/core';
@@ -8,11 +8,13 @@ import { useAtom } from 'jotai';
 import classes from './shell.module.css';
 import Header from '@/components/layouts/header';
 import Breadcrumb from '@/components/layouts/components/breadcrumb';
+import Aside from '@/components/aside/aside';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
+  const [desktopAsideOpened] = useAtom(desktopAsideAtom);
 
   return (
     <AppShell
@@ -23,7 +25,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         breakpoint: 'sm',
         collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
       }}
-      aside={{ width: 300, breakpoint: 'md', collapsed: { mobile: true, desktop: !desktopOpened } }}
+      aside={{ width: 300, breakpoint: 'md', collapsed: { mobile: true, desktop: !desktopAsideOpened } }}
       padding="md"
     >
       <AppShell.Header
@@ -61,13 +63,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <Navbar />
       </AppShell.Navbar>
 
-
       <AppShell.Main>
         {children}
       </AppShell.Main>
 
       <AppShell.Aside className={classes.aside}>
-        TODO
+        <Aside />
       </AppShell.Aside>
     </AppShell>
   );

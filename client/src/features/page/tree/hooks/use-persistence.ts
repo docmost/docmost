@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { IMovePage } from '@/features/page/types/page.types';
 import { useNavigate} from 'react-router-dom';
 import { TreeNode } from '@/features/page/tree/types';
-import usePage from '@/features/page/hooks/usePage';
+import usePage from '@/features/page/hooks/use-page';
 
 export function usePersistence<T>() {
   const [data, setData] = useAtom(treeDataAtom);

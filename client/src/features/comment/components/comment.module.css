@@ -1,0 +1,45 @@
+.wrapper {
+    padding: var(--mantine-spacing-md);
+}
+
+.focused-thread {
+    border: 2px solid #8d7249;
+}
+
+.textSelection {
+    margin-top: 4px;
+    border-left: 2px solid var(--mantine-color-gray-6);
+    padding: 8px;
+    background: var(--mantine-color-gray-light);
+}
+
+.commentEditor {
+
+    .focused {
+        box-shadow: 0 0 0 2px var(--mantine-color-blue-3);
+    }
+
+    .ProseMirror {
+        width: 100%;
+        max-width: 100%;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 20vh;
+        padding-left: 6px;
+        padding-right: 6px;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        font-size: 14px;
+        overflow: hidden auto;
+    }
+
+    .ProseMirror p {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+
+    .actions {
+
+    }
+}
+
