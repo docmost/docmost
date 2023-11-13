@@ -52,8 +52,6 @@ export class PageOrderingService {
 
         orderPageList(workspaceOrdering.childrenIds, dto);
 
-        console.log(workspaceOrdering.childrenIds);
-
         await manager.save(workspaceOrdering);
       } else {
         const parentPageId = dto.parentId;
@@ -236,8 +234,8 @@ export class PageOrderingService {
     manager: EntityManager,
   ): Promise<PageOrdering> {
     await manager.query(
-      `INSERT INTO page_ordering ("entityId", "entityType", "workspaceId") 
-     VALUES ($1, $2, $3)
+      `INSERT INTO page_ordering ("entityId", "entityType", "workspaceId", "childrenIds") 
+     VALUES ($1, $2, $3, '{}')
      ON CONFLICT ("entityId", "entityType") DO NOTHING`,
       [entityId, entityType, workspaceId],
     );
@@ -260,7 +258,7 @@ export class PageOrderingService {
     const workspaceOrder = await this.getWorkspacePageOrder(workspaceId);
 
     const pageOrder = workspaceOrder ? workspaceOrder.childrenIds : undefined;
-    const pages = await this.pageService.getByWorkspaceId(workspaceId);
+    const pages = await this.pageService.getSidebarPagesByWorkspaceId(workspaceId);
 
     const pageMap: { [id: string]: PageWithOrderingDto } = {};
     pages.forEach((page) => {

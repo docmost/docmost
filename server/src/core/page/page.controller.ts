@@ -50,8 +50,14 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(@Body() updatePageDto: UpdatePageDto) {
-    return this.pageService.update(updatePageDto.id, updatePageDto);
+  async update(
+    @Req() req: FastifyRequest,
+    @Body() updatePageDto: UpdatePageDto,
+  ) {
+    const jwtPayload = req['user'];
+    const userId = jwtPayload.sub;
+
+    return this.pageService.update(updatePageDto.id, updatePageDto, userId);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -73,13 +79,23 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('recent')
+  async getRecentWorkspacePages(@Req() req: FastifyRequest) {
+    const jwtPayload = req['user'];
+    const workspaceId = (
+      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+    ).id;
+    return this.pageService.getRecentWorkspacePages(workspaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post()
   async getWorkspacePages(@Req() req: FastifyRequest) {
     const jwtPayload = req['user'];
     const workspaceId = (
       await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
     ).id;
-    return this.pageService.getByWorkspaceId(workspaceId);
+    return this.pageService.getSidebarPagesByWorkspaceId(workspaceId);
   }
 
   @HttpCode(HttpStatus.OK)

@@ -11,6 +11,11 @@ export async function getPageById(id: string): Promise<IPage> {
   return req.data as IPage;
 }
 
+export async function getRecentChanges(): Promise<IPage[]> {
+  const req = await api.post<IPage[]>('/pages/recent');
+  return req.data as IPage[];
+}
+
 export async function getPages(): Promise<IPage[]> {
   const req = await api.post<IPage[]>('/pages');
   return req.data as IPage[];

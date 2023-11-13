@@ -55,6 +55,20 @@ export class Page {
   @JoinColumn({ name: 'creatorId' })
   creator: User;
 
+  @Column({ type: 'uuid', nullable: true })
+  lastUpdatedById: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'lastUpdatedById' })
+  lastUpdatedBy: User;
+
+  @Column({ type: 'uuid', nullable: true })
+  deletedById: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'deletedById' })
+  deletedBy: User;
+
   @Column()
   workspaceId: string;
 

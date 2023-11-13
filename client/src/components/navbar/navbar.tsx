@@ -12,6 +12,7 @@ import {
   IconPlus,
   IconSettings,
   IconFilePlus,
+  IconHome
 } from '@tabler/icons-react';
 
 import classes from './navbar.module.css';
@@ -23,6 +24,7 @@ import SettingsModal from '@/features/settings/modal/settings-modal';
 import { SearchSpotlight } from '@/features/search/search-spotlight';
 import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom';
 import PageTree from '@/features/page/tree/page-tree';
+import { useNavigate } from 'react-router-dom';
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
@@ -31,16 +33,22 @@ interface PrimaryMenuItem {
 }
 
 const primaryMenu: PrimaryMenuItem[] = [
+  { icon: IconHome, label: 'Home' },
   { icon: IconSearch, label: 'Search' },
   { icon: IconSettings, label: 'Settings' },
-  { icon: IconFilePlus, label: 'New Page' },
+ // { icon: IconFilePlus, label: 'New Page' },
 ];
 
 export function Navbar() {
   const [, setSettingsModalOpen] = useAtom(settingsModalAtom);
   const [tree] = useAtom(treeApiAtom);
+  const navigate = useNavigate();
 
   const handleMenuItemClick = (label: string) => {
+    if (label === 'Home') {
+      navigate('/home');
+    }
+
     if (label === 'Search') {
       spotlight.open();
     }
@@ -62,9 +70,9 @@ export function Navbar() {
     >
       <div className={classes.menuItemInner}>
         <menuItem.icon
-          size={20}
+          size={18}
           className={classes.menuItemIcon}
-          stroke={1.5}
+          stroke={2}
         />
         <span>{menuItem.label}</span>
       </div>

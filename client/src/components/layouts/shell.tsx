@@ -1,9 +1,8 @@
 import { desktopAsideAtom, desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { useToggleSidebar } from '@/components/navbar/hooks/use-toggle-sidebar';
 import { Navbar } from '@/components/navbar/navbar';
-import { ActionIcon, UnstyledButton, ActionIconGroup, AppShell, Avatar, Burger, Group } from '@mantine/core';
+import { AppShell, Burger, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDots } from '@tabler/icons-react';
 import { useAtom } from 'jotai';
 import classes from './shell.module.css';
 import Header from '@/components/layouts/header';

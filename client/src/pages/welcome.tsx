@@ -1,9 +1,9 @@
-import { Title, Text } from '@mantine/core';
+import { Title, Text, Stack } from '@mantine/core';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function Welcome() {
   return (
-    <>
+    <Stack>
       <Title ta="center" mt={100}>
         <Text
           inherit
@@ -18,6 +18,6 @@ export function Welcome() {
         Welcome to something new and interesting.
       </Text>
       <ThemeToggle />
-    </>
+    </Stack>
   );
 }

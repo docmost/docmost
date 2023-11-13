@@ -37,7 +37,7 @@
     align-items: center;
     width: 100%;
     font-size: var(--mantine-font-size-sm);
-    padding: rem(8px) var(--mantine-spacing-xs);
+    padding: rem(4px) var(--mantine-spacing-xs);
     border-radius: var(--mantine-radius-sm);
     font-weight: 500;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));

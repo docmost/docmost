@@ -47,6 +47,7 @@ export class PageService {
     const page = plainToInstance(Page, createPageDto);
     page.creatorId = userId;
     page.workspaceId = workspaceId;
+    page.lastUpdatedById = userId;
 
     if (createPageDto.parentPageId) {
       // TODO: make sure parent page belongs to same workspace and user has permissions
@@ -69,8 +70,17 @@ export class PageService {
     return createdPage;
   }
 
-  async update(pageId: string, updatePageDto: UpdatePageDto): Promise<Page> {
-    const result = await this.pageRepository.update(pageId, updatePageDto);
+  async update(
+    pageId: string,
+    updatePageDto: UpdatePageDto,
+    userId: string,
+  ): Promise<Page> {
+    const updateData = {
+      ...updatePageDto,
+      lastUpdatedById: userId,
+    };
+
+    const result = await this.pageRepository.update(pageId, updateData);
     if (result.affected === 0) {
       throw new BadRequestException(`Page not found`);
     }
@@ -78,10 +88,16 @@ export class PageService {
     return await this.pageRepository.findWithoutYDoc(pageId);
   }
 
-  async updateState(pageId: string, content: any, ydoc: any): Promise<void> {
+  async updateState(
+    pageId: string,
+    content: any,
+    ydoc: any,
+    userId?: string, // TODO: fix this
+  ): Promise<void> {
     await this.pageRepository.update(pageId, {
       content: content,
       ydoc: ydoc,
+      ...(userId && { lastUpdatedById: userId }),
     });
   }
 
@@ -187,16 +203,7 @@ export class PageService {
     return await this.pageRepository.findById(pageId);
   }
 
-  async getRecentPages(limit = 10): Promise<Page[]> {
-    return await this.pageRepository.find({
-      order: {
-        createdAt: 'DESC',
-      },
-      take: limit,
-    });
-  }
-
-  async getByWorkspaceId(
+  async getSidebarPagesByWorkspaceId(
     workspaceId: string,
     limit = 200,
   ): Promise<PageWithOrderingDto[]> {
@@ -223,5 +230,39 @@ export class PageService {
       .getRawMany<PageWithOrderingDto[]>();
 
     return transformPageResult(pages);
+  }
+
+  async getRecentWorkspacePages(
+    workspaceId: string,
+    limit = 20,
+    offset = 0,
+  ): Promise<Page[]> {
+    const pages = await this.pageRepository
+      .createQueryBuilder('page')
+      .where('page.workspaceId = :workspaceId', { workspaceId })
+      .select([
+        'page.id',
+        'page.title',
+        'page.slug',
+        'page.icon',
+        'page.coverPhoto',
+        'page.editor',
+        'page.shareId',
+        'page.parentPageId',
+        'page.creatorId',
+        'page.lastUpdatedById',
+        'page.workspaceId',
+        'page.isLocked',
+        'page.status',
+        'page.publishedAt',
+        'page.createdAt',
+        'page.updatedAt',
+        'page.deletedAt',
+      ])
+      .orderBy('page.updatedAt', 'DESC')
+      .offset(offset)
+      .take(limit)
+      .getMany();
+    return pages;
   }
 }

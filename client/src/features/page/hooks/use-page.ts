@@ -1,5 +1,5 @@
 import { useMutation, useQuery, UseQueryResult } from '@tanstack/react-query';
-import { createPage, deletePage, getPageById, updatePage } from '@/features/page/services/page-service';
+import { createPage, deletePage, getPageById, getRecentChanges, updatePage } from '@/features/page/services/page-service';
 import { IPage } from '@/features/page/types/page.types';
 
 export default function usePage(pageId?: string) {
@@ -15,6 +15,11 @@ export default function usePage(pageId?: string) {
     },
   );
 
+  const recentPagesQuery: UseQueryResult<IPage[], unknown> = useQuery(
+    ['recentChanges'],
+    () => getRecentChanges()
+  );
+
   const updateMutation = useMutation(
     (data: Partial<IPage>) => updatePage(data),
   );
@@ -24,8 +29,9 @@ export default function usePage(pageId?: string) {
   );
 
   return {
-    create: createMutation.mutate,
     pageQuery: pageQueryResult,
+    recentPagesQuery: recentPagesQuery,
+    create: createMutation.mutate,
     updatePageMutation: updateMutation.mutate,
     remove: removeMutation.mutate,
   };

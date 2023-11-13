@@ -23,7 +23,7 @@ export class PageOrdering {
   @Column({ type: 'varchar', length: 50, nullable: false })
   entityType: string;
 
-  @Column('uuid', { array: true, default: () => 'ARRAY[]::uuid[]' })
+  @Column('uuid', { array: true })
   childrenIds: string[];
 
   @ManyToOne(() => Workspace, (workspace) => workspace.id, {
