@@ -7,6 +7,7 @@ import {
   updatePage,
 } from '@/features/page/services/page-service';
 import { IPage } from '@/features/page/types/page.types';
+import { notifications } from '@mantine/notifications';
 
 const RECENT_CHANGES_KEY = ['recentChanges'];
 
@@ -41,5 +42,8 @@ export function useUpdatePageMutation() {
 export function useDeletePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId),
+    onSuccess: () => {
+      notifications.show({ title: 'Page deleted successfully' });
+    },
   });
 }

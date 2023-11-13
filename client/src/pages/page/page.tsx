@@ -20,7 +20,7 @@ export default function Page() {
     return <div>Loading...</div>;
   }
 
-  if (isError) {
+  if (isError || !data) { // TODO: fix this
     return <div>Error fetching page data.</div>;
   }
 

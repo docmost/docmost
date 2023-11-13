@@ -18,7 +18,7 @@ root.render(
     <MantineProvider theme={theme}>
       <ModalsProvider>
         <TanstackProvider>
-          <Notifications />
+          <Notifications position="top-center" limit={3} />
           <App />
         </TanstackProvider>
       </ModalsProvider>

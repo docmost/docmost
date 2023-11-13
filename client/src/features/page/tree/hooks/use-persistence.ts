@@ -8,16 +8,19 @@ import {
 } from 'react-arborist';
 import { useAtom } from 'jotai';
 import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
-import { createPage, deletePage, movePage } from '@/features/page/services/page-service';
+import { movePage } from '@/features/page/services/page-service';
 import { v4 as uuidv4 } from 'uuid';
 import { IMovePage } from '@/features/page/types/page.types';
 import { useNavigate } from 'react-router-dom';
 import { TreeNode } from '@/features/page/tree/types';
-import { useUpdatePageMutation } from '@/features/page/queries/page';
+import { useCreatePageMutation, useDeletePageMutation, useUpdatePageMutation } from '@/features/page/queries/page';
 
 export function usePersistence<T>() {
   const [data, setData] = useAtom(treeDataAtom);
+  const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
+  const deletePageMutation = useDeletePageMutation();
+
   const navigate = useNavigate();
 
   const tree = useMemo(() => new SimpleTree<TreeNode>(data), [data]);
@@ -75,7 +78,7 @@ export function usePersistence<T>() {
     }
 
     try {
-      await createPage(payload);
+      await createPageMutation.mutateAsync(payload);
       navigate(`/p/${payload.id}`);
     } catch (error) {
       console.error('Error creating the page:', error);
@@ -89,7 +92,8 @@ export function usePersistence<T>() {
     setData(tree.data);
 
     try {
-      await deletePage(args.ids[0]);
+      await deletePageMutation.mutateAsync(args.ids[0]);
+      navigate('/home');
     } catch (error) {
       console.error('Error deleting page:', error);
     }
