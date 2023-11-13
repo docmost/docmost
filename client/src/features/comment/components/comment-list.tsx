@@ -4,17 +4,16 @@ import CommentActions from '@/features/comment/components/comment-actions';
 import React, { useState } from 'react';
 import CommentListItem from '@/features/comment/components/comment-list-item';
 import { IComment } from '@/features/comment/types/comment.types';
-import useComment from '@/features/comment/hooks/use-comment';
-import { useAtom } from 'jotai';
-import { commentsAtom } from '@/features/comment/atoms/comment-atom';
-import { useParams } from 'react-router-dom';
 import { useFocusWithin } from '@mantine/hooks';
+import { useCreateCommentMutation } from '@/features/comment/queries/comment';
 
-function CommentList({ comments }: IComment[]) {
-  const { createCommentMutation } = useComment();
-  const { isLoading } = createCommentMutation;
-  const { pageId } = useParams();
-  const [, setCommentsAtom] = useAtom(commentsAtom(pageId));
+interface CommentListProps {
+  comments: IComment[];
+}
+
+function CommentList({ comments }: CommentListProps) {
+  const createCommentMutation = useCreateCommentMutation();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const getChildComments = (parentId) => {
     return comments.filter(comment => comment.parentCommentId === parentId);
@@ -54,14 +53,22 @@ function CommentList({ comments }: IComment[]) {
 
   const renderComments = (comment) => {
     const handleAddReply = async (commentId, content) => {
-      const commentData = {
-        pageId: comment.pageId,
-        parentCommentId: comment.id,
-        content: JSON.stringify(content),
-      };
+      try {
+        setIsLoading(true);
+        const commentData = {
+          pageId: comment.pageId,
+          parentCommentId: comment.id,
+          content: JSON.stringify(content),
+        };
 
-      const createdComment = await createCommentMutation.mutateAsync(commentData);
-      setCommentsAtom(prevComments => [...prevComments, createdComment]);
+        await createCommentMutation.mutateAsync(commentData);
+      } catch (error) {
+        console.error('Failed to add reply:', error);
+      } finally {
+        setIsLoading(false);
+      }
+
+      //setCommentsAtom(prevComments => [...prevComments, createdComment]);
     };
 
     return (

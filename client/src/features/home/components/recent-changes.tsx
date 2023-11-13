@@ -3,11 +3,10 @@ import { format } from 'date-fns';
 import classes from './home.module.css';
 import { Link } from 'react-router-dom';
 import PageListSkeleton from '@/features/home/components/page-list-skeleton';
-import usePage from '@/features/page/hooks/use-page';
+import { useRecentChangesQuery } from '@/features/page/queries/page';
 
 function RecentChanges() {
-  const { recentPagesQuery } = usePage();
-  const { data, isLoading, isError } = recentPagesQuery;
+  const { data, isLoading, isError } = useRecentChangesQuery();
 
   if (isLoading) {
     return <PageListSkeleton />;
@@ -20,9 +19,9 @@ function RecentChanges() {
   return (
     <div>
       {data.map((page) => (
-        <>
+        <div key={page.id}>
           <UnstyledButton component={Link} to={`/p/${page.id}`}
-                          className={classes.page} p="xs" key={page.id}>
+                          className={classes.page} p="xs">
             <Group wrap="noWrap">
 
               <Stack gap="xs" style={{ flex: 1 }}>
@@ -37,7 +36,7 @@ function RecentChanges() {
             </Group>
           </UnstyledButton>
           <Divider />
-        </>
+        </div>
       ))}
     </div>
   );

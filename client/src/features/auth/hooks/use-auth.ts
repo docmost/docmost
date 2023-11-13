@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { login, register } from "@/features/auth/services/auth-service";
-import { useNavigate } from "react-router-dom";
-import { useAtom } from "jotai";
-import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import { ILogin, IRegister } from "@/features/auth/types/auth.types";
-import toast from "react-hot-toast";
+import { useState } from 'react';
+import { login, register } from '@/features/auth/services/auth-service';
+import { useNavigate } from 'react-router-dom';
+import { useAtom } from 'jotai';
+import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
+import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
+import { ILogin, IRegister } from '@/features/auth/types/auth.types';
+import { notifications } from '@mantine/notifications';
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,10 +22,13 @@ export default function useAuth() {
       setIsLoading(false);
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate('/home');
     } catch (err) {
       setIsLoading(false);
-      toast.error(err.response?.data.message)
+      notifications.show({
+        message: err.response?.data.message,
+        color: 'red',
+      });
     }
   };
 
@@ -38,10 +41,13 @@ export default function useAuth() {
 
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate('/home');
     } catch (err) {
       setIsLoading(false);
-      toast.error(err.response?.data.message)
+      notifications.show({
+        message: err.response?.data.message,
+        color: 'red',
+      });
     }
   };
 
@@ -52,7 +58,7 @@ export default function useAuth() {
   const handleLogout = async () => {
     setAuthToken(null);
     setCurrentUser(null);
-  }
+  };
 
   return { signIn: handleSignIn, signUp: handleSignUp, isLoading, hasTokens };
 }

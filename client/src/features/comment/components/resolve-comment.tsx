@@ -1,14 +1,10 @@
 import { ActionIcon } from '@mantine/core';
 import { IconCircleCheck } from '@tabler/icons-react';
-
-import useComment from '@/features/comment/hooks/use-comment';
-import { useAtom } from 'jotai';
-import { commentsAtom } from '@/features/comment/atoms/comment-atom';
 import { modals } from '@mantine/modals';
+import { useResolveCommentMutation } from '@/features/comment/queries/comment';
 
 function ResolveComment({ commentId, pageId, resolvedAt }) {
-  const [, setComments] = useAtom(commentsAtom(pageId));
-  const { resolveCommentMutation } = useComment();
+  const resolveCommentMutation = useResolveCommentMutation();
   const isResolved = resolvedAt != null;
   const iconColor = isResolved ? 'green' : 'gray';
 
@@ -23,17 +19,9 @@ function ResolveComment({ commentId, pageId, resolvedAt }) {
 
   const handleResolveToggle = async () => {
     try {
-      const resolvedComment = await resolveCommentMutation.mutateAsync({ commentId, resolved: !isResolved });
+      await resolveCommentMutation.mutateAsync({ commentId, resolved: !isResolved });
       //TODO: remove comment mark
       // Remove comment thread from state on resolve
-
-      setComments((oldComments) =>
-        oldComments.map((comment) =>
-          comment.id === commentId
-            ? { ...comment, resolvedAt: resolvedComment.resolvedAt, resolvedById: resolvedComment.resolvedById }
-            : comment,
-        ),
-      );
     } catch (error) {
       console.error('Failed to toggle resolved state:', error);
     }

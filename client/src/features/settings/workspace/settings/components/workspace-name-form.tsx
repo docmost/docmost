@@ -1,13 +1,13 @@
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 import { useAtom } from 'jotai';
 import * as z from 'zod';
-import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { focusAtom } from 'jotai-optics';
 import { updateWorkspace } from '@/features/workspace/services/workspace-service';
 import { IWorkspace } from '@/features/workspace/types/workspace.types';
 import { TextInput, Button } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 
 const formSchema = z.object({
   name: z.string().nonempty('Workspace name cannot be blank'),
@@ -35,14 +35,15 @@ export default function WorkspaceNameForm() {
     try {
       const updatedWorkspace = await updateWorkspace(data);
       setWorkspace(updatedWorkspace);
-      toast.success('Updated successfully');
+      notifications.show({ message: 'Updated successfully' });
     } catch (err) {
       console.log(err);
-      toast.error('Failed to update data.');
+      notifications.show({
+        message: 'Failed to update data',
+        color: 'red',
+      });
     }
-
     setIsLoading(false);
-
   }
 
   return (

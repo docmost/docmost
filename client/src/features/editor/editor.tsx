@@ -14,7 +14,6 @@ import { EditorBubbleMenu } from '@/features/editor/components/bubble-menu/bubbl
 import { Document } from '@tiptap/extension-document';
 import { Text } from '@tiptap/extension-text';
 import { Heading } from '@tiptap/extension-heading';
-import usePage from '@/features/page/hooks/use-page';
 import { useDebouncedValue } from '@mantine/hooks';
 import { pageAtom } from '@/features/page/atoms/page-atom';
 import { IPage } from '@/features/page/types/page.types';
@@ -24,6 +23,7 @@ import { activeCommentIdAtom, showCommentPopupAtom } from '@/features/comment/at
 import CommentDialog from '@/features/comment/components/comment-dialog';
 import { editorAtom } from '@/features/editor/atoms/editorAtom';
 import { collabExtensions, mainExtensions } from '@/features/editor/extensions';
+import { useUpdatePageMutation } from '@/features/page/queries/page';
 
 interface EditorProps {
   pageId: string,
@@ -93,7 +93,7 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   const [page, setPage] = useAtom(pageAtom<IPage>(pageId));
   const [debouncedTitleState, setDebouncedTitleState] = useState('');
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
-  const { updatePageMutation } = usePage();
+  const updatePageMutation = useUpdatePageMutation();
   const [desktopAsideOpened, setDesktopAsideOpened] = useAtom<boolean>(desktopAsideAtom);
   const [activeCommentId, setActiveCommentId] = useAtom<string | null>(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
@@ -127,7 +127,7 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
 
   useEffect(() => {
     if (debouncedTitle !== '') {
-      updatePageMutation({ id: pageId, title: debouncedTitle });
+      updatePageMutation.mutate({ id: pageId, title: debouncedTitle });
     }
   }, [debouncedTitle]);
 

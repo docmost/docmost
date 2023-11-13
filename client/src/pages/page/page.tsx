@@ -1,26 +1,26 @@
 import { useParams } from 'react-router-dom';
 import React, { useEffect } from 'react';
-import { useAtom } from 'jotai/index';
-import usePage from '@/features/page/hooks/use-page';
+import { useAtom } from 'jotai';
 import Editor from '@/features/editor/editor';
 import { pageAtom } from '@/features/page/atoms/page-atom';
+import { usePageQuery } from '@/features/page/queries/page';
 
 export default function Page() {
   const { pageId } = useParams();
   const [, setPage] = useAtom(pageAtom(pageId));
-  const { pageQuery } = usePage(pageId);
+  const { data, isLoading, isError } = usePageQuery(pageId);
 
   useEffect(() => {
-    if (pageQuery.data) {
-      setPage(pageQuery.data);
+    if (data) {
+      setPage(data);
     }
-  }, [pageQuery.data, pageQuery.isLoading, setPage, pageId]);
+  }, [data, isLoading, setPage, pageId]);
 
-  if (pageQuery.isLoading) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (pageQuery.isError) {
+  if (isError) {
     return <div>Error fetching page data.</div>;
   }
 

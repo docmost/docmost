@@ -1,45 +1,51 @@
 import { Group, Avatar, Text, Box } from '@mantine/core';
 import React, { useState } from 'react';
 import classes from './comment.module.css';
-import { useAtom, useAtomValue } from 'jotai';
-import { deleteCommentAtom } from '@/features/comment/atoms/comment-atom';
+import { useAtomValue } from 'jotai';
 import { timeAgo } from '@/lib/time-ago';
 import CommentEditor from '@/features/comment/components/comment-editor';
 import { editorAtom } from '@/features/editor/atoms/editorAtom';
 import CommentActions from '@/features/comment/components/comment-actions';
 import CommentMenu from '@/features/comment/components/comment-menu';
-import useComment from '@/features/comment/hooks/use-comment';
 import ResolveComment from '@/features/comment/components/resolve-comment';
 import { useHover } from '@mantine/hooks';
+import { useDeleteCommentMutation, useUpdateCommentMutation } from '@/features/comment/queries/comment';
+import { IComment } from '@/features/comment/types/comment.types';
 
-function CommentListItem({ comment }) {
+interface CommentListItemProps {
+  comment: IComment;
+}
+
+function CommentListItem({ comment }: CommentListItemProps) {
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const editor = useAtomValue(editorAtom);
   const [content, setContent] = useState(comment.content);
-  const { updateCommentMutation, deleteCommentMutation } = useComment();
-  const { isLoading } = updateCommentMutation;
-  const [, deleteComment] = useAtom(deleteCommentAtom(comment.pageId));
+  const updateCommentMutation = useUpdateCommentMutation();
+  const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);
 
   async function handleUpdateComment() {
-    const commentToUpdate = {
-      id: comment.id,
-      content: JSON.stringify(content),
-    };
-
     try {
+      setIsLoading(true);
+      const commentToUpdate = {
+        id: comment.id,
+        content: JSON.stringify(content),
+      };
       await updateCommentMutation.mutateAsync(commentToUpdate);
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update comment:', error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function handleDeleteComment() {
     try {
-      await deleteCommentMutation(comment.id);
+      await deleteCommentMutation.mutateAsync(comment.id);
       editor?.commands.unsetComment(comment.id);
-      deleteComment(comment.id); // Todo: unify code
     } catch (error) {
       console.error('Failed to delete comment:', error);
     }

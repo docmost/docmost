@@ -11,13 +11,13 @@ import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
 import { createPage, deletePage, movePage } from '@/features/page/services/page-service';
 import { v4 as uuidv4 } from 'uuid';
 import { IMovePage } from '@/features/page/types/page.types';
-import { useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { TreeNode } from '@/features/page/tree/types';
-import usePage from '@/features/page/hooks/use-page';
+import { useUpdatePageMutation } from '@/features/page/queries/page';
 
 export function usePersistence<T>() {
   const [data, setData] = useAtom(treeDataAtom);
-  const { updatePageMutation } = usePage();
+  const updatePageMutation = useUpdatePageMutation();
   const navigate = useNavigate();
 
   const tree = useMemo(() => new SimpleTree<TreeNode>(data), [data]);
@@ -34,7 +34,7 @@ export function usePersistence<T>() {
     const afterId = currentTreeData[newDragIndex - 1]?.id || null;
     const beforeId = !afterId && currentTreeData[newDragIndex + 1]?.id || null;
 
-    const params: IMovePage= {
+    const params: IMovePage = {
       id: args.dragIds[0],
       after: afterId,
       before: beforeId,
@@ -42,7 +42,7 @@ export function usePersistence<T>() {
     };
 
     const payload = Object.fromEntries(
-      Object.entries(params).filter(([key, value]) => value !== null && value !== undefined)
+      Object.entries(params).filter(([key, value]) => value !== null && value !== undefined),
     );
 
     try {
@@ -57,7 +57,7 @@ export function usePersistence<T>() {
     setData(tree.data);
 
     try {
-      updatePageMutation({ id, title: name });
+      updatePageMutation.mutateAsync({ id, title: name });
     } catch (error) {
       console.error('Error updating page title:', error);
     }
