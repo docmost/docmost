@@ -43,7 +43,7 @@ export function useDeletePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId),
     onSuccess: () => {
-      notifications.show({ title: 'Page deleted successfully' });
+      notifications.show({ message: 'Page deleted successfully' });
     },
   });
 }

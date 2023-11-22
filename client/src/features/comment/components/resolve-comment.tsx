@@ -1,7 +1,7 @@
 import { ActionIcon } from '@mantine/core';
 import { IconCircleCheck } from '@tabler/icons-react';
 import { modals } from '@mantine/modals';
-import { useResolveCommentMutation } from '@/features/comment/queries/comment';
+import { useResolveCommentMutation } from '@/features/comment/queries/comment-query';
 
 function ResolveComment({ commentId, pageId, resolvedAt }) {
   const resolveCommentMutation = useResolveCommentMutation();

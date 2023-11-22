@@ -1,22 +1,23 @@
-import { Group, Avatar, Text, Box } from '@mantine/core';
+import { Group, Text, Box } from '@mantine/core';
 import React, { useState } from 'react';
 import classes from './comment.module.css';
 import { useAtomValue } from 'jotai';
-import { timeAgo } from '@/lib/time-ago';
+import { timeAgo } from '@/lib/time';
 import CommentEditor from '@/features/comment/components/comment-editor';
 import { editorAtom } from '@/features/editor/atoms/editorAtom';
 import CommentActions from '@/features/comment/components/comment-actions';
 import CommentMenu from '@/features/comment/components/comment-menu';
-import ResolveComment from '@/features/comment/components/resolve-comment';
 import { useHover } from '@mantine/hooks';
-import { useDeleteCommentMutation, useUpdateCommentMutation } from '@/features/comment/queries/comment';
+import { useDeleteCommentMutation, useUpdateCommentMutation } from '@/features/comment/queries/comment-query';
 import { IComment } from '@/features/comment/types/comment.types';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface CommentListItemProps {
   comment: IComment;
 }
 
 function CommentListItem({ comment }: CommentListItemProps) {
+
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,28 +59,20 @@ function CommentListItem({ comment }: CommentListItemProps) {
   return (
     <Box ref={ref} pb="xs">
       <Group>
-        {comment.creator.avatarUrl ? (
-          <Avatar
-            src={comment.creator.avatarUrl}
-            alt={comment.creator.name}
-            size="sm"
-            radius="xl"
-          />) : (
-          <Avatar size="sm" color="blue">{comment.creator.name.charAt(0)}</Avatar>
-        )}
+        <UserAvatar color="blue" size="sm" avatarUrl={comment.creator.avatarUrl}
+                    name={comment.creator.name}
+        />
 
         <div style={{ flex: 1 }}>
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" fw={500} lineClamp={1}>{comment.creator.name}</Text>
 
             <div style={{ visibility: hovered ? 'visible' : 'hidden' }}>
-              {!comment.parentCommentId && (
+              {/*!comment.parentCommentId && (
                 <ResolveComment commentId={comment.id} pageId={comment.pageId} resolvedAt={comment.resolvedAt} />
-              )}
+              )*/}
 
-              <CommentMenu commentId={comment.id}
-                           onEditComment={handleEditToggle}
-                           onDeleteComment={handleDeleteComment} />
+              <CommentMenu onEditComment={handleEditToggle} onDeleteComment={handleDeleteComment} />
             </div>
           </Group>
 

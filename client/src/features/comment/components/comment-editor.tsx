@@ -3,10 +3,10 @@ import { Placeholder } from '@tiptap/extension-placeholder';
 import { Underline } from '@tiptap/extension-underline';
 import { Link } from '@tiptap/extension-link';
 import { StarterKit } from '@tiptap/starter-kit';
-import React from 'react';
 import classes from './comment.module.css';
 import { useFocusWithin } from '@mantine/hooks';
 import clsx from 'clsx';
+import { forwardRef, useImperativeHandle } from 'react';
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -16,7 +16,8 @@ interface CommentEditorProps {
   autofocus?: boolean;
 }
 
-function CommentEditor({ defaultContent, onUpdate, editable, placeholder, autofocus }: CommentEditorProps) {
+const CommentEditor = forwardRef(({ defaultContent, onUpdate, editable, placeholder, autofocus }: CommentEditorProps,
+                                  ref) => {
   const { ref: focusRef, focused } = useFocusWithin();
 
   const commentEditor = useEditor({
@@ -39,6 +40,12 @@ function CommentEditor({ defaultContent, onUpdate, editable, placeholder, autofo
     autofocus: (autofocus && 'end') || false,
   });
 
+  useImperativeHandle(ref, () => ({
+    clearContent: () => {
+      commentEditor.commands.clearContent();
+    },
+  }));
+
   return (
     <div ref={focusRef} className={classes.commentEditor}>
       <EditorContent editor={commentEditor}
@@ -46,7 +53,6 @@ function CommentEditor({ defaultContent, onUpdate, editable, placeholder, autofo
       />
     </div>
   );
-
-}
+});
 
 export default CommentEditor;

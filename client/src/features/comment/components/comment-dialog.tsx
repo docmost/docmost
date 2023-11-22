@@ -11,7 +11,8 @@ import { Editor } from '@tiptap/core';
 import CommentEditor from '@/features/comment/components/comment-editor';
 import CommentActions from '@/features/comment/components/comment-actions';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { useCreateCommentMutation } from '@/features/comment/queries/comment';
+import { useCreateCommentMutation } from '@/features/comment/queries/comment-query';
+import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
 
 interface CommentDialogProps {
   editor: Editor,
@@ -20,15 +21,16 @@ interface CommentDialogProps {
 
 function CommentDialog({ editor, pageId }: CommentDialogProps) {
   const [comment, setComment] = useState('');
-  const [, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
-  const [, setActiveCommentId] = useAtom<string | null>(activeCommentIdAtom);
-  const [draftCommentId, setDraftCommentId] = useAtom<string | null>(draftCommentIdAtom);
+  const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const [draftCommentId, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const [currentUser] = useAtom(currentUserAtom);
+  const [, setAsideState] = useAtom(asideStateAtom);
   const useClickOutsideRef = useClickOutside(() => {
     handleDialogClose();
   });
   const createCommentMutation = useCreateCommentMutation();
-  const { isLoading } = createCommentMutation;
+  const { isPending } = createCommentMutation;
 
   const handleDialogClose = () => {
     setShowCommentPopup(false);
@@ -54,6 +56,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       editor.chain().setComment(createdComment.id).unsetCommentDecoration().run();
       setActiveCommentId(createdComment.id);
 
+      setAsideState({ tab: 'comments', isAsideOpen: true });
       setTimeout(() => {
         const selector = `div[data-comment-id="${createdComment.id}"]`;
         const commentElement = document.querySelector(selector);
@@ -61,7 +64,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       });
     } finally {
       setShowCommentPopup(false);
-      setDraftCommentId(null);
+      setDraftCommentId('');
     }
   };
 
@@ -86,7 +89,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         <CommentEditor onUpdate={handleCommentEditorChange} placeholder="Write a comment"
                        editable={true} autofocus={true}
         />
-        <CommentActions onSave={handleAddComment} isLoading={isLoading}
+        <CommentActions onSave={handleAddComment} isLoading={isPending}
         />
       </Stack>
     </Dialog>

@@ -8,7 +8,7 @@ import {
 import { IComment, IResolveComment } from '@/features/comment/types/comment.types';
 import { notifications } from '@mantine/notifications';
 
-export const RQ_KEY = (pageId: string) => ['comment', pageId];
+export const RQ_KEY = (pageId: string) => ['comments', pageId];
 
 export function useCommentsQuery(pageId: string): UseQueryResult<IComment[], Error> {
   return useQuery({
@@ -57,7 +57,7 @@ export function useDeleteCommentMutation(pageId?: string) {
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
     onSuccess: (data, variables) => {
-      let comments = queryClient.getQueryData(RQ_KEY(pageId));
+      let comments = queryClient.getQueryData(RQ_KEY(pageId)) as IComment[];
       if (comments) {
         comments = comments.filter(comment => comment.id !== variables);
         queryClient.setQueryData(RQ_KEY(pageId), comments);
@@ -77,7 +77,7 @@ export function useResolveCommentMutation() {
     mutationFn: (data: IResolveComment) => resolveComment(data),
     onSuccess: (data: IComment, variables) => {
 
-      const currentComments = queryClient.getQueryData(RQ_KEY(data.pageId));
+      const currentComments = queryClient.getQueryData(RQ_KEY(data.pageId)) as IComment[];
 
       if (currentComments) {
         const updatedComments = currentComments.map((comment) =>
