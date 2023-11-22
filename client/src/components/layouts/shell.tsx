@@ -1,4 +1,4 @@
-import { desktopAsideAtom, desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
+import { asideStateAtom, desktopSidebarAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { useToggleSidebar } from '@/components/navbar/hooks/use-toggle-sidebar';
 import { Navbar } from '@/components/navbar/navbar';
 import { AppShell, Burger, Group } from '@mantine/core';
@@ -8,12 +8,16 @@ import classes from './shell.module.css';
 import Header from '@/components/layouts/header';
 import Breadcrumb from '@/components/layouts/components/breadcrumb';
 import Aside from '@/components/aside/aside';
+import { useMatchPath } from '@/hooks/use-match-path';
+import React from 'react';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
-  const [desktopAsideOpened] = useAtom(desktopAsideAtom);
+  const matchPath = useMatchPath();
+  const isPageRoute = matchPath('/p/:pageId');
+  const [{ isAsideOpen }] = useAtom(asideStateAtom);
 
   return (
     <AppShell
@@ -24,7 +28,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         breakpoint: 'sm',
         collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
       }}
-      aside={{ width: 300, breakpoint: 'md', collapsed: { mobile: true, desktop: !desktopAsideOpened } }}
+      aside={{
+        width: 300,
+        breakpoint: 'md',
+        collapsed: { mobile: (!isAsideOpen), desktop: (!isAsideOpen) },
+      }}
       padding="md"
     >
       <AppShell.Header
@@ -47,13 +55,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               size="sm"
             />
 
-            <Breadcrumb />
+            {isPageRoute && <Breadcrumb />}
           </Group>
 
-          <Group justify="flex-end" h="100%" px="md" wrap="nowrap">
-            <Header />
-          </Group>
-
+          {
+            isPageRoute &&
+            <Group justify="flex-end" h="100%" px="md" wrap="nowrap">
+              <Header />
+            </Group>
+          }
         </Group>
 
       </AppShell.Header>
@@ -66,9 +76,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         {children}
       </AppShell.Main>
 
-      <AppShell.Aside className={classes.aside}>
-        <Aside />
-      </AppShell.Aside>
+      {
+        isPageRoute &&
+        <AppShell.Aside className={classes.aside}>
+          <Aside />
+        </AppShell.Aside>
+      }
+
     </AppShell>
   );
 }

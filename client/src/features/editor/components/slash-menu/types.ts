@@ -22,4 +22,6 @@ export type SlashMenuItemType = {
   disable?: (editor: Editor) => boolean;
 }
 
-export type SlashMenuGroupedItemsType = Record<string, SlashMenuItemType[]>;
+export type SlashMenuGroupedItemsType = {
+  [category: string]: SlashMenuItemType[];
+};

@@ -29,8 +29,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.431.0",
     "@aws-sdk/s3-request-presigner": "^3.431.0",
-    "@hocuspocus/server": "^2.7.1",
-    "@hocuspocus/transformer": "^2.7.1",
+    "@hocuspocus/server": "^2.8.1",
+    "@hocuspocus/transformer": "^2.8.1",
     "@nestjs/common": "^10.2.7",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.2.7",
@@ -59,6 +59,7 @@
     "@nestjs/schematics": "^10.0.2",
     "@nestjs/testing": "^10.2.7",
     "@types/bcrypt": "^5.0.0",
+    "@types/debounce": "^1.2.4",
     "@types/fs-extra": "^11.0.2",
     "@types/jest": "^29.5.5",
     "@types/mime-types": "^2.1.2",

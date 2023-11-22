@@ -16,6 +16,7 @@ import { Color } from '@tiptap/extension-color';
 import SlashCommand from '@/features/editor/extensions/slash-command';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
+import { Comment } from '@/features/editor/extensions/comment/comment';
 import * as Y from 'yjs';
 
 export const mainExtensions = [
@@ -47,6 +48,11 @@ export const mainExtensions = [
   TextStyle,
   Color,
   SlashCommand,
+  Comment.configure({
+    HTMLAttributes: {
+      class: 'comment-mark',
+    },
+  }),
 ];
 
 type CollabExtensions = (ydoc: Y.Doc, provider: any) => any[];

@@ -127,6 +127,7 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
       return elem;
     },
 
+    // @ts-ignore
     addProseMirrorPlugins(): Plugin[] {
       // @ts-ignore
       return [commentDecoration()];
