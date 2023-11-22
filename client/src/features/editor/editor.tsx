@@ -1,29 +1,20 @@
+import '@/features/editor/styles/index.css';
+
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { Placeholder } from '@tiptap/extension-placeholder';
 import React, { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
 import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
 import useCollaborationUrl from '@/features/editor/hooks/use-collaboration-url';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import classes from '@/features/editor/styles/editor.module.css';
-import '@/features/editor/styles/index.css';
 import { EditorBubbleMenu } from '@/features/editor/components/bubble-menu/bubble-menu';
-import { Document } from '@tiptap/extension-document';
-import { Text } from '@tiptap/extension-text';
-import { Heading } from '@tiptap/extension-heading';
-import { useDebouncedValue } from '@mantine/hooks';
-import { pageAtom } from '@/features/page/atoms/page-atom';
-import { IPage } from '@/features/page/types/page.types';
-import { Comment } from '@/features/editor/extensions/comment/comment';
-import { desktopAsideAtom } from '@/components/navbar/atoms/sidebar-atom';
+import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { activeCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
 import CommentDialog from '@/features/comment/components/comment-dialog';
-import { editorAtom } from '@/features/editor/atoms/editorAtom';
+import { editorAtom, titleEditorAtom } from '@/features/editor/atoms/editorAtom';
 import { collabExtensions, mainExtensions } from '@/features/editor/extensions';
-import { useUpdatePageMutation } from '@/features/page/queries/page';
 
 interface EditorProps {
   pageId: string,
@@ -78,6 +69,9 @@ export default function Editor({ pageId }: EditorProps) {
   }
 
   const isSynced = isLocalSynced || isRemoteSynced;
+  if (isSynced){
+    window.scrollTo(0, 0);
+  }
   return (isSynced && <TiptapEditor ydoc={yDoc} provider={provider} pageId={pageId} />);
 }
 
@@ -90,61 +84,19 @@ interface TiptapEditorProps {
 function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(editorAtom);
-  const [page, setPage] = useAtom(pageAtom<IPage>(pageId));
-  const [debouncedTitleState, setDebouncedTitleState] = useState('');
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
-  const updatePageMutation = useUpdatePageMutation();
-  const [desktopAsideOpened, setDesktopAsideOpened] = useAtom<boolean>(desktopAsideAtom);
-  const [activeCommentId, setActiveCommentId] = useAtom<string | null>(activeCommentIdAtom);
-  const [showCommentPopup, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
-
-  const titleEditor = useEditor({
-    extensions: [
-      Document.extend({
-        content: 'heading',
-      }),
-      Heading.configure({
-        levels: [1],
-      }),
-      Text,
-      Placeholder.configure({
-        placeholder: 'Untitled',
-      }),
-    ],
-    onUpdate({ editor }) {
-      const currentTitle = editor.getText();
-      setDebouncedTitleState(currentTitle);
-    },
-    content: page.title,
-  });
-
-  useEffect(() => {
-    setTimeout(() => {
-      titleEditor?.commands.focus('start');
-      window.scrollTo(0, 0);
-    }, 100);
-  }, []);
-
-  useEffect(() => {
-    if (debouncedTitle !== '') {
-      updatePageMutation.mutate({ id: pageId, title: debouncedTitle });
-    }
-  }, [debouncedTitle]);
+  const [titleEditor] = useAtom(titleEditorAtom);
+  const [asideState, setAsideState] = useAtom(asideStateAtom);
+  const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
+  const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
 
   const extensions = [
     ...mainExtensions,
     ...collabExtensions(ydoc, provider),
-    Comment.configure({
-      HTMLAttributes: {
-        class: 'comment-mark',
-      },
-    }),
-
   ];
 
   const editor = useEditor({
     extensions: extensions,
-    autofocus: false,
+    autofocus: 0,
     editorProps: {
       handleDOMEvents: {
         keydown: (_view, event) => {
@@ -159,6 +111,7 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
     },
     onCreate({ editor }) {
       if (editor) {
+        // @ts-ignore
         setEditor(editor);
       }
     },
@@ -178,29 +131,21 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
   });
 
   useEffect(() => {
+    setTimeout(() => {
+     titleEditor?.commands.focus('end');
+    }, 200);
+  }, [editor]);
+
+  useEffect(() => {
     if (editor && currentUser.user) {
       editor.chain().focus().updateUser({ ...currentUser.user, color: getRandomColor() }).run();
     }
   }, [editor, currentUser.user]);
 
-  function handleTitleKeyDown(event) {
-    if (!titleEditor || !editor || event.shiftKey) return;
-
-    const { key } = event;
-    const { $head } = titleEditor.state.selection;
-
-    const shouldFocusEditor = (key === 'Enter' || key === 'ArrowDown') ||
-      (key === 'ArrowRight' && !$head.nodeAfter);
-
-    if (shouldFocusEditor) {
-      editor.commands.focus('start');
-    }
-  }
-
   const handleActiveCommentEvent = (event) => {
     const { commentId } = event.detail;
     setActiveCommentId(commentId);
-    setDesktopAsideOpened(true);
+    setAsideState({ tab: 'comments', isAsideOpen: true });
 
     const selector = `div[data-comment-id="${commentId}"]`;
     const commentElement = document.querySelector(selector);
@@ -216,21 +161,22 @@ function TiptapEditor({ ydoc, provider, pageId }: TiptapEditorProps) {
 
   useEffect(() => {
     setActiveCommentId(null);
-    setDesktopAsideOpened(false);
     setShowCommentPopup(false);
+    setAsideState({ tab: '', isAsideOpen: false });
   }, [pageId]);
 
   return (
-    <>
-      <div className={classes.editor}>
-        {editor && <EditorBubbleMenu editor={editor} />}
-        <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />
-        <EditorContent editor={editor} />
-      </div>
+    <div>
+      {editor &&
+        (<div>
+          <EditorBubbleMenu editor={editor} />
+          <EditorContent editor={editor} />
 
-      {showCommentPopup && (
-        <CommentDialog editor={editor} pageId={pageId} />
-      )}
-    </>
+          {showCommentPopup && (
+            <CommentDialog editor={editor} pageId={pageId} />
+          )}
+        </div>)}
+    </div>
   );
 }
+

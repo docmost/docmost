@@ -14,12 +14,13 @@ export class PersistenceExtension implements Extension {
 
   async onLoadDocument(data: onLoadDocumentPayload) {
     const { documentName, document } = data;
+    const pageId = documentName;
 
     if (!document.isEmpty('default')) {
       return;
     }
 
-    const page = await this.pageService.findById(documentName);
+    const page = await this.pageService.findWithAllFields(pageId);
 
     if (!page) {
       console.log('page does not exist.');

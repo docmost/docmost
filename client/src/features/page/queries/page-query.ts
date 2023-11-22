@@ -13,9 +13,10 @@ const RECENT_CHANGES_KEY = ['recentChanges'];
 
 export function usePageQuery(pageId: string): UseQueryResult<IPage, Error> {
   return useQuery({
-    queryKey: ['page', pageId],
+    queryKey: ['pages', pageId],
     queryFn: () => getPageById(pageId),
     enabled: !!pageId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

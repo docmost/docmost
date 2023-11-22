@@ -20,8 +20,8 @@ export interface BubbleMenuItem {
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'>;
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
-  const [showCommentPopup, setShowCommentPopup] = useAtom<boolean>(showCommentPopupAtom);
-  const [draftCommentId, setDraftCommentId] = useAtom<string | null>(draftCommentIdAtom);
+  const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
 
   const items: BubbleMenuItem[] = [
     {

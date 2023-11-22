@@ -12,6 +12,7 @@ import {
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { Comment } from '../../comment/entities/comment.entity';
+import { PageHistory } from './page-history.entity';
 
 @Entity('pages')
 export class Page {
@@ -100,6 +101,9 @@ export class Page {
 
   @OneToMany(() => Page, (page) => page.parentPage, { onDelete: 'CASCADE' })
   childPages: Page[];
+
+  @OneToMany(() => PageHistory, (pageHistory) => pageHistory.page)
+  pageHistory: PageHistory[];
 
   @OneToMany(() => Comment, (comment) => comment.page)
   comments: Comment[];

@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import classes from './home.module.css';
 import { Link } from 'react-router-dom';
 import PageListSkeleton from '@/features/home/components/page-list-skeleton';
-import { useRecentChangesQuery } from '@/features/page/queries/page';
+import { useRecentChangesQuery } from '@/features/page/queries/page-query';
 
 function RecentChanges() {
   const { data, isLoading, isError } = useRecentChangesQuery();
@@ -22,7 +22,7 @@ function RecentChanges() {
         <div key={page.id}>
           <UnstyledButton component={Link} to={`/p/${page.id}`}
                           className={classes.page} p="xs">
-            <Group wrap="noWrap">
+            <Group wrap="nowrap">
 
               <Stack gap="xs" style={{ flex: 1 }}>
                 <Text fw={500} size="sm">

@@ -35,8 +35,25 @@ export class PageService {
     return this.pageRepository.findById(pageId);
   }
 
-  async findWithoutYDoc(pageId: string) {
-    return this.pageRepository.findWithoutYDoc(pageId);
+  async findWithContent(pageId: string) {
+    return this.pageRepository.findWithContent(pageId);
+  }
+
+  async findWithYdoc(pageId: string) {
+    return this.pageRepository.findWithYDoc(pageId);
+  }
+
+  async findWithAllFields(pageId: string) {
+    return this.pageRepository.findWithAllFields(pageId);
+  }
+
+  async findOne(pageId: string): Promise<Page> {
+    const page = await this.findById(pageId);
+    if (!page) {
+      throw new BadRequestException('Page not found');
+    }
+
+    return page;
   }
 
   async create(
@@ -85,7 +102,7 @@ export class PageService {
       throw new BadRequestException(`Page not found`);
     }
 
-    return await this.pageRepository.findWithoutYDoc(pageId);
+    return await this.pageRepository.findById(pageId);
   }
 
   async updateState(
@@ -240,25 +257,7 @@ export class PageService {
     const pages = await this.pageRepository
       .createQueryBuilder('page')
       .where('page.workspaceId = :workspaceId', { workspaceId })
-      .select([
-        'page.id',
-        'page.title',
-        'page.slug',
-        'page.icon',
-        'page.coverPhoto',
-        'page.editor',
-        'page.shareId',
-        'page.parentPageId',
-        'page.creatorId',
-        'page.lastUpdatedById',
-        'page.workspaceId',
-        'page.isLocked',
-        'page.status',
-        'page.publishedAt',
-        'page.createdAt',
-        'page.updatedAt',
-        'page.deletedAt',
-      ])
+      .select(this.pageRepository.baseFields)
       .orderBy('page.updatedAt', 'DESC')
       .offset(offset)
       .take(limit)

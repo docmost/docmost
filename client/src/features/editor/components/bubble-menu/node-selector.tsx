@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/core';
-import { Dispatch, FC, SetStateAction } from 'react';
+import React, { Dispatch, FC, SetStateAction } from 'react';
 import {
   IconBlockquote,
   IconCheck, IconCheckbox, IconChevronDown, IconCode,
@@ -21,7 +21,7 @@ interface NodeSelectorProps {
 
 export interface BubbleMenuItem {
   name: string;
-  icon: FC;
+  icon: React.ElementType;
   command: () => void;
   isActive: () => boolean;
 }
@@ -126,7 +126,7 @@ export const NodeSelector: FC<NodeSelectorProps> =
                   variant="default"
                   leftSection={<item.icon size={16} />}
                   rightSection={activeItem.name === item.name
-                    && (<IconCheck style={{ width: rem(16) }} />)}
+                    && (<IconCheck size={16} />)}
                   justify="left"
                   fullWidth
                   onClick={() => {

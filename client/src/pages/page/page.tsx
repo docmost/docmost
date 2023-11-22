@@ -1,9 +1,10 @@
 import { useParams } from 'react-router-dom';
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
-import Editor from '@/features/editor/editor';
 import { pageAtom } from '@/features/page/atoms/page-atom';
-import { usePageQuery } from '@/features/page/queries/page';
+import { usePageQuery } from '@/features/page/queries/page-query';
+import { FullEditor } from '@/features/editor/full-editor';
+import HistoryModal from '@/features/page-history/components/history-modal';
 
 export default function Page() {
   const { pageId } = useParams();
@@ -12,17 +13,26 @@ export default function Page() {
 
   useEffect(() => {
     if (data) {
+      // @ts-ignore
       setPage(data);
     }
   }, [data, isLoading, setPage, pageId]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <></>;
   }
 
   if (isError || !data) { // TODO: fix this
     return <div>Error fetching page data.</div>;
   }
 
-  return (<Editor key={pageId} pageId={pageId} />);
+  return (
+    data && (
+      <div>
+        <FullEditor key={pageId} pageId={pageId} title={data.title} />
+        <HistoryModal/>
+      </div>
+    )
+
+  );
 }

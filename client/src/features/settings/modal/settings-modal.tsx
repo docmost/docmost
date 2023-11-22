@@ -11,7 +11,7 @@ export default function SettingsModal() {
     <>
       <Modal.Root size={1000} opened={isModalOpen} onClose={() => setModalOpen(false)}>
         <Modal.Overlay />
-        <Modal.Content>
+        <Modal.Content style={{ overflow: 'hidden' }}>
           <Modal.Header>
             <Modal.Title>
               <Text size="md" fw={500}>Settings</Text>

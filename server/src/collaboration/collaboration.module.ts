@@ -9,12 +9,14 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
+import { HistoryExtension } from './extensions/history.extension';
 
 @Module({
   providers: [
     CollaborationGateway,
     AuthenticationExtension,
     PersistenceExtension,
+    HistoryExtension,
   ],
   imports: [UserModule, AuthModule, PageModule],
 })

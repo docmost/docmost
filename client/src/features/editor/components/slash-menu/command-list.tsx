@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import {
+  SlashMenuGroupedItemsType,
   SlashMenuItemType,
 } from '@/features/editor/components/slash-menu/types';
 import {
@@ -24,7 +25,7 @@ const CommandList = ({
                        editor,
                        range,
                      }: {
-  items: SlashMenuItemType[];
+  items: SlashMenuGroupedItemsType;
   command: any;
   editor: any;
   range: any;

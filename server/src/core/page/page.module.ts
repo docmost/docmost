@@ -8,15 +8,24 @@ import { AuthModule } from '../auth/auth.module';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { PageOrderingService } from './services/page-ordering.service';
 import { PageOrdering } from './entities/page-ordering.entity';
+import { PageHistoryService } from './services/page-history.service';
+import { PageHistory } from './entities/page-history.entity';
+import { PageHistoryRepository } from './repositories/page-history.repository';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Page, PageOrdering]),
+    TypeOrmModule.forFeature([Page, PageOrdering, PageHistory]),
     AuthModule,
     WorkspaceModule,
   ],
   controllers: [PageController],
-  providers: [PageService, PageOrderingService, PageRepository],
-  exports: [PageService, PageOrderingService, PageRepository],
+  providers: [
+    PageService,
+    PageOrderingService,
+    PageHistoryService,
+    PageRepository,
+    PageHistoryRepository,
+  ],
+  exports: [PageService, PageOrderingService, PageHistoryService],
 })
 export class PageModule {}

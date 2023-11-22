@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Menu,
   Button,
-  rem,
 } from '@mantine/core';
 import {
   IconDots,
@@ -15,15 +14,20 @@ import {
   IconMessage,
 } from '@tabler/icons-react';
 import React from 'react';
+import useToggleAside from '@/hooks/use-toggle-aside';
+import { useAtom } from 'jotai';
+import { historyAtoms } from '@/features/page-history/atoms/history-atoms';
 
 export default function Header() {
+  const toggleAside = useToggleAside();
+
   return (
     <>
       <Button variant="default" style={{ border: 'none' }} size="compact-sm">
         Share
       </Button>
 
-      <ActionIcon variant="default" style={{ border: 'none' }}>
+      <ActionIcon variant="default" style={{ border: 'none' }} onClick={() => toggleAside('comments')}>
         <IconMessage size={20} stroke={2} />
       </ActionIcon>
 
@@ -33,6 +37,12 @@ export default function Header() {
 }
 
 function PageActionMenu() {
+  const [, setHistoryModalOpen] = useAtom(historyAtoms);
+
+  const openHistoryModal = () => {
+    setHistoryModalOpen(true);
+  };
+
   return (
     <Menu
       shadow="xl"
@@ -50,43 +60,31 @@ function PageActionMenu() {
 
       <Menu.Dropdown>
         <Menu.Item
-          leftSection={
-            <IconFileInfo style={{ width: rem(14), height: rem(14) }} />
-          }
-        >
+          leftSection={<IconFileInfo size={16} stroke={2} />}>
           Page info
         </Menu.Item>
         <Menu.Item
-          leftSection={<IconLink style={{ width: rem(14), height: rem(14) }} />}
+          leftSection={<IconLink size={16} stroke={2} />}
         >
           Copy link
         </Menu.Item>
         <Menu.Item
-          leftSection={
-            <IconShare style={{ width: rem(14), height: rem(14) }} />
-          }
-        >
+          leftSection={<IconShare size={16} stroke={2} />}>
           Share
         </Menu.Item>
         <Menu.Item
-          leftSection={
-            <IconHistory style={{ width: rem(14), height: rem(14) }} />
-          }
-        >
+          leftSection={<IconHistory size={16} stroke={2} />}
+          onClick={openHistoryModal}>
           Page history
         </Menu.Item>
 
         <Menu.Divider />
         <Menu.Item
-          leftSection={<IconLock style={{ width: rem(14), height: rem(14) }} />}
-        >
+          leftSection={<IconLock size={16} stroke={2} />}>
           Lock
         </Menu.Item>
         <Menu.Item
-          leftSection={
-            <IconTrash style={{ width: rem(14), height: rem(14) }} />
-          }
-        >
+          leftSection={<IconTrash size={16} stroke={2} />}>
           Delete
         </Menu.Item>
       </Menu.Dropdown>
