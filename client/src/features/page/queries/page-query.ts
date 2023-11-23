@@ -35,8 +35,13 @@ export function useCreatePageMutation() {
 }
 
 export function useUpdatePageMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation<IPage, Error, Partial<IPage>>({
     mutationFn: (data) => updatePage(data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['pages', data.id], data);
+    },
   });
 }
 

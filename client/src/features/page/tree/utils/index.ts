@@ -48,3 +48,15 @@ export function findBreadcrumbPath(tree: TreeNode[], pageId: string, path: TreeN
   }
   return null;
 }
+
+export const updateTreeNodeName = (nodes: TreeNode[], nodeId: string, newName: string): TreeNode[] => {
+  return nodes.map(node => {
+    if (node.id === nodeId) {
+      return { ...node, name: newName };
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: updateTreeNodeName(node.children, nodeId, newName) };
+    }
+    return node;
+  });
+};

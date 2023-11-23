@@ -85,12 +85,12 @@ const ChildComments = ({ comments, parentId }) => {
 const CommentEditorWithActions = ({ commentId, onSave, isLoading }) => {
   const [content, setContent] = useState('');
   const { ref, focused } = useFocusWithin();
-  const commentEditorRef = useRef();
+  const commentEditorRef = useRef(null);
 
   const handleSave = () => {
     onSave(commentId, content);
     setContent('');
-    commentEditorRef?.current.clearContent();
+    commentEditorRef.current?.clearContent();
   };
 
   return (

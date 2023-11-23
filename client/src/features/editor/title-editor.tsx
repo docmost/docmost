@@ -10,6 +10,8 @@ import { editorAtom, titleEditorAtom } from '@/features/editor/atoms/editorAtom'
 import { useUpdatePageMutation } from '@/features/page/queries/page-query';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useAtom } from 'jotai';
+import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
+import { updateTreeNodeName } from '@/features/page/tree/utils';
 
 export interface TitleEditorProps {
   pageId: string;
@@ -22,6 +24,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   const updatePageMutation = useUpdatePageMutation();
   const contentEditor = useAtomValue(editorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
+  const [treeData, setTreeData] = useAtom(treeDataAtom);
 
   const titleEditor = useEditor({
     extensions: [
@@ -52,8 +55,18 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   useEffect(() => {
     if (debouncedTitle !== '') {
       updatePageMutation.mutate({ id: pageId, title: debouncedTitle });
+
+      const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
+      setTreeData(newTreeData);
+
     }
   }, [debouncedTitle]);
+
+  useEffect(() => {
+    if (titleEditor && title !== titleEditor.getText()) {
+      titleEditor.commands.setContent(title);
+    }
+  }, [title, titleEditor]);
 
   function handleTitleKeyDown(event) {
     if (!titleEditor || !contentEditor || event.shiftKey) return;
