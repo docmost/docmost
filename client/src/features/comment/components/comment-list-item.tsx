@@ -4,7 +4,7 @@ import classes from './comment.module.css';
 import { useAtomValue } from 'jotai';
 import { timeAgo } from '@/lib/time';
 import CommentEditor from '@/features/comment/components/comment-editor';
-import { pageEditorAtom } from '@/features/editor/atoms/page-editor-atom';
+import { pageEditorAtom } from '@/features/editor/atoms/editor-atoms';
 import CommentActions from '@/features/comment/components/comment-actions';
 import CommentMenu from '@/features/comment/components/comment-menu';
 import { useHover } from '@mantine/hooks';

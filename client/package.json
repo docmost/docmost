@@ -23,7 +23,6 @@
     "@tiptap/extension-collaboration-cursor": "^2.1.12",
     "@tiptap/extension-color": "^2.1.12",
     "@tiptap/extension-document": "^2.1.12",
-    "@tiptap/extension-focus": "^2.1.12",
     "@tiptap/extension-heading": "^2.1.12",
     "@tiptap/extension-highlight": "^2.1.12",
     "@tiptap/extension-link": "^2.1.12",

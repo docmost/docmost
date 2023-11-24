@@ -5,7 +5,7 @@ import { activeHistoryIdAtom, historyAtoms } from '@/features/page-history/atoms
 import { useAtom } from 'jotai';
 import { useCallback, useEffect } from 'react';
 import { Button, ScrollArea, Group, Divider, Text } from '@mantine/core';
-import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/page-editor-atom';
+import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/editor-atoms';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 

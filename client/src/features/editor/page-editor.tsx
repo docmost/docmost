@@ -14,7 +14,7 @@ import { useAtom } from 'jotai';
 import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
 import useCollaborationUrl from '@/features/editor/hooks/use-collaboration-url';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { pageEditorAtom } from '@/features/editor/atoms/page-editor-atom';
+import { pageEditorAtom } from '@/features/editor/atoms/editor-atoms';
 import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { activeCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
 import CommentDialog from '@/features/comment/components/comment-dialog';

@@ -6,7 +6,7 @@ import { Heading } from '@tiptap/extension-heading';
 import { Text } from '@tiptap/extension-text';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { useAtomValue } from 'jotai';
-import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/page-editor-atom';
+import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/editor-atoms';
 import { useUpdatePageMutation } from '@/features/page/queries/page-query';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useAtom } from 'jotai';
