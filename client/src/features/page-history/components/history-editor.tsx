@@ -1,7 +1,7 @@
 import '@/features/editor/styles/index.css';
 import React, { useEffect } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { mainExtensions } from '@/features/editor/extensions';
+import { mainExtensions } from '@/features/editor/extensions/extensions';
 import { Title } from '@mantine/core';
 
 export interface HistoryEditorProps {

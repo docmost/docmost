@@ -6,7 +6,7 @@ import { Heading } from '@tiptap/extension-heading';
 import { Text } from '@tiptap/extension-text';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { useAtomValue } from 'jotai';
-import { editorAtom, titleEditorAtom } from '@/features/editor/atoms/editorAtom';
+import { editorAtoms, titleEditorAtom } from '@/features/editor/atoms/editor-atoms';
 import { useUpdatePageMutation } from '@/features/page/queries/page-query';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useAtom } from 'jotai';
@@ -22,7 +22,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState('');
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const updatePageMutation = useUpdatePageMutation();
-  const contentEditor = useAtomValue(editorAtom);
+  const pageEditor = useAtomValue(editorAtoms);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
 
@@ -58,7 +58,6 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
 
       const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
       setTreeData(newTreeData);
-
     }
   }, [debouncedTitle]);
 
@@ -66,10 +65,16 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
     if (titleEditor && title !== titleEditor.getText()) {
       titleEditor.commands.setContent(title);
     }
-  }, [title, titleEditor]);
+  }, [pageId, title, titleEditor]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      titleEditor?.commands.focus('end');
+    }, 500);
+  }, [titleEditor]);
 
   function handleTitleKeyDown(event) {
-    if (!titleEditor || !contentEditor || event.shiftKey) return;
+    if (!titleEditor || !pageEditor || event.shiftKey) return;
 
     const { key } = event;
     const { $head } = titleEditor.state.selection;
@@ -78,7 +83,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
       (key === 'ArrowRight' && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
-      contentEditor.commands.focus('start');
+      pageEditor.commands.focus('start');
     }
   }
 

@@ -18,7 +18,7 @@ export default function Page() {
   return (
     data && (
       <div>
-        <FullEditor key={pageId} pageId={pageId} title={data.title} />
+        <FullEditor pageId={pageId} title={data.title} />
         <HistoryModal />
       </div>
     )

@@ -17,7 +17,7 @@ import SlashCommand from '@/features/editor/extensions/slash-command';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
 import { Comment } from '@/features/editor/extensions/comment/comment';
-import * as Y from 'yjs';
+import { HocuspocusProvider } from '@hocuspocus/provider';
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -55,11 +55,11 @@ export const mainExtensions = [
   }),
 ];
 
-type CollabExtensions = (ydoc: Y.Doc, provider: any) => any[];
+type CollabExtensions = (provider: HocuspocusProvider) => any[];
 
-export const collabExtensions: CollabExtensions = (ydoc, provider) => [
+export const collabExtensions: CollabExtensions = (provider) => [
   Collaboration.configure({
-    document: ydoc,
+    document: provider.document,
   }),
   CollaborationCursor.configure({
     provider,

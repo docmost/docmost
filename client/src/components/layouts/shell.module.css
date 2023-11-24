@@ -1,15 +1,15 @@
-@media (max-width: 992px) {
-    .header,
-    .footer {
+.header,
+.footer {
+    @media (max-width: 992px) {
         [data-layout='alt'] & {
             --_section-right: var(--app-shell-aside-offset, 0px);
         }
-
     }
+
 }
 
-@media (min-width: 993px) {
-    .aside {
+.aside {
+    @media (min-width: 993px) {
         background: var(--mantine-color-gray-light);
 
         [data-layout='alt'] & {
