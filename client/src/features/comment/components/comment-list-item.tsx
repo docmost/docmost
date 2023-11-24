@@ -4,7 +4,7 @@ import classes from './comment.module.css';
 import { useAtomValue } from 'jotai';
 import { timeAgo } from '@/lib/time';
 import CommentEditor from '@/features/comment/components/comment-editor';
-import { editorAtoms } from '@/features/editor/atoms/editor-atoms';
+import { pageEditorAtom } from '@/features/editor/atoms/page-editor-atom';
 import CommentActions from '@/features/comment/components/comment-actions';
 import CommentMenu from '@/features/comment/components/comment-menu';
 import { useHover } from '@mantine/hooks';
@@ -22,7 +22,7 @@ function CommentListItem({ comment }: CommentListItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const editor = useAtomValue(editorAtoms);
+  const editor = useAtomValue(pageEditorAtom);
   const [content, setContent] = useState(comment.content);
   const updateCommentMutation = useUpdateCommentMutation();
   const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);

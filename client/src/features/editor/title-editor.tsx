@@ -6,7 +6,7 @@ import { Heading } from '@tiptap/extension-heading';
 import { Text } from '@tiptap/extension-text';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { useAtomValue } from 'jotai';
-import { editorAtoms, titleEditorAtom } from '@/features/editor/atoms/editor-atoms';
+import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/page-editor-atom';
 import { useUpdatePageMutation } from '@/features/page/queries/page-query';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useAtom } from 'jotai';
@@ -22,7 +22,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState('');
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const updatePageMutation = useUpdatePageMutation();
-  const pageEditor = useAtomValue(editorAtoms);
+  const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
 

@@ -14,7 +14,7 @@ import { useAtom } from 'jotai';
 import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
 import useCollaborationUrl from '@/features/editor/hooks/use-collaboration-url';
 import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { editorAtoms } from '@/features/editor/atoms/editor-atoms';
+import { pageEditorAtom } from '@/features/editor/atoms/page-editor-atom';
 import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
 import { activeCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
 import CommentDialog from '@/features/comment/components/comment-dialog';
@@ -34,7 +34,7 @@ export default function PageEditor({ pageId, editable = true }: PageEditorProps)
   const [token] = useAtom(authTokensAtom);
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
-  const [, setEditor] = useAtom(editorAtoms);
+  const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
 
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
