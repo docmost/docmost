@@ -6,6 +6,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './interceptors/http-response.interceptor';
+import fastifyMultipart from '@fastify/multipart';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -13,8 +14,12 @@ async function bootstrap() {
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
-    }),
+    } as any),
   );
+
+  app.setGlobalPrefix('api');
+
+  await app.register(fastifyMultipart);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -29,4 +34,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT || 3001);
 }
+
 bootstrap();

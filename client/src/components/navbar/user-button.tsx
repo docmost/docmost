@@ -17,11 +17,11 @@ export function UserButton() {
 
         <div style={{ flex: 1 }}>
           <Text size="sm" fw={500}>
-            {currentUser.user.name}
+            {currentUser?.user.name}
           </Text>
 
           <Text c="dimmed" size="xs">
-            {currentUser.user.email}
+            {currentUser?.user.email}
           </Text>
         </div>
 
