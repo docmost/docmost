@@ -1,11 +1,14 @@
 import React from 'react';
 import { Avatar } from '@mantine/core';
 
-interface UserAvatarProps extends React.ComponentProps<typeof Avatar> {
+interface UserAvatarProps {
   avatarUrl: string;
   name: string;
   color?: string;
   size?: string;
+  radius?: string;
+  style?: any;
+  component?: any;
 }
 
 export const UserAvatar = React.forwardRef<HTMLInputElement, UserAvatarProps>(

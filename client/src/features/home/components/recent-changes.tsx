@@ -18,20 +18,21 @@ function RecentChanges() {
 
   return (
     <div>
-      {data.map((page) => (
+      {data
+        .map((page) => (
         <div key={page.id}>
           <UnstyledButton component={Link} to={`/p/${page.id}`}
                           className={classes.page} p="xs">
             <Group wrap="nowrap">
 
               <Stack gap="xs" style={{ flex: 1 }}>
-                <Text fw={500} size="sm">
+                <Text fw={500} size="md" lineClamp={1}>
                   {page.title || 'Untitled'}
                 </Text>
               </Stack>
 
-              <Text c="dimmed" size="xs">
-                {format(new Date(page.createdAt), 'PPP')}
+              <Text c="dimmed" size="xs" fw={500}>
+                {format(new Date(page.updatedAt), 'PP')}
               </Text>
             </Group>
           </UnstyledButton>

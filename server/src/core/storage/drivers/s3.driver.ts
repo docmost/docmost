@@ -18,7 +18,7 @@ export class S3Driver implements StorageDriver {
 
   constructor(config: S3StorageConfig) {
     this.config = config;
-    this.s3Client = new S3Client(config);
+    this.s3Client = new S3Client(config as any);
   }
 
   async upload(filePath: string, file: Buffer): Promise<void> {

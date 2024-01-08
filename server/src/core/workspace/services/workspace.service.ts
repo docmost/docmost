@@ -68,6 +68,10 @@ export class WorkspaceService {
       workspace.name = updateWorkspaceDto.name;
     }
 
+    if (updateWorkspaceDto.logo) {
+      workspace.logo = updateWorkspaceDto.logo;
+    }
+
     return this.workspaceRepository.save(workspace);
   }
 

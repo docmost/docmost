@@ -5,6 +5,8 @@ import { User } from '../../user/entities/user.entity';
 import { FastifyRequest } from 'fastify';
 import { TokensDto } from '../dto/tokens.dto';
 
+export type JwtPayload = { sub: string; email: string };
+
 @Injectable()
 export class TokenService {
   constructor(
@@ -12,7 +14,7 @@ export class TokenService {
     private environmentService: EnvironmentService,
   ) {}
   async generateJwt(user: User): Promise<string> {
-    const payload = {
+    const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
     };

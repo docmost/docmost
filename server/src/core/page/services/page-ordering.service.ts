@@ -40,7 +40,6 @@ export class PageOrderingService {
       if (!movedPage) throw new BadRequestException('Moved page not found');
 
       if (!dto.parentId) {
-        console.log('no parent');
         if (movedPage.parentPageId) {
           await this.removeFromParent(movedPage.parentPageId, dto.id, manager);
         }

@@ -11,8 +11,20 @@ export async function getUserInfo(): Promise<ICurrentUserResponse> {
   return req.data as ICurrentUserResponse;
 }
 
-export async function updateUser(data: Partial<IUser>) {
+export async function updateUser(data: Partial<IUser>): Promise<IUser> {
   const req = await api.post<IUser>('/user/update', data);
 
   return req.data as IUser;
 }
+
+export async function uploadAvatar(file: File) {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  const req = await api.post('/attachments/upload/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    }
+  });
+  return req.data;
+}
+

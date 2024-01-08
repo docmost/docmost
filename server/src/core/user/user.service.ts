@@ -69,6 +69,10 @@ export class UserService {
       user.email = updateUserDto.email;
     }
 
+    if (updateUserDto.avatarUrl) {
+      user.avatarUrl = updateUserDto.avatarUrl;
+    }
+
     return this.userRepository.save(user);
   }
 

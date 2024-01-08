@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  Req,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -10,7 +9,6 @@ import {
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
-import { FastifyRequest } from 'fastify';
 import { JwtGuard } from '../auth/guards/JwtGuard';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { MovePageDto } from './dto/move-page.dto';
@@ -20,6 +18,7 @@ import { PageOrderingService } from './services/page-ordering.service';
 import { PageHistoryService } from './services/page-history.service';
 import { HistoryDetailsDto } from './dto/history-details.dto';
 import { PageHistoryDto } from './dto/page-history.dto';
+import { JwtUser } from '../../decorators/jwt-user.decorator';
 
 @UseGuards(JwtGuard)
 @Controller('pages')
@@ -39,29 +38,17 @@ export class PageController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
-  async create(
-    @Req() req: FastifyRequest,
-    @Body() createPageDto: CreatePageDto,
-  ) {
-    const jwtPayload = req['user'];
-    const userId = jwtPayload.sub;
-
+  async create(@JwtUser() jwtUser, @Body() createPageDto: CreatePageDto) {
     const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
     ).id;
-    return this.pageService.create(userId, workspaceId, createPageDto);
+    return this.pageService.create(jwtUser.id, workspaceId, createPageDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(
-    @Req() req: FastifyRequest,
-    @Body() updatePageDto: UpdatePageDto,
-  ) {
-    const jwtPayload = req['user'];
-    const userId = jwtPayload.sub;
-
-    return this.pageService.update(updatePageDto.id, updatePageDto, userId);
+  async update(@JwtUser() jwtUser, @Body() updatePageDto: UpdatePageDto) {
+    return this.pageService.update(updatePageDto.id, updatePageDto, jwtUser.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -84,40 +71,36 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('recent')
-  async getRecentWorkspacePages(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
+  async getRecentWorkspacePages(@JwtUser() jwtUser) {
     const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
     ).id;
     return this.pageService.getRecentWorkspacePages(workspaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post()
-  async getWorkspacePages(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
+  async getWorkspacePages(@JwtUser() jwtUser) {
     const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
     ).id;
     return this.pageService.getSidebarPagesByWorkspaceId(workspaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('ordering')
-  async getWorkspacePageOrder(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
+  async getWorkspacePageOrder(@JwtUser() jwtUser) {
     const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
     ).id;
     return this.pageOrderService.getWorkspacePageOrder(workspaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('tree')
-  async workspacePageTree(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
+  async workspacePageTree(@JwtUser() jwtUser) {
     const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
+      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
     ).id;
 
     return this.pageOrderService.convertToTree(workspaceId);

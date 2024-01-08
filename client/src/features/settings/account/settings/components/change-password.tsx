@@ -63,15 +63,15 @@ function ChangePasswordForm() {
       <PasswordInput
         label="Current password"
         name="current"
-        placeholder="Enter your password"
+        placeholder="Enter your current password"
         variant="filled"
         mb="md"
-        {...form.getInputProps('password')}
+        {...form.getInputProps('current')}
       />
 
       <PasswordInput
         label="New password"
-        placeholder="Enter your password"
+        placeholder="Enter your new password"
         variant="filled"
         mb="md"
         {...form.getInputProps('password')}
