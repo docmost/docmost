@@ -19,7 +19,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  await app.register(fastifyMultipart);
+  await app.register(fastifyMultipart as any);
 
   app.useGlobalPipes(
     new ValidationPipe({
