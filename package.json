@@ -1,0 +1,20 @@
+{
+  "name": "docmost",
+  "homepage": "https://docmost.com",
+  "private": true,
+  "scripts": {
+    "build": "nx run-many -t build",
+    "build:server": "nx run server:build",
+    "build:client": "nx run client:build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@nx/js": "17.2.8",
+    "nx": "17.2.8"
+  },
+  "workspaces": {
+    "packages": [
+      "apps/*"
+    ]
+  }
+}
