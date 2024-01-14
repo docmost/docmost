@@ -4,17 +4,48 @@
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
-    "build:server": "nx run server:build",
-    "build:client": "nx run client:build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@docmost/editor-ext": "workspace:*",
+    "@hocuspocus/server": "^2.9.0",
+    "@hocuspocus/transformer": "^2.9.0",
+    "@hocuspocus/provider": "^2.9.0",
+    "@tiptap/extension-code-block": "^2.1.12",
+    "@tiptap/extension-collaboration": "^2.1.12",
+    "@tiptap/extension-collaboration-cursor": "^2.1.12",
+    "@tiptap/extension-color": "^2.1.12",
+    "@tiptap/extension-document": "^2.1.12",
+    "@tiptap/extension-heading": "^2.1.12",
+    "@tiptap/extension-highlight": "^2.1.12",
+    "@tiptap/extension-link": "^2.1.12",
+    "@tiptap/extension-list-item": "^2.1.12",
+    "@tiptap/extension-list-keymap": "^2.1.12",
+    "@tiptap/extension-mention": "^2.1.12",
+    "@tiptap/extension-placeholder": "^2.1.12",
+    "@tiptap/extension-subscript": "^2.1.12",
+    "@tiptap/extension-superscript": "^2.1.12",
+    "@tiptap/extension-task-item": "^2.1.12",
+    "@tiptap/extension-task-list": "^2.1.12",
+    "@tiptap/extension-text": "^2.1.12",
+    "@tiptap/extension-text-align": "^2.1.12",
+    "@tiptap/extension-text-style": "^2.1.12",
+    "@tiptap/extension-typography": "^2.1.12",
+    "@tiptap/extension-underline": "^2.1.12",
+    "@tiptap/pm": "^2.1.12",
+    "@tiptap/react": "^2.1.12",
+    "@tiptap/starter-kit": "^2.1.12",
+    "@tiptap/suggestion": "^2.1.12",
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.10"
+  },
   "devDependencies": {
     "@nx/js": "17.2.8",
     "nx": "17.2.8"
   },
   "workspaces": {
     "packages": [
-      "apps/*"
+      "apps/*",
+      "packages/*"
     ]
   }
 }

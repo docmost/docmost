@@ -1,0 +1,13 @@
+{
+  "name": "@docmost/editor-ext",
+  "homepage": "https://docmost.com",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "main": "dist/index.js",
+  "module": "./src/index.ts",
+  "types": "dist/index.d.ts"
+}

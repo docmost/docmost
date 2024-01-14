@@ -9,15 +9,14 @@ import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Typography } from '@tiptap/extension-typography';
-import { TrailingNode } from '@/features/editor/extensions/trailing-node';
 import DragAndDrop from '@/features/editor/extensions/drag-handle';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import SlashCommand from '@/features/editor/extensions/slash-command';
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
-import { Comment } from '@/features/editor/extensions/comment/comment';
 import { HocuspocusProvider } from '@hocuspocus/provider';
+import { Comment, TrailingNode } from '@docmost/editor-ext';
 
 export const mainExtensions = [
   StarterKit.configure({

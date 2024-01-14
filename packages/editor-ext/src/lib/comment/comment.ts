@@ -1,5 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
-import { commentDecoration } from '@/features/editor/extensions/comment/comment-decoration';
+import { commentDecoration } from './comment-decoration';
 
 export interface ICommentOptions {
   HTMLAttributes: Record<string, any>,
