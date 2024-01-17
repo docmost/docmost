@@ -3,7 +3,7 @@
   "homepage": "https://docmost.com",
   "private": true,
   "scripts": {
-    "build": "nx run-many -t build",
+    "build": "nx run-many -t build"
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
