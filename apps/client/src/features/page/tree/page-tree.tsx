@@ -113,6 +113,11 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
     updatePageMutation.mutateAsync({ id: node.id, icon: emoji.native });
   };
 
+  const handleRemoveEmoji = () => {
+    handleUpdateNodeIcon(node.id, null);
+    updatePageMutation.mutateAsync({ id: node.id, icon: null });
+  };
+
   if (node.willReceiveDrop && node.isClosed) {
     setTimeout(() => {
       if (node.state.willReceiveDrop) node.open();
@@ -134,7 +139,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
             node.data.icon ? node.data.icon :
               <IconFileDescription size="18px"  />
 
-          }/>
+          } removeEmojiAction={handleRemoveEmoji}/>
         </div>
 
         <span className={classes.text}>
