@@ -11,5 +11,9 @@ export class CreatePageDto {
 
   @IsOptional()
   @IsString()
+  icon?: string;
+
+  @IsOptional()
+  @IsString()
   parentPageId?: string;
 }

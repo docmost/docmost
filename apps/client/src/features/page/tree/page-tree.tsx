@@ -23,24 +23,28 @@ import { FillFlexParent } from './components/fill-flex-parent';
 import { TreeNode } from './types';
 import { treeApiAtom } from './atoms/tree-api-atom';
 import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
-import { getPages } from '@/features/page/services/page-service';
 import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
 import { useNavigate, useParams } from 'react-router-dom';
-import { convertToTree } from '@/features/page/tree/utils';
+import { convertToTree, updateTreeNodeIcon } from '@/features/page/tree/utils';
+import { useGetPagesQuery, useUpdatePageMutation } from '@/features/page/queries/page-query';
+import EmojiPicker from '@/components/emoji-picker';
+import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
 
 export default function PageTree() {
   const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
   const [tree, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
   const { data: pageOrderData } = useWorkspacePageOrder();
+  const { data: pagesData, isLoading } = useGetPagesQuery();
   const rootElement = useRef<HTMLDivElement>();
   const { pageId } = useParams();
 
   const fetchAndSetTreeData = async () => {
     if (pageOrderData?.childrenIds) {
       try {
-        const pages = await getPages();
-        const treeData = convertToTree(pages, pageOrderData.childrenIds);
-        setData(treeData);
+        if (!isLoading) {
+          const treeData = convertToTree(pagesData, pageOrderData.childrenIds);
+          setData(treeData);
+        }
       } catch (err) {
         console.error('Error fetching tree data: ', err);
       }
@@ -49,7 +53,7 @@ export default function PageTree() {
 
   useEffect(() => {
     fetchAndSetTreeData();
-  }, [pageOrderData?.childrenIds]);
+  }, [pageOrderData?.childrenIds, isLoading]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -87,9 +91,26 @@ export default function PageTree() {
 
 function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
   const navigate = useNavigate();
+  const updatePageMutation = useUpdatePageMutation();
+  const [treeData, setTreeData] = useAtom(treeDataAtom);
 
   const handleClick = () => {
     navigate(`/p/${node.id}`);
+  };
+
+  const handleUpdateNodeIcon = (nodeId, newIcon) => {
+    const updatedTreeData = updateTreeNodeIcon(treeData, nodeId, newIcon);
+    setTreeData(updatedTreeData);
+  };
+
+  const handleEmojiIconClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const handleEmojiSelect = (emoji) => {
+    handleUpdateNodeIcon(node.id, emoji.native);
+    updatePageMutation.mutateAsync({ id: node.id, icon: emoji.native });
   };
 
   if (node.willReceiveDrop && node.isClosed) {
@@ -108,7 +129,13 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
       >
         <PageArrow node={node} />
 
-        <IconFileDescription size="18px" style={{ marginRight: '4px' }} />
+        <div onClick={handleEmojiIconClick} style={{ marginRight: '4px' }}>
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} icon={
+            node.data.icon ? node.data.icon :
+              <IconFileDescription size="18px"  />
+
+          }/>
+        </div>
 
         <span className={classes.text}>
           {node.isEditing ? (

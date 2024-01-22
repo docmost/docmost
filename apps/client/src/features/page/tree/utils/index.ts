@@ -60,3 +60,15 @@ export const updateTreeNodeName = (nodes: TreeNode[], nodeId: string, newName: s
     return node;
   });
 };
+
+export const updateTreeNodeIcon = (nodes: TreeNode[], nodeId: string, newIcon: string): TreeNode[] => {
+  return nodes.map(node => {
+    if (node.id === nodeId) {
+      return { ...node, icon: newIcon };
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: updateTreeNodeIcon(node.children, nodeId, newIcon) };
+    }
+    return node;
+  });
+};
