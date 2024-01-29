@@ -46,7 +46,7 @@ The server will be available on `http://localhost:3000`
 $ pnpm nx run server:migration:create init
 
 # Generates 'init' migration file from existing entities to update the database schema
-$ pnpm nx run server::generate init
+$ pnpm nx run server:migration:generate init
 
 # Runs all pending migrations to update the database schema
 $ pnpm nx run server:migration:run

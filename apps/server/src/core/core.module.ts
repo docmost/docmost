@@ -7,6 +7,7 @@ import { StorageModule } from './storage/storage.module';
 import { AttachmentModule } from './attachment/attachment.module';
 import { EnvironmentModule } from '../environment/environment.module';
 import { CommentModule } from './comment/comment.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CommentModule } from './comment/comment.module';
     }),
     AttachmentModule,
     CommentModule,
+    SearchModule,
   ],
 })
 export class CoreModule {}
