@@ -22,20 +22,33 @@ export class Page {
   @Column({ length: 500, nullable: true })
   title: string;
 
+  @Column({ nullable: true })
+  icon: string;
+
   @Column({ type: 'jsonb', nullable: true })
   content: string;
 
   @Column({ type: 'text', nullable: true })
   html: string;
 
+  @Column({ type: 'text', nullable: true })
+  textContent: string;
+
+  @Column({
+    type: 'tsvector',
+    generatedType: 'STORED',
+    asExpression:
+      "setweight(to_tsvector('english', coalesce(pages.title, '')), 'A') || setweight(to_tsvector('english', coalesce(pages.\"textContent\", '')), 'B')",
+    select: false,
+    nullable: true,
+  })
+  tsv: string;
+
   @Column({ type: 'bytea', nullable: true })
   ydoc: any;
 
   @Column({ nullable: true })
   slug: string;
-
-  @Column({ nullable: true })
-  icon: string;
 
   @Column({ nullable: true })
   coverPhoto: string;

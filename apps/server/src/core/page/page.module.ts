@@ -26,6 +26,11 @@ import { PageHistoryRepository } from './repositories/page-history.repository';
     PageRepository,
     PageHistoryRepository,
   ],
-  exports: [PageService, PageOrderingService, PageHistoryService],
+  exports: [
+    PageService,
+    PageOrderingService,
+    PageHistoryService,
+    PageRepository,
+  ],
 })
 export class PageModule {}

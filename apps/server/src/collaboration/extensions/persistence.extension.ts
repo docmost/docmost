@@ -7,19 +7,8 @@ import * as Y from 'yjs';
 import { PageService } from '../../core/page/services/page.service';
 import { Injectable } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { StarterKit } from '@tiptap/starter-kit';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { TaskList } from '@tiptap/extension-task-list';
-import { TaskItem } from '@tiptap/extension-task-item';
-import { Underline } from '@tiptap/extension-underline';
-import { Link } from '@tiptap/extension-link';
-import { Superscript } from '@tiptap/extension-superscript';
-import SubScript from '@tiptap/extension-subscript';
-import { Highlight } from '@tiptap/extension-highlight';
-import { Typography } from '@tiptap/extension-typography';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import { TrailingNode, Comment } from '@docmost/editor-ext';
+import { jsonToHtml, jsonToText, tiptapExtensions } from '../collaboration.util';
+import { generateText } from '@tiptap/core'
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -55,22 +44,12 @@ export class PersistenceExtension implements Extension {
     if (page.content) {
       console.log('converting json to ydoc');
 
-      const ydoc = TiptapTransformer.toYdoc(page.content, 'default', [
-        StarterKit,
-        Comment,
-        TextAlign,
-        TaskList,
-        TaskItem,
-        Underline,
-        Link,
-        Superscript,
-        SubScript,
-        Highlight,
-        Typography,
-        TrailingNode,
-        TextStyle,
-        Color,
-      ]);
+      const ydoc = TiptapTransformer.toYdoc(
+        page.content,
+        'default',
+        tiptapExtensions,
+      );
+
       Y.encodeStateAsUpdate(ydoc);
       return ydoc;
     }
@@ -87,8 +66,16 @@ export class PersistenceExtension implements Extension {
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
+    const textContent = jsonToText(tiptapJson);
+    console.log(jsonToText(tiptapJson));
+
     try {
-      await this.pageService.updateState(pageId, tiptapJson, ydocState);
+      await this.pageService.updateState(
+        pageId,
+        tiptapJson,
+        textContent,
+        ydocState,
+      );
     } catch (err) {
       console.error(`Failed to update page ${documentName}`);
     }

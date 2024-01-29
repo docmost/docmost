@@ -48,6 +48,7 @@
     "fs-extra": "^11.1.1",
     "mime-types": "^2.1.35",
     "pg": "^8.11.3",
+    "pg-tsquery": "^8.4.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "sanitize-filename-ts": "^1.0.2",

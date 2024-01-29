@@ -108,11 +108,13 @@ export class PageService {
   async updateState(
     pageId: string,
     content: any,
+    textContent: string,
     ydoc: any,
     userId?: string, // TODO: fix this
   ): Promise<void> {
     await this.pageRepository.update(pageId, {
       content: content,
+      textContent: textContent,
       ydoc: ydoc,
       ...(userId && { lastUpdatedById: userId }),
     });

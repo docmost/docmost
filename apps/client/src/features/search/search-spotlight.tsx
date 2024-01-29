@@ -1,43 +1,59 @@
-import { rem } from '@mantine/core';
-import { Spotlight, SpotlightActionData } from '@mantine/spotlight';
-import { IconHome, IconDashboard, IconSettings, IconSearch } from '@tabler/icons-react';
+import { Group, Center, Text } from '@mantine/core';
+import { Spotlight } from '@mantine/spotlight';
+import { IconFileDescription, IconHome, IconSearch, IconSettings } from '@tabler/icons-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDebouncedValue } from '@mantine/hooks';
+import { usePageSearchQuery } from '@/features/search/queries/search-query';
 
-const actions: SpotlightActionData[] = [
-  {
-    id: 'home',
-    label: 'Home',
-    description: 'Get to home page',
-    onClick: () => console.log('Home'),
-    leftSection: <IconHome style={{ width: rem(24), height: rem(24) }} stroke={1.5} />,
-  },
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    description: 'Get full information about current system status',
-    onClick: () => console.log('Dashboard'),
-    leftSection: <IconDashboard style={{ width: rem(24), height: rem(24) }} stroke={1.5} />,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    description: 'Account settings and workspace management',
-    onClick: () => console.log('Settings'),
-    leftSection: <IconSettings style={{ width: rem(24), height: rem(24) }} stroke={1.5} />,
-  },
-];
 
 export function SearchSpotlight() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [debouncedSearchQuery] = useDebouncedValue(query, 300);
+  const { data: searchResults, isLoading, error } = usePageSearchQuery(debouncedSearchQuery)
+
+  const items = (searchResults && searchResults.length > 0 ? searchResults : [])
+    .map((item) => (
+        <Spotlight.Action key={item.title} onClick={() => navigate(`/p/${item.id}`)}>
+          <Group wrap="nowrap" w="100%">
+            <Center>
+              {item?.icon ? (
+                  <span style={{ fontSize: "20px" }}>{ item.icon }</span>
+              ) : (
+                <IconFileDescription size={20} />
+              )}
+            </Center>
+
+            <div style={{ flex: 1 }}>
+              <Text>{item.title}</Text>
+
+              {item?.highlight && (
+                <Text opacity={0.6} size="xs" dangerouslySetInnerHTML={{ __html: item.highlight }}/>
+              )}
+            </div>
+
+          </Group>
+        </Spotlight.Action>
+      ));
+
   return (
     <>
-      <Spotlight
-        actions={actions}
-        nothingFound="Nothing found..."
-        highlightQuery
-        searchProps={{
-          leftSection: <IconSearch style={{ width: rem(20), height: rem(20) }} stroke={1.5} />,
-          placeholder: 'Search...',
-        }}
-      />
+      <Spotlight.Root query={query}
+                      onQueryChange={setQuery}
+                      scrollable
+                      overlayProps={{
+                        backgroundOpacity: 0.55,
+                      }}>
+        <Spotlight.Search placeholder="Search..."
+                          leftSection={
+                            <IconSearch size={20} stroke={1.5} />
+                          } />
+        <Spotlight.ActionsList>
+          {items.length > 0 ? items : <Spotlight.Empty>No results found...</Spotlight.Empty>}
+        </Spotlight.ActionsList>
+      </Spotlight.Root>
+
     </>
   );
 }
