@@ -50,8 +50,14 @@ export function SearchSpotlight() {
                             <IconSearch size={20} stroke={1.5} />
                           } />
         <Spotlight.ActionsList>
-          {items.length > 0 ? items : <Spotlight.Empty>No results found...</Spotlight.Empty>}
+          {query.length === 0 && items.length === 0 && <Spotlight.Empty>Start typing to search...</Spotlight.Empty>}
+
+          {query.length > 0 && items.length === 0 && <Spotlight.Empty>No results found...</Spotlight.Empty>}
+
+          {items.length > 0 && items}
         </Spotlight.ActionsList>
+
+
       </Spotlight.Root>
 
     </>
