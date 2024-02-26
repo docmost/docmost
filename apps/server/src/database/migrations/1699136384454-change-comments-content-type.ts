@@ -12,5 +12,4 @@ export class ChangeCommentsContentType1699136384454 implements MigrationInterfac
         await queryRunner.query(`ALTER TABLE "comments" DROP COLUMN "content"`);
         await queryRunner.query(`ALTER TABLE "comments" ADD "content" text NOT NULL`);
     }
-
 }
