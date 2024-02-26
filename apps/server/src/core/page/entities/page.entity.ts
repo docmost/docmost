@@ -8,6 +8,7 @@ import {
   JoinColumn,
   OneToMany,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
@@ -15,6 +16,7 @@ import { Comment } from '../../comment/entities/comment.entity';
 import { PageHistory } from './page-history.entity';
 
 @Entity('pages')
+@Index('pages_tsv_idx', ['tsv'])
 export class Page {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -36,9 +38,6 @@ export class Page {
 
   @Column({
     type: 'tsvector',
-    generatedType: 'STORED',
-    asExpression:
-      "setweight(to_tsvector('english', coalesce(pages.title, '')), 'A') || setweight(to_tsvector('english', coalesce(pages.\"textContent\", '')), 'B')",
     select: false,
     nullable: true,
   })
