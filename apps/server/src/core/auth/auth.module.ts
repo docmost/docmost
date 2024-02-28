@@ -1,10 +1,9 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { EnvironmentService } from '../../environment/environment.service';
 import { TokenService } from './services/token.service';
-import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -20,7 +19,6 @@ import { UserModule } from '../user/user.module';
       },
       inject: [EnvironmentService],
     }),
-    forwardRef(() => UserModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, TokenService],
