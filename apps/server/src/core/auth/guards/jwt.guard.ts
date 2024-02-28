@@ -6,14 +6,26 @@ import {
 } from '@nestjs/common';
 import { TokenService } from '../services/token.service';
 import { UserService } from '../../user/user.service';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../../../decorators/public.decorator';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
   constructor(
     private tokenService: TokenService,
     private userService: UserService,
+    private reflector: Reflector,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const token: string = await this.tokenService.extractTokenFromHeader(
       request,
