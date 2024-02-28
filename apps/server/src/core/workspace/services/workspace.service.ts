@@ -15,6 +15,10 @@ import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { SpaceService } from '../../space/space.service';
+import { UserWithRole } from '../../user/entities/user.entity';
+import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
+import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
 
 @Injectable()
 export class WorkspaceService {
@@ -209,25 +213,32 @@ export class WorkspaceService {
     );
   }
 
-  async getWorkspaceUsers(workspaceId: string) {
-    const workspace = await this.workspaceRepository.findOne({
-      where: { id: workspaceId },
-      relations: ['workspaceUsers', 'workspaceUsers.user'],
-    });
+  async getWorkspaceUsers(
+    workspaceId: string,
+    paginationOptions: PaginationOptions,
+  ): Promise<PaginatedResult<any>> {
+    const [workspaceUsers, count] =
+      await this.workspaceUserRepository.findAndCount({
+        relations: ['user'],
+        where: {
+          workspace: {
+            id: workspaceId,
+          },
+        },
+        take: paginationOptions.limit,
+        skip: paginationOptions.skip,
+      });
 
-    if (!workspace) {
-      throw new BadRequestException('Invalid workspace');
-    }
-
-    const users = workspace.workspaceUsers.map((workspaceUser) => {
+    const users = workspaceUsers.map((workspaceUser) => {
       workspaceUser.user.password = '';
       return {
         ...workspaceUser.user,
-        workspaceRole: workspaceUser.role,
+        role: workspaceUser.role,
       };
     });
 
-    return { users };
+    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
+    return new PaginatedResult(users, paginationMeta);
   }
 
   async validateWorkspaceMember(

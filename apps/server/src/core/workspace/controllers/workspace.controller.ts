@@ -1,11 +1,14 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
@@ -20,9 +23,10 @@ import { AuthUser } from '../../../decorators/auth-user.decorator';
 import { User } from '../../user/entities/user.entity';
 import { CurrentWorkspace } from '../../../decorators/current-workspace.decorator';
 import { Workspace } from '../entities/workspace.entity';
+import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 
 @UseGuards(JwtGuard)
-@Controller('workspace')
+@Controller('workspaces')
 export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
@@ -51,9 +55,13 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Get('members')
-  async getWorkspaceMembers(@CurrentWorkspace() workspace: Workspace) {
-    return this.workspaceService.getWorkspaceUsers(workspace.id);
+  @Post('members')
+  async getWorkspaceMembers(
+    @Body()
+    pagination: PaginationOptions,
+    @CurrentWorkspace() workspace: Workspace,
+  ) {
+    return this.workspaceService.getWorkspaceUsers(workspace.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)

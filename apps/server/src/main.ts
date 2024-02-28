@@ -25,6 +25,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       stopAtFirstError: true,
+      transform: true,
     }),
   );
   app.enableCors();
