@@ -12,6 +12,8 @@ import { Workspace } from '../../workspace/entities/workspace.entity';
 import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { Comment } from '../../comment/entities/comment.entity';
+import { Space } from '../../space/entities/space.entity';
+import { SpaceUser } from '../../space/entities/space-user.entity';
 
 @Entity('users')
 export class User {
@@ -65,6 +67,12 @@ export class User {
 
   @OneToMany(() => Comment, (comment) => comment.creator)
   comments: Comment[];
+
+  @OneToMany(() => Space, (space) => space.creator)
+  spaces: Space[];
+
+  @OneToMany(() => SpaceUser, (spaceUser) => spaceUser.user)
+  spaceUsers: SpaceUser[];
 
   toJSON() {
     delete this.password;

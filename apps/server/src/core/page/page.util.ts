@@ -2,7 +2,8 @@ import { MovePageDto } from './dto/move-page.dto';
 import { EntityManager } from 'typeorm';
 
 export enum OrderingEntity {
-  workspace = 'WORKSPACE',
+  workspace = 'SPACE',
+  space = 'SPACE',
   page = 'PAGE',
 }
 

@@ -14,12 +14,14 @@ import { generateHostname } from '../workspace.util';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
+import { SpaceService } from '../../space/space.service';
 
 @Injectable()
 export class WorkspaceService {
   constructor(
     private workspaceRepository: WorkspaceRepository,
     private workspaceUserRepository: WorkspaceUserRepository,
+    private spaceService: SpaceService,
   ) {}
 
   async findById(workspaceId: string): Promise<Workspace> {
@@ -28,6 +30,45 @@ export class WorkspaceService {
 
   async save(workspace: Workspace) {
     return this.workspaceRepository.save(workspace);
+  }
+
+  async createOrJoinWorkspace(userId) {
+    // context:
+    // only create workspace if it is not a signup to an existing workspace
+    // OS version is limited to one workspace.
+    // if there is no existing workspace, create a new workspace
+    // and make first user owner/admin
+
+    // check if workspace already exists in the db
+    // if not create default, if yes add the user to existing workspace if signup is open.
+    const workspaceCount = await this.workspaceRepository.count();
+
+    if (workspaceCount === 0) {
+      // create first workspace
+      // add user to workspace as admin
+
+      const newWorkspace = await this.create(userId);
+      await this.addUserToWorkspace(userId, newWorkspace.id, 'owner');
+
+      // maybe create default space and add user to it too.
+      const newSpace = await this.spaceService.create(userId, newWorkspace.id);
+      await this.spaceService.addUserToSpace(userId, newSpace.id, 'owner');
+    } else {
+      //TODO: accept role as param
+      // if no role is passed use default new member role found in workspace settings
+
+      // fetch the oldest workspace and add user to it
+      const firstWorkspace = await this.workspaceRepository.find({
+        order: {
+          createdAt: 'ASC',
+        },
+        take: 1,
+      });
+
+      await this.addUserToWorkspace(userId, firstWorkspace[0].id, 'member');
+      // get workspace
+      // if there is a default space, we should add new users to it.
+    }
   }
 
   async create(
@@ -50,7 +91,6 @@ export class WorkspaceService {
     }
 
     workspace = await this.workspaceRepository.save(workspace);
-    await this.addUserToWorkspace(userId, workspace.id, 'owner');
 
     return workspace;
   }
@@ -150,6 +190,10 @@ export class WorkspaceService {
       where: { userId: userId },
       relations: ['workspace'],
     });
+
+    if (!userWorkspace) {
+      throw new NotFoundException('No workspace found for this user');
+    }
 
     return userWorkspace.workspace;
   }

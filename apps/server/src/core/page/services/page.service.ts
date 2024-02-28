@@ -67,7 +67,7 @@ export class PageService {
     page.lastUpdatedById = userId;
 
     if (createPageDto.parentPageId) {
-      // TODO: make sure parent page belongs to same workspace and user has permissions
+      // TODO: make sure parent page belongs to same space and user has permissions
       const parentPage = await this.pageRepository.findOne({
         where: { id: createPageDto.parentPageId },
         select: ['id'],
@@ -79,7 +79,7 @@ export class PageService {
     const createdPage = await this.pageRepository.save(page);
 
     await this.pageOrderingService.addPageToOrder(
-      workspaceId,
+      createPageDto.spaceId,
       createPageDto.id,
       createPageDto.parentPageId,
     );
@@ -174,12 +174,7 @@ export class PageService {
       const restoredPage = await manager
         .createQueryBuilder(Page, 'page')
         .where('page.id = :pageId', { pageId })
-        .select([
-          'page.id',
-          'page.title',
-          'page.workspaceId',
-          'page.parentPageId',
-        ])
+        .select(['page.id', 'page.title', 'page.spaceId', 'page.parentPageId'])
         .getOne();
 
       if (!restoredPage) {
@@ -188,7 +183,7 @@ export class PageService {
 
       // add page back to its hierarchy
       await this.pageOrderingService.addPageToOrder(
-        restoredPage.workspaceId,
+        restoredPage.spaceId,
         pageId,
         restoredPage.parentPageId,
       );
@@ -222,8 +217,8 @@ export class PageService {
     return await this.pageRepository.findById(pageId);
   }
 
-  async getSidebarPagesByWorkspaceId(
-    workspaceId: string,
+  async getSidebarPagesBySpaceId(
+    spaceId: string,
     limit = 200,
   ): Promise<PageWithOrderingDto[]> {
     const pages = await this.pageRepository
@@ -234,12 +229,13 @@ export class PageService {
         'ordering.entityId = page.id AND ordering.entityType = :entityType',
         { entityType: OrderingEntity.page },
       )
-      .where('page.workspaceId = :workspaceId', { workspaceId })
+      .where('page.spaceId = :spaceId', { spaceId })
       .select([
         'page.id',
         'page.title',
         'page.icon',
         'page.parentPageId',
+        'page.spaceId',
         'ordering.childrenIds',
         'page.creatorId',
         'page.createdAt',
@@ -251,14 +247,14 @@ export class PageService {
     return transformPageResult(pages);
   }
 
-  async getRecentWorkspacePages(
-    workspaceId: string,
+  async getRecentSpacePages(
+    spaceId: string,
     limit = 20,
     offset = 0,
   ): Promise<Page[]> {
     const pages = await this.pageRepository
       .createQueryBuilder('page')
-      .where('page.workspaceId = :workspaceId', { workspaceId })
+      .where('page.spaceId = :spaceId', { spaceId })
       .select(this.pageRepository.baseFields)
       .orderBy('page.updatedAt', 'DESC')
       .offset(offset)

@@ -10,7 +10,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { JwtGuard } from '../auth/guards/JwtGuard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { FastifyRequest } from 'fastify';
 import { User } from './entities/user.entity';
 import { Workspace } from '../workspace/entities/workspace.entity';

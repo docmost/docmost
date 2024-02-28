@@ -10,6 +10,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Workspace } from '../../workspace/entities/workspace.entity';
+import { Space } from '../../space/entities/space.entity';
 
 @Entity('page_ordering')
 @Unique(['entityId', 'entityType'])
@@ -23,8 +24,11 @@ export class PageOrdering {
   @Column({ type: 'varchar', length: 50, nullable: false })
   entityType: string;
 
-  @Column('uuid', { array: true })
+  @Column('uuid', { array: true, default: '{}' })
   childrenIds: string[];
+
+  @Column('uuid')
+  workspaceId: string;
 
   @ManyToOne(() => Workspace, (workspace) => workspace.id, {
     onDelete: 'CASCADE',
@@ -33,7 +37,13 @@ export class PageOrdering {
   workspace: Workspace;
 
   @Column('uuid')
-  workspaceId: string;
+  spaceId: string;
+
+  @ManyToOne(() => Space, (space) => space.id, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'spaceId' })
+  space: Space;
 
   @DeleteDateColumn({ nullable: true })
   deletedAt: Date;

@@ -9,7 +9,7 @@ import {
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
-import { JwtGuard } from '../auth/guards/JwtGuard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { MovePageDto } from './dto/move-page.dto';
 import { PageDetailsDto } from './dto/page-details.dto';
@@ -71,39 +71,27 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('recent')
-  async getRecentWorkspacePages(@JwtUser() jwtUser) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-    return this.pageService.getRecentWorkspacePages(workspaceId);
+  async getRecentSpacePages(@Body() { spaceId }) {
+    console.log(spaceId);
+    return this.pageService.getRecentSpacePages(spaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post()
-  async getWorkspacePages(@JwtUser() jwtUser) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-    return this.pageService.getSidebarPagesByWorkspaceId(workspaceId);
+  async getSpacePages(spaceId: string) {
+    return this.pageService.getSidebarPagesBySpaceId(spaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('ordering')
-  async getWorkspacePageOrder(@JwtUser() jwtUser) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-    return this.pageOrderService.getWorkspacePageOrder(workspaceId);
+  async getSpacePageOrder(spaceId: string) {
+    return this.pageOrderService.getSpacePageOrder(spaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('tree')
-  async workspacePageTree(@JwtUser() jwtUser) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-
-    return this.pageOrderService.convertToTree(workspaceId);
+  async spacePageTree(@Body() { spaceId }) {
+    return this.pageOrderService.convertToTree(spaceId);
   }
 
   @HttpCode(HttpStatus.OK)

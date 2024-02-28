@@ -34,7 +34,7 @@ export class PageOrderingService {
       const movedPage = await manager
         .createQueryBuilder(Page, 'page')
         .where('page.id = :movedPageId', { movedPageId })
-        .select(['page.id', 'page.workspaceId', 'page.parentPageId'])
+        .select(['page.id', 'page.spaceId', 'page.parentPageId'])
         .getOne();
 
       if (!movedPage) throw new BadRequestException('Moved page not found');
@@ -43,15 +43,15 @@ export class PageOrderingService {
         if (movedPage.parentPageId) {
           await this.removeFromParent(movedPage.parentPageId, dto.id, manager);
         }
-        const workspaceOrdering = await this.getEntityOrdering(
-          movedPage.workspaceId,
-          OrderingEntity.workspace,
+        const spaceOrdering = await this.getEntityOrdering(
+          movedPage.spaceId,
+          OrderingEntity.space,
           manager,
         );
 
-        orderPageList(workspaceOrdering.childrenIds, dto);
+        orderPageList(spaceOrdering.childrenIds, dto);
 
-        await manager.save(workspaceOrdering);
+        await manager.save(spaceOrdering);
       } else {
         const parentPageId = dto.parentId;
 
@@ -65,7 +65,7 @@ export class PageOrderingService {
           parentPageOrdering = await this.createPageOrdering(
             parentPageId,
             OrderingEntity.page,
-            movedPage.workspaceId,
+            movedPage.spaceId,
             manager,
           );
         }
@@ -78,8 +78,8 @@ export class PageOrderingService {
 
         // If movedPage didn't have a parent initially (was at root level), update the root level
         if (!movedPage.parentPageId) {
-          await this.removeFromWorkspacePageOrder(
-            movedPage.workspaceId,
+          await this.removeFromSpacePageOrder(
+            movedPage.spaceId,
             dto.id,
             manager,
           );
@@ -95,36 +95,32 @@ export class PageOrderingService {
     });
   }
 
-  async addPageToOrder(
-    workspaceId: string,
-    pageId: string,
-    parentPageId?: string,
-  ) {
+  async addPageToOrder(spaceId: string, pageId: string, parentPageId?: string) {
     await this.dataSource.transaction(async (manager: EntityManager) => {
       if (parentPageId) {
         await this.upsertOrdering(
           parentPageId,
           OrderingEntity.page,
           pageId,
-          workspaceId,
+          spaceId,
           manager,
         );
       } else {
-        await this.addToWorkspacePageOrder(workspaceId, pageId, manager);
+        await this.addToSpacePageOrder(spaceId, pageId, manager);
       }
     });
   }
 
-  async addToWorkspacePageOrder(
-    workspaceId: string,
+  async addToSpacePageOrder(
+    spaceId: string,
     pageId: string,
     manager: EntityManager,
   ) {
     await this.upsertOrdering(
-      workspaceId,
-      OrderingEntity.workspace,
+      spaceId,
+      OrderingEntity.space,
       pageId,
-      workspaceId,
+      spaceId,
       manager,
     );
   }
@@ -142,14 +138,14 @@ export class PageOrderingService {
     );
   }
 
-  async removeFromWorkspacePageOrder(
-    workspaceId: string,
+  async removeFromSpacePageOrder(
+    spaceId: string,
     pageId: string,
     manager: EntityManager,
   ) {
     await this.removeChildFromOrdering(
-      workspaceId,
-      OrderingEntity.workspace,
+      spaceId,
+      OrderingEntity.space,
       pageId,
       manager,
     );
@@ -179,11 +175,7 @@ export class PageOrderingService {
     if (page.parentPageId) {
       await this.removeFromParent(page.parentPageId, page.id, manager);
     } else {
-      await this.removeFromWorkspacePageOrder(
-        page.workspaceId,
-        page.id,
-        manager,
-      );
+      await this.removeFromSpacePageOrder(page.spaceId, page.id, manager);
     }
   }
 
@@ -191,7 +183,7 @@ export class PageOrderingService {
     entityId: string,
     entityType: string,
     childId: string,
-    workspaceId: string,
+    spaceId: string,
     manager: EntityManager,
   ) {
     let ordering = await this.getEntityOrdering(entityId, entityType, manager);
@@ -200,7 +192,7 @@ export class PageOrderingService {
       ordering = await this.createPageOrdering(
         entityId,
         entityType,
-        workspaceId,
+        spaceId,
         manager,
       );
     }
@@ -229,35 +221,35 @@ export class PageOrderingService {
   async createPageOrdering(
     entityId: string,
     entityType: string,
-    workspaceId: string,
+    spaceId: string,
     manager: EntityManager,
   ): Promise<PageOrdering> {
     await manager.query(
-      `INSERT INTO page_ordering ("entityId", "entityType", "workspaceId", "childrenIds") 
+      `INSERT INTO page_ordering ("entityId", "entityType", "spaceId", "childrenIds") 
      VALUES ($1, $2, $3, '{}')
      ON CONFLICT ("entityId", "entityType") DO NOTHING`,
-      [entityId, entityType, workspaceId],
+      [entityId, entityType, spaceId],
     );
 
     return await this.getEntityOrdering(entityId, entityType, manager);
   }
 
-  async getWorkspacePageOrder(workspaceId: string): Promise<PageOrdering> {
+  async getSpacePageOrder(spaceId: string): Promise<PageOrdering> {
     return await this.dataSource
       .createQueryBuilder(PageOrdering, 'ordering')
-      .select(['ordering.id', 'ordering.childrenIds', 'ordering.workspaceId'])
-      .where('ordering.entityId = :workspaceId', { workspaceId })
+      .select(['ordering.id', 'ordering.childrenIds', 'ordering.spaceId'])
+      .where('ordering.entityId = :spaceId', { spaceId })
       .andWhere('ordering.entityType = :entityType', {
-        entityType: OrderingEntity.workspace,
+        entityType: OrderingEntity.space,
       })
       .getOne();
   }
 
-  async convertToTree(workspaceId: string): Promise<TreeNode[]> {
-    const workspaceOrder = await this.getWorkspacePageOrder(workspaceId);
+  async convertToTree(spaceId: string): Promise<TreeNode[]> {
+    const spaceOrder = await this.getSpacePageOrder(spaceId);
 
-    const pageOrder = workspaceOrder ? workspaceOrder.childrenIds : undefined;
-    const pages = await this.pageService.getSidebarPagesByWorkspaceId(workspaceId);
+    const pageOrder = spaceOrder ? spaceOrder.childrenIds : undefined;
+    const pages = await this.pageService.getSidebarPagesBySpaceId(spaceId);
 
     const pageMap: { [id: string]: PageWithOrderingDto } = {};
     pages.forEach((page) => {

@@ -8,6 +8,7 @@ import { AttachmentModule } from './attachment/attachment.module';
 import { EnvironmentModule } from '../environment/environment.module';
 import { CommentModule } from './comment/comment.module';
 import { SearchModule } from './search/search.module';
+import { SpaceModule } from './space/space.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SearchModule } from './search/search.module';
     AttachmentModule,
     CommentModule,
     SearchModule,
+    SpaceModule,
   ],
 })
 export class CoreModule {}

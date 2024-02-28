@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
 import { FastifyRequest } from 'fastify';
-import { JwtGuard } from '../../auth/guards/JwtGuard';
+import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
@@ -23,6 +23,17 @@ import { AddWorkspaceUserDto } from '../dto/add-workspace-user.dto';
 @Controller('workspace')
 export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
+
+  @HttpCode(HttpStatus.OK)
+  @Post('test')
+  async test(
+    @Req() req: FastifyRequest,
+    //@Body() createWorkspaceDto: CreateWorkspaceDto,
+  ) {
+    //const jwtPayload = req['user'];
+    // const userId = jwtPayload.sub;
+   // return this.workspaceService.createOrJoinWorkspace();
+  }
 
   @HttpCode(HttpStatus.OK)
   @Post('create')

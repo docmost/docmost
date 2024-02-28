@@ -31,16 +31,24 @@ export class UserService {
 
     user = await this.userRepository.save(user);
 
-    //TODO: only create workspace if it is not a signup to an existing workspace
-    await this.workspaceService.create(user.id);
+    await this.workspaceService.createOrJoinWorkspace(user.id);
 
     return user;
   }
 
   async getUserInstance(userId: string) {
     const user: User = await this.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     const workspace: Workspace =
       await this.workspaceService.getUserCurrentWorkspace(userId);
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
     return { user, workspace };
   }
 

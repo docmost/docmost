@@ -18,6 +18,7 @@ export class PageRepository extends Repository<Page> {
     'page.parentPageId',
     'page.creatorId',
     'page.lastUpdatedById',
+    'page.spaceId',
     'page.workspaceId',
     'page.isLocked',
     'page.status',

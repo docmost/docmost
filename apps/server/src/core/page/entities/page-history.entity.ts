@@ -10,6 +10,7 @@ import {
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { Page } from './page.entity';
 import { User } from '../../user/entities/user.entity';
+import { Space } from '../../space/entities/space.entity';
 
 @Entity('page_history')
 export class PageHistory {
@@ -47,6 +48,13 @@ export class PageHistory {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'lastUpdatedById' })
   lastUpdatedBy: User;
+
+  @Column()
+  spaceId: string;
+
+  @ManyToOne(() => Space, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'spaceId' })
+  space: Space;
 
   @Column()
   workspaceId: string;
