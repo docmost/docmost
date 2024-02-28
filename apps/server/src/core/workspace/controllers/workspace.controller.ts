@@ -6,11 +6,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
-import { FastifyRequest } from 'fastify';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
@@ -18,6 +16,10 @@ import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
 import { AddWorkspaceUserDto } from '../dto/add-workspace-user.dto';
+import { AuthUser } from '../../../decorators/auth-user.decorator';
+import { User } from '../../user/entities/user.entity';
+import { CurrentWorkspace } from '../../../decorators/current-workspace.decorator';
+import { Workspace } from '../entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('workspace')
@@ -25,39 +27,21 @@ export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('test')
-  async test(
-    @Req() req: FastifyRequest,
-    //@Body() createWorkspaceDto: CreateWorkspaceDto,
-  ) {
-    //const jwtPayload = req['user'];
-    // const userId = jwtPayload.sub;
-   // return this.workspaceService.createOrJoinWorkspace();
-  }
-
-  @HttpCode(HttpStatus.OK)
   @Post('create')
   async createWorkspace(
-    @Req() req: FastifyRequest,
     @Body() createWorkspaceDto: CreateWorkspaceDto,
+    @AuthUser() user: User,
   ) {
-    const jwtPayload = req['user'];
-    const userId = jwtPayload.sub;
-    return this.workspaceService.create(userId, createWorkspaceDto);
+    return this.workspaceService.create(user.id, createWorkspaceDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
-    @Req() req: FastifyRequest,
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const jwtPayload = req['user'];
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-
-    return this.workspaceService.update(workspaceId, updateWorkspaceDto);
+    return this.workspaceService.update(workspace.id, updateWorkspaceDto);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -68,29 +52,19 @@ export class WorkspaceController {
 
   @HttpCode(HttpStatus.OK)
   @Get('members')
-  async getWorkspaceMembers(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-
-    return this.workspaceService.getWorkspaceUsers(workspaceId);
+  async getWorkspaceMembers(@CurrentWorkspace() workspace: Workspace) {
+    return this.workspaceService.getWorkspaceUsers(workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('members/add')
   async addWorkspaceMember(
-    @Req() req: FastifyRequest,
     @Body() addWorkspaceUserDto: AddWorkspaceUserDto,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const jwtPayload = req['user'];
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-
     return this.workspaceService.addUserToWorkspace(
       addWorkspaceUserDto.userId,
-      workspaceId,
+      workspace.id,
       addWorkspaceUserDto.role,
     );
   }
@@ -98,34 +72,24 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Delete('members/delete')
   async removeWorkspaceMember(
-    @Req() req: FastifyRequest,
     @Body() removeWorkspaceUserDto: RemoveWorkspaceUserDto,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const jwtPayload = req['user'];
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-
     return this.workspaceService.removeUserFromWorkspace(
       removeWorkspaceUserDto.userId,
-      workspaceId,
+      workspace.id,
     );
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('members/role')
   async updateWorkspaceMemberRole(
-    @Req() req: FastifyRequest,
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const jwtPayload = req['user'];
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-
     return this.workspaceService.updateWorkspaceUserRole(
       workspaceUserRoleDto,
-      workspaceId,
+      workspace.id,
     );
   }
 }

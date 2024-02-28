@@ -3,12 +3,14 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import { FastifyRequest } from 'fastify';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { SpaceService } from './space.service';
+import { AuthUser } from '../../decorators/auth-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('spaces')
@@ -18,5 +20,10 @@ export class SpaceController {
   // get all spaces user is a member of
   @HttpCode(HttpStatus.OK)
   @Post('/')
-  async getUserSpaces(@Req() req: FastifyRequest) {}
+  async getUserSpaces(
+    @AuthUser() user: User,
+    @CurrentWorkspace() workspace: Workspace,
+  ) {
+    return this.spaceService.getUserSpacesInWorkspace(user.id, workspace.id);
+  }
 }

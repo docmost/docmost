@@ -7,8 +7,7 @@ import * as Y from 'yjs';
 import { PageService } from '../../core/page/services/page.service';
 import { Injectable } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { jsonToHtml, jsonToText, tiptapExtensions } from '../collaboration.util';
-import { generateText } from '@tiptap/core'
+import { jsonToText, tiptapExtensions } from '../collaboration.util';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -67,7 +66,6 @@ export class PersistenceExtension implements Extension {
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
     const textContent = jsonToText(tiptapJson);
-    console.log(jsonToText(tiptapJson));
 
     try {
       await this.pageService.updateState(

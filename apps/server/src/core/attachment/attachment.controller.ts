@@ -12,9 +12,12 @@ import {
 import { AttachmentService } from './attachment.service';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { AttachmentInterceptor } from './attachment.interceptor';
-import { JwtUser } from '../../decorators/jwt-user.decorator';
-import { JwtGuard } from '../auth/guards/JwtGuard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import * as bytes from 'bytes';
+import { AuthUser } from '../../decorators/auth-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @Controller('attachments')
 export class AttachmentController {
@@ -25,9 +28,9 @@ export class AttachmentController {
   @Post('upload/avatar')
   @UseInterceptors(AttachmentInterceptor)
   async uploadAvatar(
-    @JwtUser() jwtUser,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
+    @AuthUser() user: User,
   ) {
     const maxFileSize = bytes('5MB');
 
@@ -38,7 +41,7 @@ export class AttachmentController {
 
       const fileResponse = await this.attachmentService.uploadAvatar(
         file,
-        jwtUser.id,
+        user.id,
       );
 
       return res.send(fileResponse);
@@ -52,9 +55,10 @@ export class AttachmentController {
   @Post('upload/workspace-logo')
   @UseInterceptors(AttachmentInterceptor)
   async uploadWorkspaceLogo(
-    @JwtUser() jwtUser,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
+    @AuthUser() user: User,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
     const maxFileSize = bytes('5MB');
 
@@ -63,13 +67,10 @@ export class AttachmentController {
         limits: { fileSize: maxFileSize, fields: 1, files: 1 },
       });
 
-      // TODO FIX
-      const workspaceId = '123';
-
       const fileResponse = await this.attachmentService.uploadWorkspaceLogo(
         file,
-        workspaceId,
-        jwtUser.id,
+        workspace.id,
+        user.id,
       );
 
       return res.send(fileResponse);
@@ -83,9 +84,10 @@ export class AttachmentController {
   @Post('upload/file')
   @UseInterceptors(AttachmentInterceptor)
   async uploadFile(
-    @JwtUser() jwtUser,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
+    @AuthUser() user: User,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
     const maxFileSize = bytes('20MB');
 
@@ -94,12 +96,10 @@ export class AttachmentController {
         limits: { fileSize: maxFileSize, fields: 1, files: 1 },
       });
 
-      const workspaceId = '123';
-
       const fileResponse = await this.attachmentService.uploadWorkspaceLogo(
         file,
-        workspaceId,
-        jwtUser.id,
+        workspace.id,
+        user.id,
       );
 
       return res.send(fileResponse);

@@ -24,6 +24,10 @@ export class AuthenticationExtension implements Extension {
     const userId = jwtPayload.sub;
     const user = await this.userService.findById(userId);
 
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
     //TODO: Check if the page exists and verify user permissions for page.
     // if all fails, abort connection
 

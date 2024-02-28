@@ -4,17 +4,16 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  Req,
   UnauthorizedException,
   Post,
   Body,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtGuard } from '../auth/guards/jwt.guard';
-import { FastifyRequest } from 'fastify';
 import { User } from './entities/user.entity';
 import { Workspace } from '../workspace/entities/workspace.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthUser } from '../../decorators/auth-user.decorator';
 
 @UseGuards(JwtGuard)
 @Controller('user')
@@ -23,9 +22,8 @@ export class UserController {
 
   @HttpCode(HttpStatus.OK)
   @Get('me')
-  async getUser(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
-    const user: User = await this.userService.findById(jwtPayload.sub);
+  async getUser(@AuthUser() authUser: User) {
+    const user: User = await this.userService.findById(authUser.id);
 
     if (!user) {
       throw new UnauthorizedException('Invalid user');
@@ -36,11 +34,9 @@ export class UserController {
 
   @HttpCode(HttpStatus.OK)
   @Get('info')
-  async getUserInfo(@Req() req: FastifyRequest) {
-    const jwtPayload = req['user'];
-
+  async getUserInfo(@AuthUser() user: User) {
     const data: { workspace: Workspace; user: User } =
-      await this.userService.getUserInstance(jwtPayload.sub);
+      await this.userService.getUserInstance(user.id);
 
     return data;
   }
@@ -48,11 +44,9 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateUser(
-    @Req() req: FastifyRequest,
     @Body() updateUserDto: UpdateUserDto,
+    @AuthUser() user: User,
   ) {
-    const jwtPayload = req['user'];
-
-    return this.userService.update(jwtPayload.sub, updateUserDto);
+    return this.userService.update(user.id, updateUserDto);
   }
 }

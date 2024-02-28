@@ -10,7 +10,6 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { JwtGuard } from '../auth/guards/jwt.guard';
-import { WorkspaceService } from '../workspace/services/workspace.service';
 import { MovePageDto } from './dto/move-page.dto';
 import { PageDetailsDto } from './dto/page-details.dto';
 import { DeletePageDto } from './dto/delete-page.dto';
@@ -18,7 +17,10 @@ import { PageOrderingService } from './services/page-ordering.service';
 import { PageHistoryService } from './services/page-history.service';
 import { HistoryDetailsDto } from './dto/history-details.dto';
 import { PageHistoryDto } from './dto/page-history.dto';
-import { JwtUser } from '../../decorators/jwt-user.decorator';
+import { AuthUser } from '../../decorators/auth-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('pages')
@@ -27,7 +29,6 @@ export class PageController {
     private readonly pageService: PageService,
     private readonly pageOrderService: PageOrderingService,
     private readonly pageHistoryService: PageHistoryService,
-    private readonly workspaceService: WorkspaceService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -38,17 +39,18 @@ export class PageController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
-  async create(@JwtUser() jwtUser, @Body() createPageDto: CreatePageDto) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-    return this.pageService.create(jwtUser.id, workspaceId, createPageDto);
+  async create(
+    @Body() createPageDto: CreatePageDto,
+    @AuthUser() user: User,
+    @CurrentWorkspace() workspace: Workspace,
+  ) {
+    return this.pageService.create(user.id, workspace.id, createPageDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(@JwtUser() jwtUser, @Body() updatePageDto: UpdatePageDto) {
-    return this.pageService.update(updatePageDto.id, updatePageDto, jwtUser.id);
+  async update(@Body() updatePageDto: UpdatePageDto, @AuthUser() user: User) {
+    return this.pageService.update(updatePageDto.id, updatePageDto, user.id);
   }
 
   @HttpCode(HttpStatus.OK)

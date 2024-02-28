@@ -4,39 +4,33 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { FastifyRequest } from 'fastify';
-import { JwtGuard } from '../auth/guards/JwtGuard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CommentsInput, SingleCommentInput } from './dto/comments.input';
 import { ResolveCommentDto } from './dto/resolve-comment.dto';
 import { WorkspaceService } from '../workspace/services/workspace.service';
+import { AuthUser } from '../../decorators/auth-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('comments')
 export class CommentController {
-  constructor(
-    private readonly commentService: CommentService,
-    private readonly workspaceService: WorkspaceService,
-  ) {}
+  constructor(private readonly commentService: CommentService) {}
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
   async create(
-    @Req() req: FastifyRequest,
     @Body() createCommentDto: CreateCommentDto,
+    @AuthUser() user: User,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const jwtPayload = req['user'];
-    const userId = jwtPayload.sub;
-
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtPayload.sub)
-    ).id;
-    return this.commentService.create(userId, workspaceId, createCommentDto);
+    return this.commentService.create(user.id, workspace.id, createCommentDto);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -60,11 +54,10 @@ export class CommentController {
   @HttpCode(HttpStatus.OK)
   @Post('resolve')
   resolve(
-    @Req() req: FastifyRequest,
     @Body() resolveCommentDto: ResolveCommentDto,
+    @AuthUser() user: User,
   ) {
-    const userId = req['user'].sub;
-    return this.commentService.resolveComment(userId, resolveCommentDto);
+    return this.commentService.resolveComment(user.id, resolveCommentDto);
   }
 
   @HttpCode(HttpStatus.OK)

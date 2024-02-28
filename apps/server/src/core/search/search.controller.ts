@@ -7,36 +7,29 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JwtUser } from '../../decorators/jwt-user.decorator';
-import { WorkspaceService } from '../workspace/services/workspace.service';
-import { JwtGuard } from '../auth/guards/JwtGuard';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 import { SearchService } from './search.service';
 import { SearchDTO } from './dto/search.dto';
+import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { Workspace } from '../workspace/entities/workspace.entity';
 
 @UseGuards(JwtGuard)
 @Controller('search')
 export class SearchController {
-  constructor(
-    private readonly searchService: SearchService,
-    private readonly workspaceService: WorkspaceService,
-  ) {}
+  constructor(private readonly searchService: SearchService) {}
 
   @HttpCode(HttpStatus.OK)
   @Post()
   async pageSearch(
     @Query('type') type: string,
     @Body() searchDto: SearchDTO,
-    @JwtUser() jwtUser,
+    @CurrentWorkspace() workspace: Workspace,
   ) {
-    const workspaceId = (
-      await this.workspaceService.getUserCurrentWorkspace(jwtUser.id)
-    ).id;
-
     if (!type || type === 'page') {
       return this.searchService.searchPage(
         searchDto.query,
         searchDto,
-        workspaceId,
+        workspace.id,
       );
     }
     return;
