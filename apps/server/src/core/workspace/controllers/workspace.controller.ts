@@ -1,20 +1,14 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
-  Delete,
-  Get,
   HttpCode,
   HttpStatus,
-  ParseIntPipe,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
@@ -31,6 +25,17 @@ export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
   @HttpCode(HttpStatus.OK)
+  @Post('/')
+  async getUserWorkspaces(
+    @Body()
+    pagination: PaginationOptions,
+    @AuthUser() user: User,
+  ) {
+    return this.workspaceService.getUserWorkspaces(user.id, pagination);
+  }
+
+  /*
+  @HttpCode(HttpStatus.OK)
   @Post('create')
   async createWorkspace(
     @Body() createWorkspaceDto: CreateWorkspaceDto,
@@ -38,6 +43,7 @@ export class WorkspaceController {
   ) {
     return this.workspaceService.create(user.id, createWorkspaceDto);
   }
+  */
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
@@ -78,7 +84,7 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Delete('members/delete')
+  @Post('members/remove')
   async removeWorkspaceMember(
     @Body() removeWorkspaceUserDto: RemoveWorkspaceUserDto,
     @CurrentWorkspace() workspace: Workspace,
@@ -93,9 +99,11 @@ export class WorkspaceController {
   @Post('members/role')
   async updateWorkspaceMemberRole(
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
+    @AuthUser() authUser: User,
     @CurrentWorkspace() workspace: Workspace,
   ) {
     return this.workspaceService.updateWorkspaceUserRole(
+      authUser,
       workspaceUserRoleDto,
       workspace.id,
     );

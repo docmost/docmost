@@ -5,30 +5,45 @@ import { plainToInstance } from 'class-transformer';
 import { SpaceRepository } from './repositories/space.repository';
 import { SpaceUserRepository } from './repositories/space-user.repository';
 import { SpaceUser } from './entities/space-user.entity';
+import { transactionWrapper } from '../../helpers/db.helper';
+import { DataSource, EntityManager } from 'typeorm';
 
 @Injectable()
 export class SpaceService {
   constructor(
     private spaceRepository: SpaceRepository,
     private spaceUserRepository: SpaceUserRepository,
+    private dataSource: DataSource,
   ) {}
 
-  async create(userId: string, workspaceId, createSpaceDto?: CreateSpaceDto) {
+  async create(
+    userId: string,
+    workspaceId,
+    createSpaceDto?: CreateSpaceDto,
+    manager?: EntityManager,
+  ) {
     let space: Space;
 
-    if (createSpaceDto) {
-      space = plainToInstance(Space, createSpaceDto);
-    } else {
-      space = new Space();
-    }
+    await transactionWrapper(
+      async (manager: EntityManager) => {
+        if (createSpaceDto) {
+          space = plainToInstance(Space, createSpaceDto);
+        } else {
+          space = new Space();
+        }
 
-    space.creatorId = userId;
-    space.workspaceId = workspaceId;
+        space.creatorId = userId;
+        space.workspaceId = workspaceId;
 
-    space.name = createSpaceDto?.name ?? 'untitled space';
-    space.description = createSpaceDto?.description ?? null;
+        space.name = createSpaceDto?.name ?? 'untitled space';
+        space.description = createSpaceDto?.description ?? null;
 
-    space = await this.spaceRepository.save(space);
+        space = await manager.save(space);
+      },
+      this.dataSource,
+      manager,
+    );
+
     return space;
   }
 
@@ -36,21 +51,32 @@ export class SpaceService {
     userId: string,
     spaceId: string,
     role: string,
+    manager?: EntityManager,
   ): Promise<SpaceUser> {
-    const existingSpaceUser = await this.spaceUserRepository.findOne({
-      where: { userId: userId, spaceId: spaceId },
-    });
+    let addedUser: SpaceUser;
 
-    if (existingSpaceUser) {
-      throw new BadRequestException('User already added to this space');
-    }
+    await transactionWrapper(
+      async (manager: EntityManager) => {
+        const existingSpaceUser = await manager.findOne(SpaceUser, {
+          where: { userId: userId, spaceId: spaceId },
+        });
 
-    const spaceUser = new SpaceUser();
-    spaceUser.userId = userId;
-    spaceUser.spaceId = spaceId;
-    spaceUser.role = role;
+        if (existingSpaceUser) {
+          throw new BadRequestException('User already added to this space');
+        }
 
-    return this.spaceUserRepository.save(spaceUser);
+        const spaceUser = new SpaceUser();
+        spaceUser.userId = userId;
+        spaceUser.spaceId = spaceId;
+        spaceUser.role = role;
+
+        addedUser = await manager.save(spaceUser);
+      },
+      this.dataSource,
+      manager,
+    );
+
+    return addedUser;
   }
 
   async getUserSpacesInWorkspace(userId: string, workspaceId: string) {

@@ -35,13 +35,19 @@ export class JwtGuard implements CanActivate {
       throw new UnauthorizedException('Invalid jwt token');
     }
 
-    try {
-      const payload = await this.tokenService.verifyJwt(token);
+    let payload;
 
+    try {
+      payload = await this.tokenService.verifyJwt(token);
+    } catch (error) {
+      throw new UnauthorizedException('Could not verify jwt token');
+    }
+
+    try {
       //fetch user and current workspace data from db
       request['user'] = await this.userService.getUserInstance(payload.sub);
     } catch (error) {
-      throw new UnauthorizedException('Could not verify jwt token');
+      throw new UnauthorizedException(error.message);
     }
 
     return true;

@@ -11,7 +11,7 @@ export class PaginationOptions {
   @IsPositive()
   @Min(1)
   @Max(100)
-  limit = 25;
+  limit = 20;
 
   @IsOptional()
   @IsNumber()
@@ -20,4 +20,9 @@ export class PaginationOptions {
   get skip(): number {
     return (this.page - 1) * this.limit;
   }
+}
+
+export enum Order {
+  ASC = 'ASC',
+  DESC = 'DESC',
 }

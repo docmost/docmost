@@ -11,6 +11,7 @@ import {
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { SpaceUser } from './space-user.entity';
+import { Page } from '../../page/entities/page.entity';
 
 @Entity('spaces')
 export class Space {
@@ -39,12 +40,17 @@ export class Space {
   @Column()
   workspaceId: string;
 
-  @ManyToOne(() => Workspace, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Workspace, (workspace) => workspace.spaces, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'workspaceId' })
   workspace: Workspace;
 
   @OneToMany(() => SpaceUser, (workspaceUser) => workspaceUser.space)
   spaceUsers: SpaceUser[];
+
+  @OneToMany(() => Page, (page) => page.space)
+  pages: Page[];
 
   @CreateDateColumn()
   createdAt: Date;

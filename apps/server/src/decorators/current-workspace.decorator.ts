@@ -9,7 +9,7 @@ export const CurrentWorkspace = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
 
     if (!request['user'] || !request['user'].workspace) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Workspace not found');
     }
 
     return request['user'] ? request['user'].workspace : undefined;

@@ -44,3 +44,9 @@ export class WorkspaceUser {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
+export enum WorkspaceUserRole {
+  OWNER = 'owner',
+  ADMIN = 'admin',
+  MEMBER = 'member',
+}

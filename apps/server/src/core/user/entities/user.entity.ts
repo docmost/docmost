@@ -85,3 +85,8 @@ export class User {
     this.password = await bcrypt.hash(this.password, saltRounds);
   }
 }
+
+export type UserRole = {
+  role: string;
+};
+export type UserWithRole = User & UserRole;

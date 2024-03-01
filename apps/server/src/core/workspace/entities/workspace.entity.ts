@@ -7,12 +7,14 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { WorkspaceUser } from './workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { WorkspaceInvitation } from './workspace-invitation.entity';
 import { Comment } from '../../comment/entities/comment.entity';
+import { Space } from '../../space/entities/space.entity';
 
 @Entity('workspaces')
 export class Workspace {
@@ -50,6 +52,13 @@ export class Workspace {
   @JoinColumn({ name: 'creatorId' })
   creator: User;
 
+  @Column({ nullable: true })
+  defaultSpaceId: string;
+
+  @OneToOne(() => Space, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'defaultSpaceId' })
+  defaultSpace: Space;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -70,4 +79,7 @@ export class Workspace {
 
   @OneToMany(() => Comment, (comment) => comment.workspace)
   comments: Comment[];
+
+  @OneToMany(() => Space, (space) => space.workspace)
+  spaces: [];
 }

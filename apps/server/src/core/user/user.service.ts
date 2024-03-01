@@ -11,27 +11,51 @@ import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { DataSource, EntityManager } from 'typeorm';
+import { transactionWrapper } from '../../helpers/db.helper';
+import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     private userRepository: UserRepository,
     private workspaceService: WorkspaceService,
+    private dataSource: DataSource,
   ) {}
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(
+    createUserDto: CreateUserDto,
+    manager?: EntityManager,
+  ): Promise<User> {
+    let user: User;
+
     const existingUser: User = await this.findByEmail(createUserDto.email);
 
     if (existingUser) {
       throw new BadRequestException('A user with this email already exists');
     }
 
-    let user: User = plainToInstance(User, createUserDto);
-    user.locale = 'en';
-    user.lastLoginAt = new Date();
+    await transactionWrapper(
+      async (manager: EntityManager) => {
+        user = plainToInstance(User, createUserDto);
+        user.locale = 'en';
+        user.lastLoginAt = new Date();
+        user.name = createUserDto.email.split('@')[0];
 
-    user = await this.userRepository.save(user);
+        user = await manager.save(User, user);
 
-    await this.workspaceService.createOrJoinWorkspace(user.id);
+        const createWorkspaceDto: CreateWorkspaceDto = {
+          name: 'My Workspace',
+        };
+
+        await this.workspaceService.createOrJoinWorkspace(
+          user.id,
+          createWorkspaceDto,
+          manager,
+        );
+      },
+      this.dataSource,
+      manager,
+    );
 
     return user;
   }
@@ -43,12 +67,14 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const workspace: Workspace =
-      await this.workspaceService.getUserCurrentWorkspace(userId);
+    let workspace;
 
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
+    try {
+      workspace = await this.workspaceService.getUserCurrentWorkspace(userId);
+    } catch (error) {
+      //console.log(error);
     }
+
     return { user, workspace };
   }
 
