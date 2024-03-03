@@ -9,6 +9,7 @@ import { WorkspaceInvitation } from './entities/workspace-invitation.entity';
 import { WorkspaceUserRepository } from './repositories/workspace-user.repository';
 import { AuthModule } from '../auth/auth.module';
 import { SpaceModule } from '../space/space.module';
+import { WorkspaceUserService } from './services/workspace-user.service';
 
 @Module({
   imports: [
@@ -17,7 +18,12 @@ import { SpaceModule } from '../space/space.module';
     SpaceModule,
   ],
   controllers: [WorkspaceController],
-  providers: [WorkspaceService, WorkspaceRepository, WorkspaceUserRepository],
+  providers: [
+    WorkspaceService,
+    WorkspaceUserService,
+    WorkspaceRepository,
+    WorkspaceUserRepository,
+  ],
   exports: [WorkspaceService, WorkspaceRepository, WorkspaceUserRepository],
 })
 export class WorkspaceModule {}

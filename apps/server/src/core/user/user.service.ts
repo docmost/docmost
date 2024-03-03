@@ -10,7 +10,6 @@ import { UserRepository } from './repositories/user.repository';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { WorkspaceService } from '../workspace/services/workspace.service';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { DataSource, EntityManager } from 'typeorm';
 import { transactionWrapper } from '../../helpers/db.helper';
 import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
@@ -61,7 +60,10 @@ export class UserService {
   }
 
   async getUserInstance(userId: string) {
+    console.log('what is')
+
     const user: User = await this.findById(userId);
+    console.log('what one')
 
     if (!user) {
       throw new NotFoundException('User not found');

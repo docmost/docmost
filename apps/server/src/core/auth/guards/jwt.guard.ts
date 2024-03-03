@@ -47,7 +47,7 @@ export class JwtGuard implements CanActivate {
       //fetch user and current workspace data from db
       request['user'] = await this.userService.getUserInstance(payload.sub);
     } catch (error) {
-      throw new UnauthorizedException(error.message);
+      throw new UnauthorizedException('Failed to fetch auth user');
     }
 
     return true;

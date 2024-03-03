@@ -24,6 +24,7 @@ import { User } from '../../user/entities/user.entity';
 import { DataSource, EntityManager } from 'typeorm';
 import { transactionWrapper } from '../../../helpers/db.helper';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
+import { WorkspaceUserService } from './workspace-user.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -31,6 +32,8 @@ export class WorkspaceService {
     private workspaceRepository: WorkspaceRepository,
     private workspaceUserRepository: WorkspaceUserRepository,
     private spaceService: SpaceService,
+    private workspaceUserService: WorkspaceUserService,
+
     private dataSource: DataSource,
   ) {}
 
@@ -60,7 +63,7 @@ export class WorkspaceService {
             createWorkspaceDto ?? null,
             manager,
           );
-          await this.addUserToWorkspace(
+          await this.workspaceUserService.addUserToWorkspace(
             userId,
             createdWorkspace.id,
             WorkspaceUserRole.OWNER,
@@ -96,7 +99,7 @@ export class WorkspaceService {
 
           // add user to workspace and default space
 
-          await this.addUserToWorkspace(
+          await this.workspaceUserService.addUserToWorkspace(
             userId,
             firstWorkspace[0].id,
             WorkspaceUserRole.MEMBER,
@@ -180,110 +183,6 @@ export class WorkspaceService {
     // delete workspace
   }
 
-  async addUserToWorkspace(
-    userId: string,
-    workspaceId: string,
-    role: string,
-    manager?: EntityManager,
-  ): Promise<WorkspaceUser> {
-    let addedUser;
-
-    await transactionWrapper(
-      async (manager) => {
-        const existingWorkspaceUser = await manager.findOne(WorkspaceUser, {
-          where: { userId: userId, workspaceId: workspaceId },
-        });
-
-        const userExists = await manager.exists(User, {
-          where: { id: userId },
-        });
-        if (!userExists) {
-          throw new NotFoundException('User not found');
-        }
-
-        if (existingWorkspaceUser) {
-          throw new BadRequestException(
-            'User is already a member of this workspace',
-          );
-        }
-
-        const workspaceUser = new WorkspaceUser();
-        workspaceUser.userId = userId;
-        workspaceUser.workspaceId = workspaceId;
-        workspaceUser.role = role;
-
-        addedUser = await manager.save(workspaceUser);
-      },
-      this.dataSource,
-      manager,
-    );
-
-    return addedUser;
-  }
-
-  async updateWorkspaceUserRole(
-    authUser: User,
-    workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
-    workspaceId: string,
-  ) {
-    const workspaceUser = await this.getWorkspaceUser(
-      workspaceUserRoleDto.userId,
-      workspaceId,
-    );
-
-    if (workspaceUser.role === workspaceUserRoleDto.role) {
-      return workspaceUser;
-    }
-
-    const workspaceOwnerCount = await this.workspaceUserRepository.count({
-      where: {
-        role: WorkspaceUserRole.OWNER,
-      },
-    });
-
-    if (
-      workspaceUser.role === WorkspaceUserRole.OWNER &&
-      workspaceOwnerCount === 1
-    ) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
-      );
-    }
-
-    workspaceUser.role = workspaceUserRoleDto.role;
-
-    return this.workspaceUserRepository.save(workspaceUser);
-  }
-
-  async removeUserFromWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<void> {
-    await this.getWorkspaceUser(userId, workspaceId);
-
-    const workspaceUser = await this.getWorkspaceUser(userId, workspaceId);
-
-    const workspaceOwnerCount = await this.workspaceUserRepository.count({
-      where: {
-        role: WorkspaceUserRole.OWNER,
-      },
-    });
-
-    if (
-      workspaceUser.role === WorkspaceUserRole.OWNER &&
-      workspaceOwnerCount === 1
-    ) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
-      );
-    }
-
-    await this.workspaceUserRepository.delete({
-      userId,
-      workspaceId,
-    });
-  }
-
   async getUserCurrentWorkspace(userId: string): Promise<Workspace> {
     const userWorkspace = await this.workspaceUserRepository.findOne({
       where: { userId: userId },
@@ -319,56 +218,5 @@ export class WorkspaceService {
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
     return new PaginatedResult(userWorkspaces, paginationMeta);
-  }
-
-  async getWorkspaceUsers(
-    workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<any>> {
-    const [workspaceUsers, count] =
-      await this.workspaceUserRepository.findAndCount({
-        relations: ['user'],
-        where: {
-          workspace: {
-            id: workspaceId,
-          },
-        },
-        take: paginationOptions.limit,
-        skip: paginationOptions.skip,
-      });
-
-    const users = workspaceUsers.map((workspaceUser) => {
-      workspaceUser.user.password = '';
-      return {
-        ...workspaceUser.user,
-        role: workspaceUser.role,
-      };
-    });
-
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(users, paginationMeta);
-  }
-
-  async getUserRoleInWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<string> {
-    const workspaceUser = await this.getWorkspaceUser(userId, workspaceId);
-    return workspaceUser.role ? workspaceUser.role : null;
-  }
-
-  async getWorkspaceUser(
-    userId: string,
-    workspaceId: string,
-  ): Promise<WorkspaceUser> {
-    const workspaceUser = await this.workspaceUserRepository.findOne({
-      where: { userId, workspaceId },
-    });
-
-    if (!workspaceUser) {
-      throw new BadRequestException('Workspace member not found');
-    }
-
-    return workspaceUser;
   }
 }

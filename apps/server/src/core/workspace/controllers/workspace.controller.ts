@@ -18,11 +18,15 @@ import { User } from '../../user/entities/user.entity';
 import { CurrentWorkspace } from '../../../decorators/current-workspace.decorator';
 import { Workspace } from '../entities/workspace.entity';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { WorkspaceUserService } from '../services/workspace-user.service';
 
 @UseGuards(JwtGuard)
 @Controller('workspaces')
 export class WorkspaceController {
-  constructor(private readonly workspaceService: WorkspaceService) {}
+  constructor(
+    private readonly workspaceService: WorkspaceService,
+    private readonly workspaceUserService: WorkspaceUserService,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
@@ -67,7 +71,10 @@ export class WorkspaceController {
     pagination: PaginationOptions,
     @CurrentWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceService.getWorkspaceUsers(workspace.id, pagination);
+    return this.workspaceUserService.getWorkspaceUsers(
+      workspace.id,
+      pagination,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -76,7 +83,7 @@ export class WorkspaceController {
     @Body() addWorkspaceUserDto: AddWorkspaceUserDto,
     @CurrentWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceService.addUserToWorkspace(
+    return this.workspaceUserService.addUserToWorkspace(
       addWorkspaceUserDto.userId,
       workspace.id,
       addWorkspaceUserDto.role,
@@ -89,7 +96,7 @@ export class WorkspaceController {
     @Body() removeWorkspaceUserDto: RemoveWorkspaceUserDto,
     @CurrentWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceService.removeUserFromWorkspace(
+    return this.workspaceUserService.removeUserFromWorkspace(
       removeWorkspaceUserDto.userId,
       workspace.id,
     );
@@ -102,7 +109,7 @@ export class WorkspaceController {
     @AuthUser() authUser: User,
     @CurrentWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceService.updateWorkspaceUserRole(
+    return this.workspaceUserService.updateWorkspaceUserRole(
       authUser,
       workspaceUserRoleDto,
       workspace.id,
