@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { NamingStrategy } from './naming-strategy';
 dotenv.config();
 export const AppDataSource: DataSource = new DataSource({
   type: 'postgres',
@@ -10,5 +11,6 @@ export const AppDataSource: DataSource = new DataSource({
   migrations: ['src/**/migrations/*.{ts,js}'],
   subscribers: [],
   synchronize: false,
+  //namingStrategy: new NamingStrategy(),
   logging: process.env.NODE_ENV === 'development',
 });
