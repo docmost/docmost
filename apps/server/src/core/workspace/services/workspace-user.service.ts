@@ -10,7 +10,6 @@ import {
 } from '../entities/workspace-user.entity';
 import { Workspace } from '../entities/workspace.entity';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { SpaceService } from '../../space/space.service';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
@@ -22,7 +21,6 @@ import { transactionWrapper } from '../../../helpers/db.helper';
 export class WorkspaceUserService {
   constructor(
     private workspaceUserRepository: WorkspaceUserRepository,
-    private spaceService: SpaceService,
     private dataSource: DataSource,
   ) {}
 
@@ -72,7 +70,7 @@ export class WorkspaceUserService {
     workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
     workspaceId: string,
   ) {
-    const workspaceUser = await this.getWorkspaceUser(
+    const workspaceUser = await this.findAndValidateWorkspaceUser(
       workspaceUserRoleDto.userId,
       workspaceId,
     );
@@ -105,9 +103,10 @@ export class WorkspaceUserService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    await this.getWorkspaceUser(userId, workspaceId);
-
-    const workspaceUser = await this.getWorkspaceUser(userId, workspaceId);
+    const workspaceUser = await this.findAndValidateWorkspaceUser(
+      userId,
+      workspaceId,
+    );
 
     const workspaceOwnerCount = await this.workspaceUserRepository.count({
       where: {
@@ -183,17 +182,28 @@ export class WorkspaceUserService {
     userId: string,
     workspaceId: string,
   ): Promise<string> {
-    const workspaceUser = await this.getWorkspaceUser(userId, workspaceId);
+    const workspaceUser = await this.findAndValidateWorkspaceUser(
+      userId,
+      workspaceId,
+    );
     return workspaceUser.role ? workspaceUser.role : null;
   }
 
-  async getWorkspaceUser(
+  async findWorkspaceUser(
     userId: string,
     workspaceId: string,
   ): Promise<WorkspaceUser> {
-    const workspaceUser = await this.workspaceUserRepository.findOne({
-      where: { userId, workspaceId },
+    return await this.workspaceUserRepository.findOneBy({
+      userId,
+      workspaceId,
     });
+  }
+
+  async findAndValidateWorkspaceUser(
+    userId: string,
+    workspaceId: string,
+  ): Promise<WorkspaceUser> {
+    const workspaceUser = await this.findWorkspaceUser(userId, workspaceId);
 
     if (!workspaceUser) {
       throw new BadRequestException('Workspace member not found');

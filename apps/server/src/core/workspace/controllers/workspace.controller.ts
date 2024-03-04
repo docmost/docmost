@@ -19,6 +19,13 @@ import { CurrentWorkspace } from '../../../decorators/current-workspace.decorato
 import { Workspace } from '../entities/workspace.entity';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { WorkspaceUserService } from '../services/workspace-user.service';
+import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
+import { Public } from '../../../decorators/public.decorator';
+import {
+  AcceptInviteDto,
+  InviteUserDto,
+  RevokeInviteDto,
+} from '../dto/invitation.dto';
 
 @UseGuards(JwtGuard)
 @Controller('workspaces')
@@ -26,6 +33,7 @@ export class WorkspaceController {
   constructor(
     private readonly workspaceService: WorkspaceService,
     private readonly workspaceUserService: WorkspaceUserService,
+    private readonly workspaceInvitationService: WorkspaceInvitationService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -113,6 +121,38 @@ export class WorkspaceController {
       authUser,
       workspaceUserRoleDto,
       workspace.id,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('invite')
+  async inviteUser(
+    @Body() inviteUserDto: InviteUserDto,
+    @AuthUser() authUser: User,
+    @CurrentWorkspace() workspace: Workspace,
+  ) {
+    return this.workspaceInvitationService.createInvitation(
+      authUser,
+      workspace.id,
+      inviteUserDto,
+    );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('invite/accept')
+  async acceptInvite(@Body() acceptInviteDto: AcceptInviteDto) {
+    return this.workspaceInvitationService.acceptInvitation(
+      acceptInviteDto.invitationId,
+    );
+  }
+
+  // TODO: authorize permission with guards
+  @HttpCode(HttpStatus.OK)
+  @Post('invite/revoke')
+  async revokeInvite(@Body() revokeInviteDto: RevokeInviteDto) {
+    return this.workspaceInvitationService.revokeInvitation(
+      revokeInviteDto.invitationId,
     );
   }
 }

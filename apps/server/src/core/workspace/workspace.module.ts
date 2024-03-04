@@ -10,6 +10,8 @@ import { WorkspaceUserRepository } from './repositories/workspace-user.repositor
 import { AuthModule } from '../auth/auth.module';
 import { SpaceModule } from '../space/space.module';
 import { WorkspaceUserService } from './services/workspace-user.service';
+import { WorkspaceInvitationService } from './services/workspace-invitation.service';
+import { WorkspaceInvitationRepository } from './repositories/workspace-invitation.repository';
 
 @Module({
   imports: [
@@ -21,8 +23,10 @@ import { WorkspaceUserService } from './services/workspace-user.service';
   providers: [
     WorkspaceService,
     WorkspaceUserService,
+    WorkspaceInvitationService,
     WorkspaceRepository,
     WorkspaceUserRepository,
+    WorkspaceInvitationRepository,
   ],
   exports: [WorkspaceService, WorkspaceRepository, WorkspaceUserRepository],
 })
