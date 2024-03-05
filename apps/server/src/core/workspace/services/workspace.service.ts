@@ -82,6 +82,7 @@ export class WorkspaceService {
             userId,
             createdSpace.id,
             WorkspaceUserRole.OWNER,
+            createdWorkspace.id,
             manager,
           );
 
@@ -110,6 +111,7 @@ export class WorkspaceService {
             userId,
             firstWorkspace[0].defaultSpaceId,
             WorkspaceUserRole.MEMBER,
+            firstWorkspace[0].id,
             manager,
           );
         }

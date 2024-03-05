@@ -9,6 +9,7 @@ import { EnvironmentModule } from '../environment/environment.module';
 import { CommentModule } from './comment/comment.module';
 import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
+import { GroupModule } from './group/group.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SpaceModule } from './space/space.module';
     CommentModule,
     SearchModule,
     SpaceModule,
+    GroupModule,
   ],
 })
 export class CoreModule {}

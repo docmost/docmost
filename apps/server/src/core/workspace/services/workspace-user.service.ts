@@ -34,16 +34,17 @@ export class WorkspaceUserService {
 
     await transactionWrapper(
       async (manager) => {
-        const existingWorkspaceUser = await manager.findOne(WorkspaceUser, {
-          where: { userId: userId, workspaceId: workspaceId },
-        });
-
         const userExists = await manager.exists(User, {
           where: { id: userId },
         });
         if (!userExists) {
           throw new NotFoundException('User not found');
         }
+
+        const existingWorkspaceUser = await manager.findOneBy(WorkspaceUser, {
+          userId: userId,
+          workspaceId: workspaceId,
+        });
 
         if (existingWorkspaceUser) {
           throw new BadRequestException(

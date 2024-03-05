@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { Space } from './entities/space.entity';
 import { plainToInstance } from 'class-transformer';
@@ -7,6 +11,8 @@ import { SpaceUserRepository } from './repositories/space-user.repository';
 import { SpaceUser } from './entities/space-user.entity';
 import { transactionWrapper } from '../../helpers/db.helper';
 import { DataSource, EntityManager } from 'typeorm';
+import { WorkspaceUser } from '../workspace/entities/workspace-user.entity';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class SpaceService {
@@ -51,14 +57,33 @@ export class SpaceService {
     userId: string,
     spaceId: string,
     role: string,
+    workspaceId,
     manager?: EntityManager,
   ): Promise<SpaceUser> {
     let addedUser: SpaceUser;
 
     await transactionWrapper(
       async (manager: EntityManager) => {
-        const existingSpaceUser = await manager.findOne(SpaceUser, {
-          where: { userId: userId, spaceId: spaceId },
+        const userExists = await manager.exists(User, {
+          where: { id: userId },
+        });
+        if (!userExists) {
+          throw new NotFoundException('User not found');
+        }
+
+        // only workspace users can be added to workspace spaces
+        const workspaceUser = await manager.findOneBy(WorkspaceUser, {
+          userId: userId,
+          workspaceId: workspaceId,
+        });
+
+        if (!workspaceUser) {
+          throw new NotFoundException('User is not a member of this workspace');
+        }
+
+        const existingSpaceUser = await manager.findOneBy(SpaceUser, {
+          userId: userId,
+          spaceId: spaceId,
         });
 
         if (existingSpaceUser) {
