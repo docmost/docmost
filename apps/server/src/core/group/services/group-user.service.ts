@@ -6,20 +6,20 @@ import {
 import { DataSource, EntityManager } from 'typeorm';
 import { GroupUserRepository } from '../respositories/group-user.repository';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import {
-  WorkspaceUser,
-  WorkspaceUserRole,
-} from '../../workspace/entities/workspace-user.entity';
+import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { transactionWrapper } from '../../../helpers/db.helper';
 import { User } from '../../user/entities/user.entity';
 import { GroupUser } from '../entities/group-user.entity';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
+import { Group } from '../entities/group.entity';
+import { GroupService } from './group.service';
 
 @Injectable()
 export class GroupUserService {
   constructor(
     private groupUserRepository: GroupUserRepository,
+    private groupService: GroupService,
     private dataSource: DataSource,
   ) {}
 
@@ -28,9 +28,12 @@ export class GroupUserService {
     workspaceId: string,
     paginationOptions: PaginationOptions,
   ): Promise<PaginatedResult<User>> {
+    await this.groupService.validateGroup(groupId, workspaceId);
+
     const [groupUsers, count] = await this.groupUserRepository.findAndCount({
       relations: ['user'],
       where: {
+        groupId: groupId,
         group: {
           workspaceId: workspaceId,
         },
@@ -57,7 +60,15 @@ export class GroupUserService {
 
     await transactionWrapper(
       async (manager) => {
-        // TODO: make duplicate code reusable
+        const group = await manager.findOneBy(Group, {
+          id: groupId,
+          workspaceId: workspaceId,
+        });
+
+        if (!group) {
+          throw new NotFoundException('Group not found');
+        }
+
         const userExists = await manager.exists(User, {
           where: { id: userId },
         });
@@ -100,7 +111,7 @@ export class GroupUserService {
   }
 
   async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
-    const groupUser = await this.findGroupUser(userId, groupId);
+    const groupUser = await this.getGroupUser(userId, groupId);
 
     if (!groupUser) {
       throw new BadRequestException('Group member not found');
@@ -112,10 +123,18 @@ export class GroupUserService {
     });
   }
 
-  async findGroupUser(userId: string, groupId: string): Promise<GroupUser> {
+  async getGroupUser(userId: string, groupId: string): Promise<GroupUser> {
     return await this.groupUserRepository.findOneBy({
       userId,
       groupId,
+    });
+  }
+
+  async getGroupUserCount(groupId: string): Promise<number> {
+    return await this.groupUserRepository.count({
+      where: {
+        groupId: groupId,
+      },
     });
   }
 }

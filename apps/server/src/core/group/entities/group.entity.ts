@@ -47,4 +47,6 @@ export class Group {
 
   @OneToMany(() => GroupUser, (groupUser) => groupUser.group)
   groupUsers: GroupUser[];
+
+  userCount?: number;
 }

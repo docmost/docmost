@@ -60,10 +60,7 @@ export class UserService {
   }
 
   async getUserInstance(userId: string) {
-    console.log('what is')
-
     const user: User = await this.findById(userId);
-    console.log('what one')
 
     if (!user) {
       throw new NotFoundException('User not found');

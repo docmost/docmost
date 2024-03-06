@@ -29,7 +29,14 @@ export class GroupService {
     workspaceId: string,
     updateGroupDto: UpdateGroupDto,
   ): Promise<Group> {
-    const group = new Group();
+    const group = await this.groupRepository.findOneBy({
+      id: updateGroupDto.groupId,
+      workspaceId: workspaceId,
+    });
+
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
 
     if (updateGroupDto.name) {
       group.name = updateGroupDto.name;
@@ -43,12 +50,16 @@ export class GroupService {
   }
 
   async getGroup(groupId: string, workspaceId: string): Promise<Group> {
-    const group = await this.groupRepository.findOneBy({
-      id: groupId,
-      workspaceId: workspaceId,
-    });
-
-    //TODO: get group member count
+    const group = await this.groupRepository
+      .createQueryBuilder('group')
+      .where('group.id = :groupId', { groupId })
+      .andWhere('group.workspaceId = :workspaceId', { workspaceId })
+      .loadRelationCountAndMap(
+        'group.userCount',
+        'group.groupUsers',
+        'groupUsers',
+      )
+      .getOne();
 
     if (!group) {
       throw new NotFoundException('Group not found');
@@ -61,22 +72,37 @@ export class GroupService {
     workspaceId: string,
     paginationOptions: PaginationOptions,
   ): Promise<PaginatedResult<Group>> {
-    const [groupsInWorkspace, count] = await this.groupRepository.findAndCount({
-      where: {
-        workspaceId: workspaceId,
-      },
-
-      take: paginationOptions.limit,
-      skip: paginationOptions.skip,
-    });
+    const [groupsInWorkspace, count] = await this.groupRepository
+      .createQueryBuilder('group')
+      .where('group.workspaceId = :workspaceId', { workspaceId })
+      .loadRelationCountAndMap(
+        'group.userCount',
+        'group.groupUsers',
+        'groupUsers',
+      )
+      .take(paginationOptions.limit)
+      .skip(paginationOptions.skip)
+      .getManyAndCount();
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
 
     return new PaginatedResult(groupsInWorkspace, paginationMeta);
   }
 
-  async deleteGroup(groupId: string, workspaceId: string) {
-    await this.getGroup(groupId, workspaceId);
+  async deleteGroup(groupId: string, workspaceId: string): Promise<void> {
+    await this.validateGroup(groupId, workspaceId);
     await this.groupRepository.delete(groupId);
+  }
+
+  async validateGroup(groupId: string, workspaceId: string): Promise<void> {
+    const groupExists = await this.groupRepository.exists({
+      where: {
+        id: groupId,
+        workspaceId: workspaceId,
+      },
+    });
+    if (!groupExists) {
+      throw new NotFoundException('Group not found');
+    }
   }
 }
