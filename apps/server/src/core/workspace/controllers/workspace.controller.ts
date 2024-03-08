@@ -26,6 +26,12 @@ import {
   InviteUserDto,
   RevokeInviteDto,
 } from '../dto/invitation.dto';
+import { Action } from '../../casl/ability.action';
+import { WorkspaceUser } from '../entities/workspace-user.entity';
+import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
+import { CheckPolicies } from '../../casl/decorators/policies.decorator';
+import { AppAbility } from '../../casl/abilities/casl-ability.factory';
+import { PoliciesGuard } from '../../casl/guards/policies.guard';
 
 @UseGuards(JwtGuard)
 @Controller('workspaces')
@@ -57,6 +63,8 @@ export class WorkspaceController {
   }
   */
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Workspace))
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
@@ -66,12 +74,18 @@ export class WorkspaceController {
     return this.workspaceService.update(workspace.id, updateWorkspaceDto);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Workspace))
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   async deleteWorkspace(@Body() deleteWorkspaceDto: DeleteWorkspaceDto) {
     return this.workspaceService.delete(deleteWorkspaceDto);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Read, WorkspaceUser),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members')
   async getWorkspaceMembers(
@@ -85,6 +99,10 @@ export class WorkspaceController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, WorkspaceUser),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members/add')
   async addWorkspaceMember(
@@ -98,6 +116,10 @@ export class WorkspaceController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, WorkspaceUser),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members/remove')
   async removeWorkspaceMember(
@@ -110,6 +132,10 @@ export class WorkspaceController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, WorkspaceUser),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members/role')
   async updateWorkspaceMemberRole(
@@ -124,6 +150,10 @@ export class WorkspaceController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, WorkspaceInvitation),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('invite')
   async inviteUser(

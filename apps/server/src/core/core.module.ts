@@ -10,6 +10,7 @@ import { CommentModule } from './comment/comment.module';
 import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
+import { CaslModule } from './casl/casl.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GroupModule } from './group/group.module';
     SearchModule,
     SpaceModule,
     GroupModule,
+    CaslModule,
   ],
 })
 export class CoreModule {}

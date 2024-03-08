@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { WorkspaceRepository } from '../repositories/workspace.repository';
 import { WorkspaceUserRepository } from '../repositories/workspace-user.repository';
@@ -15,12 +11,10 @@ import { plainToInstance } from 'class-transformer';
 import { v4 as uuid } from 'uuid';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
-import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { SpaceService } from '../../space/space.service';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
-import { User } from '../../user/entities/user.entity';
 import { DataSource, EntityManager } from 'typeorm';
 import { transactionWrapper } from '../../../helpers/db.helper';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
@@ -187,8 +181,8 @@ export class WorkspaceService {
 
   async getUserCurrentWorkspace(userId: string): Promise<Workspace> {
     const userWorkspace = await this.workspaceUserRepository.findOne({
-      where: { userId: userId },
       relations: ['workspace'],
+      where: { userId: userId },
       order: {
         createdAt: 'ASC',
       },
@@ -198,7 +192,8 @@ export class WorkspaceService {
       throw new NotFoundException('No workspace found for this user');
     }
 
-    return userWorkspace.workspace;
+    const { workspace, ...workspaceUser } = userWorkspace;
+    return { ...workspace, workspaceUser } as Workspace;
   }
 
   async getUserWorkspaces(

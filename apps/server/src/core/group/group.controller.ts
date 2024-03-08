@@ -19,6 +19,12 @@ import { PaginationOptions } from '../../helpers/pagination/pagination-options';
 import { AddGroupUserDto } from './dto/add-group-user.dto';
 import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { Action } from '../casl/ability.action';
+import { Group } from './entities/group.entity';
+import { GroupUser } from './entities/group-user.entity';
+import { PoliciesGuard } from '../casl/guards/policies.guard';
+import { CheckPolicies } from '../casl/decorators/policies.decorator';
+import { AppAbility } from '../casl/abilities/casl-ability.factory';
 
 @UseGuards(JwtGuard)
 @Controller('groups')
@@ -38,6 +44,8 @@ export class GroupController {
     return this.groupService.getGroupsInWorkspace(workspace.id, pagination);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, Group))
   @HttpCode(HttpStatus.OK)
   @Post('/details')
   getGroup(
@@ -48,6 +56,8 @@ export class GroupController {
     return this.groupService.getGroup(groupIdDto.groupId, workspace.id);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
   @HttpCode(HttpStatus.OK)
   @Post('create')
   createGroup(
@@ -58,6 +68,8 @@ export class GroupController {
     return this.groupService.createGroup(user, workspace.id, createGroupDto);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
   @HttpCode(HttpStatus.OK)
   @Post('update')
   updateGroup(
@@ -68,6 +80,8 @@ export class GroupController {
     return this.groupService.updateGroup(workspace.id, updateGroupDto);
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, GroupUser))
   @HttpCode(HttpStatus.OK)
   @Post('members')
   getGroupMembers(
@@ -82,6 +96,8 @@ export class GroupController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, GroupUser))
   @HttpCode(HttpStatus.OK)
   @Post('members/add')
   addGroupMember(
@@ -96,6 +112,8 @@ export class GroupController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, GroupUser))
   @HttpCode(HttpStatus.OK)
   @Post('members/remove')
   removeGroupMember(
@@ -109,6 +127,8 @@ export class GroupController {
     );
   }
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   deleteGroup(

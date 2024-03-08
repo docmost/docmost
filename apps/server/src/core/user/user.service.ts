@@ -13,6 +13,12 @@ import { WorkspaceService } from '../workspace/services/workspace.service';
 import { DataSource, EntityManager } from 'typeorm';
 import { transactionWrapper } from '../../helpers/db.helper';
 import { CreateWorkspaceDto } from '../workspace/dto/create-workspace.dto';
+import { Workspace } from '../workspace/entities/workspace.entity';
+
+export type UserWithWorkspace = {
+  user: User;
+  workspace: Workspace;
+};
 
 @Injectable()
 export class UserService {
@@ -59,7 +65,7 @@ export class UserService {
     return user;
   }
 
-  async getUserInstance(userId: string) {
+  async getUserInstance(userId: string): Promise<UserWithWorkspace> {
     const user: User = await this.findById(userId);
 
     if (!user) {

@@ -1,6 +1,5 @@
 import {
   Controller,
-  Get,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -16,12 +15,12 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 
 @UseGuards(JwtGuard)
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @HttpCode(HttpStatus.OK)
-  @Get('me')
+  @Post('me')
   async getUser(@AuthUser() authUser: User) {
     const user: User = await this.userService.findById(authUser.id);
 
@@ -33,7 +32,7 @@ export class UserController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Get('info')
+  @Post('info')
   async getUserInfo(@AuthUser() user: User) {
     const data: { workspace: Workspace; user: User } =
       await this.userService.getUserInstance(user.id);

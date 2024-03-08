@@ -86,4 +86,6 @@ export class Workspace {
 
   @OneToMany(() => Group, (group) => group.workspace)
   groups: [];
+
+  workspaceUser?: WorkspaceUser;
 }
