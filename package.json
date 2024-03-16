@@ -7,9 +7,9 @@
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
-    "@hocuspocus/provider": "^2.9.0",
-    "@hocuspocus/server": "^2.9.0",
-    "@hocuspocus/transformer": "^2.9.0",
+    "@hocuspocus/provider": "^2.11.3",
+    "@hocuspocus/server": "^2.11.3",
+    "@hocuspocus/transformer": "^2.11.3",
     "@tiptap/extension-code-block": "^2.1.12",
     "@tiptap/extension-collaboration": "^2.1.12",
     "@tiptap/extension-collaboration-cursor": "^2.1.12",
@@ -37,7 +37,7 @@
     "@tiptap/starter-kit": "^2.1.12",
     "@tiptap/suggestion": "^2.1.12",
     "y-indexeddb": "^9.0.12",
-    "yjs": "^13.6.10"
+    "yjs": "^13.6.14"
   },
   "devDependencies": {
     "@nx/js": "17.2.8",

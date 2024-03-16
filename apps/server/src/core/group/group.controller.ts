@@ -8,9 +8,8 @@ import {
 } from '@nestjs/common';
 import { GroupService } from './services/group.service';
 import { CreateGroupDto } from './dto/create-group.dto';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import { AuthUser } from '../../decorators/auth-user.decorator';
-import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { User } from '../user/entities/user.entity';
 import { Workspace } from '../workspace/entities/workspace.entity';
 import { GroupUserService } from './services/group-user.service';
@@ -25,8 +24,9 @@ import { GroupUser } from './entities/group-user.entity';
 import { PoliciesGuard } from '../casl/guards/policies.guard';
 import { CheckPolicies } from '../casl/decorators/policies.decorator';
 import { AppAbility } from '../casl/abilities/casl-ability.factory';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('groups')
 export class GroupController {
   constructor(
@@ -39,21 +39,21 @@ export class GroupController {
   getWorkspaceGroups(
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.groupService.getGroupsInWorkspace(workspace.id, pagination);
+    return this.groupService.getWorkspaceGroups(workspace.id, pagination);
   }
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, Group))
   @HttpCode(HttpStatus.OK)
-  @Post('/details')
+  @Post('/info')
   getGroup(
     @Body() groupIdDto: GroupIdDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.groupService.getGroup(groupIdDto.groupId, workspace.id);
+    return this.groupService.getGroupInfo(groupIdDto.groupId, workspace.id);
   }
 
   @UseGuards(PoliciesGuard)
@@ -63,7 +63,7 @@ export class GroupController {
   createGroup(
     @Body() createGroupDto: CreateGroupDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupService.createGroup(user, workspace.id, createGroupDto);
   }
@@ -75,7 +75,7 @@ export class GroupController {
   updateGroup(
     @Body() updateGroupDto: UpdateGroupDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupService.updateGroup(workspace.id, updateGroupDto);
   }
@@ -87,7 +87,7 @@ export class GroupController {
   getGroupMembers(
     @Body() groupIdDto: GroupIdDto,
     @Body() pagination: PaginationOptions,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupUserService.getGroupUsers(
       groupIdDto.groupId,
@@ -103,7 +103,7 @@ export class GroupController {
   addGroupMember(
     @Body() addGroupUserDto: AddGroupUserDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupUserService.addUserToGroup(
       addGroupUserDto.userId,
@@ -134,7 +134,7 @@ export class GroupController {
   deleteGroup(
     @Body() groupIdDto: GroupIdDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupService.deleteGroup(groupIdDto.groupId, workspace.id);
   }

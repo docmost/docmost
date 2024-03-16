@@ -3,10 +3,11 @@ import { WorkspaceInvitationRepository } from '../repositories/workspace-invitat
 import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
 import { User } from '../../user/entities/user.entity';
 import { WorkspaceService } from './workspace.service';
-import { WorkspaceUserService } from './workspace-user.service';
-import { WorkspaceUserRole } from '../entities/workspace-user.entity';
 import { UserService } from '../../user/user.service';
 import { InviteUserDto } from '../dto/invitation.dto';
+import { WorkspaceUserService } from './workspace-user.service';
+import { UserRole } from '../../../helpers/types/permission';
+import { UserRepository } from '../../user/repositories/user.repository';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -15,6 +16,7 @@ export class WorkspaceInvitationService {
     private workspaceService: WorkspaceService,
     private workspaceUserService: WorkspaceUserService,
     private userService: UserService,
+    private userRepository: UserRepository,
   ) {}
 
   async findInvitedUserByEmail(
@@ -32,37 +34,17 @@ export class WorkspaceInvitationService {
     workspaceId: string,
     inviteUserDto: InviteUserDto,
   ): Promise<WorkspaceInvitation> {
-    const authUserMembership =
-      await this.workspaceUserService.findWorkspaceUser(
-        authUser.id,
+    // check if invited user is already a workspace member
+    const invitedUser =
+      await this.workspaceUserService.findWorkspaceUserByEmail(
+        inviteUserDto.email,
         workspaceId,
       );
 
-    if (!authUserMembership) {
-      throw new BadRequestException('Inviting user must be a workspace member');
-    }
-
-    if (authUserMembership.role != WorkspaceUserRole.OWNER) {
-      throw new BadRequestException(
-        'Only workspace owners can invite new members',
-      );
-    }
-
-    const invitedUser = await this.userService.findByEmail(inviteUserDto.email);
-
-    // check if invited user is already a workspace member
     if (invitedUser) {
-      const invitedUserMembership =
-        await this.workspaceUserService.findWorkspaceUser(
-          invitedUser.id,
-          workspaceId,
-        );
-
-      if (invitedUserMembership) {
-        throw new BadRequestException(
-          'This user already a member of this workspace',
-        );
-      }
+      throw new BadRequestException(
+        'User is already a member of this workspace',
+      );
     }
 
     // check if user was already invited
@@ -72,7 +54,7 @@ export class WorkspaceInvitationService {
     );
 
     if (existingInvitation) {
-      throw new BadRequestException('This user has already been invited');
+      throw new BadRequestException('User has already been invited');
     }
 
     const invitation = new WorkspaceInvitation();
@@ -97,14 +79,22 @@ export class WorkspaceInvitationService {
 
     // TODO: to be completed
 
-    // check if user is in the system already
-    const invitedUser = await this.userService.findByEmail(invitation.email);
+    // check if user is already a member
+    const invitedUser =
+      await this.workspaceUserService.findWorkspaceUserByEmail(
+        invitation.email,
+        invitation.workspaceId,
+      );
 
     if (invitedUser) {
-      // fetch the workspace
-      // add the user to the workspace
+      throw new BadRequestException(
+        'User is already a member of this workspace',
+      );
     }
-    return invitation;
+    // add create account for user
+    // add the user to the workspace
+
+    return null;
   }
 
   async revokeInvitation(invitationId: string): Promise<void> {

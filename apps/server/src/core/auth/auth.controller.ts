@@ -1,27 +1,47 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
-import { CreateUserDto } from '../user/dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { SetupGuard } from './guards/setup.guard';
+import { EnvironmentService } from '../../environment/environment.service';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private environmentService: EnvironmentService,
+  ) {}
+
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginInput: LoginDto) {
-    return await this.authService.login(loginInput);
+  async login(@Req() req, @Body() loginInput: LoginDto) {
+    return this.authService.login(loginInput, req.raw.workspaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('register')
-  async register(@Body() createUserDto: CreateUserDto) {
-    return await this.authService.register(createUserDto);
+  async register(@Req() req, @Body() createUserDto: CreateUserDto) {
+    return this.authService.register(createUserDto, req.raw.workspaceId);
+  }
+
+  @UseGuards(SetupGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('setup')
+  async setupWorkspace(
+    @Req() req,
+    @Body() createAdminUserDto: CreateAdminUserDto,
+  ) {
+    if (this.environmentService.isCloud()) throw new NotFoundException();
+    return this.authService.setup(createAdminUserDto);
   }
 }

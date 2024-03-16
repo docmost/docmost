@@ -12,18 +12,18 @@ import {
 import { AttachmentService } from './attachment.service';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { AttachmentInterceptor } from './attachment.interceptor';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import * as bytes from 'bytes';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { User } from '../user/entities/user.entity';
-import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
 @Controller('attachments')
 export class AttachmentController {
   constructor(private readonly attachmentService: AttachmentService) {}
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('upload/avatar')
   @UseInterceptors(AttachmentInterceptor)
@@ -50,7 +50,7 @@ export class AttachmentController {
     }
   }
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('upload/workspace-logo')
   @UseInterceptors(AttachmentInterceptor)
@@ -58,7 +58,7 @@ export class AttachmentController {
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const maxFileSize = bytes('5MB');
 
@@ -79,7 +79,7 @@ export class AttachmentController {
     }
   }
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('upload/file')
   @UseInterceptors(AttachmentInterceptor)
@@ -87,7 +87,7 @@ export class AttachmentController {
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const maxFileSize = bytes('20MB');
 

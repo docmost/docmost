@@ -59,4 +59,15 @@ export class EnvironmentService {
   getAwsS3UsePathStyleEndpoint(): boolean {
     return this.configService.get<boolean>('AWS_S3_USE_PATH_STYLE_ENDPOINT');
   }
+
+  isCloud(): boolean {
+    const cloudConfig = this.configService
+      .get<string>('CLOUD', 'false')
+      .toLowerCase();
+    return cloudConfig === 'true';
+  }
+
+  isSelfHosted(): boolean {
+    return !this.isCloud();
+  }
 }

@@ -9,7 +9,6 @@ import {
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import { MovePageDto } from './dto/move-page.dto';
 import { PageDetailsDto } from './dto/page-details.dto';
 import { DeletePageDto } from './dto/delete-page.dto';
@@ -19,10 +18,11 @@ import { HistoryDetailsDto } from './dto/history-details.dto';
 import { PageHistoryDto } from './dto/page-history.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { User } from '../user/entities/user.entity';
-import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('pages')
 export class PageController {
   constructor(
@@ -32,7 +32,7 @@ export class PageController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('/details')
+  @Post('/info')
   async getPage(@Body() input: PageDetailsDto) {
     return this.pageService.findOne(input.id);
   }
@@ -42,7 +42,7 @@ export class PageController {
   async create(
     @Body() createPageDto: CreatePageDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.pageService.create(user.id, workspace.id, createPageDto);
   }

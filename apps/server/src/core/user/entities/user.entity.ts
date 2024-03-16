@@ -3,19 +3,22 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Workspace } from '../../workspace/entities/workspace.entity';
-import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { Comment } from '../../comment/entities/comment.entity';
 import { Space } from '../../space/entities/space.entity';
 import { SpaceUser } from '../../space/entities/space-user.entity';
+import { Group } from '../../group/entities/group.entity';
 
 @Entity('users')
+@Unique(['email', 'workspaceId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,7 +26,7 @@ export class User {
   @Column({ length: 255, nullable: true })
   name: string;
 
-  @Column({ length: 255, unique: true })
+  @Column({ length: 255 })
   email: string;
 
   @Column({ nullable: true })
@@ -34,6 +37,15 @@ export class User {
 
   @Column({ nullable: true })
   avatarUrl: string;
+
+  @Column({ nullable: true, length: 100 })
+  role: string;
+
+  @Column({ nullable: true })
+  workspaceId: string;
+
+  @ManyToOne(() => Workspace, (workspace) => workspace.users)
+  workspace: Workspace;
 
   @Column({ length: 100, nullable: true })
   locale: string;
@@ -56,11 +68,8 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Workspace, (workspace) => workspace.creator)
-  workspaces: Workspace[];
-
-  @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.user)
-  workspaceUsers: WorkspaceUser[];
+  @OneToMany(() => Group, (group) => group.creator)
+  groups: Group[];
 
   @OneToMany(() => Page, (page) => page.creator)
   createdPages: Page[];
@@ -69,10 +78,10 @@ export class User {
   comments: Comment[];
 
   @OneToMany(() => Space, (space) => space.creator)
-  spaces: Space[];
+  createdSpaces: Space[];
 
   @OneToMany(() => SpaceUser, (spaceUser) => spaceUser.user)
-  spaceUsers: SpaceUser[];
+  spaces: SpaceUser[];
 
   toJSON() {
     delete this.password;
@@ -85,8 +94,3 @@ export class User {
     this.password = await bcrypt.hash(this.password, saltRounds);
   }
 }
-
-export type UserRole = {
-  role: string;
-};
-export type UserWithRole = User & UserRole;

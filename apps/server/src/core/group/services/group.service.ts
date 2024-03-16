@@ -49,7 +49,7 @@ export class GroupService {
     return await this.groupRepository.save(group);
   }
 
-  async getGroup(groupId: string, workspaceId: string): Promise<Group> {
+  async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
     const group = await this.groupRepository
       .createQueryBuilder('group')
       .where('group.id = :groupId', { groupId })
@@ -68,11 +68,11 @@ export class GroupService {
     return group;
   }
 
-  async getGroupsInWorkspace(
+  async getWorkspaceGroups(
     workspaceId: string,
     paginationOptions: PaginationOptions,
   ): Promise<PaginatedResult<Group>> {
-    const [groupsInWorkspace, count] = await this.groupRepository
+    const [groups, count] = await this.groupRepository
       .createQueryBuilder('group')
       .where('group.workspaceId = :workspaceId', { workspaceId })
       .loadRelationCountAndMap(
@@ -86,7 +86,7 @@ export class GroupService {
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
 
-    return new PaginatedResult(groupsInWorkspace, paginationMeta);
+    return new PaginatedResult(groups, paginationMeta);
   }
 
   async deleteGroup(groupId: string, workspaceId: string): Promise<void> {

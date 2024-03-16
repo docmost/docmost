@@ -2,10 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../environment/environment.service';
 import { User } from '../../user/entities/user.entity';
-import { FastifyRequest } from 'fastify';
 import { TokensDto } from '../dto/tokens.dto';
-
-export type JwtPayload = { sub: string; email: string };
+import { JwtPayload, JwtRefreshPayload, JwtType } from '../dto/jwt-payload';
 
 @Injectable()
 export class TokenService {
@@ -13,31 +11,37 @@ export class TokenService {
     private jwtService: JwtService,
     private environmentService: EnvironmentService,
   ) {}
-  async generateJwt(user: User): Promise<string> {
+
+  async generateAccessToken(user: User): Promise<string> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      workspaceId: user.workspaceId,
+      type: JwtType.ACCESS,
     };
-    return await this.jwtService.signAsync(payload);
+    return this.jwtService.sign(payload);
+  }
+
+  async generateRefreshToken(userId: string, workspaceId): Promise<string> {
+    const payload: JwtRefreshPayload = {
+      sub: userId,
+      workspaceId,
+      type: JwtType.REFRESH,
+    };
+    const expiresIn = '30d'; // todo: fix
+    return this.jwtService.sign(payload, { expiresIn });
   }
 
   async generateTokens(user: User): Promise<TokensDto> {
     return {
-      accessToken: await this.generateJwt(user),
-      refreshToken: null,
+      accessToken: await this.generateAccessToken(user),
+      refreshToken: await this.generateRefreshToken(user.id, user.workspaceId),
     };
   }
 
   async verifyJwt(token: string) {
-    return await this.jwtService.verifyAsync(token, {
+    return this.jwtService.verifyAsync(token, {
       secret: this.environmentService.getJwtSecret(),
     });
-  }
-
-  async extractTokenFromHeader(
-    request: FastifyRequest,
-  ): Promise<string | undefined> {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
   }
 }

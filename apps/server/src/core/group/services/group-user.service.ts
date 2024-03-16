@@ -6,7 +6,6 @@ import {
 import { DataSource, EntityManager } from 'typeorm';
 import { GroupUserRepository } from '../respositories/group-user.repository';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { transactionWrapper } from '../../../helpers/db.helper';
 import { User } from '../../user/entities/user.entity';
 import { GroupUser } from '../entities/group-user.entity';
@@ -55,9 +54,10 @@ export class GroupUserService {
     groupId: string,
     workspaceId: string,
     manager?: EntityManager,
-  ): Promise<WorkspaceUser> {
+  ): Promise<any> {
     let addedUser;
 
+    /*
     await transactionWrapper(
       async (manager) => {
         const group = await manager.findOneBy(Group, {
@@ -106,7 +106,7 @@ export class GroupUserService {
       this.dataSource,
       manager,
     );
-
+*/
     return addedUser;
   }
 

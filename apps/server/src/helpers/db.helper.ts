@@ -4,7 +4,7 @@ export async function transactionWrapper(
   operation: (...args) => any,
   datasource: DataSource,
   entityManager: EntityManager,
-) {
+): Promise<any> {
   if (entityManager) {
     return await operation(entityManager);
   } else {

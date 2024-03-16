@@ -7,18 +7,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
-import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
-import { AddWorkspaceUserDto } from '../dto/add-workspace-user.dto';
 import { AuthUser } from '../../../decorators/auth-user.decorator';
 import { User } from '../../user/entities/user.entity';
-import { CurrentWorkspace } from '../../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../../decorators/auth-workspace.decorator';
 import { Workspace } from '../entities/workspace.entity';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import { WorkspaceUserService } from '../services/workspace-user.service';
 import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
 import { Public } from '../../../decorators/public.decorator';
 import {
@@ -27,14 +23,15 @@ import {
   RevokeInviteDto,
 } from '../dto/invitation.dto';
 import { Action } from '../../casl/ability.action';
-import { WorkspaceUser } from '../entities/workspace-user.entity';
 import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
 import { CheckPolicies } from '../../casl/decorators/policies.decorator';
 import { AppAbility } from '../../casl/abilities/casl-ability.factory';
 import { PoliciesGuard } from '../../casl/guards/policies.guard';
+import { WorkspaceUserService } from '../services/workspace-user.service';
+import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
-@Controller('workspaces')
+@UseGuards(JwtAuthGuard)
+@Controller('workspace')
 export class WorkspaceController {
   constructor(
     private readonly workspaceService: WorkspaceService,
@@ -43,25 +40,13 @@ export class WorkspaceController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('/')
-  async getUserWorkspaces(
-    @Body()
-    pagination: PaginationOptions,
+  @Post('/info')
+  async getWorkspace(
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceService.getUserWorkspaces(user.id, pagination);
+    return this.workspaceService.getWorkspaceInfo(workspace.id);
   }
-
-  /*
-  @HttpCode(HttpStatus.OK)
-  @Post('create')
-  async createWorkspace(
-    @Body() createWorkspaceDto: CreateWorkspaceDto,
-    @AuthUser() user: User,
-  ) {
-    return this.workspaceService.create(user.id, createWorkspaceDto);
-  }
-  */
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Workspace))
@@ -69,7 +54,7 @@ export class WorkspaceController {
   @Post('update')
   async updateWorkspace(
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.workspaceService.update(workspace.id, updateWorkspaceDto);
   }
@@ -79,19 +64,19 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   async deleteWorkspace(@Body() deleteWorkspaceDto: DeleteWorkspaceDto) {
-    return this.workspaceService.delete(deleteWorkspaceDto);
+    // return this.workspaceService.delete(deleteWorkspaceDto);
   }
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Read, WorkspaceUser),
+    ability.can(Action.Read, 'workspaceUser'),
   )
   @HttpCode(HttpStatus.OK)
   @Post('members')
   async getWorkspaceMembers(
     @Body()
     pagination: PaginationOptions,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.workspaceUserService.getWorkspaceUsers(
       workspace.id,
@@ -100,48 +85,25 @@ export class WorkspaceController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, WorkspaceUser),
-  )
+  // @CheckPolicies((ability: AppAbility) =>
+  //   ability.can(Action.Manage, 'WorkspaceUser'),
+  // )
   @HttpCode(HttpStatus.OK)
-  @Post('members/add')
-  async addWorkspaceMember(
-    @Body() addWorkspaceUserDto: AddWorkspaceUserDto,
-    @CurrentWorkspace() workspace: Workspace,
-  ) {
-    return this.workspaceUserService.addUserToWorkspace(
-      addWorkspaceUserDto.userId,
-      workspace.id,
-      addWorkspaceUserDto.role,
-    );
+  @Post('members/deactivate')
+  async deactivateWorkspaceMember() {
+    return this.workspaceUserService.deactivateUser();
   }
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, WorkspaceUser),
-  )
-  @HttpCode(HttpStatus.OK)
-  @Post('members/remove')
-  async removeWorkspaceMember(
-    @Body() removeWorkspaceUserDto: RemoveWorkspaceUserDto,
-    @CurrentWorkspace() workspace: Workspace,
-  ) {
-    return this.workspaceUserService.removeUserFromWorkspace(
-      removeWorkspaceUserDto.userId,
-      workspace.id,
-    );
-  }
-
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, WorkspaceUser),
+    ability.can(Action.Manage, 'workspaceUser'),
   )
   @HttpCode(HttpStatus.OK)
   @Post('members/role')
   async updateWorkspaceMemberRole(
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
     @AuthUser() authUser: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.workspaceUserService.updateWorkspaceUserRole(
       authUser,
@@ -159,7 +121,7 @@ export class WorkspaceController {
   async inviteUser(
     @Body() inviteUserDto: InviteUserDto,
     @AuthUser() authUser: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.workspaceInvitationService.createInvitation(
       authUser,
@@ -172,9 +134,9 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('invite/accept')
   async acceptInvite(@Body() acceptInviteDto: AcceptInviteDto) {
-    return this.workspaceInvitationService.acceptInvitation(
-      acceptInviteDto.invitationId,
-    );
+    // return this.workspaceInvitationService.acceptInvitation(
+    //    acceptInviteDto.invitationId,
+    //);
   }
 
   // TODO: authorize permission with guards

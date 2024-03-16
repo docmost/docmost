@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { UserRepository } from './repositories/user.repository';
 import { User } from './entities/user.entity';
 import { BadRequestException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from '../auth/dto/create-user.dto';
 
 describe('UserService', () => {
   let userService: UserService;
@@ -63,7 +63,7 @@ describe('UserService', () => {
         lastLoginIp: null,
       };
 
-      userRepository.findByEmail.mockResolvedValue(undefined);
+      //userRepository.findByEmail.mockResolvedValue(undefined);
       userRepository.save.mockResolvedValue(savedUser);
 
       const result = await userService.create(createUserDto);

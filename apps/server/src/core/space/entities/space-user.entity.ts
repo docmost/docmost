@@ -20,7 +20,7 @@ export class SpaceUser {
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.spaceUsers, {
+  @ManyToOne(() => User, (user) => user.spaces, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'userId' })
@@ -32,7 +32,6 @@ export class SpaceUser {
   @ManyToOne(() => Space, (space) => space.spaceUsers, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'spaceId' })
   space: Space;
 
   @Column({ length: 100, nullable: true })

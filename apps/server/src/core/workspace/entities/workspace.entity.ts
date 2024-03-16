@@ -4,18 +4,18 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
   OneToMany,
   JoinColumn,
   OneToOne,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
-import { WorkspaceUser } from './workspace-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { WorkspaceInvitation } from './workspace-invitation.entity';
 import { Comment } from '../../comment/entities/comment.entity';
 import { Space } from '../../space/entities/space.entity';
 import { Group } from '../../group/entities/group.entity';
+import { UserRole } from '../../../helpers/types/permission';
 
 @Entity('workspaces')
 export class Workspace {
@@ -46,12 +46,15 @@ export class Workspace {
   @Column({ type: 'jsonb', nullable: true })
   settings: any;
 
-  @Column()
+  @Column({ default: UserRole.MEMBER })
+  defaultRole: string;
+
+  @Column({ nullable: true, type: 'uuid' })
   creatorId: string;
 
-  @ManyToOne(() => User, (user) => user.workspaces)
-  @JoinColumn({ name: 'creatorId' })
-  creator: User;
+  //@ManyToOne(() => User, (user) => user.workspaces)
+  // @JoinColumn({ name: 'creatorId' })
+  // creator: User;
 
   @Column({ nullable: true })
   defaultSpaceId: string;
@@ -66,8 +69,11 @@ export class Workspace {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => WorkspaceUser, (workspaceUser) => workspaceUser.workspace)
-  workspaceUsers: WorkspaceUser[];
+  @DeleteDateColumn()
+  deletedAt: Date;
+
+  @OneToMany(() => User, (user) => user.workspace)
+  users: [];
 
   @OneToMany(
     () => WorkspaceInvitation,
@@ -87,5 +93,5 @@ export class Workspace {
   @OneToMany(() => Group, (group) => group.workspace)
   groups: [];
 
-  workspaceUser?: WorkspaceUser;
+  // workspaceUser?: WorkspaceUser;
 }

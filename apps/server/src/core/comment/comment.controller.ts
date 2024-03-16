@@ -9,16 +9,15 @@ import {
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import { CommentsInput, SingleCommentInput } from './dto/comments.input';
 import { ResolveCommentDto } from './dto/resolve-comment.dto';
-import { WorkspaceService } from '../workspace/services/workspace.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { User } from '../user/entities/user.entity';
-import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('comments')
 export class CommentController {
   constructor(private readonly commentService: CommentService) {}
@@ -28,7 +27,7 @@ export class CommentController {
   async create(
     @Body() createCommentDto: CreateCommentDto,
     @AuthUser() user: User,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.commentService.create(user.id, workspace.id, createCommentDto);
   }
@@ -40,7 +39,7 @@ export class CommentController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('view')
+  @Post('info')
   findOne(@Body() input: SingleCommentInput) {
     return this.commentService.findWithCreator(input.id);
   }

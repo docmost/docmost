@@ -2,13 +2,14 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
-  IsString,
+  IsString, MaxLength,
   MinLength,
 } from 'class-validator';
 
 export class CreateUserDto {
   @IsOptional()
   @MinLength(3)
+  @MaxLength(35)
   @IsString()
   name: string;
 

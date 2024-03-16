@@ -9,4 +9,8 @@ export class CreateSpaceDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
 }

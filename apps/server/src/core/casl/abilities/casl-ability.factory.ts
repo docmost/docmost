@@ -9,9 +9,8 @@ import {
 import { User } from '../../user/entities/user.entity';
 import { Action } from '../ability.action';
 import { Workspace } from '../../workspace/entities/workspace.entity';
-import { WorkspaceUser } from '../../workspace/entities/workspace-user.entity';
 import { WorkspaceInvitation } from '../../workspace/entities/workspace-invitation.entity';
-import { Role } from '../../../helpers/types/permission';
+import { UserRole } from '../../../helpers/types/permission';
 import { Group } from '../../group/entities/group.entity';
 import { GroupUser } from '../../group/entities/group-user.entity';
 import { Attachment } from '../../attachment/entities/attachment.entity';
@@ -23,7 +22,6 @@ import { Comment } from '../../comment/entities/comment.entity';
 export type Subjects =
   | InferSubjects<
       | typeof Workspace
-      | typeof WorkspaceUser
       | typeof WorkspaceInvitation
       | typeof Space
       | typeof SpaceUser
@@ -34,6 +32,7 @@ export type Subjects =
       | typeof Page
       | typeof User
     >
+  | 'workspaceUser'
   | 'all';
 export type AppAbility = MongoAbility<[Action, Subjects]>;
 
@@ -42,13 +41,13 @@ export default class CaslAbilityFactory {
   createForWorkspace(user: User, workspace: Workspace) {
     const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
-    const userRole = workspace?.workspaceUser.role;
-    console.log(userRole);
+    const userRole = user.role;
 
-    if (userRole === Role.OWNER) {
+    if (userRole === UserRole.OWNER || userRole === UserRole.ADMIN) {
       // Workspace Users
       can<any>([Action.Manage], Workspace);
-      can<any>([Action.Manage], WorkspaceUser);
+      can<any>([Action.Manage], 'workspaceUser');
+
       can<any>([Action.Manage], WorkspaceInvitation);
 
       // Groups
@@ -59,8 +58,8 @@ export default class CaslAbilityFactory {
       can<any>([Action.Manage], Attachment);
     }
 
-    if (userRole === Role.MEMBER) {
-      can<any>([Action.Read], WorkspaceUser);
+    if (userRole === UserRole.MEMBER) {
+      // can<any>([Action.Read], WorkspaceUser);
 
       // Groups
       can<any>([Action.Read], Group);

@@ -1,20 +1,19 @@
 import {
+  Body,
   Controller,
-  UseGuards,
   HttpCode,
   HttpStatus,
-  UnauthorizedException,
   Post,
-  Body,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import { User } from './entities/user.entity';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -28,16 +27,13 @@ export class UserController {
       throw new UnauthorizedException('Invalid user');
     }
 
-    return { user };
+    return user;
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
   async getUserInfo(@AuthUser() user: User) {
-    const data: { workspace: Workspace; user: User } =
-      await this.userService.getUserInstance(user.id);
-
-    return data;
+    return await this.userService.getUserInstance(user.id);
   }
 
   @HttpCode(HttpStatus.OK)

@@ -7,13 +7,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JwtGuard } from '../auth/guards/jwt.guard';
 import { SearchService } from './search.service';
 import { SearchDTO } from './dto/search.dto';
-import { CurrentWorkspace } from '../../decorators/current-workspace.decorator';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { Workspace } from '../workspace/entities/workspace.entity';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
-@UseGuards(JwtGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
@@ -23,7 +23,7 @@ export class SearchController {
   async pageSearch(
     @Query('type') type: string,
     @Body() searchDto: SearchDTO,
-    @CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     if (!type || type === 'page') {
       return this.searchService.searchPage(

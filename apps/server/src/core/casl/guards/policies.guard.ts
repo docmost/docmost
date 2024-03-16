@@ -21,8 +21,8 @@ export class PoliciesGuard implements CanActivate {
       ) || [];
 
     const request = context.switchToHttp().getRequest();
-    const user = request['user'].user;
-    const workspace = request['user'].workspace;
+    const user = request.user.user;
+    const workspace = request.user.workspace;
 
     const ability = this.caslAbilityFactory.createForWorkspace(user, workspace);
 

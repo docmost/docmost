@@ -8,7 +8,11 @@ export class SpaceRepository extends Repository<Space> {
     super(Space, dataSource.createEntityManager());
   }
 
-  async findById(spaceId: string) {
-    return this.findOneBy({ id: spaceId });
+  async findById(spaceId: string, workspaceId: string): Promise<Space> {
+    const queryBuilder = this.dataSource.createQueryBuilder(Space, 'space');
+    return await queryBuilder
+      .where('space.id = :id', { id: spaceId })
+      .andWhere('space.workspaceId = :workspaceId', { workspaceId })
+      .getOne();
   }
 }

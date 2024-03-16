@@ -1,69 +1,34 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { WorkspaceUserRepository } from '../repositories/workspace-user.repository';
-import {
-  WorkspaceUser,
-  WorkspaceUserRole,
-} from '../entities/workspace-user.entity';
-import { Workspace } from '../entities/workspace.entity';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
 import { User } from '../../user/entities/user.entity';
-import { DataSource, EntityManager } from 'typeorm';
-import { transactionWrapper } from '../../../helpers/db.helper';
+import { WorkspaceRepository } from '../repositories/workspace.repository';
+import { UserRepository } from '../../user/repositories/user.repository';
+import { UserRole } from '../../../helpers/types/permission';
 
 @Injectable()
 export class WorkspaceUserService {
   constructor(
-    private workspaceUserRepository: WorkspaceUserRepository,
-    private dataSource: DataSource,
+    private workspaceRepository: WorkspaceRepository,
+    private userRepository: UserRepository,
   ) {}
 
-  async addUserToWorkspace(
-    userId: string,
+  async getWorkspaceUsers(
     workspaceId: string,
-    role: string,
-    manager?: EntityManager,
-  ): Promise<WorkspaceUser> {
-    let addedUser;
-
-    await transactionWrapper(
-      async (manager) => {
-        const userExists = await manager.exists(User, {
-          where: { id: userId },
-        });
-        if (!userExists) {
-          throw new NotFoundException('User not found');
-        }
-
-        const existingWorkspaceUser = await manager.findOneBy(WorkspaceUser, {
-          userId: userId,
-          workspaceId: workspaceId,
-        });
-
-        if (existingWorkspaceUser) {
-          throw new BadRequestException(
-            'User is already a member of this workspace',
-          );
-        }
-
-        const workspaceUser = new WorkspaceUser();
-        workspaceUser.userId = userId;
-        workspaceUser.workspaceId = workspaceId;
-        workspaceUser.role = role;
-
-        addedUser = await manager.save(workspaceUser);
+    paginationOptions: PaginationOptions,
+  ): Promise<PaginatedResult<User>> {
+    const [workspaceUsers, count] = await this.userRepository.findAndCount({
+      where: {
+        workspaceId,
       },
-      this.dataSource,
-      manager,
-    );
+      take: paginationOptions.limit,
+      skip: paginationOptions.skip,
+    });
 
-    return addedUser;
+    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
+    return new PaginatedResult(workspaceUsers, paginationMeta);
   }
 
   async updateWorkspaceUserRole(
@@ -80,16 +45,14 @@ export class WorkspaceUserService {
       return workspaceUser;
     }
 
-    const workspaceOwnerCount = await this.workspaceUserRepository.count({
+    const workspaceOwnerCount = await this.userRepository.count({
       where: {
-        role: WorkspaceUserRole.OWNER,
+        role: UserRole.OWNER,
+        workspaceId,
       },
     });
 
-    if (
-      workspaceUser.role === WorkspaceUserRole.OWNER &&
-      workspaceOwnerCount === 1
-    ) {
+    if (workspaceUser.role === UserRole.OWNER && workspaceOwnerCount === 1) {
       throw new BadRequestException(
         'There must be at least one workspace owner',
       );
@@ -97,105 +60,26 @@ export class WorkspaceUserService {
 
     workspaceUser.role = workspaceUserRoleDto.role;
 
-    return this.workspaceUserRepository.save(workspaceUser);
+    return this.userRepository.save(workspaceUser);
   }
 
-  async removeUserFromWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<void> {
-    const workspaceUser = await this.findAndValidateWorkspaceUser(
-      userId,
-      workspaceId,
-    );
+  async deactivateUser(): Promise<any> {
+    return 'todo';
+  }
 
-    const workspaceOwnerCount = await this.workspaceUserRepository.count({
-      where: {
-        role: WorkspaceUserRole.OWNER,
-      },
-    });
-
-    if (
-      workspaceUser.role === WorkspaceUserRole.OWNER &&
-      workspaceOwnerCount === 1
-    ) {
-      throw new BadRequestException(
-        'There must be at least one workspace owner',
-      );
-    }
-
-    await this.workspaceUserRepository.delete({
-      userId,
+  async findWorkspaceUser(userId: string, workspaceId: string): Promise<User> {
+    return await this.userRepository.findOneBy({
+      id: userId,
       workspaceId,
     });
   }
 
-  async getUserWorkspaces(
-    userId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<Workspace>> {
-    const [workspaces, count] = await this.workspaceUserRepository.findAndCount(
-      {
-        where: { userId: userId },
-        relations: ['workspace'],
-        take: paginationOptions.limit,
-        skip: paginationOptions.skip,
-      },
-    );
-
-    const userWorkspaces = workspaces.map(
-      (userWorkspace: WorkspaceUser) => userWorkspace.workspace,
-    );
-
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(userWorkspaces, paginationMeta);
-  }
-
-  async getWorkspaceUsers(
+  async findWorkspaceUserByEmail(
+    email: string,
     workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<any>> {
-    const [workspaceUsers, count] =
-      await this.workspaceUserRepository.findAndCount({
-        relations: ['user'],
-        where: {
-          workspace: {
-            id: workspaceId,
-          },
-        },
-        take: paginationOptions.limit,
-        skip: paginationOptions.skip,
-      });
-
-    const users = workspaceUsers.map((workspaceUser) => {
-      workspaceUser.user.password = '';
-      return {
-        ...workspaceUser.user,
-        role: workspaceUser.role,
-      };
-    });
-
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(users, paginationMeta);
-  }
-
-  async getUserRoleInWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<string> {
-    const workspaceUser = await this.findAndValidateWorkspaceUser(
-      userId,
-      workspaceId,
-    );
-    return workspaceUser.role ? workspaceUser.role : null;
-  }
-
-  async findWorkspaceUser(
-    userId: string,
-    workspaceId: string,
-  ): Promise<WorkspaceUser> {
-    return await this.workspaceUserRepository.findOneBy({
-      userId,
+  ): Promise<User> {
+    return await this.userRepository.findOneBy({
+      email: email,
       workspaceId,
     });
   }
@@ -203,13 +87,13 @@ export class WorkspaceUserService {
   async findAndValidateWorkspaceUser(
     userId: string,
     workspaceId: string,
-  ): Promise<WorkspaceUser> {
-    const workspaceUser = await this.findWorkspaceUser(userId, workspaceId);
+  ): Promise<User> {
+    const user = await this.findWorkspaceUser(userId, workspaceId);
 
-    if (!workspaceUser) {
+    if (!user) {
       throw new BadRequestException('Workspace member not found');
     }
 
-    return workspaceUser;
+    return user;
   }
 }

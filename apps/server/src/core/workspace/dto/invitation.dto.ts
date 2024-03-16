@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { WorkspaceUserRole } from '../entities/workspace-user.entity';
+import { UserRole } from '../../../helpers/types/permission';
 
 export class InviteUserDto {
   @IsString()
@@ -9,7 +9,7 @@ export class InviteUserDto {
   @IsEmail()
   email: string;
 
-  @IsEnum(WorkspaceUserRole)
+  @IsEnum(UserRole)
   role: string;
 }
 

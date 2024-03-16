@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { StorageService } from '../storage/storage.service';
+import { StorageService } from '../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import { AttachmentRepository } from './repositories/attachment.repository';
 import { Attachment } from './entities/attachment.entity';
