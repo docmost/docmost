@@ -14,6 +14,7 @@ import { Workspace } from '../../workspace/entities/workspace.entity';
 import { SpaceUser } from './space-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { SpacePrivacy, SpaceRole } from '../../../helpers/types/permission';
+import { SpaceGroup } from './space-group.entity';
 
 @Entity('spaces')
 @Unique(['slug', 'workspaceId'])
@@ -42,7 +43,7 @@ export class Space {
   @Column()
   creatorId: string;
 
-  @ManyToOne(() => User, (user) => user.spaces)
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'creatorId' })
   creator: User;
 
@@ -57,6 +58,9 @@ export class Space {
 
   @OneToMany(() => SpaceUser, (spaceUser) => spaceUser.space)
   spaceUsers: SpaceUser[];
+
+  @OneToMany(() => SpaceGroup, (spaceGroup) => spaceGroup.space)
+  spaceGroups: SpaceGroup[];
 
   @OneToMany(() => Page, (page) => page.space)
   pages: Page[];

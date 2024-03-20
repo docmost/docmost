@@ -17,7 +17,8 @@ import { UserRepository } from '../../user/repositories/user.repository';
 import { SpaceRole, UserRole } from '../../../helpers/types/permission';
 import { User } from '../../user/entities/user.entity';
 import { EnvironmentService } from '../../../environment/environment.service';
-import { Space } from '../../space/entities/space.entity';
+import { GroupService } from '../../group/services/group.service';
+import { GroupUserService } from '../../group/services/group-user.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -25,6 +26,8 @@ export class WorkspaceService {
     private workspaceRepository: WorkspaceRepository,
     private userRepository: UserRepository,
     private spaceService: SpaceService,
+    private groupService: GroupService,
+    private groupUserService: GroupUserService,
     private environmentService: EnvironmentService,
 
     private dataSource: DataSource,
@@ -68,12 +71,28 @@ export class WorkspaceService {
         workspace.creatorId = user.id;
         workspace = await manager.save(workspace);
 
+        // create default group
+        const group = await this.groupService.createDefaultGroup(
+          workspace.id,
+          user.id,
+          manager,
+        );
+
+        // attach user to workspace
         user.workspaceId = workspace.id;
         user.role = UserRole.OWNER;
         await manager.save(user);
 
+        // add user to default group
+        await this.groupUserService.addUserToGroup(
+          user.id,
+          group.id,
+          workspace.id,
+          manager,
+        );
+
         // create default space
-        const spaceData: CreateSpaceDto = {
+        const spaceInfo: CreateSpaceDto = {
           name: 'General',
         };
 
@@ -81,15 +100,24 @@ export class WorkspaceService {
         const createdSpace = await this.spaceService.create(
           user.id,
           workspace.id,
-          spaceData,
+          spaceInfo,
           manager,
         );
 
-        // and add user to it too.
+        // and add user to space as owner
         await this.spaceService.addUserToSpace(
           user.id,
           createdSpace.id,
           SpaceRole.OWNER,
+          workspace.id,
+          manager,
+        );
+
+        // add default group to space as writer
+        await this.spaceService.addGroupToSpace(
+          group.id,
+          createdSpace.id,
+          SpaceRole.WRITER,
           workspace.id,
           manager,
         );
@@ -108,7 +136,7 @@ export class WorkspaceService {
     workspaceId,
     assignedRole?: UserRole,
     manager?: EntityManager,
-  ): Promise<Workspace> {
+  ): Promise<void> {
     return await transactionWrapper(
       async (manager: EntityManager) => {
         const workspace = await manager.findOneBy(Workspace, {
@@ -123,25 +151,7 @@ export class WorkspaceService {
         user.workspaceId = workspace.id;
         await manager.save(user);
 
-        const space = await manager.findOneBy(Space, {
-          id: workspace.defaultSpaceId,
-          workspaceId,
-        });
-
-        if (!space) {
-          throw new NotFoundException('Space not found');
-        }
-
-        // add user to default space
-        await this.spaceService.addUserToSpace(
-          user.id,
-          space.id,
-          space.defaultRole,
-          workspace.id,
-          manager,
-        );
-
-        return workspace;
+        // User is now added to the default space via the default group
       },
       this.dataSource,
       manager,
@@ -175,9 +185,6 @@ export class WorkspaceService {
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
-
-    //TODO
-    // remove all existing users from workspace
-    // delete workspace
+    // delete
   }
 }

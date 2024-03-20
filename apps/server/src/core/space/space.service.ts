@@ -14,12 +14,16 @@ import { User } from '../user/entities/user.entity';
 import { PaginationOptions } from '../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../helpers/pagination/paginated-result';
+import { SpaceGroupRepository } from './repositories/space-group.repository';
+import { Group } from '../group/entities/group.entity';
+import { SpaceGroup } from './entities/space-group.entity';
 
 @Injectable()
 export class SpaceService {
   constructor(
     private spaceRepository: SpaceRepository,
     private spaceUserRepository: SpaceUserRepository,
+    private spaceGroupRepository: SpaceGroupRepository,
     private dataSource: DataSource,
   ) {}
 
@@ -94,7 +98,7 @@ export class SpaceService {
         'space.userCount',
         'space.spaceUsers',
         'spaceUsers',
-      )
+      ) // TODO: add groups to userCount
       .getOne();
 
     if (!space) {
@@ -115,7 +119,7 @@ export class SpaceService {
         'space.userCount',
         'space.spaceUsers',
         'spaceUsers',
-      )
+      ) // TODO: add groups to userCount
       .take(paginationOptions.limit)
       .skip(paginationOptions.skip)
       .getManyAndCount();
@@ -177,5 +181,72 @@ export class SpaceService {
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
     return new PaginatedResult(users, paginationMeta);
+  }
+
+  async addGroupToSpace(
+    groupId: string,
+    spaceId: string,
+    role: string,
+    workspaceId,
+    manager?: EntityManager,
+  ): Promise<SpaceGroup> {
+    return await transactionWrapper(
+      async (manager: EntityManager) => {
+        const groupExists = await manager.exists(Group, {
+          where: { id: groupId, workspaceId },
+        });
+        if (!groupExists) {
+          throw new NotFoundException('Group not found');
+        }
+
+        const existingSpaceGroup = await manager.findOneBy(SpaceGroup, {
+          groupId: groupId,
+          spaceId: spaceId,
+        });
+
+        if (existingSpaceGroup) {
+          throw new BadRequestException('Group already added to this space');
+        }
+
+        const spaceGroup = new SpaceGroup();
+        spaceGroup.groupId = groupId;
+        spaceGroup.spaceId = spaceId;
+        spaceGroup.role = role;
+        await manager.save(spaceGroup);
+
+        return spaceGroup;
+      },
+      this.dataSource,
+      manager,
+    );
+  }
+
+  async getSpaceGroups(
+    spaceId: string,
+    workspaceId: string,
+    paginationOptions: PaginationOptions,
+  ) {
+    const [spaceGroups, count] = await this.spaceGroupRepository.findAndCount({
+      relations: ['group'],
+      where: {
+        space: {
+          id: spaceId,
+          workspaceId,
+        },
+      },
+      take: paginationOptions.limit,
+      skip: paginationOptions.skip,
+    });
+
+    // TODO: add group userCount
+    const groups = spaceGroups.map((spaceGroup) => {
+      return {
+        ...spaceGroup.group,
+        spaceRole: spaceGroup.role,
+      };
+    });
+
+    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
+    return new PaginatedResult(groups, paginationMeta);
   }
 }

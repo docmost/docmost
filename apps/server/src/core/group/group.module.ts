@@ -17,5 +17,6 @@ import { GroupUserService } from './services/group-user.service';
     GroupRepository,
     GroupUserRepository,
   ],
+  exports: [GroupService, GroupUserService],
 })
 export class GroupModule {}

@@ -11,8 +11,11 @@ import {
 import { GroupUser } from './group-user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { User } from '../../user/entities/user.entity';
+import { Unique } from 'typeorm';
+import { SpaceGroup } from '../../space/entities/space-group.entity';
 
 @Entity('groups')
+@Unique(['name', 'workspaceId'])
 export class Group {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,6 +26,9 @@ export class Group {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'boolean', default: false })
+  isDefault: boolean;
+
   @Column()
   workspaceId: string;
 
@@ -32,7 +38,7 @@ export class Group {
   @JoinColumn({ name: 'workspaceId' })
   workspace: Workspace;
 
-  @Column()
+  @Column({ nullable: true })
   creatorId: string;
 
   @ManyToOne(() => User)
@@ -47,6 +53,9 @@ export class Group {
 
   @OneToMany(() => GroupUser, (groupUser) => groupUser.group)
   groupUsers: GroupUser[];
+
+  @OneToMany(() => SpaceGroup, (spaceGroup) => spaceGroup.group)
+  spaces: SpaceGroup[];
 
   userCount?: number;
 }

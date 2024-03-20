@@ -15,7 +15,6 @@ import { Page } from '../../page/entities/page.entity';
 import { Comment } from '../../comment/entities/comment.entity';
 import { Space } from '../../space/entities/space.entity';
 import { SpaceUser } from '../../space/entities/space-user.entity';
-import { Group } from '../../group/entities/group.entity';
 
 @Entity('users')
 @Unique(['email', 'workspaceId'])
@@ -44,7 +43,9 @@ export class User {
   @Column({ nullable: true })
   workspaceId: string;
 
-  @ManyToOne(() => Workspace, (workspace) => workspace.users)
+  @ManyToOne(() => Workspace, (workspace) => workspace.users, {
+    onDelete: 'CASCADE',
+  })
   workspace: Workspace;
 
   @Column({ length: 100, nullable: true })
@@ -67,9 +68,6 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @OneToMany(() => Group, (group) => group.creator)
-  groups: Group[];
 
   @OneToMany(() => Page, (page) => page.creator)
   createdPages: Page[];

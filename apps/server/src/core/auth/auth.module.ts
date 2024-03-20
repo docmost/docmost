@@ -9,6 +9,7 @@ import { WorkspaceModule } from '../workspace/workspace.module';
 import { SignupService } from './services/signup.service';
 import { UserModule } from '../user/user.module';
 import { SpaceModule } from '../space/space.module';
+import { GroupModule } from '../group/group.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SpaceModule } from '../space/space.module';
     UserModule,
     WorkspaceModule,
     SpaceModule,
+    GroupModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, SignupService, TokenService, JwtStrategy],

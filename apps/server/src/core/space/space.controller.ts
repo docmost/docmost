@@ -57,6 +57,7 @@ export class SpaceController {
   @HttpCode(HttpStatus.OK)
   @Post('members')
   async getSpaceMembers(
+    // todo: accept type? users | groups
     @Body() spaceIdDto: SpaceIdDto,
     @Body()
     pagination: PaginationOptions,

@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateGroupDto } from '../dto/create-group.dto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto';
 import { GroupRepository } from '../respositories/group.repository';
 import { Group } from '../entities/group.entity';
 import { plainToInstance } from 'class-transformer';
@@ -8,10 +12,15 @@ import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-d
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { UpdateGroupDto } from '../dto/update-group.dto';
+import { DataSource, EntityManager } from 'typeorm';
+import { transactionWrapper } from '../../../helpers/db.helper';
 
 @Injectable()
 export class GroupService {
-  constructor(private groupRepository: GroupRepository) {}
+  constructor(
+    private groupRepository: GroupRepository,
+    private dataSource: DataSource,
+  ) {}
 
   async createGroup(
     authUser: User,
@@ -22,7 +31,50 @@ export class GroupService {
     group.creatorId = authUser.id;
     group.workspaceId = workspaceId;
 
+    const groupExists = await this.findGroupByName(
+      createGroupDto.name,
+      workspaceId,
+    );
+    if (groupExists) {
+      throw new BadRequestException('Group name already exists');
+    }
+
     return await this.groupRepository.save(group);
+  }
+
+  async createDefaultGroup(
+    workspaceId: string,
+    userId?: string,
+    manager?: EntityManager,
+  ): Promise<Group> {
+    return await transactionWrapper(
+      async (manager: EntityManager) => {
+        const group = new Group();
+        group.name = DefaultGroup.EVERYONE;
+        group.isDefault = true;
+        group.creatorId = userId ?? null;
+        group.workspaceId = workspaceId;
+        return await manager.save(group);
+      },
+      this.dataSource,
+      manager,
+    );
+  }
+
+  async getDefaultGroup(
+    workspaceId: string,
+    manager: EntityManager,
+  ): Promise<Group> {
+    return await transactionWrapper(
+      async (manager: EntityManager) => {
+        return await manager.findOneBy(Group, {
+          isDefault: true,
+          workspaceId,
+        });
+      },
+      this.dataSource,
+      manager,
+    );
   }
 
   async updateGroup(
@@ -36,6 +88,18 @@ export class GroupService {
 
     if (!group) {
       throw new NotFoundException('Group not found');
+    }
+
+    if (group.isDefault) {
+      throw new BadRequestException('You cannot update a default group');
+    }
+
+    const groupExists = await this.findGroupByName(
+      updateGroupDto.name,
+      workspaceId,
+    );
+    if (groupExists) {
+      throw new BadRequestException('Group name already exists');
     }
 
     if (updateGroupDto.name) {
@@ -90,19 +154,38 @@ export class GroupService {
   }
 
   async deleteGroup(groupId: string, workspaceId: string): Promise<void> {
-    await this.validateGroup(groupId, workspaceId);
+    const group = await this.findAndValidateGroup(groupId, workspaceId);
+    if (group.isDefault) {
+      throw new BadRequestException('You cannot delete a default group');
+    }
     await this.groupRepository.delete(groupId);
   }
 
-  async validateGroup(groupId: string, workspaceId: string): Promise<void> {
-    const groupExists = await this.groupRepository.exists({
+  async findAndValidateGroup(
+    groupId: string,
+    workspaceId: string,
+  ): Promise<Group> {
+    const group = await this.groupRepository.findOne({
       where: {
         id: groupId,
         workspaceId: workspaceId,
       },
     });
-    if (!groupExists) {
+    if (!group) {
       throw new NotFoundException('Group not found');
     }
+
+    return group;
+  }
+
+  async findGroupByName(
+    groupName: string,
+    workspaceId: string,
+  ): Promise<Group> {
+    return this.groupRepository
+      .createQueryBuilder('group')
+      .where('LOWER(group.name) = LOWER(:groupName)', { groupName })
+      .andWhere('group.workspaceId = :workspaceId', { workspaceId })
+      .getOne();
   }
 }

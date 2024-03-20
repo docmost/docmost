@@ -51,7 +51,7 @@ export class AuthService {
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    const user: User = await this.signupService.firstSetup(createAdminUserDto);
+    const user: User = await this.signupService.initialSetup(createAdminUserDto);
 
     const tokens: TokensDto = await this.tokenService.generateTokens(user);
 

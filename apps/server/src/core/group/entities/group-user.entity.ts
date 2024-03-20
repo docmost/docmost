@@ -20,7 +20,7 @@ export class GroupUser {
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.groups, {
+  @ManyToOne(() => User, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'userId' })

@@ -119,11 +119,12 @@ export class GroupController {
   removeGroupMember(
     @Body() removeGroupUserDto: RemoveGroupUserDto,
     //@AuthUser() user: User,
-    //@CurrentWorkspace() workspace: Workspace,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     return this.groupUserService.removeUserFromGroup(
       removeGroupUserDto.userId,
       removeGroupUserDto.groupId,
+      workspace.id,
     );
   }
 

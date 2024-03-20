@@ -10,11 +10,14 @@ import { WorkspaceInvitationService } from './services/workspace-invitation.serv
 import { WorkspaceInvitationRepository } from './repositories/workspace-invitation.repository';
 import { WorkspaceUserService } from './services/workspace-user.service';
 import { UserModule } from '../user/user.module';
+import { GroupModule } from '../group/group.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Workspace, WorkspaceInvitation]),
-    SpaceModule, UserModule
+    SpaceModule,
+    UserModule,
+    GroupModule,
   ],
   controllers: [WorkspaceController],
   providers: [

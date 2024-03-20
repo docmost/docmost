@@ -10,6 +10,7 @@ import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { SpaceService } from '../../space/space.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
+import { GroupUserService } from '../../group/services/group-user.service';
 
 @Injectable()
 export class SignupService {
@@ -18,6 +19,7 @@ export class SignupService {
     private workspaceRepository: WorkspaceRepository,
     private workspaceService: WorkspaceService,
     private spaceService: SpaceService,
+    private groupUserService: GroupUserService,
     private dataSource: DataSource,
   ) {}
 
@@ -39,7 +41,6 @@ export class SignupService {
       async (transactionManager: EntityManager) => {
         let user = this.prepareUser(createUserDto);
         user = await transactionManager.save(user);
-
         return user;
       },
       this.dataSource,
@@ -57,7 +58,9 @@ export class SignupService {
       workspaceId,
     );
     if (userCheck) {
-      throw new BadRequestException('You have an account on this workspace');
+      throw new BadRequestException(
+        'You already have an account on this workspace',
+      );
     }
 
     return await transactionWrapper(
@@ -72,6 +75,14 @@ export class SignupService {
           undefined,
           manager,
         );
+
+        // add user to default group
+        await this.groupUserService.addUserToDefaultGroup(
+          user.id,
+          workspaceId,
+          manager,
+        );
+
         return user;
       },
       this.dataSource,
@@ -99,7 +110,7 @@ export class SignupService {
     );
   }
 
-  async firstSetup(
+  async initialSetup(
     createAdminUserDto: CreateAdminUserDto,
     manager?: EntityManager,
   ): Promise<User> {
@@ -119,3 +130,11 @@ export class SignupService {
     );
   }
 }
+
+// create user -
+// create workspace -
+// create default group
+// create space
+// add group to space instead of user
+
+// add new users to default group

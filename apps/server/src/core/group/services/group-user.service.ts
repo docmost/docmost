@@ -27,7 +27,7 @@ export class GroupUserService {
     workspaceId: string,
     paginationOptions: PaginationOptions,
   ): Promise<PaginatedResult<User>> {
-    await this.groupService.validateGroup(groupId, workspaceId);
+    await this.groupService.findAndValidateGroup(groupId, workspaceId);
 
     const [groupUsers, count] = await this.groupUserRepository.findAndCount({
       relations: ['user'],
@@ -49,16 +49,36 @@ export class GroupUserService {
     return new PaginatedResult(users, paginationMeta);
   }
 
+  async addUserToDefaultGroup(
+    userId: string,
+    workspaceId: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    return await transactionWrapper(
+      async (manager) => {
+        const defaultGroup = await this.groupService.getDefaultGroup(
+          workspaceId,
+          manager,
+        );
+        await this.addUserToGroup(
+          userId,
+          defaultGroup.id,
+          workspaceId,
+          manager,
+        );
+      },
+      this.dataSource,
+      manager,
+    );
+  }
+
   async addUserToGroup(
     userId: string,
     groupId: string,
     workspaceId: string,
     manager?: EntityManager,
-  ): Promise<any> {
-    let addedUser;
-
-    /*
-    await transactionWrapper(
+  ): Promise<GroupUser> {
+    return await transactionWrapper(
       async (manager) => {
         const group = await manager.findOneBy(Group, {
           id: groupId,
@@ -69,21 +89,18 @@ export class GroupUserService {
           throw new NotFoundException('Group not found');
         }
 
-        const userExists = await manager.exists(User, {
+        const find = await manager.findOne(User, {
           where: { id: userId },
         });
-        if (!userExists) {
-          throw new NotFoundException('User not found');
-        }
 
-        // only workspace users can be added to workspace groups
-        const workspaceUser = await manager.findOneBy(WorkspaceUser, {
-          userId: userId,
-          workspaceId: workspaceId,
+        console.log(find);
+
+        const userExists = await manager.exists(User, {
+          where: { id: userId, workspaceId },
         });
 
-        if (!workspaceUser) {
-          throw new NotFoundException('User is not a member of this workspace');
+        if (!userExists) {
+          throw new NotFoundException('User not found');
         }
 
         const existingGroupUser = await manager.findOneBy(GroupUser, {
@@ -101,16 +118,29 @@ export class GroupUserService {
         groupUser.userId = userId;
         groupUser.groupId = groupId;
 
-        addedUser = await manager.save(groupUser);
+        return manager.save(groupUser);
       },
       this.dataSource,
       manager,
     );
-*/
-    return addedUser;
   }
 
-  async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
+  async removeUserFromGroup(
+    userId: string,
+    groupId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const group = await this.groupService.findAndValidateGroup(
+      groupId,
+      workspaceId,
+    );
+
+    if (group.isDefault) {
+      throw new BadRequestException(
+        'You cannot remove users from a default group',
+      );
+    }
+
     const groupUser = await this.getGroupUser(userId, groupId);
 
     if (!groupUser) {
@@ -127,14 +157,6 @@ export class GroupUserService {
     return await this.groupUserRepository.findOneBy({
       userId,
       groupId,
-    });
-  }
-
-  async getGroupUserCount(groupId: string): Promise<number> {
-    return await this.groupUserRepository.count({
-      where: {
-        groupId: groupId,
-      },
     });
   }
 }

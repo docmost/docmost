@@ -10,3 +10,7 @@ export class CreateGroupDto {
   @IsString()
   description?: string;
 }
+
+export enum DefaultGroup {
+  EVERYONE = 'users',
+}
