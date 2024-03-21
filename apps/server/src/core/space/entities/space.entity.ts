@@ -13,7 +13,7 @@ import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { SpaceUser } from './space-user.entity';
 import { Page } from '../../page/entities/page.entity';
-import { SpacePrivacy, SpaceRole } from '../../../helpers/types/permission';
+import { SpaceVisibility, SpaceRole } from '../../../helpers/types/permission';
 import { SpaceGroup } from './space-group.entity';
 
 @Entity('spaces')
@@ -34,13 +34,13 @@ export class Space {
   @Column({ length: 255, nullable: true })
   icon: string;
 
-  @Column({ length: 100, default: SpacePrivacy.OPEN })
-  privacy: string;
+  @Column({ length: 100, default: SpaceVisibility.OPEN })
+  visibility: string;
 
   @Column({ length: 100, default: SpaceRole.WRITER })
   defaultRole: string;
 
-  @Column()
+  @Column({ nullable: true })
   creatorId: string;
 
   @ManyToOne(() => User)

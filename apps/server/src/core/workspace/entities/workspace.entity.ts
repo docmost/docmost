@@ -52,9 +52,9 @@ export class Workspace {
   @Column({ nullable: true, type: 'uuid' })
   creatorId: string;
 
-  //@ManyToOne(() => User, (user) => user.workspaces)
-  // @JoinColumn({ name: 'creatorId' })
-  // creator: User;
+  @OneToOne(() => User)
+  @JoinColumn({ name: 'creatorId' })
+  creator: User;
 
   @Column({ nullable: true })
   defaultSpaceId: string;
