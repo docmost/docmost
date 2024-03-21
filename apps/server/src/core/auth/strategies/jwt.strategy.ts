@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { EnvironmentService } from '../../../environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { JwtPayload, JwtType } from '../dto/jwt-payload';
 import { AuthService } from '../services/auth.service';
 import { UserRepository } from '../../user/repositories/user.repository';

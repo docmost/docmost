@@ -15,21 +15,6 @@ export class UserService {
     return this.userRepository.findById(userId);
   }
 
-  async getUserInstance(userId: string): Promise<any> {
-    const user: User = await this.userRepository.findOne({
-      relations: ['workspace'],
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
-  }
-
   async update(userId: string, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findById(userId);
     if (!user) {

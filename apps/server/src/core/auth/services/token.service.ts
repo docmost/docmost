@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { EnvironmentService } from '../../../environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { User } from '../../user/entities/user.entity';
 import { TokensDto } from '../dto/tokens.dto';
 import { JwtPayload, JwtRefreshPayload, JwtType } from '../dto/jwt-payload';

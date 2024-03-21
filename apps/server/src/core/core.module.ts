@@ -10,7 +10,7 @@ import { WorkspaceModule } from './workspace/workspace.module';
 import { PageModule } from './page/page.module';
 import { StorageModule } from '../integrations/storage/storage.module';
 import { AttachmentModule } from './attachment/attachment.module';
-import { EnvironmentModule } from '../environment/environment.module';
+import { EnvironmentModule } from '../integrations/environment/environment.module';
 import { CommentModule } from './comment/comment.module';
 import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';

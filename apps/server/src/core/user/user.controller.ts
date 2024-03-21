@@ -31,12 +31,6 @@ export class UserController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('info')
-  async getUserInfo(@AuthUser() user: User) {
-    return await this.userService.getUserInstance(user.id);
-  }
-
-  @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateUser(
     @Body() updateUserDto: UpdateUserDto,

@@ -16,7 +16,7 @@ import { CreateSpaceDto } from '../../space/dto/create-space.dto';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { SpaceRole, UserRole } from '../../../helpers/types/permission';
 import { User } from '../../user/entities/user.entity';
-import { EnvironmentService } from '../../../environment/environment.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { GroupService } from '../../group/services/group.service';
 import { GroupUserService } from '../../group/services/group-user.service';
 

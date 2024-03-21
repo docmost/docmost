@@ -148,6 +148,17 @@ export class SpaceService {
       .skip(paginationOptions.skip)
       .getManyAndCount();
 
+
+    const getUserSpacesViaGroup = this.spaceRepository
+      .createQueryBuilder('space')
+      .leftJoin('space.spaceGroups', 'spaceGroup')
+      .leftJoin('spaceGroup.group', 'group')
+      .leftJoin('group.groupUsers', 'groupUser')
+      .where('groupUser.userId = :userId', { userId })
+      .andWhere('space.workspaceId = :workspaceId', { workspaceId }).getManyAndCount();
+
+    console.log(await getUserSpacesViaGroup);
+
     const spaces = userSpaces.map((userSpace) => userSpace.space);
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });

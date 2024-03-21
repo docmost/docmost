@@ -12,7 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { SetupGuard } from './guards/setup.guard';
-import { EnvironmentService } from '../../environment/environment.service';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 
 @Controller('auth')
