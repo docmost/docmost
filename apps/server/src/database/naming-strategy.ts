@@ -3,7 +3,7 @@ import { DefaultNamingStrategy, Table } from 'typeorm';
 export class NamingStrategy extends DefaultNamingStrategy {
   primaryKeyName(tableOrName: Table | string, columnNames: string[]): string {
     const tableName = this.normalizeTableName(tableOrName);
-    return `pk_${tableName}_${columnNames.join('_')}`;
+    return `PK_${tableName}`;
   }
 
   indexName(
@@ -16,7 +16,7 @@ export class NamingStrategy extends DefaultNamingStrategy {
     let name = `${tableName}_${columnNames.join('_')}`;
     if (where) name += '_' + where;
 
-    return `idx_${name}`;
+    return `IDX_${name}`;
   }
 
   uniqueConstraintName(
@@ -25,7 +25,7 @@ export class NamingStrategy extends DefaultNamingStrategy {
   ): string {
     const tableName = this.normalizeTableName(tableOrName);
 
-    return `uq_${tableName}_${columnNames.join('_')}`;
+    return `UQ_${tableName}_${columnNames.join('_')}`;
   }
 
   foreignKeyName(
@@ -38,7 +38,7 @@ export class NamingStrategy extends DefaultNamingStrategy {
     const targetTable = this.normalizeTableName(_referencedTablePath);
 
     const name = `${tableName}_${targetTable}_${columnNames.join('_')}`;
-    return `fk_${name}`;
+    return `FK_${name}`;
   }
 
   relationConstraintName(
@@ -51,7 +51,7 @@ export class NamingStrategy extends DefaultNamingStrategy {
     let name = `${tableName}_${columnNames.join('_')}`;
     if (where) name += '_' + where;
 
-    return `rel_${name}`;
+    return `REL_${name}`;
   }
 
   normalizeTableName(tableOrName: Table | string): string {
