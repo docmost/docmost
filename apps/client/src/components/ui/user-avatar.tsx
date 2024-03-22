@@ -15,8 +15,8 @@ export const UserAvatar = React.forwardRef<HTMLInputElement, UserAvatarProps>(
   ({ avatarUrl, name, ...props }: UserAvatarProps, ref) => {
 
     const getInitials = (name: string) => {
-      const names = name.split(' ');
-      return names.slice(0, 2).map(n => n[0]).join('');
+      const names = name?.split(' ');
+      return names?.slice(0, 2).map(n => n[0]).join('');
     };
 
     return (
