@@ -8,7 +8,7 @@ import { WorkspaceRepository } from '../../workspace/repositories/workspace.repo
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { Workspace } from '../../workspace/entities/workspace.entity';
-import { SpaceService } from '../../space/space.service';
+import { SpaceService } from '../../space/services/space.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { GroupUserService } from '../../group/services/group-user.service';
 

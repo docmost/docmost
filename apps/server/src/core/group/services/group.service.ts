@@ -119,7 +119,7 @@ export class GroupService {
       .where('group.id = :groupId', { groupId })
       .andWhere('group.workspaceId = :workspaceId', { workspaceId })
       .loadRelationCountAndMap(
-        'group.userCount',
+        'group.memberCount',
         'group.groupUsers',
         'groupUsers',
       )
@@ -140,7 +140,7 @@ export class GroupService {
       .createQueryBuilder('group')
       .where('group.workspaceId = :workspaceId', { workspaceId })
       .loadRelationCountAndMap(
-        'group.userCount',
+        'group.memberCount',
         'group.groupUsers',
         'groupUsers',
       )

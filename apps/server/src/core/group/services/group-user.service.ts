@@ -89,12 +89,6 @@ export class GroupUserService {
           throw new NotFoundException('Group not found');
         }
 
-        const find = await manager.findOne(User, {
-          where: { id: userId },
-        });
-
-        console.log(find);
-
         const userExists = await manager.exists(User, {
           where: { id: userId, workspaceId },
         });

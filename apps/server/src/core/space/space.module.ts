@@ -1,23 +1,22 @@
 import { Module } from '@nestjs/common';
-import { SpaceService } from './space.service';
+import { SpaceService } from './services/space.service';
 import { SpaceController } from './space.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Space } from './entities/space.entity';
-import { SpaceUser } from './entities/space-user.entity';
 import { SpaceRepository } from './repositories/space.repository';
-import { SpaceUserRepository } from './repositories/space-user.repository';
-import { SpaceGroup } from './entities/space-group.entity';
-import { SpaceGroupRepository } from './repositories/space-group.repository';
+import { SpaceMember } from './entities/space-member.entity';
+import { SpaceMemberRepository } from './repositories/space-member.repository';
+import { SpaceMemberService } from './services/space-member.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Space, SpaceUser, SpaceGroup])],
+  imports: [TypeOrmModule.forFeature([Space, SpaceMember])],
   controllers: [SpaceController],
   providers: [
     SpaceService,
+    SpaceMemberService,
     SpaceRepository,
-    SpaceUserRepository,
-    SpaceGroupRepository,
+    SpaceMemberRepository,
   ],
-  exports: [SpaceService],
+  exports: [SpaceService, SpaceMemberService],
 })
 export class SpaceModule {}

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SpaceController } from './space.controller';
-import { SpaceService } from './space.service';
+import { SpaceService } from './services/space.service';
 
 describe('SpaceController', () => {
   let controller: SpaceController;

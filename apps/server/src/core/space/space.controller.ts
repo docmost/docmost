@@ -6,7 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SpaceService } from './space.service';
+import { SpaceService } from './services/space.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { User } from '../user/entities/user.entity';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
@@ -14,11 +14,15 @@ import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SpaceIdDto } from './dto/space-id.dto';
 import { PaginationOptions } from '../../helpers/pagination/pagination-options';
+import { SpaceMemberService } from './services/space-member.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
 export class SpaceController {
-  constructor(private readonly spaceService: SpaceService) {}
+  constructor(
+    private readonly spaceService: SpaceService,
+    private readonly spaceMemberService: SpaceMemberService,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('/')
@@ -41,7 +45,11 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.spaceService.getUserSpaces(user.id, workspace.id, pagination);
+    return this.spaceMemberService.getUserSpaces(
+      user.id,
+      workspace.id,
+      pagination,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -64,7 +72,7 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.spaceService.getSpaceUsers(
+    return this.spaceMemberService.getSpaceMembers(
       spaceIdDto.spaceId,
       workspace.id,
       pagination,

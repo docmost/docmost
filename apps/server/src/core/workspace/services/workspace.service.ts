@@ -9,7 +9,7 @@ import { Workspace } from '../entities/workspace.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
-import { SpaceService } from '../../space/space.service';
+import { SpaceService } from '../../space/services/space.service';
 import { DataSource, EntityManager } from 'typeorm';
 import { transactionWrapper } from '../../../helpers/db.helper';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
@@ -19,6 +19,7 @@ import { User } from '../../user/entities/user.entity';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { GroupService } from '../../group/services/group.service';
 import { GroupUserService } from '../../group/services/group-user.service';
+import { SpaceMemberService } from '../../space/services/space-member.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -26,6 +27,7 @@ export class WorkspaceService {
     private workspaceRepository: WorkspaceRepository,
     private userRepository: UserRepository,
     private spaceService: SpaceService,
+    private spaceMemberService: SpaceMemberService,
     private groupService: GroupService,
     private groupUserService: GroupUserService,
     private environmentService: EnvironmentService,
@@ -42,7 +44,7 @@ export class WorkspaceService {
       .createQueryBuilder('workspace')
       .where('workspace.id = :workspaceId', { workspaceId })
       .loadRelationCountAndMap(
-        'workspace.userCount',
+        'workspace.memberCount',
         'workspace.users',
         'workspaceUsers',
       )
@@ -105,7 +107,7 @@ export class WorkspaceService {
         );
 
         // and add user to space as owner
-        await this.spaceService.addUserToSpace(
+        await this.spaceMemberService.addUserToSpace(
           user.id,
           createdSpace.id,
           SpaceRole.OWNER,
@@ -114,7 +116,7 @@ export class WorkspaceService {
         );
 
         // add default group to space as writer
-        await this.spaceService.addGroupToSpace(
+        await this.spaceMemberService.addGroupToSpace(
           group.id,
           createdSpace.id,
           SpaceRole.WRITER,

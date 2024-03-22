@@ -15,16 +15,16 @@ import { Group } from '../../group/entities/group.entity';
 import { GroupUser } from '../../group/entities/group-user.entity';
 import { Attachment } from '../../attachment/entities/attachment.entity';
 import { Space } from '../../space/entities/space.entity';
-import { SpaceUser } from '../../space/entities/space-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { Comment } from '../../comment/entities/comment.entity';
+import { SpaceMember } from '../../space/entities/space-member.entity';
 
 export type Subjects =
   | InferSubjects<
       | typeof Workspace
       | typeof WorkspaceInvitation
       | typeof Space
-      | typeof SpaceUser
+      | typeof SpaceMember
       | typeof Group
       | typeof GroupUser
       | typeof Attachment

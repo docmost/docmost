@@ -11,10 +11,9 @@ import {
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
-import { SpaceUser } from './space-user.entity';
 import { Page } from '../../page/entities/page.entity';
 import { SpaceVisibility, SpaceRole } from '../../../helpers/types/permission';
-import { SpaceGroup } from './space-group.entity';
+import { SpaceMember } from './space-member.entity';
 
 @Entity('spaces')
 @Unique(['slug', 'workspaceId'])
@@ -56,11 +55,8 @@ export class Space {
   @JoinColumn({ name: 'workspaceId' })
   workspace: Workspace;
 
-  @OneToMany(() => SpaceUser, (spaceUser) => spaceUser.space)
-  spaceUsers: SpaceUser[];
-
-  @OneToMany(() => SpaceGroup, (spaceGroup) => spaceGroup.space)
-  spaceGroups: SpaceGroup[];
+  @OneToMany(() => SpaceMember, (spaceMember) => spaceMember.space)
+  spaceMembers: SpaceMember[];
 
   @OneToMany(() => Page, (page) => page.space)
   pages: Page[];

@@ -14,7 +14,7 @@ import { Workspace } from '../../workspace/entities/workspace.entity';
 import { Page } from '../../page/entities/page.entity';
 import { Comment } from '../../comment/entities/comment.entity';
 import { Space } from '../../space/entities/space.entity';
-import { SpaceUser } from '../../space/entities/space-user.entity';
+import { SpaceMember } from '../../space/entities/space-member.entity';
 
 @Entity('users')
 @Unique(['email', 'workspaceId'])
@@ -78,8 +78,8 @@ export class User {
   @OneToMany(() => Space, (space) => space.creator)
   createdSpaces: Space[];
 
-  @OneToMany(() => SpaceUser, (spaceUser) => spaceUser.user)
-  spaces: SpaceUser[];
+  @OneToMany(() => SpaceMember, (spaceMembership) => spaceMembership.user)
+  spaces: SpaceMember[];
 
   toJSON() {
     delete this.password;

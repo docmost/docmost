@@ -12,7 +12,7 @@ import { GroupUser } from './group-user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
 import { User } from '../../user/entities/user.entity';
 import { Unique } from 'typeorm';
-import { SpaceGroup } from '../../space/entities/space-group.entity';
+import { SpaceMember } from '../../space/entities/space-member.entity';
 
 @Entity('groups')
 @Unique(['name', 'workspaceId'])
@@ -54,8 +54,8 @@ export class Group {
   @OneToMany(() => GroupUser, (groupUser) => groupUser.group)
   groupUsers: GroupUser[];
 
-  @OneToMany(() => SpaceGroup, (spaceGroup) => spaceGroup.group)
-  spaces: SpaceGroup[];
+  @OneToMany(() => SpaceMember, (spaceMembership) => spaceMembership.group)
+  spaces: SpaceMember[];
 
-  userCount?: number;
+  memberCount?: number;
 }
