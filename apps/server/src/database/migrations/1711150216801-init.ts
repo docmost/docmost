@@ -25,6 +25,7 @@ export class Init1711150216801 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "pages" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(500), "icon" character varying, "content" jsonb, "html" text, "textContent" text, "tsv" tsvector, "ydoc" bytea, "slug" character varying, "coverPhoto" character varying, "editor" character varying(255), "shareId" character varying(255), "parentPageId" uuid, "creatorId" uuid NOT NULL, "lastUpdatedById" uuid, "deletedById" uuid, "spaceId" uuid NOT NULL, "workspaceId" uuid NOT NULL, "isLocked" boolean NOT NULL DEFAULT false, "status" character varying(255), "publishedAt" date, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, CONSTRAINT "PK_pages" PRIMARY KEY ("id"))`,
     );
+    await queryRunner.query(`CREATE INDEX "IDX_pages_tsv" ON "pages" ("id") `);
     await queryRunner.query(
       `CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255), "email" character varying(255) NOT NULL, "emailVerifiedAt" TIMESTAMP, "password" character varying NOT NULL, "avatarUrl" character varying, "role" character varying(100), "workspaceId" uuid, "locale" character varying(100), "timezone" character varying(300), "settings" jsonb, "lastLoginAt" TIMESTAMP, "lastLoginIp" character varying(100), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_users_email_workspaceId" UNIQUE ("email", "workspaceId"), CONSTRAINT "PK_users" PRIMARY KEY ("id"))`,
     );
@@ -259,6 +260,7 @@ export class Init1711150216801 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "workspaces"`);
     await queryRunner.query(`DROP TABLE "users"`);
     await queryRunner.query(`DROP TABLE "pages"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_pages_id"`);
     await queryRunner.query(`DROP TABLE "page_history"`);
     await queryRunner.query(`DROP TABLE "spaces"`);
     await queryRunner.query(`DROP TABLE "space_members"`);

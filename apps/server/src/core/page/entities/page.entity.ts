@@ -8,6 +8,7 @@ import {
   JoinColumn,
   OneToMany,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Workspace } from '../../workspace/entities/workspace.entity';
@@ -16,6 +17,7 @@ import { PageHistory } from './page-history.entity';
 import { Space } from '../../space/entities/space.entity';
 
 @Entity('pages')
+@Index(['tsv'])
 export class Page {
   @PrimaryGeneratedColumn('uuid')
   id: string;

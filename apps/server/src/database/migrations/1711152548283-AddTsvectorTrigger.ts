@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddTsvectorTrigger1711150304333 implements MigrationInterface {
-  name = 'AddTsvectorTrigger1711150304333';
+export class AddTsvectorTrigger1711152548283 implements MigrationInterface {
+  name = 'AddTsvectorTrigger1711152548283';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
