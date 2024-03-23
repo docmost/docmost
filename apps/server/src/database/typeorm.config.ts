@@ -1,8 +1,7 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { NamingStrategy } from './naming-strategy';
-import * as path from 'path';
-const envPath = path.resolve(process.cwd(), '..', '..', '.env');
+import { envPath } from '../helpers/utils';
 
 dotenv.config({ path: envPath });
 
