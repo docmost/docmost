@@ -1,4 +1,4 @@
-import * as path from 'path';
+import { join } from 'path';
 
 export function generateHostname(name: string): string {
   let hostname = name.replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -6,4 +6,4 @@ export function generateHostname(name: string): string {
   return hostname;
 }
 
-export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
+export const envPath = join(__dirname, '..', '..', '..', '.env');
