@@ -8,6 +8,10 @@ import { DatabaseModule } from './database/database.module';
 import { WsModule } from './ws/ws.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { KyselyModule } from 'nestjs-kysely';
+import { EnvironmentService } from './integrations/environment/environment.service';
+import { PostgresDialect } from 'kysely';
+import { Pool } from 'pg';
 
 @Module({
   imports: [
@@ -18,6 +22,19 @@ import { join } from 'path';
     WsModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', '..', 'client/dist'),
+    }),
+    KyselyModule.forRootAsync({
+      imports: [],
+      inject: [EnvironmentService],
+      useFactory: (envService: EnvironmentService) => {
+        return {
+          dialect: new PostgresDialect({
+            pool: new Pool({
+              connectionString: envService.getDatabaseURL(),
+            }) as any,
+          }),
+        };
+      },
     }),
   ],
   controllers: [AppController],
