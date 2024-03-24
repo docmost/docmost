@@ -5,8 +5,7 @@ import { PageHistoryRepository } from '../repositories/page-history.repository';
 
 @Injectable()
 export class PageHistoryService {
-  constructor(private pageHistoryRepo: PageHistoryRepository) {
-  }
+  constructor(private pageHistoryRepo: PageHistoryRepository) {}
 
   async findOne(historyId: string): Promise<PageHistory> {
     const history = await this.pageHistoryRepo.findById(historyId);
