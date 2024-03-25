@@ -23,7 +23,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('deletedById', 'uuid', (col) => col)
     .addColumn('spaceId', 'uuid', (col) => col.notNull())
     .addColumn('workspaceId', 'uuid', (col) => col.notNull())
-    .addColumn('isLocked', 'boolean', (col) => col.notNull())
+    .addColumn('isLocked', 'boolean', (col) => col.defaultTo(false).notNull())
     .addColumn('status', 'varchar', (col) => col)
     .addColumn('publishedAt', 'date', (col) => col)
     .addColumn('createdAt', 'timestamp', (col) =>
@@ -44,6 +44,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropIndex('IDX_pages_tsv').on('pages').execute();
   await db.schema.dropTable('pages').execute();
 }
