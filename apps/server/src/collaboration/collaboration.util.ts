@@ -29,7 +29,7 @@ export const tiptapExtensions = [
   TrailingNode,
   TextStyle,
   Color,
-];
+] as any;
 
 export function jsonToHtml(tiptapJson: JSONContent) {
   return generateHTML(tiptapJson, tiptapExtensions);

@@ -77,7 +77,7 @@ export class AttachmentService {
       return attachment;
     } catch (err) {
       console.log(err);
-      throw new BadRequestException(err.message);
+      throw new BadRequestException('Failed to upload file');
     }
   }
 
@@ -119,7 +119,7 @@ export class AttachmentService {
       return attachment;
     } catch (err) {
       console.log(err);
-      throw new BadRequestException(err.message);
+      throw new BadRequestException('Failed to upload file');
     }
   }
 
@@ -158,7 +158,7 @@ export class AttachmentService {
       return attachment;
     } catch (err) {
       console.log(err);
-      throw new BadRequestException(err.message);
+      throw new BadRequestException('Failed to upload file');
     }
   }
 }
