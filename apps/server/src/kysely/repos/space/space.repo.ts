@@ -32,16 +32,25 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
-  async slugExists(slug: string, workspaceId: string): Promise<boolean> {
-    let { count } = await this.db
-      .selectFrom('spaces')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
-      .where('workspaceId', '=', workspaceId)
-      .executeTakeFirst();
-    count = count as number;
-
-    return !!count;
+  async slugExists(
+    slug: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<boolean> {
+    return executeTx(
+      this.db,
+      async (trx) => {
+        let { count } = await trx
+          .selectFrom('spaces')
+          .select((eb) => eb.fn.count('id').as('count'))
+          .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
+          .where('workspaceId', '=', workspaceId)
+          .executeTakeFirst();
+        count = count as number;
+        return count == 0 ? false : true;
+      },
+      trx,
+    );
   }
 
   async updateSpace(

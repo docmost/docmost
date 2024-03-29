@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
@@ -6,7 +10,6 @@ import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
 import slugify from 'slugify';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { getRandomInt } from '../../../helpers/utils';
 import { Space } from '@docmost/db/types/entity.types';
 
 @Injectable()
@@ -19,11 +22,15 @@ export class SpaceService {
     createSpaceDto: CreateSpaceDto,
     trx?: KyselyTransaction,
   ): Promise<Space> {
-    // until we allow slug in dto
-    let slug = slugify(createSpaceDto.name.toLowerCase());
-    const slugExists = await this.spaceRepo.slugExists(slug, workspaceId);
+    const slug = slugify(
+      createSpaceDto?.slug?.toLowerCase() ?? createSpaceDto.name.toLowerCase(),
+    );
+
+    const slugExists = await this.spaceRepo.slugExists(slug, workspaceId, trx);
     if (slugExists) {
-      slug = `${slug}-${getRandomInt()}`;
+      throw new BadRequestException(
+        'Slug exist. Please use a unique space slug',
+      );
     }
 
     return await this.spaceRepo.insertSpace(
