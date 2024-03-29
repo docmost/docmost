@@ -8,6 +8,20 @@ import { WsModule } from './ws/ws.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { KyselyDbModule } from './kysely/kysely-db.module';
+import * as fs from 'fs';
+
+const clientDistPath = join(__dirname, '..', '..', 'client/dist');
+
+function getServeStaticModule() {
+  if (fs.existsSync(clientDistPath)) {
+    return [
+      ServeStaticModule.forRoot({
+        rootPath: clientDistPath,
+      }),
+    ];
+  }
+  return [];
+}
 
 @Module({
   imports: [
@@ -16,9 +30,7 @@ import { KyselyDbModule } from './kysely/kysely-db.module';
     EnvironmentModule,
     CollaborationModule,
     WsModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', '..', 'client/dist'),
-    }),
+    ...getServeStaticModule(),
   ],
   controllers: [AppController],
   providers: [AppService],
