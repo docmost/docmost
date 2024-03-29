@@ -1,140 +1,95 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { DataSource, EntityManager } from 'typeorm';
-import { User } from '../../user/entities/user.entity';
-import { transactionWrapper } from '../../../helpers/db.helper';
-import { UserRepository } from '../../user/repositories/user.repository';
-import { WorkspaceRepository } from '../../workspace/repositories/workspace.repository';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
-import { Workspace } from '../../workspace/entities/workspace.entity';
 import { SpaceService } from '../../space/services/space.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { GroupUserService } from '../../group/services/group-user.service';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { executeTx } from '@docmost/db/utils';
+import { InjectKysely } from 'nestjs-kysely';
+import { User } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class SignupService {
   constructor(
-    private userRepository: UserRepository,
-    private workspaceRepository: WorkspaceRepository,
+    private userRepo: UserRepo,
     private workspaceService: WorkspaceService,
     private spaceService: SpaceService,
     private groupUserService: GroupUserService,
-    private dataSource: DataSource,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
-
-  prepareUser(createUserDto: CreateUserDto): User {
-    const user = new User();
-    user.name = createUserDto.name || createUserDto.email.split('@')[0];
-    user.email = createUserDto.email.toLowerCase();
-    user.password = createUserDto.password;
-    user.locale = 'en';
-    user.lastLoginAt = new Date();
-    return user;
-  }
-
-  async createUser(
-    createUserDto: CreateUserDto,
-    manager?: EntityManager,
-  ): Promise<User> {
-    return await transactionWrapper(
-      async (transactionManager: EntityManager) => {
-        let user = this.prepareUser(createUserDto);
-        user = await transactionManager.save(user);
-        return user;
-      },
-      this.dataSource,
-      manager,
-    );
-  }
 
   async signup(
     createUserDto: CreateUserDto,
     workspaceId: string,
-    manager?: EntityManager,
+    trx?: KyselyTransaction,
   ): Promise<User> {
-    const userCheck = await this.userRepository.findOneByEmail(
+    const userCheck = await this.userRepo.findByEmail(
       createUserDto.email,
       workspaceId,
     );
+
     if (userCheck) {
       throw new BadRequestException(
         'You already have an account on this workspace',
       );
     }
 
-    return await transactionWrapper(
-      async (manager: EntityManager) => {
+    return await executeTx(
+      this.db,
+      async (trx) => {
         // create user
-        const user = await this.createUser(createUserDto, manager);
+        const user = await this.userRepo.insertUser(createUserDto, trx);
 
         // add user to workspace
         await this.workspaceService.addUserToWorkspace(
-          user,
+          user.id,
           workspaceId,
           undefined,
-          manager,
+          trx,
         );
 
         // add user to default group
         await this.groupUserService.addUserToDefaultGroup(
           user.id,
           workspaceId,
-          manager,
+          trx,
         );
-
         return user;
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 
-  async createWorkspace(
-    user: User,
-    workspaceName,
-    manager?: EntityManager,
-  ): Promise<Workspace> {
-    return await transactionWrapper(
-      async (manager: EntityManager) => {
-        // for cloud
+  async createWorkspace(user, workspaceName, trx?: KyselyTransaction) {
+    return await executeTx(
+      this.db,
+      async (trx) => {
         const workspaceData: CreateWorkspaceDto = {
           name: workspaceName,
-          // hostname: '', // generate
         };
 
-        return await this.workspaceService.create(user, workspaceData, manager);
+        return await this.workspaceService.create(user, workspaceData, trx);
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 
   async initialSetup(
     createAdminUserDto: CreateAdminUserDto,
-    manager?: EntityManager,
-  ): Promise<User> {
-    return await transactionWrapper(
-      async (manager: EntityManager) => {
+    trx?: KyselyTransaction,
+  ) {
+    return await executeTx(
+      this.db,
+      async (trx) => {
         // create user
-        const user = await this.createUser(createAdminUserDto, manager);
-        await this.createWorkspace(
-          user,
-          createAdminUserDto.workspaceName,
-          manager,
-        );
+        const user = await this.userRepo.insertUser(createAdminUserDto, trx);
+        await this.createWorkspace(user, createAdminUserDto.workspaceName, trx);
         return user;
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 }
-
-// create user -
-// create workspace -
-// create default group
-// create space
-// add group to space instead of user
-
-// add new users to default group

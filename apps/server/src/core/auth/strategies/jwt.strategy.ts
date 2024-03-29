@@ -7,18 +7,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { JwtPayload, JwtType } from '../dto/jwt-payload';
-import { AuthService } from '../services/auth.service';
-import { UserRepository } from '../../user/repositories/user.repository';
-import { UserService } from '../../user/user.service';
-import { WorkspaceRepository } from '../../workspace/repositories/workspace.repository';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
-    private authService: AuthService,
-    private userService: UserService,
-    private userRepository: UserRepository,
-    private workspaceRepository: WorkspaceRepository,
+    private userRepo: UserRepo,
+    private workspaceRepo: WorkspaceRepo,
     private readonly environmentService: EnvironmentService,
   ) {
     super({
@@ -29,7 +25,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(req, payload: JwtPayload) {
+  async validate(req: any, payload: JwtPayload) {
+    if (!payload.workspaceId || payload.type !== JwtType.ACCESS) {
+      throw new UnauthorizedException();
+    }
+
     // CLOUD ENV
     if (this.environmentService.isCloud()) {
       if (req.raw.workspaceId && req.raw.workspaceId !== payload.workspaceId) {
@@ -37,23 +37,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     }
 
-    if (!payload.workspaceId || payload.type !== JwtType.ACCESS) {
-      throw new UnauthorizedException();
-    }
-
-    const workspace = await this.workspaceRepository.findById(
-      payload.workspaceId,
-    );
+    const workspace = await this.workspaceRepo.findById(payload.workspaceId);
 
     if (!workspace) {
       throw new UnauthorizedException();
     }
-    const user = await this.userRepository.findOne({
-      where: {
-        id: payload.sub,
-        workspaceId: payload.workspaceId,
-      },
-    });
+    const user = await this.userRepo.findById(payload.sub, payload.workspaceId);
 
     if (!user) {
       throw new UnauthorizedException();

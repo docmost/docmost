@@ -4,5 +4,5 @@ import { IsUUID } from 'class-validator';
 
 export class UpdatePageDto extends PartialType(CreatePageDto) {
   @IsUUID()
-  id: string;
+  pageId: string;
 }

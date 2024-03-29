@@ -10,12 +10,11 @@ import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentsInput, SingleCommentInput } from './dto/comments.input';
-import { ResolveCommentDto } from './dto/resolve-comment.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
-import { User } from '../user/entities/user.entity';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -34,8 +33,14 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post()
-  findPageComments(@Body() input: CommentsInput) {
-    return this.commentService.findByPageId(input.pageId);
+  findPageComments(
+    @Body() input: CommentsInput,
+    @Body()
+    pagination: PaginationOptions,
+    //@AuthUser() user: User,
+    //  @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.commentService.findByPageId(input.pageId, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -48,15 +53,6 @@ export class CommentController {
   @Post('update')
   update(@Body() updateCommentDto: UpdateCommentDto) {
     return this.commentService.update(updateCommentDto.id, updateCommentDto);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('resolve')
-  resolve(
-    @Body() resolveCommentDto: ResolveCommentDto,
-    @AuthUser() user: User,
-  ) {
-    return this.commentService.resolveComment(user.id, resolveCommentDto);
   }
 
   @HttpCode(HttpStatus.OK)

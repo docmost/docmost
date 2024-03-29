@@ -1,59 +1,34 @@
 import {
-  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PageRepository } from '../repositories/page.repository';
 import { CreatePageDto } from '../dto/create-page.dto';
-import { Page } from '../entities/page.entity';
 import { UpdatePageDto } from '../dto/update-page.dto';
-import { plainToInstance } from 'class-transformer';
-import { DataSource, EntityManager } from 'typeorm';
 import { PageOrderingService } from './page-ordering.service';
 import { PageWithOrderingDto } from '../dto/page-with-ordering.dto';
-import { OrderingEntity, transformPageResult } from '../page.util';
+import { transformPageResult } from '../page.util';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { Page } from '@docmost/db/types/entity.types';
+import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginationMetaDto } from 'src/helpers/pagination/pagination-meta-dto';
+import { PaginatedResult } from 'src/helpers/pagination/paginated-result';
 
 @Injectable()
 export class PageService {
   constructor(
-    private pageRepository: PageRepository,
-    private dataSource: DataSource,
+    private pageRepo: PageRepo,
     @Inject(forwardRef(() => PageOrderingService))
     private pageOrderingService: PageOrderingService,
   ) {}
 
-  async findWithBasic(pageId: string) {
-    return this.pageRepository.findOne({
-      where: { id: pageId },
-      select: ['id', 'title'],
-    });
-  }
-
-  async findById(pageId: string) {
-    return this.pageRepository.findById(pageId);
-  }
-
-  async findWithContent(pageId: string) {
-    return this.pageRepository.findWithContent(pageId);
-  }
-
-  async findWithYdoc(pageId: string) {
-    return this.pageRepository.findWithYDoc(pageId);
-  }
-
-  async findWithAllFields(pageId: string) {
-    return this.pageRepository.findWithAllFields(pageId);
-  }
-
-  async findOne(pageId: string): Promise<Page> {
-    const page = await this.findById(pageId);
-    if (!page) {
-      throw new BadRequestException('Page not found');
-    }
-
-    return page;
+  async findById(
+    pageId: string,
+    includeContent?: boolean,
+    includeYdoc?: boolean,
+  ): Promise<Page> {
+    return this.pageRepo.findById(pageId, includeContent, includeYdoc);
   }
 
   async create(
@@ -61,26 +36,26 @@ export class PageService {
     workspaceId: string,
     createPageDto: CreatePageDto,
   ): Promise<Page> {
-    const page = plainToInstance(Page, createPageDto);
-    page.creatorId = userId;
-    page.workspaceId = workspaceId;
-    page.lastUpdatedById = userId;
-
+    // check if parent page exists
     if (createPageDto.parentPageId) {
       // TODO: make sure parent page belongs to same space and user has permissions
-      const parentPage = await this.pageRepository.findOne({
-        where: { id: createPageDto.parentPageId },
-        select: ['id'],
-      });
-
-      if (!parentPage) throw new BadRequestException('Parent page not found');
+      const parentPage = await this.pageRepo.findById(
+        createPageDto.parentPageId,
+      );
+      if (!parentPage) throw new NotFoundException('Parent page not found');
     }
 
-    const createdPage = await this.pageRepository.save(page);
+    //TODO: should be in a transaction
+    const createdPage = await this.pageRepo.insertPage({
+      ...createPageDto,
+      creatorId: userId,
+      workspaceId: workspaceId,
+      lastUpdatedById: userId,
+    });
 
     await this.pageOrderingService.addPageToOrder(
       createPageDto.spaceId,
-      createPageDto.id,
+      createPageDto.pageId,
       createPageDto.parentPageId,
     );
 
@@ -91,18 +66,16 @@ export class PageService {
     pageId: string,
     updatePageDto: UpdatePageDto,
     userId: string,
-  ): Promise<Page> {
-    const updateData = {
-      ...updatePageDto,
-      lastUpdatedById: userId,
-    };
+  ): Promise<void> {
+    await this.pageRepo.updatePage(
+      {
+        ...updatePageDto,
+        lastUpdatedById: userId,
+      },
+      pageId,
+    );
 
-    const result = await this.pageRepository.update(pageId, updateData);
-    if (result.affected === 0) {
-      throw new BadRequestException(`Page not found`);
-    }
-
-    return await this.pageRepository.findById(pageId);
+    //return await this.pageRepo.findById(pageId);
   }
 
   async updateState(
@@ -112,14 +85,19 @@ export class PageService {
     ydoc: any,
     userId?: string, // TODO: fix this
   ): Promise<void> {
-    await this.pageRepository.update(pageId, {
-      content: content,
-      textContent: textContent,
-      ydoc: ydoc,
-      ...(userId && { lastUpdatedById: userId }),
-    });
+    await this.pageRepo.updatePage(
+      {
+        content: content,
+        textContent: textContent,
+        ydoc: ydoc,
+        ...(userId && { lastUpdatedById: userId }),
+      },
+      pageId,
+    );
   }
 
+  /*
+  // TODO: page deletion and restoration
   async delete(pageId: string): Promise<void> {
     await this.dataSource.transaction(async (manager: EntityManager) => {
       const page = await manager
@@ -207,59 +185,30 @@ export class PageService {
       await manager.recover(Page, { id: child.id });
     }
   }
-
+*/
   async forceDelete(pageId: string): Promise<void> {
-    await this.pageRepository.delete(pageId);
-  }
-
-  async lockOrUnlockPage(pageId: string, lock: boolean): Promise<Page> {
-    await this.pageRepository.update(pageId, { isLocked: lock });
-    return await this.pageRepository.findById(pageId);
+    await this.pageRepo.deletePage(pageId);
   }
 
   async getSidebarPagesBySpaceId(
     spaceId: string,
     limit = 200,
   ): Promise<PageWithOrderingDto[]> {
-    const pages = await this.pageRepository
-      .createQueryBuilder('page')
-      .leftJoin(
-        'page_ordering',
-        'ordering',
-        'ordering.entityId = page.id AND ordering.entityType = :entityType',
-        { entityType: OrderingEntity.page },
-      )
-      .where('page.spaceId = :spaceId', { spaceId })
-      .select([
-        'page.id',
-        'page.title',
-        'page.icon',
-        'page.parentPageId',
-        'page.spaceId',
-        'ordering.childrenIds',
-        'page.creatorId',
-        'page.createdAt',
-      ])
-      .orderBy('page.createdAt', 'DESC')
-      .take(limit)
-      .getRawMany<PageWithOrderingDto[]>();
-
+    const pages = await this.pageRepo.getSpaceSidebarPages(spaceId, limit);
     return transformPageResult(pages);
   }
 
   async getRecentSpacePages(
     spaceId: string,
-    limit = 20,
-    offset = 0,
-  ): Promise<Page[]> {
-    const pages = await this.pageRepository
-      .createQueryBuilder('page')
-      .where('page.spaceId = :spaceId', { spaceId })
-      .select(this.pageRepository.baseFields)
-      .orderBy('page.updatedAt', 'DESC')
-      .offset(offset)
-      .take(limit)
-      .getMany();
-    return pages;
+    paginationOptions: PaginationOptions,
+  ): Promise<PaginatedResult<Page>> {
+    const { pages, count } = await this.pageRepo.getRecentPagesInSpace(
+      spaceId,
+      paginationOptions,
+    );
+
+    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
+
+    return new PaginatedResult(pages, paginationMeta);
   }
 }

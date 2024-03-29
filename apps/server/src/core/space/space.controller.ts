@@ -8,13 +8,12 @@ import {
 } from '@nestjs/common';
 import { SpaceService } from './services/space.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
-import { User } from '../user/entities/user.entity';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SpaceIdDto } from './dto/space-id.dto';
 import { PaginationOptions } from '../../helpers/pagination/pagination-options';
 import { SpaceMemberService } from './services/space-member.service';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -37,6 +36,7 @@ export class SpaceController {
   }
 
   // get all spaces user is a member of
+  /*
   @HttpCode(HttpStatus.OK)
   @Post('user')
   async getUserSpaces(
@@ -50,7 +50,7 @@ export class SpaceController {
       workspace.id,
       pagination,
     );
-  }
+  }*/
 
   @HttpCode(HttpStatus.OK)
   @Post('info')

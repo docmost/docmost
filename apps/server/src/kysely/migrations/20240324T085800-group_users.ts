@@ -6,50 +6,34 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
-    .addColumn('userId', 'uuid', (col) => col.notNull())
-    .addColumn('groupId', 'uuid', (col) => col.notNull())
+    .addColumn('userId', 'uuid', (col) =>
+      col.references('users.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('groupId', 'uuid', (col) =>
+      col.references('groups.id').onDelete('cascade').notNull(),
+    )
     .addColumn('createdAt', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('updatedAt', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addUniqueConstraint('UQ_group_users_groupId_userId', ['groupId', 'userId'])
-    .execute();
-
-  // foreign key relations
-  await db.schema
-    .alterTable('group_users')
-    .addForeignKeyConstraint(
-      'FK_group_users_users_userId',
-      ['userId'],
-      'users',
-      ['id'],
-    )
-    .onDelete('cascade')
-    .execute();
-
-  await db.schema
-    .alterTable('group_users')
-    .addForeignKeyConstraint(
-      'FK_group_users_groups_groupId',
-      ['groupId'],
-      'groups',
-      ['id'],
-    )
-    .onDelete('cascade')
+    .addUniqueConstraint('group_users_groupId_userId_unique', [
+      'groupId',
+      'userId',
+    ])
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('group_users')
-    .dropConstraint('FK_group_users_users_userId')
+    .dropConstraint('group_users_userId_fkey')
     .execute();
 
   await db.schema
     .alterTable('group_users')
-    .dropConstraint('FK_group_users_groups_groupId')
+    .dropConstraint('group_users_groupId_fkey')
     .execute();
 
   await db.schema.dropTable('group_users').execute();

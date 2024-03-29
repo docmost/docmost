@@ -11,9 +11,7 @@ import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { AuthUser } from '../../../decorators/auth-user.decorator';
-import { User } from '../../user/entities/user.entity';
 import { AuthWorkspace } from '../../../decorators/auth-workspace.decorator';
-import { Workspace } from '../entities/workspace.entity';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
 import { Public } from '../../../decorators/public.decorator';
@@ -23,12 +21,12 @@ import {
   RevokeInviteDto,
 } from '../dto/invitation.dto';
 import { Action } from '../../casl/ability.action';
-import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
 import { CheckPolicies } from '../../casl/decorators/policies.decorator';
 import { AppAbility } from '../../casl/abilities/casl-ability.factory';
 import { PoliciesGuard } from '../../casl/guards/policies.guard';
 import { WorkspaceUserService } from '../services/workspace-user.service';
 import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -49,7 +47,9 @@ export class WorkspaceController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Workspace))
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, 'Workspace'),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
@@ -60,7 +60,9 @@ export class WorkspaceController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Workspace))
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, 'Workspace'),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   async deleteWorkspace(@Body() deleteWorkspaceDto: DeleteWorkspaceDto) {
@@ -69,7 +71,7 @@ export class WorkspaceController {
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Read, 'workspaceUser'),
+    ability.can(Action.Read, 'WorkspaceUser'),
   )
   @HttpCode(HttpStatus.OK)
   @Post('members')
@@ -96,7 +98,7 @@ export class WorkspaceController {
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'workspaceUser'),
+    ability.can(Action.Manage, 'WorkspaceUser'),
   )
   @HttpCode(HttpStatus.OK)
   @Post('members/role')
@@ -114,7 +116,7 @@ export class WorkspaceController {
 
   @UseGuards(PoliciesGuard)
   @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, WorkspaceInvitation),
+    ability.can(Action.Manage, 'WorkspaceInvitation'),
   )
   @HttpCode(HttpStatus.OK)
   @Post('invite')
@@ -123,11 +125,11 @@ export class WorkspaceController {
     @AuthUser() authUser: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.workspaceInvitationService.createInvitation(
+    /* return this.workspaceInvitationService.createInvitation(
       authUser,
       workspace.id,
       inviteUserDto,
-    );
+    );*/
   }
 
   @Public()
@@ -143,8 +145,8 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('invite/revoke')
   async revokeInvite(@Body() revokeInviteDto: RevokeInviteDto) {
-    return this.workspaceInvitationService.revokeInvitation(
-      revokeInviteDto.invitationId,
-    );
+    // return this.workspaceInvitationService.revokeInvitation(
+    // revokeInviteDto.invitationId,
+    // );
   }
 }

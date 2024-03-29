@@ -37,7 +37,9 @@ export class LocalDriver implements StorageDriver {
     try {
       return await fs.pathExists(this._fullPath(filePath));
     } catch (err) {
-      throw new Error(`Failed to check file existence: ${(err as Error).message}`);
+      throw new Error(
+        `Failed to check file existence: ${(err as Error).message}`,
+      );
     }
   }
 

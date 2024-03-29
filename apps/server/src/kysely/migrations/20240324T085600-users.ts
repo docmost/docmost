@@ -12,10 +12,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('password', 'varchar', (col) => col.notNull())
     .addColumn('avatarUrl', 'varchar', (col) => col)
     .addColumn('role', 'varchar', (col) => col)
-    .addColumn('workspaceId', 'uuid', (col) => col)
+    .addColumn('status', 'varchar', (col) => col)
+    .addColumn('workspaceId', 'uuid', (col) =>
+      col.references('workspaces.id').onDelete('cascade'),
+    )
     .addColumn('locale', 'varchar', (col) => col)
     .addColumn('timezone', 'varchar', (col) => col)
     .addColumn('settings', 'jsonb', (col) => col)
+    .addColumn('lastActiveAt', 'timestamp', (col) => col)
     .addColumn('lastLoginAt', 'timestamp', (col) => col)
     .addColumn('lastLoginIp', 'varchar', (col) => col)
     .addColumn('createdAt', 'timestamp', (col) =>
@@ -24,26 +28,17 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('updatedAt', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addUniqueConstraint('UQ_users_email_workspaceId', ['email', 'workspaceId'])
-    .execute();
-
-  // foreign key relations
-  await db.schema
-    .alterTable('users')
-    .addForeignKeyConstraint(
-      'FK_users_workspaces_workspaceId',
-      ['workspaceId'],
-      'workspaces',
-      ['id'],
-    )
-    .onDelete('cascade')
+    .addUniqueConstraint('users_email_workspaceId_unique', [
+      'email',
+      'workspaceId',
+    ])
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('users')
-    .dropConstraint('FK_users_workspaces_workspaceId')
+    .dropConstraint('users_workspaceId_fkey')
     .execute();
 
   await db.schema.dropTable('users').execute();

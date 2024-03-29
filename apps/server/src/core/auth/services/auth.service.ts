@@ -1,14 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
-import { User } from '../../user/entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UserService } from '../../user/user.service';
 import { TokenService } from './token.service';
 import { TokensDto } from '../dto/tokens.dto';
-import { UserRepository } from '../../user/repositories/user.repository';
-import { comparePasswordHash } from '../auth.utils';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { comparePasswordHash } from '../../../helpers/utils';
 
 @Injectable()
 export class AuthService {
@@ -16,14 +15,11 @@ export class AuthService {
     private userService: UserService,
     private signupService: SignupService,
     private tokenService: TokenService,
-    private userRepository: UserRepository,
+    private userRepo: UserRepo,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
-    const user = await this.userRepository.findOneByEmail(
-      loginDto.email,
-      workspaceId,
-    );
+    const user = await this.userRepo.findByEmail(loginDto.email, workspaceId);
 
     if (
       !user ||
@@ -33,17 +29,14 @@ export class AuthService {
     }
 
     user.lastLoginAt = new Date();
-    await this.userRepository.save(user);
+    await this.userRepo.updateLastLogin(user.id, workspaceId);
 
     const tokens: TokensDto = await this.tokenService.generateTokens(user);
     return { tokens };
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
-    const user: User = await this.signupService.signup(
-      createUserDto,
-      workspaceId,
-    );
+    const user = await this.signupService.signup(createUserDto, workspaceId);
 
     const tokens: TokensDto = await this.tokenService.generateTokens(user);
 
@@ -51,8 +44,7 @@ export class AuthService {
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    const user: User =
-      await this.signupService.initialSetup(createAdminUserDto);
+    const user = await this.signupService.initialSetup(createAdminUserDto);
 
     const tokens: TokensDto = await this.tokenService.generateTokens(user);
 

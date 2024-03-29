@@ -4,7 +4,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('workspaces')
     .addForeignKeyConstraint(
-      'FK_workspaces_users_creatorId',
+      'workspaces_creatorId_fkey',
       ['creatorId'],
       'users',
       ['id'],
@@ -14,7 +14,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('workspaces')
     .addForeignKeyConstraint(
-      'FK_workspaces_spaces_defaultSpaceId',
+      'workspaces_defaultSpaceId_fkey',
       ['defaultSpaceId'],
       'spaces',
       ['id'],
@@ -26,11 +26,11 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('workspaces')
-    .dropConstraint('FK_workspaces_users_creatorId')
+    .dropConstraint('workspaces_creatorId_fkey')
     .execute();
 
   await db.schema
     .alterTable('workspaces')
-    .dropConstraint('FK_workspaces_spaces_defaultSpaceId')
+    .dropConstraint('workspaces_defaultSpaceId_fkey')
     .execute();
 }

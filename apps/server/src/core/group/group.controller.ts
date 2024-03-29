@@ -10,8 +10,6 @@ import { GroupService } from './services/group.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { User } from '../user/entities/user.entity';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { GroupUserService } from './services/group-user.service';
 import { GroupIdDto } from './dto/group-id.dto';
 import { PaginationOptions } from '../../helpers/pagination/pagination-options';
@@ -19,12 +17,11 @@ import { AddGroupUserDto } from './dto/add-group-user.dto';
 import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { Action } from '../casl/ability.action';
-import { Group } from './entities/group.entity';
-import { GroupUser } from './entities/group-user.entity';
 import { PoliciesGuard } from '../casl/guards/policies.guard';
 import { CheckPolicies } from '../casl/decorators/policies.decorator';
 import { AppAbility } from '../casl/abilities/casl-ability.factory';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -45,7 +42,7 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, Group))
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   getGroup(
@@ -57,7 +54,7 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('create')
   createGroup(
@@ -69,7 +66,7 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('update')
   updateGroup(
@@ -81,7 +78,7 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, GroupUser))
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'GroupUser'))
   @HttpCode(HttpStatus.OK)
   @Post('members')
   getGroupMembers(
@@ -97,7 +94,9 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, GroupUser))
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, 'GroupUser'),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members/add')
   addGroupMember(
@@ -113,7 +112,9 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, GroupUser))
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.Manage, 'GroupUser'),
+  )
   @HttpCode(HttpStatus.OK)
   @Post('members/remove')
   removeGroupMember(
@@ -129,7 +130,7 @@ export class GroupController {
   }
 
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, Group))
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   deleteGroup(

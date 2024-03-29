@@ -17,5 +17,10 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "strict": true,
+    "paths": {
+      "@docmost/db": ["./src/kysely"],
+      "@docmost/db/*": ["./src/kysely/*"],
+    }
   }
 }

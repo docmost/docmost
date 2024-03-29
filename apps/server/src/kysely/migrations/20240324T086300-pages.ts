@@ -17,12 +17,18 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('coverPhoto', 'varchar', (col) => col)
     .addColumn('editor', 'varchar', (col) => col)
     .addColumn('shareId', 'varchar', (col) => col)
-    .addColumn('parentPageId', 'uuid', (col) => col)
-    .addColumn('creatorId', 'uuid', (col) => col.notNull())
-    .addColumn('lastUpdatedById', 'uuid', (col) => col)
-    .addColumn('deletedById', 'uuid', (col) => col)
-    .addColumn('spaceId', 'uuid', (col) => col.notNull())
-    .addColumn('workspaceId', 'uuid', (col) => col.notNull())
+    .addColumn('parentPageId', 'uuid', (col) =>
+      col.references('pages.id').onDelete('cascade'),
+    )
+    .addColumn('creatorId', 'uuid', (col) => col.references('users.id'))
+    .addColumn('lastUpdatedById', 'uuid', (col) => col.references('users.id'))
+    .addColumn('deletedById', 'uuid', (col) => col.references('users.id'))
+    .addColumn('spaceId', 'uuid', (col) =>
+      col.references('spaces.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('workspaceId', 'uuid', (col) =>
+      col.references('workspaces.id').onDelete('cascade').notNull(),
+    )
     .addColumn('isLocked', 'boolean', (col) => col.defaultTo(false).notNull())
     .addColumn('status', 'varchar', (col) => col)
     .addColumn('publishedAt', 'date', (col) => col)
@@ -36,7 +42,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('IDX_pages_tsv')
+    .createIndex('pages_tsv_idx')
     .on('pages')
     .using('GIN')
     .column('tsv')
@@ -44,5 +50,35 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_creatorId_fkey')
+    .execute();
+
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_lastUpdatedById_fkey')
+    .execute();
+
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_deletedById_fkey')
+    .execute();
+
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_spaceId_fkey')
+    .execute();
+
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_workspaceId_fkey')
+    .execute();
+
+  await db.schema
+    .alterTable('pages')
+    .dropConstraint('pages_parentPageId_fkey')
+    .execute();
+
   await db.schema.dropTable('pages').execute();
 }

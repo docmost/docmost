@@ -3,87 +3,62 @@ import {
   AbilityBuilder,
   createMongoAbility,
   ExtractSubjectType,
-  InferSubjects,
   MongoAbility,
 } from '@casl/ability';
-import { User } from '../../user/entities/user.entity';
 import { Action } from '../ability.action';
-import { Workspace } from '../../workspace/entities/workspace.entity';
-import { WorkspaceInvitation } from '../../workspace/entities/workspace-invitation.entity';
 import { UserRole } from '../../../helpers/types/permission';
-import { Group } from '../../group/entities/group.entity';
-import { GroupUser } from '../../group/entities/group-user.entity';
-import { Attachment } from '../../attachment/entities/attachment.entity';
-import { Space } from '../../space/entities/space.entity';
-import { Page } from '../../page/entities/page.entity';
-import { Comment } from '../../comment/entities/comment.entity';
-import { SpaceMember } from '../../space/entities/space-member.entity';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 export type Subjects =
-  | InferSubjects<
-      | typeof Workspace
-      | typeof WorkspaceInvitation
-      | typeof Space
-      | typeof SpaceMember
-      | typeof Group
-      | typeof GroupUser
-      | typeof Attachment
-      | typeof Comment
-      | typeof Page
-      | typeof User
-    >
-  | 'workspaceUser'
+  | 'Workspace'
+  | 'WorkspaceInvitation'
+  | 'Space'
+  | 'SpaceMember'
+  | 'Group'
+  | 'GroupUser'
+  | 'Attachment'
+  | 'Comment'
+  | 'Page'
+  | 'User'
+  | 'WorkspaceUser'
   | 'all';
 export type AppAbility = MongoAbility<[Action, Subjects]>;
 
 @Injectable()
 export default class CaslAbilityFactory {
-  createForWorkspace(user: User, workspace: Workspace) {
+  createForUser(user: User, workspace: Workspace) {
     const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
     const userRole = user.role;
 
     if (userRole === UserRole.OWNER || userRole === UserRole.ADMIN) {
       // Workspace Users
-      can<any>([Action.Manage], Workspace);
-      can<any>([Action.Manage], 'workspaceUser');
+      can([Action.Manage], 'Workspace');
+      can([Action.Manage], 'WorkspaceUser');
 
-      can<any>([Action.Manage], WorkspaceInvitation);
+      can([Action.Manage], 'WorkspaceInvitation');
 
       // Groups
-      can<any>([Action.Manage], Group);
-      can<any>([Action.Manage], GroupUser);
+      can([Action.Manage], 'Group');
+      can([Action.Manage], 'GroupUser');
 
       // Attachments
-      can<any>([Action.Manage], Attachment);
+      can([Action.Manage], 'Attachment');
     }
 
     if (userRole === UserRole.MEMBER) {
       // can<any>([Action.Read], WorkspaceUser);
 
       // Groups
-      can<any>([Action.Read], Group);
-      can<any>([Action.Read], GroupUser);
+      can([Action.Read], 'Group');
+      can([Action.Read], 'GroupUser');
 
       // Attachments
-      can<any>([Action.Read, Action.Create], Attachment);
+      can([Action.Read, Action.Create], 'Attachment');
     }
 
     return build({
-      detectSubjectType: (item) =>
-        item.constructor as ExtractSubjectType<Subjects>,
-    });
-  }
-
-  createForUser(user: User) {
-    const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
-
-    can<any>([Action.Manage], User, { id: user.id });
-    can<any>([Action.Read], User);
-
-    return build({
-      detectSubjectType: (item) =>
-        item.constructor as ExtractSubjectType<Subjects>,
+      detectSubjectType: (item) => item as ExtractSubjectType<Subjects>,
     });
   }
 }

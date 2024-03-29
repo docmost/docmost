@@ -1,13 +1,13 @@
 import { Extension, onAuthenticatePayload } from '@hocuspocus/server';
-import { UserService } from '../../core/user/user.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { TokenService } from '../../core/auth/services/token.service';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
   constructor(
     private tokenService: TokenService,
-    private userService: UserService,
+    private userRepo: UserRepo,
   ) {}
 
   async onAuthenticate(data: onAuthenticatePayload) {
@@ -22,7 +22,9 @@ export class AuthenticationExtension implements Extension {
     }
 
     const userId = jwtPayload.sub;
-    const user = await this.userService.findById(userId);
+    const workspaceId = jwtPayload.workspaceId;
+
+    const user = await this.userRepo.findById(userId, workspaceId);
 
     if (!user) {
       throw new UnauthorizedException();

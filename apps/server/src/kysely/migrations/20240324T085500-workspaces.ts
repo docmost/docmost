@@ -12,7 +12,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('logo', 'varchar', (col) => col)
     .addColumn('hostname', 'varchar', (col) => col)
     .addColumn('customDomain', 'varchar', (col) => col)
-    .addColumn('enableInvite', 'boolean', (col) => col.notNull())
+    .addColumn('enableInvite', 'boolean', (col) =>
+      col.defaultTo(true).notNull(),
+    )
     .addColumn('inviteCode', 'varchar', (col) => col)
     .addColumn('settings', 'jsonb', (col) => col)
     .addColumn('defaultRole', 'varchar', (col) =>
@@ -27,13 +29,9 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deletedAt', 'timestamp', (col) => col)
-    .addUniqueConstraint('UQ_workspaces_hostname', ['hostname'])
-    .addUniqueConstraint('UQ_workspaces_inviteCode', ['inviteCode'])
-    .addUniqueConstraint('UQ_workspaces_inviteCode', ['inviteCode'])
+    .addUniqueConstraint('workspaces_hostname_unique', ['hostname'])
+    .addUniqueConstraint('workspaces_inviteCode_unique', ['inviteCode'])
     .execute();
-
-  //  CONSTRAINT "REL_workspaces_creatorId" UNIQUE ("creatorId"),
-  //  CONSTRAINT "REL_workspaces_defaultSpaceId" UNIQUE ("defaultSpaceId"),
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

@@ -1,5 +1,3 @@
-import { Page } from '../entities/page.entity';
+import { Page } from '@docmost/db/types/entity.types';
 
-export class PageWithOrderingDto extends Page {
-  childrenIds?: string[];
-}
+export type PageWithOrderingDto = Page & { childrenIds?: string[] };

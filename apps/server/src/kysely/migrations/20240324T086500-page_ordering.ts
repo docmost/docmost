@@ -9,8 +9,12 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('entityId', 'uuid', (col) => col.notNull())
     .addColumn('entityType', 'varchar', (col) => col.notNull())
     .addColumn('childrenIds', sql`uuid[]`, (col) => col.notNull())
-    .addColumn('spaceId', 'uuid', (col) => col.notNull())
-    .addColumn('workspaceId', 'uuid', (col) => col.notNull())
+    .addColumn('spaceId', 'uuid', (col) =>
+      col.references('spaces.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('workspaceId', 'uuid', (col) =>
+      col.references('workspaces.id').onDelete('cascade').notNull(),
+    )
     .addColumn('createdAt', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
@@ -18,45 +22,22 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deletedAt', 'timestamp', (col) => col)
-    .addUniqueConstraint('UQ_page_ordering_entityId_entityType', [
+    .addUniqueConstraint('page_ordering_entityId_entityType_unique', [
       'entityId',
       'entityType',
     ])
-    .execute();
-
-  // foreign key relations
-  await db.schema
-    .alterTable('page_ordering')
-    .addForeignKeyConstraint(
-      'FK_page_ordering_spaces_spaceId',
-      ['spaceId'],
-      'spaces',
-      ['id'],
-    )
-    .onDelete('cascade')
-    .execute();
-
-  await db.schema
-    .alterTable('page_ordering')
-    .addForeignKeyConstraint(
-      'FK_page_ordering_workspaces_workspaceId',
-      ['workspaceId'],
-      'workspaces',
-      ['id'],
-    )
-    .onDelete('cascade')
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('page_ordering')
-    .dropConstraint('FK_page_ordering_spaces_spaceId')
+    .dropConstraint('page_ordering_spaceId_fkey')
     .execute();
 
   await db.schema
     .alterTable('page_ordering')
-    .dropConstraint('FK_page_ordering_workspaces_workspaceId')
+    .dropConstraint('page_ordering_workspaceId_fkey')
     .execute();
 
   await db.schema.dropTable('page_ordering').execute();

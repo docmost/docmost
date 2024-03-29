@@ -1,7 +1,7 @@
 import { type Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  await sql`CREATE FUNCTION pages_tsvector_trigger() RETURNS trigger AS $$
+  await sql`CREATE OR REPLACE FUNCTION pages_tsvector_trigger() RETURNS trigger AS $$
         begin
             new.tsv :=
                       setweight(to_tsvector('english', coalesce(new.title, '')), 'A') ||
@@ -10,7 +10,7 @@ export async function up(db: Kysely<any>): Promise<void> {
         end;
         $$ LANGUAGE plpgsql;`.execute(db);
 
-  await sql`CREATE TRIGGER pages_tsvector_update BEFORE INSERT OR UPDATE
+  await sql`CREATE OR REPLACE TRIGGER pages_tsvector_update BEFORE INSERT OR UPDATE
                 ON pages FOR EACH ROW EXECUTE FUNCTION pages_tsvector_trigger();`.execute(
     db,
   );

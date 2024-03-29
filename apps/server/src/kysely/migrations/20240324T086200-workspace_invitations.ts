@@ -6,8 +6,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
-    .addColumn('workspaceId', 'uuid', (col) => col.notNull())
-    .addColumn('invitedById', 'uuid', (col) => col.notNull())
+    .addColumn('workspaceId', 'uuid', (col) =>
+      col.references('workspaces.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('invitedById', 'uuid', (col) => col.references('users.id'))
     .addColumn('email', 'varchar', (col) => col.notNull())
     .addColumn('role', 'varchar', (col) => col.notNull())
     .addColumn('status', 'varchar', (col) => col)
@@ -18,39 +20,17 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .execute();
-
-  // foreign key relations
-  await db.schema
-    .alterTable('workspace_invitations')
-    .addForeignKeyConstraint(
-      'FK_workspace_invitations_workspaces_workspaceId',
-      ['workspaceId'],
-      'workspaces',
-      ['id'],
-    )
-    .onDelete('cascade')
-    .execute();
-
-  await db.schema
-    .alterTable('workspace_invitations')
-    .addForeignKeyConstraint(
-      'FK_workspace_invitations_users_invitedById',
-      ['invitedById'],
-      'users',
-      ['id'],
-    )
-    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('workspace_invitations')
-    .dropConstraint('FK_workspace_invitations_workspaces_workspaceId')
+    .dropConstraint('workspace_invitations_workspaceId_fkey')
     .execute();
 
   await db.schema
     .alterTable('workspace_invitations')
-    .dropConstraint('FK_workspace_invitations_users_invitedById')
+    .dropConstraint('workspace_invitations_invitedById_fkey')
     .execute();
   await db.schema.dropTable('workspace_invitations').execute();
 }

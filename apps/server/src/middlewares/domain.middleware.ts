@@ -1,12 +1,12 @@
 import { Injectable, NestMiddleware, NotFoundException } from '@nestjs/common';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { WorkspaceRepository } from '../core/workspace/repositories/workspace.repository';
 import { EnvironmentService } from '../integrations/environment/environment.service';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 
 @Injectable()
 export class DomainMiddleware implements NestMiddleware {
   constructor(
-    private workspaceRepository: WorkspaceRepository,
+    private workspaceRepo: WorkspaceRepo,
     private environmentService: EnvironmentService,
   ) {}
   async use(
@@ -15,7 +15,7 @@ export class DomainMiddleware implements NestMiddleware {
     next: () => void,
   ) {
     if (this.environmentService.isSelfHosted()) {
-      const workspace = await this.workspaceRepository.findFirst();
+      const workspace = await this.workspaceRepo.findFirst();
       if (!workspace) {
         throw new NotFoundException('Workspace not found');
       }
@@ -25,9 +25,7 @@ export class DomainMiddleware implements NestMiddleware {
       const header = req.headers.host;
       const subdomain = header.split('.')[0];
 
-      const workspace = await this.workspaceRepository.findOneBy({
-        hostname: subdomain,
-      });
+      const workspace = await this.workspaceRepo.findByHostname(subdomain);
 
       if (!workspace) {
         throw new NotFoundException('Workspace not found');

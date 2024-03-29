@@ -1,59 +1,46 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSpaceDto } from '../dto/create-space.dto';
-import { Space } from '../entities/space.entity';
-import { SpaceRepository } from '../repositories/space.repository';
-import { transactionWrapper } from '../../../helpers/db.helper';
-import { DataSource, EntityManager } from 'typeorm';
 import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
 import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
-import { SpaceMemberRepository } from '../repositories/space-member.repository';
 import slugify from 'slugify';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { getRandomInt } from '../../../helpers/utils';
+import { Space } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class SpaceService {
-  constructor(
-    private spaceRepository: SpaceRepository,
-    private spaceMemberRepository: SpaceMemberRepository,
-    private dataSource: DataSource,
-  ) {}
+  constructor(private spaceRepo: SpaceRepo) {}
 
   async create(
     userId: string,
     workspaceId: string,
-    createSpaceDto?: CreateSpaceDto,
-    manager?: EntityManager,
+    createSpaceDto: CreateSpaceDto,
+    trx?: KyselyTransaction,
   ): Promise<Space> {
-    return await transactionWrapper(
-      async (manager: EntityManager) => {
-        const space = new Space();
-        space.name = createSpaceDto.name ?? 'untitled space ';
-        space.description = createSpaceDto.description ?? '';
-        space.creatorId = userId;
-        space.workspaceId = workspaceId;
+    // until we allow slug in dto
+    let slug = slugify(createSpaceDto.name.toLowerCase());
+    const slugExists = await this.spaceRepo.slugExists(slug, workspaceId);
+    if (slugExists) {
+      slug = `${slug}-${getRandomInt()}`;
+    }
 
-        space.slug = slugify(space.name.toLowerCase()); // TODO: check for duplicate
-
-        await manager.save(space);
-        return space;
+    return await this.spaceRepo.insertSpace(
+      {
+        name: createSpaceDto.name ?? 'untitled space',
+        description: createSpaceDto.description ?? '',
+        creatorId: userId,
+        workspaceId: workspaceId,
+        slug: slug,
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
-    const space = await this.spaceRepository
-      .createQueryBuilder('space')
-      .where('space.id = :spaceId', { spaceId })
-      .andWhere('space.workspaceId = :workspaceId', { workspaceId })
-      .loadRelationCountAndMap(
-        'space.memberCount',
-        'space.spaceMembers',
-        'spaceMembers',
-      ) // TODO: add groups to memberCount
-      .getOne();
-
+    // TODO: add memberCount
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
       throw new NotFoundException('Space not found');
     }
@@ -65,17 +52,10 @@ export class SpaceService {
     workspaceId: string,
     paginationOptions: PaginationOptions,
   ): Promise<PaginatedResult<Space>> {
-    const [spaces, count] = await this.spaceRepository
-      .createQueryBuilder('space')
-      .where('space.workspaceId = :workspaceId', { workspaceId })
-      .loadRelationCountAndMap(
-        'space.memberCount',
-        'space.spaceMembers',
-        'spaceMembers',
-      ) // TODO: add groups to memberCount
-      .take(paginationOptions.limit)
-      .skip(paginationOptions.skip)
-      .getManyAndCount();
+    const { spaces, count } = await this.spaceRepo.getSpacesInWorkspace(
+      workspaceId,
+      paginationOptions,
+    );
 
     const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
 

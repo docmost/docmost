@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { User } from '../../user/entities/user.entity';
 import { TokensDto } from '../dto/tokens.dto';
 import { JwtPayload, JwtRefreshPayload, JwtType } from '../dto/jwt-payload';
+import { User } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class TokenService {
@@ -32,7 +32,7 @@ export class TokenService {
     return this.jwtService.sign(payload, { expiresIn });
   }
 
-  async generateTokens(user: User): Promise<TokensDto> {
+  async generateTokens(user): Promise<TokensDto> {
     return {
       accessToken: await this.generateAccessToken(user),
       refreshToken: await this.generateRefreshToken(user.id, user.workspaceId),

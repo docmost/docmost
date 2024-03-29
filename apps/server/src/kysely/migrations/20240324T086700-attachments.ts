@@ -12,10 +12,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('fileExt', 'varchar', (col) => col.notNull())
     .addColumn('mimeType', 'varchar', (col) => col)
     .addColumn('type', 'varchar', (col) => col)
-    .addColumn('creatorId', 'uuid', (col) => col.notNull())
-    .addColumn('pageId', 'uuid', (col) => col)
-    .addColumn('spaceId', 'uuid', (col) => col)
-    .addColumn('workspaceId', 'uuid', (col) => col.notNull())
+    .addColumn('creatorId', 'uuid', (col) =>
+      col.references('users.id').notNull(),
+    )
+    .addColumn('pageId', 'uuid', (col) => col.references('pages.id'))
+    .addColumn('spaceId', 'uuid', (col) => col.references('spaces.id'))
+    .addColumn('workspaceId', 'uuid', (col) =>
+      col.references('workspaces.id').onDelete('cascade').notNull(),
+    )
     .addColumn('createdAt', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
@@ -24,70 +28,27 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('deletedAt', 'timestamp', (col) => col)
     .execute();
-
-  // foreign key relations
-  await db.schema
-    .alterTable('attachments')
-    .addForeignKeyConstraint(
-      'FK_attachments_users_creatorId',
-      ['creatorId'],
-      'users',
-      ['id'],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable('attachments')
-    .addForeignKeyConstraint(
-      'FK_attachments_pages_pageId',
-      ['pageId'],
-      'pages',
-      ['id'],
-    )
-    .execute();
-
-  await db.schema
-    .alterTable('attachments')
-    .addForeignKeyConstraint(
-      'FK_attachments_spaces_spaceId',
-      ['spaceId'],
-      'spaces',
-      ['id'],
-    )
-    .onDelete('cascade')
-    .execute();
-
-  await db.schema
-    .alterTable('attachments')
-    .addForeignKeyConstraint(
-      'FK_attachments_workspaces_workspaceId',
-      ['workspaceId'],
-      'workspaces',
-      ['id'],
-    )
-    .onDelete('cascade')
-    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('attachments')
-    .dropConstraint('FK_attachments_users_creatorId')
+    .dropConstraint('attachments_creatorId_fkey')
     .execute();
 
   await db.schema
     .alterTable('attachments')
-    .dropConstraint('FK_attachments_pages_pageId')
+    .dropConstraint('attachments_pageId_fkey')
     .execute();
 
   await db.schema
     .alterTable('attachments')
-    .dropConstraint('FK_attachments_spaces_spaceId')
+    .dropConstraint('attachments_spaceId_fkey')
     .execute();
 
   await db.schema
     .alterTable('attachments')
-    .dropConstraint('FK_attachments_workspaces_workspaceId')
+    .dropConstraint('attachments_workspaceId_fkey')
     .execute();
 
   await db.schema.dropTable('attachments').execute();

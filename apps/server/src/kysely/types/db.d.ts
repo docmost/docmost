@@ -45,16 +45,13 @@ export interface Attachments {
 export interface Comments {
   content: Json | null;
   createdAt: Generated<Timestamp>;
-  creatorId: string;
+  creatorId: string | null;
   deletedAt: Timestamp | null;
   editedAt: Timestamp | null;
   id: Generated<string>;
   pageId: string;
   parentCommentId: string | null;
-  resolvedAt: Timestamp | null;
-  resolvedById: string | null;
   selection: string | null;
-  spaceId: string;
   type: string | null;
   workspaceId: string;
 }
@@ -84,7 +81,7 @@ export interface PageHistory {
   createdAt: Generated<Timestamp>;
   icon: string | null;
   id: Generated<string>;
-  lastUpdatedById: string;
+  lastUpdatedById: string | null;
   pageId: string;
   slug: string | null;
   spaceId: string;
@@ -110,14 +107,14 @@ export interface Pages {
   content: Json | null;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
-  creatorId: string;
+  creatorId: string | null;
   deletedAt: Timestamp | null;
   deletedById: string | null;
   editor: string | null;
   html: string | null;
   icon: string | null;
   id: Generated<string>;
-  isLocked: boolean;
+  isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   publishedAt: Timestamp | null;
@@ -164,6 +161,7 @@ export interface Users {
   email: string;
   emailVerifiedAt: Timestamp | null;
   id: Generated<string>;
+  lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   lastLoginIp: string | null;
   locale: string | null;
@@ -171,6 +169,7 @@ export interface Users {
   password: string;
   role: string | null;
   settings: Json | null;
+  status: string | null;
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string | null;
@@ -180,7 +179,7 @@ export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string;
   id: Generated<string>;
-  invitedById: string;
+  invitedById: string | null;
   role: string;
   status: string | null;
   updatedAt: Generated<Timestamp>;
@@ -195,7 +194,7 @@ export interface Workspaces {
   defaultSpaceId: string | null;
   deletedAt: Timestamp | null;
   description: string | null;
-  enableInvite: boolean;
+  enableInvite: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
   inviteCode: string | null;

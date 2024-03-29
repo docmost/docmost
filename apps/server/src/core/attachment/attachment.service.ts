@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { StorageService } from '../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
-import { AttachmentRepository } from './repositories/attachment.repository';
-import { Attachment } from './entities/attachment.entity';
 import { UserService } from '../user/user.service';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import {
@@ -15,14 +13,16 @@ import {
 import { v4 as uuid4 } from 'uuid';
 import { WorkspaceService } from '../workspace/services/workspace.service';
 import { UpdateWorkspaceDto } from '../workspace/dto/update-workspace.dto';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 
+// TODO: make code better
 @Injectable()
 export class AttachmentService {
   constructor(
     private readonly storageService: StorageService,
-    private readonly attachmentRepo: AttachmentRepository,
     private readonly workspaceService: WorkspaceService,
     private readonly userService: UserService,
+    private readonly attachmentRepo: AttachmentRepo,
   ) {}
 
   async uploadToDrive(preparedFile: PreparedFile, filePath: string) {
@@ -34,10 +34,10 @@ export class AttachmentService {
     }
   }
 
-  async updateUserAvatar(userId: string, avatarUrl: string) {
+  async updateUserAvatar(avatarUrl: string, userId: string, workspaceId) {
     const updateUserDto = new UpdateUserDto();
     updateUserDto.avatarUrl = avatarUrl;
-    await this.userService.update(userId, updateUserDto);
+    await this.userService.update(updateUserDto, userId, workspaceId);
   }
 
   async updateWorkspaceLogo(workspaceId: string, logoUrl: string) {
@@ -46,7 +46,11 @@ export class AttachmentService {
     await this.workspaceService.update(workspaceId, updateWorkspaceDto);
   }
 
-  async uploadAvatar(filePromise: Promise<MultipartFile>, userId: string) {
+  async uploadAvatar(
+    filePromise: Promise<MultipartFile>,
+    userId: string,
+    workspaceId: string,
+  ) {
     try {
       const preparedFile: PreparedFile = await prepareFile(filePromise);
       const allowedImageTypes = ['.jpg', '.jpeg', '.png'];
@@ -60,19 +64,19 @@ export class AttachmentService {
 
       await this.uploadToDrive(preparedFile, filePath);
 
-      const attachment = new Attachment();
+      // todo: in transaction
+      const attachment = await this.attachmentRepo.insertAttachment({
+        creatorId: userId,
+        type: AttachmentType.Avatar,
+        filePath: filePath,
+        fileName: preparedFile.fileName,
+        fileSize: preparedFile.fileSize,
+        mimeType: preparedFile.mimeType,
+        fileExt: preparedFile.fileExtension,
+        workspaceId: workspaceId,
+      });
 
-      attachment.creatorId = userId;
-      attachment.pageId = null;
-      attachment.workspaceId = null;
-      attachment.type = AttachmentType.Avatar;
-      attachment.filePath = filePath;
-      attachment.fileName = preparedFile.fileName;
-      attachment.fileSize = preparedFile.fileSize;
-      attachment.mimeType = preparedFile.mimeType;
-      attachment.fileExt = preparedFile.fileExtension;
-
-      await this.updateUserAvatar(userId, filePath);
+      await this.updateUserAvatar(filePath, userId, workspaceId);
 
       return attachment;
     } catch (err) {
@@ -102,17 +106,17 @@ export class AttachmentService {
 
       await this.uploadToDrive(preparedFile, filePath);
 
-      const attachment = new Attachment();
-
-      attachment.creatorId = userId;
-      attachment.pageId = null;
-      attachment.workspaceId = workspaceId;
-      attachment.type = AttachmentType.WorkspaceLogo;
-      attachment.filePath = filePath;
-      attachment.fileName = preparedFile.fileName;
-      attachment.fileSize = preparedFile.fileSize;
-      attachment.mimeType = preparedFile.mimeType;
-      attachment.fileExt = preparedFile.fileExtension;
+      // todo: in trx
+      const attachment = await this.attachmentRepo.insertAttachment({
+        creatorId: userId,
+        type: AttachmentType.WorkspaceLogo,
+        filePath: filePath,
+        fileName: preparedFile.fileName,
+        fileSize: preparedFile.fileSize,
+        mimeType: preparedFile.mimeType,
+        fileExt: preparedFile.fileExtension,
+        workspaceId: workspaceId,
+      });
 
       await this.updateWorkspaceLogo(workspaceId, filePath);
 
@@ -143,17 +147,17 @@ export class AttachmentService {
 
       await this.uploadToDrive(preparedFile, filePath);
 
-      const attachment = new Attachment();
-
-      attachment.creatorId = userId;
-      attachment.pageId = pageId;
-      attachment.workspaceId = workspaceId;
-      attachment.type = AttachmentType.WorkspaceLogo;
-      attachment.filePath = filePath;
-      attachment.fileName = preparedFile.fileName;
-      attachment.fileSize = preparedFile.fileSize;
-      attachment.mimeType = preparedFile.mimeType;
-      attachment.fileExt = preparedFile.fileExtension;
+      const attachment = await this.attachmentRepo.insertAttachment({
+        creatorId: userId,
+        pageId: pageId,
+        type: AttachmentType.File,
+        filePath: filePath,
+        fileName: preparedFile.fileName,
+        fileSize: preparedFile.fileSize,
+        mimeType: preparedFile.mimeType,
+        fileExt: preparedFile.fileExtension,
+        workspaceId: workspaceId,
+      });
 
       return attachment;
     } catch (err) {

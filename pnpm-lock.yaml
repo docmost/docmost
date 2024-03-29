@@ -340,6 +340,9 @@ importers:
       pg-tsquery:
         specifier: ^8.4.2
         version: 8.4.2
+      postgres:
+        specifier: ^3.4.4
+        version: 3.4.4
       reflect-metadata:
         specifier: ^0.2.1
         version: 0.2.1
@@ -10207,6 +10210,11 @@ packages:
 
   /postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
+    dev: false
+
+  /postgres@3.4.4:
+    resolution: {integrity: sha512-IbyN+9KslkqcXa8AO9fxpk97PA4pzewvpi2B3Dwy9u4zpV32QicaEdgmF3eSQUzdRk7ttDHQejNgAEr4XoeH4A==}
+    engines: {node: '>=12'}
     dev: false
 
   /prelude-ls@1.2.1:

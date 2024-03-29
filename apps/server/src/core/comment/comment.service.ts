@@ -1,24 +1,22 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { plainToInstance } from 'class-transformer';
-import { Comment } from './entities/comment.entity';
-import { CommentRepository } from './repositories/comment.repository';
-import { ResolveCommentDto } from './dto/resolve-comment.dto';
 import { PageService } from '../page/services/page.service';
+import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
+import { Comment } from '@docmost/db/types/entity.types';
+import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginatedResult } from 'src/helpers/pagination/paginated-result';
+import { PaginationMetaDto } from 'src/helpers/pagination/pagination-meta-dto';
 
 @Injectable()
 export class CommentService {
   constructor(
-    private commentRepository: CommentRepository,
+    private commentRepo: CommentRepo,
     private pageService: PageService,
   ) {}
 
   async findWithCreator(commentId: string) {
-    return await this.commentRepository.findOne({
-      where: { id: commentId },
-      relations: ['creator'],
-    });
+    // todo: find comment with creator object
   }
 
   async create(
@@ -26,25 +24,19 @@ export class CommentService {
     workspaceId: string,
     createCommentDto: CreateCommentDto,
   ) {
-    const comment = plainToInstance(Comment, createCommentDto);
-    comment.creatorId = userId;
-    comment.workspaceId = workspaceId;
-    comment.content = JSON.parse(createCommentDto.content);
+    const commentContent = JSON.parse(createCommentDto.content);
 
-    if (createCommentDto.selection) {
-      comment.selection = createCommentDto.selection.substring(0, 250);
-    }
+    const page = await this.pageService.findById(createCommentDto.pageId);
+    // const spaceId = null; // todo, get from page
 
-    const page = await this.pageService.findWithBasic(createCommentDto.pageId);
     if (!page) {
       throw new BadRequestException('Page not found');
     }
 
     if (createCommentDto.parentCommentId) {
-      const parentComment = await this.commentRepository.findOne({
-        where: { id: createCommentDto.parentCommentId },
-        select: ['id', 'parentCommentId'],
-      });
+      const parentComment = await this.commentRepo.findById(
+        createCommentDto.parentCommentId,
+      );
 
       if (!parentComment) {
         throw new BadRequestException('Parent comment not found');
@@ -55,68 +47,51 @@ export class CommentService {
       }
     }
 
-    const savedComment = await this.commentRepository.save(comment);
-    return this.findWithCreator(savedComment.id);
+    const createdComment = await this.commentRepo.insertComment({
+      pageId: createCommentDto.pageId,
+      content: commentContent,
+      selection: createCommentDto?.selection.substring(0, 250),
+      type: 'inline', // for now
+      parentCommentId: createCommentDto?.parentCommentId,
+      creatorId: userId,
+      workspaceId: workspaceId,
+    });
+    // todo return created comment and creator relation
+
+    return createdComment;
   }
 
-  async findByPageId(pageId: string, offset = 0, limit = 100) {
-    const comments = this.commentRepository.find({
-      where: {
-        pageId: pageId,
-      },
-      order: {
-        createdAt: 'asc',
-      },
-      take: limit,
-      skip: offset,
-      relations: ['creator'],
-    });
-    return comments;
+  async findByPageId(
+    pageId: string,
+    paginationOptions: PaginationOptions,
+  ): Promise<PaginatedResult<Comment>> {
+    const { comments, count } = await this.commentRepo.findPageComments(
+      pageId,
+      paginationOptions,
+    );
+
+    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
+    return new PaginatedResult(comments, paginationMeta);
   }
 
   async update(
     commentId: string,
     updateCommentDto: UpdateCommentDto,
   ): Promise<Comment> {
-    updateCommentDto.content = JSON.parse(updateCommentDto.content);
+    const commentContent = JSON.parse(updateCommentDto.content);
 
-    const result = await this.commentRepository.update(commentId, {
-      ...updateCommentDto,
-      editedAt: new Date(),
-    });
-    if (result.affected === 0) {
-      throw new BadRequestException(`Comment not found`);
-    }
-
-    return this.findWithCreator(commentId);
-  }
-
-  async resolveComment(
-    userId: string,
-    resolveCommentDto: ResolveCommentDto,
-  ): Promise<Comment> {
-    const resolvedAt = resolveCommentDto.resolved ? new Date() : null;
-    const resolvedById = resolveCommentDto.resolved ? userId : null;
-
-    const result = await this.commentRepository.update(
-      resolveCommentDto.commentId,
+    await this.commentRepo.updateComment(
       {
-        resolvedAt,
-        resolvedById,
+        content: commentContent,
+        editedAt: new Date(),
       },
+      commentId,
     );
 
-    if (result.affected === 0) {
-      throw new BadRequestException(`Comment not found`);
-    }
-
-    return this.findWithCreator(resolveCommentDto.commentId);
+    return this.commentRepo.findById(commentId);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.commentRepository.delete(id);
-    if (result.affected === 0) {
-      throw new BadRequestException(`Comment with ID ${id} not found.`);
-    }
+    await this.commentRepo.deleteComment(id);
   }
 }

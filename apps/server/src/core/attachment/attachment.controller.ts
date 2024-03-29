@@ -14,10 +14,9 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { AttachmentInterceptor } from './attachment.interceptor';
 import * as bytes from 'bytes';
 import { AuthUser } from '../../decorators/auth-user.decorator';
-import { User } from '../user/entities/user.entity';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @Controller('attachments')
 export class AttachmentController {
@@ -31,6 +30,7 @@ export class AttachmentController {
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const maxFileSize = bytes('5MB');
 
@@ -42,6 +42,7 @@ export class AttachmentController {
       const fileResponse = await this.attachmentService.uploadAvatar(
         file,
         user.id,
+        workspace.id,
       );
 
       return res.send(fileResponse);
