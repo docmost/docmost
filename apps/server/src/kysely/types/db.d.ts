@@ -1,15 +1,10 @@
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -39,7 +34,7 @@ export interface Attachments {
   spaceId: string | null;
   type: string | null;
   updatedAt: Generated<Timestamp>;
-  workspaceId: string;
+  workspaceId: string | null;
 }
 
 export interface Comments {
@@ -115,10 +110,10 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
+  key: string | null;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   publishedAt: Timestamp | null;
-  shareId: string | null;
   slug: string | null;
   spaceId: string;
   status: string | null;
@@ -145,6 +140,7 @@ export interface Spaces {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   defaultRole: Generated<string>;
+  deletedAt: Timestamp | null;
   description: string | null;
   icon: string | null;
   id: Generated<string>;
@@ -163,7 +159,6 @@ export interface Users {
   id: Generated<string>;
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
-  lastLoginIp: string | null;
   locale: string | null;
   name: string | null;
   password: string;
@@ -188,7 +183,6 @@ export interface WorkspaceInvitations {
 
 export interface Workspaces {
   createdAt: Generated<Timestamp>;
-  creatorId: string | null;
   customDomain: string | null;
   defaultRole: Generated<string>;
   defaultSpaceId: string | null;
@@ -197,7 +191,7 @@ export interface Workspaces {
   enableInvite: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
-  inviteCode: string | null;
+  inviteCode: Generated<string | null>;
   logo: string | null;
   name: string | null;
   settings: Json | null;
@@ -207,14 +201,14 @@ export interface Workspaces {
 export interface DB {
   attachments: Attachments;
   comments: Comments;
-  group_users: GroupUsers;
   groups: Groups;
-  page_history: PageHistory;
-  page_ordering: PageOrdering;
+  groupUsers: GroupUsers;
+  pageHistory: PageHistory;
+  pageOrdering: PageOrdering;
   pages: Pages;
-  space_members: SpaceMembers;
+  spaceMembers: SpaceMembers;
   spaces: Spaces;
   users: Users;
-  workspace_invitations: WorkspaceInvitations;
+  workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
 }

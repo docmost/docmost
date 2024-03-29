@@ -8,37 +8,39 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('title', 'varchar', (col) => col)
     .addColumn('icon', 'varchar', (col) => col)
+    .addColumn('key', 'varchar', (col) => col)
     .addColumn('content', 'jsonb', (col) => col)
     .addColumn('html', 'text', (col) => col)
-    .addColumn('textContent', 'text', (col) => col)
+    .addColumn('text_content', 'text', (col) => col)
     .addColumn('tsv', sql`tsvector`, (col) => col)
     .addColumn('ydoc', 'bytea', (col) => col)
     .addColumn('slug', 'varchar', (col) => col)
-    .addColumn('coverPhoto', 'varchar', (col) => col)
+    .addColumn('cover_photo', 'varchar', (col) => col)
     .addColumn('editor', 'varchar', (col) => col)
-    .addColumn('shareId', 'varchar', (col) => col)
-    .addColumn('parentPageId', 'uuid', (col) =>
+    .addColumn('parent_page_id', 'uuid', (col) =>
       col.references('pages.id').onDelete('cascade'),
     )
-    .addColumn('creatorId', 'uuid', (col) => col.references('users.id'))
-    .addColumn('lastUpdatedById', 'uuid', (col) => col.references('users.id'))
-    .addColumn('deletedById', 'uuid', (col) => col.references('users.id'))
-    .addColumn('spaceId', 'uuid', (col) =>
+    .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('last_updated_by_id', 'uuid', (col) =>
+      col.references('users.id'),
+    )
+    .addColumn('deleted_by_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('space_id', 'uuid', (col) =>
       col.references('spaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('workspaceId', 'uuid', (col) =>
+    .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('isLocked', 'boolean', (col) => col.defaultTo(false).notNull())
+    .addColumn('is_locked', 'boolean', (col) => col.defaultTo(false).notNull())
     .addColumn('status', 'varchar', (col) => col)
-    .addColumn('publishedAt', 'date', (col) => col)
-    .addColumn('createdAt', 'timestamp', (col) =>
+    .addColumn('published_at', 'date', (col) => col)
+    .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('updatedAt', 'timestamp', (col) =>
+    .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('deletedAt', 'timestamp', (col) => col)
+    .addColumn('deleted_at', 'timestamptz', (col) => col)
     .execute();
 
   await db.schema
@@ -52,32 +54,32 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_creatorId_fkey')
+    .dropConstraint('pages_creator_id_fkey')
     .execute();
 
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_lastUpdatedById_fkey')
+    .dropConstraint('pages_last_updated_by_id_fkey')
     .execute();
 
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_deletedById_fkey')
+    .dropConstraint('pages_deleted_by_id_fkey')
     .execute();
 
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_spaceId_fkey')
+    .dropConstraint('pages_space_id_fkey')
     .execute();
 
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_workspaceId_fkey')
+    .dropConstraint('pages_workspace_id_fkey')
     .execute();
 
   await db.schema
     .alterTable('pages')
-    .dropConstraint('pages_parentPageId_fkey')
+    .dropConstraint('pages_parent_page_id_fkey')
     .execute();
 
   await db.schema.dropTable('pages').execute();

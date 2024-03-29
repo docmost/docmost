@@ -23,7 +23,7 @@
     "migration:down": "tsx ./src/kysely/migrate.ts down",
     "migration:latest": "tsx ./src/kysely/migrate.ts latest",
     "migration:redo": "tsx ./src/kysely/migrate.ts redo",
-    "migration:codegen": "kysely-codegen --dialect=postgres --env-file=../../.env --out-file=./src/kysely/types/db.d.ts"
+    "migration:codegen": "kysely-codegen --dialect=postgres --camel-case --env-file=../../.env --out-file=./src/kysely/types/db.d.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.540.0",

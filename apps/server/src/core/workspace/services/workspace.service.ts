@@ -56,7 +56,6 @@ export class WorkspaceService {
             name: createWorkspaceDto.name,
             hostname: createWorkspaceDto.hostname,
             description: createWorkspaceDto.description,
-            creatorId: user.id,
           },
           trx,
         );
@@ -77,9 +76,10 @@ export class WorkspaceService {
           })
           .execute();
 
-        // add user to default group
-        await this.groupUserService.addUserToDefaultGroup(
+        // add user to default group created above
+        await this.groupUserService.addUserToGroup(
           user.id,
+          group.id,
           workspace.id,
           trx,
         );

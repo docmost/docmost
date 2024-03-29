@@ -39,7 +39,13 @@ export class SignupService {
       this.db,
       async (trx) => {
         // create user
-        const user = await this.userRepo.insertUser(createUserDto, trx);
+        const user = await this.userRepo.insertUser(
+          {
+            ...createUserDto,
+            workspaceId: workspaceId,
+          },
+          trx,
+        );
 
         // add user to workspace
         await this.workspaceService.addUserToWorkspace(
@@ -88,7 +94,13 @@ export class SignupService {
       async (trx) => {
         // create user
         const user = await this.userRepo.insertUser(createAdminUserDto, trx);
-        await this.createWorkspace(user, createAdminUserDto.workspaceName, trx);
+        const workspace = await this.createWorkspace(
+          user,
+          createAdminUserDto.workspaceName,
+          trx,
+        );
+
+        user.workspaceId = workspace.id;
         return user;
       },
       trx,

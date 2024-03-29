@@ -23,7 +23,7 @@ export class GroupUserRepo {
       this.db,
       async (trx) => {
         return await trx
-          .selectFrom('group_users')
+          .selectFrom('groupUsers')
           .selectAll()
           .where('userId', '=', userId)
           .where('groupId', '=', groupId)
@@ -41,7 +41,7 @@ export class GroupUserRepo {
       this.db,
       async (trx) => {
         return await trx
-          .insertInto('group_users')
+          .insertInto('groupUsers')
           .values(insertableGroupUser)
           .returningAll()
           .executeTakeFirst();
@@ -57,8 +57,8 @@ export class GroupUserRepo {
     // todo add group member count
     return executeTx(this.db, async (trx) => {
       const groupUsers = (await trx
-        .selectFrom('group_users')
-        .innerJoin('users', 'users.id', 'group_users.userId')
+        .selectFrom('groupUsers')
+        .innerJoin('users', 'users.id', 'groupUsers.userId')
         .select(sql<User>`users.*` as any)
         .where('groupId', '=', groupId)
         .limit(paginationOptions.limit)
@@ -71,7 +71,7 @@ export class GroupUserRepo {
       });
 
       let { count } = await trx
-        .selectFrom('group_users')
+        .selectFrom('groupUsers')
         .select((eb) => eb.fn.count('id').as('count'))
         .where('groupId', '=', groupId)
         .executeTakeFirst();
@@ -84,7 +84,7 @@ export class GroupUserRepo {
 
   async delete(userId: string, groupId: string): Promise<void> {
     await this.db
-      .deleteFrom('group_users')
+      .deleteFrom('groupUsers')
       .where('userId', '=', userId)
       .where('groupId', '=', groupId)
       .execute();

@@ -11,26 +11,27 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('description', 'text', (col) => col)
     .addColumn('logo', 'varchar', (col) => col)
     .addColumn('hostname', 'varchar', (col) => col)
-    .addColumn('customDomain', 'varchar', (col) => col)
-    .addColumn('enableInvite', 'boolean', (col) =>
+    .addColumn('custom_domain', 'varchar', (col) => col)
+    .addColumn('enable_invite', 'boolean', (col) =>
       col.defaultTo(true).notNull(),
     )
-    .addColumn('inviteCode', 'varchar', (col) => col)
+    .addColumn('invite_code', 'varchar', (col) =>
+      col.defaultTo(sql`gen_random_uuid()`),
+    )
     .addColumn('settings', 'jsonb', (col) => col)
-    .addColumn('defaultRole', 'varchar', (col) =>
+    .addColumn('default_role', 'varchar', (col) =>
       col.defaultTo(UserRole.MEMBER).notNull(),
     )
-    .addColumn('creatorId', 'uuid', (col) => col)
-    .addColumn('defaultSpaceId', 'uuid', (col) => col)
-    .addColumn('createdAt', 'timestamp', (col) =>
+    .addColumn('default_space_id', 'uuid', (col) => col)
+    .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('updatedAt', 'timestamp', (col) =>
+    .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('deletedAt', 'timestamp', (col) => col)
+    .addColumn('deleted_at', 'timestamptz', (col) => col)
     .addUniqueConstraint('workspaces_hostname_unique', ['hostname'])
-    .addUniqueConstraint('workspaces_inviteCode_unique', ['inviteCode'])
+    .addUniqueConstraint('workspaces_invite_code_unique', ['invite_code'])
     .execute();
 }
 

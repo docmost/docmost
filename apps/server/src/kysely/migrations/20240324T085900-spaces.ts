@@ -14,36 +14,64 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('visibility', 'varchar', (col) =>
       col.defaultTo(SpaceVisibility.OPEN).notNull(),
     )
-    .addColumn('defaultRole', 'varchar', (col) =>
+    .addColumn('default_role', 'varchar', (col) =>
       col.defaultTo(SpaceRole.WRITER).notNull(),
     )
-    .addColumn('creatorId', 'uuid', (col) => col.references('users.id'))
-    .addColumn('workspaceId', 'uuid', (col) =>
+    .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('createdAt', 'timestamp', (col) =>
+    .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('updatedAt', 'timestamp', (col) =>
+    .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addUniqueConstraint('spaces_slug_workspaceId_unique', [
+    .addColumn('deleted_at', 'timestamptz', (col) => col)
+    .addUniqueConstraint('spaces_slug_workspace_id_unique', [
       'slug',
-      'workspaceId',
+      'workspace_id',
     ])
+    .execute();
+
+  await db.schema
+    .createTable('space_members')
+    .addColumn('id', 'uuid', (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn('user_id', 'uuid', (col) =>
+      col.references('users.id').onDelete('cascade'),
+    )
+    .addColumn('group_id', 'uuid', (col) =>
+      col.references('groups.id').onDelete('cascade'),
+    )
+    .addColumn('space_id', 'uuid', (col) =>
+      col.references('spaces.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('role', 'varchar', (col) => col.notNull())
+    .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('created_at', 'timestamptz', (col) =>
+      col.notNull().defaultTo(sql`now()`),
+    )
+    .addColumn('updated_at', 'timestamptz', (col) =>
+      col.notNull().defaultTo(sql`now()`),
+    )
+    .addUniqueConstraint('space_members_space_id_user_id_unique', [
+      'space_id',
+      'user_id',
+    ])
+    .addUniqueConstraint('space_members_space_id_group_id_unique', [
+      'space_id',
+      'group_id',
+    ])
+    .addCheckConstraint(
+      'allow_either_user_id_or_group_id_check',
+      sql`(("user_id" IS NOT NULL AND "group_id" IS NULL) OR ("user_id" IS NULL AND "group_id" IS NOT NULL))`,
+    )
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema
-    .alterTable('spaces')
-    .dropConstraint('spaces_creatorId_fkey')
-    .execute();
-
-  await db.schema
-    .alterTable('spaces')
-    .dropConstraint('spaces_workspaceId_fkey')
-    .execute();
-
+  await db.schema.dropTable('space_members').execute();
   await db.schema.dropTable('spaces').execute();
 }

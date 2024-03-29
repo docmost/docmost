@@ -22,7 +22,7 @@ export class SpaceMemberRepo {
       this.db,
       async (trx) => {
         return await trx
-          .insertInto('space_members')
+          .insertInto('spaceMembers')
           .values(insertableSpaceMember)
           .returningAll()
           .executeTakeFirst();
@@ -37,9 +37,9 @@ export class SpaceMemberRepo {
   ) {
     return executeTx(this.db, async (trx) => {
       const spaceMembers = await trx
-        .selectFrom('space_members')
-        .leftJoin('users', 'users.id', 'space_members.userId')
-        .leftJoin('groups', 'groups.id', 'space_members.groupId')
+        .selectFrom('spaceMembers')
+        .leftJoin('users', 'users.id', 'spaceMembers.userId')
+        .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
         .select([
           'groups.id as group_id',
           'groups.name as group_name',
@@ -51,10 +51,10 @@ export class SpaceMemberRepo {
           'users.name as user_name',
           'users.avatarUrl as user_avatarUrl',
           'users.email as user_email',
-          'space_members.role',
+          'spaceMembers.role',
         ])
         .where('spaceId', '=', spaceId)
-        .orderBy('space_members.createdAt', 'asc')
+        .orderBy('spaceMembers.createdAt', 'asc')
         .limit(paginationOptions.limit)
         .offset(paginationOptions.offset)
         .execute();
@@ -87,7 +87,7 @@ export class SpaceMemberRepo {
       });
 
       let { count } = await trx
-        .selectFrom('space_members')
+        .selectFrom('spaceMembers')
         .select((eb) => eb.fn.count('id').as('count'))
         .where('spaceId', '=', spaceId)
         .executeTakeFirst();
@@ -106,7 +106,7 @@ export class SpaceMemberRepo {
    * Todo: needs more work. this is a draft
    */
   async getUserSpaces(userId: string, workspaceId: string) {
-    const rolePriority = sql`CASE "space_members"."role"
+    const rolePriority = sql`CASE "spaceMembers"."role"
                                   WHEN 'owner' THEN 3
                                   WHEN 'writer' THEN 2
                                   WHEN 'reader' THEN 1
@@ -114,35 +114,31 @@ export class SpaceMemberRepo {
 
     const subquery = this.db
       .selectFrom('spaces')
-      .innerJoin('space_members', 'spaces.id', 'space_members.spaceId')
+      .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
       .select([
         'spaces.id',
         'spaces.name',
         'spaces.slug',
         'spaces.icon',
-        'space_members.role',
+        'spaceMembers.role',
         rolePriority,
       ])
-      .where('space_members.userId', '=', userId)
+      .where('spaceMembers.userId', '=', userId)
       .where('spaces.workspaceId', '=', workspaceId)
       .unionAll(
         this.db
           .selectFrom('spaces')
-          .innerJoin('space_members', 'spaces.id', 'space_members.spaceId')
-          .innerJoin(
-            'group_users',
-            'space_members.groupId',
-            'group_users.groupId',
-          )
+          .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
+          .innerJoin('groupUsers', 'spaceMembers.groupId', 'groupUsers.groupId')
           .select([
             'spaces.id',
             'spaces.name',
             'spaces.slug',
             'spaces.icon',
-            'space_members.role',
+            'spaceMembers.role',
             rolePriority,
           ])
-          .where('group_users.userId', '=', userId),
+          .where('groupUsers.userId', '=', userId),
       )
       .as('membership');
 
@@ -194,7 +190,7 @@ export class SpaceMemberRepo {
     spaceId: string,
     workspaceId: string,
   ) {
-    const rolePriority = sql`CASE "space_members"."role"
+    const rolePriority = sql`CASE "spaceMembers"."role"
                                   WHEN 'owner' THEN 3
                                   WHEN 'writer' THEN 2
                                   WHEN 'reader' THEN 1
@@ -202,36 +198,32 @@ export class SpaceMemberRepo {
 
     const subquery = this.db
       .selectFrom('spaces')
-      .innerJoin('space_members', 'spaces.id', 'space_members.spaceId')
+      .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
       .select([
         'spaces.id',
         'spaces.name',
-        'space_members.role',
-        'space_members.userId',
+        'spaceMembers.role',
+        'spaceMembers.userId',
         rolePriority,
       ])
-      .where('space_members.userId', '=', userId)
+      .where('spaceMembers.userId', '=', userId)
       .where('spaces.id', '=', spaceId)
       .where('spaces.workspaceId', '=', workspaceId)
       .unionAll(
         this.db
           .selectFrom('spaces')
-          .innerJoin('space_members', 'spaces.id', 'space_members.spaceId')
-          .innerJoin(
-            'group_users',
-            'space_members.groupId',
-            'group_users.groupId',
-          )
+          .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
+          .innerJoin('groupUsers', 'spaceMembers.groupId', 'groupUsers.groupId')
           .select([
             'spaces.id',
             'spaces.name',
-            'space_members.role',
-            'space_members.userId',
+            'spaceMembers.role',
+            'spaceMembers.userId',
             rolePriority,
           ])
           .where('spaces.id', '=', spaceId)
           .where('spaces.workspaceId', '=', workspaceId)
-          .where('group_users.userId', '=', userId),
+          .where('groupUsers.userId', '=', userId),
       )
       .as('membership');
 
@@ -275,7 +267,7 @@ export class SpaceMemberRepo {
       this.db,
       async (trx) => {
         return await trx
-          .selectFrom('space_members')
+          .selectFrom('spaceMembers')
           .selectAll()
           .where('userId', '=', userId)
           .where('groupId', '=', groupId)
@@ -287,7 +279,7 @@ export class SpaceMemberRepo {
 
   async removeUser(userId: string, spaceId: string): Promise<void> {
     await this.db
-      .deleteFrom('space_members')
+      .deleteFrom('spaceMembers')
       .where('userId', '=', userId)
       .where('spaceId', '=', spaceId)
       .execute();
@@ -295,7 +287,7 @@ export class SpaceMemberRepo {
 
   async removeGroup(groupId: string, spaceId: string): Promise<void> {
     await this.db
-      .deleteFrom('space_members')
+      .deleteFrom('spaceMembers')
       .where('userId', '=', groupId)
       .where('spaceId', '=', spaceId)
       .execute();

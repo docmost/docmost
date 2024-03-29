@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
-import { LogEvent, PostgresDialect } from 'kysely';
+import { CamelCasePlugin, LogEvent, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
@@ -25,8 +25,9 @@ import { AttachmentRepo } from './repos/attachment/attachment.repo';
         dialect: new PostgresDialect({
           pool: new Pool({
             connectionString: environmentService.getDatabaseURL(),
-          }) as any,
+          }),
         }),
+        plugins: [new CamelCasePlugin()],
         log: (event: LogEvent) => {
           if (environmentService.getEnv() !== 'development') return;
           if (event.level === 'query') {

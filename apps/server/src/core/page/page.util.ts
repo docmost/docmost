@@ -64,7 +64,7 @@ export async function removeFromArrayAndSave(
   if (index > -1) {
     array.splice(index, 1);
     await trx
-      .updateTable('page_ordering')
+      .updateTable('pageOrdering')
       .set(entity)
       .where('id', '=', entity.id)
       .execute();

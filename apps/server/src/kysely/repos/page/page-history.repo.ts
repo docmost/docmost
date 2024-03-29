@@ -15,7 +15,7 @@ export class PageHistoryRepo {
 
   async findById(pageHistoryId: string): Promise<PageHistory> {
     return await this.db
-      .selectFrom('page_history')
+      .selectFrom('pageHistory')
       .selectAll()
       .where('id', '=', pageHistoryId)
       .executeTakeFirst();
@@ -30,7 +30,7 @@ export class PageHistoryRepo {
       this.db,
       async (trx) => {
         return await trx
-          .updateTable('page_history')
+          .updateTable('pageHistory')
           .set(updatablePageHistory)
           .where('id', '=', pageHistoryId)
           .execute();
@@ -47,7 +47,7 @@ export class PageHistoryRepo {
       this.db,
       async (trx) => {
         return await trx
-          .insertInto('page_history')
+          .insertInto('pageHistory')
           .values(insertablePageHistory)
           .returningAll()
           .executeTakeFirst();
@@ -62,7 +62,7 @@ export class PageHistoryRepo {
   ) {
     return executeTx(this.db, async (trx) => {
       const pageHistory = await trx
-        .selectFrom('page_history as history')
+        .selectFrom('pageHistory as history')
         .innerJoin('users as user', 'user.id', 'history.lastUpdatedById')
         .select([
           'history.id',
@@ -87,7 +87,7 @@ export class PageHistoryRepo {
         .execute();
 
       let { count } = await trx
-        .selectFrom('page_history')
+        .selectFrom('pageHistory')
         .select((eb) => eb.fn.count('id').as('count'))
         .where('pageId', '=', pageId)
         .executeTakeFirst();

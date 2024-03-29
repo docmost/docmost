@@ -62,7 +62,7 @@ export class PageOrderingService {
           // it should save or update right?
           // await manager.save(spaceOrdering); //TODO: to update or create new record? pretty confusing
           await trx
-            .updateTable('page_ordering')
+            .updateTable('pageOrdering')
             .set(spaceOrdering)
             .where('id', '=', spaceOrdering.id)
             .execute();
@@ -109,7 +109,7 @@ export class PageOrderingService {
           // Modify the children list of the new parentPage and save
           orderPageList(parentPageOrdering.childrenIds, dto);
           await trx
-            .updateTable('page_ordering')
+            .updateTable('pageOrdering')
             .set(parentPageOrdering)
             .where('id', '=', parentPageOrdering.id)
             .execute();
@@ -238,7 +238,7 @@ export class PageOrderingService {
     if (!ordering.childrenIds.includes(childId)) {
       ordering.childrenIds.unshift(childId);
       await trx
-        .updateTable('page_ordering')
+        .updateTable('pageOrdering')
         .set(ordering)
         .where('id', '=', ordering.id)
         .execute();
@@ -252,7 +252,7 @@ export class PageOrderingService {
     trx: KyselyTransaction,
   ): Promise<PageOrdering> {
     return trx
-      .selectFrom('page_ordering')
+      .selectFrom('pageOrdering')
       .selectAll()
       .where('entityId', '=', entityId)
       .where('entityType', '=', entityType)
@@ -267,7 +267,7 @@ export class PageOrderingService {
     trx: KyselyTransaction,
   ): Promise<PageOrdering> {
     await trx
-      .insertInto('page_ordering')
+      .insertInto('pageOrdering')
       .values({
         entityId,
         entityType,
@@ -285,7 +285,7 @@ export class PageOrderingService {
     spaceId: string,
   ): Promise<{ id: string; childrenIds: string[]; spaceId: string }> {
     return await this.db
-      .selectFrom('page_ordering')
+      .selectFrom('pageOrdering')
       .select(['id', 'childrenIds', 'spaceId'])
       .where('entityId', '=', spaceId)
       .where('entityType', '=', OrderingEntity.SPACE)

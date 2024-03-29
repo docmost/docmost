@@ -5,7 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
         begin
             new.tsv :=
                       setweight(to_tsvector('english', coalesce(new.title, '')), 'A') ||
-                      setweight(to_tsvector('english', coalesce(new.\"textContent\", '')), 'B');
+                      setweight(to_tsvector('english', coalesce(new.text_content, '')), 'B');
             return new;
         end;
         $$ LANGUAGE plpgsql;`.execute(db);

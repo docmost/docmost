@@ -10,7 +10,6 @@ import {
 import { sql } from 'kysely';
 import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
 import { OrderingEntity } from 'src/core/page/page.util';
-import { PageWithOrderingDto } from 'src/core/page/dto/page-with-ordering.dto';
 
 // TODO: scope to space/workspace
 @Injectable()
@@ -23,7 +22,7 @@ export class PageRepo {
     'slug',
     'icon',
     'coverPhoto',
-    'shareId',
+    'key',
     'parentPageId',
     'creatorId',
     'lastUpdatedById',
@@ -126,7 +125,7 @@ export class PageRepo {
   async getSpaceSidebarPages(spaceId: string, limit: number) {
     const pages = await this.db
       .selectFrom('pages as page')
-      .innerJoin('page_ordering as ordering', 'ordering.entityId', 'page.id')
+      .innerJoin('pageOrdering as ordering', 'ordering.entityId', 'page.id')
       .where('ordering.entityType', '=', OrderingEntity.PAGE)
       .where('page.spaceId', '=', spaceId)
       .select([

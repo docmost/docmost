@@ -8,35 +8,49 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('name', 'varchar', (col) => col.notNull())
     .addColumn('description', 'text', (col) => col)
-    .addColumn('isDefault', 'boolean', (col) => col.notNull())
-    .addColumn('workspaceId', 'uuid', (col) =>
+    .addColumn('is_default', 'boolean', (col) => col.notNull())
+    .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('creatorId', 'uuid', (col) => col.references('users.id'))
-    .addColumn('createdAt', 'timestamp', (col) =>
+    .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('updatedAt', 'timestamp', (col) =>
+    .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addUniqueConstraint('groups_name_workspaceId_unique', [
+    .addUniqueConstraint('groups_name_workspace_id_unique', [
       'name',
-      'workspaceId',
+      'workspace_id',
     ])
 
+    .execute();
+
+  await db.schema
+    .createTable('group_users')
+    .addColumn('id', 'uuid', (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn('user_id', 'uuid', (col) =>
+      col.references('users.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('group_id', 'uuid', (col) =>
+      col.references('groups.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('created_at', 'timestamptz', (col) =>
+      col.notNull().defaultTo(sql`now()`),
+    )
+    .addColumn('updated_at', 'timestamptz', (col) =>
+      col.notNull().defaultTo(sql`now()`),
+    )
+    .addUniqueConstraint('group_users_group_id_user_id_unique', [
+      'group_id',
+      'user_id',
+    ])
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema
-    .alterTable('groups')
-    .dropConstraint('groups_workspaceId_fkey')
-    .execute();
-
-  await db.schema
-    .alterTable('groups')
-    .dropConstraint('groups_creatorId_fkey')
-    .execute();
-
+  await db.schema.dropTable('group_users').execute();
   await db.schema.dropTable('groups').execute();
 }
