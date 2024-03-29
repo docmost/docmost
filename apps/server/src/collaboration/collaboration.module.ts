@@ -1,5 +1,4 @@
 import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { UserModule } from '../core/user/user.module';
 import { AuthModule } from '../core/auth/auth.module';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
@@ -18,7 +17,7 @@ import { HistoryExtension } from './extensions/history.extension';
     PersistenceExtension,
     HistoryExtension,
   ],
-  imports: [UserModule, AuthModule, PageModule],
+  imports: [AuthModule, PageModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private collabWsAdapter: CollabWsAdapter;

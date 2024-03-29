@@ -1,11 +1,9 @@
 import {
-  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { PageRepository } from '../repositories/page.repository';
-import { Page } from '../entities/page.entity';
 import { MovePageDto } from '../dto/move-page.dto';
 import {
   OrderingEntity,
@@ -13,141 +11,185 @@ import {
   removeFromArrayAndSave,
   TreeNode,
 } from '../page.util';
-import { DataSource, EntityManager } from 'typeorm';
 import { PageService } from './page.service';
-import { PageOrdering } from '../entities/page-ordering.entity';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { executeTx } from '@docmost/db/utils';
+import { Page, PageOrdering } from '@docmost/db/types/entity.types';
 import { PageWithOrderingDto } from '../dto/page-with-ordering.dto';
 
 @Injectable()
 export class PageOrderingService {
   constructor(
-    private pageRepository: PageRepository,
-    private dataSource: DataSource,
     @Inject(forwardRef(() => PageService))
     private pageService: PageService,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
-  async movePage(dto: MovePageDto): Promise<void> {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      const movedPageId = dto.id;
+  // TODO: scope to workspace and space
 
-      const movedPage = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :movedPageId', { movedPageId })
-        .select(['page.id', 'page.spaceId', 'page.parentPageId'])
-        .getOne();
+  async movePage(dto: MovePageDto, trx?: KyselyTransaction): Promise<void> {
+    await executeTx(
+      this.db,
+      async (trx) => {
+        const movedPageId = dto.pageId;
 
-      if (!movedPage) throw new BadRequestException('Moved page not found');
+        const movedPage = await trx
+          .selectFrom('pages as page')
+          .select(['page.id', 'page.spaceId', 'page.parentPageId'])
+          .where('page.id', '=', movedPageId)
+          .executeTakeFirst();
 
-      if (!dto.parentId) {
-        if (movedPage.parentPageId) {
-          await this.removeFromParent(movedPage.parentPageId, dto.id, manager);
-        }
-        const spaceOrdering = await this.getEntityOrdering(
-          movedPage.spaceId,
-          OrderingEntity.space,
-          manager,
-        );
+        if (!movedPage) throw new NotFoundException('Moved page not found');
 
-        orderPageList(spaceOrdering.childrenIds, dto);
+        // if no parentId, it means the page is a root page or now a root page
+        if (!dto.parentId) {
+          // if it had a parent before being moved, we detach it from the previous parent
+          if (movedPage.parentPageId) {
+            await this.removeFromParent(
+              movedPage.parentPageId,
+              dto.pageId,
+              trx,
+            );
+          }
+          const spaceOrdering = await this.getEntityOrdering(
+            movedPage.spaceId,
+            OrderingEntity.SPACE,
+            trx,
+          );
 
-        await manager.save(spaceOrdering);
-      } else {
-        const parentPageId = dto.parentId;
+          orderPageList(spaceOrdering.childrenIds, dto);
+          // it should save or update right?
+          // await manager.save(spaceOrdering); //TODO: to update or create new record? pretty confusing
+          await trx
+            .updateTable('pageOrdering')
+            .set(spaceOrdering)
+            .where('id', '=', spaceOrdering.id)
+            .execute();
+        } else {
+          const parentPageId = dto.parentId;
 
-        let parentPageOrdering = await this.getEntityOrdering(
-          parentPageId,
-          OrderingEntity.page,
-          manager,
-        );
-
-        if (!parentPageOrdering) {
-          parentPageOrdering = await this.createPageOrdering(
+          let parentPageOrdering = await this.getEntityOrdering(
             parentPageId,
-            OrderingEntity.page,
-            movedPage.spaceId,
-            manager,
+            OrderingEntity.PAGE,
+            trx,
           );
+
+          if (!parentPageOrdering) {
+            parentPageOrdering = await this.createPageOrdering(
+              parentPageId,
+              OrderingEntity.PAGE,
+              movedPage.spaceId,
+              trx,
+            );
+          }
+
+          // Check if the parent was changed
+          if (
+            movedPage.parentPageId &&
+            movedPage.parentPageId !== parentPageId
+          ) {
+            //if yes, remove moved page from old parent's children
+            await this.removeFromParent(
+              movedPage.parentPageId,
+              dto.pageId,
+              trx,
+            );
+          }
+
+          // If movedPage didn't have a parent initially (was at root level), update the root level
+          if (!movedPage.parentPageId) {
+            await this.removeFromSpacePageOrder(
+              movedPage.spaceId,
+              dto.pageId,
+              trx,
+            );
+          }
+
+          // Modify the children list of the new parentPage and save
+          orderPageList(parentPageOrdering.childrenIds, dto);
+          await trx
+            .updateTable('pageOrdering')
+            .set(parentPageOrdering)
+            .where('id', '=', parentPageOrdering.id)
+            .execute();
         }
 
-        // Check if the parent was changed
-        if (movedPage.parentPageId && movedPage.parentPageId !== parentPageId) {
-          //if yes, remove moved page from old parent's children
-          await this.removeFromParent(movedPage.parentPageId, dto.id, manager);
-        }
-
-        // If movedPage didn't have a parent initially (was at root level), update the root level
-        if (!movedPage.parentPageId) {
-          await this.removeFromSpacePageOrder(
-            movedPage.spaceId,
-            dto.id,
-            manager,
-          );
-        }
-
-        // Modify the children list of the new parentPage and save
-        orderPageList(parentPageOrdering.childrenIds, dto);
-        await manager.save(parentPageOrdering);
-      }
-
-      movedPage.parentPageId = dto.parentId || null;
-      await manager.save(movedPage);
-    });
+        // update the parent Id of the moved page
+        await trx
+          .updateTable('pages')
+          .set({
+            parentPageId: movedPage.parentPageId || null,
+          })
+          .where('id', '=', movedPage.id)
+          .execute();
+      },
+      trx,
+    );
   }
 
-  async addPageToOrder(spaceId: string, pageId: string, parentPageId?: string) {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      if (parentPageId) {
-        await this.upsertOrdering(
-          parentPageId,
-          OrderingEntity.page,
-          pageId,
-          spaceId,
-          manager,
-        );
-      } else {
-        await this.addToSpacePageOrder(spaceId, pageId, manager);
-      }
-    });
+  async addPageToOrder(
+    spaceId: string,
+    pageId: string,
+    parentPageId?: string,
+    trx?: KyselyTransaction,
+  ) {
+    await executeTx(
+      this.db,
+      async (trx: KyselyTransaction) => {
+        if (parentPageId) {
+          await this.upsertOrdering(
+            parentPageId,
+            OrderingEntity.PAGE,
+            pageId,
+            spaceId,
+            trx,
+          );
+        } else {
+          await this.addToSpacePageOrder(spaceId, pageId, trx);
+        }
+      },
+      trx,
+    );
   }
 
   async addToSpacePageOrder(
     spaceId: string,
     pageId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ) {
     await this.upsertOrdering(
       spaceId,
-      OrderingEntity.space,
+      OrderingEntity.SPACE,
       pageId,
       spaceId,
-      manager,
+      trx,
     );
   }
 
   async removeFromParent(
     parentId: string,
     childId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ): Promise<void> {
     await this.removeChildFromOrdering(
       parentId,
-      OrderingEntity.page,
+      OrderingEntity.PAGE,
       childId,
-      manager,
+      trx,
     );
   }
 
   async removeFromSpacePageOrder(
     spaceId: string,
     pageId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ) {
     await this.removeChildFromOrdering(
       spaceId,
-      OrderingEntity.space,
+      OrderingEntity.SPACE,
       pageId,
-      manager,
+      trx,
     );
   }
 
@@ -155,27 +197,23 @@ export class PageOrderingService {
     entityId: string,
     entityType: string,
     childId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ): Promise<void> {
-    const ordering = await this.getEntityOrdering(
-      entityId,
-      entityType,
-      manager,
-    );
+    const ordering = await this.getEntityOrdering(entityId, entityType, trx);
 
     if (ordering && ordering.childrenIds.includes(childId)) {
-      await removeFromArrayAndSave(ordering, 'childrenIds', childId, manager);
+      await removeFromArrayAndSave(ordering, 'childrenIds', childId, trx);
     }
   }
 
   async removePageFromHierarchy(
     page: Page,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ): Promise<void> {
     if (page.parentPageId) {
-      await this.removeFromParent(page.parentPageId, page.id, manager);
+      await this.removeFromParent(page.parentPageId, page.id, trx);
     } else {
-      await this.removeFromSpacePageOrder(page.spaceId, page.id, manager);
+      await this.removeFromSpacePageOrder(page.spaceId, page.id, trx);
     }
   }
 
@@ -184,65 +222,74 @@ export class PageOrderingService {
     entityType: string,
     childId: string,
     spaceId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ) {
-    let ordering = await this.getEntityOrdering(entityId, entityType, manager);
+    let ordering = await this.getEntityOrdering(entityId, entityType, trx);
 
     if (!ordering) {
       ordering = await this.createPageOrdering(
         entityId,
         entityType,
         spaceId,
-        manager,
+        trx,
       );
     }
 
     if (!ordering.childrenIds.includes(childId)) {
       ordering.childrenIds.unshift(childId);
-      await manager.save(PageOrdering, ordering);
+      await trx
+        .updateTable('pageOrdering')
+        .set(ordering)
+        .where('id', '=', ordering.id)
+        .execute();
+      //await manager.save(PageOrdering, ordering);
     }
   }
 
   async getEntityOrdering(
     entityId: string,
     entityType: string,
-    manager,
+    trx: KyselyTransaction,
   ): Promise<PageOrdering> {
-    return manager
-      .createQueryBuilder(PageOrdering, 'ordering')
-      .setLock('pessimistic_write')
-      .where('ordering.entityId = :entityId', { entityId })
-      .andWhere('ordering.entityType = :entityType', {
-        entityType,
-      })
-      .getOne();
+    return trx
+      .selectFrom('pageOrdering')
+      .selectAll()
+      .where('entityId', '=', entityId)
+      .where('entityType', '=', entityType)
+      .forUpdate()
+      .executeTakeFirst();
   }
 
   async createPageOrdering(
     entityId: string,
     entityType: string,
     spaceId: string,
-    manager: EntityManager,
+    trx: KyselyTransaction,
   ): Promise<PageOrdering> {
-    await manager.query(
-      `INSERT INTO page_ordering ("entityId", "entityType", "spaceId", "childrenIds") 
-     VALUES ($1, $2, $3, '{}')
-     ON CONFLICT ("entityId", "entityType") DO NOTHING`,
-      [entityId, entityType, spaceId],
-    );
+    await trx
+      .insertInto('pageOrdering')
+      .values({
+        entityId,
+        entityType,
+        spaceId,
+        childrenIds: [],
+      })
+      .onConflict((oc) => oc.columns(['entityId', 'entityType']).doNothing())
+      .execute();
 
-    return await this.getEntityOrdering(entityId, entityType, manager);
+    // Todo: maybe use returning above
+    return await this.getEntityOrdering(entityId, entityType, trx);
   }
 
-  async getSpacePageOrder(spaceId: string): Promise<PageOrdering> {
-    return await this.dataSource
-      .createQueryBuilder(PageOrdering, 'ordering')
-      .select(['ordering.id', 'ordering.childrenIds', 'ordering.spaceId'])
-      .where('ordering.entityId = :spaceId', { spaceId })
-      .andWhere('ordering.entityType = :entityType', {
-        entityType: OrderingEntity.space,
-      })
-      .getOne();
+  async getSpacePageOrder(
+    spaceId: string,
+  ): Promise<{ id: string; childrenIds: string[]; spaceId: string }> {
+    return await this.db
+      .selectFrom('pageOrdering')
+      .select(['id', 'childrenIds', 'spaceId'])
+      .where('entityId', '=', spaceId)
+      .where('entityType', '=', OrderingEntity.SPACE)
+      .executeTakeFirst();
   }
 
   async convertToTree(spaceId: string): Promise<TreeNode[]> {

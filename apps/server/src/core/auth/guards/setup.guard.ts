@@ -1,11 +1,12 @@
 import { CanActivate, ForbiddenException, Injectable } from '@nestjs/common';
-import { WorkspaceRepository } from '../../workspace/repositories/workspace.repository';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 
 @Injectable()
 export class SetupGuard implements CanActivate {
-  constructor(private workspaceRepository: WorkspaceRepository) {}
+  constructor(private workspaceRepo: WorkspaceRepo) {}
+
   async canActivate(): Promise<boolean> {
-    const workspaceCount = await this.workspaceRepository.count();
+    const workspaceCount = await this.workspaceRepo.count();
     if (workspaceCount > 0) {
       throw new ForbiddenException('Workspace setup already completed.');
     }

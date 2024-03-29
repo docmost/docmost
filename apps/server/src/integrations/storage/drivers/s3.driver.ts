@@ -38,8 +38,8 @@ export class S3Driver implements StorageDriver {
       // we can get the path from location
 
       console.log(`File uploaded successfully: ${filePath}`);
-    } catch (error) {
-      throw new Error(`Failed to upload file: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
 
@@ -53,8 +53,8 @@ export class S3Driver implements StorageDriver {
       const response = await this.s3Client.send(command);
 
       return streamToBuffer(response.Body as Readable);
-    } catch (error) {
-      throw new Error(`Failed to read file from S3: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Failed to read file from S3: ${(err as Error).message}`);
     }
   }
 
@@ -96,7 +96,7 @@ export class S3Driver implements StorageDriver {
       await this.s3Client.send(command);
     } catch (err) {
       throw new Error(
-        `Error deleting file ${filePath} from S3. ${err.message}`,
+        `Error deleting file ${filePath} from S3. ${(err as Error).message}`,
       );
     }
   }

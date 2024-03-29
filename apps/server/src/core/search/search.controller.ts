@@ -10,8 +10,8 @@ import {
 import { SearchService } from './search.service';
 import { SearchDTO } from './dto/search.dto';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')

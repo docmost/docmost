@@ -4,19 +4,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
-import { UserRepository } from './repositories/user.repository';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { hashPassword } from '../../helpers/utils';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepo: UserRepo) {}
 
-  async findById(userId: string) {
-    return this.userRepository.findById(userId);
+  async findById(userId: string, workspaceId: string) {
+    return this.userRepo.findById(userId, workspaceId);
   }
 
-  async update(userId: string, updateUserDto: UpdateUserDto) {
-    const user = await this.userRepository.findById(userId);
+  async update(
+    updateUserDto: UpdateUserDto,
+    userId: string,
+    workspaceId: string,
+  ) {
+    const user = await this.userRepo.findById(userId, workspaceId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -27,7 +31,7 @@ export class UserService {
 
     // todo need workspace scoping
     if (updateUserDto.email && user.email != updateUserDto.email) {
-      if (await this.userRepository.findByEmail(updateUserDto.email)) {
+      if (await this.userRepo.findByEmail(updateUserDto.email, workspaceId)) {
         throw new BadRequestException('A user with this email already exists');
       }
       user.email = updateUserDto.email;
@@ -37,6 +41,11 @@ export class UserService {
       user.avatarUrl = updateUserDto.avatarUrl;
     }
 
-    return this.userRepository.save(user);
+    if (updateUserDto.password) {
+      updateUserDto.password = await hashPassword(updateUserDto.password);
+    }
+
+    await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
+    return user;
   }
 }

@@ -12,5 +12,5 @@ export class CreateGroupDto {
 }
 
 export enum DefaultGroup {
-  EVERYONE = 'users',
+  EVERYONE = 'internal_users',
 }

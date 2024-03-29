@@ -23,7 +23,7 @@ export class CollabWsAdapter {
           socket.destroy();
         }
       } catch (err) {
-        socket.end('HTTP/1.1 400\r\n' + err.message);
+        socket.end('HTTP/1.1 400\r\n' + (err as Error).message);
       }
     });
 

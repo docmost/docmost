@@ -4,6 +4,8 @@ export class SearchResponseDto {
   icon: string;
   parentPageId: string;
   creatorId: string;
-  rank: string;
+  rank: number;
   highlight: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

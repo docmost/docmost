@@ -21,7 +21,7 @@ export class PersistenceExtension implements Extension {
       return;
     }
 
-    const page = await this.pageService.findWithAllFields(pageId);
+    const page = await this.pageService.findById(pageId, true, true);
 
     if (!page) {
       console.log('page does not exist.');

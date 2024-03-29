@@ -20,24 +20,26 @@ export class LocalDriver implements StorageDriver {
   async upload(filePath: string, file: Buffer): Promise<void> {
     try {
       await fs.outputFile(this._fullPath(filePath), file);
-    } catch (error) {
-      throw new Error(`Failed to upload file: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
 
   async read(filePath: string): Promise<Buffer> {
     try {
       return await fs.readFile(this._fullPath(filePath));
-    } catch (error) {
-      throw new Error(`Failed to read file: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Failed to read file: ${(err as Error).message}`);
     }
   }
 
   async exists(filePath: string): Promise<boolean> {
     try {
       return await fs.pathExists(this._fullPath(filePath));
-    } catch (error) {
-      throw new Error(`Failed to check file existence: ${error.message}`);
+    } catch (err) {
+      throw new Error(
+        `Failed to check file existence: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -52,8 +54,8 @@ export class LocalDriver implements StorageDriver {
   async delete(filePath: string): Promise<void> {
     try {
       await fs.remove(this._fullPath(filePath));
-    } catch (error) {
-      throw new Error(`Failed to delete file: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Failed to delete file: ${(err as Error).message}`);
     }
   }
 

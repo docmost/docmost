@@ -1,24 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { WorkspaceInvitationRepository } from '../repositories/workspace-invitation.repository';
-import { WorkspaceInvitation } from '../entities/workspace-invitation.entity';
-import { User } from '../../user/entities/user.entity';
+import { Injectable } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { UserService } from '../../user/user.service';
-import { InviteUserDto } from '../dto/invitation.dto';
 import { WorkspaceUserService } from './workspace-user.service';
-import { UserRole } from '../../../helpers/types/permission';
-import { UserRepository } from '../../user/repositories/user.repository';
 
+// need reworking
 @Injectable()
 export class WorkspaceInvitationService {
   constructor(
-    private workspaceInvitationRepository: WorkspaceInvitationRepository,
     private workspaceService: WorkspaceService,
     private workspaceUserService: WorkspaceUserService,
     private userService: UserService,
-    private userRepository: UserRepository,
   ) {}
-
+  /*
   async findInvitedUserByEmail(
     email,
     workspaceId,
@@ -108,4 +101,6 @@ export class WorkspaceInvitationService {
 
     await this.workspaceInvitationRepository.delete(invitationId);
   }
+
+ */
 }

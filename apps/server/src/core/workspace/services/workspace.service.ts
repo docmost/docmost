@@ -4,93 +4,84 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
-import { WorkspaceRepository } from '../repositories/workspace.repository';
-import { Workspace } from '../entities/workspace.entity';
-import { v4 as uuidv4 } from 'uuid';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
-import { DataSource, EntityManager } from 'typeorm';
-import { transactionWrapper } from '../../../helpers/db.helper';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
-import { UserRepository } from '../../user/repositories/user.repository';
 import { SpaceRole, UserRole } from '../../../helpers/types/permission';
-import { User } from '../../user/entities/user.entity';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { GroupService } from '../../group/services/group.service';
 import { GroupUserService } from '../../group/services/group-user.service';
 import { SpaceMemberService } from '../../space/services/space-member.service';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { executeTx } from '@docmost/db/utils';
+import { InjectKysely } from 'nestjs-kysely';
+import { User } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class WorkspaceService {
   constructor(
-    private workspaceRepository: WorkspaceRepository,
-    private userRepository: UserRepository,
+    private workspaceRepo: WorkspaceRepo,
     private spaceService: SpaceService,
     private spaceMemberService: SpaceMemberService,
     private groupService: GroupService,
     private groupUserService: GroupUserService,
-    private environmentService: EnvironmentService,
-
-    private dataSource: DataSource,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
-  async findById(workspaceId: string): Promise<Workspace> {
-    return this.workspaceRepository.findById(workspaceId);
+  async findById(workspaceId: string) {
+    return this.workspaceRepo.findById(workspaceId);
   }
 
-  async getWorkspaceInfo(workspaceId: string): Promise<Workspace> {
-    const space = await this.workspaceRepository
-      .createQueryBuilder('workspace')
-      .where('workspace.id = :workspaceId', { workspaceId })
-      .loadRelationCountAndMap(
-        'workspace.memberCount',
-        'workspace.users',
-        'workspaceUsers',
-      )
-      .getOne();
-
-    if (!space) {
+  async getWorkspaceInfo(workspaceId: string) {
+    // todo: add member count
+    const workspace = this.workspaceRepo.findById(workspaceId);
+    if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
 
-    return space;
+    return workspace;
   }
 
   async create(
     user: User,
     createWorkspaceDto: CreateWorkspaceDto,
-    manager?: EntityManager,
-  ): Promise<Workspace> {
-    return await transactionWrapper(
-      async (manager) => {
-        let workspace = new Workspace();
-
-        workspace.name = createWorkspaceDto.name;
-        workspace.hostname = createWorkspaceDto?.hostname;
-        workspace.description = createWorkspaceDto.description;
-        workspace.inviteCode = uuidv4();
-        workspace.creatorId = user.id;
-        workspace = await manager.save(workspace);
+    trx?: KyselyTransaction,
+  ) {
+    return await executeTx(
+      this.db,
+      async (trx) => {
+        // create workspace
+        const workspace = await this.workspaceRepo.insertWorkspace(
+          {
+            name: createWorkspaceDto.name,
+            hostname: createWorkspaceDto.hostname,
+            description: createWorkspaceDto.description,
+          },
+          trx,
+        );
 
         // create default group
         const group = await this.groupService.createDefaultGroup(
           workspace.id,
           user.id,
-          manager,
+          trx,
         );
 
-        // attach user to workspace
-        user.workspaceId = workspace.id;
-        user.role = UserRole.OWNER;
-        await manager.save(user);
+        // add user to workspace
+        await trx
+          .updateTable('users')
+          .set({
+            workspaceId: workspace.id,
+            role: UserRole.OWNER,
+          })
+          .execute();
 
-        // add user to default group
+        // add user to default group created above
         await this.groupUserService.addUserToGroup(
           user.id,
           group.id,
           workspace.id,
-          manager,
+          trx,
         );
 
         // create default space
@@ -98,12 +89,11 @@ export class WorkspaceService {
           name: 'General',
         };
 
-        // create default space
         const createdSpace = await this.spaceService.create(
           user.id,
           workspace.id,
           spaceInfo,
-          manager,
+          trx,
         );
 
         // and add user to space as owner
@@ -112,7 +102,7 @@ export class WorkspaceService {
           createdSpace.id,
           SpaceRole.OWNER,
           workspace.id,
-          manager,
+          trx,
         );
 
         // add default group to space as writer
@@ -121,50 +111,59 @@ export class WorkspaceService {
           createdSpace.id,
           SpaceRole.WRITER,
           workspace.id,
-          manager,
+          trx,
         );
 
+        // update default spaceId
         workspace.defaultSpaceId = createdSpace.id;
-        await manager.save(workspace);
+        await this.workspaceRepo.updateWorkspace(
+          {
+            defaultSpaceId: createdSpace.id,
+          },
+          workspace.id,
+          trx,
+        );
+
         return workspace;
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 
   async addUserToWorkspace(
-    user: User,
-    workspaceId,
+    userId: string,
+    workspaceId: string,
     assignedRole?: UserRole,
-    manager?: EntityManager,
+    trx?: KyselyTransaction,
   ): Promise<void> {
-    return await transactionWrapper(
-      async (manager: EntityManager) => {
-        const workspace = await manager.findOneBy(Workspace, {
-          id: workspaceId,
-        });
+    return await executeTx(
+      this.db,
+      async (trx) => {
+        const workspace = await trx
+          .selectFrom('workspaces')
+          .select(['id', 'defaultRole'])
+          .where('workspaces.id', '=', workspaceId)
+          .executeTakeFirst();
 
         if (!workspace) {
-          throw new BadRequestException('Workspace does not exist');
+          throw new BadRequestException('Workspace not found');
         }
 
-        user.role = assignedRole ?? workspace.defaultRole;
-        user.workspaceId = workspace.id;
-        await manager.save(user);
-
-        // User is now added to the default space via the default group
+        await trx
+          .updateTable('users')
+          .set({
+            role: assignedRole ?? workspace.defaultRole,
+            workspaceId: workspace.id,
+          })
+          .where('id', '=', userId)
+          .execute();
       },
-      this.dataSource,
-      manager,
+      trx,
     );
   }
 
-  async update(
-    workspaceId: string,
-    updateWorkspaceDto: UpdateWorkspaceDto,
-  ): Promise<Workspace> {
-    const workspace = await this.workspaceRepository.findById(workspaceId);
+  async update(workspaceId: string, updateWorkspaceDto: UpdateWorkspaceDto) {
+    const workspace = await this.workspaceRepo.findById(workspaceId);
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
@@ -177,16 +176,15 @@ export class WorkspaceService {
       workspace.logo = updateWorkspaceDto.logo;
     }
 
-    return this.workspaceRepository.save(workspace);
+    await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
+    return workspace;
   }
 
-  async delete(deleteWorkspaceDto: DeleteWorkspaceDto): Promise<void> {
-    const workspace = await this.workspaceRepository.findById(
-      deleteWorkspaceDto.workspaceId,
-    );
+  async delete(workspaceId: string): Promise<void> {
+    const workspace = await this.workspaceRepo.findById(workspaceId);
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
-    // delete
+    //delete
   }
 }

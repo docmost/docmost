@@ -53,7 +53,8 @@ export class HistoryExtension implements Extension {
 
   async recordHistory(pageId: string) {
     try {
-      const page = await this.pageService.findWithContent(pageId);
+      const includeContent = true;
+      const page = await this.pageService.findById(pageId, includeContent);
       // Todo: compare if data is the same as the previous version
       await this.pageHistoryService.saveHistory(page);
       console.log(`New history created for: ${pageId}`);

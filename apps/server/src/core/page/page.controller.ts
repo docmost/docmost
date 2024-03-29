@@ -17,10 +17,10 @@ import { PageHistoryService } from './services/page-history.service';
 import { HistoryDetailsDto } from './dto/history-details.dto';
 import { PageHistoryDto } from './dto/page-history.dto';
 import { AuthUser } from '../../decorators/auth-user.decorator';
-import { User } from '../user/entities/user.entity';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { Workspace } from '../workspace/entities/workspace.entity';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -34,7 +34,7 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   async getPage(@Body() input: PageDetailsDto) {
-    return this.pageService.findOne(input.id);
+    return this.pageService.findById(input.pageId);
   }
 
   @HttpCode(HttpStatus.CREATED)
@@ -50,19 +50,23 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async update(@Body() updatePageDto: UpdatePageDto, @AuthUser() user: User) {
-    return this.pageService.update(updatePageDto.id, updatePageDto, user.id);
+    return this.pageService.update(
+      updatePageDto.pageId,
+      updatePageDto,
+      user.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   async delete(@Body() deletePageDto: DeletePageDto) {
-    await this.pageService.delete(deletePageDto.id);
+    await this.pageService.forceDelete(deletePageDto.pageId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('restore')
   async restore(@Body() deletePageDto: DeletePageDto) {
-    await this.pageService.restore(deletePageDto.id);
+    //  await this.pageService.restore(deletePageDto.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -73,9 +77,11 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('recent')
-  async getRecentSpacePages(@Body() { spaceId }) {
-    console.log(spaceId);
-    return this.pageService.getRecentSpacePages(spaceId);
+  async getRecentSpacePages(
+    @Body() { spaceId },
+    @Body() pagination: PaginationOptions,
+  ) {
+    return this.pageService.getRecentSpacePages(spaceId, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -96,15 +102,19 @@ export class PageController {
     return this.pageOrderService.convertToTree(spaceId);
   }
 
+  // TODO: scope to workspaces
   @HttpCode(HttpStatus.OK)
   @Post('/history')
-  async getPageHistory(@Body() dto: PageHistoryDto) {
-    return this.pageHistoryService.findHistoryByPageId(dto.pageId);
+  async getPageHistory(
+    @Body() dto: PageHistoryDto,
+    @Body() pagination: PaginationOptions,
+  ) {
+    return this.pageHistoryService.findHistoryByPageId(dto.pageId, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('/history/details')
   async get(@Body() dto: HistoryDetailsDto) {
-    return this.pageHistoryService.findOne(dto.id);
+    return this.pageHistoryService.findById(dto.historyId);
   }
 }

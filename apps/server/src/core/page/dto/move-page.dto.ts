@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsUUID } from 'class-validator';
 
 export class MovePageDto {
   @IsUUID()
-  id: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()
