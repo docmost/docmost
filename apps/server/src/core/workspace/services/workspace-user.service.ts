@@ -5,15 +5,11 @@ import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-d
 import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
 import { UserRole } from '../../../helpers/types/permission';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { User } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class WorkspaceUserService {
-  constructor(
-    private workspaceRepo: WorkspaceRepo,
-    private userRepo: UserRepo,
-  ) {}
+  constructor(private userRepo: UserRepo) {}
 
   async getWorkspaceUsers(
     workspaceId: string,

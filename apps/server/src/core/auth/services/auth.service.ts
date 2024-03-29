@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { UserService } from '../../user/user.service';
 import { TokenService } from './token.service';
 import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
@@ -12,14 +11,17 @@ import { comparePasswordHash } from '../../../helpers/utils';
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
     private signupService: SignupService,
     private tokenService: TokenService,
     private userRepo: UserRepo,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
-    const user = await this.userRepo.findByEmail(loginDto.email, workspaceId);
+    const user = await this.userRepo.findByEmail(
+      loginDto.email,
+      workspaceId,
+      true,
+    );
 
     if (
       !user ||

@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
-import { SpaceService } from '../../space/services/space.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { GroupUserService } from '../../group/services/group-user.service';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -16,7 +15,6 @@ export class SignupService {
   constructor(
     private userRepo: UserRepo,
     private workspaceService: WorkspaceService,
-    private spaceService: SpaceService,
     private groupUserService: GroupUserService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
@@ -63,7 +61,11 @@ export class SignupService {
     );
   }
 
-  async createWorkspace(user, workspaceName, trx?: KyselyTransaction) {
+  async createWorkspace(
+    user: User,
+    workspaceName: string,
+    trx?: KyselyTransaction,
+  ) {
     return await executeTx(
       this.db,
       async (trx) => {

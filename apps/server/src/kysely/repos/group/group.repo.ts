@@ -74,7 +74,6 @@ export class GroupRepo {
           .selectAll()
           .where('isDefault', '=', true)
           .where('workspaceId', '=', workspaceId)
-
           .executeTakeFirst();
       },
       trx,

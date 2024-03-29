@@ -78,9 +78,8 @@ export class WorkspaceService {
           .execute();
 
         // add user to default group
-        await this.groupUserService.addUserToGroup(
+        await this.groupUserService.addUserToDefaultGroup(
           user.id,
-          group.id,
           workspace.id,
           trx,
         );
@@ -124,6 +123,7 @@ export class WorkspaceService {
           workspace.id,
           trx,
         );
+
         return workspace;
       },
       trx,

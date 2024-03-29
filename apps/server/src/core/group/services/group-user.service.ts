@@ -63,7 +63,7 @@ export class GroupUserService {
     await executeTx(
       this.db,
       async (trx) => {
-        await this.groupService.findAndValidateGroup(groupId, workspaceId);
+        // await this.groupService.findAndValidateGroup(groupId, workspaceId);
         const groupUserExists = await this.groupUserRepo.getGroupUserById(
           userId,
           groupId,
