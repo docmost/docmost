@@ -39,6 +39,15 @@ export class UserController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('info')
+  async getUserIno(
+    @AuthUser() authUser: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return { user: authUser, workspace };
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateUser(
     @Body() updateUserDto: UpdateUserDto,
