@@ -31,8 +31,8 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_ts_query(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', page.textContent, to_tsquery(${searchQuery}), 'MinWords=9, MaxWords=10, MaxFragments=10')`.as(
+        sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
+        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}), 'MinWords=9, MaxWords=10, MaxFragments=10')`.as(
           'highlight',
         ),
       ])
