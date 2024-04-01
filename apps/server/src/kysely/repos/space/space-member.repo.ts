@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableSpaceMember,
   SpaceMember,
 } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../pagination/pagination-options';
 import { MemberInfo } from './types';
 import { sql } from 'kysely';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class SpaceMemberRepo {
@@ -18,83 +19,70 @@ export class SpaceMemberRepo {
     insertableSpaceMember: InsertableSpaceMember,
     trx?: KyselyTransaction,
   ): Promise<SpaceMember> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('spaceMembers')
-          .values(insertableSpaceMember)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('spaceMembers')
+      .values(insertableSpaceMember)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async getSpaceMembersPaginated(
     spaceId: string,
-    paginationOptions: PaginationOptions,
+    pagination: PaginationOptions,
   ) {
-    return executeTx(this.db, async (trx) => {
-      const spaceMembers = await trx
-        .selectFrom('spaceMembers')
-        .leftJoin('users', 'users.id', 'spaceMembers.userId')
-        .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
-        .select([
-          'groups.id as group_id',
-          'groups.name as group_name',
-          'groups.isDefault as group_isDefault',
-          'groups.id as groups_id',
-          'groups.id as groups_id',
-          'groups.id as groups_id',
-          'users.id as user_id',
-          'users.name as user_name',
-          'users.avatarUrl as user_avatarUrl',
-          'users.email as user_email',
-          'spaceMembers.role',
-        ])
-        .where('spaceId', '=', spaceId)
-        .orderBy('spaceMembers.createdAt', 'asc')
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+    const query = this.db
+      .selectFrom('spaceMembers')
+      .leftJoin('users', 'users.id', 'spaceMembers.userId')
+      .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
+      .select([
+        'groups.id as group_id',
+        'groups.name as group_name',
+        'groups.isDefault as group_isDefault',
+        'groups.id as groups_id',
+        'groups.id as groups_id',
+        'groups.id as groups_id',
+        'users.id as user_id',
+        'users.name as user_name',
+        'users.avatarUrl as user_avatarUrl',
+        'users.email as user_email',
+        'spaceMembers.role',
+      ])
+      .where('spaceId', '=', spaceId)
+      .orderBy('spaceMembers.createdAt', 'asc');
 
-      let memberInfo: MemberInfo;
-
-      const members = spaceMembers.map((member) => {
-        if (member.user_id) {
-          memberInfo = {
-            id: member.user_id,
-            name: member.user_name,
-            email: member.user_email,
-            avatarUrl: member.user_avatarUrl,
-            type: 'user',
-          };
-        } else if (member.group_id) {
-          memberInfo = {
-            id: member.group_id,
-            name: member.group_name,
-            isDefault: member.group_isDefault,
-            type: 'group',
-          };
-          // todo: member count
-        }
-
-        return {
-          ...memberInfo,
-          role: member.role,
-        };
-      });
-
-      let { count } = await trx
-        .selectFrom('spaceMembers')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('spaceId', '=', spaceId)
-        .executeTakeFirst();
-      count = count as number;
-
-      return { members, count };
+    const result = await executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    let memberInfo: MemberInfo;
+
+    const members = result.items.map((member) => {
+      if (member.user_id) {
+        memberInfo = {
+          id: member.user_id,
+          name: member.user_name,
+          email: member.user_email,
+          avatarUrl: member.user_avatarUrl,
+          type: 'user',
+        };
+      } else if (member.group_id) {
+        memberInfo = {
+          id: member.group_id,
+          name: member.group_name,
+          isDefault: member.group_isDefault,
+          type: 'group',
+        };
+      }
+
+      return {
+        ...memberInfo,
+        role: member.role,
+      };
+    });
+
+    return members;
   }
 
   /*
@@ -263,18 +251,13 @@ export class SpaceMemberRepo {
     groupId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .selectFrom('spaceMembers')
-          .selectAll()
-          .where('userId', '=', userId)
-          .where('groupId', '=', groupId)
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('spaceMembers')
+      .selectAll()
+      .where('userId', '=', userId)
+      .where('groupId', '=', groupId)
+      .executeTakeFirst();
   }
 
   async removeUser(userId: string, spaceId: string): Promise<void> {

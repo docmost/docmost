@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { executeTx } from '../../utils';
+import { dbOrTx } from '../../utils';
 import {
   InsertableWorkspace,
   UpdatableWorkspace,
@@ -43,34 +43,24 @@ export class WorkspaceRepo {
     workspaceId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .updateTable('workspaces')
-          .set(updatableWorkspace)
-          .where('id', '=', workspaceId)
-          .execute();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('workspaces')
+      .set(updatableWorkspace)
+      .where('id', '=', workspaceId)
+      .execute();
   }
 
   async insertWorkspace(
     insertableWorkspace: InsertableWorkspace,
     trx?: KyselyTransaction,
   ): Promise<Workspace> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('workspaces')
-          .values(insertableWorkspace)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('workspaces')
+      .values(insertableWorkspace)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async count(): Promise<number> {

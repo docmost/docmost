@@ -3,13 +3,14 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Users } from '@docmost/db/types/db';
 import { hashPassword } from '../../../helpers/utils';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableUser,
   UpdatableUser,
   User,
 } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../pagination/pagination-options';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class UserRepo {
@@ -35,8 +36,10 @@ export class UserRepo {
     userId: string,
     workspaceId: string,
     includePassword?: boolean,
+    trx?: KyselyTransaction,
   ): Promise<User> {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .selectFrom('users')
       .select(this.baseFields)
       .$if(includePassword, (qb) => qb.select('password'))
@@ -95,17 +98,12 @@ export class UserRepo {
       lastLoginAt: new Date(),
     };
 
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('users')
-          .values(user)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('users')
+      .values(user)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async roleCountByWorkspaceId(
@@ -122,28 +120,24 @@ export class UserRepo {
     return count as number;
   }
 
-  async getUsersPaginated(
-    workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ) {
-    return executeTx(this.db, async (trx) => {
-      const users = await trx
-        .selectFrom('users')
-        .select(this.baseFields)
-        .where('workspaceId', '=', workspaceId)
-        .orderBy('createdAt asc')
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+  async getUsersPaginated(workspaceId: string, pagination: PaginationOptions) {
+    let query = this.db
+      .selectFrom('users')
+      .select(this.baseFields)
+      .where('workspaceId', '=', workspaceId)
+      .orderBy('createdAt', 'asc');
 
-      let { count } = await trx
-        .selectFrom('users')
-        .select((eb) => eb.fn.countAll().as('count'))
-        .where('workspaceId', '=', workspaceId)
-        .executeTakeFirst();
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`),
+      );
+    }
 
-      count = count as number;
-      return { users, count };
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    return result;
   }
 }

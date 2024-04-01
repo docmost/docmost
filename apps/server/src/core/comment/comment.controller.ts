@@ -13,7 +13,7 @@ import { CommentsInput, SingleCommentInput } from './dto/comments.input';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)

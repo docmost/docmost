@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { Page, PageHistory } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
-import { PaginatedResult } from 'src/helpers/pagination/paginated-result';
-import { PaginationMetaDto } from 'src/helpers/pagination/pagination-meta-dto';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class PageHistoryService {
@@ -35,14 +34,12 @@ export class PageHistoryService {
   async findHistoryByPageId(
     pageId: string,
     paginationOptions: PaginationOptions,
-  ) {
-    const { pageHistory, count } =
-      await this.pageHistoryRepo.findPageHistoryByPageId(
-        pageId,
-        paginationOptions,
-      );
+  ): Promise<PaginationResult<any>> {
+    const pageHistory = await this.pageHistoryRepo.findPageHistoryByPageId(
+      pageId,
+      paginationOptions,
+    );
 
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(pageHistory, paginationMeta);
+    return pageHistory;
   }
 }

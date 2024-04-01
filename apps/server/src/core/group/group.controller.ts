@@ -12,7 +12,7 @@ import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { GroupUserService } from './services/group-user.service';
 import { GroupIdDto } from './dto/group-id.dto';
-import { PaginationOptions } from '../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../kysely/pagination/pagination-options';
 import { AddGroupUserDto } from './dto/add-group-user.dto';
 import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';

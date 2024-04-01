@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { executeTx } from '../../utils';
+import { dbOrTx } from '../../utils';
 import {
   InsertablePageHistory,
   PageHistory,
   UpdatablePageHistory,
 } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class PageHistoryRepo {
@@ -26,74 +27,55 @@ export class PageHistoryRepo {
     pageHistoryId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .updateTable('pageHistory')
-          .set(updatablePageHistory)
-          .where('id', '=', pageHistoryId)
-          .execute();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('pageHistory')
+      .set(updatablePageHistory)
+      .where('id', '=', pageHistoryId)
+      .execute();
   }
 
   async insertPageHistory(
     insertablePageHistory: InsertablePageHistory,
     trx?: KyselyTransaction,
   ): Promise<PageHistory> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('pageHistory')
-          .values(insertablePageHistory)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('pageHistory')
+      .values(insertablePageHistory)
+      .returningAll()
+      .executeTakeFirst();
   }
 
-  async findPageHistoryByPageId(
-    pageId: string,
-    paginationOptions: PaginationOptions,
-  ) {
-    return executeTx(this.db, async (trx) => {
-      const pageHistory = await trx
-        .selectFrom('pageHistory as history')
-        .innerJoin('users as user', 'user.id', 'history.lastUpdatedById')
-        .select([
-          'history.id',
-          'history.pageId',
-          'history.title',
-          'history.slug',
-          'history.icon',
-          'history.coverPhoto',
-          'history.version',
-          'history.lastUpdatedById',
-          'history.workspaceId',
-          'history.createdAt',
-          'history.updatedAt',
-          'user.id',
-          'user.name',
-          'user.avatarUrl',
-        ])
-        .where('pageId', '=', pageId)
-        .orderBy('createdAt', 'desc')
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+  async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
+    // todo: fix user relationship
+    const query = this.db
+      .selectFrom('pageHistory as history')
+      .innerJoin('users as user', 'user.id', 'history.lastUpdatedById')
+      .select([
+        'history.id',
+        'history.pageId',
+        'history.title',
+        'history.slug',
+        'history.icon',
+        'history.coverPhoto',
+        'history.version',
+        'history.lastUpdatedById',
+        'history.workspaceId',
+        'history.createdAt',
+        'history.updatedAt',
+        'user.id',
+        'user.name',
+        'user.avatarUrl',
+      ])
+      .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'desc');
 
-      let { count } = await trx
-        .selectFrom('pageHistory')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('pageId', '=', pageId)
-        .executeTakeFirst();
-
-      count = count as number;
-      return { pageHistory, count };
+    const result = executeWithPagination(query, {
+      page: pagination.offset,
+      perPage: pagination.limit,
     });
+
+    return result;
   }
 }

@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { executeTx } from '../../utils';
+import { dbOrTx } from '../../utils';
 import {
   InsertablePage,
   Page,
   UpdatablePage,
 } from '@docmost/db/types/entity.types';
 import { sql } from 'kysely';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { OrderingEntity } from 'src/core/page/page.util';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 // TODO: scope to space/workspace
 @Injectable()
@@ -63,63 +64,43 @@ export class PageRepo {
     pageId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .updateTable('pages')
-          .set(updatablePage)
-          .where('id', '=', pageId)
-          .execute();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .updateTable('pages')
+      .set(updatablePage)
+      .where('id', '=', pageId)
+      .execute();
   }
 
   async insertPage(
     insertablePage: InsertablePage,
     trx?: KyselyTransaction,
   ): Promise<Page> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('pages')
-          .values(insertablePage)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('pages')
+      .values(insertablePage)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async deletePage(pageId: string): Promise<void> {
     await this.db.deleteFrom('pages').where('id', '=', pageId).execute();
   }
 
-  async getRecentPagesInSpace(
-    spaceId: string,
-    paginationOptions: PaginationOptions,
-  ) {
-    return executeTx(this.db, async (trx) => {
-      const pages = await trx
-        .selectFrom('pages')
-        .select(this.baseFields)
-        .where('spaceId', '=', spaceId)
-        .orderBy('updatedAt', 'desc')
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+  async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
+    const query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .where('spaceId', '=', spaceId)
+      .orderBy('updatedAt', 'desc');
 
-      let { count } = await trx
-        .selectFrom('pages')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('spaceId', '=', spaceId)
-        .executeTakeFirst();
-
-      count = count as number;
-      return { pages, count };
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    return result;
   }
 
   async getSpaceSidebarPages(spaceId: string, limit: number) {
@@ -138,8 +119,7 @@ export class PageRepo {
         'page.creatorId',
         'page.createdAt',
       ])
-      .orderBy('page.createdAt', 'desc')
-      .orderBy('updatedAt', 'desc')
+      .orderBy('page.updatedAt', 'desc')
       .limit(limit)
       .execute();
 

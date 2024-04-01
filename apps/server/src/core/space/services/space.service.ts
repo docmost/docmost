@@ -4,13 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateSpaceDto } from '../dto/create-space.dto';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
-import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
+import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
 import slugify from 'slugify';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Space } from '@docmost/db/types/entity.types';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class SpaceService {
@@ -46,7 +45,6 @@ export class SpaceService {
   }
 
   async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
-    // TODO: add memberCount
     const space = await this.spaceRepo.findById(spaceId, workspaceId);
     if (!space) {
       throw new NotFoundException('Space not found');
@@ -57,15 +55,13 @@ export class SpaceService {
 
   async getWorkspaceSpaces(
     workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<Space>> {
-    const { spaces, count } = await this.spaceRepo.getSpacesInWorkspace(
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Space>> {
+    const spaces = await this.spaceRepo.getSpacesInWorkspace(
       workspaceId,
-      paginationOptions,
+      pagination,
     );
 
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-
-    return new PaginatedResult(spaces, paginationMeta);
+    return spaces;
   }
 }

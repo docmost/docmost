@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { executeTx } from '../../utils';
+import { dbOrTx } from '../../utils';
 import {
   Comment,
   InsertableComment,
   UpdatableComment,
 } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class CommentRepo {
@@ -22,26 +23,19 @@ export class CommentRepo {
       .executeTakeFirst();
   }
 
-  async findPageComments(pageId: string, paginationOptions: PaginationOptions) {
-    return executeTx(this.db, async (trx) => {
-      const comments = await trx
-        .selectFrom('comments')
-        .selectAll()
-        .where('pageId', '=', pageId)
-        .orderBy('createdAt', 'asc')
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+  async findPageComments(pageId: string, pagination: PaginationOptions) {
+    const query = this.db
+      .selectFrom('comments')
+      .selectAll()
+      .where('pageId', '=', pageId)
+      .orderBy('createdAt', 'asc');
 
-      let { count } = await trx
-        .selectFrom('comments')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('pageId', '=', pageId)
-        .executeTakeFirst();
-
-      count = count as number;
-      return { comments, count };
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    return result;
   }
 
   async updateComment(
@@ -49,34 +43,25 @@ export class CommentRepo {
     commentId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .updateTable('comments')
-          .set(updatableComment)
-          .where('id', '=', commentId)
-          .execute();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+
+    db.updateTable('comments')
+      .set(updatableComment)
+      .where('id', '=', commentId)
+      .execute();
   }
 
   async insertComment(
     insertableComment: InsertableComment,
     trx?: KyselyTransaction,
   ): Promise<Comment> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('comments')
-          .values(insertableComment)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+
+    return db
+      .insertInto('comments')
+      .values(insertableComment)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async deleteComment(commentId: string): Promise<void> {

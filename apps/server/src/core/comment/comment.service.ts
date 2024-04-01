@@ -4,9 +4,8 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { PageService } from '../page/services/page.service';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 import { Comment } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
-import { PaginatedResult } from 'src/helpers/pagination/paginated-result';
-import { PaginationMetaDto } from 'src/helpers/pagination/pagination-meta-dto';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class CommentService {
@@ -63,15 +62,14 @@ export class CommentService {
 
   async findByPageId(
     pageId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<Comment>> {
-    const { comments, count } = await this.commentRepo.findPageComments(
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Comment>> {
+    const pageComments = await this.commentRepo.findPageComments(
       pageId,
-      paginationOptions,
+      pagination,
     );
 
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(comments, paginationMeta);
+    return pageComments;
   }
 
   async update(

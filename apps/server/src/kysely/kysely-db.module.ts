@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
 import { CamelCasePlugin, LogEvent, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -14,6 +14,9 @@ import { CommentRepo } from './repos/comment/comment.repo';
 import { PageHistoryRepo } from './repos/page/page-history.repo';
 import { PageOrderingRepo } from './repos/page/page-ordering.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
+
+// https://github.com/brianc/node-postgres/issues/811
+types.setTypeParser(types.builtins.INT8, (val) => Number(val));
 
 @Global()
 @Module({

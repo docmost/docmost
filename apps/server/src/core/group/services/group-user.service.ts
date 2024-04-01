@@ -1,14 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
-import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
 import { GroupService } from './group.service';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { User } from '@docmost/db/types/entity.types';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class GroupUserService {
@@ -16,24 +18,23 @@ export class GroupUserService {
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
     private groupService: GroupService,
+    private userRepo: UserRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async getGroupUsers(
     groupId: string,
     workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<User>> {
+    pagination: PaginationOptions,
+  ) {
     await this.groupService.findAndValidateGroup(groupId, workspaceId);
 
-    const { users, count } = await this.groupUserRepo.getGroupUsersPaginated(
+    const groupUsers = await this.groupUserRepo.getGroupUsersPaginated(
       groupId,
-      paginationOptions,
+      pagination,
     );
 
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-
-    return new PaginatedResult(users, paginationMeta);
+    return groupUsers;
   }
 
   async addUserToDefaultGroup(
@@ -63,7 +64,18 @@ export class GroupUserService {
     await executeTx(
       this.db,
       async (trx) => {
-        // await this.groupService.findAndValidateGroup(groupId, workspaceId);
+        await this.groupService.findAndValidateGroup(groupId, workspaceId);
+        const user = await this.userRepo.findById(
+          userId,
+          workspaceId,
+          false,
+          trx,
+        );
+
+        if (!user) {
+          throw new NotFoundException('User not found');
+        }
+
         const groupUserExists = await this.groupUserRepo.getGroupUserById(
           userId,
           groupId,
@@ -97,6 +109,12 @@ export class GroupUserService {
       groupId,
       workspaceId,
     );
+
+    const user = await this.userRepo.findById(userId, workspaceId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     if (group.isDefault) {
       throw new BadRequestException(

@@ -1,11 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
-import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
-import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
+import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
 import { UserRole } from '../../../helpers/types/permission';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { User } from '@docmost/db/types/entity.types';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class WorkspaceUserService {
@@ -13,15 +12,14 @@ export class WorkspaceUserService {
 
   async getWorkspaceUsers(
     workspaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<any>> {
-    const { users, count } = await this.userRepo.getUsersPaginated(
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<User>> {
+    const users = await this.userRepo.getUsersPaginated(
       workspaceId,
-      paginationOptions,
+      pagination,
     );
 
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-    return new PaginatedResult(users, paginationMeta);
+    return users;
   }
 
   async updateWorkspaceUserRole(

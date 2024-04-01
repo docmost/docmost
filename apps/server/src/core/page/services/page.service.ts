@@ -11,9 +11,8 @@ import { PageWithOrderingDto } from '../dto/page-with-ordering.dto';
 import { transformPageResult } from '../page.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Page } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from 'src/helpers/pagination/pagination-options';
-import { PaginationMetaDto } from 'src/helpers/pagination/pagination-meta-dto';
-import { PaginatedResult } from 'src/helpers/pagination/paginated-result';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class PageService {
@@ -94,6 +93,30 @@ export class PageService {
       },
       pageId,
     );
+  }
+
+  async getSidebarPagesBySpaceId(
+    spaceId: string,
+    limit = 200,
+  ): Promise<PageWithOrderingDto[]> {
+    const pages = await this.pageRepo.getSpaceSidebarPages(spaceId, limit);
+    return transformPageResult(pages);
+  }
+
+  async getRecentSpacePages(
+    spaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Page>> {
+    const pages = await this.pageRepo.getRecentPagesInSpace(
+      spaceId,
+      pagination,
+    );
+
+    return pages;
+  }
+
+  async forceDelete(pageId: string): Promise<void> {
+    await this.pageRepo.deletePage(pageId);
   }
 
   /*
@@ -186,29 +209,4 @@ export class PageService {
     }
   }
 */
-  async forceDelete(pageId: string): Promise<void> {
-    await this.pageRepo.deletePage(pageId);
-  }
-
-  async getSidebarPagesBySpaceId(
-    spaceId: string,
-    limit = 200,
-  ): Promise<PageWithOrderingDto[]> {
-    const pages = await this.pageRepo.getSpaceSidebarPages(spaceId, limit);
-    return transformPageResult(pages);
-  }
-
-  async getRecentSpacePages(
-    spaceId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<Page>> {
-    const { pages, count } = await this.pageRepo.getRecentPagesInSpace(
-      spaceId,
-      paginationOptions,
-    );
-
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-
-    return new PaginatedResult(pages, paginationMeta);
-  }
 }

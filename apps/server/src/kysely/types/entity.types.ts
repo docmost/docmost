@@ -42,6 +42,8 @@ export type InsertableSpaceMember = Insertable<SpaceMembers>;
 export type UpdatableSpaceMember = Updateable<Omit<SpaceMembers, 'id'>>;
 
 // Group
+export type ExtendedGroup = Groups & { memberCount: number };
+
 export type Group = Selectable<Groups>;
 export type InsertableGroup = Insertable<Groups>;
 export type UpdatableGroup = Updateable<Omit<Groups, 'id'>>;

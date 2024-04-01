@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx } from '@docmost/db/utils';
 import {
   GroupUser,
   InsertableGroupUser,
   User,
 } from '@docmost/db/types/entity.types';
 import { sql } from 'kysely';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../pagination/pagination-options';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class GroupUserRepo {
@@ -19,67 +20,47 @@ export class GroupUserRepo {
     groupId: string,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .selectFrom('groupUsers')
-          .selectAll()
-          .where('userId', '=', userId)
-          .where('groupId', '=', groupId)
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('groupUsers')
+      .selectAll()
+      .where('userId', '=', userId)
+      .where('groupId', '=', groupId)
+      .executeTakeFirst();
   }
 
   async insertGroupUser(
     insertableGroupUser: InsertableGroupUser,
     trx?: KyselyTransaction,
   ): Promise<GroupUser> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('groupUsers')
-          .values(insertableGroupUser)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('groupUsers')
+      .values(insertableGroupUser)
+      .returningAll()
+      .executeTakeFirst();
   }
 
-  async getGroupUsersPaginated(
-    groupId: string,
-    paginationOptions: PaginationOptions,
-  ): Promise<{ users: User[]; count: number }> {
-    // todo add group member count
-    return executeTx(this.db, async (trx) => {
-      const groupUsers = (await trx
-        .selectFrom('groupUsers')
-        .innerJoin('users', 'users.id', 'groupUsers.userId')
-        .select(sql<User>`users.*` as any)
-        .where('groupId', '=', groupId)
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute()) as User[];
+  async getGroupUsersPaginated(groupId: string, pagination: PaginationOptions) {
+    let query = this.db
+      .selectFrom('groupUsers')
+      .innerJoin('users', 'users.id', 'groupUsers.userId')
+      .select(sql<User>`users.*` as any)
+      .where('groupId', '=', groupId)
+      .orderBy('createdAt', 'asc');
 
-      const users: User[] = groupUsers.map((user: User) => {
-        delete user.password;
-        return user;
-      });
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`),
+      );
+    }
 
-      let { count } = await trx
-        .selectFrom('groupUsers')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('groupId', '=', groupId)
-        .executeTakeFirst();
-
-      count = count as number;
-
-      return { users, count };
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    return result;
   }
 
   async delete(userId: string, groupId: string): Promise<void> {

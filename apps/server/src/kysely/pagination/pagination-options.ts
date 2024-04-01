@@ -1,4 +1,11 @@
-import { IsNumber, IsOptional, IsPositive, Max, Min } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class PaginationOptions {
   @IsOptional()
@@ -14,15 +21,15 @@ export class PaginationOptions {
   limit = 20;
 
   @IsOptional()
-  @IsNumber()
-  offset = 0;
+  @IsString()
+  query: string;
 
-  get skip(): number {
+  get offset(): number {
     return (this.page - 1) * this.limit;
   }
 }
 
-export enum Order {
-  ASC = 'ASC',
-  DESC = 'DESC',
+export enum PaginationSort {
+  ASC = 'asc',
+  DESC = 'desc',
 }

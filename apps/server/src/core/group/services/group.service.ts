@@ -4,13 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto';
-import { PaginationMetaDto } from '../../../helpers/pagination/pagination-meta-dto';
-import { PaginatedResult } from '../../../helpers/pagination/paginated-result';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
 import { UpdateGroupDto } from '../dto/update-group.dto';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class GroupService {
@@ -71,15 +70,16 @@ export class GroupService {
       throw new BadRequestException('You cannot update a default group');
     }
 
-    const groupExists = await this.groupRepo.findByName(
-      updateGroupDto.name,
-      workspaceId,
-    );
-    if (groupExists) {
-      throw new BadRequestException('Group name already exists');
-    }
-
     if (updateGroupDto.name) {
+      const existingGroup = await this.groupRepo.findByName(
+        updateGroupDto.name,
+        workspaceId,
+      );
+
+      if (existingGroup && group.name !== existingGroup.name) {
+        throw new BadRequestException('Group name already exists');
+      }
+
       group.name = updateGroupDto.name;
     }
 
@@ -100,7 +100,6 @@ export class GroupService {
   }
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
-    // todo: add member count
     const group = await this.groupRepo.findById(groupId, workspaceId);
 
     if (!group) {
@@ -113,15 +112,12 @@ export class GroupService {
   async getWorkspaceGroups(
     workspaceId: string,
     paginationOptions: PaginationOptions,
-  ): Promise<PaginatedResult<Group>> {
-    const { groups, count } = await this.groupRepo.getGroupsPaginated(
+  ): Promise<PaginationResult<Group>> {
+    const groups = await this.groupRepo.getGroupsPaginated(
       workspaceId,
       paginationOptions,
     );
-
-    const paginationMeta = new PaginationMetaDto({ count, paginationOptions });
-
-    return new PaginatedResult(groups, paginationMeta);
+    return groups;
   }
 
   async deleteGroup(groupId: string, workspaceId: string): Promise<void> {

@@ -12,7 +12,7 @@ import { DeleteWorkspaceDto } from '../dto/delete-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { AuthUser } from '../../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../decorators/auth-workspace.decorator';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
 import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
 import { Public } from '../../../decorators/public.decorator';
 import {

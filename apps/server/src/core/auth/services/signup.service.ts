@@ -67,24 +67,6 @@ export class SignupService {
     );
   }
 
-  async createWorkspace(
-    user: User,
-    workspaceName: string,
-    trx?: KyselyTransaction,
-  ) {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        const workspaceData: CreateWorkspaceDto = {
-          name: workspaceName,
-        };
-
-        return await this.workspaceService.create(user, workspaceData, trx);
-      },
-      trx,
-    );
-  }
-
   async initialSetup(
     createAdminUserDto: CreateAdminUserDto,
     trx?: KyselyTransaction,
@@ -94,9 +76,15 @@ export class SignupService {
       async (trx) => {
         // create user
         const user = await this.userRepo.insertUser(createAdminUserDto, trx);
-        const workspace = await this.createWorkspace(
+
+        // create workspace with full setup
+        const workspaceData: CreateWorkspaceDto = {
+          name: createAdminUserDto.workspaceName,
+        };
+
+        const workspace = await this.workspaceService.create(
           user,
-          createAdminUserDto.workspaceName,
+          workspaceData,
           trx,
         );
 

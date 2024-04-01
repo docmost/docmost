@@ -1,23 +1,40 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableSpace,
   Space,
   UpdatableSpace,
 } from '@docmost/db/types/entity.types';
-import { sql } from 'kysely';
-import { PaginationOptions } from '../../../helpers/pagination/pagination-options';
+import { ExpressionBuilder, sql } from 'kysely';
+import { PaginationOptions } from '../../pagination/pagination-options';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { DB } from '@docmost/db/types/db';
 
 @Injectable()
 export class SpaceRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof Space> = [
+    'id',
+    'name',
+    'description',
+    'slug',
+    'icon',
+    'visibility',
+    'defaultRole',
+    'workspaceId',
+    'creatorId',
+    'createdAt',
+    'updatedAt',
+    'deletedAt',
+  ];
+
   async findById(spaceId: string, workspaceId: string): Promise<Space> {
     return await this.db
       .selectFrom('spaces')
-      .selectAll()
+      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -26,7 +43,7 @@ export class SpaceRepo {
   async findBySlug(slug: string, workspaceId: string): Promise<Space> {
     return await this.db
       .selectFrom('spaces')
-      .selectAll()
+      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
       .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -37,28 +54,25 @@ export class SpaceRepo {
     workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<boolean> {
-    return executeTx(
-      this.db,
-      async (trx) => {
-        let { count } = await trx
-          .selectFrom('spaces')
-          .select((eb) => eb.fn.count('id').as('count'))
-          .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
-          .where('workspaceId', '=', workspaceId)
-          .executeTakeFirst();
-        count = count as number;
-        return count == 0 ? false : true;
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    let { count } = await db
+      .selectFrom('spaces')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+    count = count as number;
+    return count == 0 ? false : true;
   }
 
   async updateSpace(
     updatableSpace: UpdatableSpace,
     spaceId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ) {
-    return await this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('spaces')
       .set(updatableSpace)
       .where('id', '=', spaceId)
@@ -70,44 +84,50 @@ export class SpaceRepo {
     insertableSpace: InsertableSpace,
     trx?: KyselyTransaction,
   ): Promise<Space> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('spaces')
-          .values(insertableSpace)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('spaces')
+      .values(insertableSpace)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async getSpacesInWorkspace(
     workspaceId: string,
-    paginationOptions: PaginationOptions,
+    pagination: PaginationOptions,
   ) {
-    //todo: add member count
-    // to: show spaces user have access based on visibility and membership
+    // todo: show spaces user have access based on visibility and memberships
+    let query = this.db
+      .selectFrom('spaces')
+      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
+      .where('workspaceId', '=', workspaceId)
+      .orderBy('createdAt', 'asc');
 
-    return executeTx(this.db, async (trx) => {
-      const spaces = await trx
-        .selectFrom('spaces')
-        .selectAll()
-        .where('workspaceId', '=', workspaceId)
-        .limit(paginationOptions.limit)
-        .offset(paginationOptions.offset)
-        .execute();
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('name', 'ilike', `%${pagination.query}%`).or(
+          'description',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
+      );
+    }
 
-      let { count } = await trx
-        .selectFrom('spaces')
-        .select((eb) => eb.fn.count('id').as('count'))
-        .where('workspaceId', '=', workspaceId)
-        .executeTakeFirst();
-
-      count = count as number;
-      return { spaces, count };
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
+
+    return result;
+  }
+
+  countSpaceMembers(eb: ExpressionBuilder<DB, 'spaces'>) {
+    // should get unique members via groups?
+    return eb
+      .selectFrom('spaceMembers')
+      .select((eb) => eb.fn.countAll().as('count'))
+      .whereRef('spaceMembers.spaceId', '=', 'spaces.id')
+      .as('memberCount');
   }
 
   async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {

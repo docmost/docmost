@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { dbOrTx } from '@docmost/db/utils';
 import {
   Attachment,
   InsertableAttachment,
@@ -28,17 +28,13 @@ export class AttachmentRepo {
     insertableAttachment: InsertableAttachment,
     trx?: KyselyTransaction,
   ): Promise<Attachment> {
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        return await trx
-          .insertInto('attachments')
-          .values(insertableAttachment)
-          .returningAll()
-          .executeTakeFirst();
-      },
-      trx,
-    );
+    const db = dbOrTx(this.db, trx);
+
+    return db
+      .insertInto('attachments')
+      .values(insertableAttachment)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async updateAttachment(

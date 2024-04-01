@@ -11,7 +11,7 @@ import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SpaceIdDto } from './dto/space-id.dto';
-import { PaginationOptions } from '../../helpers/pagination/pagination-options';
+import { PaginationOptions } from '../../kysely/pagination/pagination-options';
 import { SpaceMemberService } from './services/space-member.service';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 

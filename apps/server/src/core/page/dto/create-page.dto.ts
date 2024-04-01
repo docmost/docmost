@@ -14,9 +14,9 @@ export class CreatePageDto {
   icon?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   parentPageId?: string;
 
-  @IsString()
+  @IsUUID()
   spaceId: string;
 }
