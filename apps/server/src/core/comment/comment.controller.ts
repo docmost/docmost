@@ -9,7 +9,7 @@ import {
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { CommentsInput, SingleCommentInput } from './dto/comments.input';
+import { PageIdDto, CommentIdDto } from './dto/comments.input';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -34,7 +34,7 @@ export class CommentController {
   @HttpCode(HttpStatus.OK)
   @Post()
   findPageComments(
-    @Body() input: CommentsInput,
+    @Body() input: PageIdDto,
     @Body()
     pagination: PaginationOptions,
     //@AuthUser() user: User,
@@ -45,19 +45,22 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
-  findOne(@Body() input: SingleCommentInput) {
-    return this.commentService.findWithCreator(input.id);
+  findOne(@Body() input: CommentIdDto) {
+    return this.commentService.findById(input.commentId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
   update(@Body() updateCommentDto: UpdateCommentDto) {
-    return this.commentService.update(updateCommentDto.id, updateCommentDto);
+    return this.commentService.update(
+      updateCommentDto.commentId,
+      updateCommentDto,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  remove(@Body() input: SingleCommentInput) {
-    return this.commentService.remove(input.id);
+  remove(@Body() input: CommentIdDto) {
+    return this.commentService.remove(input.commentId);
   }
 }

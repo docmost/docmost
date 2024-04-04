@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { PageService } from '../page/services/page.service';
@@ -14,8 +18,14 @@ export class CommentService {
     private pageService: PageService,
   ) {}
 
-  async findWithCreator(commentId: string) {
-    // todo: find comment with creator object
+  async findById(commentId: string) {
+    const comment = this.commentRepo.findById(commentId, {
+      includeCreator: true,
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    return comment;
   }
 
   async create(
@@ -55,15 +65,21 @@ export class CommentService {
       creatorId: userId,
       workspaceId: workspaceId,
     });
-    // todo return created comment and creator relation
 
-    return createdComment;
+    // return created comment and creator relation
+    return this.findById(createdComment.id);
   }
 
   async findByPageId(
     pageId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Comment>> {
+    const page = await this.pageService.findById(pageId);
+
+    if (!page) {
+      throw new BadRequestException('Page not found');
+    }
+
     const pageComments = await this.commentRepo.findPageComments(
       pageId,
       pagination,
@@ -78,15 +94,24 @@ export class CommentService {
   ): Promise<Comment> {
     const commentContent = JSON.parse(updateCommentDto.content);
 
+    const comment = await this.commentRepo.findById(commentId);
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const editedAt = new Date();
+
     await this.commentRepo.updateComment(
       {
         content: commentContent,
-        editedAt: new Date(),
+        editedAt: editedAt,
       },
       commentId,
     );
+    comment.content = commentContent;
+    comment.editedAt = editedAt;
 
-    return this.commentRepo.findById(commentId);
+    return comment;
   }
 
   async remove(id: string): Promise<void> {

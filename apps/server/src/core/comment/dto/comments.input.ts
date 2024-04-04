@@ -1,11 +1,11 @@
 import { IsUUID } from 'class-validator';
 
-export class CommentsInput {
+export class PageIdDto {
   @IsUUID()
   pageId: string;
 }
 
-export class SingleCommentInput {
+export class CommentIdDto {
   @IsUUID()
-  id: string;
+  commentId: string;
 }

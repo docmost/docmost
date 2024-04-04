@@ -9,16 +9,23 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { ExpressionBuilder } from 'kysely';
+import { DB } from '@docmost/db/types/db';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
 @Injectable()
 export class CommentRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
   // todo, add workspaceId
-  async findById(commentId: string): Promise<Comment> {
+  async findById(
+    commentId: string,
+    opts?: { includeCreator: boolean },
+  ): Promise<Comment> {
     return await this.db
       .selectFrom('comments')
-      .selectAll()
+      .selectAll('comments')
+      .$if(opts?.includeCreator, (qb) => qb.select(this.withCreator))
       .where('id', '=', commentId)
       .executeTakeFirst();
   }
@@ -26,7 +33,8 @@ export class CommentRepo {
   async findPageComments(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('comments')
-      .selectAll()
+      .selectAll('comments')
+      .select((eb) => this.withCreator(eb))
       .where('pageId', '=', pageId)
       .orderBy('createdAt', 'asc');
 
@@ -44,8 +52,8 @@ export class CommentRepo {
     trx?: KyselyTransaction,
   ) {
     const db = dbOrTx(this.db, trx);
-
-    db.updateTable('comments')
+    await db
+      .updateTable('comments')
       .set(updatableComment)
       .where('id', '=', commentId)
       .execute();
@@ -56,12 +64,20 @@ export class CommentRepo {
     trx?: KyselyTransaction,
   ): Promise<Comment> {
     const db = dbOrTx(this.db, trx);
-
     return db
       .insertInto('comments')
       .values(insertableComment)
       .returningAll()
       .executeTakeFirst();
+  }
+
+  withCreator(eb: ExpressionBuilder<DB, 'comments'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'comments.creatorId'),
+    ).as('creator');
   }
 
   async deleteComment(commentId: string): Promise<void> {

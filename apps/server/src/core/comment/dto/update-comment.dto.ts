@@ -2,7 +2,7 @@ import { IsJSON, IsUUID } from 'class-validator';
 
 export class UpdateCommentDto {
   @IsUUID()
-  id: string;
+  commentId: string;
 
   @IsJSON()
   content: any;
