@@ -12,7 +12,7 @@ import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { GroupUserService } from './services/group-user.service';
 import { GroupIdDto } from './dto/group-id.dto';
-import { PaginationOptions } from '../../kysely/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { AddGroupUserDto } from './dto/add-group-user.dto';
 import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
@@ -62,6 +62,7 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    console.log(createGroupDto);
     return this.groupService.createGroup(user, workspace.id, createGroupDto);
   }
 
@@ -104,8 +105,8 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.groupUserService.addUserToGroup(
-      addGroupUserDto.userId,
+    return this.groupUserService.addUsersToGroupBatch(
+      addGroupUserDto.userIds,
       addGroupUserDto.groupId,
       workspace.id,
     );

@@ -2,12 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
-import {
-  GroupUser,
-  InsertableGroupUser,
-  User,
-} from '@docmost/db/types/entity.types';
-import { sql } from 'kysely';
+import { GroupUser, InsertableGroupUser } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
@@ -45,7 +40,7 @@ export class GroupUserRepo {
     let query = this.db
       .selectFrom('groupUsers')
       .innerJoin('users', 'users.id', 'groupUsers.userId')
-      .select(sql<User>`users.*` as any)
+      .selectAll('users')
       .where('groupId', '=', groupId)
       .orderBy('createdAt', 'asc');
 
@@ -55,9 +50,13 @@ export class GroupUserRepo {
       );
     }
 
-    const result = executeWithPagination(query, {
+    const result = await executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+    });
+
+    result.items.map((user) => {
+      delete user.password;
     });
 
     return result;

@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { GroupService } from './group.service';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
@@ -17,8 +19,9 @@ export class GroupUserService {
   constructor(
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
-    private groupService: GroupService,
     private userRepo: UserRepo,
+    @Inject(forwardRef(() => GroupService))
+    private groupService: GroupService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -53,6 +56,38 @@ export class GroupUserService {
       },
       trx,
     );
+  }
+
+  async addUsersToGroupBatch(
+    userIds: string[],
+    groupId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    await this.groupService.findAndValidateGroup(groupId, workspaceId);
+
+    // make sure we have valid workspace users
+    const validUsers = await this.db
+      .selectFrom('users')
+      .select(['id', 'name'])
+      .where('users.id', 'in', userIds)
+      .where('users.workspaceId', '=', workspaceId)
+      .execute();
+
+    // prepare users to add to group
+    const groupUsersToInsert = [];
+    for (const user of validUsers) {
+      groupUsersToInsert.push({
+        userId: user.id,
+        groupId: groupId,
+      });
+    }
+
+    // batch insert new group users
+    await this.db
+      .insertInto('groupUsers')
+      .values(groupUsersToInsert)
+      .onConflict((oc) => oc.columns(['userId', 'groupId']).doNothing())
+      .execute();
   }
 
   async addUserToGroup(

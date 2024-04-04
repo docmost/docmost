@@ -1,19 +1,38 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto';
-import { PaginationOptions } from '../../../kysely/pagination/pagination-options';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { UpdateGroupDto } from '../dto/update-group.dto';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
+import { GroupUserService } from './group-user.service';
 
 @Injectable()
 export class GroupService {
-  constructor(private groupRepo: GroupRepo) {}
+  constructor(
+    private groupRepo: GroupRepo,
+    @Inject(forwardRef(() => GroupUserService))
+    private groupUserService: GroupUserService,
+  ) {}
+
+  async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
+    const group = await this.groupRepo.findById(groupId, workspaceId, {
+      includeMemberCount: true,
+    });
+
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    return group;
+  }
 
   async createGroup(
     authUser: User,
@@ -36,7 +55,17 @@ export class GroupService {
       workspaceId: workspaceId,
     };
 
-    return await this.groupRepo.insertGroup(insertableGroup, trx);
+    const createdGroup = await this.groupRepo.insertGroup(insertableGroup, trx);
+
+    if (createGroupDto?.userIds && createGroupDto.userIds.length > 0) {
+      await this.groupUserService.addUsersToGroupBatch(
+        createGroupDto.userIds,
+        createdGroup.id,
+        workspaceId,
+      );
+    }
+
+    return createdGroup;
   }
 
   async createDefaultGroup(
@@ -60,6 +89,7 @@ export class GroupService {
     const group = await this.groupRepo.findById(
       updateGroupDto.groupId,
       workspaceId,
+      { includeMemberCount: true },
     );
 
     if (!group) {
@@ -95,16 +125,6 @@ export class GroupService {
       group.id,
       workspaceId,
     );
-
-    return group;
-  }
-
-  async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
-    const group = await this.groupRepo.findById(groupId, workspaceId);
-
-    if (!group) {
-      throw new NotFoundException('Group not found');
-    }
 
     return group;
   }

@@ -1,3 +1,7 @@
-import { AddGroupUserDto } from './add-group-user.dto';
+import { GroupIdDto } from './group-id.dto';
+import { IsUUID } from 'class-validator';
 
-export class RemoveGroupUserDto extends AddGroupUserDto {}
+export class RemoveGroupUserDto extends GroupIdDto {
+  @IsUUID()
+  userId: string;
+}

@@ -16,38 +16,29 @@ import { executeWithPagination } from '@docmost/db/pagination/pagination';
 export class GroupRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  private baseFields: Array<keyof Group> = [
-    'id',
-    'name',
-    'description',
-    'isDefault',
-    'workspaceId',
-    'creatorId',
-    'createdAt',
-    'updatedAt',
-  ];
-
-  countGroupMembers(eb: ExpressionBuilder<DB, 'groups'>) {
-    return eb
-      .selectFrom('groupUsers')
-      .select((eb) => eb.fn.countAll().as('count'))
-      .whereRef('groupUsers.groupId', '=', 'groups.id')
-      .as('memberCount');
-  }
-
-  async findById(groupId: string, workspaceId: string): Promise<Group> {
+  async findById(
+    groupId: string,
+    workspaceId: string,
+    opts?: { includeMemberCount: boolean },
+  ): Promise<Group> {
     return await this.db
       .selectFrom('groups')
-      .select((eb) => [...this.baseFields, this.countGroupMembers(eb)])
+      .selectAll('groups')
+      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
 
-  async findByName(groupName: string, workspaceId: string): Promise<Group> {
+  async findByName(
+    groupName: string,
+    workspaceId: string,
+    opts?: { includeMemberCount: boolean },
+  ): Promise<Group> {
     return await this.db
       .selectFrom('groups')
-      .select((eb) => [...this.baseFields, this.countGroupMembers(eb)])
+      .selectAll('groups')
+      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
       .where(sql`LOWER(name)`, '=', sql`LOWER(${groupName})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -83,19 +74,24 @@ export class GroupRepo {
     trx: KyselyTransaction,
   ): Promise<Group> {
     const db = dbOrTx(this.db, trx);
-    return db
-      .selectFrom('groups')
-      .select((eb) => [...this.baseFields, this.countGroupMembers(eb)])
-      .where('isDefault', '=', true)
-      .where('workspaceId', '=', workspaceId)
-      .executeTakeFirst();
+    return (
+      db
+        .selectFrom('groups')
+        .selectAll()
+        // .select((eb) => this.withMemberCount(eb))
+        .where('isDefault', '=', true)
+        .where('workspaceId', '=', workspaceId)
+        .executeTakeFirst()
+    );
   }
 
   async getGroupsPaginated(workspaceId: string, pagination: PaginationOptions) {
     let query = this.db
       .selectFrom('groups')
-      .select((eb) => [...this.baseFields, this.countGroupMembers(eb)])
+      .selectAll('groups')
+      .select((eb) => this.withMemberCount(eb))
       .where('workspaceId', '=', workspaceId)
+      .orderBy('memberCount', 'desc')
       .orderBy('createdAt', 'asc');
 
     if (pagination.query) {
@@ -114,6 +110,14 @@ export class GroupRepo {
     });
 
     return result;
+  }
+
+  withMemberCount(eb: ExpressionBuilder<DB, 'groups'>) {
+    return eb
+      .selectFrom('groupUsers')
+      .select((eb) => eb.fn.countAll().as('count'))
+      .whereRef('groupUsers.groupId', '=', 'groups.id')
+      .as('memberCount');
   }
 
   async delete(groupId: string, workspaceId: string): Promise<void> {
