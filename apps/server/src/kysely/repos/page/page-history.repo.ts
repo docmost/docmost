@@ -9,15 +9,32 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { ExpressionBuilder } from 'kysely';
+import { DB } from '@docmost/db/types/db';
 
 @Injectable()
 export class PageHistoryRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof PageHistory> = [
+    'id',
+    'pageId',
+    'title',
+    'slug',
+    'icon',
+    'coverPhoto',
+    'version',
+    'lastUpdatedById',
+    'workspaceId',
+    'createdAt',
+    'updatedAt',
+  ];
+
   async findById(pageHistoryId: string): Promise<PageHistory> {
     return await this.db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select((eb) => [...this.baseFields, this.withLastUpdatedBy(eb)])
       .where('id', '=', pageHistoryId)
       .executeTakeFirst();
   }
@@ -48,26 +65,9 @@ export class PageHistoryRepo {
   }
 
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
-    // todo: fix user relationship
     const query = this.db
-      .selectFrom('pageHistory as history')
-      .innerJoin('users as user', 'user.id', 'history.lastUpdatedById')
-      .select([
-        'history.id',
-        'history.pageId',
-        'history.title',
-        'history.slug',
-        'history.icon',
-        'history.coverPhoto',
-        'history.version',
-        'history.lastUpdatedById',
-        'history.workspaceId',
-        'history.createdAt',
-        'history.updatedAt',
-        'user.id',
-        'user.name',
-        'user.avatarUrl',
-      ])
+      .selectFrom('pageHistory')
+      .select((eb) => [...this.baseFields, this.withLastUpdatedBy(eb)])
       .where('pageId', '=', pageId)
       .orderBy('createdAt', 'desc');
 
@@ -77,5 +77,14 @@ export class PageHistoryRepo {
     });
 
     return result;
+  }
+
+  withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pageHistory'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pageHistory.lastUpdatedById'),
+    ).as('withLastUpdatedBy');
   }
 }

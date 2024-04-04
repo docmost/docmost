@@ -36,16 +36,13 @@ export class SpaceMemberRepo {
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
       .select([
-        'groups.id as group_id',
-        'groups.name as group_name',
-        'groups.isDefault as group_isDefault',
-        'groups.id as groups_id',
-        'groups.id as groups_id',
-        'groups.id as groups_id',
-        'users.id as user_id',
-        'users.name as user_name',
-        'users.avatarUrl as user_avatarUrl',
-        'users.email as user_email',
+        'groups.id as groupId',
+        'groups.name as groupName',
+        'groups.isDefault as groupIsDefault',
+        'users.id as userId',
+        'users.name as userName',
+        'users.avatarUrl as userAvatarUrl',
+        'users.email as userEmail',
         'spaceMembers.role',
       ])
       .where('spaceId', '=', spaceId)
@@ -59,19 +56,20 @@ export class SpaceMemberRepo {
     let memberInfo: MemberInfo;
 
     const members = result.items.map((member) => {
-      if (member.user_id) {
+      if (member.userId) {
         memberInfo = {
-          id: member.user_id,
-          name: member.user_name,
-          email: member.user_email,
-          avatarUrl: member.user_avatarUrl,
+          id: member.userId,
+          name: member.userName,
+          email: member.userEmail,
+          avatarUrl: member.userAvatarUrl,
           type: 'user',
         };
-      } else if (member.group_id) {
+      } else if (member.groupId) {
+        // todo: get group member count
         memberInfo = {
-          id: member.group_id,
-          name: member.group_name,
-          isDefault: member.group_isDefault,
+          id: member.groupId,
+          name: member.groupName,
+          isDefault: member.groupIsDefault,
           type: 'group',
         };
       }

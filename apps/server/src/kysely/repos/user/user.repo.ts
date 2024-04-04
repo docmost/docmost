@@ -16,7 +16,7 @@ import { executeWithPagination } from '@docmost/db/pagination/pagination';
 export class UserRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  private baseFields: Array<keyof Users> = [
+  public baseFields: Array<keyof Users> = [
     'id',
     'email',
     'name',
@@ -129,7 +129,11 @@ export class UserRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`),
+        eb('users.name', 'ilike', `%${pagination.query}%`).or(
+          'users.email',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
       );
     }
 
