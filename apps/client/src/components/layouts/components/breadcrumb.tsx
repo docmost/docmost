@@ -66,7 +66,7 @@ export default function Breadcrumb() {
         </Anchor>,
         <Popover width={250} position="bottom" withArrow shadow="xl" key="hidden-nodes">
           <Popover.Target>
-            <ActionIcon color="gray" variant="transparent">
+            <ActionIcon c="gray" variant="transparent">
               <IconDots size={20} stroke={2} />
             </ActionIcon>
           </Popover.Target>

@@ -1,10 +1,10 @@
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useAtom } from "jotai";
 import * as z from "zod";
 import { useState } from "react";
 import { focusAtom } from "jotai-optics";
-import { updateWorkspace } from "@/features/workspace/services/workspace-service";
-import { IWorkspace } from "@/features/workspace/types/workspace.types";
+import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
+import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { TextInput, Button } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { notifications } from "@mantine/notifications";

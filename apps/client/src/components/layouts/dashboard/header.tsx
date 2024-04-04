@@ -1,8 +1,4 @@
-import {
-  ActionIcon,
-  Menu,
-  Button,
-} from '@mantine/core';
+import { ActionIcon, Menu, Button } from "@mantine/core";
 import {
   IconDots,
   IconFileInfo,
@@ -12,22 +8,26 @@ import {
   IconShare,
   IconTrash,
   IconMessage,
-} from '@tabler/icons-react';
-import React from 'react';
-import useToggleAside from '@/hooks/use-toggle-aside';
-import { useAtom } from 'jotai';
-import { historyAtoms } from '@/features/page-history/atoms/history-atoms';
+} from "@tabler/icons-react";
+import React from "react";
+import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import { useAtom } from "jotai";
+import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
 
 export default function Header() {
   const toggleAside = useToggleAside();
 
   return (
     <>
-      <Button variant="default" style={{ border: 'none' }} size="compact-sm">
+      <Button variant="default" style={{ border: "none" }} size="compact-sm">
         Share
       </Button>
 
-      <ActionIcon variant="default" style={{ border: 'none' }} onClick={() => toggleAside('comments')}>
+      <ActionIcon
+        variant="default"
+        style={{ border: "none" }}
+        onClick={() => toggleAside("comments")}
+      >
         <IconMessage size={20} stroke={2} />
       </ActionIcon>
 
@@ -53,38 +53,33 @@ function PageActionMenu() {
       arrowPosition="center"
     >
       <Menu.Target>
-        <ActionIcon variant="default" style={{ border: 'none' }}>
+        <ActionIcon variant="default" style={{ border: "none" }}>
           <IconDots size={20} stroke={2} />
         </ActionIcon>
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<IconFileInfo size={16} stroke={2} />}>
+        <Menu.Item leftSection={<IconFileInfo size={16} stroke={2} />}>
           Page info
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconLink size={16} stroke={2} />}
-        >
+        <Menu.Item leftSection={<IconLink size={16} stroke={2} />}>
           Copy link
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconShare size={16} stroke={2} />}>
+        <Menu.Item leftSection={<IconShare size={16} stroke={2} />}>
           Share
         </Menu.Item>
         <Menu.Item
           leftSection={<IconHistory size={16} stroke={2} />}
-          onClick={openHistoryModal}>
+          onClick={openHistoryModal}
+        >
           Page history
         </Menu.Item>
 
         <Menu.Divider />
-        <Menu.Item
-          leftSection={<IconLock size={16} stroke={2} />}>
+        <Menu.Item leftSection={<IconLock size={16} stroke={2} />}>
           Lock
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconTrash size={16} stroke={2} />}>
+        <Menu.Item leftSection={<IconTrash size={16} stroke={2} />}>
           Delete
         </Menu.Item>
       </Menu.Dropdown>

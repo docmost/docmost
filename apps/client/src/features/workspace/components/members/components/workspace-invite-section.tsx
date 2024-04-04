@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useEffect, useState } from "react";
 import { Button, CopyButton, Group, Text, TextInput } from "@mantine/core";
 

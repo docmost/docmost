@@ -12,15 +12,13 @@ import {
   IconPlus,
   IconSettings,
   IconFilePlus,
-  IconHome
+  IconHome,
 } from '@tabler/icons-react';
 
 import classes from './navbar.module.css';
 import { UserButton } from './user-button';
 import React from 'react';
 import { useAtom } from 'jotai';
-import { settingsModalAtom } from '@/features/settings/modal/atoms/settings-modal-atom';
-import SettingsModal from '@/features/settings/modal/settings-modal';
 import { SearchSpotlight } from '@/features/search/search-spotlight';
 import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom';
 import PageTree from '@/features/page/tree/page-tree';
@@ -36,11 +34,10 @@ const primaryMenu: PrimaryMenuItem[] = [
   { icon: IconHome, label: 'Home' },
   { icon: IconSearch, label: 'Search' },
   { icon: IconSettings, label: 'Settings' },
- // { icon: IconFilePlus, label: 'New Page' },
+  // { icon: IconFilePlus, label: 'New Page' },
 ];
 
 export function Navbar() {
-  const [, setSettingsModalOpen] = useAtom(settingsModalAtom);
   const [tree] = useAtom(treeApiAtom);
   const navigate = useNavigate();
 
@@ -54,7 +51,7 @@ export function Navbar() {
     }
 
     if (label === 'Settings') {
-      setSettingsModalOpen(true);
+      navigate('/settings/workspace');
     }
   };
 
@@ -69,11 +66,7 @@ export function Navbar() {
       onClick={() => handleMenuItemClick(menuItem.label)}
     >
       <div className={classes.menuItemInner}>
-        <menuItem.icon
-          size={18}
-          className={classes.menuItemIcon}
-          stroke={2}
-        />
+        <menuItem.icon size={18} className={classes.menuItemIcon} stroke={2} />
         <span>{menuItem.label}</span>
       </div>
     </UnstyledButton>
@@ -113,12 +106,10 @@ export function Navbar() {
           <div className={classes.pages}>
             <PageTree />
           </div>
-
         </div>
       </nav>
 
       <SearchSpotlight />
-      <SettingsModal />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { Group, Table, Avatar, Text, Badge } from "@mantine/core";
-import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query";
+import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { UserAvatar } from "@/components/ui/user-avatar.tsx";
 import React from "react";
 

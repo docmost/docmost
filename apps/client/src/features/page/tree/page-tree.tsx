@@ -1,4 +1,4 @@
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from 'react-arborist';
+import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
 import {
   IconArrowsLeftRight,
   IconChevronDown,
@@ -11,24 +11,27 @@ import {
   IconPlus,
   IconStar,
   IconTrash,
-} from '@tabler/icons-react';
+} from "@tabler/icons-react";
 
-import React, { useEffect, useRef } from 'react';
-import clsx from 'clsx';
+import React, { useEffect, useRef } from "react";
+import clsx from "clsx";
 
-import classes from './styles/tree.module.css';
-import { ActionIcon, Menu, rem } from '@mantine/core';
-import { useAtom } from 'jotai';
-import { FillFlexParent } from './components/fill-flex-parent';
-import { TreeNode } from './types';
-import { treeApiAtom } from './atoms/tree-api-atom';
-import { usePersistence } from '@/features/page/tree/hooks/use-persistence';
-import useWorkspacePageOrder from '@/features/page/tree/hooks/use-workspace-page-order';
-import { useNavigate, useParams } from 'react-router-dom';
-import { convertToTree, updateTreeNodeIcon } from '@/features/page/tree/utils';
-import { useGetPagesQuery, useUpdatePageMutation } from '@/features/page/queries/page-query';
-import EmojiPicker from '@/components/emoji-picker';
-import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
+import classes from "./styles/tree.module.css";
+import { ActionIcon, Menu, rem } from "@mantine/core";
+import { useAtom } from "jotai";
+import { FillFlexParent } from "./components/fill-flex-parent";
+import { TreeNode } from "./types";
+import { treeApiAtom } from "./atoms/tree-api-atom";
+import { usePersistence } from "@/features/page/tree/hooks/use-persistence";
+import useWorkspacePageOrder from "@/features/page/tree/hooks/use-workspace-page-order";
+import { useNavigate, useParams } from "react-router-dom";
+import { convertToTree, updateTreeNodeIcon } from "@/features/page/tree/utils";
+import {
+  useGetPagesQuery,
+  useUpdatePageMutation,
+} from "@/features/page/queries/page-query";
+import EmojiPicker from "@/components/ui/emoji-picker.tsx";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 
 export default function PageTree() {
   const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
@@ -46,7 +49,7 @@ export default function PageTree() {
           setData(treeData);
         }
       } catch (err) {
-        console.error('Error fetching tree data: ', err);
+        console.error("Error fetching tree data: ", err);
       }
     }
   };
@@ -58,7 +61,7 @@ export default function PageTree() {
   useEffect(() => {
     setTimeout(() => {
       tree?.select(pageId);
-      tree?.scrollTo(pageId, 'center');
+      tree?.scrollTo(pageId, "center");
     }, 200);
   }, [tree, pageId]);
 
@@ -106,7 +109,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
   const handleEmojiIconClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-  }
+  };
 
   const handleEmojiSelect = (emoji) => {
     handleUpdateNodeIcon(node.id, emoji.native);
@@ -134,19 +137,25 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
       >
         <PageArrow node={node} />
 
-        <div onClick={handleEmojiIconClick} style={{ marginRight: '4px' }}>
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} icon={
-            node.data.icon ? node.data.icon :
-              <IconFileDescription size="18px"  />
-
-          } removeEmojiAction={handleRemoveEmoji}/>
+        <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
+          <EmojiPicker
+            onEmojiSelect={handleEmojiSelect}
+            icon={
+              node.data.icon ? (
+                node.data.icon
+              ) : (
+                <IconFileDescription size="18px" />
+              )
+            }
+            removeEmojiAction={handleRemoveEmoji}
+          />
         </div>
 
         <span className={classes.text}>
           {node.isEditing ? (
             <Input node={node} />
           ) : (
-            node.data.name || 'untitled'
+            node.data.name || "untitled"
           )}
         </span>
 
@@ -163,15 +172,19 @@ function CreateNode({ node }: { node: NodeApi<TreeNode> }) {
   const [tree] = useAtom(treeApiAtom);
 
   function handleCreate() {
-    tree?.create({ type: 'internal', parentId: node.id, index: 0 });
+    tree?.create({ type: "internal", parentId: node.id, index: 0 });
   }
 
   return (
-    <ActionIcon variant="transparent" color="gray" onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleCreate();
-    }}>
+    <ActionIcon
+      variant="transparent"
+      c="gray"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCreate();
+      }}
+    >
       <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
     </ActionIcon>
   );
@@ -187,10 +200,14 @@ function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
   return (
     <Menu shadow="md" width={200}>
       <Menu.Target>
-        <ActionIcon variant="transparent" color="gray" onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}>
+        <ActionIcon
+          variant="transparent"
+          c="gray"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <IconDotsVertical
             style={{ width: rem(20), height: rem(20) }}
             stroke={2}
@@ -240,7 +257,7 @@ function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
           Archive
         </Menu.Item>
         <Menu.Item
-          color="red"
+          c="red"
           leftSection={
             <IconTrash style={{ width: rem(14), height: rem(14) }} />
           }
@@ -255,13 +272,16 @@ function NodeMenu({ node }: { node: NodeApi<TreeNode> }) {
 
 function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
   return (
-    <ActionIcon size={20} variant="subtle" color="gray"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  node.toggle();
-                }}>
-
+    <ActionIcon
+      size={20}
+      variant="subtle"
+      c="gray"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        node.toggle();
+      }}
+    >
       {node.isInternal ? (
         node.children && node.children.length > 0 ? (
           node.isOpen ? (
@@ -270,7 +290,7 @@ function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
             <IconChevronRight stroke={2} size={18} />
           )
         ) : (
-          <IconChevronRight size={18} style={{ visibility: 'hidden' }} />
+          <IconChevronRight size={18} style={{ visibility: "hidden" }} />
         )
       ) : null}
     </ActionIcon>
@@ -278,7 +298,6 @@ function PageArrow({ node }: { node: NodeApi<TreeNode> }) {
 }
 
 function Input({ node }: { node: NodeApi<TreeNode> }) {
-
   return (
     <input
       autoFocus
@@ -289,10 +308,9 @@ function Input({ node }: { node: NodeApi<TreeNode> }) {
       onFocus={(e) => e.currentTarget.select()}
       onBlur={() => node.reset()}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') node.reset();
-        if (e.key === 'Enter') node.submit(e.currentTarget.value);
+        if (e.key === "Escape") node.reset();
+        if (e.key === "Enter") node.submit(e.currentTarget.value);
       }}
     />
   );
 }
-

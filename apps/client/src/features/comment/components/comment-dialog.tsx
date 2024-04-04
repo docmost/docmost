@@ -78,7 +78,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
 
       <Stack gap={2}>
         <Group>
-          <Avatar size="sm" color="blue">{currentUser.user.name.charAt(0)}</Avatar>
+          <Avatar size="sm" c="blue">{currentUser.user.name.charAt(0)}</Avatar>
           <div style={{ flex: 1 }}>
             <Group justify="space-between" wrap="nowrap">
               <Text size="sm" fw={500} lineClamp={1}>{currentUser.user.name}</Text>

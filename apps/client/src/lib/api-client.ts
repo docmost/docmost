@@ -3,10 +3,11 @@ import Cookies from "js-cookie";
 import Routes from "@/lib/routes";
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_API_URL + '/api'
+  baseURL: import.meta.env.VITE_BACKEND_API_URL + "/api",
 });
 
-api.interceptors.request.use(config => {
+api.interceptors.request.use(
+  (config) => {
     const tokenData = Cookies.get("authTokens");
     const accessToken = tokenData && JSON.parse(tokenData)?.accessToken;
 
@@ -15,23 +16,23 @@ api.interceptors.request.use(config => {
     }
     return config;
   },
-  error => {
+  (error) => {
     return Promise.reject(error);
   },
 );
 
 api.interceptors.response.use(
-  response => {
+  (response) => {
     return response.data;
   },
-  error => {
+  (error) => {
     if (error.response) {
       switch (error.response.status) {
         case 401:
           // Handle unauthorized error
-          if (window.location.pathname != Routes.AUTH.LOGIN){
+          if (window.location.pathname != Routes.AUTH.LOGIN) {
             window.location.href = Routes.AUTH.LOGIN;
-         }
+          }
           break;
         case 403:
           // Handle forbidden error

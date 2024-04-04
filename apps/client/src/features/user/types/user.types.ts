@@ -9,13 +9,13 @@ export interface IUser {
   timezone: string;
   settings: any;
   lastLoginAt: string;
-  lastLoginIp: string;
   createdAt: Date;
   updatedAt: Date;
-  workspaceRole?: string;
+  role: string;
+  workspaceId: string;
 }
 
-export interface ICurrentUserResponse {
+export interface ICurrentUser {
   user: IUser,
   workspace: IWorkspace
 }

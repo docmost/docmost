@@ -8,8 +8,6 @@ export interface IWorkspace {
   enableInvite: boolean;
   inviteCode: string;
   settings: any;
-  creatorId: string;
-  pageOrder?:[]
   createdAt: Date;
   updatedAt: Date;
 }

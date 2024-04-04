@@ -22,7 +22,7 @@ export default function HomeTabs() {
 
       <Tabs.Panel value="recent">
 
-        <RecentChanges />
+        {/*  <RecentChanges /> */}
 
       </Tabs.Panel>
 

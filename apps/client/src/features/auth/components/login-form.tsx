@@ -15,6 +15,7 @@ import {
   PasswordInput,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
+import classes from './auth.module.css';
 
 const formSchema = z.object({
   email: z
@@ -40,17 +41,11 @@ export function LoginForm() {
 
   return (
     <Container size={420} my={40}>
-      <Title ta="center" fw={800}>
-        Login
-      </Title>
-      <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Don't have an account yet?{' '}
-        <Anchor size="sm" component={Link} to="/signup">
-          Create account
-        </Anchor>
-      </Text>
+      <Paper shadow="md" p="lg" radius="md" mt={200}>
+        <Title ta="center" fw={800}>
+          Login
+        </Title>
 
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         <form onSubmit={form.onSubmit(onSubmit)}>
           <TextInput
             id="email"
@@ -72,6 +67,14 @@ export function LoginForm() {
             Sign In
           </Button>
         </form>
+
+        <Text c="dimmed" size="sm" ta="center" mt="sm">
+          Don't have an account yet?{' '}
+          <Anchor size="sm" component={Link} to="/signup">
+            Create account
+          </Anchor>
+        </Text>
+
       </Paper>
     </Container>
   );

@@ -24,7 +24,7 @@ function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
 
           <div style={{ flex: 1 }}>
             <Group gap={4} wrap="nowrap">
-              <UserAvatar color="blue" size="sm" avatarUrl={historyItem.lastUpdatedBy.avatarUrl}
+              <UserAvatar c="blue" size="sm" avatarUrl={historyItem.lastUpdatedBy.avatarUrl}
                           name={historyItem.lastUpdatedBy.name} />
               <Text size="sm" c="dimmed" lineClamp={1}>
                 {historyItem.lastUpdatedBy.name}

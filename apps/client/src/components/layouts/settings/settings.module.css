@@ -1,0 +1,71 @@
+.navbar {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    height: 100%;
+    width: 100%;
+    padding: var(--mantine-spacing-md);
+    display: flex;
+    flex-direction: column;
+    /*border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));*/
+}
+
+.navbarMain {
+    flex: 1;
+}
+
+.header {
+    padding-bottom: var(--mantine-spacing-md);
+    margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
+    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.footer {
+    padding-top: var(--mantine-spacing-md);
+    margin-top: var(--mantine-spacing-md);
+    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.link {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    font-size: var(--mantine-font-size-sm);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    border-radius: var(--mantine-radius-sm);
+    font-weight: 500;
+    user-select: none;
+
+    @mixin hover {
+        background-color: light-dark(
+                var(--mantine-color-gray-1),
+                var(--mantine-color-dark-6)
+        );
+        color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    }
+
+    &[data-active] {
+        &,
+        & :hover {
+            background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+            color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+        }
+    }
+}
+
+.linkIcon {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    margin-right: var(--mantine-spacing-sm);
+    width: rem(16px);
+    height: rem(16px);
+}
+
+.linkHeader {
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    font-size: var(--mantine-font-size-sm);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}

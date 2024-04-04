@@ -7,7 +7,7 @@ export async function createPage(data: Partial<IPage>): Promise<IPage> {
 }
 
 export async function getPageById(id: string): Promise<IPage> {
-  const req = await api.post<IPage>('/pages/details', { id });
+  const req = await api.post<IPage>('/pages/info', { id });
   return req.data as IPage;
 }
 

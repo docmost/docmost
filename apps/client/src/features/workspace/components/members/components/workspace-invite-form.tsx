@@ -1,5 +1,5 @@
 import { Group, Box, Button, TagsInput, Space, Select } from "@mantine/core";
-import WorkspaceInviteSection from "@/features/settings/workspace/members/components/workspace-invite-section";
+import WorkspaceInviteSection from "@/features/workspace/components/members/components/workspace-invite-section.tsx";
 import React from "react";
 
 enum UserRole {
