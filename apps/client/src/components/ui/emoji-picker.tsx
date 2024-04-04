@@ -32,7 +32,7 @@ function EmojiPicker({ onEmojiSelect, icon, removeEmojiAction }: EmojiPickerInte
       position="bottom"
     >
       <Popover.Target>
-        <ActionIcon color="gray" variant="transparent" onClick={handlers.toggle}>
+        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle}>
           {icon}
         </ActionIcon>
       </Popover.Target>
@@ -42,7 +42,7 @@ function EmojiPicker({ onEmojiSelect, icon, removeEmojiAction }: EmojiPickerInte
                 skinTonePosition='search'
                 theme={colorScheme}
         />
-        <Button variant="default" color="gray"
+        <Button variant="default" c="gray"
                 size="xs"
                 style={{ position: 'absolute', zIndex: 2, bottom: '1rem', right: '1rem'}}
                 onClick={handleRemoveEmoji}>

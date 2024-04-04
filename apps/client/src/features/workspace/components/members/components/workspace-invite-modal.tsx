@@ -1,6 +1,5 @@
-import { IconUserPlus } from '@tabler/icons-react';
 import { WorkspaceInviteForm } from '@/features/settings/workspace/members/components/workspace-invite-form';
-import { Button, Divider, Modal, ScrollArea, Text } from '@mantine/core';
+import { Button, Divider, Modal, ScrollArea } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 export default function WorkspaceInviteModal() {
@@ -8,8 +7,8 @@ export default function WorkspaceInviteModal() {
 
   return (
     <>
-      <Button onClick={open} leftSection={<IconUserPlus size={18} />}>
-        Invite Members
+      <Button onClick={open}>
+        Invite members
       </Button>
 
       <Modal size="600" opened={opened} onClose={close} title="Invite new members" centered>

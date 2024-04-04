@@ -1,23 +1,14 @@
-import {
-  Group,
-  Box,
-  Text,
-  Button,
-  TagsInput,
-  Space, Select,
-} from '@mantine/core';
-import WorkspaceInviteSection from '@/features/settings/workspace/members/components/workspace-invite-section';
-import React from 'react';
+import { Group, Box, Button, TagsInput, Space, Select } from "@mantine/core";
+import WorkspaceInviteSection from "@/features/settings/workspace/members/components/workspace-invite-section";
+import React from "react";
 
 enum UserRole {
-  GUEST = 'Guest',
-  MEMBER = 'Member',
-  OWNER = 'Owner',
+  OWNER = "Owner",
+  ADMIN = "Admin",
+  MEMBER = "Member",
 }
 
-
 export function WorkspaceInviteForm() {
-
   function handleSubmit(data) {
     console.log(data);
   }
@@ -25,7 +16,6 @@ export function WorkspaceInviteForm() {
   return (
     <>
       <Box maw="500" mx="auto">
-
         <WorkspaceInviteSection />
 
         <Space h="md" />
@@ -35,7 +25,7 @@ export function WorkspaceInviteForm() {
           label="Invite from email"
           placeholder="enter valid emails addresses"
           variant="filled"
-          splitChars={[',', ' ']}
+          splitChars={[",", " "]}
           maxDropdownHeight={200}
           maxTags={50}
         />
@@ -54,12 +44,9 @@ export function WorkspaceInviteForm() {
         />
 
         <Group justify="center" mt="md">
-          <Button>Send invitation
-          </Button>
+          <Button>Send invitation</Button>
         </Group>
-
       </Box>
     </>
   );
-
 }
