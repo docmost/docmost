@@ -1,14 +1,29 @@
-import { BubbleMenu, BubbleMenuProps, isNodeSelection } from '@tiptap/react';
-import { FC, useState } from 'react';
-import { IconBold, IconCode, IconItalic, IconStrikethrough, IconUnderline, IconMessage } from '@tabler/icons-react';
-import clsx from 'clsx';
-import classes from './bubble-menu.module.css';
-import { ActionIcon, rem, Tooltip } from '@mantine/core';
-import { ColorSelector } from './color-selector';
-import { NodeSelector } from './node-selector';
-import { draftCommentIdAtom, showCommentPopupAtom } from '@/features/comment/atoms/comment-atom';
-import { useAtom } from 'jotai';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  BubbleMenu,
+  BubbleMenuProps,
+  isNodeSelection,
+  useEditor,
+} from "@tiptap/react";
+import { FC, useState } from "react";
+import {
+  IconBold,
+  IconCode,
+  IconItalic,
+  IconStrikethrough,
+  IconUnderline,
+  IconMessage,
+} from "@tabler/icons-react";
+import clsx from "clsx";
+import classes from "./bubble-menu.module.css";
+import { ActionIcon, rem, Tooltip } from "@mantine/core";
+import { ColorSelector } from "./color-selector";
+import { NodeSelector } from "./node-selector";
+import {
+  draftCommentIdAtom,
+  showCommentPopupAtom,
+} from "@/features/comment/atoms/comment-atom";
+import { useAtom } from "jotai";
+import { v4 as uuidv4 } from "uuid";
 
 export interface BubbleMenuItem {
   name: string;
@@ -17,7 +32,9 @@ export interface BubbleMenuItem {
   icon: typeof IconBold;
 }
 
-type EditorBubbleMenuProps = Omit<BubbleMenuProps, 'children'>;
+type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
+  editor: ReturnType<typeof useEditor>;
+};
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
@@ -25,44 +42,44 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const items: BubbleMenuItem[] = [
     {
-      name: 'bold',
-      isActive: () => props.editor.isActive('bold'),
+      name: "bold",
+      isActive: () => props.editor.isActive("bold"),
       command: () => props.editor.chain().focus().toggleBold().run(),
       icon: IconBold,
     },
     {
-      name: 'italic',
-      isActive: () => props.editor.isActive('italic'),
+      name: "italic",
+      isActive: () => props.editor.isActive("italic"),
       command: () => props.editor.chain().focus().toggleItalic().run(),
       icon: IconItalic,
     },
     {
-      name: 'underline',
-      isActive: () => props.editor.isActive('underline'),
+      name: "underline",
+      isActive: () => props.editor.isActive("underline"),
       command: () => props.editor.chain().focus().toggleUnderline().run(),
       icon: IconUnderline,
     },
     {
-      name: 'strike',
-      isActive: () => props.editor.isActive('strike'),
+      name: "strike",
+      isActive: () => props.editor.isActive("strike"),
       command: () => props.editor.chain().focus().toggleStrike().run(),
       icon: IconStrikethrough,
     },
     {
-      name: 'code',
-      isActive: () => props.editor.isActive('code'),
+      name: "code",
+      isActive: () => props.editor.isActive("code"),
       command: () => props.editor.chain().focus().toggleCode().run(),
       icon: IconCode,
     },
   ];
 
   const commentItem: BubbleMenuItem = {
-
-    name: 'comment',
-    isActive: () => props.editor.isActive('comment'),
+    name: "comment",
+    isActive: () => props.editor.isActive("comment"),
     command: () => {
       const commentId = uuidv4();
 
+      // @ts-ignore
       props.editor.chain().focus().setCommentDecoration().run();
       setDraftCommentId(commentId);
       setShowCommentPopup(true);
@@ -76,13 +93,17 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       const { selection } = state;
       const { empty } = selection;
 
-      if (editor.isActive('image') || empty || isNodeSelection(selection)) {
+      if (
+        props.editor.isActive("image") ||
+        empty ||
+        isNodeSelection(selection)
+      ) {
         return false;
       }
       return true;
     },
     tippyOptions: {
-      moveTransition: 'transform 0.15s ease-out',
+      moveTransition: "transform 0.15s ease-out",
       onHidden: () => {
         setIsNodeSelectorOpen(false);
         setIsColorSelectorOpen(false);
@@ -96,10 +117,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      className={classes.bubbleMenu}
-    >
+    <BubbleMenu {...bubbleMenuProps} className={classes.bubbleMenu}>
       <NodeSelector
         editor={props.editor}
         isOpen={isNodeSelectorOpen}
@@ -113,15 +131,19 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       <ActionIcon.Group>
         {items.map((item, index) => (
           <Tooltip key={index} label={item.name} withArrow>
-
-            <ActionIcon key={index} variant="default" size="lg" radius="0" aria-label={item.name}
-                        className={clsx({ [classes.active]: item.isActive() })}
-                        style={{ border: 'none' }}
-                        onClick={item.command}>
+            <ActionIcon
+              key={index}
+              variant="default"
+              size="lg"
+              radius="0"
+              aria-label={item.name}
+              className={clsx({ [classes.active]: item.isActive() })}
+              style={{ border: "none" }}
+              onClick={item.command}
+            >
               <item.icon style={{ width: rem(16) }} stroke={2} />
             </ActionIcon>
           </Tooltip>
-
         ))}
       </ActionIcon.Group>
 
@@ -136,14 +158,17 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       />
 
       <Tooltip label={commentItem.name} withArrow>
-
-        <ActionIcon variant="default" size="lg" radius="0" aria-label={commentItem.name}
-                    style={{ border: 'none' }}
-                    onClick={commentItem.command}>
+        <ActionIcon
+          variant="default"
+          size="lg"
+          radius="0"
+          aria-label={commentItem.name}
+          style={{ border: "none" }}
+          onClick={commentItem.command}
+        >
           <IconMessage style={{ width: rem(16) }} stroke={2} />
         </ActionIcon>
       </Tooltip>
-
     </BubbleMenu>
   );
 };

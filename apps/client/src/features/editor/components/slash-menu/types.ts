@@ -1,16 +1,17 @@
-import { Editor, Range } from '@tiptap/core';
+import { Range } from "@tiptap/core";
+import { useEditor } from "@tiptap/react";
 
 export type CommandProps = {
-  editor: Editor;
+  editor: ReturnType<typeof useEditor>;
   range: Range;
-}
+};
 
 export type CommandListProps = {
   items: SlashMenuGroupedItemsType;
   command: (item: SlashMenuItemType) => void;
-  editor: Editor;
+  editor: ReturnType<typeof useEditor>;
   range: Range;
-}
+};
 
 export type SlashMenuItemType = {
   title: string;
@@ -19,8 +20,8 @@ export type SlashMenuItemType = {
   separator?: true;
   searchTerms: string[];
   command: (props: CommandProps) => void;
-  disable?: (editor: Editor) => boolean;
-}
+  disable?: (editor: ReturnType<typeof useEditor>) => boolean;
+};
 
 export type SlashMenuGroupedItemsType = {
   [category: string]: SlashMenuItemType[];

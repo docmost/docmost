@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { Avatar, Dialog, Group, Stack, Text } from '@mantine/core';
-import { useClickOutside } from '@mantine/hooks';
-import { useAtom } from 'jotai';
+import React, { useState } from "react";
+import { Avatar, Dialog, Group, Stack, Text } from "@mantine/core";
+import { useClickOutside } from "@mantine/hooks";
+import { useAtom } from "jotai";
 import {
   activeCommentIdAtom,
   draftCommentIdAtom,
   showCommentPopupAtom,
-} from '@/features/comment/atoms/comment-atom';
-import { Editor } from '@tiptap/core';
-import CommentEditor from '@/features/comment/components/comment-editor';
-import CommentActions from '@/features/comment/components/comment-actions';
-import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { useCreateCommentMutation } from '@/features/comment/queries/comment-query';
-import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
+} from "@/features/comment/atoms/comment-atom";
+import CommentEditor from "@/features/comment/components/comment-editor";
+import CommentActions from "@/features/comment/components/comment-actions";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { useCreateCommentMutation } from "@/features/comment/queries/comment-query";
+import { asideStateAtom } from "@/components/navbar/atoms/sidebar-atom";
+import { useEditor } from "@tiptap/react";
 
 interface CommentDialogProps {
-  editor: Editor,
-  pageId: string,
+  editor: ReturnType<typeof useEditor>;
+  pageId: string;
 }
 
 function CommentDialog({ editor, pageId }: CommentDialogProps) {
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [draftCommentId, setDraftCommentId] = useAtom(draftCommentIdAtom);
@@ -34,6 +34,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
 
   const handleDialogClose = () => {
     setShowCommentPopup(false);
+    // @ts-ignore
     editor.chain().focus().unsetCommentDecoration().run();
   };
 
@@ -52,11 +53,17 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         selection: selectedText,
       };
 
-      const createdComment = await createCommentMutation.mutateAsync(commentData);
-      editor.chain().setComment(createdComment.id).unsetCommentDecoration().run();
+      const createdComment =
+        await createCommentMutation.mutateAsync(commentData);
+      editor
+        .chain()
+        .setContent(createdComment.id)
+        // @ts-ignore
+        .unsetCommentDecoration()
+        .run();
       setActiveCommentId(createdComment.id);
 
-      setAsideState({ tab: 'comments', isAsideOpen: true });
+      setAsideState({ tab: "comments", isAsideOpen: true });
       setTimeout(() => {
         const selector = `div[data-comment-id="${createdComment.id}"]`;
         const commentElement = document.querySelector(selector);
@@ -64,7 +71,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       });
     } finally {
       setShowCommentPopup(false);
-      setDraftCommentId('');
+      setDraftCommentId("");
     }
   };
 
@@ -73,24 +80,38 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   };
 
   return (
-    <Dialog opened={true} onClose={handleDialogClose} ref={useClickOutsideRef} size="lg" radius="md"
-            w={300} position={{ bottom: 500, right: 50 }} withCloseButton withBorder>
-
+    <Dialog
+      opened={true}
+      onClose={handleDialogClose}
+      ref={useClickOutsideRef}
+      size="lg"
+      radius="md"
+      w={300}
+      position={{ bottom: 500, right: 50 }}
+      withCloseButton
+      withBorder
+    >
       <Stack gap={2}>
         <Group>
-          <Avatar size="sm" c="blue">{currentUser.user.name.charAt(0)}</Avatar>
+          <Avatar size="sm" c="blue">
+            {currentUser.user.name.charAt(0)}
+          </Avatar>
           <div style={{ flex: 1 }}>
             <Group justify="space-between" wrap="nowrap">
-              <Text size="sm" fw={500} lineClamp={1}>{currentUser.user.name}</Text>
+              <Text size="sm" fw={500} lineClamp={1}>
+                {currentUser.user.name}
+              </Text>
             </Group>
           </div>
         </Group>
 
-        <CommentEditor onUpdate={handleCommentEditorChange} placeholder="Write a comment"
-                       editable={true} autofocus={true}
+        <CommentEditor
+          onUpdate={handleCommentEditorChange}
+          placeholder="Write a comment"
+          editable={true}
+          autofocus={true}
         />
-        <CommentActions onSave={handleAddComment} isLoading={isPending}
-        />
+        <CommentActions onSave={handleAddComment} isLoading={isPending} />
       </Stack>
     </Dialog>
   );
