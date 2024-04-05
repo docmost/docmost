@@ -64,9 +64,10 @@ export function MultiUserSelect({ onChange }: MultiUserSelectProps) {
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
+      clearable
       variant="filled"
       onChange={onChange}
-      nothingFoundMessage="Nothing found..."
+      nothingFoundMessage="No user found"
       maxValues={50}
     />
   );
