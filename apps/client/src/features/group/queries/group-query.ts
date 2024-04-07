@@ -16,11 +16,14 @@ import {
   updateGroup,
 } from "@/features/group/services/group-service";
 import { notifications } from "@mantine/notifications";
+import { QueryParams } from "@/lib/types.ts";
 
-export function useGetGroupsQuery(): UseQueryResult<any, Error> {
+export function useGetGroupsQuery(
+  params?: QueryParams,
+): UseQueryResult<any, Error> {
   return useQuery({
-    queryKey: ["groups"],
-    queryFn: () => getGroups(),
+    queryKey: ["groups", params],
+    queryFn: () => getGroups(params),
   });
 }
 
@@ -77,9 +80,12 @@ export function useDeleteGroupMutation() {
     mutationFn: (groupId: string) => deleteGroup({ groupId }),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Group deleted successfully" });
-      queryClient.refetchQueries({
-        queryKey: ["groups"],
-      });
+
+      const groups = queryClient.getQueryData(["groups"]) as any;
+      if (groups) {
+        groups.items?.filter((group: IGroup) => group.id !== variables);
+        queryClient.setQueryData(["groups"], groups);
+      }
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
