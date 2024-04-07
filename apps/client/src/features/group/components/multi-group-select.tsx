@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query.ts";
-import { IUser } from "@/features/user/types/user.types.ts";
 import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { useGetGroupsQuery } from "@/features/group/queries/group-query.ts";
+import { IGroup } from "@/features/group/types/group.types.ts";
+import { IconUsersGroup } from "@tabler/icons-react";
 
-interface MultiUserSelectProps {
+interface MultiGroupSelectProps {
   onChange: (value: string[]) => void;
   label?: string;
 }
@@ -14,51 +14,41 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   option,
 }) => (
   <Group gap="sm">
-    <UserAvatar
-      avatarUrl={option?.["avatarUrl"]}
-      name={option.label}
-      size={36}
-      radius="xl"
-    />
+    {<IconUsersGroup size={18} />}
     <div>
       <Text size="sm">{option.label}</Text>
-      <Text size="xs" opacity={0.5}>
-        {option?.["email"]}
-      </Text>
     </div>
   </Group>
 );
 
-export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
+export function MultiGroupSelect({ onChange, label }: MultiGroupSelectProps) {
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
-  const { data: users, isLoading } = useWorkspaceMembersQuery({
+  const { data: groups, isLoading } = useGetGroupsQuery({
     query: debouncedQuery,
-    limit: 50,
+    limit: 25,
   });
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    if (users) {
-      const usersData = users?.items.map((user: IUser) => {
+    if (groups) {
+      const groupsData = groups?.items.map((group: IGroup) => {
         return {
-          value: user.id,
-          label: user.name,
-          avatarUrl: user.avatarUrl,
-          email: user.email,
+          value: group.id,
+          label: group.name,
         };
       });
 
       // Filter out existing users by their ids
-      const filteredUsersData = usersData.filter(
+      const filteredGroupData = groupsData.filter(
         (user) =>
           !data.find((existingUser) => existingUser.value === user.value),
       );
 
       // Combine existing data with new search data
-      setData((prevData) => [...prevData, ...filteredUsersData]);
+      setData((prevData) => [...prevData, ...filteredGroupData]);
     }
-  }, [users]);
+  }, [groups]);
 
   return (
     <MultiSelect
@@ -66,15 +56,15 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
       renderOption={renderMultiSelectOption}
       hidePickedOptions
       maxDropdownHeight={300}
-      label={label || "Add members"}
-      placeholder="Search for users"
+      label={label || "Add groups"}
+      placeholder="Search for groups"
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       clearable
       variant="filled"
       onChange={onChange}
-      nothingFoundMessage="No user found"
+      nothingFoundMessage="No group found"
       maxValues={50}
     />
   );

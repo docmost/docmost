@@ -32,7 +32,10 @@ export default function AddGroupMemberModal() {
       <Modal opened={opened} onClose={close} title="Add group members">
         <Divider size="xs" mb="xs" />
 
-        <MultiUserSelect onChange={handleMultiSelectChange} />
+        <MultiUserSelect
+          label={"Add group members"}
+          onChange={handleMultiSelectChange}
+        />
 
         <Group justify="flex-end" mt="md">
           <Button onClick={handleSubmit} type="submit">

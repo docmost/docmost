@@ -17,7 +17,7 @@ export default function GroupDetails() {
       {group && (
         <div>
           {/* Todo: back navigation */}
-          <Title order={3}>{group.name}</Title>
+          <Title order={4}>{group.name}</Title>
           <Text c="dimmed">{group.description}</Text>
 
           <Group my="md" justify="flex-end">

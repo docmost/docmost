@@ -69,7 +69,10 @@ export function CreateGroupForm() {
               {...form.getInputProps("description")}
             />
 
-            <MultiUserSelect onChange={handleMultiSelectChange} />
+            <MultiUserSelect
+              label={"Add group members"}
+              onChange={handleMultiSelectChange}
+            />
           </Stack>
 
           <Group justify="flex-end" mt="md">
