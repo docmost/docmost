@@ -9,7 +9,7 @@ import {
   IconUsersGroup,
   IconSpaces,
 } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
 
 interface DataItem {
@@ -52,7 +52,8 @@ const groupedData: DataGroup[] = [
 ];
 
 export default function SettingsSidebar() {
-  const [active, setActive] = useState("Profile");
+  const pathname = useLocation().pathname;
+  const [active, setActive] = useState(pathname);
 
   const menuItems = groupedData.map((group) => (
     <div key={group.heading}>
@@ -62,11 +63,11 @@ export default function SettingsSidebar() {
       {group.items.map((item) => (
         <Link
           className={classes.link}
-          data-active={item.label === active || undefined}
+          data-active={active.startsWith(item.path) || undefined}
           key={item.label}
           to={item.path}
           onClick={() => {
-            setActive(item.label);
+            setActive(item.path);
           }}
         >
           <item.icon className={classes.linkIcon} stroke={2} />
