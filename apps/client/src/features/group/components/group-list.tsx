@@ -1,8 +1,8 @@
 import { Table, Group, Text, Anchor } from "@mantine/core";
 import { useGetGroupsQuery } from "@/features/group/queries/group-query";
-import { IconUsersGroup } from "@tabler/icons-react";
 import React from "react";
 import { Link } from "react-router-dom";
+import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
 
 export default function GroupList() {
   const { data, isLoading } = useGetGroupsQuery();
@@ -33,7 +33,7 @@ export default function GroupList() {
                     to={`/settings/groups/${group.id}`}
                   >
                     <Group gap="sm">
-                      <IconUsersGroup stroke={1.5} />
+                      <IconGroupCircle />
                       <div>
                         <Text fz="sm" fw={500}>
                           {group.name}

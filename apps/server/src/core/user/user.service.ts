@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { hashPassword } from '../../helpers/utils';
 
 @Injectable()
 export class UserService {
@@ -29,7 +28,6 @@ export class UserService {
       user.name = updateUserDto.name;
     }
 
-    // todo need workspace scoping
     if (updateUserDto.email && user.email != updateUserDto.email) {
       if (await this.userRepo.findByEmail(updateUserDto.email, workspaceId)) {
         throw new BadRequestException('A user with this email already exists');
@@ -39,10 +37,6 @@ export class UserService {
 
     if (updateUserDto.avatarUrl) {
       user.avatarUrl = updateUserDto.avatarUrl;
-    }
-
-    if (updateUserDto.password) {
-      updateUserDto.password = await hashPassword(updateUserDto.password);
     }
 
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);

@@ -1,3 +1,8 @@
+export interface UserSpaceRole {
+  userId: string;
+  role: string;
+}
+
 interface SpaceUserInfo {
   id: string;
   name: string;
@@ -10,7 +15,7 @@ interface SpaceGroupInfo {
   id: string;
   name: string;
   isDefault: boolean;
-  memberCount?: number;
+  memberCount: number;
   type: 'group';
 }
 

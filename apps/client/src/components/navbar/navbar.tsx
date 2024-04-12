@@ -5,24 +5,23 @@ import {
   ActionIcon,
   Tooltip,
   rem,
-} from '@mantine/core';
-import { spotlight } from '@mantine/spotlight';
+} from "@mantine/core";
+import { spotlight } from "@mantine/spotlight";
 import {
   IconSearch,
   IconPlus,
   IconSettings,
-  IconFilePlus,
   IconHome,
-} from '@tabler/icons-react';
+} from "@tabler/icons-react";
 
-import classes from './navbar.module.css';
-import { UserButton } from './user-button';
-import React from 'react';
-import { useAtom } from 'jotai';
-import { SearchSpotlight } from '@/features/search/search-spotlight';
-import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom';
-import PageTree from '@/features/page/tree/page-tree';
-import { useNavigate } from 'react-router-dom';
+import classes from "./navbar.module.css";
+import { UserButton } from "./user-button";
+import React from "react";
+import { useAtom } from "jotai";
+import { SearchSpotlight } from "@/features/search/search-spotlight";
+import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom";
+import PageTree from "@/features/page/tree/page-tree";
+import { useNavigate } from "react-router-dom";
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
@@ -31,9 +30,9 @@ interface PrimaryMenuItem {
 }
 
 const primaryMenu: PrimaryMenuItem[] = [
-  { icon: IconHome, label: 'Home' },
-  { icon: IconSearch, label: 'Search' },
-  { icon: IconSettings, label: 'Settings' },
+  { icon: IconHome, label: "Home" },
+  { icon: IconSearch, label: "Search" },
+  { icon: IconSettings, label: "Settings" },
   // { icon: IconFilePlus, label: 'New Page' },
 ];
 
@@ -42,21 +41,21 @@ export function Navbar() {
   const navigate = useNavigate();
 
   const handleMenuItemClick = (label: string) => {
-    if (label === 'Home') {
-      navigate('/home');
+    if (label === "Home") {
+      navigate("/home");
     }
 
-    if (label === 'Search') {
+    if (label === "Search") {
       spotlight.open();
     }
 
-    if (label === 'Settings') {
-      navigate('/settings/workspace');
+    if (label === "Settings") {
+      navigate("/settings/workspace");
     }
   };
 
   function handleCreatePage() {
-    tree?.create({ parentId: null, type: 'internal', index: 0 });
+    tree?.create({ parentId: null, type: "internal", index: 0 });
   }
 
   const primaryMenuItems = primaryMenu.map((menuItem) => (

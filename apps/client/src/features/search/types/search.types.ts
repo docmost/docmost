@@ -1,3 +1,5 @@
+import { IUser } from "@/features/user/types/user.types.ts";
+import { IGroup } from "@/features/group/types/group.types.ts";
 
 export interface IPageSearch {
   id: string;
@@ -9,4 +11,15 @@ export interface IPageSearch {
   updatedAt: Date;
   rank: string;
   highlight: string;
+}
+
+export interface SearchSuggestionParams {
+  query: string;
+  includeUsers?: boolean;
+  includeGroups?: boolean;
+}
+
+export interface ISuggestionResult {
+  users?: Partial<IUser[]>;
+  groups?: Partial<IGroup[]>;
 }

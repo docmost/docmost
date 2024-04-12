@@ -11,6 +11,7 @@ import SettingsLayout from "@/components/layouts/settings/settings-layout.tsx";
 import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
 import Groups from "@/pages/settings/group/groups";
 import GroupInfo from "./pages/settings/group/group-info";
+import Spaces from "@/pages/settings/space/spaces.tsx";
 
 export default function App() {
   return (
@@ -31,8 +32,7 @@ export default function App() {
           <Route path={"members"} element={<WorkspaceMembers />} />
           <Route path={"groups"} element={<Groups />} />
           <Route path={"groups/:groupId"} element={<GroupInfo />} />
-          <Route path={"spaces"} element={<Home />} />
-          <Route path={"security"} element={<Home />} />
+          <Route path={"spaces"} element={<Spaces />} />
         </Route>
       </Routes>
     </>

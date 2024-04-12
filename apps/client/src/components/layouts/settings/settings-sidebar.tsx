@@ -42,11 +42,6 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
-      {
-        label: "Security",
-        icon: IconFingerprint,
-        path: "/settings/security",
-      },
     ],
   },
 ];

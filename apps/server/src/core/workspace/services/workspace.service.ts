@@ -100,7 +100,7 @@ export class WorkspaceService {
         await this.spaceMemberService.addUserToSpace(
           user.id,
           createdSpace.id,
-          SpaceRole.OWNER,
+          SpaceRole.ADMIN,
           workspace.id,
           trx,
         );

@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class SearchDTO {
   @IsString()
@@ -15,4 +15,17 @@ export class SearchDTO {
   @IsOptional()
   @IsNumber()
   offset?: number;
+}
+
+export class SearchSuggestionDTO {
+  @IsString()
+  query: string;
+
+  @IsOptional()
+  @IsBoolean()
+  includeUsers?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  includeGroups?: number;
 }

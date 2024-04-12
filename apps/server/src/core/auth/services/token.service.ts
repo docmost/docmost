@@ -22,7 +22,10 @@ export class TokenService {
     return this.jwtService.sign(payload);
   }
 
-  async generateRefreshToken(userId: string, workspaceId): Promise<string> {
+  async generateRefreshToken(
+    userId: string,
+    workspaceId: string,
+  ): Promise<string> {
     const payload: JwtRefreshPayload = {
       sub: userId,
       workspaceId,
@@ -32,7 +35,7 @@ export class TokenService {
     return this.jwtService.sign(payload, { expiresIn });
   }
 
-  async generateTokens(user): Promise<TokensDto> {
+  async generateTokens(user: User): Promise<TokensDto> {
     return {
       accessToken: await this.generateAccessToken(user),
       refreshToken: await this.generateRefreshToken(user.id, user.workspaceId),

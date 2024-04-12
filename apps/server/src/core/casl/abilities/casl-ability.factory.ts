@@ -47,7 +47,7 @@ export default class CaslAbilityFactory {
     }
 
     if (userRole === UserRole.MEMBER) {
-      // can<any>([Action.Read], WorkspaceUser);
+      can([Action.Read], 'WorkspaceUser');
 
       // Groups
       can([Action.Read], 'Group');

@@ -31,7 +31,8 @@
     text-decoration: none;
     font-size: var(--mantine-font-size-sm);
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
-    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    padding-left: var(--mantine-spacing-xs) ;
+    min-height: 30px;
     border-radius: var(--mantine-radius-sm);
     font-weight: 500;
     user-select: none;

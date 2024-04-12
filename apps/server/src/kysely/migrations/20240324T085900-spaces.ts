@@ -49,7 +49,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.references('spaces.id').onDelete('cascade').notNull(),
     )
     .addColumn('role', 'varchar', (col) => col.notNull())
-    .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
+    .addColumn('addedById', 'uuid', (col) => col.references('users.id'))
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )

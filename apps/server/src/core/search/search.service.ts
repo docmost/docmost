@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SearchDTO } from './dto/search.dto';
+import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
 import { SearchResponseDto } from './dto/search-response.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -56,5 +56,39 @@ export class SearchService {
     });
 
     return searchResults;
+  }
+
+  async searchSuggestions(
+    suggestion: SearchSuggestionDTO,
+    workspaceId: string,
+  ) {
+    const limit = 25;
+
+    const userSearch = this.db
+      .selectFrom('users')
+      .select(['id', 'name', 'avatarUrl'])
+      .where((eb) => eb('users.name', 'ilike', `%${suggestion.query}%`))
+      .where('workspaceId', '=', workspaceId)
+      .limit(limit);
+
+    const groupSearch = this.db
+      .selectFrom('groups')
+      .select(['id', 'name', 'description'])
+      .where((eb) => eb('groups.name', 'ilike', `%${suggestion.query}%`))
+      .where('workspaceId', '=', workspaceId)
+      .limit(limit);
+
+    let users = [];
+    let groups = [];
+
+    if (suggestion.includeUsers) {
+      users = await userSearch.execute();
+    }
+
+    if (suggestion.includeGroups) {
+      groups = await groupSearch.execute();
+    }
+
+    return { users, groups };
   }
 }

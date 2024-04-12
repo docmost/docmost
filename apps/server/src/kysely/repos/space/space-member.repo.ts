@@ -1,30 +1,94 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableSpaceMember,
   SpaceMember,
+  UpdatableSpaceMember,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { MemberInfo } from './types';
-import { sql } from 'kysely';
+import { MemberInfo, UserSpaceRole } from './types';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 
 @Injectable()
 export class SpaceMemberRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly groupRepo: GroupRepo,
+  ) {}
 
   async insertSpaceMember(
     insertableSpaceMember: InsertableSpaceMember,
     trx?: KyselyTransaction,
-  ): Promise<SpaceMember> {
+  ): Promise<void> {
     const db = dbOrTx(this.db, trx);
-    return db
+    await db
       .insertInto('spaceMembers')
       .values(insertableSpaceMember)
       .returningAll()
+      .execute();
+  }
+
+  async updateSpaceMember(
+    updatableSpaceMember: UpdatableSpaceMember,
+    spaceMemberId: string,
+    spaceId: string,
+  ): Promise<void> {
+    await this.db
+      .updateTable('spaceMembers')
+      .set(updatableSpaceMember)
+      .where('id', '=', spaceMemberId)
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
+  async getSpaceMemberByTypeId(
+    spaceId: string,
+    opts: {
+      userId?: string;
+      groupId?: string;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<SpaceMember> {
+    const db = dbOrTx(this.db, trx);
+    let query = db
+      .selectFrom('spaceMembers')
+      .selectAll()
+      .where('spaceId', '=', spaceId);
+    if (opts.userId) {
+      query = query.where('userId', '=', opts.userId);
+    } else if (opts.groupId) {
+      query = query.where('groupId', '=', opts.groupId);
+    } else {
+      throw new BadRequestException('Please provider a userId or groupId');
+    }
+    return query.executeTakeFirst();
+  }
+
+  async removeSpaceMemberById(
+    memberId: string,
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('spaceMembers')
+      .where('id', '=', memberId)
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
+  async roleCountBySpaceId(role: string, spaceId: string): Promise<number> {
+    const { count } = await this.db
+      .selectFrom('spaceMembers')
+      .select((eb) => eb.fn.count('role').as('count'))
+      .where('role', '=', role)
+      .where('spaceId', '=', spaceId)
       .executeTakeFirst();
+
+    return count as number;
   }
 
   async getSpaceMembersPaginated(
@@ -36,15 +100,17 @@ export class SpaceMemberRepo {
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
       .select([
-        'groups.id as groupId',
-        'groups.name as groupName',
-        'groups.isDefault as groupIsDefault',
         'users.id as userId',
         'users.name as userName',
         'users.avatarUrl as userAvatarUrl',
         'users.email as userEmail',
+        'groups.id as groupId',
+        'groups.name as groupName',
+        'groups.isDefault as groupIsDefault',
         'spaceMembers.role',
+        'spaceMembers.createdAt',
       ])
+      .select((eb) => this.groupRepo.withMemberCount(eb))
       .where('spaceId', '=', spaceId)
       .orderBy('spaceMembers.createdAt', 'asc');
 
@@ -65,10 +131,10 @@ export class SpaceMemberRepo {
           type: 'user',
         };
       } else if (member.groupId) {
-        // todo: get group member count
         memberInfo = {
           id: member.groupId,
           name: member.groupName,
+          memberCount: member.memberCount as number,
           isDefault: member.groupIsDefault,
           type: 'group',
         };
@@ -77,200 +143,45 @@ export class SpaceMemberRepo {
       return {
         ...memberInfo,
         role: member.role,
+        createdAt: member.createdAt,
       };
     });
 
-    return members;
-  }
+    result.items = members as any;
 
-  /*
-   * we want to get all the spaces a user belongs either directly or via a group
-   * we will pass the user id and workspace id as parameters
-   * if the user is a member of the space via multiple groups
-   * we will return the one with the highest role permission
-   * it should return an array
-   * Todo: needs more work. this is a draft
-   */
-  async getUserSpaces(userId: string, workspaceId: string) {
-    const rolePriority = sql`CASE "spaceMembers"."role"
-                                  WHEN 'owner' THEN 3
-                                  WHEN 'writer' THEN 2
-                                  WHEN 'reader' THEN 1
-    END`.as('role_priority');
-
-    const subquery = this.db
-      .selectFrom('spaces')
-      .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
-      .select([
-        'spaces.id',
-        'spaces.name',
-        'spaces.slug',
-        'spaces.icon',
-        'spaceMembers.role',
-        rolePriority,
-      ])
-      .where('spaceMembers.userId', '=', userId)
-      .where('spaces.workspaceId', '=', workspaceId)
-      .unionAll(
-        this.db
-          .selectFrom('spaces')
-          .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
-          .innerJoin('groupUsers', 'spaceMembers.groupId', 'groupUsers.groupId')
-          .select([
-            'spaces.id',
-            'spaces.name',
-            'spaces.slug',
-            'spaces.icon',
-            'spaceMembers.role',
-            rolePriority,
-          ])
-          .where('groupUsers.userId', '=', userId),
-      )
-      .as('membership');
-
-    const results = await this.db
-      .selectFrom(subquery)
-      .select([
-        'membership.id as space_id',
-        'membership.name as space_name',
-        'membership.slug as space_slug',
-        sql`MAX('role_priority')`.as('max_role_priority'),
-        sql`CASE MAX("role_priority")
-        WHEN 3 THEN 'owner'
-        WHEN 2 THEN 'writer'
-        WHEN 1 THEN 'reader'
-        END`.as('highest_role'),
-      ])
-      .groupBy('membership.id')
-      .groupBy('membership.name')
-      .groupBy('membership.slug')
-      .execute();
-
-    let membership = {};
-
-    const spaces = results.map((result) => {
-      membership = {
-        id: result.space_id,
-        name: result.space_name,
-        role: result.highest_role,
-      };
-
-      return membership;
-    });
-
-    return spaces;
+    return result;
   }
 
   /*
    * we want to get a user's role in a space.
    * they user can be a member either directly or via a group
-   * we will pass the user id and space id and workspaceId to return the user's role
+   * we will pass the user id and space id to return the user's roles
    * if the user is a member of the space via multiple groups
-   * we will return the one with the highest role permission
-   * It returns the space id, space name, user role
-   * and how the role was derived 'via'
-   * if the user has no space permission (not a member) it returns undefined
+   * if the user has no space permission it should return an empty array,
+   * maybe we should throw an exception?
    */
-  async getUserRoleInSpace(
+  async getUserSpaceRoles(
     userId: string,
     spaceId: string,
-    workspaceId: string,
-  ) {
-    const rolePriority = sql`CASE "spaceMembers"."role"
-                                  WHEN 'owner' THEN 3
-                                  WHEN 'writer' THEN 2
-                                  WHEN 'reader' THEN 1
-    END`.as('role_priority');
-
-    const subquery = this.db
-      .selectFrom('spaces')
-      .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
-      .select([
-        'spaces.id',
-        'spaces.name',
-        'spaceMembers.role',
-        'spaceMembers.userId',
-        rolePriority,
-      ])
-      .where('spaceMembers.userId', '=', userId)
-      .where('spaces.id', '=', spaceId)
-      .where('spaces.workspaceId', '=', workspaceId)
+  ): Promise<UserSpaceRole[]> {
+    const roles = await this.db
+      .selectFrom('spaceMembers')
+      .select(['userId', 'role'])
+      .where('userId', '=', userId)
+      .where('spaceId', '=', spaceId)
       .unionAll(
         this.db
-          .selectFrom('spaces')
-          .innerJoin('spaceMembers', 'spaces.id', 'spaceMembers.spaceId')
-          .innerJoin('groupUsers', 'spaceMembers.groupId', 'groupUsers.groupId')
-          .select([
-            'spaces.id',
-            'spaces.name',
-            'spaceMembers.role',
-            'spaceMembers.userId',
-            rolePriority,
-          ])
-          .where('spaces.id', '=', spaceId)
-          .where('spaces.workspaceId', '=', workspaceId)
-          .where('groupUsers.userId', '=', userId),
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select(['groupUsers.userId', 'spaceMembers.role'])
+          .where('groupUsers.userId', '=', userId)
+          .where('spaceMembers.spaceId', '=', spaceId),
       )
-      .as('membership');
+      .execute();
 
-    const result = await this.db
-      .selectFrom(subquery)
-      .select([
-        'membership.id as space_id',
-        'membership.name as space_name',
-        'membership.userId as user_id',
-        sql`MAX('role_priority')`.as('max_role_priority'),
-        sql`CASE MAX("role_priority")
-        WHEN 3 THEN 'owner'
-        WHEN 2 THEN 'writer'
-        WHEN 1 THEN 'reader'
-        END`.as('highest_role'),
-      ])
-      .groupBy('membership.id')
-      .groupBy('membership.name')
-      .groupBy('membership.userId')
-      .executeTakeFirst();
-
-    let membership = {};
-    if (result) {
-      membership = {
-        id: result.space_id,
-        name: result.space_name,
-        role: result.highest_role,
-        via: result.user_id ? 'user' : 'group', // user_id is empty then role was derived via a group
-      };
-      return membership;
+    if (roles.length < 1) {
+      return undefined;
     }
-    return undefined;
-  }
-
-  async getSpaceMemberById(
-    userId: string,
-    groupId: string,
-    trx?: KyselyTransaction,
-  ) {
-    const db = dbOrTx(this.db, trx);
-    return db
-      .selectFrom('spaceMembers')
-      .selectAll()
-      .where('userId', '=', userId)
-      .where('groupId', '=', groupId)
-      .executeTakeFirst();
-  }
-
-  async removeUser(userId: string, spaceId: string): Promise<void> {
-    await this.db
-      .deleteFrom('spaceMembers')
-      .where('userId', '=', userId)
-      .where('spaceId', '=', spaceId)
-      .execute();
-  }
-
-  async removeGroup(groupId: string, spaceId: string): Promise<void> {
-    await this.db
-      .deleteFrom('spaceMembers')
-      .where('userId', '=', groupId)
-      .where('spaceId', '=', spaceId)
-      .execute();
+    return roles;
   }
 }

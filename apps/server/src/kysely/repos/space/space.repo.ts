@@ -16,34 +16,29 @@ import { DB } from '@docmost/db/types/db';
 export class SpaceRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  private baseFields: Array<keyof Space> = [
-    'id',
-    'name',
-    'description',
-    'slug',
-    'icon',
-    'visibility',
-    'defaultRole',
-    'workspaceId',
-    'creatorId',
-    'createdAt',
-    'updatedAt',
-    'deletedAt',
-  ];
-
-  async findById(spaceId: string, workspaceId: string): Promise<Space> {
+  async findById(
+    spaceId: string,
+    workspaceId: string,
+    opts?: { includeMemberCount: boolean },
+  ): Promise<Space> {
     return await this.db
       .selectFrom('spaces')
-      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
+      .selectAll('spaces')
+      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
 
-  async findBySlug(slug: string, workspaceId: string): Promise<Space> {
+  async findBySlug(
+    slug: string,
+    workspaceId: string,
+    opts?: { includeMemberCount: boolean },
+  ): Promise<Space> {
     return await this.db
       .selectFrom('spaces')
-      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
+      .selectAll('spaces')
+      .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
       .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -62,7 +57,7 @@ export class SpaceRepo {
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
     count = count as number;
-    return count == 0 ? false : true;
+    return count != 0;
   }
 
   async updateSpace(
@@ -77,7 +72,8 @@ export class SpaceRepo {
       .set(updatableSpace)
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
-      .execute();
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async insertSpace(
@@ -99,7 +95,8 @@ export class SpaceRepo {
     // todo: show spaces user have access based on visibility and memberships
     let query = this.db
       .selectFrom('spaces')
-      .select((eb) => [...this.baseFields, this.countSpaceMembers(eb)])
+      .selectAll('spaces')
+      .select((eb) => [this.withMemberCount(eb)])
       .where('workspaceId', '=', workspaceId)
       .orderBy('createdAt', 'asc');
 
@@ -121,11 +118,17 @@ export class SpaceRepo {
     return result;
   }
 
-  countSpaceMembers(eb: ExpressionBuilder<DB, 'spaces'>) {
-    // should get unique members via groups?
+  withMemberCount(eb: ExpressionBuilder<DB, 'spaces'>) {
     return eb
       .selectFrom('spaceMembers')
-      .select((eb) => eb.fn.countAll().as('count'))
+      .innerJoin('groups', 'groups.id', 'spaceMembers.groupId')
+      .innerJoin('groupUsers', 'groupUsers.groupId', 'groups.id')
+      .select((eb) =>
+        eb.fn
+          .count(sql`concat(space_members.user_id, group_users.user_id)`)
+          .distinct()
+          .as('count'),
+      )
       .whereRef('spaceMembers.spaceId', '=', 'spaces.id')
       .as('memberCount');
   }

@@ -31,6 +31,8 @@ export class GroupController {
     private readonly groupUserService: GroupUserService,
   ) {}
 
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('/')
   getWorkspaceGroups(
@@ -62,7 +64,6 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    console.log(createGroupDto);
     return this.groupService.createGroup(user, workspace.id, createGroupDto);
   }
 
