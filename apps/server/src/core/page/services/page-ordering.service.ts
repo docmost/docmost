@@ -27,7 +27,6 @@ export class PageOrderingService {
   ) {}
 
   // TODO: scope to workspace and space
-
   async movePage(dto: MovePageDto, trx?: KyselyTransaction): Promise<void> {
     await executeTx(
       this.db,
@@ -59,8 +58,6 @@ export class PageOrderingService {
           );
 
           orderPageList(spaceOrdering.childrenIds, dto);
-          // it should save or update right?
-          // await manager.save(spaceOrdering); //TODO: to update or create new record? pretty confusing
           await trx
             .updateTable('pageOrdering')
             .set(spaceOrdering)
@@ -146,7 +143,7 @@ export class PageOrderingService {
             trx,
           );
         } else {
-          await this.addToSpacePageOrder(spaceId, pageId, trx);
+          await this.addToSpacePageOrder(pageId, spaceId, trx);
         }
       },
       trx,
@@ -154,8 +151,8 @@ export class PageOrderingService {
   }
 
   async addToSpacePageOrder(
-    spaceId: string,
     pageId: string,
+    spaceId: string,
     trx: KyselyTransaction,
   ) {
     await this.upsertOrdering(
@@ -165,6 +162,39 @@ export class PageOrderingService {
       spaceId,
       trx,
     );
+  }
+
+  async upsertOrdering(
+    entityId: string,
+    entityType: string,
+    childId: string,
+    spaceId: string,
+    trx: KyselyTransaction,
+  ) {
+    let ordering = await this.getEntityOrdering(entityId, entityType, trx);
+    console.log(ordering);
+    console.log('oga1');
+
+    if (!ordering) {
+      ordering = await this.createPageOrdering(
+        entityId,
+        entityType,
+        spaceId,
+        trx,
+      );
+    }
+
+    if (!ordering.childrenIds.includes(childId)) {
+      ordering.childrenIds.unshift(childId);
+      console.log(childId);
+      console.log('childId above');
+      await trx
+        .updateTable('pageOrdering')
+        .set(ordering)
+        .where('id', '=', ordering.id)
+        .execute();
+      //await manager.save(PageOrdering, ordering);
+    }
   }
 
   async removeFromParent(
@@ -214,35 +244,6 @@ export class PageOrderingService {
       await this.removeFromParent(page.parentPageId, page.id, trx);
     } else {
       await this.removeFromSpacePageOrder(page.spaceId, page.id, trx);
-    }
-  }
-
-  async upsertOrdering(
-    entityId: string,
-    entityType: string,
-    childId: string,
-    spaceId: string,
-    trx: KyselyTransaction,
-  ) {
-    let ordering = await this.getEntityOrdering(entityId, entityType, trx);
-
-    if (!ordering) {
-      ordering = await this.createPageOrdering(
-        entityId,
-        entityType,
-        spaceId,
-        trx,
-      );
-    }
-
-    if (!ordering.childrenIds.includes(childId)) {
-      ordering.childrenIds.unshift(childId);
-      await trx
-        .updateTable('pageOrdering')
-        .set(ordering)
-        .where('id', '=', ordering.id)
-        .execute();
-      //await manager.save(PageOrdering, ordering);
     }
   }
 

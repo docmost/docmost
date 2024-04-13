@@ -29,6 +29,12 @@ export class PageController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
+  @Post()
+  async getSpacePages(@Body() spaceIdDto: SpaceIdDto) {
+    return this.pageService.getSidebarPagesBySpaceId(spaceIdDto.spaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('/info')
   async getPage(@Body() pageIdDto: PageIdDto) {
     return this.pageService.findById(pageIdDto.pageId);
@@ -82,21 +88,15 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post()
-  async getSpacePages(spaceId: string) {
-    return this.pageService.getSidebarPagesBySpaceId(spaceId);
-  }
-
-  @HttpCode(HttpStatus.OK)
   @Post('ordering')
-  async getSpacePageOrder(spaceId: string) {
-    return this.pageOrderService.getSpacePageOrder(spaceId);
+  async getSpacePageOrder(@Body() spaceIdDto: SpaceIdDto) {
+    return this.pageOrderService.getSpacePageOrder(spaceIdDto.spaceId);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('tree')
-  async spacePageTree(@Body() { spaceId }) {
-    return this.pageOrderService.convertToTree(spaceId);
+  async spacePageTree(@Body() spaceIdDto: SpaceIdDto) {
+    return this.pageOrderService.convertToTree(spaceIdDto.spaceId);
   }
 
   // TODO: scope to workspaces

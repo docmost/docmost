@@ -9,7 +9,6 @@ import {
 } from '@docmost/db/types/entity.types';
 import { sql } from 'kysely';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { OrderingEntity } from 'src/core/page/page.util';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 
 // TODO: scope to space/workspace
@@ -69,7 +68,7 @@ export class PageRepo {
       .updateTable('pages')
       .set(updatablePage)
       .where('id', '=', pageId)
-      .execute();
+      .executeTakeFirst();
   }
 
   async insertPage(
@@ -106,8 +105,7 @@ export class PageRepo {
   async getSpaceSidebarPages(spaceId: string, limit: number) {
     const pages = await this.db
       .selectFrom('pages as page')
-      .innerJoin('pageOrdering as ordering', 'ordering.entityId', 'page.id')
-      .where('ordering.entityType', '=', OrderingEntity.PAGE)
+      .leftJoin('pageOrdering as ordering', 'ordering.entityId', 'page.id')
       .where('page.spaceId', '=', spaceId)
       .select([
         'page.id',

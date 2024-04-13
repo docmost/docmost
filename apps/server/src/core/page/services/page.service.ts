@@ -44,9 +44,16 @@ export class PageService {
       if (!parentPage) throw new NotFoundException('Parent page not found');
     }
 
+    let pageId = undefined;
+    if (createPageDto.pageId) {
+      pageId = createPageDto.pageId;
+      delete createPageDto.pageId;
+    }
+
     //TODO: should be in a transaction
     const createdPage = await this.pageRepo.insertPage({
       ...createPageDto,
+      id: pageId,
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
@@ -54,7 +61,7 @@ export class PageService {
 
     await this.pageOrderingService.addPageToOrder(
       createPageDto.spaceId,
-      createPageDto.pageId,
+      pageId,
       createPageDto.parentPageId,
     );
 
@@ -65,16 +72,17 @@ export class PageService {
     pageId: string,
     updatePageDto: UpdatePageDto,
     userId: string,
-  ): Promise<void> {
+  ): Promise<Page> {
     await this.pageRepo.updatePage(
       {
-        ...updatePageDto,
+        title: updatePageDto.title,
+        icon: updatePageDto.icon,
         lastUpdatedById: userId,
       },
       pageId,
     );
 
-    //return await this.pageRepo.findById(pageId);
+    return await this.pageRepo.findById(pageId);
   }
 
   async updateState(
