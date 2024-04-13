@@ -1,4 +1,5 @@
 export interface IPage {
+  pageId: string;
   id: string;
   title: string;
   content: string;
@@ -10,9 +11,10 @@ export interface IPage {
   shareId: string;
   parentPageId: string;
   creatorId: string;
+  spaceId: string;
   workspaceId: string;
-  children:[]
-  childrenIds:[]
+  children: [];
+  childrenIds: [];
   isLocked: boolean;
   status: string;
   publishedAt: Date;
@@ -22,7 +24,7 @@ export interface IPage {
 }
 
 export interface IMovePage {
-  id: string;
+  pageId: string;
   after?: string;
   before?: string;
   parentId?: string;

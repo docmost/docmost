@@ -4,6 +4,7 @@ export interface IWorkspace {
   description: string;
   logo: string;
   hostname: string;
+  defaultSpaceId: string;
   customDomain: string;
   enableInvite: boolean;
   inviteCode: string;

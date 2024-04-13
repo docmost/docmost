@@ -1,10 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import {
   changeMemberRole,
+  getWorkspace,
   getWorkspaceMembers,
 } from "@/features/workspace/services/workspace-service";
 import { QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
+import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
+
+export function useWorkspace(): UseQueryResult<IWorkspace, Error> {
+  return useQuery({
+    queryKey: ["workspace"],
+    queryFn: () => getWorkspace(),
+  });
+}
 
 export function useWorkspaceMembersQuery(params?: QueryParams) {
   return useQuery({

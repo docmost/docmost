@@ -1,21 +1,28 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   CreateHandler,
   DeleteHandler,
   MoveHandler,
   RenameHandler,
   SimpleTree,
-} from 'react-arborist';
-import { useAtom } from 'jotai';
-import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
-import { movePage } from '@/features/page/services/page-service';
-import { v4 as uuidv4 } from 'uuid';
-import { IMovePage } from '@/features/page/types/page.types';
-import { useNavigate } from 'react-router-dom';
-import { TreeNode } from '@/features/page/tree/types';
-import { useCreatePageMutation, useDeletePageMutation, useUpdatePageMutation } from '@/features/page/queries/page-query';
+} from "react-arborist";
+import { useAtom } from "jotai";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { movePage } from "@/features/page/services/page-service";
+import { v4 as uuidv4 } from "uuid";
+import { IMovePage } from "@/features/page/types/page.types";
+import { useNavigate } from "react-router-dom";
+import { TreeNode } from "@/features/page/tree/types";
+import {
+  useCreatePageMutation,
+  useDeletePageMutation,
+  useUpdatePageMutation,
+} from "@/features/page/queries/page-query";
 
-export function usePersistence<T>() {
+interface Props {
+  spaceId: string;
+}
+export function usePersistence<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
@@ -25,7 +32,13 @@ export function usePersistence<T>() {
 
   const tree = useMemo(() => new SimpleTree<TreeNode>(data), [data]);
 
-  const onMove: MoveHandler<T> = (args: { parentId, index, parentNode, dragNodes, dragIds }) => {
+  const onMove: MoveHandler<T> = (args: {
+    parentId;
+    index;
+    parentNode;
+    dragNodes;
+    dragIds;
+  }) => {
     for (const id of args.dragIds) {
       tree.move({ id, parentId: args.parentId, index: args.index });
     }
@@ -33,25 +46,30 @@ export function usePersistence<T>() {
 
     const newDragIndex = tree.find(args.dragIds[0])?.childIndex;
 
-    const currentTreeData = args.parentId ? tree.find(args.parentId).children : tree.data;
+    const currentTreeData = args.parentId
+      ? tree.find(args.parentId).children
+      : tree.data;
     const afterId = currentTreeData[newDragIndex - 1]?.id || null;
-    const beforeId = !afterId && currentTreeData[newDragIndex + 1]?.id || null;
+    const beforeId =
+      (!afterId && currentTreeData[newDragIndex + 1]?.id) || null;
 
     const params: IMovePage = {
-      id: args.dragIds[0],
+      pageId: args.dragIds[0],
       after: afterId,
       before: beforeId,
       parentId: args.parentId || null,
     };
 
     const payload = Object.fromEntries(
-      Object.entries(params).filter(([key, value]) => value !== null && value !== undefined),
+      Object.entries(params).filter(
+        ([key, value]) => value !== null && value !== undefined,
+      ),
     );
 
     try {
       movePage(payload as IMovePage);
     } catch (error) {
-      console.error('Error moving page:', error);
+      console.error("Error moving page:", error);
     }
   };
 
@@ -60,28 +78,32 @@ export function usePersistence<T>() {
     setData(tree.data);
 
     try {
-      updatePageMutation.mutateAsync({ id, title: name });
+      updatePageMutation.mutateAsync({ pageId: id, title: name });
     } catch (error) {
-      console.error('Error updating page title:', error);
+      console.error("Error updating page title:", error);
     }
   };
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
-    const data = { id: uuidv4(), name: '' } as any;
+    const data = { id: uuidv4(), name: "" } as any;
     data.children = [];
     tree.create({ parentId, index, data });
     setData(tree.data);
 
-    const payload: { id: string; parentPageId?: string } = { id: data.id };
+    const payload: { pageId: string; parentPageId?: string; spaceId: string } =
+      {
+        pageId: data.id,
+        spaceId: spaceId,
+      };
     if (parentId) {
       payload.parentPageId = parentId;
     }
 
     try {
       await createPageMutation.mutateAsync(payload);
-      navigate(`/p/${payload.id}`);
+      navigate(`/p/${payload.pageId}`);
     } catch (error) {
-      console.error('Error creating the page:', error);
+      console.error("Error creating the page:", error);
     }
 
     return data;
@@ -93,9 +115,9 @@ export function usePersistence<T>() {
 
     try {
       await deletePageMutation.mutateAsync(args.ids[0]);
-      navigate('/home');
+      navigate("/home");
     } catch (error) {
-      console.error('Error deleting page:', error);
+      console.error("Error deleting page:", error);
     }
   };
 

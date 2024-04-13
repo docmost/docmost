@@ -1,17 +1,14 @@
-import {
-  useMutation,
-  useQuery,
-  UseQueryResult,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   createPage,
   deletePage,
   getPageById,
   getPages,
   getRecentChanges,
+  getSpacePageOrder,
   updatePage,
 } from "@/features/page/services/page-service";
-import { IPage } from "@/features/page/types/page.types";
+import { IPage, IWorkspacePageOrder } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
 
 const RECENT_CHANGES_KEY = ["recentChanges"];
@@ -25,10 +22,12 @@ export function usePageQuery(pageId: string): UseQueryResult<IPage, Error> {
   });
 }
 
-export function useGetPagesQuery(): UseQueryResult<IPage[], Error> {
+export function useGetPagesQuery(
+  spaceId: string,
+): UseQueryResult<IPage[], Error> {
   return useQuery({
-    queryKey: ["pages"],
-    queryFn: () => getPages(),
+    queryKey: ["pages", spaceId],
+    queryFn: () => getPages(spaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -60,6 +59,17 @@ export function useDeletePageMutation() {
     mutationFn: (pageId: string) => deletePage(pageId),
     onSuccess: () => {
       notifications.show({ message: "Page deleted successfully" });
+    },
+  });
+}
+
+export default function useSpacePageOrder(
+  spaceId: string,
+): UseQueryResult<IWorkspacePageOrder> {
+  return useQuery({
+    queryKey: ["page-order", spaceId],
+    queryFn: async () => {
+      return await getSpacePageOrder(spaceId);
     },
   });
 }

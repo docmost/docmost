@@ -23,21 +23,25 @@ import { FillFlexParent } from "./components/fill-flex-parent";
 import { TreeNode } from "./types";
 import { treeApiAtom } from "./atoms/tree-api-atom";
 import { usePersistence } from "@/features/page/tree/hooks/use-persistence";
-import useWorkspacePageOrder from "@/features/page/tree/hooks/use-workspace-page-order";
 import { useNavigate, useParams } from "react-router-dom";
 import { convertToTree, updateTreeNodeIcon } from "@/features/page/tree/utils";
-import {
+import useSpacePageOrder, {
   useGetPagesQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 
-export default function PageTree() {
-  const { data, setData, controllers } = usePersistence<TreeApi<TreeNode>>();
+interface PageTreeProps {
+  spaceId: string;
+}
+
+export default function PageTree({ spaceId }: PageTreeProps) {
+  const { data, setData, controllers } =
+    usePersistence<TreeApi<TreeNode>>(spaceId);
   const [tree, setTree] = useAtom<TreeApi<TreeNode>>(treeApiAtom);
-  const { data: pageOrderData } = useWorkspacePageOrder();
-  const { data: pagesData, isLoading } = useGetPagesQuery();
+  const { data: pageOrderData } = useSpacePageOrder(spaceId);
+  const { data: pagesData, isLoading } = useGetPagesQuery(spaceId);
   const rootElement = useRef<HTMLDivElement>();
   const { pageId } = useParams();
 
@@ -113,12 +117,12 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
 
   const handleEmojiSelect = (emoji) => {
     handleUpdateNodeIcon(node.id, emoji.native);
-    updatePageMutation.mutateAsync({ id: node.id, icon: emoji.native });
+    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native });
   };
 
   const handleRemoveEmoji = () => {
     handleUpdateNodeIcon(node.id, null);
-    updatePageMutation.mutateAsync({ id: node.id, icon: null });
+    updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
   };
 
   if (node.willReceiveDrop && node.isClosed) {

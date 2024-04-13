@@ -1,17 +1,20 @@
-import '@/features/editor/styles/index.css';
-import React, { useEffect, useState } from 'react';
-import { EditorContent, useEditor } from '@tiptap/react';
-import { Document } from '@tiptap/extension-document';
-import { Heading } from '@tiptap/extension-heading';
-import { Text } from '@tiptap/extension-text';
-import { Placeholder } from '@tiptap/extension-placeholder';
-import { useAtomValue } from 'jotai';
-import { pageEditorAtom, titleEditorAtom } from '@/features/editor/atoms/editor-atoms';
-import { useUpdatePageMutation } from '@/features/page/queries/page-query';
-import { useDebouncedValue } from '@mantine/hooks';
-import { useAtom } from 'jotai';
-import { treeDataAtom } from '@/features/page/tree/atoms/tree-data-atom';
-import { updateTreeNodeName } from '@/features/page/tree/utils';
+import "@/features/editor/styles/index.css";
+import React, { useEffect, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { Document } from "@tiptap/extension-document";
+import { Heading } from "@tiptap/extension-heading";
+import { Text } from "@tiptap/extension-text";
+import { Placeholder } from "@tiptap/extension-placeholder";
+import { useAtomValue } from "jotai";
+import {
+  pageEditorAtom,
+  titleEditorAtom,
+} from "@/features/editor/atoms/editor-atoms";
+import { useUpdatePageMutation } from "@/features/page/queries/page-query";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useAtom } from "jotai";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { updateTreeNodeName } from "@/features/page/tree/utils";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -19,7 +22,7 @@ export interface TitleEditorProps {
 }
 
 export function TitleEditor({ pageId, title }: TitleEditorProps) {
-  const [debouncedTitleState, setDebouncedTitleState] = useState('');
+  const [debouncedTitleState, setDebouncedTitleState] = useState("");
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
@@ -29,14 +32,14 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   const titleEditor = useEditor({
     extensions: [
       Document.extend({
-        content: 'heading',
+        content: "heading",
       }),
       Heading.configure({
         levels: [1],
       }),
       Text,
       Placeholder.configure({
-        placeholder: 'Untitled',
+        placeholder: "Untitled",
       }),
     ],
     onCreate({ editor }) {
@@ -53,8 +56,8 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   });
 
   useEffect(() => {
-    if (debouncedTitle !== '') {
-      updatePageMutation.mutate({ id: pageId, title: debouncedTitle });
+    if (debouncedTitle !== "") {
+      updatePageMutation.mutate({ pageId, title: debouncedTitle });
 
       const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
       setTreeData(newTreeData);
@@ -69,7 +72,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
 
   useEffect(() => {
     setTimeout(() => {
-      titleEditor?.commands.focus('end');
+      titleEditor?.commands.focus("end");
     }, 500);
   }, [titleEditor]);
 
@@ -79,15 +82,15 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
-    const shouldFocusEditor = (key === 'Enter' || key === 'ArrowDown') ||
-      (key === 'ArrowRight' && !$head.nodeAfter);
+    const shouldFocusEditor =
+      key === "Enter" ||
+      key === "ArrowDown" ||
+      (key === "ArrowRight" && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
-      pageEditor.commands.focus('start');
+      pageEditor.commands.focus("start");
     }
   }
 
-  return (
-    <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />
-  );
+  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
 }
