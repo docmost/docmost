@@ -72,7 +72,7 @@ export class PageHistoryRepo {
       .orderBy('createdAt', 'desc');
 
     const result = executeWithPagination(query, {
-      page: pagination.offset,
+      page: pagination.page,
       perPage: pagination.limit,
     });
 

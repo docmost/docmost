@@ -12,7 +12,6 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageRepo } from './repos/page/page.repo';
 import { CommentRepo } from './repos/comment/comment.repo';
 import { PageHistoryRepo } from './repos/page/page-history.repo';
-import { PageOrderingRepo } from './repos/page/page-ordering.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
 
 // https://github.com/brianc/node-postgres/issues/811
@@ -35,9 +34,9 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
           if (environmentService.getEnv() !== 'development') return;
           if (event.level === 'query') {
             console.log(event.query.sql);
-            if (event.query.parameters.length > 0) {
-              console.log('parameters: ' + event.query.parameters);
-            }
+            //if (event.query.parameters.length > 0) {
+            //console.log('parameters: ' + event.query.parameters);
+            //}
             console.log('time: ' + event.queryDurationMillis);
           }
         },
@@ -53,7 +52,6 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     SpaceMemberRepo,
     PageRepo,
     PageHistoryRepo,
-    PageOrderingRepo,
     CommentRepo,
     AttachmentRepo,
   ],
@@ -66,7 +64,6 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     SpaceMemberRepo,
     PageRepo,
     PageHistoryRepo,
-    PageOrderingRepo,
     CommentRepo,
     AttachmentRepo,
   ],

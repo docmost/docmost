@@ -11,28 +11,21 @@ import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto } from './dto/move-page.dto';
 import { PageHistoryIdDto, PageIdDto, SpaceIdDto } from './dto/page.dto';
-import { PageOrderingService } from './services/page-ordering.service';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import { SidebarPageDto } from './dto/sidebar-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
-    private readonly pageOrderService: PageOrderingService,
     private readonly pageHistoryService: PageHistoryService,
   ) {}
-
-  @HttpCode(HttpStatus.OK)
-  @Post()
-  async getSpacePages(@Body() spaceIdDto: SpaceIdDto) {
-    return this.pageService.getSidebarPagesBySpaceId(spaceIdDto.spaceId);
-  }
 
   @HttpCode(HttpStatus.OK)
   @Post('/info')
@@ -40,7 +33,7 @@ export class PageController {
     return this.pageService.findById(pageIdDto.pageId);
   }
 
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   @Post('create')
   async create(
     @Body() createPageDto: CreatePageDto,
@@ -73,30 +66,12 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('move')
-  async movePage(@Body() movePageDto: MovePageDto) {
-    return this.pageOrderService.movePage(movePageDto);
-  }
-
-  @HttpCode(HttpStatus.OK)
   @Post('recent')
   async getRecentSpacePages(
     @Body() spaceIdDto: SpaceIdDto,
     @Body() pagination: PaginationOptions,
   ) {
     return this.pageService.getRecentSpacePages(spaceIdDto.spaceId, pagination);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('ordering')
-  async getSpacePageOrder(@Body() spaceIdDto: SpaceIdDto) {
-    return this.pageOrderService.getSpacePageOrder(spaceIdDto.spaceId);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('tree')
-  async spacePageTree(@Body() spaceIdDto: SpaceIdDto) {
-    return this.pageOrderService.convertToTree(spaceIdDto.spaceId);
   }
 
   // TODO: scope to workspaces
@@ -111,7 +86,22 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/history/details')
-  async get(@Body() dto: PageHistoryIdDto) {
+  async getPageHistoryInfo(@Body() dto: PageHistoryIdDto) {
     return this.pageHistoryService.findById(dto.historyId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/sidebar-pages')
+  async getSidebarPages(
+    @Body() dto: SidebarPageDto,
+    @Body() pagination: PaginationOptions,
+  ) {
+    return this.pageService.getSidebarPages(dto, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('move')
+  async movePage(@Body() movePageDto: MovePageDto) {
+    return this.pageService.movePage(movePageDto);
   }
 }

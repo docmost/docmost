@@ -1,0 +1,166 @@
+import { useMemo } from "react";
+import {
+  CreateHandler,
+  DeleteHandler,
+  MoveHandler,
+  NodeApi,
+  RenameHandler,
+  SimpleTree,
+} from "react-arborist";
+import { useAtom } from "jotai";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
+import { useNavigate } from "react-router-dom";
+import {
+  useCreatePageMutation,
+  useDeletePageMutation,
+  useMovePageMutation,
+  useUpdatePageMutation,
+} from "@/features/page/queries/page-query.ts";
+import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
+import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+
+export function useTreeMutation<T>(spaceId: string) {
+  const [data, setData] = useAtom(treeDataAtom);
+  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
+  const createPageMutation = useCreatePageMutation();
+  const updatePageMutation = useUpdatePageMutation();
+  const deletePageMutation = useDeletePageMutation();
+  const movePageMutation = useMovePageMutation();
+  const navigate = useNavigate();
+
+  const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
+    const payload: { spaceId: string; parentPageId?: string } = {
+      spaceId: spaceId,
+    };
+    if (parentId) {
+      payload.parentPageId = parentId;
+    }
+
+    let createdPage: IPage;
+    try {
+      createdPage = await createPageMutation.mutateAsync(payload);
+    } catch (err) {
+      throw new Error("Failed to create page");
+    }
+
+    const data = {
+      id: createdPage.id,
+      name: "",
+      position: createdPage.position,
+      children: [],
+    } as any;
+
+    let lastIndex: number;
+    if (parentId === null) {
+      lastIndex = tree.data.length;
+    } else {
+      lastIndex = tree.find(parentId).children.length;
+    }
+    // to place the newly created node at the bottom
+    index = lastIndex;
+
+    tree.create({ parentId, index, data });
+    setData(tree.data);
+
+    navigate(`/p/${createdPage.id}`);
+    return data;
+  };
+
+  const onMove: MoveHandler<T> = (args: {
+    dragIds: string[];
+    dragNodes: NodeApi<T>[];
+    parentId: string | null;
+    parentNode: NodeApi<T> | null;
+    index: number;
+  }) => {
+    const draggedNodeId = args.dragIds[0];
+
+    tree.move({
+      id: draggedNodeId,
+      parentId: args.parentId,
+      index: args.index,
+    });
+
+    const newDragIndex = tree.find(draggedNodeId)?.childIndex;
+
+    const currentTreeData = args.parentId
+      ? tree.find(args.parentId).children
+      : tree.data;
+
+    // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
+    // we have to access the node differently viq currentTreeData[args.index]?.data?.position
+    // this makes it possible to correctly sort children of a parent node that is not the root
+
+    const afterPosition =
+      // @ts-ignore
+      currentTreeData[newDragIndex - 1]?.position ||
+      // @ts-ignore
+      currentTreeData[args.index - 1]?.data?.position ||
+      null;
+
+    const beforePosition =
+      // @ts-ignore
+      currentTreeData[newDragIndex + 1]?.position ||
+      // @ts-ignore
+      currentTreeData[args.index + 1]?.data?.position ||
+      null;
+
+    let newPosition: string;
+
+    if (afterPosition && beforePosition && afterPosition === beforePosition) {
+      // if after is equal to before, put it next to the after node
+      newPosition = generateJitteredKeyBetween(afterPosition, null);
+    } else {
+      // if both are null then, it is the first index
+      newPosition = generateJitteredKeyBetween(afterPosition, beforePosition);
+    }
+
+    // update the node position in tree
+    tree.update({
+      id: draggedNodeId,
+      changes: { position: newPosition } as any,
+    });
+
+    setData(tree.data);
+
+    const payload: IMovePage = {
+      pageId: draggedNodeId,
+      position: newPosition,
+      parentPageId: args.parentId,
+    };
+
+    try {
+      movePageMutation.mutateAsync(payload);
+    } catch (error) {
+      console.error("Error moving page:", error);
+    }
+  };
+
+  const onRename: RenameHandler<T> = ({ name, id }) => {
+    tree.update({ id, changes: { name } as any });
+    setData(tree.data);
+
+    try {
+      updatePageMutation.mutateAsync({ pageId: id, title: name });
+    } catch (error) {
+      console.error("Error updating page title:", error);
+    }
+  };
+
+  const onDelete: DeleteHandler<T> = async (args: { ids: string[] }) => {
+    try {
+      await deletePageMutation.mutateAsync(args.ids[0]);
+
+      tree.drop({ id: args.ids[0] });
+      setData(tree.data);
+
+      navigate("/home");
+    } catch (error) {
+      console.error("Failed to delete page:", error);
+    }
+  };
+
+  const controllers = { onMove, onRename, onCreate, onDelete };
+  return { data, setData, controllers } as const;
+}

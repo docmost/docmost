@@ -1,25 +1,30 @@
 import {
-  forwardRef,
-  Inject,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
-import { PageOrderingService } from './page-ordering.service';
-import { PageWithOrderingDto } from '../dto/page-with-ordering.dto';
-import { transformPageResult } from '../page.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Page } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
+import {
+  executeWithPagination,
+  PaginationResult,
+} from '@docmost/db/pagination/pagination';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
+import { MovePageDto } from '../dto/move-page.dto';
+import { ExpressionBuilder } from 'kysely';
+import { DB } from '@docmost/db/types/db';
+import { SidebarPageDto } from '../dto/sidebar-page.dto';
 
 @Injectable()
 export class PageService {
   constructor(
     private pageRepo: PageRepo,
-    @Inject(forwardRef(() => PageOrderingService))
-    private pageOrderingService: PageOrderingService,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async findById(
@@ -27,7 +32,7 @@ export class PageService {
     includeContent?: boolean,
     includeYdoc?: boolean,
   ): Promise<Page> {
-    return this.pageRepo.findById(pageId, includeContent, includeYdoc);
+    return this.pageRepo.findById(pageId, { includeContent, includeYdoc });
   }
 
   async create(
@@ -38,32 +43,60 @@ export class PageService {
     // check if parent page exists
     if (createPageDto.parentPageId) {
       // TODO: make sure parent page belongs to same space and user has permissions
+      // make sure user has permission to parent.
       const parentPage = await this.pageRepo.findById(
         createPageDto.parentPageId,
       );
       if (!parentPage) throw new NotFoundException('Parent page not found');
     }
 
-    let pageId = undefined;
-    if (createPageDto.pageId) {
-      pageId = createPageDto.pageId;
-      delete createPageDto.pageId;
+    let pagePosition: string;
+
+    const lastPageQuery = this.db
+      .selectFrom('pages')
+      .select(['id', 'position'])
+      .where('spaceId', '=', createPageDto.spaceId)
+      .orderBy('position', 'desc')
+      .limit(1);
+
+    // todo: simplify code
+    if (createPageDto.parentPageId) {
+      // check for children of this page
+      const lastPage = await lastPageQuery
+        .where('parentPageId', '=', createPageDto.parentPageId)
+        .executeTakeFirst();
+
+      if (!lastPage) {
+        pagePosition = generateJitteredKeyBetween(null, null);
+      } else {
+        // if there is an existing page, we should get a position below it
+        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
+      }
+    } else {
+      // for root page
+      const lastPage = await lastPageQuery
+        .where('parentPageId', 'is', null)
+        .executeTakeFirst();
+
+      // if no existing page, make this the first
+      if (!lastPage) {
+        pagePosition = generateJitteredKeyBetween(null, null); // we expect "a0"
+      } else {
+        // if there is an existing page, we should get a position below it
+        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
+      }
     }
 
-    //TODO: should be in a transaction
     const createdPage = await this.pageRepo.insertPage({
-      ...createPageDto,
-      id: pageId,
+      title: createPageDto.title,
+      position: pagePosition,
+      icon: createPageDto.icon,
+      parentPageId: createPageDto.parentPageId,
+      spaceId: createPageDto.spaceId,
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
     });
-
-    await this.pageOrderingService.addPageToOrder(
-      createPageDto.spaceId,
-      pageId,
-      createPageDto.parentPageId,
-    );
 
     return createdPage;
   }
@@ -103,12 +136,90 @@ export class PageService {
     );
   }
 
-  async getSidebarPagesBySpaceId(
-    spaceId: string,
-    limit = 200,
-  ): Promise<PageWithOrderingDto[]> {
-    const pages = await this.pageRepo.getSpaceSidebarPages(spaceId, limit);
-    return transformPageResult(pages);
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .limit(1)
+      .as('hasChildren');
+  }
+
+  async getSidebarPages(
+    dto: SidebarPageDto,
+    pagination: PaginationOptions,
+  ): Promise<any> {
+    let query = this.db
+      .selectFrom('pages')
+      .select([
+        'id',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'creatorId',
+      ])
+      .select((eb) => this.withHasChildren(eb))
+      .orderBy('position', 'asc')
+      .where('spaceId', '=', dto.spaceId);
+
+    if (dto.pageId) {
+      query = query.where('parentPageId', '=', dto.pageId);
+    } else {
+      query = query.where('parentPageId', 'is', null);
+    }
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: 250,
+    });
+
+    return result;
+  }
+
+  async movePage(dto: MovePageDto) {
+    // validate position value by attempting to generate a key
+    try {
+      generateJitteredKeyBetween(dto.position, null);
+    } catch (err) {
+      throw new BadRequestException('Invalid move position');
+    }
+
+    const movedPage = await this.pageRepo.findById(dto.pageId);
+    if (!movedPage) throw new NotFoundException('Moved page not found');
+
+    let parentPageId: string;
+    if (movedPage.parentPageId === dto.parentPageId) {
+      parentPageId = undefined;
+    } else {
+      // changing the page's parent
+      if (dto.parentPageId) {
+        const parentPage = await this.pageRepo.findById(dto.parentPageId);
+        if (!parentPage) throw new NotFoundException('Parent page not found');
+      }
+      parentPageId = dto.parentPageId;
+    }
+
+    await this.pageRepo.updatePage(
+      {
+        position: dto.position,
+        parentPageId: parentPageId,
+      },
+      dto.pageId,
+    );
+
+    // TODO
+    // check for duplicates?
+    // permissions
   }
 
   async getRecentSpacePages(
@@ -126,8 +237,8 @@ export class PageService {
   async forceDelete(pageId: string): Promise<void> {
     await this.pageRepo.deletePage(pageId);
   }
-
-  /*
+}
+/*
   // TODO: page deletion and restoration
   async delete(pageId: string): Promise<void> {
     await this.dataSource.transaction(async (manager: EntityManager) => {
@@ -217,4 +328,3 @@ export class PageService {
     }
   }
 */
-}

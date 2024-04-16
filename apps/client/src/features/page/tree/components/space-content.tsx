@@ -12,7 +12,7 @@ import {
 import { IconPlus } from "@tabler/icons-react";
 import React from "react";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
-import PageTree from "@/features/page/tree/page-tree.tsx";
+import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
 
 export default function SpaceContent() {
   const [currentUser] = useAtom(currentUserAtom);
@@ -33,7 +33,7 @@ export default function SpaceContent() {
         <Accordion.Item key={space.id} value={space.id}>
           <AccordionControl>{space.name}</AccordionControl>
           <Accordion.Panel>
-            <PageTree spaceId={space.id} />
+            <SpaceTree spaceId={space.id} />
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
@@ -45,6 +45,7 @@ function AccordionControl(props: AccordionControlProps) {
   const [tree] = useAtom(treeApiAtom);
 
   function handleCreatePage() {
+    //todo: create at the bottom
     tree?.create({ parentId: null, type: "internal", index: 0 });
   }
 

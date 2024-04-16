@@ -23,6 +23,7 @@ export class PageRepo {
     'icon',
     'coverPhoto',
     'key',
+    'position',
     'parentPageId',
     'creatorId',
     'lastUpdatedById',
@@ -38,15 +39,17 @@ export class PageRepo {
 
   async findById(
     pageId: string,
-    withJsonContent?: boolean,
-    withYdoc?: boolean,
+    opts?: {
+      includeContent?: boolean;
+      includeYdoc?: boolean;
+    },
   ): Promise<Page> {
     return await this.db
       .selectFrom('pages')
       .select(this.baseFields)
       .where('id', '=', pageId)
-      .$if(withJsonContent, (qb) => qb.select('content'))
-      .$if(withYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
+      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
       .executeTakeFirst();
   }
 
@@ -79,7 +82,7 @@ export class PageRepo {
     return db
       .insertInto('pages')
       .values(insertablePage)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -100,27 +103,5 @@ export class PageRepo {
     });
 
     return result;
-  }
-
-  async getSpaceSidebarPages(spaceId: string, limit: number) {
-    const pages = await this.db
-      .selectFrom('pages as page')
-      .leftJoin('pageOrdering as ordering', 'ordering.entityId', 'page.id')
-      .where('page.spaceId', '=', spaceId)
-      .select([
-        'page.id',
-        'page.title',
-        'page.icon',
-        'page.parentPageId',
-        'page.spaceId',
-        'ordering.childrenIds',
-        'page.creatorId',
-        'page.createdAt',
-      ])
-      .orderBy('page.updatedAt', 'desc')
-      .limit(limit)
-      .execute();
-
-    return pages;
   }
 }

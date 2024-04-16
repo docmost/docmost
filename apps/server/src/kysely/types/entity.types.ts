@@ -8,7 +8,6 @@ import {
   Users,
   Workspaces,
   PageHistory as History,
-  PageOrdering as Ordering,
   GroupUsers,
   SpaceMembers,
   WorkspaceInvitations,
@@ -62,11 +61,6 @@ export type UpdatablePage = Updateable<Omit<Pages, 'id'>>;
 export type PageHistory = Selectable<History>;
 export type InsertablePageHistory = Insertable<History>;
 export type UpdatablePageHistory = Updateable<Omit<History, 'id'>>;
-
-// PageOrdering
-export type PageOrdering = Selectable<Ordering>;
-export type InsertablePageOrdering = Insertable<Ordering>;
-export type UpdatablePageOrdering = Updateable<Omit<Ordering, 'id'>>;
 
 // Comment
 export type Comment = Selectable<Comments>;

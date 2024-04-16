@@ -20,9 +20,8 @@ import React from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom";
-import PageTree from "@/features/page/tree/page-tree";
 import { useNavigate } from "react-router-dom";
-import SpaceContent from "@/features/page/component/space-content.tsx";
+import SpaceContent from "@/features/page/tree/components/space-content.tsx";
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
@@ -105,7 +104,6 @@ export function Navbar() {
 
           <div className={classes.pages}>
             <SpaceContent />
-            {/* <PageTree /> */}
           </div>
         </div>
       </nav>

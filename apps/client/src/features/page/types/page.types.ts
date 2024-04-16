@@ -21,17 +21,20 @@ export interface IPage {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;
+  position: string;
+  hasChildren: boolean;
 }
 
 export interface IMovePage {
   pageId: string;
+  position?: string;
   after?: string;
   before?: string;
-  parentId?: string;
+  parentPageId?: string;
 }
 
-export interface IWorkspacePageOrder {
-  id: string;
-  childrenIds: string[];
-  workspaceId: string;
+export interface SidebarPagesParams {
+  spaceId: string;
+  pageId?: string;
+  page?: number; // pagination
 }

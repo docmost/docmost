@@ -91,18 +91,6 @@ export interface PageHistory {
   workspaceId: string;
 }
 
-export interface PageOrdering {
-  childrenIds: string[];
-  createdAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-  entityId: string;
-  entityType: string;
-  id: Generated<string>;
-  spaceId: string;
-  updatedAt: Generated<Timestamp>;
-  workspaceId: string;
-}
-
 export interface Pages {
   content: Json | null;
   coverPhoto: string | null;
@@ -118,6 +106,7 @@ export interface Pages {
   key: string | null;
   lastUpdatedById: string | null;
   parentPageId: string | null;
+  position: string | null;
   publishedAt: Timestamp | null;
   slug: string | null;
   spaceId: string;
@@ -209,7 +198,6 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
-  pageOrdering: PageOrdering;
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;

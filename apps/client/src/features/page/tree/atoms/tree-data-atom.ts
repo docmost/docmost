@@ -1,4 +1,4 @@
 import { atom } from "jotai";
-import { TreeNode } from '@/features/page/tree/types';
+import { SpaceTreeNode } from "@/features/page/tree/types";
 
-export const treeDataAtom = atom<TreeNode[]>([]);
+export const treeDataAtom = atom<SpaceTreeNode[]>([]);

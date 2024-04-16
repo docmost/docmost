@@ -1,7 +1,10 @@
-export type TreeNode = {
+export type SpaceTreeNode = {
   id: string;
   name: string;
   icon?: string;
+  position: string;
   slug?: string;
-  children: TreeNode[];
+  spaceId: string;
+  hasChildren: boolean;
+  children: SpaceTreeNode[];
 };

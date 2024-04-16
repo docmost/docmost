@@ -23,13 +23,4 @@ export class PaginationOptions {
   @IsOptional()
   @IsString()
   query: string;
-
-  get offset(): number {
-    return (this.page - 1) * this.limit;
-  }
-}
-
-export enum PaginationSort {
-  ASC = 'asc',
-  DESC = 'desc',
 }

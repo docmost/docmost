@@ -20,6 +20,10 @@ export async function executeWithPagination<O, DB, TB extends keyof DB>(
     experimental_deferredJoinPrimaryKey?: StringReference<DB, TB>;
   },
 ): Promise<PaginationResult<O>> {
+  if (opts.page < 1) {
+    opts.page = 1;
+  }
+  console.log('perpage', opts.perPage);
   qb = qb.limit(opts.perPage + 1).offset((opts.page - 1) * opts.perPage);
 
   const deferredJoinPrimaryKey = opts.experimental_deferredJoinPrimaryKey;
