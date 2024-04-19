@@ -1,0 +1,24 @@
+.root {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.description {
+  max-width: 500px;
+  margin: auto;
+  margin-top: var(--mantine-spacing-xl);
+  margin-bottom: calc(1.5 * var(--mantine-spacing-xl));
+}
+
+.title {
+  font-family:
+    Greycliff CF,
+    var(--mantine-font-family);
+  text-align: center;
+  font-weight: 600;
+  font-size: 30px;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    font-size: 25px;
+  }
+}

@@ -12,6 +12,7 @@ import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
 import Groups from "@/pages/settings/group/groups";
 import GroupInfo from "./pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
+import { Error404 } from "@/components/ui/error-404.tsx";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
           <Route path={"groups/:groupId"} element={<GroupInfo />} />
           <Route path={"spaces"} element={<Spaces />} />
         </Route>
+        <Route path="*" element={<Error404 />} />
       </Routes>
     </>
   );
