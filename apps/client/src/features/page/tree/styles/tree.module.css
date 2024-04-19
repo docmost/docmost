@@ -98,3 +98,7 @@
 .arrow {
     display: flex;
 }
+
+[role="treeitem"] {
+    padding-bottom: 2px;
+}

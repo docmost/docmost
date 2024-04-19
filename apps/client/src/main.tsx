@@ -1,31 +1,39 @@
-import '@mantine/core/styles.css';
-import '@mantine/spotlight/styles.css';
-import '@mantine/notifications/styles.css';
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import { theme } from '@/theme';
-import { MantineProvider } from '@mantine/core';
-import { TanstackProvider } from '@/components/providers/tanstack-provider';
-import { BrowserRouter } from 'react-router-dom';
-import { ModalsProvider } from '@mantine/modals';
-import { Notifications } from '@mantine/notifications';
+import "@mantine/core/styles.css";
+import "@mantine/spotlight/styles.css";
+import "@mantine/notifications/styles.css";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import { theme } from "@/theme";
+import { MantineProvider } from "@mantine/core";
+import { BrowserRouter } from "react-router-dom";
+import { ModalsProvider } from "@mantine/modals";
+import { Notifications } from "@mantine/notifications";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
+const root = ReactDOM.createRoot(
+  document.getElementById("root") as HTMLElement,
+);
 
 root.render(
   <BrowserRouter>
     <MantineProvider theme={theme}>
       <ModalsProvider>
-        <TanstackProvider>
+        <QueryClientProvider client={queryClient}>
           <Notifications position="top-right" limit={3} />
           <App />
-        </TanstackProvider>
+        </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>
   </BrowserRouter>,
 );
-
-
-
-

@@ -3,7 +3,6 @@ import { useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
   useGetRootSidebarPagesQuery,
-  useGetSidebarPagesQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
 import React, { useEffect, useRef } from "react";
@@ -32,8 +31,8 @@ import {
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { getSidebarPages } from "@/features/page/services/page-service.ts";
-import { QueryClient } from "@tanstack/react-query";
 import { SidebarPagesParams } from "@/features/page/types/page.types.ts";
+import { queryClient } from "@/main.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -70,8 +69,7 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
 
   useEffect(() => {
     setTimeout(() => {
-      treeAPi?.select(pageId);
-      treeAPi?.scrollTo(pageId, "auto");
+      treeAPi?.select(pageId, { align: "auto" });
     }, 200);
   }, [treeAPi, pageId]);
 
@@ -89,7 +87,6 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
             disableMultiSelection={true}
             className={classes.tree}
             rowClassName={classes.row}
-            // padding={15}
             rowHeight={30}
             overscanCount={8}
             dndRootElement={rootElement.current}
@@ -103,11 +100,9 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
   );
 }
 
-const queryClient = new QueryClient();
 function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
   const navigate = useNavigate();
   const updatePageMutation = useUpdatePageMutation();
-  //const use = useGetExpandPageTreeQuery()
   const [treeData, setTreeData] = useAtom(treeDataAtom);
 
   function updateTreeData(
