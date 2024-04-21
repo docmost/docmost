@@ -1,26 +1,31 @@
 .header,
 .footer {
-    @media (max-width: 992px) {
-        [data-layout='alt'] & {
-            --_section-right: var(--app-shell-aside-offset, 0px);
-        }
+  @media (max-width: 992px) {
+    [data-layout="alt"] & {
+      --_section-right: var(--app-shell-aside-offset, 0px);
     }
-
+  }
 }
 
 .aside {
-    @media (min-width: 993px) {
-        background: var(--mantine-color-gray-light);
+  @media (min-width: 993px) {
+    background: var(--mantine-color-gray-light);
 
-        [data-layout='alt'] & {
-            --_section-top: var(--_section-top, var(--app-shell-header-offset, 0px));
-            --_section-height: var(
-                    --_section-height,
-                    calc(100dvh - var(--app-shell-header-offset, 0px) - var(--app-shell-footer-offset, 0px))
-            );
-        }
+    [data-layout="alt"] & {
+      --_section-top: var(--_section-top, var(--app-shell-header-offset, 0px));
+      --_section-height: var(
+        --_section-height,
+        calc(
+          100dvh - var(--app-shell-header-offset, 0px) -
+            var(--app-shell-footer-offset, 0px)
+        )
+      );
     }
-
+  }
 }
 
-
+@media (max-width: 48em) {
+  .navbar {
+    width: 300px;
+  }
+}

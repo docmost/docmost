@@ -18,7 +18,7 @@ import { updateTreeNodeName } from "@/features/page/tree/utils";
 
 export interface TitleEditorProps {
   pageId: string;
-  title: any;
+  title: string;
 }
 
 export function TitleEditor({ pageId, title }: TitleEditorProps) {

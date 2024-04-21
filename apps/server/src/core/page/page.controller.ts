@@ -104,4 +104,10 @@ export class PageController {
   async movePage(@Body() movePageDto: MovePageDto) {
     return this.pageService.movePage(movePageDto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/breadcrumbs')
+  async getPageBreadcrumbs(@Body() dto: PageIdDto) {
+    return this.pageService.getPageBreadCrumbs(dto.pageId);
+  }
 }

@@ -2,6 +2,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useQuery,
+  useQueryClient,
   UseQueryResult,
 } from "@tanstack/react-query";
 import {
@@ -12,6 +13,7 @@ import {
   getRecentChanges,
   updatePage,
   movePage,
+  getPageBreadcrumbs,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
@@ -20,6 +22,8 @@ import {
 } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
+import { queryClient } from "@/main.tsx";
+import { buildTree } from "@/features/page/tree/utils";
 
 const RECENT_CHANGES_KEY = ["recentChanges"];
 
@@ -51,9 +55,13 @@ export function useCreatePageMutation() {
 }
 
 export function useUpdatePageMutation() {
+  const queryClient = useQueryClient();
   return useMutation<IPage, Error, Partial<IPage>>({
     mutationFn: (data) => updatePage(data),
-    onSuccess: (data) => {},
+    onSuccess: (data) => {
+      // update page in cache
+      queryClient.setQueryData(["pages", data.id], data);
+    },
   });
 }
 
@@ -96,4 +104,24 @@ export function useGetRootSidebarPagesQuery(data: SidebarPagesParams) {
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
   });
+}
+
+export function usePageBreadcrumbsQuery(
+  pageId: string,
+): UseQueryResult<Partial<IPage[]>, Error> {
+  return useQuery({
+    queryKey: ["breadcrumbs", pageId],
+    queryFn: () => getPageBreadcrumbs(pageId),
+    enabled: !!pageId,
+  });
+}
+
+export async function fetchAncestorChildren(params: SidebarPagesParams) {
+  // not using a hook here, so we can call it inside a useEffect hook
+  const response = await queryClient.fetchQuery({
+    queryKey: ["sidebar-pages", params],
+    queryFn: () => getSidebarPages(params),
+    staleTime: 30 * 60 * 1000,
+  });
+  return buildTree(response.items);
 }

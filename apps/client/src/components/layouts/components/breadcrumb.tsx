@@ -15,6 +15,13 @@ import { Link, useParams } from "react-router-dom";
 import classes from "./breadcrumb.module.css";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 
+function getTitle(name: string, icon: string) {
+  if (icon) {
+    return `${icon}      ${name}`;
+  }
+  return name;
+}
+
 export default function Breadcrumb() {
   const treeData = useAtomValue(treeDataAtom);
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
@@ -48,13 +55,15 @@ export default function Breadcrumb() {
           variant="default"
           style={{ border: "none" }}
         >
-          <Text truncate="end">{node.name}</Text>
+          <Text truncate="end">{getTitle(node.name, node.icon)}</Text>
         </Button>
       </Button.Group>
     ));
 
   const getLastNthNode = (n: number) =>
     breadcrumbNodes && breadcrumbNodes[breadcrumbNodes.length - n];
+
+  // const getTitle = (title: string) => (title?.length > 0 ? title : "untitled");
 
   const getBreadcrumbItems = () => {
     if (breadcrumbNodes?.length > 3) {
@@ -65,7 +74,7 @@ export default function Breadcrumb() {
           underline="never"
           key={breadcrumbNodes[0].id}
         >
-          {breadcrumbNodes[0].name}
+          {getTitle(breadcrumbNodes[0].name, breadcrumbNodes[0].icon)}
         </Anchor>,
         <Popover
           width={250}
@@ -89,7 +98,7 @@ export default function Breadcrumb() {
           underline="never"
           key={getLastNthNode(2)?.id}
         >
-          {getLastNthNode(2)?.name}
+          {getTitle(getLastNthNode(2)?.name, getLastNthNode(2)?.icon)}
         </Anchor>,
         <Anchor
           component={Link}
@@ -97,7 +106,7 @@ export default function Breadcrumb() {
           underline="never"
           key={getLastNthNode(1)?.id}
         >
-          {getLastNthNode(1)?.name}
+          {getTitle(getLastNthNode(1)?.name, getLastNthNode(1)?.icon)}
         </Anchor>,
       ];
     }
@@ -110,7 +119,7 @@ export default function Breadcrumb() {
           underline="never"
           key={node.id}
         >
-          {node.name}
+          {getTitle(node.name, node.icon)}
         </Anchor>
       ));
     }

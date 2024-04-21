@@ -22,6 +22,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       position: page.position,
       hasChildren: page.hasChildren,
       spaceId: page.spaceId,
+      parentPageId: page.parentPageId,
       children: [],
     };
   });
@@ -97,3 +98,59 @@ export const updateTreeNodeIcon = (
     return node;
   });
 };
+
+export function buildTreeWithChildren(items: SpaceTreeNode[]): SpaceTreeNode[] {
+  const nodeMap = {};
+  let result: SpaceTreeNode[] = [];
+
+  // Create a reference object for each item with the specified structure
+  items.forEach((item) => {
+    nodeMap[item.id] = { ...item, children: [] };
+  });
+
+  // Build the tree array
+  items.forEach((item) => {
+    const node = nodeMap[item.id];
+    if (item.parentPageId !== null) {
+      // Find the parent node and add the current node to its children
+      nodeMap[item.parentPageId].children.push(node);
+    } else {
+      // If the item has no parent, it's a root node, so add it to the result array
+      result.push(node);
+    }
+  });
+
+  result = sortPositionKeys(result);
+
+  // Recursively sort the children of each node
+  function sortChildren(node: SpaceTreeNode) {
+    if (node.children.length > 0) {
+      node.hasChildren = true;
+      node.children = sortPositionKeys(node.children);
+      node.children.forEach(sortChildren);
+    }
+  }
+
+  result.forEach(sortChildren);
+
+  return result;
+}
+
+export function appendNodeChildren(
+  treeItems: SpaceTreeNode[],
+  nodeId: string,
+  children: SpaceTreeNode[],
+) {
+  return treeItems.map((nodeItem) => {
+    if (nodeItem.id === nodeId) {
+      return { ...nodeItem, children };
+    }
+    if (nodeItem.children) {
+      return {
+        ...nodeItem,
+        children: appendNodeChildren(nodeItem.children, nodeId, children),
+      };
+    }
+    return nodeItem;
+  });
+}

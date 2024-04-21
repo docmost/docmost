@@ -15,7 +15,8 @@ import { useMatchPath } from "@/hooks/use-match-path.tsx";
 import React from "react";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
+  const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] =
+    useDisclosure();
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
   const matchPath = useMatchPath();
@@ -38,7 +39,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       }}
       padding="md"
     >
-      <AppShell.Header className={classes.header}>
+      <AppShell.Header className={classes.header} withBorder={false}>
         <Group justify="space-between" h="100%" px="md" wrap="nowrap">
           <Group
             h="100%"
@@ -71,7 +72,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar>
+      <AppShell.Navbar className={classes.navbar} withBorder={false}>
         <Navbar />
       </AppShell.Navbar>
 

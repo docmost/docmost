@@ -1,14 +1,14 @@
 import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
+  fetchAncestorChildren,
   useGetRootSidebarPagesQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
 import React, { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { FillFlexParent } from "@/features/page/tree/components/fill-flex-parent.tsx";
 import { ActionIcon, Menu, rem } from "@mantine/core";
 import {
   IconChevronDown,
@@ -26,22 +26,32 @@ import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import {
+  appendNodeChildren,
   buildTree,
+  buildTreeWithChildren,
   updateTreeNodeIcon,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { getSidebarPages } from "@/features/page/services/page-service.ts";
-import { SidebarPagesParams } from "@/features/page/types/page.types.ts";
+import {
+  getPageBreadcrumbs,
+  getSidebarPages,
+} from "@/features/page/services/page-service.ts";
+import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
+import { OpenMap } from "react-arborist/dist/main/state/open-slice";
+import { useElementSize, useMergedRef } from "@mantine/hooks";
+import { dfs } from "react-arborist/dist/module/utils";
 
 interface SpaceTreeProps {
   spaceId: string;
 }
 
+const openTreeNodesAtom = atom<OpenMap>({});
+
 export default function SpaceTree({ spaceId }: SpaceTreeProps) {
+  const { pageId } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
-  const [treeAPi, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
   const {
     data: pagesData,
     hasNextPage,
@@ -50,8 +60,13 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
   } = useGetRootSidebarPagesQuery({
     spaceId,
   });
+  const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
+  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
+  const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
-  const { pageId } = useParams();
+  const { ref: sizeRef, width, height } = useElementSize();
+  const mergedRef = useMergedRef(rootElement, sizeRef);
+  const isDataLoaded = useRef(false);
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -63,66 +78,133 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
     if (pagesData?.pages && !hasNextPage) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
-      setData(treeData);
+      if (data.length < 1) {
+        //Thoughts
+        // don't reset if there is data in state
+        // we only expect to call this once on initial load
+        // even if we decide to refetch, it should only update
+        // and append root pages instead of resetting the entire tree
+        // which looses async loaded children too
+        setData(treeData);
+        isDataLoaded.current = true;
+      }
     }
   }, [pagesData, hasNextPage]);
 
   useEffect(() => {
+    const fetchData = async () => {
+      if (isDataLoaded.current) {
+        // check if pageId node is present in the tree
+        const node = dfs(treeApiRef.current.root, pageId);
+        if (node) {
+          // if node is found, no need to traverse its ancestors
+          return;
+        }
+
+        // if not found, fetch and build its ancestors and their children
+        if (!pageId) return;
+        const ancestors = await getPageBreadcrumbs(pageId);
+
+        if (ancestors && ancestors?.length > 1) {
+          let flatTreeItems = [...buildTree(ancestors)];
+
+          const fetchAndUpdateChildren = async (ancestor: IPage) => {
+            // we don't want to fetch the children of the opened page
+            if (ancestor.id === pageId) {
+              return;
+            }
+            const children = await fetchAncestorChildren({
+              pageId: ancestor.id,
+              spaceId: ancestor.spaceId,
+            });
+
+            flatTreeItems = [
+              ...flatTreeItems,
+              ...children.filter(
+                (child) => !flatTreeItems.some((item) => item.id === child.id),
+              ),
+            ];
+          };
+
+          const fetchPromises = ancestors.map((ancestor) =>
+            fetchAndUpdateChildren(ancestor),
+          );
+
+          // Wait for all fetch operations to complete
+          Promise.all(fetchPromises).then(() => {
+            // build tree with children
+            const ancestorsTree = buildTreeWithChildren(flatTreeItems);
+            // child of root page we're attaching the built ancestors to
+            const rootChild = ancestorsTree[0];
+
+            // attach built ancestors to tree
+            const updatedTree = appendNodeChildren(
+              data,
+              rootChild.id,
+              rootChild.children,
+            );
+            setData(updatedTree);
+
+            setTimeout(() => {
+              // focus on node and open all parents
+              treeApiRef.current.select(pageId);
+            }, 100);
+          });
+        }
+      }
+    };
+
+    fetchData();
+  }, [isDataLoaded.current, pageId]);
+
+  useEffect(() => {
     setTimeout(() => {
-      treeAPi?.select(pageId, { align: "auto" });
+      treeApiRef.current?.select(pageId, { align: "auto" });
     }, 200);
-  }, [treeAPi, pageId]);
+  }, [pageId]);
+
+  useEffect(() => {
+    if (treeApiRef.current) {
+      // @ts-ignore
+      setTreeApi(treeApiRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (openTreeNodes) {
+      treeApiRef.current.state.nodes.open.unfiltered = openTreeNodes;
+    }
+  }, []);
 
   return (
-    <div ref={rootElement} className={classes.treeContainer}>
-      <FillFlexParent>
-        {(dimens) => (
-          <Tree
-            data={data}
-            {...controllers}
-            {...dimens}
-            // @ts-ignore
-            ref={(t) => setTreeApi(t)}
-            openByDefault={false}
-            disableMultiSelection={true}
-            className={classes.tree}
-            rowClassName={classes.row}
-            rowHeight={30}
-            overscanCount={8}
-            dndRootElement={rootElement.current}
-            selectionFollowsFocus
-          >
-            {Node}
-          </Tree>
-        )}
-      </FillFlexParent>
+    <div ref={mergedRef} className={classes.treeContainer}>
+      <Tree
+        data={data}
+        {...controllers}
+        width={width}
+        height={height}
+        ref={treeApiRef}
+        openByDefault={false}
+        disableMultiSelection={true}
+        className={classes.tree}
+        rowClassName={classes.row}
+        rowHeight={30}
+        overscanCount={10}
+        dndRootElement={rootElement.current}
+        onToggle={() => {
+          setOpenTreeNodes(treeApiRef.current.openState);
+        }}
+      >
+        {Node}
+      </Tree>
     </div>
   );
 }
 
-function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
+function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const navigate = useNavigate();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
-
-  function updateTreeData(
-    treeItems: SpaceTreeNode[],
-    nodeId: string,
-    children: SpaceTreeNode[],
-  ) {
-    return treeItems.map((nodeItem) => {
-      if (nodeItem.id === nodeId) {
-        return { ...nodeItem, children };
-      }
-      if (nodeItem.children) {
-        return {
-          ...nodeItem,
-          children: updateTreeData(nodeItem.children, nodeId, children),
-        };
-      }
-      return nodeItem;
-    });
-  }
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
@@ -139,11 +221,12 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
       const newChildren = await queryClient.fetchQuery({
         queryKey: ["sidebar-pages", params],
         queryFn: () => getSidebarPages(params),
+        staleTime: 30 * 60 * 1000,
       });
 
       const childrenTree = buildTree(newChildren.items);
 
-      const updatedTreeData = updateTreeData(
+      const updatedTreeData = appendNodeChildren(
         treeData,
         node.data.id,
         childrenTree,
@@ -160,11 +243,11 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
   };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
-    const updatedTree = updateTreeNodeIcon(treeData, node.id, newIcon);
+    const updatedTree = updateTreeNodeIcon(treeData, nodeId, newIcon);
     setTreeData(updatedTree);
   };
 
-  const handleEmojiIconClick = (e) => {
+  const handleEmojiIconClick = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
   };
@@ -213,9 +296,10 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
         <span className={classes.text}>{node.data.name || "untitled"}</span>
 
         <div className={classes.actions}>
-          <NodeMenu node={node} />
+          <NodeMenu node={node} treeApi={tree} />
           <CreateNode
             node={node}
+            treeApi={tree}
             onExpandTree={() => handleLoadChildren(node)}
           />
         </div>
@@ -226,11 +310,10 @@ function Node({ node, style, dragHandle }: NodeRendererProps<any>) {
 
 interface CreateNodeProps {
   node: NodeApi<SpaceTreeNode>;
+  treeApi: TreeApi<SpaceTreeNode>;
   onExpandTree?: () => void;
 }
-function CreateNode({ node, onExpandTree }: CreateNodeProps) {
-  const [treeApi] = useAtom(treeApiAtom);
-
+function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
   function handleCreate() {
     if (node.data.hasChildren && node.children.length === 0) {
       node.toggle();
@@ -259,9 +342,11 @@ function CreateNode({ node, onExpandTree }: CreateNodeProps) {
   );
 }
 
-function NodeMenu({ node }: { node: NodeApi<SpaceTreeNode> }) {
-  const [treeApi] = useAtom(treeApiAtom);
-
+interface NodeMenuProps {
+  node: NodeApi<SpaceTreeNode>;
+  treeApi: TreeApi<SpaceTreeNode>;
+}
+function NodeMenu({ node, treeApi }: NodeMenuProps) {
   return (
     <Menu shadow="md" width={200}>
       <Menu.Target>
@@ -283,6 +368,10 @@ function NodeMenu({ node }: { node: NodeApi<SpaceTreeNode> }) {
       <Menu.Dropdown>
         <Menu.Item
           leftSection={<IconStar style={{ width: rem(14), height: rem(14) }} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           Favorite
         </Menu.Item>
@@ -291,6 +380,10 @@ function NodeMenu({ node }: { node: NodeApi<SpaceTreeNode> }) {
 
         <Menu.Item
           leftSection={<IconLink style={{ width: rem(14), height: rem(14) }} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           Copy link
         </Menu.Item>

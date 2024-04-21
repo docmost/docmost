@@ -40,3 +40,10 @@ export async function getSidebarPages(
   const req = await api.post("/pages/sidebar-pages", params);
   return req.data;
 }
+
+export async function getPageBreadcrumbs(
+  pageId: string,
+): Promise<Partial<IPage[]>> {
+  const req = await api.post("/pages/breadcrumbs", { pageId });
+  return req.data;
+}

@@ -222,6 +222,59 @@ export class PageService {
     // permissions
   }
 
+  async getPageBreadCrumbs(childPageId: string) {
+    const ancestors = await this.db
+      .withRecursive('page_ancestors', (db) =>
+        db
+          .selectFrom('pages')
+          .select([
+            'id',
+            'title',
+            'icon',
+            'position',
+            'parentPageId',
+            'spaceId',
+          ])
+          .select((eb) => this.withHasChildren(eb))
+          .where('id', '=', childPageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select([
+                'p.id',
+                'p.title',
+                'p.icon',
+                'p.position',
+                'p.parentPageId',
+                'p.spaceId',
+              ])
+              .select(
+                exp
+                  .selectFrom('pages as child')
+                  .select((eb) =>
+                    eb
+                      .case()
+                      .when(eb.fn.countAll(), '>', 0)
+                      .then(true)
+                      .else(false)
+                      .end()
+                      .as('count'),
+                  )
+                  .whereRef('child.parentPageId', '=', 'id')
+                  .limit(1)
+                  .as('hasChildren'),
+              )
+              //.select((eb) => this.withHasChildren(eb))
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
+          ),
+      )
+      .selectFrom('page_ancestors')
+      .selectAll()
+      .execute();
+
+    return ancestors.reverse();
+  }
+
   async getRecentSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
