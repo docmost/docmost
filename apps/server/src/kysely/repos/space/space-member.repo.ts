@@ -179,7 +179,7 @@ export class SpaceMemberRepo {
       )
       .execute();
 
-    if (roles.length < 1) {
+    if (!roles || roles.length === 0) {
       return undefined;
     }
     return roles;

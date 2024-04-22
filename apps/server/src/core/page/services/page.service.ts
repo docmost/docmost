@@ -42,12 +42,12 @@ export class PageService {
   ): Promise<Page> {
     // check if parent page exists
     if (createPageDto.parentPageId) {
-      // TODO: make sure parent page belongs to same space and user has permissions
-      // make sure user has permission to parent.
       const parentPage = await this.pageRepo.findById(
         createPageDto.parentPageId,
       );
-      if (!parentPage) throw new NotFoundException('Parent page not found');
+
+      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId)
+        throw new NotFoundException('Parent page not found');
     }
 
     let pagePosition: string;
@@ -59,7 +59,6 @@ export class PageService {
       .orderBy('position', 'desc')
       .limit(1);
 
-    // todo: simplify code
     if (createPageDto.parentPageId) {
       // check for children of this page
       const lastPage = await lastPageQuery
@@ -186,16 +185,13 @@ export class PageService {
     return result;
   }
 
-  async movePage(dto: MovePageDto) {
+  async movePage(dto: MovePageDto, movedPage: Page) {
     // validate position value by attempting to generate a key
     try {
       generateJitteredKeyBetween(dto.position, null);
     } catch (err) {
       throw new BadRequestException('Invalid move position');
     }
-
-    const movedPage = await this.pageRepo.findById(dto.pageId);
-    if (!movedPage) throw new NotFoundException('Moved page not found');
 
     let parentPageId: string;
     if (movedPage.parentPageId === dto.parentPageId) {
@@ -204,7 +200,9 @@ export class PageService {
       // changing the page's parent
       if (dto.parentPageId) {
         const parentPage = await this.pageRepo.findById(dto.parentPageId);
-        if (!parentPage) throw new NotFoundException('Parent page not found');
+        if (!parentPage || parentPage.spaceId !== movedPage.spaceId) {
+          throw new NotFoundException('Parent page not found');
+        }
       }
       parentPageId = dto.parentPageId;
     }
@@ -216,10 +214,6 @@ export class PageService {
       },
       dto.pageId,
     );
-
-    // TODO
-    // check for duplicates?
-    // permissions
   }
 
   async getPageBreadCrumbs(childPageId: string) {

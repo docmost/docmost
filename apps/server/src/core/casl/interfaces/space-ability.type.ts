@@ -8,8 +8,10 @@ export enum SpaceCaslAction {
 export enum SpaceCaslSubject {
   Settings = 'settings',
   Member = 'member',
+  Page = 'page',
 }
 
 export type SpaceAbility =
   | [SpaceCaslAction, SpaceCaslSubject.Settings]
-  | [SpaceCaslAction, SpaceCaslSubject.Member];
+  | [SpaceCaslAction, SpaceCaslSubject.Member]
+  | [SpaceCaslAction, SpaceCaslSubject.Page];

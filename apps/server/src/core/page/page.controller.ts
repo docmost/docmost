@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
@@ -18,19 +20,38 @@ import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { SidebarPageDto } from './dto/sidebar-page.dto';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../casl/interfaces/space-ability.type';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
+    private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
+    private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getPage(@Body() pageIdDto: PageIdDto) {
-    return this.pageService.findById(pageIdDto.pageId);
+  async getPage(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(pageIdDto.pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return page;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -40,12 +61,31 @@ export class PageController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      createPageDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     return this.pageService.create(user.id, workspace.id, createPageDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async update(@Body() updatePageDto: UpdatePageDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(updatePageDto.pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     return this.pageService.update(
       updatePageDto.pageId,
       updatePageDto,
@@ -55,7 +95,17 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() pageIdDto: PageIdDto) {
+  async delete(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(pageIdDto.pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
     await this.pageService.forceDelete(pageIdDto.pageId);
   }
 
@@ -70,7 +120,15 @@ export class PageController {
   async getRecentSpacePages(
     @Body() spaceIdDto: SpaceIdDto,
     @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
   ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      spaceIdDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
     return this.pageService.getRecentSpacePages(spaceIdDto.spaceId, pagination);
   }
 
@@ -80,14 +138,33 @@ export class PageController {
   async getPageHistory(
     @Body() dto: PageIdDto,
     @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
   ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     return this.pageHistoryService.findHistoryByPageId(dto.pageId, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('/history/details')
-  async getPageHistoryInfo(@Body() dto: PageHistoryIdDto) {
-    return this.pageHistoryService.findById(dto.historyId);
+  @Post('/history/info')
+  async getPageHistoryInfo(
+    @Body() dto: PageHistoryIdDto,
+    @AuthUser() user: User,
+  ) {
+    const history = await this.pageHistoryService.findById(dto.historyId);
+
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      history.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+    return history;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -95,19 +172,43 @@ export class PageController {
   async getSidebarPages(
     @Body() dto: SidebarPageDto,
     @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
   ) {
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    console.log(ability.can(SpaceCaslAction.Read, SpaceCaslSubject.Page));
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
     return this.pageService.getSidebarPages(dto, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('move')
-  async movePage(@Body() movePageDto: MovePageDto) {
-    return this.pageService.movePage(movePageDto);
+  async movePage(@Body() dto: MovePageDto, @AuthUser() user: User) {
+    const movedPage = await this.pageRepo.findById(dto.pageId);
+    if (!movedPage) {
+      throw new NotFoundException('Moved page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      movedPage.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.movePage(dto, movedPage);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('/breadcrumbs')
-  async getPageBreadcrumbs(@Body() dto: PageIdDto) {
+  async getPageBreadcrumbs(@Body() dto: PageIdDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
     return this.pageService.getPageBreadCrumbs(dto.pageId);
   }
 }
