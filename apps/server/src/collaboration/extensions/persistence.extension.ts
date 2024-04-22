@@ -4,14 +4,14 @@ import {
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { PageService } from '../../core/page/services/page.service';
 import { Injectable } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import { jsonToText, tiptapExtensions } from '../collaboration.util';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
-  constructor(private readonly pageService: PageService) {}
+  constructor(private readonly pageRepo: PageRepo) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
     const { documentName, document } = data;
@@ -21,7 +21,10 @@ export class PersistenceExtension implements Extension {
       return;
     }
 
-    const page = await this.pageService.findById(pageId, true, true);
+    const page = await this.pageRepo.findById(pageId, {
+      includeContent: true,
+      includeYdoc: true,
+    });
 
     if (!page) {
       console.log('page does not exist.');
@@ -68,11 +71,14 @@ export class PersistenceExtension implements Extension {
     const textContent = jsonToText(tiptapJson);
 
     try {
-      await this.pageService.updateState(
+      await this.pageRepo.updatePage(
+        {
+          content: tiptapJson,
+          textContent: textContent,
+          ydoc: ydocState,
+          lastUpdatedById: context.user.id,
+        },
         pageId,
-        tiptapJson,
-        textContent,
-        ydocState,
       );
     } catch (err) {
       console.error(`Failed to update page ${documentName}`);

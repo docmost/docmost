@@ -117,24 +117,6 @@ export class PageService {
     return await this.pageRepo.findById(pageId);
   }
 
-  async updateState(
-    pageId: string,
-    content: any,
-    textContent: string,
-    ydoc: any,
-    userId?: string, // TODO: fix this
-  ): Promise<void> {
-    await this.pageRepo.updatePage(
-      {
-        content: content,
-        textContent: textContent,
-        ydoc: ydoc,
-        ...(userId && { lastUpdatedById: userId }),
-      },
-      pageId,
-    );
-  }
-
   withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
     return eb
       .selectFrom('pages as child')

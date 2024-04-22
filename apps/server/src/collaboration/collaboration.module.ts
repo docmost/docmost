@@ -2,7 +2,6 @@ import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { AuthModule } from '../core/auth/auth.module';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
-import { PageModule } from '../core/page/page.module';
 import { CollaborationGateway } from './collaboration.gateway';
 import { HttpAdapterHost } from '@nestjs/core';
 import { CollabWsAdapter } from './adapter/collab-ws.adapter';
@@ -17,7 +16,7 @@ import { HistoryExtension } from './extensions/history.extension';
     PersistenceExtension,
     HistoryExtension,
   ],
-  imports: [AuthModule, PageModule],
+  imports: [AuthModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private collabWsAdapter: CollabWsAdapter;

@@ -4,6 +4,7 @@ import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { dbOrTx } from '../../utils';
 import {
   InsertablePageHistory,
+  Page,
   PageHistory,
   UpdatablePageHistory,
 } from '@docmost/db/types/entity.types';
@@ -62,6 +63,21 @@ export class PageHistoryRepo {
       .values(insertablePageHistory)
       .returningAll()
       .executeTakeFirst();
+  }
+
+  async saveHistory(page: Page): Promise<void> {
+    await this.insertPageHistory({
+      pageId: page.id,
+      title: page.title,
+      content: page.content,
+      slug: page.slug,
+      icon: page.icon,
+      version: 1, // TODO: make incremental
+      coverPhoto: page.coverPhoto,
+      lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
+      spaceId: page.spaceId,
+      workspaceId: page.workspaceId,
+    });
   }
 
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {

@@ -4,8 +4,8 @@ import {
   onDisconnectPayload,
 } from '@hocuspocus/server';
 import { Injectable } from '@nestjs/common';
-import { PageService } from '../../core/page/services/page.service';
-import { PageHistoryService } from '../../core/page/services/page-history.service';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 
 @Injectable()
 export class HistoryExtension implements Extension {
@@ -14,8 +14,8 @@ export class HistoryExtension implements Extension {
   lastEditTimeMap = new Map<string, number>();
 
   constructor(
-    private readonly pageService: PageService,
-    private readonly pageHistoryService: PageHistoryService,
+    private readonly pageRepo: PageRepo,
+    private readonly pageHistoryRepo: PageHistoryRepo,
   ) {}
 
   async onChange(data: onChangePayload): Promise<void> {
@@ -53,10 +53,11 @@ export class HistoryExtension implements Extension {
 
   async recordHistory(pageId: string) {
     try {
-      const includeContent = true;
-      const page = await this.pageService.findById(pageId, includeContent);
+      const page = await this.pageRepo.findById(pageId, {
+        includeContent: true,
+      });
       // Todo: compare if data is the same as the previous version
-      await this.pageHistoryService.saveHistory(page);
+      await this.pageHistoryRepo.saveHistory(page);
       console.log(`New history created for: ${pageId}`);
     } catch (err) {
       console.error('An error occurred saving page history', err);
