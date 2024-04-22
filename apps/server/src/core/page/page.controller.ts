@@ -156,6 +156,9 @@ export class PageController {
     @AuthUser() user: User,
   ) {
     const history = await this.pageHistoryService.findById(dto.historyId);
+    if (!history) {
+      throw new NotFoundException('Page history not found');
+    }
 
     const ability = await this.spaceAbility.createForUser(
       user,
@@ -175,7 +178,6 @@ export class PageController {
     @AuthUser() user: User,
   ) {
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
-    console.log(ability.can(SpaceCaslAction.Read, SpaceCaslSubject.Page));
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
