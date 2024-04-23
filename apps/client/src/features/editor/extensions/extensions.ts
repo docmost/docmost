@@ -9,7 +9,6 @@ import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
-import DragAndDrop from "@/features/editor/extensions/drag-handle";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
@@ -17,6 +16,7 @@ import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Comment, TrailingNode } from "@docmost/editor-ext";
+import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -43,7 +43,7 @@ export const mainExtensions = [
   }),
   Typography,
   TrailingNode,
-  DragAndDrop,
+  GlobalDragHandle,
   TextStyle,
   Color,
   SlashCommand,

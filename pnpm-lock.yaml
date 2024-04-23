@@ -101,6 +101,9 @@ importers:
       fractional-indexing-jittered:
         specifier: ^0.9.1
         version: 0.9.1
+      tiptap-extension-global-drag-handle:
+        specifier: ^0.1.6
+        version: 0.1.6
       y-indexeddb:
         specifier: ^9.0.12
         version: 9.0.12(yjs@13.6.14)
@@ -11033,6 +11036,10 @@ packages:
     resolution: {integrity: sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==}
     dependencies:
       '@popperjs/core': 2.11.8
+    dev: false
+
+  /tiptap-extension-global-drag-handle@0.1.6:
+    resolution: {integrity: sha512-kjRFd/glJGTHEglHPNWtML1iINuEBG4eWvWbNIuuXE2LbylFXYHKVgLvZgxilqXSBH/o+lKDEp7/iL3lKvnxGw==}
     dev: false
 
   /tmp@0.0.33:

@@ -37,6 +37,7 @@
     "@tiptap/starter-kit": "^2.2.4",
     "@tiptap/suggestion": "^2.2.4",
     "fractional-indexing-jittered": "^0.9.1",
+    "tiptap-extension-global-drag-handle": "^0.1.6",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.14"
   },
