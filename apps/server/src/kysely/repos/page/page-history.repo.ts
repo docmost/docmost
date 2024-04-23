@@ -18,24 +18,11 @@ import { DB } from '@docmost/db/types/db';
 export class PageHistoryRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  private baseFields: Array<keyof PageHistory> = [
-    'id',
-    'pageId',
-    'title',
-    'slug',
-    'icon',
-    'coverPhoto',
-    'version',
-    'lastUpdatedById',
-    'workspaceId',
-    'createdAt',
-    'updatedAt',
-  ];
-
   async findById(pageHistoryId: string): Promise<PageHistory> {
     return await this.db
       .selectFrom('pageHistory')
-      .select((eb) => [...this.baseFields, this.withLastUpdatedBy(eb)])
+      .selectAll()
+      .select((eb) => this.withLastUpdatedBy(eb))
       .where('id', '=', pageHistoryId)
       .executeTakeFirst();
   }
@@ -83,7 +70,8 @@ export class PageHistoryRepo {
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pageHistory')
-      .select((eb) => [...this.baseFields, this.withLastUpdatedBy(eb)])
+      .selectAll()
+      .select((eb) => this.withLastUpdatedBy(eb))
       .where('pageId', '=', pageId)
       .orderBy('createdAt', 'desc');
 
@@ -101,6 +89,6 @@ export class PageHistoryRepo {
         .selectFrom('users')
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'pageHistory.lastUpdatedById'),
-    ).as('withLastUpdatedBy');
+    ).as('lastUpdatedBy');
   }
 }

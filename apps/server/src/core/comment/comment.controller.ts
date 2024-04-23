@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -15,43 +17,90 @@ import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../casl/interfaces/space-ability.type';
+import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
 export class CommentController {
-  constructor(private readonly commentService: CommentService) {}
+  constructor(
+    private readonly commentService: CommentService,
+    private readonly commentRepo: CommentRepo,
+    private readonly pageRepo: PageRepo,
+    private readonly spaceAbility: SpaceAbilityFactory,
+  ) {}
 
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   @Post('create')
   async create(
     @Body() createCommentDto: CreateCommentDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const page = await this.pageRepo.findById(createCommentDto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     return this.commentService.create(user.id, workspace.id, createCommentDto);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post()
-  findPageComments(
+  @Post('/')
+  async findPageComments(
     @Body() input: PageIdDto,
     @Body()
     pagination: PaginationOptions,
-    //@AuthUser() user: User,
+    @AuthUser() user: User,
     //  @AuthWorkspace() workspace: Workspace,
   ) {
+    const page = await this.pageRepo.findById(input.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
     return this.commentService.findByPageId(input.pageId, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
-  findOne(@Body() input: CommentIdDto) {
-    return this.commentService.findById(input.commentId);
+  async findOne(@Body() input: CommentIdDto, @AuthUser() user: User) {
+    const comment = await this.commentRepo.findById(input.commentId);
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // TODO: add spaceId to comment entity.
+    const page = await this.pageRepo.findById(comment.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+    return comment;
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  update(@Body() updateCommentDto: UpdateCommentDto) {
+  update(@Body() updateCommentDto: UpdateCommentDto, @AuthUser() user: User) {
+    //TODO: only comment creators can update their comments
     return this.commentService.update(
       updateCommentDto.commentId,
       updateCommentDto,
@@ -60,7 +109,8 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  remove(@Body() input: CommentIdDto) {
+  remove(@Body() input: CommentIdDto, @AuthUser() user: User) {
+    // TODO: only comment creators and admins can delete their comments
     return this.commentService.remove(input.commentId);
   }
 }

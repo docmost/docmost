@@ -33,8 +33,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
       }}
       aside={{
-        width: 300,
-        breakpoint: "md",
+        width: 350,
+        breakpoint: "sm",
         collapsed: { mobile: !isAsideOpen, desktop: !isAsideOpen },
       }}
       padding="md"

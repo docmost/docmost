@@ -25,6 +25,12 @@
 }
 
 @media (max-width: 48em) {
+  .aside {
+    width: 350px;
+  }
+}
+
+@media (max-width: 48em) {
   .navbar {
     width: 300px;
   }

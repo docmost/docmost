@@ -5,17 +5,17 @@ import {
 } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { PageService } from '../page/services/page.service';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 import { Comment } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @Injectable()
 export class CommentService {
   constructor(
     private commentRepo: CommentRepo,
-    private pageService: PageService,
+    private pageRepo: PageRepo,
   ) {}
 
   async findById(commentId: string) {
@@ -35,7 +35,7 @@ export class CommentService {
   ) {
     const commentContent = JSON.parse(createCommentDto.content);
 
-    const page = await this.pageService.findById(createCommentDto.pageId);
+    const page = await this.pageRepo.findById(createCommentDto.pageId);
     // const spaceId = null; // todo, get from page
 
     if (!page) {
@@ -59,7 +59,7 @@ export class CommentService {
     const createdComment = await this.commentRepo.insertComment({
       pageId: createCommentDto.pageId,
       content: commentContent,
-      selection: createCommentDto?.selection.substring(0, 250),
+      selection: createCommentDto?.selection?.substring(0, 250),
       type: 'inline', // for now
       parentCommentId: createCommentDto?.parentCommentId,
       creatorId: userId,
@@ -74,7 +74,7 @@ export class CommentService {
     pageId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Comment>> {
-    const page = await this.pageService.findById(pageId);
+    const page = await this.pageRepo.findById(pageId);
 
     if (!page) {
       throw new BadRequestException('Page not found');

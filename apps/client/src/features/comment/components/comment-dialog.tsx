@@ -57,8 +57,8 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         await createCommentMutation.mutateAsync(commentData);
       editor
         .chain()
-        .setContent(createdComment.id)
         // @ts-ignore
+        .setComment(createdComment.id)
         .unsetCommentDecoration()
         .run();
       setActiveCommentId(createdComment.id);
@@ -75,7 +75,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
     }
   };
 
-  const handleCommentEditorChange = (newContent) => {
+  const handleCommentEditorChange = (newContent: any) => {
     setComment(newContent);
   };
 
@@ -93,7 +93,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
     >
       <Stack gap={2}>
         <Group>
-          <Avatar size="sm" c="blue">
+          <Avatar size="sm" color="blue">
             {currentUser.user.name.charAt(0)}
           </Avatar>
           <div style={{ flex: 1 }}>
