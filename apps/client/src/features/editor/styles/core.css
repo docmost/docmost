@@ -95,6 +95,6 @@
 }
 
 .comment-mark {
-    background: rgba(0,203,15,0.2);
-    border-bottom: 2px solid #0ca678;
+    background: rgba(255, 215, 0, .14);
+    border-bottom: 2px solid rgb(166, 158, 12);
 }

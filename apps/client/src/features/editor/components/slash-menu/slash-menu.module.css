@@ -1,21 +1,27 @@
 .menuBtn {
-    &:hover {
-        @mixin light {
-            background: var(--mantine-color-gray-2);
-        }
+  width: 100%;
+  padding: 4px;
+  margin-bottom: 2px;
+  color: var(--mantine-color-text);
+  border-radius: var(--mantine-radius-sm);
 
-        @mixin dark {
-            background: var(--mantine-color-gray-light);
-        }
-    }
-}
-
-.selectedItem {
+  &:hover {
     @mixin light {
-        background: var(--mantine-color-gray-2);
+      background: var(--mantine-color-gray-2);
     }
 
     @mixin dark {
-        background: var(--mantine-color-gray-light);
+      background: var(--mantine-color-gray-light);
     }
+  }
+}
+
+.selectedItem {
+  @mixin light {
+    background: var(--mantine-color-gray-2);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-gray-light);
+  }
 }

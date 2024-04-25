@@ -8,9 +8,9 @@
 }
 
 .aside {
-  @media (min-width: 993px) {
-    background: var(--mantine-color-gray-light);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
 
+  @media (min-width: 993px) {
     [data-layout="alt"] & {
       --_section-top: var(--_section-top, var(--app-shell-header-offset, 0px));
       --_section-height: var(
@@ -35,3 +35,4 @@
     width: 300px;
   }
 }
+

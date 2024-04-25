@@ -1,30 +1,18 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SlashMenuGroupedItemsType,
   SlashMenuItemType,
-} from '@/features/editor/components/slash-menu/types';
-import {
-  Group,
-  Paper,
-  ScrollArea,
-  Text,
-  UnstyledButton,
-} from '@mantine/core';
-import classes from './slash-menu.module.css';
-import clsx from 'clsx';
+} from "@/features/editor/components/slash-menu/types";
+import { Group, Paper, ScrollArea, Text, UnstyledButton } from "@mantine/core";
+import classes from "./slash-menu.module.css";
+import clsx from "clsx";
 
 const CommandList = ({
-                       items,
-                       command,
-                       editor,
-                       range,
-                     }: {
+  items,
+  command,
+  editor,
+  range,
+}: {
   items: SlashMenuGroupedItemsType;
   command: any;
   editor: any;
@@ -48,31 +36,33 @@ const CommandList = ({
   );
 
   useEffect(() => {
-    const navigationKeys = ['ArrowUp', 'ArrowDown', 'Enter'];
+    const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
     const onKeyDown = (e: KeyboardEvent) => {
       if (navigationKeys.includes(e.key)) {
         e.preventDefault();
 
-        if (e.key === 'ArrowUp') {
-          setSelectedIndex((selectedIndex + flatItems.length - 1) % flatItems.length);
+        if (e.key === "ArrowUp") {
+          setSelectedIndex(
+            (selectedIndex + flatItems.length - 1) % flatItems.length,
+          );
           return true;
         }
 
-        if (e.key === 'ArrowDown') {
+        if (e.key === "ArrowDown") {
           setSelectedIndex((selectedIndex + 1) % flatItems.length);
           return true;
         }
 
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
           selectItem(selectedIndex);
           return true;
         }
         return false;
       }
     };
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [flatItems, selectedIndex, setSelectedIndex, selectItem]);
 
@@ -83,11 +73,11 @@ const CommandList = ({
   useEffect(() => {
     viewportRef.current
       ?.querySelector(`[data-item-index="${selectedIndex}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
+      ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
   return flatItems.length > 0 ? (
-    <Paper id="slash-command" shadow="xl" p="sm" withBorder>
+    <Paper id="slash-command" shadow="md" p="xs" withBorder>
       <ScrollArea viewportRef={viewportRef} h={350} w={250} scrollbarSize={5}>
         {Object.entries(items).map(([category, categoryItems]) => (
           <div key={category}>
@@ -99,16 +89,12 @@ const CommandList = ({
                 data-item-index={index}
                 key={index}
                 onClick={() => selectItem(index)}
-                className={clsx(classes.menuBtn, { [classes.selectedItem]: index === selectedIndex })}
-                style={{
-                  width: '100%',
-                  padding: 'var(--mantine-spacing-xs)',
-                  color: 'var(--mantine-color-text)',
-                  borderRadius: 'var(--mantine-radius-sm)',
-                }}
+                className={clsx(classes.menuBtn, {
+                  [classes.selectedItem]: index === selectedIndex,
+                })}
               >
                 <Group>
-                  <item.icon size={18} />
+                  <item.icon size={16} />
 
                   <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>

@@ -79,7 +79,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <AppShell.Main>{children}</AppShell.Main>
 
       {isPageRoute && (
-        <AppShell.Aside className={classes.aside}>
+        <AppShell.Aside className={classes.aside} withBorder={false}>
           <Aside />
         </AppShell.Aside>
       )}
