@@ -9,13 +9,13 @@ import { SpaceService } from '../../space/services/space.service';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
 import { SpaceRole, UserRole } from '../../../helpers/types/permission';
 import { GroupService } from '../../group/services/group.service';
-import { GroupUserService } from '../../group/services/group-user.service';
 import { SpaceMemberService } from '../../space/services/space-member.service';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User } from '@docmost/db/types/entity.types';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 
 @Injectable()
 export class WorkspaceService {
@@ -24,7 +24,7 @@ export class WorkspaceService {
     private spaceService: SpaceService,
     private spaceMemberService: SpaceMemberService,
     private groupService: GroupService,
-    private groupUserService: GroupUserService,
+    private groupUserRepo: GroupUserRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -77,10 +77,11 @@ export class WorkspaceService {
           .execute();
 
         // add user to default group created above
-        await this.groupUserService.addUserToGroup(
-          user.id,
-          group.id,
-          workspace.id,
+        await this.groupUserRepo.insertGroupUser(
+          {
+            userId: user.id,
+            groupId: group.id,
+          },
           trx,
         );
 
