@@ -2,7 +2,7 @@
     background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
     color: light-dark(var(--mantine-color-default-color), var(--mantine-color-dark-0));
     font-size: var(--mantine-font-size-md);
-    line-height: var(--mantine-line-height-lg);
+    line-height: var(--mantine-line-height-md);
     font-weight: 400;
     width: 100%;
 
@@ -17,6 +17,8 @@
     ul,
     ol {
         padding: 0 1rem;
+        margin-top: .25rem;
+        margin-bottom: .25rem;
     }
 
     h1,
@@ -61,6 +63,14 @@
     img {
         max-width: 100%;
         height: auto;
+    }
+
+    a {
+        color: light-dark(#207af1, #587da9);
+        font-weight: bold;
+        text-decoration: none;
+        cursor: pointer;
+
     }
 
     blockquote {

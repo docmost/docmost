@@ -29,3 +29,10 @@ ul[data-type="taskList"] {
         }
     }
 }
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+    width: 1em;
+    height: 1em;
+    cursor: pointer;
+}
+
