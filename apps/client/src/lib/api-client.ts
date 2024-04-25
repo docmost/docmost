@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 import Routes from "@/lib/routes";
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_API_URL ?? "" + "/api",
+  baseURL: "/api",
 });
 
 api.interceptors.request.use(
