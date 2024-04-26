@@ -22,19 +22,6 @@ import CommentDialog from "@/features/comment/components/comment-dialog";
 import EditorSkeleton from "@/features/editor/components/editor-skeleton";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 
-const colors = [
-  "#958DF1",
-  "#F98181",
-  "#FBBC88",
-  "#FAF594",
-  "#70CFF8",
-  "#94FADB",
-  "#B9F18D",
-];
-const getRandomElement = (list) =>
-  list[Math.floor(Math.random() * list.length)];
-const getRandomColor = () => getRandomElement(colors);
-
 interface PageEditorProps {
   pageId: string;
   editable?: boolean;
@@ -95,7 +82,10 @@ export default function PageEditor({
     };
   }, [remoteProvider, localProvider]);
 
-  const extensions = [...mainExtensions, ...collabExtensions(remoteProvider)];
+  const extensions = [
+    ...mainExtensions,
+    ...collabExtensions(remoteProvider, currentUser.user),
+  ];
 
   const editor = useEditor(
     {
@@ -122,16 +112,6 @@ export default function PageEditor({
     },
     [pageId, editable, remoteProvider],
   );
-
-  useEffect(() => {
-    if (editor && currentUser.user) {
-      editor
-        .chain()
-        .focus()
-        .updateUser({ ...currentUser.user, color: getRandomColor() })
-        .run();
-    }
-  }, [editor, currentUser.user]);
 
   const handleActiveCommentEvent = (event) => {
     const { commentId } = event.detail;

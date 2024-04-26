@@ -17,6 +17,11 @@ import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Comment, TrailingNode } from "@docmost/editor-ext";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import {
+  randomElement,
+  userColors,
+} from "@/features/editor/extensions/utils.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -54,13 +59,17 @@ export const mainExtensions = [
   }),
 ] as any;
 
-type CollabExtensions = (provider: HocuspocusProvider) => any[];
+type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
 
-export const collabExtensions: CollabExtensions = (provider) => [
+export const collabExtensions: CollabExtensions = (provider, user) => [
   Collaboration.configure({
     document: provider.document,
   }),
   CollaborationCursor.configure({
     provider,
+    user: {
+      name: user.name,
+      color: randomElement(userColors),
+    },
   }),
 ];
