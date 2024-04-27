@@ -386,16 +386,6 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<IconStar style={{ width: rem(14), height: rem(14) }} />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          Favorite
-        </Menu.Item>
-
         <Menu.Divider />
 
         <Menu.Item

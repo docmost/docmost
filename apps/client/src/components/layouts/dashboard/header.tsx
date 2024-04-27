@@ -1,4 +1,4 @@
-import { ActionIcon, Menu, Button } from "@mantine/core";
+import { ActionIcon, Menu, Button, Tooltip } from "@mantine/core";
 import {
   IconDots,
   IconFileInfo,
@@ -19,17 +19,21 @@ export default function Header() {
 
   return (
     <>
+      {/*
       <Button variant="default" style={{ border: "none" }} size="compact-sm">
         Share
       </Button>
+      */}
 
-      <ActionIcon
-        variant="default"
-        style={{ border: "none" }}
-        onClick={() => toggleAside("comments")}
-      >
-        <IconMessage size={20} stroke={2} />
-      </ActionIcon>
+      <Tooltip label="Comments" openDelay={250} withArrow>
+        <ActionIcon
+          variant="default"
+          style={{ border: "none" }}
+          onClick={() => toggleAside("comments")}
+        >
+          <IconMessage size={20} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
 
       <PageActionMenu />
     </>
@@ -59,14 +63,8 @@ function PageActionMenu() {
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Item leftSection={<IconFileInfo size={16} stroke={2} />}>
-          Page info
-        </Menu.Item>
         <Menu.Item leftSection={<IconLink size={16} stroke={2} />}>
           Copy link
-        </Menu.Item>
-        <Menu.Item leftSection={<IconShare size={16} stroke={2} />}>
-          Share
         </Menu.Item>
         <Menu.Item
           leftSection={<IconHistory size={16} stroke={2} />}
@@ -76,9 +74,6 @@ function PageActionMenu() {
         </Menu.Item>
 
         <Menu.Divider />
-        <Menu.Item leftSection={<IconLock size={16} stroke={2} />}>
-          Lock
-        </Menu.Item>
         <Menu.Item leftSection={<IconTrash size={16} stroke={2} />}>
           Delete
         </Menu.Item>

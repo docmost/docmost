@@ -11,22 +11,13 @@ export default function HomeTabs() {
             Recent changes
           </Text>
         </Tabs.Tab>
-
-        <Tabs.Tab value="favorites" leftSection={<IconStar size={18} />}>
-          <Text size="sm" fw={500}>
-            Favorites
-          </Text>
-        </Tabs.Tab>
       </Tabs.List>
 
       <Space my="md" />
 
       <Tabs.Panel value="recent">
         <div>Recent</div>
-        {/*  <RecentChanges /> */}
       </Tabs.Panel>
-
-      <Tabs.Panel value="favorites">My favorite pages</Tabs.Panel>
     </Tabs>
   );
 }
