@@ -15,6 +15,8 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { updateTreeNodeName } from "@/features/page/tree/utils";
+import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { History } from "@tiptap/extension-history";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -28,6 +30,7 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const emit = useQueryEmit();
 
   const titleEditor = useEditor({
     extensions: [
@@ -40,6 +43,9 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
       Text,
       Placeholder.configure({
         placeholder: "Untitled",
+      }),
+      History.configure({
+        depth: 20,
       }),
     ],
     onCreate({ editor }) {
@@ -58,6 +64,15 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   useEffect(() => {
     if (debouncedTitle !== "") {
       updatePageMutation.mutate({ pageId, title: debouncedTitle });
+
+      setTimeout(() => {
+        emit({
+          operation: "updateOne",
+          entity: ["pages"],
+          id: pageId,
+          payload: { title: debouncedTitle },
+        });
+      }, 50);
 
       const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
       setTreeData(newTreeData);

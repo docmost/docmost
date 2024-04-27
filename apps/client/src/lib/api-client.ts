@@ -2,8 +2,9 @@ import axios, { AxiosInstance } from "axios";
 import Cookies from "js-cookie";
 import Routes from "@/lib/routes";
 
+const baseUrl = import.meta.env.DEV ? "http://localhost:3000" : "";
 const api: AxiosInstance = axios.create({
-  baseURL: "/api",
+  baseURL: baseUrl + "/api",
 });
 
 api.interceptors.request.use(

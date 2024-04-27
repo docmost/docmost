@@ -41,6 +41,7 @@ import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import { useElementSize, useMergedRef } from "@mantine/hooks";
 import { dfs } from "react-arborist/dist/module/utils";
+import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -205,6 +206,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const navigate = useNavigate();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const emit = useQueryEmit();
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
@@ -255,11 +257,29 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const handleEmojiSelect = (emoji: { native: string }) => {
     handleUpdateNodeIcon(node.id, emoji.native);
     updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native });
+
+    setTimeout(() => {
+      emit({
+        operation: "updateOne",
+        entity: ["pages"],
+        id: node.id,
+        payload: { icon: emoji.native },
+      });
+    }, 50);
   };
 
   const handleRemoveEmoji = () => {
     handleUpdateNodeIcon(node.id, null);
     updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
+
+    setTimeout(() => {
+      emit({
+        operation: "updateOne",
+        entity: ["pages"],
+        id: node.id,
+        payload: { icon: null },
+      });
+    }, 50);
   };
 
   if (node.willReceiveDrop && node.isClosed) {

@@ -13,7 +13,9 @@ const useCollaborationURL = (): string => {
   }
   */
 
-  const API_URL = window.location.protocol + "//" + window.location.host;
+  const API_URL = import.meta.env.DEV
+    ? "http://localhost:3000"
+    : window.location.protocol + "//" + window.location.host;
 
   const wsProtocol = API_URL.startsWith("https") ? "wss" : "ws";
   return `${wsProtocol}://${API_URL.split("://")[1]}${PATH}`;
