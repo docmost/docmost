@@ -21,6 +21,7 @@ import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
 import { SOCKET_URL } from "@/features/websocket/types";
+import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
@@ -66,8 +67,11 @@ export default function App() {
         </Route>
 
         <Route path={"/settings"} element={<SettingsLayout />}>
-          <Route path={"profile"} element={<AccountSettings />} />
-          <Route path={"profile/preferences"} element={<AccountSettings />} />
+          <Route path={"account/profile"} element={<AccountSettings />} />
+          <Route
+            path={"account/preferences"}
+            element={<AccountPreferences />}
+          />
           <Route path={"workspace"} element={<WorkspaceSettings />} />
           <Route path={"members"} element={<WorkspaceMembers />} />
           <Route path={"groups"} element={<Groups />} />

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Group, Text, ScrollArea, ActionIcon, rem } from "@mantine/core";
 import {
-  IconFingerprint,
   IconUser,
   IconSettings,
   IconUsers,
   IconArrowLeft,
   IconUsersGroup,
   IconSpaces,
+  IconBrush,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -27,8 +27,12 @@ const groupedData: DataGroup[] = [
   {
     heading: "Account",
     items: [
-      { label: "Profile", icon: IconUser, path: "/settings/profile" },
-      { label: "Preferences", icon: IconUser, path: "/settings/preferences" },
+      { label: "Profile", icon: IconUser, path: "/settings/account/profile" },
+      {
+        label: "Preferences",
+        icon: IconBrush,
+        path: "/settings/account/preferences",
+      },
     ],
   },
   {
