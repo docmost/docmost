@@ -17,7 +17,7 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 
 function getTitle(name: string, icon: string) {
   if (icon) {
-    return `${icon}      ${name}`;
+    return `${icon} ${name}`;
   }
   return name;
 }

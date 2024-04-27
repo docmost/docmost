@@ -1,27 +1,44 @@
 import {
   OnGatewayConnection,
-  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
+import { TokenService } from '../core/auth/services/token.service';
+import { JwtType } from '../core/auth/dto/jwt-payload';
+import { OnModuleDestroy } from '@nestjs/common';
 
-@WebSocketGateway({ namespace: 'events' })
-export class WsGateway implements OnGatewayInit, OnGatewayConnection {
+@WebSocketGateway({
+  cors: { origin: '*' },
+  transports: ['websocket'],
+})
+export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   @WebSocketServer()
   server: Server;
+  constructor(private tokenService: TokenService) {}
+
+  async handleConnection(client: Socket, ...args: any[]): Promise<void> {
+    try {
+      const token = await this.tokenService.verifyJwt(
+        client.handshake.auth?.token,
+      );
+      if (token.type !== JwtType.ACCESS) {
+        client.disconnect();
+      }
+    } catch (err) {
+      client.disconnect();
+    }
+  }
 
   @SubscribeMessage('message')
-  handleMessage(client: any, payload: any): string {
-    return 'Hello world!';
+  handleMessage(client: Socket, data: string): void {
+    client.broadcast.emit('message', data);
   }
 
-  handleConnection(client: any, ...args: any[]): any {
-    //
-  }
-
-  afterInit(server: any): any {
-    //
+  onModuleDestroy() {
+    if (this.server) {
+      this.server.close();
+    }
   }
 }
