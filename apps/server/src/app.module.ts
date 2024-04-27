@@ -7,7 +7,7 @@ import { CollaborationModule } from './collaboration/collaboration.module';
 import { WsModule } from './ws/ws.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { KyselyDbModule } from './kysely/kysely-db.module';
+import { DatabaseModule } from '@docmost/db/database.module';
 import * as fs from 'fs';
 
 const clientDistPath = join(__dirname, '..', '..', 'client/dist');
@@ -26,7 +26,7 @@ function getServeStaticModule() {
 @Module({
   imports: [
     CoreModule,
-    KyselyDbModule,
+    DatabaseModule,
     EnvironmentModule,
     CollaborationModule,
     WsModule,

@@ -67,6 +67,7 @@ export default function App() {
 
         <Route path={"/settings"} element={<SettingsLayout />}>
           <Route path={"profile"} element={<AccountSettings />} />
+          <Route path={"profile/preferences"} element={<AccountSettings />} />
           <Route path={"workspace"} element={<WorkspaceSettings />} />
           <Route path={"members"} element={<WorkspaceMembers />} />
           <Route path={"groups"} element={<Groups />} />
