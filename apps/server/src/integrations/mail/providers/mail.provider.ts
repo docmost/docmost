@@ -24,37 +24,36 @@ export const mailDriverConfigProvider = {
   useFactory: async (environmentService: EnvironmentService) => {
     const driver = environmentService.getMailDriver().toLocaleLowerCase();
 
-    if (driver === MailOption.SMTP) {
-      return {
-        driver,
-        config: {
-          host: environmentService.getMailHost(),
-          port: environmentService.getMailPort(),
-          connectionTimeout: 30 * 1000, // 30 seconds
-          auth: {
-            user: environmentService.getMailUsername(),
-            pass: environmentService.getMailPassword(),
-          },
-        } as SMTPTransport.Options,
-      };
-    }
+    switch (driver) {
+      case MailOption.SMTP:
+        return {
+          driver,
+          config: {
+            host: environmentService.getMailHost(),
+            port: environmentService.getMailPort(),
+            connectionTimeout: 30 * 1000, // 30 seconds
+            auth: {
+              user: environmentService.getMailUsername(),
+              pass: environmentService.getMailPassword(),
+            },
+          } as SMTPTransport.Options,
+        };
 
-    if (driver === MailOption.Postmark) {
-      return {
-        driver,
-        config: {
-          postmarkToken: environmentService.getPostmarkToken(),
-        } as PostmarkConfig,
-      };
-    }
+      case MailOption.Postmark:
+        return {
+          driver,
+          config: {
+            postmarkToken: environmentService.getPostmarkToken(),
+          } as PostmarkConfig,
+        };
 
-    if (driver === MailOption.Log) {
-      return {
-        driver,
-      };
+      case MailOption.Log:
+        return {
+          driver,
+        };
+      default:
+        throw new Error(`Unknown mail driver: ${driver}`);
     }
-
-    throw new Error(`Unknown mail driver: ${driver}`);
   },
 
   inject: [EnvironmentService],

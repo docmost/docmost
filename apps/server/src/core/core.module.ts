@@ -8,16 +8,13 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 import { PageModule } from './page/page.module';
-import { StorageModule } from '../integrations/storage/storage.module';
 import { AttachmentModule } from './attachment/attachment.module';
-import { EnvironmentModule } from '../integrations/environment/environment.module';
 import { CommentModule } from './comment/comment.module';
 import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../middlewares/domain.middleware';
-import { MailModule } from '../integrations/mail/mail.module';
 
 @Module({
   imports: [
@@ -25,12 +22,6 @@ import { MailModule } from '../integrations/mail/mail.module';
     AuthModule,
     WorkspaceModule,
     PageModule,
-    StorageModule.forRootAsync({
-      imports: [EnvironmentModule],
-    }),
-    MailModule.forRootAsync({
-      imports: [EnvironmentModule],
-    }),
     AttachmentModule,
     CommentModule,
     SearchModule,

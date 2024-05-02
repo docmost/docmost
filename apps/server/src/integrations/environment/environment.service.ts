@@ -9,8 +9,8 @@ export class EnvironmentService {
     return this.configService.get<string>('NODE_ENV');
   }
 
-  getPort(): string {
-    return this.configService.get<string>('PORT');
+  getPort(): number {
+    return parseInt(this.configService.get<string>('PORT'));
   }
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
@@ -80,7 +80,7 @@ export class EnvironmentService {
   }
 
   getMailPort(): number {
-    return this.configService.get<number>('MAIL_PORT');
+    return parseInt(this.configService.get<string>('MAIL_PORT'));
   }
 
   getMailUsername(): string {

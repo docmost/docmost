@@ -26,34 +26,35 @@ function createStorageDriver(disk: StorageConfig): StorageDriver {
 export const storageDriverConfigProvider = {
   provide: STORAGE_CONFIG_TOKEN,
   useFactory: async (environmentService: EnvironmentService) => {
-    const driver = environmentService.getStorageDriver();
+    const driver = environmentService.getStorageDriver().toLowerCase();
 
-    if (driver === StorageOption.LOCAL) {
-      return {
-        driver,
-        config: {
-          storagePath:
-            process.cwd() + '/' + environmentService.getLocalStoragePath(),
-        },
-      };
-    }
-
-    if (driver === StorageOption.S3) {
-      return {
-        driver,
-        config: {
-          region: environmentService.getAwsS3Region(),
-          endpoint: environmentService.getAwsS3Endpoint(),
-          bucket: environmentService.getAwsS3Bucket(),
-          credentials: {
-            accessKeyId: environmentService.getAwsS3AccessKeyId(),
-            secretAccessKey: environmentService.getAwsS3SecretAccessKey(),
+    switch (driver) {
+      case StorageOption.LOCAL:
+        return {
+          driver,
+          config: {
+            storagePath:
+              process.cwd() + '/' + environmentService.getLocalStoragePath(),
           },
-        },
-      };
-    }
+        };
 
-    throw new Error(`Unknown storage driver: ${driver}`);
+      case StorageOption.S3:
+        return {
+          driver,
+          config: {
+            region: environmentService.getAwsS3Region(),
+            endpoint: environmentService.getAwsS3Endpoint(),
+            bucket: environmentService.getAwsS3Bucket(),
+            credentials: {
+              accessKeyId: environmentService.getAwsS3AccessKeyId(),
+              secretAccessKey: environmentService.getAwsS3SecretAccessKey(),
+            },
+          },
+        };
+
+      default:
+        throw new Error(`Unknown storage driver: ${driver}`);
+    }
   },
 
   inject: [EnvironmentService],
@@ -61,6 +62,6 @@ export const storageDriverConfigProvider = {
 
 export const storageDriverProvider = {
   provide: STORAGE_DRIVER_TOKEN,
-  useFactory: (config) => createStorageDriver(config),
+  useFactory: (config: StorageConfig) => createStorageDriver(config),
   inject: [STORAGE_CONFIG_TOKEN],
 };

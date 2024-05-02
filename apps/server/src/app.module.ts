@@ -9,6 +9,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { DatabaseModule } from '@docmost/db/database.module';
 import * as fs from 'fs';
+import { StorageModule } from './integrations/storage/storage.module';
+import { MailModule } from './integrations/mail/mail.module';
 
 const clientDistPath = join(__dirname, '..', '..', 'client/dist');
 
@@ -31,6 +33,12 @@ function getServeStaticModule() {
     CollaborationModule,
     WsModule,
     ...getServeStaticModule(),
+    StorageModule.forRootAsync({
+      imports: [EnvironmentModule],
+    }),
+    MailModule.forRootAsync({
+      imports: [EnvironmentModule],
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
