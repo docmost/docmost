@@ -17,6 +17,7 @@ import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../middlewares/domain.middleware';
+import { MailModule } from '../integrations/mail/mail.module';
 
 @Module({
   imports: [
@@ -25,6 +26,9 @@ import { DomainMiddleware } from '../middlewares/domain.middleware';
     WorkspaceModule,
     PageModule,
     StorageModule.forRootAsync({
+      imports: [EnvironmentModule],
+    }),
+    MailModule.forRootAsync({
       imports: [EnvironmentModule],
     }),
     AttachmentModule,

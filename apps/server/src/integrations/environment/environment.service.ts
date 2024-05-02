@@ -70,4 +70,36 @@ export class EnvironmentService {
   isSelfHosted(): boolean {
     return !this.isCloud();
   }
+
+  getMailDriver(): string {
+    return this.configService.get<string>('MAIL_DRIVER', 'log');
+  }
+
+  getMailHost(): string {
+    return this.configService.get<string>('MAIL_HOST', '127.0.0.1');
+  }
+
+  getMailPort(): number {
+    return this.configService.get<number>('MAIL_PORT');
+  }
+
+  getMailUsername(): string {
+    return this.configService.get<string>('MAIL_USERNAME');
+  }
+
+  getMailPassword(): string {
+    return this.configService.get<string>('MAIL_PASSWORD');
+  }
+
+  getMailFromAddress(): string {
+    return this.configService.get<string>('MAIL_FROM_ADDRESS');
+  }
+
+  getMailFromName(): string {
+    return this.configService.get<string>('MAIL_FROM_NAME');
+  }
+
+  getPostmarkToken(): string {
+    return this.configService.get<string>('POSTMARK_TOKEN');
+  }
 }

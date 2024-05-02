@@ -18,6 +18,7 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "strict": true,
+    "jsx": "react",
     "paths": {
       "@docmost/db": ["./src/kysely"],
       "@docmost/db/*": ["./src/kysely/*"],

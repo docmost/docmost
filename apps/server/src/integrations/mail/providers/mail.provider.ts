@@ -1,0 +1,67 @@
+import { EnvironmentService } from '../../environment/environment.service';
+import { MailOption, PostmarkConfig, SMTPConfig } from '../interfaces';
+import { SmtpDriver, PostmarkDriver, LogDriver } from '../drivers';
+import { MailDriver } from '../drivers/interfaces/mail-driver.interface';
+import { MailConfig } from '../interfaces';
+import { MAIL_CONFIG_TOKEN, MAIL_DRIVER_TOKEN } from '../mail.constants';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
+function createMailDriver(mail: MailConfig): MailDriver {
+  switch (mail.driver) {
+    case MailOption.SMTP:
+      return new SmtpDriver(mail.config as SMTPConfig);
+    case MailOption.Postmark:
+      return new PostmarkDriver(mail.config as PostmarkConfig);
+    case MailOption.Log:
+      return new LogDriver();
+    default:
+      throw new Error(`Unknown mail driver`);
+  }
+}
+
+export const mailDriverConfigProvider = {
+  provide: MAIL_CONFIG_TOKEN,
+  useFactory: async (environmentService: EnvironmentService) => {
+    const driver = environmentService.getMailDriver().toLocaleLowerCase();
+
+    if (driver === MailOption.SMTP) {
+      return {
+        driver,
+        config: {
+          host: environmentService.getMailHost(),
+          port: environmentService.getMailPort(),
+          connectionTimeout: 30 * 1000, // 30 seconds
+          auth: {
+            user: environmentService.getMailUsername(),
+            pass: environmentService.getMailPassword(),
+          },
+        } as SMTPTransport.Options,
+      };
+    }
+
+    if (driver === MailOption.Postmark) {
+      return {
+        driver,
+        config: {
+          postmarkToken: environmentService.getPostmarkToken(),
+        } as PostmarkConfig,
+      };
+    }
+
+    if (driver === MailOption.Log) {
+      return {
+        driver,
+      };
+    }
+
+    throw new Error(`Unknown mail driver: ${driver}`);
+  },
+
+  inject: [EnvironmentService],
+};
+
+export const mailDriverProvider = {
+  provide: MAIL_DRIVER_TOKEN,
+  useFactory: (config: MailConfig) => createMailDriver(config),
+  inject: [MAIL_CONFIG_TOKEN],
+};

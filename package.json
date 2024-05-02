@@ -9,7 +9,9 @@
     "editor-ext:editor-ext": "nx run editor-ext:build",
     "client:dev": "nx run client:dev",
     "server:dev": "nx run server:start:dev",
-    "server:start": "nx run server:start:prod"
+    "server:start": "nx run server:start:prod",
+    "email:dev": "nx run @docmost/transactional:dev"
+
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
