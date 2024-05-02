@@ -1,4 +1,5 @@
 import {
+  MessageBody,
   OnGatewayConnection,
   SubscribeMessage,
   WebSocketGateway,
@@ -34,6 +35,21 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   @SubscribeMessage('message')
   handleMessage(client: Socket, data: string): void {
     client.broadcast.emit('message', data);
+  }
+
+  @SubscribeMessage('messageToRoom')
+  handleSendMessageToRoom(@MessageBody() message: any) {
+    this.server.to(message?.roomId).emit('messageToRoom', message);
+  }
+
+  @SubscribeMessage('join-room')
+  handleJoinRoom(client: Socket, @MessageBody() roomName: string): void {
+    client.join(roomName);
+  }
+
+  @SubscribeMessage('leave-room')
+  handleLeaveRoom(client: Socket, @MessageBody() roomName: string): void {
+    client.leave(roomName);
   }
 
   onModuleDestroy() {
