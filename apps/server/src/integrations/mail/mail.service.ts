@@ -15,12 +15,12 @@ export class MailService {
     @InjectQueue(QueueName.EMAIL_QUEUE) private emailQueue: Queue,
   ) {}
 
-  async sendEmail(message: Omit<MailMessage, 'from'>): Promise<void> {
+  async sendEmail(message: MailMessage): Promise<void> {
     const sender = `${this.environmentService.getMailFromName()} <${this.environmentService.getMailFromAddress()}> `;
     await this.mailDriver.sendMail({ from: sender, ...message });
   }
 
-  async sendToQueue(message: Omit<MailMessage, 'from'>): Promise<void> {
+  async sendToQueue(message: MailMessage): Promise<void> {
     await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
   }
 }

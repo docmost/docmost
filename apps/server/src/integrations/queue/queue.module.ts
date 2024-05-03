@@ -15,6 +15,9 @@ import { QueueName } from './constants';
             host: redisConfig.host,
             port: redisConfig.port,
             password: redisConfig.password,
+            retryStrategy: function (times: number) {
+              return Math.max(Math.min(Math.exp(times), 20000), 1000);
+            },
           },
           defaultJobOptions: {
             attempts: 3,

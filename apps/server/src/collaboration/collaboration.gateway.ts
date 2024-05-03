@@ -29,7 +29,7 @@ export class CollaborationGateway {
     this.hocuspocus.handleConnection(client, request);
   }
 
-  destroy() {
-    this.hocuspocus.destroy();
+  async destroy(): Promise<void> {
+    await this.hocuspocus.destroy();
   }
 }

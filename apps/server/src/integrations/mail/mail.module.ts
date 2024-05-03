@@ -5,7 +5,7 @@ import {
 } from './providers/mail.provider';
 import { MailModuleOptions } from './interfaces';
 import { MailService } from './mail.service';
-import { EmailProcessor } from './processors/email.processor.';
+import { EmailProcessor } from './processors/email.processor';
 
 @Global()
 @Module({
