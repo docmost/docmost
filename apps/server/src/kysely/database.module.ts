@@ -41,11 +41,11 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         log: (event: LogEvent) => {
           if (environmentService.getEnv() !== 'development') return;
           if (event.level === 'query') {
-            console.log(event.query.sql);
+            // console.log(event.query.sql);
             //if (event.query.parameters.length > 0) {
             //console.log('parameters: ' + event.query.parameters);
             //}
-            console.log('time: ' + event.queryDurationMillis);
+            // console.log('time: ' + event.queryDurationMillis);
           }
         },
       }),

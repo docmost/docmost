@@ -5,9 +5,12 @@ import {
 } from './providers/mail.provider';
 import { MailModuleOptions } from './interfaces';
 import { MailService } from './mail.service';
+import { EmailProcessor } from './processors/email.processor.';
 
 @Global()
-@Module({})
+@Module({
+  providers: [EmailProcessor],
+})
 export class MailModule {
   static forRootAsync(options: MailModuleOptions): DynamicModule {
     return {

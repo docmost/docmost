@@ -102,4 +102,11 @@ export class EnvironmentService {
   getPostmarkToken(): string {
     return this.configService.get<string>('POSTMARK_TOKEN');
   }
+
+  getRedisUrl(): string {
+    return this.configService.get<string>(
+      'REDIS_URL',
+      'redis://@127.0.0.1:6379',
+    );
+  }
 }

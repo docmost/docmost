@@ -24,3 +24,16 @@ export async function comparePasswordHash(
 export function getRandomInt(min = 4, max = 5) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+export type RedisConfig = {
+  host: string;
+  port: number;
+  password?: string;
+};
+export function parseRedisUrl(redisUrl: string): RedisConfig {
+  // format - redis[s]://[[username][:password]@][host][:port][/db-number]
+  const { hostname, port, password } = new URL(redisUrl);
+  const portInt = parseInt(port, 10);
+
+  return { host: hostname, port: portInt, password };
+}

@@ -11,6 +11,7 @@ import { DatabaseModule } from '@docmost/db/database.module';
 import * as fs from 'fs';
 import { StorageModule } from './integrations/storage/storage.module';
 import { MailModule } from './integrations/mail/mail.module';
+import { QueueModule } from './integrations/queue/queue.module';
 
 const clientDistPath = join(__dirname, '..', '..', 'client/dist');
 
@@ -32,6 +33,7 @@ function getServeStaticModule() {
     EnvironmentModule,
     CollaborationModule,
     WsModule,
+    QueueModule,
     ...getServeStaticModule(),
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],

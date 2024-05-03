@@ -27,6 +27,7 @@ export class SmtpDriver implements MailDriver {
       this.logger.debug(`Sent mail to ${message.to}`);
     } catch (err) {
       this.logger.warn(`Failed to send mail to ${message.to}: ${err}`);
+      throw err;
     }
   }
 }
