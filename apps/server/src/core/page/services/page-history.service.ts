@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
-import { Page, PageHistory } from '@docmost/db/types/entity.types';
+import { PageHistory } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 
