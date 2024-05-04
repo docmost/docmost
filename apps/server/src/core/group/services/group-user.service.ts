@@ -100,12 +100,9 @@ export class GroupUserService {
       this.db,
       async (trx) => {
         await this.groupService.findAndValidateGroup(groupId, workspaceId);
-        const user = await this.userRepo.findById(
-          userId,
-          workspaceId,
-          false,
-          trx,
-        );
+        const user = await this.userRepo.findById(userId, workspaceId, {
+          trx: trx,
+        });
 
         if (!user) {
           throw new NotFoundException('User not found');

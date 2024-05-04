@@ -1,12 +1,24 @@
 import api from "@/lib/api-client";
-import { ILogin, IRegister, ITokenResponse } from "@/features/auth/types/auth.types";
+import {
+  IChangePassword,
+  ILogin,
+  IRegister,
+  ITokenResponse,
+} from "@/features/auth/types/auth.types";
 
-export async function login(data: ILogin): Promise<ITokenResponse>{
+export async function login(data: ILogin): Promise<ITokenResponse> {
   const req = await api.post<ITokenResponse>("/auth/login", data);
-  return req.data as ITokenResponse;
+  return req.data;
 }
 
-export async function register(data: IRegister): Promise<ITokenResponse>{
+export async function register(data: IRegister): Promise<ITokenResponse> {
   const req = await api.post<ITokenResponse>("/auth/register", data);
-  return req.data as ITokenResponse;
+  return req.data;
+}
+
+export async function changePassword(
+  data: IChangePassword,
+): Promise<IChangePassword> {
+  const req = await api.post<IChangePassword>("/auth/change-password", data);
+  return req.data;
 }

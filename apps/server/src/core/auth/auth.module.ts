@@ -7,8 +7,6 @@ import { TokenService } from './services/token.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { SignupService } from './services/signup.service';
-import { UserModule } from '../user/user.module';
-import { SpaceModule } from '../space/space.module';
 import { GroupModule } from '../group/group.module';
 
 @Module({
@@ -23,10 +21,8 @@ import { GroupModule } from '../group/group.module';
         };
       },
       inject: [EnvironmentService],
-    } as any),
-    UserModule,
+    }),
     WorkspaceModule,
-    SpaceModule,
     GroupModule,
   ],
   controllers: [AuthController],

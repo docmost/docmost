@@ -27,15 +27,17 @@ export default function ChangeEmail() {
         </Text>
       </div>
 
+      {/*
       <Button onClick={open} variant="default">
         Change email
       </Button>
+      */}
 
       <Modal opened={opened} onClose={close} title="Change email" centered>
         <Text mb="md">
           To change your email, you have to enter your password and new email.
         </Text>
-        <ChangePasswordForm />
+        <ChangeEmailForm />
       </Modal>
     </Group>
   );
@@ -50,7 +52,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-function ChangePasswordForm() {
+function ChangeEmailForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({

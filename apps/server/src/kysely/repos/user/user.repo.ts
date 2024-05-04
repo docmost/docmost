@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Users } from '@docmost/db/types/db';
-import { hashPassword } from '../../../helpers/utils';
+import { hashPassword } from '../../../helpers';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableUser,
@@ -35,14 +35,16 @@ export class UserRepo {
   async findById(
     userId: string,
     workspaceId: string,
-    includePassword?: boolean,
-    trx?: KyselyTransaction,
+    opts?: {
+      includePassword?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<User> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('users')
       .select(this.baseFields)
-      .$if(includePassword, (qb) => qb.select('password'))
+      .$if(opts?.includePassword, (qb) => qb.select('password'))
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();

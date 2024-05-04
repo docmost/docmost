@@ -6,6 +6,7 @@ import { EnvironmentService } from '../environment/environment.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueName, QueueJob } from '../queue/constants';
 import { Queue } from 'bullmq';
+import { render } from '@react-email/render';
 
 @Injectable()
 export class MailService {
@@ -16,11 +17,21 @@ export class MailService {
   ) {}
 
   async sendEmail(message: MailMessage): Promise<void> {
+    if (message.template) {
+      // in case this method is used directly
+      message.html = render(message.template);
+    }
+
     const sender = `${this.environmentService.getMailFromName()} <${this.environmentService.getMailFromAddress()}> `;
     await this.mailDriver.sendMail({ from: sender, ...message });
   }
 
   async sendToQueue(message: MailMessage): Promise<void> {
+    if (message.template) {
+      // transform the React object because it gets lost when sent via the queue
+      message.html = render(message.template);
+      delete message.template;
+    }
     await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
   }
 }

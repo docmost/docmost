@@ -14,6 +14,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { SetupGuard } from './guards/setup.guard';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { AuthUser } from '../../decorators/auth-user.decorator';
+import { User, Workspace } from '@docmost/db/types/entity.types';
+import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -43,5 +48,16 @@ export class AuthController {
   ) {
     if (this.environmentService.isCloud()) throw new NotFoundException();
     return this.authService.setup(createAdminUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('change-password')
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.authService.changePassword(dto, user.id, workspace.id);
   }
 }
