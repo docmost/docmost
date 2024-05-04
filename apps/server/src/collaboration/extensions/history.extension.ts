@@ -3,12 +3,15 @@ import {
   onChangePayload,
   onDisconnectPayload,
 } from '@hocuspocus/server';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
+import { getPageId } from '../collaboration.util';
 
 @Injectable()
 export class HistoryExtension implements Extension {
+  private readonly logger = new Logger(HistoryExtension.name);
+
   ACTIVE_EDITING_INTERVAL = 10 * 60 * 1000; // 10 minutes
   historyIntervalMap = new Map<string, NodeJS.Timeout>();
   lastEditTimeMap = new Map<string, number>();
@@ -19,7 +22,8 @@ export class HistoryExtension implements Extension {
   ) {}
 
   async onChange(data: onChangePayload): Promise<void> {
-    const pageId = data.documentName;
+    const pageId = getPageId(data.documentName);
+
     this.lastEditTimeMap.set(pageId, Date.now());
 
     if (!this.historyIntervalMap.has(pageId)) {
@@ -33,7 +37,7 @@ export class HistoryExtension implements Extension {
   }
 
   async onDisconnect(data: onDisconnectPayload): Promise<void> {
-    const pageId = data.documentName;
+    const pageId = getPageId(data.documentName);
     if (data.clientsCount === 0) {
       if (this.historyIntervalMap.has(pageId)) {
         clearInterval(this.historyIntervalMap.get(pageId));
@@ -58,9 +62,12 @@ export class HistoryExtension implements Extension {
       });
       // Todo: compare if data is the same as the previous version
       await this.pageHistoryRepo.saveHistory(page);
-      console.log(`New history created for: ${pageId}`);
+      this.logger.debug(`New history created for: ${pageId}`);
     } catch (err) {
-      console.error('An error occurred saving page history', err);
+      this.logger.error(
+        `An error occurred saving page history for:  ${pageId}`,
+        err,
+      );
     }
   }
 }

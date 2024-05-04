@@ -20,7 +20,7 @@ import { HistoryExtension } from './extensions/history.extension';
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private collabWsAdapter: CollabWsAdapter;
-  private path = '/collaboration';
+  private path = '/collab';
 
   constructor(
     private readonly collaborationGateway: CollaborationGateway,

@@ -4,18 +4,20 @@ import {
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
 import * as Y from 'yjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { jsonToText, tiptapExtensions } from '../collaboration.util';
+import { getPageId, jsonToText, tiptapExtensions } from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
+  private readonly logger = new Logger(PersistenceExtension.name);
+
   constructor(private readonly pageRepo: PageRepo) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
     const { documentName, document } = data;
-    const pageId = documentName;
+    const pageId = getPageId(documentName);
 
     if (!document.isEmpty('default')) {
       return;
@@ -27,13 +29,12 @@ export class PersistenceExtension implements Extension {
     });
 
     if (!page) {
-      console.log('page does not exist.');
-      //TODO: terminate connection if the page does not exist?
+      this.logger.warn('page not found');
       return;
     }
 
     if (page.ydoc) {
-      console.log('ydoc loaded from db');
+      this.logger.debug(`ydoc loaded from db: ${pageId}`);
 
       const doc = new Y.Doc();
       const dbState = new Uint8Array(page.ydoc);
@@ -44,7 +45,7 @@ export class PersistenceExtension implements Extension {
 
     // if no ydoc state in db convert json in page.content to Ydoc.
     if (page.content) {
-      console.log('converting json to ydoc');
+      this.logger.debug(`converting json to ydoc: ${pageId}`);
 
       const ydoc = TiptapTransformer.toYdoc(
         page.content,
@@ -56,14 +57,14 @@ export class PersistenceExtension implements Extension {
       return ydoc;
     }
 
-    console.log('creating fresh ydoc');
+    this.logger.debug(`creating fresh ydoc': ${pageId}`);
     return new Y.Doc();
   }
 
   async onStoreDocument(data: onStoreDocumentPayload) {
     const { documentName, document, context } = data;
 
-    const pageId = documentName;
+    const pageId = getPageId(documentName);
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
@@ -81,7 +82,7 @@ export class PersistenceExtension implements Extension {
         pageId,
       );
     } catch (err) {
-      console.error(`Failed to update page ${documentName}`);
+      this.logger.error(`Failed to update page ${pageId}`, err);
     }
   }
 }

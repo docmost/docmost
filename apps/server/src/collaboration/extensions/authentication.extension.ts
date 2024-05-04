@@ -1,14 +1,22 @@
 import { Extension, onAuthenticatePayload } from '@hocuspocus/server';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { TokenService } from '../../core/auth/services/token.service';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from '../../helpers/types/permission';
+import { getPageId } from '../collaboration.util';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
+  private readonly logger = new Logger(AuthenticationExtension.name);
+
   constructor(
     private tokenService: TokenService,
     private userRepo: UserRepo,
@@ -18,6 +26,7 @@ export class AuthenticationExtension implements Extension {
 
   async onAuthenticate(data: onAuthenticatePayload) {
     const { documentName, token } = data;
+    const pageId = getPageId(documentName);
 
     let jwtPayload = null;
 
@@ -36,9 +45,10 @@ export class AuthenticationExtension implements Extension {
       throw new UnauthorizedException();
     }
 
-    const page = await this.pageRepo.findById(documentName);
+    const page = await this.pageRepo.findById(pageId);
     if (!page) {
-      throw new UnauthorizedException('Page not found');
+      this.logger.warn(`Page not found: ${pageId}}`);
+      throw new NotFoundException('Page not found');
     }
 
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
@@ -49,12 +59,16 @@ export class AuthenticationExtension implements Extension {
     const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
 
     if (!userSpaceRole) {
+      this.logger.warn(`User authorized to access page: ${pageId}}`);
       throw new UnauthorizedException();
     }
 
     if (userSpaceRole === SpaceRole.READER) {
       data.connection.readOnly = true;
+      this.logger.warn(`User granted readonly access to page: ${pageId}}`);
     }
+
+    this.logger.debug(`Authenticated user ${user.id} on page ${pageId}`);
 
     return {
       user,

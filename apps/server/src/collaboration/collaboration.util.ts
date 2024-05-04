@@ -42,3 +42,7 @@ export function htmlToJson(html: string) {
 export function jsonToText(tiptapJson: JSONContent) {
   return generateText(tiptapJson, tiptapExtensions);
 }
+
+export function getPageId(documentName: string) {
+  return documentName.split('.')[1];
+}

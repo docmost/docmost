@@ -7,8 +7,8 @@ export class CollabWsAdapter {
     this.wss = new WebSocketServer({ noServer: true });
   }
 
-  handleUpgrade(path: string, httpServer) {
-    httpServer.on('upgrade', (request, socket, head) => {
+  handleUpgrade(path: string, httpServer: any) {
+    httpServer.on('upgrade', (request: any, socket: any, head: any) => {
       try {
         const baseUrl = 'ws://' + request.headers.host + '/';
         const pathname = new URL(request.url, baseUrl).pathname;
