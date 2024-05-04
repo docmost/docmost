@@ -1,5 +1,5 @@
 const useCollaborationURL = (): string => {
-  const PATH = "/collaboration";
+  const PATH = "/collab";
 
   // TODO: revisit
   /*

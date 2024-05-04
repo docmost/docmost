@@ -44,9 +44,10 @@ export default function PageEditor({
 
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
+  const documentName = `page.${pageId}`;
 
   const localProvider = useMemo(() => {
-    const provider = new IndexeddbPersistence(pageId, ydoc);
+    const provider = new IndexeddbPersistence(documentName, ydoc);
 
     provider.on("synced", () => {
       setLocalSynced(true);
@@ -57,7 +58,7 @@ export default function PageEditor({
 
   const remoteProvider = useMemo(() => {
     const provider = new HocuspocusProvider({
-      name: pageId,
+      name: documentName,
       url: collaborationURL,
       document: ydoc,
       token: token?.accessToken,
