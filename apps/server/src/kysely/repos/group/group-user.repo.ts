@@ -1,14 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { GroupUser, InsertableGroupUser } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class GroupUserRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly groupRepo: GroupRepo,
+    private readonly userRepo: UserRepo,
+  ) {}
 
   async getGroupUserById(
     userId: string,
@@ -60,6 +70,78 @@ export class GroupUserRepo {
     });
 
     return result;
+  }
+
+  async addUserToGroup(
+    userId: string,
+    groupId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await executeTx(
+      this.db,
+      async (trx) => {
+        const group = await this.groupRepo.findById(groupId, workspaceId, {
+          trx,
+        });
+        if (!group) {
+          throw new NotFoundException('Group not found');
+        }
+
+        const user = await this.userRepo.findById(userId, workspaceId, {
+          trx: trx,
+        });
+
+        if (!user) {
+          throw new NotFoundException('User not found');
+        }
+
+        const groupUserExists = await this.getGroupUserById(
+          userId,
+          groupId,
+          trx,
+        );
+
+        if (groupUserExists) {
+          throw new BadRequestException(
+            'User is already a member of this group',
+          );
+        }
+
+        await this.insertGroupUser(
+          {
+            userId,
+            groupId,
+          },
+          trx,
+        );
+      },
+      trx,
+    );
+  }
+
+  async addUserToDefaultGroup(
+    userId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await executeTx(
+      this.db,
+      async (trx) => {
+        const defaultGroup = await this.groupRepo.getDefaultGroup(
+          workspaceId,
+          trx,
+        );
+        await this.insertGroupUser(
+          {
+            userId,
+            groupId: defaultGroup.id,
+          },
+          trx,
+        );
+      },
+      trx,
+    );
   }
 
   async delete(userId: string, groupId: string): Promise<void> {

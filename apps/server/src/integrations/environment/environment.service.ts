@@ -9,9 +9,21 @@ export class EnvironmentService {
     return this.configService.get<string>('NODE_ENV');
   }
 
+  getAppUrl(): string {
+    return (
+      this.configService.get<string>('APP_URL') ||
+      'http://localhost:' + this.getPort()
+    );
+  }
+
   getPort(): number {
     return parseInt(this.configService.get<string>('PORT'));
   }
+
+  getAppSecret(): string {
+    return this.configService.get<string>('APP_SECRET');
+  }
+
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
   }

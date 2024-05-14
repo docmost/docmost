@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { WsGateway } from './ws.gateway';
-import { AuthModule } from '../core/auth/auth.module';
+import { TokenModule } from '../core/auth/token.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [TokenModule],
   providers: [WsGateway],
 })
 export class WsModule {}

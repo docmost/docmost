@@ -93,7 +93,7 @@ export class UserRepo {
     trx?: KyselyTransaction,
   ): Promise<User> {
     const user: InsertableUser = {
-      name: insertableUser.name || insertableUser.email.split('@')[0],
+      name: insertableUser.name || insertableUser.email.toLowerCase(),
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
       locale: 'en',

@@ -1,7 +1,7 @@
-import { useAtom } from 'jotai';
-import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import React, { useEffect } from 'react';
-import useCurrentUser from '@/features/user/hooks/use-current-user';
+import { useAtom } from "jotai";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import React, { useEffect } from "react";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
 
 export function UserProvider({ children }: React.PropsWithChildren) {
   const [, setCurrentUser] = useAtom(currentUserAtom);
@@ -16,6 +16,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
   if (isLoading) return <></>;
 
   if (error) {
+    console.error(error);
     return <>an error occurred</>;
   }
 

@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { login, register } from '@/features/auth/services/auth-service';
-import { useNavigate } from 'react-router-dom';
-import { useAtom } from 'jotai';
-import { authTokensAtom } from '@/features/auth/atoms/auth-tokens-atom';
-import { currentUserAtom } from '@/features/user/atoms/current-user-atom';
-import { ILogin, IRegister } from '@/features/auth/types/auth.types';
-import { notifications } from '@mantine/notifications';
+import { useState } from "react";
+import { login, register } from "@/features/auth/services/auth-service";
+import { useNavigate } from "react-router-dom";
+import { useAtom } from "jotai";
+import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { ILogin, IRegister } from "@/features/auth/types/auth.types";
+import { notifications } from "@mantine/notifications";
+import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
+import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
+import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,12 +26,13 @@ export default function useAuth() {
       setIsLoading(false);
       setAuthToken(res.tokens);
 
-      navigate('/home');
+      navigate("/home");
     } catch (err) {
+      console.log(err);
       setIsLoading(false);
       notifications.show({
         message: err.response?.data.message,
-        color: 'red',
+        color: "red",
       });
     }
   };
@@ -41,24 +46,72 @@ export default function useAuth() {
 
       setAuthToken(res.tokens);
 
-      navigate('/home');
+      navigate("/home");
     } catch (err) {
       setIsLoading(false);
       notifications.show({
         message: err.response?.data.message,
-        color: 'red',
+        color: "red",
       });
     }
   };
 
-  const hasTokens = () => {
+  const handleInvitationSignUp = async (data: IAcceptInvite) => {
+    setIsLoading(true);
+
+    try {
+      const res = await acceptInvitation(data);
+      setIsLoading(false);
+
+      console.log(res);
+      setAuthToken(res.tokens);
+
+      navigate("/home");
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
+  const handleIsAuthenticated = async () => {
+    if (!authToken) {
+      return false;
+    }
+
+    try {
+      const accessToken = authToken.accessToken;
+      const payload = jwtDecode(accessToken);
+
+      // true if jwt is active
+      const now = Date.now().valueOf() / 1000;
+      return payload.exp >= now;
+    } catch (err) {
+      console.log("invalid jwt token", err);
+      return false;
+    }
+  };
+
+  const hasTokens = (): boolean => {
     return !!authToken;
   };
 
   const handleLogout = async () => {
     setAuthToken(null);
     setCurrentUser(null);
+    Cookies.remove("authTokens");
+    navigate("/login");
   };
 
-  return { signIn: handleSignIn, signUp: handleSignUp, isLoading, hasTokens };
+  return {
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    invitationSignup: handleInvitationSignUp,
+    isAuthenticated: handleIsAuthenticated,
+    logout: handleLogout,
+    hasTokens,
+    isLoading,
+  };
 }

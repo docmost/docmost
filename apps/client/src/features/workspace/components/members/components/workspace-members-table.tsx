@@ -12,7 +12,7 @@ import {
 } from "@/features/workspace/types/user-role-data.ts";
 
 export default function WorkspaceMembersTable() {
-  const { data, isLoading } = useWorkspaceMembersQuery();
+  const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
 
   const handleRoleChange = async (

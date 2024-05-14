@@ -1,4 +1,5 @@
-import { IUser } from '@/features/user/types/user.types';
+import { IUser } from "@/features/user/types/user.types";
+import { QueryParams } from "@/lib/types.ts";
 
 export interface IComment {
   id: string;
@@ -14,7 +15,7 @@ export interface IComment {
   createdAt: Date;
   editedAt?: Date;
   deletedAt?: Date;
-  creator: IUser
+  creator: IUser;
 }
 
 export interface ICommentData {
@@ -28,4 +29,8 @@ export interface ICommentData {
 export interface IResolveComment {
   commentId: string;
   resolved: boolean;
+}
+
+export interface ICommentParams extends QueryParams {
+  pageId: string;
 }

@@ -8,7 +8,6 @@ import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
 import { SpaceRole, UserRole } from '../../../helpers/types/permission';
-import { GroupService } from '../../group/services/group.service';
 import { SpaceMemberService } from '../../space/services/space-member.service';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
@@ -16,6 +15,11 @@ import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
+import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class WorkspaceService {
@@ -23,8 +27,9 @@ export class WorkspaceService {
     private workspaceRepo: WorkspaceRepo,
     private spaceService: SpaceService,
     private spaceMemberService: SpaceMemberService,
-    private groupService: GroupService,
+    private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
+    private userRepo: UserRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -33,7 +38,6 @@ export class WorkspaceService {
   }
 
   async getWorkspaceInfo(workspaceId: string) {
-    // todo: add member count
     const workspace = this.workspaceRepo.findById(workspaceId);
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
@@ -61,11 +65,10 @@ export class WorkspaceService {
         );
 
         // create default group
-        const group = await this.groupService.createDefaultGroup(
-          workspace.id,
-          user.id,
-          trx,
-        );
+        const group = await this.groupRepo.createDefaultGroup(workspace.id, {
+          userId: user.id,
+          trx: trx,
+        });
 
         // add user to workspace
         await trx
@@ -181,11 +184,54 @@ export class WorkspaceService {
     return workspace;
   }
 
-  async delete(workspaceId: string): Promise<void> {
-    const workspace = await this.workspaceRepo.findById(workspaceId);
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
+  async getWorkspaceUsers(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<User>> {
+    const users = await this.userRepo.getUsersPaginated(
+      workspaceId,
+      pagination,
+    );
+
+    return users;
+  }
+
+  async updateWorkspaceUserRole(
+    authUser: User,
+    userRoleDto: UpdateWorkspaceUserRoleDto,
+    workspaceId: string,
+  ) {
+    const user = await this.userRepo.findById(userRoleDto.userId, workspaceId);
+
+    if (!user) {
+      throw new BadRequestException('Workspace member not found');
     }
-    //delete
+
+    if (user.role === userRoleDto.role) {
+      return user;
+    }
+
+    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+      UserRole.OWNER,
+      workspaceId,
+    );
+
+    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
+      throw new BadRequestException(
+        'There must be at least one workspace owner',
+      );
+    }
+
+    await this.userRepo.updateUser(
+      {
+        role: userRoleDto.role,
+      },
+      user.id,
+      workspaceId,
+    );
+  }
+
+  async deactivateUser(): Promise<any> {
+    return 'todo';
   }
 }

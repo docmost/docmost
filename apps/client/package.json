@@ -26,6 +26,7 @@
     "jotai": "^2.7.2",
     "jotai-optics": "^0.3.2",
     "js-cookie": "^3.0.5",
+    "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-arborist": "^3.4.0",
     "react-dom": "^18.2.0",

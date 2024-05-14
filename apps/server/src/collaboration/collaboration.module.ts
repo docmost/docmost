@@ -1,5 +1,4 @@
 import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { AuthModule } from '../core/auth/auth.module';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { CollaborationGateway } from './collaboration.gateway';
@@ -8,6 +7,7 @@ import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { HistoryExtension } from './extensions/history.extension';
+import { TokenModule } from '../core/auth/token.module';
 
 @Module({
   providers: [
@@ -16,7 +16,7 @@ import { HistoryExtension } from './extensions/history.extension';
     PersistenceExtension,
     HistoryExtension,
   ],
-  imports: [AuthModule],
+  imports: [TokenModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private collabWsAdapter: CollabWsAdapter;

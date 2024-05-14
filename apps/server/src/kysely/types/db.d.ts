@@ -1,15 +1,10 @@
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -151,6 +146,7 @@ export interface Users {
   email: string;
   emailVerifiedAt: Timestamp | null;
   id: Generated<string>;
+  invitedById: string | null;
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
@@ -167,10 +163,11 @@ export interface Users {
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
   email: string;
+  groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
   role: string;
-  status: string | null;
+  token: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

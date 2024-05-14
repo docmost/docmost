@@ -10,7 +10,14 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config) => {
     const tokenData = Cookies.get("authTokens");
-    const accessToken = tokenData && JSON.parse(tokenData)?.accessToken;
+
+    let accessToken: string;
+    try {
+      accessToken = tokenData && JSON.parse(tokenData)?.accessToken;
+    } catch (err) {
+      console.log("invalid authTokens:", err.message);
+      Cookies.remove("authTokens");
+    }
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;

@@ -10,7 +10,7 @@ export default function WorkspaceInviteModal() {
       <Button onClick={open}>Invite members</Button>
 
       <Modal
-        size="600"
+        size="550"
         opened={opened}
         onClose={close}
         title="Invite new members"
@@ -19,7 +19,7 @@ export default function WorkspaceInviteModal() {
         <Divider size="xs" mb="xs" />
 
         <ScrollArea h="80%">
-          <WorkspaceInviteForm />
+          <WorkspaceInviteForm onClose={close} />
         </ScrollArea>
       </Modal>
     </>

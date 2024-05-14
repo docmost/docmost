@@ -3,19 +3,19 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
-import { GroupUserService } from '../../group/services/group-user.service';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User } from '@docmost/db/types/entity.types';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 
 @Injectable()
 export class SignupService {
   constructor(
     private userRepo: UserRepo,
     private workspaceService: WorkspaceService,
-    private groupUserService: GroupUserService,
+    private groupUserRepo: GroupUserRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -56,7 +56,7 @@ export class SignupService {
         );
 
         // add user to default group
-        await this.groupUserService.addUserToDefaultGroup(
+        await this.groupUserRepo.addUserToDefaultGroup(
           user.id,
           workspaceId,
           trx,

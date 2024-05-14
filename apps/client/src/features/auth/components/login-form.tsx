@@ -1,37 +1,41 @@
-import * as React from 'react';
-import * as z from 'zod';
+import * as React from "react";
+import * as z from "zod";
 
-import { useForm, zodResolver } from '@mantine/form';
-import useAuth from '@/features/auth/hooks/use-auth';
-import { ILogin } from '@/features/auth/types/auth.types';
+import { useForm, zodResolver } from "@mantine/form";
+import useAuth from "@/features/auth/hooks/use-auth";
+import { ILogin } from "@/features/auth/types/auth.types";
 import {
   Container,
   Title,
   Anchor,
-  Paper,
   TextInput,
   Button,
   Text,
   PasswordInput,
-} from '@mantine/core';
-import { Link } from 'react-router-dom';
-import classes from './auth.module.css';
+  Box,
+} from "@mantine/core";
+import { Link, useNavigate } from "react-router-dom";
+import classes from "./auth.module.css";
+import { useEffect, useState } from "react";
+import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 
 const formSchema = z.object({
   email: z
-    .string({ required_error: 'email is required' })
-    .email({ message: 'Invalid email address' }),
-  password: z.string({ required_error: 'password is required' }),
+    .string()
+    .min(1, { message: "email is required" })
+    .email({ message: "Invalid email address" }),
+  password: z.string().min(1, { message: "Password is required" }),
 });
 
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
+  useRedirectIfAuthenticated();
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
     initialValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
 
@@ -40,9 +44,9 @@ export function LoginForm() {
   }
 
   return (
-    <Container size={420} my={40}>
-      <Paper shadow="md" p="lg" radius="md" mt={200}>
-        <Title ta="center" fw={800}>
+    <Container size={420} my={40} className={classes.container}>
+      <Box p="xl" mt={200}>
+        <Title order={2} ta="center" fw={500} mb="md">
           Login
         </Title>
 
@@ -52,16 +56,16 @@ export function LoginForm() {
             type="email"
             label="Email"
             placeholder="email@example.com"
-            required
-            {...form.getInputProps('email')}
+            variant="filled"
+            {...form.getInputProps("email")}
           />
 
           <PasswordInput
             label="Password"
             placeholder="Your password"
-            required
+            variant="filled"
             mt="md"
-            {...form.getInputProps('password')}
+            {...form.getInputProps("password")}
           />
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
             Sign In
@@ -69,13 +73,12 @@ export function LoginForm() {
         </form>
 
         <Text c="dimmed" size="sm" ta="center" mt="sm">
-          Don't have an account yet?{' '}
+          Don't have an account yet?{" "}
           <Anchor size="sm" component={Link} to="/signup">
             Create account
           </Anchor>
         </Text>
-
-      </Paper>
+      </Box>
     </Container>
   );
 }

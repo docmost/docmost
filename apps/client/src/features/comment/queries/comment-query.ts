@@ -12,6 +12,7 @@ import {
   updateComment,
 } from "@/features/comment/services/comment-service";
 import {
+  ICommentParams,
   IComment,
   IResolveComment,
 } from "@/features/comment/types/comment.types";
@@ -21,12 +22,13 @@ import { IPagination } from "@/lib/types.ts";
 export const RQ_KEY = (pageId: string) => ["comments", pageId];
 
 export function useCommentsQuery(
-  pageId: string,
+  params: ICommentParams,
 ): UseQueryResult<IPagination<IComment>, Error> {
   return useQuery({
-    queryKey: RQ_KEY(pageId),
-    queryFn: () => getPageComments(pageId),
-    enabled: !!pageId,
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey: RQ_KEY(params.pageId),
+    queryFn: () => getPageComments(params),
+    enabled: !!params.pageId,
   });
 }
 
@@ -36,13 +38,14 @@ export function useCreateCommentMutation() {
   return useMutation<IComment, Error, Partial<IComment>>({
     mutationFn: (data) => createComment(data),
     onSuccess: (data) => {
-      const newComment = data;
-      let comments = queryClient.getQueryData(RQ_KEY(data.pageId));
-      if (comments) {
-        // comments = prevComments => [...prevComments, newComment];
-        //queryClient.setQueryData(RQ_KEY(data.pageId), comments);
-      }
+      //const newComment = data;
+      // let comments = queryClient.getQueryData(RQ_KEY(data.pageId));
+      // if (comments) {
+      //comments = prevComments => [...prevComments, newComment];
+      //queryClient.setQueryData(RQ_KEY(data.pageId), comments);
+      //}
 
+      queryClient.invalidateQueries({ queryKey: RQ_KEY(data.pageId) });
       notifications.show({ message: "Comment created successfully" });
     },
     onError: (error) => {
@@ -69,11 +72,21 @@ export function useDeleteCommentMutation(pageId?: string) {
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
     onSuccess: (data, variables) => {
-      let comments = queryClient.getQueryData(RQ_KEY(pageId)) as IComment[];
-      if (comments) {
-        // comments = comments.filter(comment => comment.id !== variables);
-        // queryClient.setQueryData(RQ_KEY(pageId), comments);
+      const comments = queryClient.getQueryData(
+        RQ_KEY(pageId),
+      ) as IPagination<IComment>;
+
+      if (comments && comments.items) {
+        const commentId = variables;
+        const newComments = comments.items.filter(
+          (comment) => comment.id !== commentId,
+        );
+        queryClient.setQueryData(RQ_KEY(pageId), {
+          ...comments,
+          items: newComments,
+        });
       }
+
       notifications.show({ message: "Comment deleted successfully" });
     },
     onError: (error) => {
@@ -92,6 +105,7 @@ export function useResolveCommentMutation() {
         RQ_KEY(data.pageId),
       ) as IComment[];
 
+      /*
       if (currentComments) {
         const updatedComments = currentComments.map((comment) =>
           comment.id === variables.commentId
@@ -99,7 +113,7 @@ export function useResolveCommentMutation() {
             : comment,
         );
         queryClient.setQueryData(RQ_KEY(data.pageId), updatedComments);
-      }
+      }*/
 
       notifications.show({ message: "Comment resolved successfully" });
     },

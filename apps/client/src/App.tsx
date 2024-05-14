@@ -22,6 +22,7 @@ import { io } from "socket.io-client";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
 import { SOCKET_URL } from "@/features/websocket/types";
 import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
+import { InviteSignUpForm } from "@/features/auth/components/invite-sign-up-form.tsx";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
@@ -60,6 +61,7 @@ export default function App() {
         <Route index element={<Welcome />} />
         <Route path={"/login"} element={<LoginPage />} />
         <Route path={"/signup"} element={<SignUpPage />} />
+        <Route path={"/invites/:invitationId"} element={<InviteSignUpForm />} />
 
         <Route element={<DashboardLayout />}>
           <Route path={"/home"} element={<Home />} />

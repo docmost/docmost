@@ -11,6 +11,7 @@ import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { DB } from '@docmost/db/types/db';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { DefaultGroup } from '../../../core/group/dto/create-group.dto';
 
 @Injectable()
 export class GroupRepo {
@@ -19,9 +20,10 @@ export class GroupRepo {
   async findById(
     groupId: string,
     workspaceId: string,
-    opts?: { includeMemberCount: boolean },
+    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
   ): Promise<Group> {
-    return await this.db
+    const db = dbOrTx(this.db, opts?.trx);
+    return db
       .selectFrom('groups')
       .selectAll('groups')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
@@ -33,9 +35,10 @@ export class GroupRepo {
   async findByName(
     groupName: string,
     workspaceId: string,
-    opts?: { includeMemberCount: boolean },
+    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
   ): Promise<Group> {
-    return await this.db
+    const db = dbOrTx(this.db, opts?.trx);
+    return db
       .selectFrom('groups')
       .selectAll('groups')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
@@ -83,6 +86,21 @@ export class GroupRepo {
         .where('workspaceId', '=', workspaceId)
         .executeTakeFirst()
     );
+  }
+
+  async createDefaultGroup(
+    workspaceId: string,
+    opts?: { userId?: string; trx?: KyselyTransaction },
+  ): Promise<Group> {
+    const { userId, trx } = opts;
+    const insertableGroup: InsertableGroup = {
+      name: DefaultGroup.EVERYONE,
+      isDefault: true,
+      creatorId: userId,
+      workspaceId: workspaceId,
+    };
+
+    return this.insertGroup(insertableGroup, trx);
   }
 
   async getGroupsPaginated(workspaceId: string, pagination: PaginationOptions) {

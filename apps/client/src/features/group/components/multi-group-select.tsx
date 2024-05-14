@@ -8,6 +8,8 @@ import { IconUsersGroup } from "@tabler/icons-react";
 interface MultiGroupSelectProps {
   onChange: (value: string[]) => void;
   label?: string;
+  description?: string;
+  mt?: string;
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -21,7 +23,12 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   </Group>
 );
 
-export function MultiGroupSelect({ onChange, label }: MultiGroupSelectProps) {
+export function MultiGroupSelect({
+  onChange,
+  label,
+  description,
+  mt,
+}: MultiGroupSelectProps) {
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: groups, isLoading } = useGetGroupsQuery({
@@ -56,8 +63,10 @@ export function MultiGroupSelect({ onChange, label }: MultiGroupSelectProps) {
       renderOption={renderMultiSelectOption}
       hidePickedOptions
       maxDropdownHeight={300}
+      description={description}
       label={label || "Add groups"}
       placeholder="Search for groups"
+      mt={mt}
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}

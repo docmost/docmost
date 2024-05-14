@@ -1,17 +1,8 @@
-import {
-  Modal,
-  Tabs,
-  rem,
-  Group,
-  Divider,
-  Text,
-  ScrollArea,
-} from "@mantine/core";
+import { Modal, Tabs, rem, Group, Divider, ScrollArea } from "@mantine/core";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React from "react";
 import GroupActionMenu from "@/features/group/components/group-action-menu.tsx";
-import { ISpace } from "@/features/space/types/space.types.ts";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 
@@ -47,7 +38,7 @@ export default function SpaceSettingsModal({
           </Modal.Header>
           <Modal.Body>
             <div style={{ height: rem("600px") }}>
-              <Tabs color="gray" defaultValue="members">
+              <Tabs defaultValue="members">
                 <Tabs.List>
                   <Tabs.Tab fw={500} value="general">
                     Settings

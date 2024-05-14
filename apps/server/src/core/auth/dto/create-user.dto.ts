@@ -9,8 +9,8 @@ import {
 
 export class CreateUserDto {
   @IsOptional()
-  @MinLength(3)
-  @MaxLength(35)
+  @MinLength(2)
+  @MaxLength(60)
   @IsString()
   name: string;
 

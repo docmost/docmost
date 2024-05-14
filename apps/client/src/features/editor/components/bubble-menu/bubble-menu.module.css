@@ -1,25 +1,28 @@
 .bubbleMenu {
-    display: flex;
-    width: fit-content;
-    border-radius: 2px;
-    border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
+  display: flex;
+  width: fit-content;
+  border-radius: 2px;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
 
-    .active {
-        color: var(--mantine-color-blue-8);
-    }
+  .active {
+    color: light-dark(var(--mantine-color-blue-8), var(--mantine-color-gray-5));
+  }
 
-    .colorButton {
-        border: none;
-    }
+  .colorButton {
+    border: none;
+  }
 
-    .colorButton::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 1px;
-        background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
-    }
-
+  .colorButton::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background-color: light-dark(
+      var(--mantine-color-gray-3),
+      var(--mantine-color-gray-8)
+    );
+  }
 }

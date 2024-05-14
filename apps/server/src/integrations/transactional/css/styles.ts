@@ -23,7 +23,7 @@ export const paragraph = {
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   color: '#333',
-  lineHeight: 1.5,
+  lineHeight: 1,
   fontSize: 14,
 };
 
@@ -50,4 +50,17 @@ export const link = {
 export const footer = {
   maxWidth: '580px',
   margin: '0 auto',
+};
+
+export const button = {
+  backgroundColor: '#176ae5',
+  borderRadius: '3px',
+  color: '#fff',
+  fontFamily: "'Open Sans', 'Helvetica Neue', Arial",
+  fontSize: '16px',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+  display: 'block',
+  width: '100px',
+  padding: '8px',
 };

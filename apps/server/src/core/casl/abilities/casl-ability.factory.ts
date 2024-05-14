@@ -11,7 +11,6 @@ import { User, Workspace } from '@docmost/db/types/entity.types';
 
 export type Subjects =
   | 'Workspace'
-  | 'WorkspaceInvitation'
   | 'Space'
   | 'SpaceMember'
   | 'Group'
@@ -35,8 +34,6 @@ export default class CaslAbilityFactory {
       // Workspace Users
       can([Action.Manage], 'Workspace');
       can([Action.Manage], 'WorkspaceUser');
-
-      can([Action.Manage], 'WorkspaceInvitation');
 
       // Groups
       can([Action.Manage], 'Group');

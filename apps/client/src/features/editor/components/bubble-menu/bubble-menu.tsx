@@ -4,7 +4,7 @@ import {
   isNodeSelection,
   useEditor,
 } from "@tiptap/react";
-import { FC, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import {
   IconBold,
   IconCode,
@@ -37,8 +37,13 @@ type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
-  const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
+  const showCommentPopupRef = useRef(showCommentPopup);
+
+  useEffect(() => {
+    showCommentPopupRef.current = showCommentPopup;
+  }, [showCommentPopup]);
 
   const items: BubbleMenuItem[] = [
     {
@@ -94,9 +99,11 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       const { empty } = selection;
 
       if (
-        props.editor.isActive("image") ||
+        !editor.isEditable ||
+        editor.isActive("image") ||
         empty ||
-        isNodeSelection(selection)
+        isNodeSelection(selection) ||
+        showCommentPopupRef?.current
       ) {
         return false;
       }
@@ -117,47 +124,43 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
   return (
-    <BubbleMenu {...bubbleMenuProps} className={classes.bubbleMenu}>
-      <NodeSelector
-        editor={props.editor}
-        isOpen={isNodeSelectorOpen}
-        setIsOpen={() => {
-          setIsNodeSelectorOpen(!isNodeSelectorOpen);
-          setIsColorSelectorOpen(false);
-          setIsLinkSelectorOpen(false);
-        }}
-      />
+    <BubbleMenu {...bubbleMenuProps}>
+      <div className={classes.bubbleMenu}>
+        <NodeSelector
+          editor={props.editor}
+          isOpen={isNodeSelectorOpen}
+          setIsOpen={() => {
+            setIsNodeSelectorOpen(!isNodeSelectorOpen);
+          }}
+        />
 
-      <ActionIcon.Group>
-        {items.map((item, index) => (
-          <Tooltip key={index} label={item.name} withArrow>
-            <ActionIcon
-              key={index}
-              variant="default"
-              size="lg"
-              radius="0"
-              aria-label={item.name}
-              className={clsx({ [classes.active]: item.isActive() })}
-              style={{ border: "none" }}
-              onClick={item.command}
-            >
-              <item.icon style={{ width: rem(16) }} stroke={2} />
-            </ActionIcon>
-          </Tooltip>
-        ))}
-      </ActionIcon.Group>
+        <ActionIcon.Group>
+          {items.map((item, index) => (
+            <Tooltip key={index} label={item.name} withArrow>
+              <ActionIcon
+                key={index}
+                variant="default"
+                size="lg"
+                radius="0"
+                aria-label={item.name}
+                className={clsx({ [classes.active]: item.isActive() })}
+                style={{ border: "none" }}
+                onClick={item.command}
+              >
+                <item.icon style={{ width: rem(16) }} stroke={2} />
+              </ActionIcon>
+            </Tooltip>
+          ))}
+        </ActionIcon.Group>
 
-      <ColorSelector
-        editor={props.editor}
-        isOpen={isColorSelectorOpen}
-        setIsOpen={() => {
-          setIsColorSelectorOpen(!isColorSelectorOpen);
-          setIsNodeSelectorOpen(false);
-          setIsLinkSelectorOpen(false);
-        }}
-      />
+        <ColorSelector
+          editor={props.editor}
+          isOpen={isColorSelectorOpen}
+          setIsOpen={() => {
+            setIsColorSelectorOpen(!isColorSelectorOpen);
+          }}
+        />
 
-      <Tooltip label={commentItem.name} withArrow>
         <ActionIcon
           variant="default"
           size="lg"
@@ -168,7 +171,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         >
           <IconMessage style={{ width: rem(16) }} stroke={2} />
         </ActionIcon>
-      </Tooltip>
+      </div>
     </BubbleMenu>
   );
 };

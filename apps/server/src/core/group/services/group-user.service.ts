@@ -7,17 +7,14 @@ import {
 } from '@nestjs/common';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { GroupService } from './group.service';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { executeTx } from '@docmost/db/utils';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
-import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class GroupUserService {
   constructor(
-    private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
     private userRepo: UserRepo,
     @Inject(forwardRef(() => GroupService))
@@ -38,24 +35,6 @@ export class GroupUserService {
     );
 
     return groupUsers;
-  }
-
-  async addUserToDefaultGroup(
-    userId: string,
-    workspaceId: string,
-    trx?: KyselyTransaction,
-  ): Promise<void> {
-    await executeTx(
-      this.db,
-      async (trx) => {
-        const defaultGroup = await this.groupRepo.getDefaultGroup(
-          workspaceId,
-          trx,
-        );
-        await this.addUserToGroup(userId, defaultGroup.id, workspaceId, trx);
-      },
-      trx,
-    );
   }
 
   async addUsersToGroupBatch(
@@ -88,48 +67,6 @@ export class GroupUserService {
       .values(groupUsersToInsert)
       .onConflict((oc) => oc.columns(['userId', 'groupId']).doNothing())
       .execute();
-  }
-
-  async addUserToGroup(
-    userId: string,
-    groupId: string,
-    workspaceId: string,
-    trx?: KyselyTransaction,
-  ): Promise<void> {
-    await executeTx(
-      this.db,
-      async (trx) => {
-        await this.groupService.findAndValidateGroup(groupId, workspaceId);
-        const user = await this.userRepo.findById(userId, workspaceId, {
-          trx: trx,
-        });
-
-        if (!user) {
-          throw new NotFoundException('User not found');
-        }
-
-        const groupUserExists = await this.groupUserRepo.getGroupUserById(
-          userId,
-          groupId,
-          trx,
-        );
-
-        if (groupUserExists) {
-          throw new BadRequestException(
-            'User is already a member of this group',
-          );
-        }
-
-        await this.groupUserRepo.insertGroupUser(
-          {
-            userId,
-            groupId,
-          },
-          trx,
-        );
-      },
-      trx,
-    );
   }
 
   async removeUserFromGroup(

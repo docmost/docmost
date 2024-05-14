@@ -7,6 +7,9 @@ export class EnvironmentVariables {
 
   @IsUrl({ protocols: ['postgres', 'postgresql'], require_tld: false })
   DATABASE_URL: string;
+
+  @IsString()
+  APP_SECRET: string;
 }
 
 export function validate(config: Record<string, any>) {
@@ -14,7 +17,13 @@ export function validate(config: Record<string, any>) {
 
   const errors = validateSync(validatedConfig);
   if (errors.length > 0) {
-    throw new Error(errors.toString());
+    errors.map((error) => {
+      console.error(error.toString());
+    });
+    console.log(
+      'Please fix the environment variables and try again. Shutting down...',
+    );
+    process.exit(1);
   }
   return validatedConfig;
 }

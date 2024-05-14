@@ -66,8 +66,7 @@ export class CommentService {
       workspaceId: workspaceId,
     });
 
-    // return created comment and creator relation
-    return this.findById(createdComment.id);
+    return createdComment;
   }
 
   async findByPageId(
@@ -114,7 +113,12 @@ export class CommentService {
     return comment;
   }
 
-  async remove(id: string): Promise<void> {
-    await this.commentRepo.deleteComment(id);
+  async remove(commentId: string): Promise<void> {
+    const comment = await this.commentRepo.findById(commentId);
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    await this.commentRepo.deleteComment(commentId);
   }
 }

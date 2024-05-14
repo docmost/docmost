@@ -1,6 +1,6 @@
 import { Dispatch, FC, SetStateAction } from "react";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
-import { Button, Popover, rem, ScrollArea, Text } from "@mantine/core";
+import { Button, Popover, rem, ScrollArea, Text, Tooltip } from "@mantine/core";
 import classes from "./bubble-menu.module.css";
 import { useEditor } from "@tiptap/react";
 
@@ -110,17 +110,22 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   return (
     <Popover width={200} opened={isOpen} withArrow>
       <Popover.Target>
-        <Button
-          variant="default"
-          radius="0"
-          leftSection="A"
-          rightSection={<IconChevronDown size={16} />}
-          className={classes.colorButton}
-          style={{
-            color: activeColorItem?.color,
-          }}
-          onClick={() => setIsOpen(!isOpen)}
-        />
+        <Tooltip label="text color" withArrow>
+          <Button
+            variant="default"
+            radius="0"
+            rightSection={<IconChevronDown size={16} />}
+            className={classes.colorButton}
+            style={{
+              color: activeColorItem?.color,
+              paddingLeft: "8px",
+              paddingRight: "8px",
+            }}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            A
+          </Button>
+        </Tooltip>
       </Popover.Target>
 
       <Popover.Dropdown>
@@ -151,37 +156,6 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       .focus()
                       .setColor(color || "")
                       .run();
-                  setIsOpen(false);
-                }}
-                style={{ border: "none" }}
-              >
-                {name}
-              </Button>
-            ))}
-          </Button.Group>
-
-          <Text span c="dimmed" inherit>
-            BACKGROUND
-          </Text>
-
-          <Button.Group orientation="vertical">
-            {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
-              <Button
-                key={index}
-                variant="default"
-                leftSection={
-                  <span style={{ padding: "4px", background: color }}>A</span>
-                }
-                justify="left"
-                fullWidth
-                rightSection={
-                  editor.isActive("highlight", { color }) && (
-                    <IconCheck style={{ width: rem(16) }} />
-                  )
-                }
-                onClick={() => {
-                  editor.commands.unsetHighlight();
-                  name !== "Default" && editor.commands.setHighlight({ color });
                   setIsOpen(false);
                 }}
                 style={{ border: "none" }}

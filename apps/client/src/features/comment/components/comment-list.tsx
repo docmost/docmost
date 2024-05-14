@@ -18,7 +18,7 @@ function CommentList() {
     data: comments,
     isLoading: isCommentsLoading,
     isError,
-  } = useCommentsQuery(pageId);
+  } = useCommentsQuery({ pageId, limit: 100 });
   const [isLoading, setIsLoading] = useState(false);
   const createCommentMutation = useCreateCommentMutation();
 

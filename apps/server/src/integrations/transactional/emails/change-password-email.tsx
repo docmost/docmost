@@ -3,11 +3,11 @@ import * as React from 'react';
 import { content, paragraph } from '../css/styles';
 import { MailBody } from '../partials/partials';
 
-interface ChangePasswordEmailProps {
+interface Props {
   username?: string;
 }
 
-export const ChangePasswordEmail = ({ username }: ChangePasswordEmailProps) => {
+export const ChangePasswordEmail = ({ username }: Props) => {
   return (
     <MailBody>
       <Section style={content}>
