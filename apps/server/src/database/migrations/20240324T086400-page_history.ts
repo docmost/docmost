@@ -9,12 +9,13 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('page_id', 'uuid', (col) =>
       col.references('pages.id').onDelete('cascade').notNull(),
     )
+    .addColumn('slug_id', 'varchar', (col) => col)
     .addColumn('title', 'varchar', (col) => col)
     .addColumn('content', 'jsonb', (col) => col)
     .addColumn('slug', 'varchar', (col) => col)
     .addColumn('icon', 'varchar', (col) => col)
     .addColumn('cover_photo', 'varchar', (col) => col)
-    .addColumn('version', 'int4', (col) => col.notNull())
+    .addColumn('version', 'int4', (col) => col)
     .addColumn('last_updated_by_id', 'uuid', (col) =>
       col.references('users.id'),
     )

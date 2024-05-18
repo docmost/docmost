@@ -20,8 +20,7 @@
     "strict": true,
     "jsx": "react",
     "paths": {
-      "@docmost/db": ["./src/kysely"],
-      "@docmost/db/*": ["./src/kysely/*"],
+      "@docmost/db/*": ["./src/database/*"],
       "@docmost/transactional/*": ["./src/integrations/transactional/*"]
     }
   }

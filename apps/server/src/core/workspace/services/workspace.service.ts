@@ -46,6 +46,19 @@ export class WorkspaceService {
     return workspace;
   }
 
+  async getWorkspacePublicData(workspaceId: string) {
+    const workspace = await this.db
+      .selectFrom('workspaces')
+      .select(['id'])
+      .where('id', '=', workspaceId)
+      .executeTakeFirst();
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    return workspace;
+  }
+
   async create(
     user: User,
     createWorkspaceDto: CreateWorkspaceDto,

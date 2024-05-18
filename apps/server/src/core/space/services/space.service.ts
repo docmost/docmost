@@ -5,12 +5,13 @@ import {
 } from '@nestjs/common';
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import slugify from 'slugify';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Space } from '@docmost/db/types/entity.types';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { slugify } = require('fix-esm').require('@sindresorhus/slugify');
 
 @Injectable()
 export class SpaceService {

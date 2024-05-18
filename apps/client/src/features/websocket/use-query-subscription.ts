@@ -12,6 +12,9 @@ export const useQuerySubscription = () => {
     socket?.on("message", (event) => {
       const data: WebSocketEvent = event;
 
+      let entity = null;
+      let queryKeyId = null;
+
       switch (data.operation) {
         case "invalidate":
           queryClient.invalidateQueries({
@@ -19,8 +22,16 @@ export const useQuerySubscription = () => {
           });
           break;
         case "updateOne":
-          queryClient.setQueryData([...data.entity, data.id], {
-            ...queryClient.getQueryData([...data.entity, data.id]),
+          entity = data.entity[0];
+          if (entity === "pages") {
+            // we have to do this because the usePageQuery cache key is the slugId.
+            queryKeyId = data.payload.slugId;
+          } else {
+            queryKeyId = data.id;
+          }
+
+          queryClient.setQueryData([...data.entity, queryKeyId], {
+            ...queryClient.getQueryData([...data.entity, queryKeyId]),
             ...data.payload,
           });
 

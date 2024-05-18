@@ -65,7 +65,7 @@ export default function App() {
 
         <Route element={<DashboardLayout />}>
           <Route path={"/home"} element={<Home />} />
-          <Route path={"/p/:pageId"} element={<Page />} />
+          <Route path={"/p/:slugId/:slug?"} element={<Page />} />
         </Route>
 
         <Route path={"/settings"} element={<SettingsLayout />}>

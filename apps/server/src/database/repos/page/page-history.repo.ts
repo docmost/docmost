@@ -6,7 +6,6 @@ import {
   InsertablePageHistory,
   Page,
   PageHistory,
-  UpdatablePageHistory,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
@@ -27,19 +26,6 @@ export class PageHistoryRepo {
       .executeTakeFirst();
   }
 
-  async updatePageHistory(
-    updatablePageHistory: UpdatablePageHistory,
-    pageHistoryId: string,
-    trx?: KyselyTransaction,
-  ) {
-    const db = dbOrTx(this.db, trx);
-    return db
-      .updateTable('pageHistory')
-      .set(updatablePageHistory)
-      .where('id', '=', pageHistoryId)
-      .execute();
-  }
-
   async insertPageHistory(
     insertablePageHistory: InsertablePageHistory,
     trx?: KyselyTransaction,
@@ -55,11 +41,10 @@ export class PageHistoryRepo {
   async saveHistory(page: Page): Promise<void> {
     await this.insertPageHistory({
       pageId: page.id,
+      slugId: page.slugId,
       title: page.title,
       content: page.content,
-      slug: page.slug,
       icon: page.icon,
-      version: 1, // TODO: make incremental
       coverPhoto: page.coverPhoto,
       lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
       spaceId: page.spaceId,

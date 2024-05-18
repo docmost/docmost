@@ -5,26 +5,11 @@ import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './integrations/environment/environment.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { WsModule } from './ws/ws.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { DatabaseModule } from '@docmost/db/database.module';
-import * as fs from 'fs';
 import { StorageModule } from './integrations/storage/storage.module';
 import { MailModule } from './integrations/mail/mail.module';
 import { QueueModule } from './integrations/queue/queue.module';
-
-const clientDistPath = join(__dirname, '..', '..', 'client/dist');
-
-function getServeStaticModule() {
-  if (fs.existsSync(clientDistPath)) {
-    return [
-      ServeStaticModule.forRoot({
-        rootPath: clientDistPath,
-      }),
-    ];
-  }
-  return [];
-}
+import { StaticModule } from './integrations/static/static.module';
 
 @Module({
   imports: [
@@ -34,7 +19,7 @@ function getServeStaticModule() {
     CollaborationModule,
     WsModule,
     QueueModule,
-    ...getServeStaticModule(),
+    StaticModule,
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],
     }),

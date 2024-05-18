@@ -12,7 +12,7 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto } from './dto/move-page.dto';
-import { PageHistoryIdDto, PageIdDto, SpaceIdDto } from './dto/page.dto';
+import { PageHistoryIdDto, PageIdDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
@@ -118,18 +118,23 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('recent')
   async getRecentSpacePages(
-    @Body() spaceIdDto: SpaceIdDto,
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const ability = await this.spaceAbility.createForUser(
       user,
-      spaceIdDto.spaceId,
+      workspace.defaultSpaceId,
     );
+
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
-    return this.pageService.getRecentSpacePages(spaceIdDto.spaceId, pagination);
+
+    return this.pageService.getRecentSpacePages(
+      workspace.defaultSpaceId,
+      pagination,
+    );
   }
 
   // TODO: scope to workspaces
@@ -146,7 +151,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageHistoryService.findHistoryByPageId(dto.pageId, pagination);
+    return this.pageHistoryService.findHistoryByPageId(page.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -181,7 +186,17 @@ export class PageController {
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
-    return this.pageService.getSidebarPages(dto, pagination);
+
+    let pageId = null;
+    if (dto.pageId) {
+      const page = await this.pageRepo.findById(dto.pageId);
+      if (page.spaceId !== dto.spaceId) {
+        throw new ForbiddenException();
+      }
+      pageId = page.id;
+    }
+
+    return this.pageService.getSidebarPages(dto.spaceId, pagination, pageId);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -207,10 +222,14 @@ export class PageController {
   @Post('/breadcrumbs')
   async getPageBreadcrumbs(@Body() dto: PageIdDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
-    return this.pageService.getPageBreadCrumbs(dto.pageId);
+    return this.pageService.getPageBreadCrumbs(page.id);
   }
 }

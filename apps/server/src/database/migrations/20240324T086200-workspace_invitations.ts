@@ -6,19 +6,24 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
+    .addColumn('email', 'varchar', (col) => col)
+    .addColumn('role', 'varchar', (col) => col.notNull())
+    .addColumn('token', 'varchar', (col) => col.notNull())
+    .addColumn('group_ids', sql`uuid[]`, (col) => col)
+    .addColumn('invited_by_id', 'uuid', (col) => col.references('users.id'))
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('invited_by_id', 'uuid', (col) => col.references('users.id'))
-    .addColumn('email', 'varchar', (col) => col.notNull())
-    .addColumn('role', 'varchar', (col) => col.notNull())
-    .addColumn('status', 'varchar', (col) => col)
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
+    .addUniqueConstraint('invitations_email_workspace_id_unique', [
+      'email',
+      'workspace_id',
+    ])
     .execute();
 }
 

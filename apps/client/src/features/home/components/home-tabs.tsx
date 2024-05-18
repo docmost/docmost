@@ -1,5 +1,5 @@
 import { Text, Tabs, Space } from "@mantine/core";
-import { IconClockHour3, IconStar } from "@tabler/icons-react";
+import { IconClockHour3 } from "@tabler/icons-react";
 import RecentChanges from "@/features/home/components/recent-changes";
 
 export default function HomeTabs() {
@@ -16,7 +16,7 @@ export default function HomeTabs() {
       <Space my="md" />
 
       <Tabs.Panel value="recent">
-        <div>Recent</div>
+        <RecentChanges />
       </Tabs.Panel>
     </Tabs>
   );

@@ -1,9 +1,10 @@
-import { Text, Group, Stack, UnstyledButton, Divider } from '@mantine/core';
-import { format } from 'date-fns';
-import classes from './home.module.css';
-import { Link } from 'react-router-dom';
-import PageListSkeleton from '@/features/home/components/page-list-skeleton';
-import { useRecentChangesQuery } from '@/features/page/queries/page-query';
+import { Text, Group, Stack, UnstyledButton, Divider } from "@mantine/core";
+import { format } from "date-fns";
+import classes from "./home.module.css";
+import { Link } from "react-router-dom";
+import PageListSkeleton from "@/features/home/components/page-list-skeleton";
+import { useRecentChangesQuery } from "@/features/page/queries/page-query";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
 
 function RecentChanges() {
   const { data, isLoading, isError } = useRecentChangesQuery();
@@ -18,21 +19,23 @@ function RecentChanges() {
 
   return (
     <div>
-      {data
-        .map((page) => (
+      {data.items.map((page) => (
         <div key={page.id}>
-          <UnstyledButton component={Link} to={`/p/${page.id}`}
-                          className={classes.page} p="xs">
+          <UnstyledButton
+            component={Link}
+            to={buildPageSlug(page.slugId, page.title)}
+            className={classes.page}
+            p="xs"
+          >
             <Group wrap="nowrap">
-
               <Stack gap="xs" style={{ flex: 1 }}>
                 <Text fw={500} size="md" lineClamp={1}>
-                  {page.title || 'Untitled'}
+                  {page.title || "Untitled"}
                 </Text>
               </Stack>
 
               <Text c="dimmed" size="xs" fw={500}>
-                {format(new Date(page.updatedAt), 'PP')}
+                {format(new Date(page.updatedAt), "PP")}
               </Text>
             </Group>
           </UnstyledButton>

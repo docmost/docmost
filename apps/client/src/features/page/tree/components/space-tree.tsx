@@ -4,12 +4,13 @@ import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
   fetchAncestorChildren,
   useGetRootSidebarPagesQuery,
+  usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
 import React, { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Menu, rem } from "@mantine/core";
+import { ActionIcon, Menu, rem, Text } from "@mantine/core";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -18,7 +19,6 @@ import {
   IconLink,
   IconPlus,
   IconPointFilled,
-  IconStar,
   IconTrash,
 } from "@tabler/icons-react";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
@@ -39,9 +39,12 @@ import {
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
-import { useElementSize, useMergedRef } from "@mantine/hooks";
+import { useClipboard, useElementSize, useMergedRef } from "@mantine/hooks";
 import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { notifications } from "@mantine/notifications";
+import { modals } from "@mantine/modals";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -50,7 +53,7 @@ interface SpaceTreeProps {
 const openTreeNodesAtom = atom<OpenMap>({});
 
 export default function SpaceTree({ spaceId }: SpaceTreeProps) {
-  const { pageId } = useParams();
+  const { slugId } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
   const {
@@ -68,6 +71,7 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef(rootElement, sizeRef);
   const isDataLoaded = useRef(false);
+  const { data: currentPage } = usePageQuery(slugId);
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -94,24 +98,24 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (isDataLoaded.current) {
+      if (isDataLoaded.current && currentPage) {
         // check if pageId node is present in the tree
-        const node = dfs(treeApiRef.current.root, pageId);
+        const node = dfs(treeApiRef.current.root, currentPage.id);
         if (node) {
           // if node is found, no need to traverse its ancestors
           return;
         }
 
         // if not found, fetch and build its ancestors and their children
-        if (!pageId) return;
-        const ancestors = await getPageBreadcrumbs(pageId);
+        if (!currentPage.id) return;
+        const ancestors = await getPageBreadcrumbs(currentPage.id);
 
         if (ancestors && ancestors?.length > 1) {
           let flatTreeItems = [...buildTree(ancestors)];
 
           const fetchAndUpdateChildren = async (ancestor: IPage) => {
             // we don't want to fetch the children of the opened page
-            if (ancestor.id === pageId) {
+            if (ancestor.id === currentPage.id) {
               return;
             }
             const children = await fetchAncestorChildren({
@@ -148,7 +152,7 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
 
             setTimeout(() => {
               // focus on node and open all parents
-              treeApiRef.current.select(pageId);
+              treeApiRef.current.select(currentPage.id);
             }, 100);
           });
         }
@@ -156,13 +160,15 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
     };
 
     fetchData();
-  }, [isDataLoaded.current, pageId]);
+  }, [isDataLoaded.current, currentPage?.id]);
 
   useEffect(() => {
-    setTimeout(() => {
-      treeApiRef.current?.select(pageId, { align: "auto" });
-    }, 200);
-  }, [pageId]);
+    if (currentPage) {
+      setTimeout(() => {
+        treeApiRef.current?.select(currentPage.id, { align: "auto" });
+      }, 200);
+    }
+  }, [currentPage?.id]);
 
   useEffect(() => {
     if (treeApiRef.current) {
@@ -241,7 +247,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   }
 
   const handleClick = () => {
-    navigate(`/p/${node.id}`);
+    navigate(buildPageSlug(node.data.slugId, node.data.name));
   };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
@@ -333,6 +339,7 @@ interface CreateNodeProps {
   treeApi: TreeApi<SpaceTreeNode>;
   onExpandTree?: () => void;
 }
+
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
   function handleCreate() {
     if (node.data.hasChildren && node.children.length === 0) {
@@ -366,7 +373,32 @@ interface NodeMenuProps {
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
 }
+
 function NodeMenu({ node, treeApi }: NodeMenuProps) {
+  const clipboard = useClipboard({ timeout: 500 });
+
+  const handleCopyLink = () => {
+    const pageLink =
+      window.location.host + buildPageSlug(node.data.id, node.data.name);
+    clipboard.copy(pageLink);
+    notifications.show({ message: "Link copied" });
+  };
+
+  const openDeleteModal = () =>
+    modals.openConfirmModal({
+      title: "Are you sure you want to delete this page?",
+      children: (
+        <Text size="sm">
+          Are you sure you want to delete this page? This action is
+          irreversible.
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: () => treeApi?.delete(node),
+    });
+
   return (
     <Menu shadow="md" width={200}>
       <Menu.Target>
@@ -386,13 +418,12 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Divider />
-
         <Menu.Item
           leftSection={<IconLink style={{ width: rem(14), height: rem(14) }} />}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            handleCopyLink();
           }}
         >
           Copy link
@@ -404,7 +435,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           leftSection={
             <IconTrash style={{ width: rem(14), height: rem(14) }} />
           }
-          onClick={() => treeApi?.delete(node)}
+          onClick={openDeleteModal}
         >
           Delete
         </Menu.Item>
@@ -417,6 +448,7 @@ interface PageArrowProps {
   node: NodeApi<SpaceTreeNode>;
   onExpandTree?: () => void;
 }
+
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
   return (
     <ActionIcon

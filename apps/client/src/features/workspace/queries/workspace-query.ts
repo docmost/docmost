@@ -8,11 +8,12 @@ import {
   changeMemberRole,
   getInvitationById,
   getPendingInvitations,
-  getWorkspace,
   getWorkspaceMembers,
   createInvitation,
   resendInvitation,
   revokeInvitation,
+  getWorkspace,
+  getWorkspacePublicData,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
@@ -22,10 +23,20 @@ import {
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 
-export function useWorkspace(): UseQueryResult<IWorkspace, Error> {
+export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
     queryKey: ["workspace"],
     queryFn: () => getWorkspace(),
+  });
+}
+
+export function useWorkspacePublicDataQuery(): UseQueryResult<
+  IWorkspace,
+  Error
+> {
+  return useQuery({
+    queryKey: ["workspace-public"],
+    queryFn: () => getWorkspacePublicData(),
   });
 }
 
@@ -69,7 +80,7 @@ export function useCreateInvitationMutation() {
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation successfully" });
+      notifications.show({ message: "Invitation sent" });
       // TODO: mutate cache
       queryClient.invalidateQueries({
         queryKey: ["invitations"],
@@ -92,7 +103,7 @@ export function useResendInvitationMutation() {
   >({
     mutationFn: (data) => resendInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation mail sent" });
+      notifications.show({ message: "Invitation resent" });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

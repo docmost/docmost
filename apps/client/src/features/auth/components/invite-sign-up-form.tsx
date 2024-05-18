@@ -60,7 +60,7 @@ export function InviteSignUpForm() {
     <Container size={420} my={40} className={classes.container}>
       <Box p="xl" mt={200}>
         <Title order={2} ta="center" fw={500} mb="md">
-          Complete your signup
+          Join the workspace
         </Title>
 
         <Stack align="stretch" justify="center" gap="xl">

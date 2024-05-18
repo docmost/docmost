@@ -38,15 +38,22 @@ api.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           // Handle unauthorized error
-          if (window.location.pathname != Routes.AUTH.LOGIN) {
-            window.location.href = Routes.AUTH.LOGIN;
-          }
+          Cookies.remove("authTokens");
+          redirectToLogin();
           break;
         case 403:
           // Handle forbidden error
           break;
         case 404:
           // Handle not found error
+          if (
+            error.response.data.message
+              .toLowerCase()
+              .includes("workspace not found")
+          ) {
+            Cookies.remove("authTokens");
+            redirectToLogin();
+          }
           break;
         case 500:
           // Handle internal server error
@@ -58,5 +65,14 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+function redirectToLogin() {
+  if (
+    window.location.pathname != Routes.AUTH.LOGIN &&
+    window.location.pathname != Routes.AUTH.SIGNUP
+  ) {
+    window.location.href = Routes.AUTH.LOGIN;
+  }
+}
 
 export default api;

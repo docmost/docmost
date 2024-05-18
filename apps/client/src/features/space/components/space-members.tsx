@@ -57,7 +57,6 @@ export default function SpaceMembersList({ spaceId }: SpaceMembersProps) {
   };
 
   const onRemove = async (memberId: string, type: MemberType) => {
-    console.log("remove", spaceId);
     const memberToRemove: IRemoveSpaceMember = {
       spaceId: spaceId,
     };

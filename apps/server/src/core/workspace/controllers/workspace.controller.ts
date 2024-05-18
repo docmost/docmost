@@ -36,12 +36,16 @@ export class WorkspaceController {
     private readonly workspaceInvitationService: WorkspaceInvitationService,
   ) {}
 
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/public')
+  async getWorkspacePublicInfo(@Req() req) {
+    return this.workspaceService.getWorkspacePublicData(req.raw.workspaceId);
+  }
+
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getWorkspace(
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-  ) {
+  async getWorkspace(@AuthWorkspace() workspace: Workspace) {
     return this.workspaceService.getWorkspaceInfo(workspace.id);
   }
 

@@ -17,6 +17,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
   pages.forEach((page) => {
     pageMap[page.id] = {
       id: page.id,
+      slugId: page.slugId,
       name: page.title,
       icon: page.icon,
       position: page.position,

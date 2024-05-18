@@ -52,7 +52,12 @@ export class CommentController {
       throw new ForbiddenException();
     }
 
-    return this.commentService.create(user.id, workspace.id, createCommentDto);
+    return this.commentService.create(
+      user.id,
+      page.id,
+      workspace.id,
+      createCommentDto,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -73,7 +78,7 @@ export class CommentController {
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
-    return this.commentService.findByPageId(input.pageId, pagination);
+    return this.commentService.findByPageId(page.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -84,7 +89,6 @@ export class CommentController {
       throw new NotFoundException('Comment not found');
     }
 
-    // TODO: add spaceId to comment entity.
     const page = await this.pageRepo.findById(comment.pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -104,6 +108,7 @@ export class CommentController {
     return this.commentService.update(
       updateCommentDto.commentId,
       updateCommentDto,
+      user,
     );
   }
 
@@ -111,6 +116,6 @@ export class CommentController {
   @Post('delete')
   remove(@Body() input: CommentIdDto, @AuthUser() user: User) {
     // TODO: only comment creators and admins can delete their comments
-    return this.commentService.remove(input.commentId);
+    return this.commentService.remove(input.commentId, user);
   }
 }

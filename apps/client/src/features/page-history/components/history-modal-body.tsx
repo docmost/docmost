@@ -1,18 +1,22 @@
-import { ScrollArea } from '@mantine/core';
-import HistoryList from '@/features/page-history/components/history-list';
-import classes from './history.module.css';
-import { useAtom } from 'jotai';
-import { activeHistoryIdAtom } from '@/features/page-history/atoms/history-atoms';
-import HistoryView from '@/features/page-history/components/history-view';
+import { ScrollArea } from "@mantine/core";
+import HistoryList from "@/features/page-history/components/history-list";
+import classes from "./history.module.css";
+import { useAtom } from "jotai";
+import { activeHistoryIdAtom } from "@/features/page-history/atoms/history-atoms";
+import HistoryView from "@/features/page-history/components/history-view";
 
-export default function HistoryModalBody() {
+interface Props {
+  pageId: string;
+}
+
+export default function HistoryModalBody({ pageId }: Props) {
   const [activeHistoryId] = useAtom(activeHistoryIdAtom);
 
   return (
     <div className={classes.sidebarFlex}>
       <nav className={classes.sidebar}>
         <div className={classes.sidebarMain}>
-          <HistoryList />
+          <HistoryList pageId={pageId} />
         </div>
       </nav>
 
@@ -21,7 +25,6 @@ export default function HistoryModalBody() {
           {activeHistoryId && <HistoryView historyId={activeHistoryId} />}
         </div>
       </ScrollArea>
-
     </div>
   );
 }

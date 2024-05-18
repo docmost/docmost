@@ -1,28 +1,23 @@
 export interface IPage {
-  pageId: string;
   id: string;
+  slugId: string;
   title: string;
   content: string;
-  html: string;
-  slug: string;
   icon: string;
   coverPhoto: string;
-  editor: string;
-  shareId: string;
   parentPageId: string;
   creatorId: string;
   spaceId: string;
   workspaceId: string;
-  children: [];
-  childrenIds: [];
   isLocked: boolean;
-  status: string;
-  publishedAt: Date;
+  isPublic: boolean;
+  lastModifiedById: Date;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;
   position: string;
   hasChildren: boolean;
+  pageId: string;
 }
 
 export interface IMovePage {

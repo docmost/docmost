@@ -10,27 +10,34 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { useUpdatePageMutation } from "@/features/page/queries/page-query";
+import {
+  usePageQuery,
+  useUpdatePageMutation,
+} from "@/features/page/queries/page-query";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { updateTreeNodeName } from "@/features/page/tree/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { useNavigate } from "react-router-dom";
 
 export interface TitleEditorProps {
   pageId: string;
+  slugId: string;
   title: string;
 }
 
-export function TitleEditor({ pageId, title }: TitleEditorProps) {
-  const [debouncedTitleState, setDebouncedTitleState] = useState("");
+export function TitleEditor({ pageId, slugId, title }: TitleEditorProps) {
+  const [debouncedTitleState, setDebouncedTitleState] = useState(null);
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
+  const navigate = useNavigate();
 
   const titleEditor = useEditor({
     extensions: [
@@ -62,15 +69,23 @@ export function TitleEditor({ pageId, title }: TitleEditorProps) {
   });
 
   useEffect(() => {
-    if (debouncedTitle !== "") {
-      updatePageMutation.mutate({ pageId, title: debouncedTitle });
+    const pageSlug = buildPageSlug(slugId, title);
+    navigate(pageSlug, { replace: true });
+  }, [title]);
+
+  useEffect(() => {
+    if (debouncedTitle !== null) {
+      updatePageMutation.mutate({
+        pageId: pageId,
+        title: debouncedTitle,
+      });
 
       setTimeout(() => {
         emit({
           operation: "updateOne",
           entity: ["pages"],
           id: pageId,
-          payload: { title: debouncedTitle },
+          payload: { title: debouncedTitle, slugId: slugId },
         });
       }, 50);
 

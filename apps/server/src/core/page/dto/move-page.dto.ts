@@ -1,13 +1,7 @@
-import {
-  IsString,
-  IsUUID,
-  IsOptional,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
 
 export class MovePageDto {
-  @IsUUID()
+  @IsString()
   pageId: string;
 
   @IsString()

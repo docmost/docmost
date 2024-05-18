@@ -14,6 +14,11 @@ export async function getWorkspace(): Promise<IWorkspace> {
   return req.data;
 }
 
+export async function getWorkspacePublicData(): Promise<IWorkspace> {
+  const req = await api.post<IWorkspace>("/workspace/public");
+  return req.data;
+}
+
 // Todo: fix all paginated types
 export async function getWorkspaceMembers(
   params?: QueryParams,

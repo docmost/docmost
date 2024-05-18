@@ -8,19 +8,16 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn('name', 'varchar', (col) => col)
-    .addColumn('description', 'text', (col) => col)
+    .addColumn('description', 'varchar', (col) => col)
     .addColumn('logo', 'varchar', (col) => col)
     .addColumn('hostname', 'varchar', (col) => col)
     .addColumn('custom_domain', 'varchar', (col) => col)
-    .addColumn('enable_invite', 'boolean', (col) =>
-      col.defaultTo(true).notNull(),
-    )
-    .addColumn('invite_code', 'varchar', (col) =>
-      col.defaultTo(sql`gen_random_uuid()`),
-    )
     .addColumn('settings', 'jsonb', (col) => col)
     .addColumn('default_role', 'varchar', (col) =>
       col.defaultTo(UserRole.MEMBER).notNull(),
+    )
+    .addColumn('allowed_email_domains', sql`varchar[]`, (col) =>
+      col.defaultTo('{}'),
     )
     .addColumn('default_space_id', 'uuid', (col) => col)
     .addColumn('created_at', 'timestamptz', (col) =>
@@ -31,7 +28,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('deleted_at', 'timestamptz', (col) => col)
     .addUniqueConstraint('workspaces_hostname_unique', ['hostname'])
-    .addUniqueConstraint('workspaces_invite_code_unique', ['invite_code'])
+    .addUniqueConstraint('workspaces_custom_domain_unique', ['custom_domain'])
     .execute();
 }
 

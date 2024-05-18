@@ -18,9 +18,12 @@ import {
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 
-function HistoryList() {
+interface Props {
+  pageId: string;
+}
+
+function HistoryList({ pageId }: Props) {
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
-  const { pageId } = useParams();
   const {
     data: pageHistoryList,
     isLoading,

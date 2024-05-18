@@ -10,7 +10,7 @@ import {
 import { IconChevronRight } from "@tabler/icons-react";
 import classes from "./tree-collapse.module.css";
 
-interface LinksGroupProps {
+interface TreeCollapseProps {
   icon?: React.FC<any>;
   label: string;
   initiallyOpened?: boolean;
@@ -22,7 +22,7 @@ export function TreeCollapse({
   label,
   initiallyOpened,
   children,
-}: LinksGroupProps) {
+}: TreeCollapseProps) {
   const [opened, setOpened] = useState(initiallyOpened || false);
 
   return (

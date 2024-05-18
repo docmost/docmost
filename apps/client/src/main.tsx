@@ -10,6 +10,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,8 +31,10 @@ root.render(
     <MantineProvider theme={theme}>
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
-          <Notifications position="top-right" limit={3} />
-          <App />
+          <Notifications position="bottom-center" limit={3} />
+          <HelmetProvider>
+            <App />
+          </HelmetProvider>
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>

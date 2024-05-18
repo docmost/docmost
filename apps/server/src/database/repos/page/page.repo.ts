@@ -7,22 +7,20 @@ import {
   Page,
   UpdatablePage,
 } from '@docmost/db/types/entity.types';
-import { sql } from 'kysely';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { validate as isValidUUID } from 'uuid';
 
-// TODO: scope to space/workspace
 @Injectable()
 export class PageRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
   private baseFields: Array<keyof Page> = [
     'id',
+    'slugId',
     'title',
-    'slug',
     'icon',
     'coverPhoto',
-    'key',
     'position',
     'parentPageId',
     'creatorId',
@@ -30,8 +28,6 @@ export class PageRepo {
     'spaceId',
     'workspaceId',
     'isLocked',
-    'status',
-    'publishedAt',
     'createdAt',
     'updatedAt',
     'deletedAt',
@@ -44,21 +40,19 @@ export class PageRepo {
       includeYdoc?: boolean;
     },
   ): Promise<Page> {
-    return await this.db
+    let query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .where('id', '=', pageId)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
-      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
-      .executeTakeFirst();
-  }
+      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
 
-  async slug(slug: string): Promise<Page> {
-    return await this.db
-      .selectFrom('pages')
-      .selectAll()
-      .where(sql`LOWER(slug)`, '=', sql`LOWER(${slug})`)
-      .executeTakeFirst();
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    return query.executeTakeFirst();
   }
 
   async updatePage(
@@ -67,11 +61,15 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ) {
     const db = dbOrTx(this.db, trx);
-    return db
-      .updateTable('pages')
-      .set(updatablePage)
-      .where('id', '=', pageId)
-      .executeTakeFirst();
+    let query = db.updateTable('pages').set(updatablePage);
+
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    return query.executeTakeFirst();
   }
 
   async insertPage(
@@ -87,10 +85,20 @@ export class PageRepo {
   }
 
   async deletePage(pageId: string): Promise<void> {
-    await this.db.deleteFrom('pages').where('id', '=', pageId).execute();
+    let query = this.db.deleteFrom('pages');
+
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    await query.execute();
   }
 
-  async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
+  async getRecentPageUpdates(spaceId: string, pagination: PaginationOptions) {
+    //TODO: should fetch pages from all spaces the user is member of
+    // for now, fetch from default space
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)

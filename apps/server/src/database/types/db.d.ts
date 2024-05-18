@@ -79,10 +79,11 @@ export interface PageHistory {
   lastUpdatedById: string | null;
   pageId: string;
   slug: string | null;
+  slugId: string | null;
   spaceId: string;
   title: string | null;
   updatedAt: Generated<Timestamp>;
-  version: number;
+  version: number | null;
   workspaceId: string;
 }
 
@@ -93,19 +94,14 @@ export interface Pages {
   creatorId: string | null;
   deletedAt: Timestamp | null;
   deletedById: string | null;
-  editor: string | null;
-  html: string | null;
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
-  key: string | null;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
-  publishedAt: Timestamp | null;
-  slug: string | null;
+  slugId: string;
   spaceId: string;
-  status: string | null;
   textContent: string | null;
   title: string | null;
   tsv: string | null;
@@ -115,8 +111,8 @@ export interface Pages {
 }
 
 export interface SpaceMembers {
+  addedById: string | null;
   createdAt: Generated<Timestamp>;
-  creatorId: string | null;
   groupId: string | null;
   id: Generated<string>;
   role: string;
@@ -143,6 +139,8 @@ export interface Spaces {
 export interface Users {
   avatarUrl: string | null;
   createdAt: Generated<Timestamp>;
+  deactivatedAt: Timestamp | null;
+  deletedAt: Timestamp | null;
   email: string;
   emailVerifiedAt: Timestamp | null;
   id: Generated<string>;
@@ -151,10 +149,9 @@ export interface Users {
   lastLoginAt: Timestamp | null;
   locale: string | null;
   name: string | null;
-  password: string;
-  role: string | null;
+  password: string | null;
+  role: string;
   settings: Json | null;
-  status: string | null;
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string | null;
@@ -162,27 +159,26 @@ export interface Users {
 
 export interface WorkspaceInvitations {
   createdAt: Generated<Timestamp>;
-  email: string;
+  email: string | null;
   groupIds: string[] | null;
   id: Generated<string>;
   invitedById: string | null;
   role: string;
-  token: string | null;
+  token: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
 
 export interface Workspaces {
+  allowedEmailDomains: Generated<string[] | null>;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
   defaultRole: Generated<string>;
   defaultSpaceId: string | null;
   deletedAt: Timestamp | null;
   description: string | null;
-  enableInvite: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
-  inviteCode: Generated<string | null>;
   logo: string | null;
   name: string | null;
   settings: Json | null;

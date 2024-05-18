@@ -11,13 +11,13 @@
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
     "email:dev": "nx run @docmost/transactional:dev"
-
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
     "@hocuspocus/provider": "^2.12.2",
     "@hocuspocus/server": "^2.12.2",
     "@hocuspocus/transformer": "^2.12.2",
+    "@sindresorhus/slugify": "^2.2.1",
     "@tiptap/extension-code-block": "^2.3.1",
     "@tiptap/extension-collaboration": "^2.3.1",
     "@tiptap/extension-collaboration-cursor": "^2.3.1",

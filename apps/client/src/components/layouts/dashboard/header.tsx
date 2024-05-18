@@ -1,18 +1,19 @@
-import { ActionIcon, Menu, Button, Tooltip } from "@mantine/core";
+import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconDots,
-  IconFileInfo,
   IconHistory,
   IconLink,
-  IconLock,
-  IconShare,
-  IconTrash,
   IconMessage,
 } from "@tabler/icons-react";
 import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
+import { useClipboard } from "@mantine/hooks";
+import { useParams } from "react-router-dom";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { notifications } from "@mantine/notifications";
 
 export default function Header() {
   const toggleAside = useToggleAside();
@@ -42,6 +43,16 @@ export default function Header() {
 
 function PageActionMenu() {
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
+  const clipboard = useClipboard({ timeout: 500 });
+  const { slugId } = useParams();
+  const { data: page, isLoading, isError } = usePageQuery(slugId);
+
+  const handleCopyLink = () => {
+    const pageLink =
+      window.location.host + buildPageSlug(page.slugId, page.title);
+    clipboard.copy(pageLink);
+    notifications.show({ message: "Link copied" });
+  };
 
   const openHistoryModal = () => {
     setHistoryModalOpen(true);
@@ -63,9 +74,13 @@ function PageActionMenu() {
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Item leftSection={<IconLink size={16} stroke={2} />}>
+        <Menu.Item
+          leftSection={<IconLink size={16} stroke={2} />}
+          onClick={handleCopyLink}
+        >
           Copy link
         </Menu.Item>
+        <Menu.Divider />
         <Menu.Item
           leftSection={<IconHistory size={16} stroke={2} />}
           onClick={openHistoryModal}
@@ -73,10 +88,12 @@ function PageActionMenu() {
           Page history
         </Menu.Item>
 
+        {/*
         <Menu.Divider />
         <Menu.Item leftSection={<IconTrash size={16} stroke={2} />}>
           Delete
         </Menu.Item>
+        */}
       </Menu.Dropdown>
     </Menu>
   );

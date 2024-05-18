@@ -1,9 +1,9 @@
 export type SpaceTreeNode = {
   id: string;
+  slugId: string;
   name: string;
   icon?: string;
   position: string;
-  slug?: string;
   spaceId: string;
   parentPageId: string;
   hasChildren: boolean;

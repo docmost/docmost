@@ -27,16 +27,21 @@ import { buildTree } from "@/features/page/tree/utils";
 
 const RECENT_CHANGES_KEY = ["recentChanges"];
 
-export function usePageQuery(pageId: string): UseQueryResult<IPage, Error> {
+export function usePageQuery(
+  pageIdOrSlugId: string,
+): UseQueryResult<IPage, Error> {
   return useQuery({
-    queryKey: ["pages", pageId],
-    queryFn: () => getPageById(pageId),
-    enabled: !!pageId,
+    queryKey: ["pages", pageIdOrSlugId],
+    queryFn: () => getPageById(pageIdOrSlugId),
+    enabled: !!pageIdOrSlugId,
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useRecentChangesQuery(): UseQueryResult<IPage[], Error> {
+export function useRecentChangesQuery(): UseQueryResult<
+  IPagination<IPage>,
+  Error
+> {
   return useQuery({
     queryKey: RECENT_CHANGES_KEY,
     queryFn: () => getRecentChanges(),
@@ -60,7 +65,7 @@ export function useUpdatePageMutation() {
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
       // update page in cache
-      queryClient.setQueryData(["pages", data.id], data);
+      queryClient.setQueryData(["pages", data.slugId], data);
     },
   });
 }

@@ -18,7 +18,7 @@ import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
-import { SidebarPageDto } from '../dto/sidebar-page.dto';
+import { genPageShortId } from '../../../helpers/nanoid.utils';
 
 @Injectable()
 export class PageService {
@@ -40,14 +40,19 @@ export class PageService {
     workspaceId: string,
     createPageDto: CreatePageDto,
   ): Promise<Page> {
+    let parentPageId = undefined;
+
     // check if parent page exists
     if (createPageDto.parentPageId) {
       const parentPage = await this.pageRepo.findById(
         createPageDto.parentPageId,
       );
 
-      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId)
+      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId) {
         throw new NotFoundException('Parent page not found');
+      }
+
+      parentPageId = parentPage.id;
     }
 
     let pagePosition: string;
@@ -59,10 +64,10 @@ export class PageService {
       .orderBy('position', 'desc')
       .limit(1);
 
-    if (createPageDto.parentPageId) {
+    if (parentPageId) {
       // check for children of this page
       const lastPage = await lastPageQuery
-        .where('parentPageId', '=', createPageDto.parentPageId)
+        .where('parentPageId', '=', parentPageId)
         .executeTakeFirst();
 
       if (!lastPage) {
@@ -87,10 +92,11 @@ export class PageService {
     }
 
     const createdPage = await this.pageRepo.insertPage({
+      slugId: genPageShortId(),
       title: createPageDto.title,
       position: pagePosition,
       icon: createPageDto.icon,
-      parentPageId: createPageDto.parentPageId,
+      parentPageId: parentPageId,
       spaceId: createPageDto.spaceId,
       creatorId: userId,
       workspaceId: workspaceId,
@@ -110,6 +116,7 @@ export class PageService {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
         lastUpdatedById: userId,
+        updatedAt: new Date(),
       },
       pageId,
     );
@@ -135,13 +142,15 @@ export class PageService {
   }
 
   async getSidebarPages(
-    dto: SidebarPageDto,
+    spaceId: string,
     pagination: PaginationOptions,
+    pageId?: string,
   ): Promise<any> {
     let query = this.db
       .selectFrom('pages')
       .select([
         'id',
+        'slugId',
         'title',
         'icon',
         'position',
@@ -151,10 +160,10 @@ export class PageService {
       ])
       .select((eb) => this.withHasChildren(eb))
       .orderBy('position', 'asc')
-      .where('spaceId', '=', dto.spaceId);
+      .where('spaceId', '=', spaceId);
 
-    if (dto.pageId) {
-      query = query.where('parentPageId', '=', dto.pageId);
+    if (pageId) {
+      query = query.where('parentPageId', '=', pageId);
     } else {
       query = query.where('parentPageId', 'is', null);
     }
@@ -185,8 +194,8 @@ export class PageService {
         if (!parentPage || parentPage.spaceId !== movedPage.spaceId) {
           throw new NotFoundException('Parent page not found');
         }
+        parentPageId = parentPage.id;
       }
-      parentPageId = dto.parentPageId;
     }
 
     await this.pageRepo.updatePage(
@@ -205,6 +214,7 @@ export class PageService {
           .selectFrom('pages')
           .select([
             'id',
+            'slugId',
             'title',
             'icon',
             'position',
@@ -218,6 +228,7 @@ export class PageService {
               .selectFrom('pages as p')
               .select([
                 'p.id',
+                'p.slugId',
                 'p.title',
                 'p.icon',
                 'p.position',
@@ -255,10 +266,7 @@ export class PageService {
     spaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Page>> {
-    const pages = await this.pageRepo.getRecentPagesInSpace(
-      spaceId,
-      pagination,
-    );
+    const pages = await this.pageRepo.getRecentPageUpdates(spaceId, pagination);
 
     return pages;
   }
@@ -267,6 +275,7 @@ export class PageService {
     await this.pageRepo.deletePage(pageId);
   }
 }
+
 /*
   // TODO: page deletion and restoration
   async delete(pageId: string): Promise<void> {

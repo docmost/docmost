@@ -9,6 +9,7 @@ import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { UserRole } from '../../../helpers/types/permission';
 
 @Injectable()
 export class SignupService {
@@ -75,7 +76,11 @@ export class SignupService {
       this.db,
       async (trx) => {
         // create user
-        const user = await this.userRepo.insertUser(createAdminUserDto, trx);
+
+        const user = await this.userRepo.insertUser(
+          { ...createAdminUserDto, role: UserRole.OWNER },
+          trx,
+        );
 
         // create workspace with full setup
         const workspaceData: CreateWorkspaceDto = {

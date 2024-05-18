@@ -29,8 +29,8 @@ export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
 }
 
-export async function getRecentChanges(): Promise<IPage[]> {
-  const req = await api.post<IPage[]>("/pages/recent");
+export async function getRecentChanges(): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/recent");
   return req.data;
 }
 

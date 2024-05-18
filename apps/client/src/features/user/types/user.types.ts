@@ -8,14 +8,18 @@ export interface IUser {
   avatarUrl: string;
   timezone: string;
   settings: any;
+  invitedById: string;
   lastLoginAt: string;
+  lastActiveAt: Date;
   createdAt: Date;
   updatedAt: Date;
   role: string;
   workspaceId: string;
+  deactivatedAt: Date;
+  deletedAt: Date;
 }
 
 export interface ICurrentUser {
-  user: IUser,
-  workspace: IWorkspace
+  user: IUser;
+  workspace: IWorkspace;
 }

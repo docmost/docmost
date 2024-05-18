@@ -28,8 +28,10 @@ export class UserRepo {
     'timezone',
     'settings',
     'lastLoginAt',
+    'deactivatedAt',
     'createdAt',
     'updatedAt',
+    'deletedAt',
   ];
 
   async findById(
@@ -97,6 +99,7 @@ export class UserRepo {
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
       locale: 'en',
+      role: insertableUser?.role,
       lastLoginAt: new Date(),
     };
 

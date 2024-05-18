@@ -10,7 +10,7 @@ export class CreatePageDto {
   icon?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   parentPageId?: string;
 
   @IsUUID()

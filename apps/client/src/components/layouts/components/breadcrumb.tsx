@@ -14,6 +14,8 @@ import { IconDots } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./breadcrumb.module.css";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
 
 function getTitle(name: string, icon: string) {
   if (icon) {
@@ -27,23 +29,17 @@ export default function Breadcrumb() {
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
     SpaceTreeNode[] | null
   >(null);
-  const { pageId } = useParams();
+  const { slugId } = useParams();
+  const { data: currentPage } = usePageQuery(slugId);
 
   useEffect(() => {
-    if (treeData.length) {
-      const breadcrumb = findBreadcrumbPath(treeData, pageId);
+    if (treeData?.length > 0 && currentPage) {
+      const breadcrumb = findBreadcrumbPath(treeData, currentPage.id);
       if (breadcrumb) {
         setBreadcrumbNodes(breadcrumb);
       }
     }
-  }, [pageId, treeData]);
-
-  useEffect(() => {
-    if (treeData.length) {
-      const breadcrumb = findBreadcrumbPath(treeData, pageId);
-      if (breadcrumb) setBreadcrumbNodes(breadcrumb);
-    }
-  }, [pageId, treeData]);
+  }, [currentPage?.id, treeData]);
 
   const HiddenNodesTooltipContent = () =>
     breadcrumbNodes?.slice(1, -2).map((node) => (
@@ -51,7 +47,7 @@ export default function Breadcrumb() {
         <Button
           justify="start"
           component={Link}
-          to={`/p/${node.id}`}
+          to={buildPageSlug(node.slugId, node.name)}
           variant="default"
           style={{ border: "none" }}
         >
@@ -63,16 +59,14 @@ export default function Breadcrumb() {
   const getLastNthNode = (n: number) =>
     breadcrumbNodes && breadcrumbNodes[breadcrumbNodes.length - n];
 
-  // const getTitle = (title: string) => (title?.length > 0 ? title : "untitled");
-
   const getBreadcrumbItems = () => {
     if (breadcrumbNodes?.length > 3) {
       return [
         <Anchor
           component={Link}
-          to={`/p/${breadcrumbNodes[0].id}`}
+          to={buildPageSlug(breadcrumbNodes[0].slugId, breadcrumbNodes[0].name)}
           underline="never"
-          key={breadcrumbNodes[0].id}
+          key={breadcrumbNodes[0].slugId}
         >
           {getTitle(breadcrumbNodes[0].name, breadcrumbNodes[0].icon)}
         </Anchor>,
@@ -94,17 +88,17 @@ export default function Breadcrumb() {
         </Popover>,
         <Anchor
           component={Link}
-          to={`/p/${getLastNthNode(2)?.id}`}
+          to={buildPageSlug(getLastNthNode(2)?.slugId, getLastNthNode(2)?.name)}
           underline="never"
-          key={getLastNthNode(2)?.id}
+          key={getLastNthNode(2)?.slugId}
         >
           {getTitle(getLastNthNode(2)?.name, getLastNthNode(2)?.icon)}
         </Anchor>,
         <Anchor
           component={Link}
-          to={`/p/${getLastNthNode(1)?.id}`}
+          to={buildPageSlug(getLastNthNode(1)?.slugId, getLastNthNode(1)?.name)}
           underline="never"
-          key={getLastNthNode(1)?.id}
+          key={getLastNthNode(1)?.slugId}
         >
           {getTitle(getLastNthNode(1)?.name, getLastNthNode(1)?.icon)}
         </Anchor>,
@@ -115,7 +109,7 @@ export default function Breadcrumb() {
       return breadcrumbNodes.map((node) => (
         <Anchor
           component={Link}
-          to={`/p/${node.id}`}
+          to={buildPageSlug(node.slugId, node.name)}
           underline="never"
           key={node.id}
         >

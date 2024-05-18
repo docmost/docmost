@@ -19,6 +19,7 @@ import {
 } from "@/features/page/queries/page-query.ts";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { buildPageSlug } from "@/features/page/page.utils.ts";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -46,6 +47,7 @@ export function useTreeMutation<T>(spaceId: string) {
 
     const data = {
       id: createdPage.id,
+      slugId: createdPage.slugId,
       name: "",
       position: createdPage.position,
       children: [],
@@ -63,7 +65,7 @@ export function useTreeMutation<T>(spaceId: string) {
     tree.create({ parentId, index, data });
     setData(tree.data);
 
-    navigate(`/p/${createdPage.id}`);
+    navigate(buildPageSlug(createdPage.slugId, createdPage.title));
     return data;
   };
 

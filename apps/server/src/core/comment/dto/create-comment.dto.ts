@@ -1,7 +1,7 @@
 import { IsJSON, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateCommentDto {
-  @IsUUID()
+  @IsString()
   pageId: string;
 
   @IsJSON()

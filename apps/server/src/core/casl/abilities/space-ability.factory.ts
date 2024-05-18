@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   AbilityBuilder,
   createMongoAbility,
@@ -33,9 +37,7 @@ export default class SpaceAbilityFactory {
       case SpaceRole.READER:
         return buildSpaceReaderAbility();
       default:
-        throw new ForbiddenException(
-          'You do not have permission to access this space',
-        );
+        throw new NotFoundException('Space permissions not found');
     }
   }
 }

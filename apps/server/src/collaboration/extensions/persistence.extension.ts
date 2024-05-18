@@ -78,6 +78,7 @@ export class PersistenceExtension implements Extension {
           textContent: textContent,
           ydoc: ydocState,
           lastUpdatedById: context.user.id,
+          updatedAt: new Date(),
         },
         pageId,
       );
