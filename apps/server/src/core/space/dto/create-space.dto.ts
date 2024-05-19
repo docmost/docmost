@@ -10,7 +10,8 @@ export class CreateSpaceDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
+  @MinLength(4)
+  @MaxLength(64)
   @IsString()
-  slug?: string;
+  slug: string;
 }

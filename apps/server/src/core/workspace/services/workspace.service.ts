@@ -104,6 +104,7 @@ export class WorkspaceService {
         // create default space
         const spaceInfo: CreateSpaceDto = {
           name: 'General',
+          slug: 'general',
         };
 
         const createdSpace = await this.spaceService.create(

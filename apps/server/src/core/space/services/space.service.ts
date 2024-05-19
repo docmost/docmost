@@ -10,8 +10,6 @@ import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Space } from '@docmost/db/types/entity.types';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { slugify } = require('fix-esm').require('@sindresorhus/slugify');
 
 @Injectable()
 export class SpaceService {
@@ -23,14 +21,14 @@ export class SpaceService {
     createSpaceDto: CreateSpaceDto,
     trx?: KyselyTransaction,
   ): Promise<Space> {
-    const slug = slugify(
-      createSpaceDto?.slug?.toLowerCase() ?? createSpaceDto.name.toLowerCase(),
+    const slugExists = await this.spaceRepo.slugExists(
+      createSpaceDto.slug,
+      workspaceId,
+      trx,
     );
-
-    const slugExists = await this.spaceRepo.slugExists(slug, workspaceId, trx);
     if (slugExists) {
       throw new BadRequestException(
-        'Slug exist. Please use a unique space slug',
+        'Slug exists. Please use a unique space slug',
       );
     }
 
@@ -40,7 +38,7 @@ export class SpaceService {
         description: createSpaceDto.description ?? '',
         creatorId: userId,
         workspaceId: workspaceId,
-        slug: slug,
+        slug: createSpaceDto.slug,
       },
       trx,
     );

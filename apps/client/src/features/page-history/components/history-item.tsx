@@ -1,6 +1,6 @@
 import { Text, Group, UnstyledButton } from "@mantine/core";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { formatDate } from "@/lib/time";
+import { formattedDate } from "@/lib/time";
 import classes from "./history.module.css";
 import clsx from "clsx";
 
@@ -19,7 +19,9 @@ function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
     >
       <Group wrap="nowrap">
         <div>
-          <Text size="sm">{formatDate(new Date(historyItem.createdAt))}</Text>
+          <Text size="sm">
+            {formattedDate(new Date(historyItem.createdAt))}
+          </Text>
 
           <div style={{ flex: 1 }}>
             <Group gap={4} wrap="nowrap">

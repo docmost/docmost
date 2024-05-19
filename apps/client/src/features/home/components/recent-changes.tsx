@@ -1,10 +1,10 @@
 import { Text, Group, Stack, UnstyledButton, Divider } from "@mantine/core";
-import { format } from "date-fns";
 import classes from "./home.module.css";
 import { Link } from "react-router-dom";
 import PageListSkeleton from "@/features/home/components/page-list-skeleton";
 import { useRecentChangesQuery } from "@/features/page/queries/page-query";
 import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { formattedDate } from "@/lib/time.ts";
 
 function RecentChanges() {
   const { data, isLoading, isError } = useRecentChangesQuery();
@@ -35,7 +35,7 @@ function RecentChanges() {
               </Stack>
 
               <Text c="dimmed" size="xs" fw={500}>
-                {format(new Date(page.updatedAt), "PP")}
+                {formattedDate(page.updatedAt)}
               </Text>
             </Group>
           </UnstyledButton>
