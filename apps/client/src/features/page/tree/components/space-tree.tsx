@@ -8,7 +8,7 @@ import {
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
 import React, { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Menu, rem, Text } from "@mantine/core";
 import {
@@ -45,6 +45,7 @@ import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageSlug } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -72,6 +73,7 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
   const mergedRef = useMergedRef(rootElement, sizeRef);
   const isDataLoaded = useRef(false);
   const { data: currentPage } = usePageQuery(slugId);
+  const location = useLocation();
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -166,7 +168,7 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
     if (currentPage) {
       setTimeout(() => {
         treeApiRef.current?.select(currentPage.id, { align: "auto" });
-      }, 200);
+      }, 100);
     }
   }, [currentPage?.id]);
 
@@ -175,35 +177,38 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
       // @ts-ignore
       setTreeApi(treeApiRef.current);
     }
-  }, []);
+  }, [treeApiRef.current]);
 
   useEffect(() => {
-    if (openTreeNodes) {
-      treeApiRef.current.state.nodes.open.unfiltered = openTreeNodes;
+    if (location.pathname === APP_ROUTE.HOME && treeApiRef.current) {
+      treeApiRef.current.deselectAll();
     }
-  }, []);
+  }, [location.pathname]);
 
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
-      <Tree
-        data={data}
-        {...controllers}
-        width={width}
-        height={height}
-        ref={treeApiRef}
-        openByDefault={false}
-        disableMultiSelection={true}
-        className={classes.tree}
-        rowClassName={classes.row}
-        rowHeight={30}
-        overscanCount={10}
-        dndRootElement={rootElement.current}
-        onToggle={() => {
-          setOpenTreeNodes(treeApiRef.current.openState);
-        }}
-      >
-        {Node}
-      </Tree>
+      {rootElement.current && (
+        <Tree
+          data={data}
+          {...controllers}
+          width={width}
+          height={height}
+          ref={treeApiRef}
+          openByDefault={false}
+          disableMultiSelection={true}
+          className={classes.tree}
+          rowClassName={classes.row}
+          rowHeight={30}
+          overscanCount={10}
+          dndRootElement={rootElement.current}
+          onToggle={() => {
+            setOpenTreeNodes(treeApiRef.current.openState);
+          }}
+          initialOpenState={openTreeNodes}
+        >
+          {Node}
+        </Tree>
+      )}
     </div>
   );
 }
@@ -288,10 +293,16 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
     }, 50);
   };
 
-  if (node.willReceiveDrop && node.isClosed) {
+  if (
+    node.willReceiveDrop &&
+    node.isClosed &&
+    (node.children.length > 0 || node.data.hasChildren)
+  ) {
     handleLoadChildren(node);
     setTimeout(() => {
-      if (node.state.willReceiveDrop) node.open();
+      if (node.state.willReceiveDrop) {
+        node.open();
+      }
     }, 650);
   }
 

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import Cookies from "js-cookie";
-import Routes from "@/lib/routes";
+import Routes from "@/lib/app-route.ts";
 
 const baseUrl = import.meta.env.DEV ? "http://localhost:3000" : "";
 const api: AxiosInstance = axios.create({

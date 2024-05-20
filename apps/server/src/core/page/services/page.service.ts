@@ -184,7 +184,7 @@ export class PageService {
       throw new BadRequestException('Invalid move position');
     }
 
-    let parentPageId: string;
+    let parentPageId = null;
     if (movedPage.parentPageId === dto.parentPageId) {
       parentPageId = undefined;
     } else {

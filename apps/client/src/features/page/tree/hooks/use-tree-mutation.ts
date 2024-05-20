@@ -124,6 +124,25 @@ export function useTreeMutation<T>(spaceId: string) {
       changes: { position: newPosition } as any,
     });
 
+    const previousParent = args.dragNodes[0].parent;
+    if (
+      previousParent.id !== args.parentId &&
+      previousParent.id !== "__REACT_ARBORIST_INTERNAL_ROOT__"
+    ) {
+      // if the page was moved to another parent,
+      // check if the previous still has children
+      // if no children left, change 'hasChildren' to false, to make the page toggle arrows work properly
+      const childrenCount = previousParent.children.filter(
+        (child) => child.id !== draggedNodeId,
+      ).length;
+      if (childrenCount === 0) {
+        tree.update({
+          id: previousParent.id,
+          changes: { ...previousParent.data, hasChildren: false } as any,
+        });
+      }
+    }
+
     setData(tree.data);
 
     const payload: IMovePage = {

@@ -20,25 +20,28 @@ import React from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import SpaceContent from "@/features/page/tree/components/space-content.tsx";
+import clsx from "clsx";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 interface PrimaryMenuItem {
   icon: React.ElementType;
   label: string;
+  path?: string;
   onClick?: () => void;
 }
 
 const primaryMenu: PrimaryMenuItem[] = [
-  { icon: IconHome, label: "Home" },
+  { icon: IconHome, label: "Home", path: "/home" },
   { icon: IconSearch, label: "Search" },
   { icon: IconSettings, label: "Settings" },
-  // { icon: IconFilePlus, label: 'New Page' },
 ];
 
 export function Navbar() {
   const [tree] = useAtom(treeApiAtom);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleMenuItemClick = (label: string) => {
     if (label === "Home") {
@@ -61,7 +64,12 @@ export function Navbar() {
   const primaryMenuItems = primaryMenu.map((menuItem) => (
     <UnstyledButton
       key={menuItem.label}
-      className={classes.menu}
+      className={clsx(
+        classes.menu,
+        location.pathname.toLowerCase() === menuItem?.path
+          ? classes.activeButton
+          : "",
+      )}
       onClick={() => handleMenuItemClick(menuItem.label)}
     >
       <div className={classes.menuItemInner}>
