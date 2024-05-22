@@ -19,9 +19,10 @@ export class SpaceRepo {
   async findById(
     spaceId: string,
     workspaceId: string,
-    opts?: { includeMemberCount: boolean },
+    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
   ): Promise<Space> {
-    return await this.db
+    const db = dbOrTx(this.db, opts?.trx);
+    return db
       .selectFrom('spaces')
       .selectAll('spaces')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))

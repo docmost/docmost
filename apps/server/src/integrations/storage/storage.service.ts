@@ -20,15 +20,19 @@ export class StorageService {
     return this.storageDriver.exists(filePath);
   }
 
-  async signedUrl(path: string, expireIn: number): Promise<string> {
+  async getSignedUrl(path: string, expireIn: number): Promise<string> {
     return this.storageDriver.getSignedUrl(path, expireIn);
   }
 
-  url(filePath: string): string {
+  getUrl(filePath: string): string {
     return this.storageDriver.getUrl(filePath);
   }
 
   async delete(filePath: string): Promise<void> {
     await this.storageDriver.delete(filePath);
+  }
+
+  getDriverName(): string {
+    return this.storageDriver.getDriverName();
   }
 }

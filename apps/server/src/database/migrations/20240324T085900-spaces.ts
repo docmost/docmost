@@ -10,7 +10,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('name', 'varchar', (col) => col)
     .addColumn('description', 'text', (col) => col)
     .addColumn('slug', 'varchar', (col) => col)
-    .addColumn('icon', 'varchar', (col) => col)
+    .addColumn('logo', 'varchar', (col) => col)
     .addColumn('visibility', 'varchar', (col) =>
       col.defaultTo(SpaceVisibility.OPEN).notNull(),
     )

@@ -77,3 +77,16 @@ export async function getInvitationById(data: {
   const req = await api.post("/workspace/invites/info", data);
   return req.data;
 }
+
+export async function uploadLogo(file: File) {
+  const formData = new FormData();
+  formData.append("type", "workspace-logo");
+  formData.append("image", file);
+
+  const req = await api.post("/attachments/upload-image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return req.data;
+}

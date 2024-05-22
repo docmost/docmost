@@ -14,13 +14,16 @@ export class AttachmentRepo {
 
   async findById(
     attachmentId: string,
-    workspaceId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
   ): Promise<Attachment> {
-    return this.db
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
       .selectFrom('attachments')
       .selectAll()
       .where('id', '=', attachmentId)
-      .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
 
@@ -46,6 +49,20 @@ export class AttachmentRepo {
       .set(updatableAttachment)
       .where('id', '=', attachmentId)
       .returningAll()
+      .executeTakeFirst();
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    await this.db
+      .deleteFrom('attachments')
+      .where('id', '=', attachmentId)
+      .executeTakeFirst();
+  }
+
+  async deleteAttachmentByFilePath(attachmentFilePath: string): Promise<void> {
+    await this.db
+      .deleteFrom('attachments')
+      .where('filePath', '=', attachmentFilePath)
       .executeTakeFirst();
   }
 }

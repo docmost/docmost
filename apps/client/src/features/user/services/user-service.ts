@@ -13,8 +13,10 @@ export async function updateUser(data: Partial<IUser>): Promise<IUser> {
 
 export async function uploadAvatar(file: File) {
   const formData = new FormData();
-  formData.append("avatar", file);
-  const req = await api.post("/attachments/upload/avatar", formData, {
+  formData.append("type", "avatar");
+  formData.append("image", file);
+
+  const req = await api.post("/attachments/upload-image", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

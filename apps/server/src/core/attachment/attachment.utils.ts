@@ -2,6 +2,7 @@ import { MultipartFile } from '@fastify/multipart';
 import { randomBytes } from 'crypto';
 import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
+import { AttachmentType } from './attachment.constants';
 
 export interface PreparedFile {
   buffer: Buffer;
@@ -14,13 +15,14 @@ export interface PreparedFile {
 export async function prepareFile(
   filePromise: Promise<MultipartFile>,
 ): Promise<PreparedFile> {
-  try {
-    const rand = randomBytes(4).toString('hex');
-    const file = await filePromise;
+  const file = await filePromise;
 
-    if (!file) {
-      throw new Error('No file provided');
-    }
+  if (!file) {
+    throw new Error('No file provided');
+  }
+
+  try {
+    const rand = randomBytes(8).toString('hex');
 
     const buffer = await file.toBuffer();
     const sanitizedFilename = sanitize(file.filename).replace(/ /g, '_');
@@ -50,26 +52,22 @@ export function validateFileType(
   }
 }
 
-export enum AttachmentType {
-  Avatar = 'Avatar',
-  WorkspaceLogo = 'WorkspaceLogo',
-  File = 'file',
-}
-
-export function getAttachmentPath(
+export function getAttachmentFolderPath(
   type: AttachmentType,
-  workspaceId?: string,
+  workspaceId: string,
 ): string {
-  if (!workspaceId && type != AttachmentType.Avatar) {
-    throw new Error('Workspace ID is required for this attachment type');
-  }
-
   switch (type) {
     case AttachmentType.Avatar:
-      return 'avatars';
+      return `${workspaceId}/avatars`;
     case AttachmentType.WorkspaceLogo:
-      return `${workspaceId}/logo`;
+      return `${workspaceId}/workspace-logo`;
+    case AttachmentType.SpaceLogo:
+      return `${workspaceId}/space-logos`;
+    case AttachmentType.File:
+      return `${workspaceId}/files`;
     default:
       return `${workspaceId}/files`;
   }
 }
+
+export const validAttachmentTypes = Object.values(AttachmentType);

@@ -9,8 +9,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { streamToBuffer } from '../storage.utils';
 import { Readable } from 'stream';
-import * as mime from 'mime-types';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getMimeType } from '../../../helpers';
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
@@ -23,8 +23,7 @@ export class S3Driver implements StorageDriver {
 
   async upload(filePath: string, file: Buffer): Promise<void> {
     try {
-      const contentType =
-        mime.contentType(filePath) || 'application/octet-stream';
+      const contentType = getMimeType(filePath);
 
       const command = new PutObjectCommand({
         Bucket: this.config.bucket,
@@ -75,7 +74,7 @@ export class S3Driver implements StorageDriver {
     }
   }
   getUrl(filePath: string): string {
-    return `${this.config.endpoint}/${this.config.bucket}/${filePath}`;
+    return `${this.config.baseUrl ?? this.config.endpoint}/${this.config.bucket}/${filePath}`;
   }
 
   async getSignedUrl(filePath: string, expiresIn: number): Promise<string> {

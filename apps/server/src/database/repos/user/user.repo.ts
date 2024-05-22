@@ -70,8 +70,11 @@ export class UserRepo {
     updatableUser: UpdatableUser,
     userId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ) {
-    return await this.db
+    const db = dbOrTx(this.db, trx);
+
+    return await db
       .updateTable('users')
       .set(updatableUser)
       .where('id', '=', userId)

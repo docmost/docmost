@@ -165,10 +165,10 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
   }, [isDataLoaded.current, currentPage?.id]);
 
   useEffect(() => {
-    if (currentPage) {
-      setTimeout(() => {
-        treeApiRef.current?.select(currentPage.id, { align: "auto" });
-      }, 100);
+    if (currentPage?.id) {
+      treeApiRef.current?.select(currentPage.id, { align: "auto" });
+    } else {
+      treeApiRef.current?.deselectAll();
     }
   }, [currentPage?.id]);
 
@@ -178,12 +178,6 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
       setTreeApi(treeApiRef.current);
     }
   }, [treeApiRef.current]);
-
-  useEffect(() => {
-    if (location.pathname === APP_ROUTE.HOME && treeApiRef.current) {
-      treeApiRef.current.deselectAll();
-    }
-  }, [location.pathname]);
 
   return (
     <div ref={mergedRef} className={classes.treeContainer}>

@@ -30,9 +30,9 @@ export class StaticModule implements OnModuleInit {
       const windowVar = '<!--window-config-->';
 
       const configString = {
-        env: this.environmentService.getEnv(),
-        appUrl: this.environmentService.getAppUrl(),
-        isCloud: this.environmentService.isCloud(),
+        ENV: this.environmentService.getEnv(),
+        APP_URL: this.environmentService.getAppUrl(),
+        IS_CLOUD: this.environmentService.isCloud(),
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;

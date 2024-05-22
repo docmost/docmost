@@ -13,8 +13,15 @@ import { sql } from 'kysely';
 export class WorkspaceRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  async findById(workspaceId: string): Promise<Workspace> {
-    return await this.db
+  async findById(
+    workspaceId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Workspace> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
       .selectFrom('workspaces')
       .selectAll()
       .where('id', '=', workspaceId)

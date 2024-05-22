@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Avatar } from "@mantine/core";
+import { getAvatarUrl } from "@/lib/config.ts";
 
 interface UserAvatarProps {
   avatarUrl: string;
@@ -13,6 +14,8 @@ interface UserAvatarProps {
 
 export const UserAvatar = React.forwardRef<HTMLInputElement, UserAvatarProps>(
   ({ avatarUrl, name, ...props }: UserAvatarProps, ref) => {
+    const avatar = getAvatarUrl(avatarUrl);
+
     const getInitials = (name: string) => {
       const names = name?.split(" ");
       return names
@@ -21,8 +24,8 @@ export const UserAvatar = React.forwardRef<HTMLInputElement, UserAvatarProps>(
         .join("");
     };
 
-    return avatarUrl ? (
-      <Avatar ref={ref} src={avatarUrl} alt={name} radius="xl" {...props} />
+    return avatar ? (
+      <Avatar ref={ref} src={avatar} alt={name} radius="xl" {...props} />
     ) : (
       <Avatar ref={ref} {...props}>
         {getInitials(name)}

@@ -3,7 +3,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
 import { useAtom } from "jotai";
 import { UserAvatar } from "@/components/ui/user-avatar.tsx";
-import { FileButton, Button, Text, Popover, Tooltip } from "@mantine/core";
+import { FileButton, Tooltip } from "@mantine/core";
 import { uploadAvatar } from "@/features/user/services/user-service.ts";
 
 const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
@@ -29,8 +29,7 @@ export default function AccountAvatar() {
 
     try {
       setIsLoading(true);
-      const upload = await uploadAvatar(selectedFile);
-      console.log(upload);
+      await uploadAvatar(selectedFile);
     } catch (err) {
       console.log(err);
     } finally {

@@ -45,6 +45,7 @@ export const storageDriverConfigProvider = {
             region: environmentService.getAwsS3Region(),
             endpoint: environmentService.getAwsS3Endpoint(),
             bucket: environmentService.getAwsS3Bucket(),
+            baseUrl: environmentService.getAwsS3Url(),
             credentials: {
               accessKeyId: environmentService.getAwsS3AccessKeyId(),
               secretAccessKey: environmentService.getAwsS3SecretAccessKey(),

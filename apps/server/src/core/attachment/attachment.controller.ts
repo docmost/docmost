@@ -1,111 +1,226 @@
 import {
   BadRequestException,
   Controller,
+  ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
+  Logger,
+  NotFoundException,
+  Param,
   Post,
   Req,
   Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { AttachmentService } from './attachment.service';
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { AttachmentInterceptor } from './attachment.interceptor';
+import { AttachmentService } from './services/attachment.service';
+import { FastifyReply } from 'fastify';
+import { AttachmentInterceptor } from './interceptors/attachment.interceptor';
 import * as bytes from 'bytes';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import { StorageService } from '../../integrations/storage/storage.service';
+import {
+  getAttachmentFolderPath,
+  validAttachmentTypes,
+} from './attachment.utils';
+import { getMimeType } from '../../helpers';
+import {
+  AttachmentType,
+  MAX_AVATAR_SIZE,
+  MAX_FILE_SIZE,
+} from './attachment.constants';
+import CaslAbilityFactory from '../casl/abilities/casl-ability.factory';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../casl/interfaces/space-ability.type';
+import { Action } from '../casl/ability.action';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 
 @Controller('attachments')
 export class AttachmentController {
-  constructor(private readonly attachmentService: AttachmentService) {}
+  private readonly logger = new Logger(AttachmentController.name);
+
+  constructor(
+    private readonly attachmentService: AttachmentService,
+    private readonly storageService: StorageService,
+    private readonly caslAbility: CaslAbilityFactory,
+    private readonly spaceAbility: SpaceAbilityFactory,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @Post('upload/avatar')
-  @UseInterceptors(AttachmentInterceptor)
-  async uploadAvatar(
-    @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-  ) {
-    const maxFileSize = bytes('5MB');
-
-    try {
-      const file = req.file({
-        limits: { fileSize: maxFileSize, fields: 1, files: 1 },
-      });
-
-      const fileResponse = await this.attachmentService.uploadAvatar(
-        file,
-        user.id,
-        workspace.id,
-      );
-
-      return res.send(fileResponse);
-    } catch (err) {
-      throw new BadRequestException('Error processing file upload.');
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @Post('upload/workspace-logo')
-  @UseInterceptors(AttachmentInterceptor)
-  async uploadWorkspaceLogo(
-    @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-  ) {
-    const maxFileSize = bytes('5MB');
-
-    try {
-      const file = req.file({
-        limits: { fileSize: maxFileSize, fields: 1, files: 1 },
-      });
-
-      const fileResponse = await this.attachmentService.uploadWorkspaceLogo(
-        file,
-        workspace.id,
-        user.id,
-      );
-
-      return res.send(fileResponse);
-    } catch (err) {
-      throw new BadRequestException('Error processing file upload.');
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @Post('upload/file')
+  @HttpCode(HttpStatus.OK)
+  @Post('upload-file')
   @UseInterceptors(AttachmentInterceptor)
   async uploadFile(
-    @Req() req: FastifyRequest,
+    @Req() req: any,
     @Res() res: FastifyReply,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const maxFileSize = bytes('20MB');
+    const maxFileSize = bytes(MAX_FILE_SIZE);
 
+    let file = null;
     try {
-      const file = req.file({
+      file = await req.file({
         limits: { fileSize: maxFileSize, fields: 1, files: 1 },
       });
+    } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${MAX_FILE_SIZE} limit`,
+        );
+      }
+    }
 
-      const fileResponse = await this.attachmentService.uploadWorkspaceLogo(
+    if (!file) {
+      throw new BadRequestException('Invalid file upload');
+    }
+
+    const pageId = file.fields?.pageId.value;
+
+    if (!pageId) {
+      throw new BadRequestException('PageId is required');
+    }
+
+    try {
+      const fileResponse = await this.attachmentService.uploadFile(
         file,
-        workspace.id,
+        pageId,
         user.id,
+        workspace.id,
       );
 
       return res.send(fileResponse);
-    } catch (err) {
+    } catch (err: any) {
       throw new BadRequestException('Error processing file upload.');
+    }
+  }
+
+  @Get('/:fileId/:fileName')
+  async getFile(
+    @Req() req: any,
+    @Res() res: FastifyReply,
+    @Param('fileId') fileId: string,
+    @Param('fileName') fileName?: string,
+  ) {
+    // TODO
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('upload-image')
+  @UseInterceptors(AttachmentInterceptor)
+  async uploadAvatarOrLogo(
+    @Req() req: any,
+    @Res() res: FastifyReply,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const maxFileSize = bytes(MAX_AVATAR_SIZE);
+
+    let file = null;
+    try {
+      file = await req.file({
+        limits: { fileSize: maxFileSize, fields: 3, files: 1 },
+      });
+    } catch (err: any) {
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+        );
+      }
+    }
+
+    if (!file) {
+      throw new BadRequestException('Invalid file upload');
+    }
+
+    const attachmentType = file.fields?.type?.value;
+    const spaceId = file.fields?.spaceId?.value;
+
+    if (!attachmentType) {
+      throw new BadRequestException('attachment type is required');
+    }
+
+    if (
+      !validAttachmentTypes.includes(attachmentType) ||
+      attachmentType === AttachmentType.File
+    ) {
+      throw new BadRequestException('Invalid image attachment type');
+    }
+
+    if (attachmentType === AttachmentType.WorkspaceLogo) {
+      const ability = this.caslAbility.createForUser(user, workspace);
+      if (ability.cannot(Action.Manage, 'Workspace')) {
+        throw new ForbiddenException();
+      }
+    }
+
+    if (attachmentType === AttachmentType.SpaceLogo) {
+      if (!spaceId) {
+        throw new BadRequestException('spaceId is required');
+      }
+
+      const spaceAbility = await this.spaceAbility.createForUser(user, spaceId);
+      if (
+        spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)
+      ) {
+        throw new ForbiddenException();
+      }
+    }
+
+    try {
+      const fileResponse = await this.attachmentService.uploadImage(
+        file,
+        attachmentType,
+        user.id,
+        workspace.id,
+        spaceId,
+      );
+
+      return res.send(fileResponse);
+    } catch (err: any) {
+      this.logger.error(err);
+      throw new BadRequestException('Error processing file upload.');
+    }
+  }
+
+  @Get('/img/:attachmentType/:fileName')
+  async getLogoOrAvatar(
+    @Req() req: any,
+    @Res() res: FastifyReply,
+    @Param('attachmentType') attachmentType: AttachmentType,
+    @Param('fileName') fileName?: string,
+  ) {
+    const workspaceId = req.raw?.workspaceId;
+
+    if (!workspaceId) {
+      throw new BadRequestException('Invalid workspace');
+    }
+
+    if (
+      !validAttachmentTypes.includes(attachmentType) ||
+      attachmentType === AttachmentType.File
+    ) {
+      throw new BadRequestException('Invalid image attachment type');
+    }
+
+    const buildFilePath = `${getAttachmentFolderPath(attachmentType, workspaceId)}/${fileName}`;
+
+    try {
+      const fileStream = await this.storageService.read(buildFilePath);
+      res.headers({
+        'Content-Type': getMimeType(buildFilePath),
+      });
+      return res.send(fileStream);
+    } catch (err) {
+      this.logger.error(err);
+      throw new NotFoundException('File not found');
     }
   }
 }

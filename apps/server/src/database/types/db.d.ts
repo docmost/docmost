@@ -34,7 +34,7 @@ export interface Attachments {
   spaceId: string | null;
   type: string | null;
   updatedAt: Generated<Timestamp>;
-  workspaceId: string | null;
+  workspaceId: string;
 }
 
 export interface Comments {
@@ -127,8 +127,8 @@ export interface Spaces {
   defaultRole: Generated<string>;
   deletedAt: Timestamp | null;
   description: string | null;
-  icon: string | null;
   id: Generated<string>;
+  logo: string | null;
   name: string | null;
   slug: string | null;
   updatedAt: Generated<Timestamp>;
