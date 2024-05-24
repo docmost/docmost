@@ -36,7 +36,7 @@ export async function changeMemberRole(data: {
   userId: string;
   role: string;
 }): Promise<void> {
-  await api.post("/workspace/members/role", data);
+  await api.post("/workspace/members/change-role", data);
 }
 
 export async function getPendingInvitations(

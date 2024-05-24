@@ -91,7 +91,7 @@ export class WorkspaceController {
     ability.can(Action.Manage, 'WorkspaceUser'),
   )
   @HttpCode(HttpStatus.OK)
-  @Post('members/role')
+  @Post('members/change-role')
   async updateWorkspaceMemberRole(
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
     @AuthUser() authUser: User,

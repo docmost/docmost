@@ -147,7 +147,7 @@ export class SpaceMemberService {
         spaceId: dto.spaceId,
         userId: user.id,
         role: dto.role,
-        creatorId: authUser.id,
+        addedById: authUser.id,
       });
     }
 
@@ -157,7 +157,7 @@ export class SpaceMemberService {
         spaceId: dto.spaceId,
         groupId: group.id,
         role: dto.role,
-        creatorId: authUser.id,
+        addedById: authUser.id,
       });
     }
 
@@ -172,7 +172,6 @@ export class SpaceMemberService {
 
   async removeMemberFromSpace(
     dto: RemoveSpaceMemberDto,
-    authUser: User, // Todo: permissions check
     workspaceId: string,
   ): Promise<void> {
     const space = await this.spaceRepo.findById(dto.spaceId, workspaceId);
@@ -218,7 +217,6 @@ export class SpaceMemberService {
 
   async updateSpaceMemberRole(
     dto: UpdateSpaceMemberRoleDto,
-    authUser: User,
     workspaceId: string,
   ): Promise<void> {
     const space = await this.spaceRepo.findById(dto.spaceId, workspaceId);

@@ -43,5 +43,5 @@ export async function removeSpaceMember(
 export async function changeMemberRole(
   data: IChangeSpaceMemberRole,
 ): Promise<void> {
-  await api.post("/spaces/members/role", data);
+  await api.post("/spaces/members/change-role", data);
 }

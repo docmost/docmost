@@ -120,17 +120,25 @@ export class SpaceRepo {
   }
 
   withMemberCount(eb: ExpressionBuilder<DB, 'spaces'>) {
-    return eb
+    const subquery = eb
       .selectFrom('spaceMembers')
-      .innerJoin('groups', 'groups.id', 'spaceMembers.groupId')
-      .innerJoin('groupUsers', 'groupUsers.groupId', 'groups.id')
-      .select((eb) =>
-        eb.fn
-          .count(sql`concat(space_members.user_id, group_users.user_id)`)
-          .distinct()
-          .as('count'),
-      )
+      .select('spaceMembers.userId')
+      .where('spaceMembers.userId', 'is not', null)
       .whereRef('spaceMembers.spaceId', '=', 'spaces.id')
+      .union(
+        eb
+          .selectFrom('spaceMembers')
+          .where('spaceMembers.groupId', 'is not', null)
+          .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
+          .leftJoin('groupUsers', 'groupUsers.groupId', 'groups.id')
+          .select('groupUsers.userId')
+          .whereRef('spaceMembers.spaceId', '=', 'spaces.id'),
+      )
+      .as('userId');
+
+    return eb
+      .selectFrom(subquery)
+      .select((eb) => eb.fn.count('userId').as('count'))
       .as('memberCount');
   }
 

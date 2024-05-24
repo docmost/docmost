@@ -147,15 +147,11 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
-    return this.spaceMemberService.removeMemberFromSpace(
-      dto,
-      user,
-      workspace.id,
-    );
+    return this.spaceMemberService.removeMemberFromSpace(dto, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('members/role')
+  @Post('members/change-role')
   async updateSpaceMemberRole(
     @Body() dto: UpdateSpaceMemberRoleDto,
     @AuthUser() user: User,
@@ -168,11 +164,7 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
-    return this.spaceMemberService.updateSpaceMemberRole(
-      dto,
-      user,
-      workspace.id,
-    );
+    return this.spaceMemberService.updateSpaceMemberRole(dto, workspace.id);
   }
 
   validateIds(dto: RemoveSpaceMemberDto | UpdateSpaceMemberRoleDto) {
