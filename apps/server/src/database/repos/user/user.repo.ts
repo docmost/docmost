@@ -6,11 +6,15 @@ import { hashPassword } from '../../../helpers';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableUser,
+  Space,
   UpdatableUser,
   User,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import {
+  executeWithPagination,
+  PaginationResult,
+} from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class UserRepo {
@@ -152,4 +156,31 @@ export class UserRepo {
 
     return result;
   }
+
+  /*
+  async getSpaceIds(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Space>> {
+    const spaces = await this.spaceRepo.getSpacesInWorkspace(
+      workspaceId,
+      pagination,
+    );
+
+    return spaces;
+  }
+
+  async getUserSpaces(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Space>> {
+    const spaces = await this.spaceRepo.getSpacesInWorkspace(
+      workspaceId,
+      pagination,
+    );
+
+    return spaces;
+  }
+
+   */
 }

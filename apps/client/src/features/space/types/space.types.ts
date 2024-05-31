@@ -3,6 +3,7 @@ export interface ISpace {
   name: string;
   description: string;
   icon: string;
+  slug: string;
   hostname: string;
   creatorId: string;
   createdAt: Date;

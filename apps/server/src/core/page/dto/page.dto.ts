@@ -1,7 +1,14 @@
-import { IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class PageIdDto {
   @IsString()
+  @IsNotEmpty()
   pageId: string;
 }
 
@@ -13,4 +20,10 @@ export class SpaceIdDto {
 export class PageHistoryIdDto {
   @IsUUID()
   historyId: string;
+}
+
+export class PageInfoDto extends PageIdDto {
+  @IsOptional()
+  @IsBoolean()
+  includeSpace: boolean;
 }

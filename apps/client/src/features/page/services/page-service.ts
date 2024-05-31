@@ -2,6 +2,7 @@ import api from "@/lib/api-client";
 import {
   IMovePage,
   IPage,
+  IPageInput,
   SidebarPagesParams,
 } from "@/features/page/types/page.types";
 import { IPagination } from "@/lib/types.ts";
@@ -11,12 +12,14 @@ export async function createPage(data: Partial<IPage>): Promise<IPage> {
   return req.data;
 }
 
-export async function getPageById(pageId: string): Promise<IPage> {
-  const req = await api.post<IPage>("/pages/info", { pageId });
+export async function getPageById(
+  pageInput: Partial<IPageInput>,
+): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/info", pageInput);
   return req.data;
 }
 
-export async function updatePage(data: Partial<IPage>): Promise<IPage> {
+export async function updatePage(data: Partial<IPageInput>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/update", data);
   return req.data;
 }
@@ -27,11 +30,6 @@ export async function deletePage(pageId: string): Promise<void> {
 
 export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
-}
-
-export async function getRecentChanges(): Promise<IPagination<IPage>> {
-  const req = await api.post("/pages/recent");
-  return req.data;
 }
 
 export async function getSidebarPages(
@@ -45,5 +43,12 @@ export async function getPageBreadcrumbs(
   pageId: string,
 ): Promise<Partial<IPage[]>> {
   const req = await api.post("/pages/breadcrumbs", { pageId });
+  return req.data;
+}
+
+export async function getRecentChanges(
+  spaceId?: string,
+): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/recent", { spaceId });
   return req.data;
 }

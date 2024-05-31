@@ -1,10 +1,10 @@
 import { Text, Group, Stack, UnstyledButton, Divider } from "@mantine/core";
 import classes from "./home.module.css";
 import { Link } from "react-router-dom";
-import PageListSkeleton from "@/features/home/components/page-list-skeleton";
-import { useRecentChangesQuery } from "@/features/page/queries/page-query";
-import { buildPageSlug } from "@/features/page/page.utils.ts";
+import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { formattedDate } from "@/lib/time.ts";
+import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
 
 function RecentChanges() {
   const { data, isLoading, isError } = useRecentChangesQuery();
@@ -18,31 +18,33 @@ function RecentChanges() {
   }
 
   return (
-    <div>
-      {data.items.map((page) => (
-        <div key={page.id}>
-          <UnstyledButton
-            component={Link}
-            to={buildPageSlug(page.slugId, page.title)}
-            className={classes.page}
-            p="xs"
-          >
-            <Group wrap="nowrap">
-              <Stack gap="xs" style={{ flex: 1 }}>
-                <Text fw={500} size="md" lineClamp={1}>
-                  {page.title || "Untitled"}
-                </Text>
-              </Stack>
+    data && (
+      <div>
+        {data.items.map((page) => (
+          <div key={page.id}>
+            <UnstyledButton
+              component={Link}
+              to={buildPageUrl(page?.space.slug, page.slugId, page.title)}
+              className={classes.page}
+              p="xs"
+            >
+              <Group wrap="nowrap">
+                <Stack gap="xs" style={{ flex: 1 }}>
+                  <Text fw={500} size="md" lineClamp={1}>
+                    {page.title || "Untitled"}
+                  </Text>
+                </Stack>
 
-              <Text c="dimmed" size="xs" fw={500}>
-                {formattedDate(page.updatedAt)}
-              </Text>
-            </Group>
-          </UnstyledButton>
-          <Divider />
-        </div>
-      ))}
-    </div>
+                <Text c="dimmed" size="xs" fw={500}>
+                  {formattedDate(page.updatedAt)}
+                </Text>
+              </Group>
+            </UnstyledButton>
+            <Divider />
+          </div>
+        ))}
+      </div>
+    )
   );
 }
 

@@ -33,7 +33,7 @@ export default function SpaceSettingsModal({
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Header py={0}>
-            <Modal.Title fw={500}>{space?.name} space </Modal.Title>
+            <Modal.Title fw={500}>{space?.name}</Modal.Title>
             <Modal.CloseButton />
           </Modal.Header>
           <Modal.Body>

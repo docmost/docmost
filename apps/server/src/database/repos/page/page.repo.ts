@@ -10,10 +10,17 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { validate as isValidUUID } from 'uuid';
+import { ExpressionBuilder } from 'kysely';
+import { DB } from '@docmost/db/types/db';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class PageRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private spaceMemberRepo: SpaceMemberRepo,
+  ) {}
 
   private baseFields: Array<keyof Page> = [
     'id',
@@ -38,6 +45,7 @@ export class PageRepo {
     opts?: {
       includeContent?: boolean;
       includeYdoc?: boolean;
+      includeSpace?: boolean;
     },
   ): Promise<Page> {
     let query = this.db
@@ -45,6 +53,10 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+
+    if (opts?.includeSpace) {
+      query = query.select((eb) => this.withSpace(eb));
+    }
 
     if (isValidUUID(pageId)) {
       query = query.where('id', '=', pageId);
@@ -96,12 +108,11 @@ export class PageRepo {
     await query.execute();
   }
 
-  async getRecentPageUpdates(spaceId: string, pagination: PaginationOptions) {
-    //TODO: should fetch pages from all spaces the user is member of
-    // for now, fetch from default space
+  async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
+      .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
       .orderBy('updatedAt', 'desc');
 
@@ -111,5 +122,32 @@ export class PageRepo {
     });
 
     return result;
+  }
+
+  async getRecentPages(userId: string, pagination: PaginationOptions) {
+    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+
+    const query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select((eb) => this.withSpace(eb))
+      .where('spaceId', 'in', userSpaceIds)
+      .orderBy('updatedAt', 'desc');
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
+  }
+
+  withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('spaces')
+        .select(['spaces.id', 'spaces.name', 'spaces.slug'])
+        .whereRef('spaces.id', '=', 'pages.spaceId'),
+    ).as('space');
   }
 }

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -41,10 +42,8 @@ export class SpaceController {
     @Body()
     pagination: PaginationOptions,
     @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
   ) {
-    // TODO: only show spaces user can see. e.g open and private with user being a member
-    return this.spaceService.getWorkspaceSpaces(workspace.id, pagination);
+    return this.spaceMemberService.getUserSpaces(user.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -54,15 +53,21 @@ export class SpaceController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const ability = await this.spaceAbility.createForUser(
-      user,
+    const space = await this.spaceService.getSpaceInfo(
       spaceIdDto.spaceId,
+      workspace.id,
     );
+
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, space.id);
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Settings)) {
       throw new ForbiddenException();
     }
 
-    return this.spaceService.getSpaceInfo(spaceIdDto.spaceId, workspace.id);
+    return space;
   }
 
   @HttpCode(HttpStatus.OK)

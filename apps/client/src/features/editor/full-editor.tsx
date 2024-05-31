@@ -10,12 +10,23 @@ export interface FullEditorProps {
   pageId: string;
   slugId: string;
   title: string;
+  spaceSlug: string;
 }
 
-export function FullEditor({ pageId, title, slugId }: FullEditorProps) {
+export function FullEditor({
+  pageId,
+  title,
+  slugId,
+  spaceSlug,
+}: FullEditorProps) {
   return (
     <div className={classes.editor}>
-      <MemoizedTitleEditor pageId={pageId} slugId={slugId} title={title} />
+      <MemoizedTitleEditor
+        pageId={pageId}
+        slugId={slugId}
+        title={title}
+        spaceSlug={spaceSlug}
+      />
       <MemoizedPageEditor pageId={pageId} />
     </div>
   );

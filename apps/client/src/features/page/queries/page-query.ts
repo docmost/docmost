@@ -10,14 +10,15 @@ import {
   deletePage,
   getPageById,
   getSidebarPages,
-  getRecentChanges,
   updatePage,
   movePage,
   getPageBreadcrumbs,
+  getRecentChanges,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
   IPage,
+  IPageInput,
   SidebarPagesParams,
 } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
@@ -25,32 +26,19 @@ import { IPagination } from "@/lib/types.ts";
 import { queryClient } from "@/main.tsx";
 import { buildTree } from "@/features/page/tree/utils";
 
-const RECENT_CHANGES_KEY = ["recentChanges"];
-
 export function usePageQuery(
-  pageIdOrSlugId: string,
+  pageInput: Partial<IPageInput>,
 ): UseQueryResult<IPage, Error> {
   return useQuery({
-    queryKey: ["pages", pageIdOrSlugId],
-    queryFn: () => getPageById(pageIdOrSlugId),
-    enabled: !!pageIdOrSlugId,
+    queryKey: ["pages", pageInput.pageId],
+    queryFn: () => getPageById(pageInput),
+    enabled: !!pageInput.pageId,
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useRecentChangesQuery(): UseQueryResult<
-  IPagination<IPage>,
-  Error
-> {
-  return useQuery({
-    queryKey: RECENT_CHANGES_KEY,
-    queryFn: () => getRecentChanges(),
-    refetchOnMount: true,
-  });
-}
-
 export function useCreatePageMutation() {
-  return useMutation<IPage, Error, Partial<IPage>>({
+  return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => createPage(data),
     onSuccess: (data) => {},
     onError: (error) => {
@@ -61,7 +49,7 @@ export function useCreatePageMutation() {
 
 export function useUpdatePageMutation() {
   const queryClient = useQueryClient();
-  return useMutation<IPage, Error, Partial<IPage>>({
+  return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
       // update page in cache
@@ -129,4 +117,14 @@ export async function fetchAncestorChildren(params: SidebarPagesParams) {
     staleTime: 30 * 60 * 1000,
   });
   return buildTree(response.items);
+}
+
+export function useRecentChangesQuery(
+  spaceId?: string,
+): UseQueryResult<IPagination<IPage>, Error> {
+  return useQuery({
+    queryKey: ["recent-changes", spaceId],
+    queryFn: () => getRecentChanges(spaceId),
+    refetchOnMount: true,
+  });
 }

@@ -1,3 +1,5 @@
+import { ISpace } from "@/features/space/types/space.types.ts";
+
 export interface IPage {
   id: string;
   slugId: string;
@@ -17,7 +19,7 @@ export interface IPage {
   deletedAt: Date;
   position: string;
   hasChildren: boolean;
-  pageId: string;
+  space: Partial<ISpace>;
 }
 
 export interface IMovePage {
@@ -32,4 +34,13 @@ export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;
   page?: number; // pagination
+}
+
+export interface IPageInput {
+  pageId: string;
+  title: string;
+  parentPageId: string;
+  icon: string;
+  coverPhoto: string;
+  position: string;
 }

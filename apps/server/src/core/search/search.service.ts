@@ -4,17 +4,20 @@ import { SearchResponseDto } from './dto/search-response.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { sql } from 'kysely';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const tsquery = require('pg-tsquery')();
 
 @Injectable()
 export class SearchService {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private pageRepo: PageRepo,
+  ) {}
 
   async searchPage(
     query: string,
     searchParams: SearchDTO,
-    workspaceId: string,
   ): Promise<SearchResponseDto[]> {
     if (query.length < 1) {
       return;
@@ -28,6 +31,7 @@ export class SearchService {
         'title',
         'icon',
         'parentPageId',
+        'slugId',
         'creatorId',
         'createdAt',
         'updatedAt',
@@ -36,7 +40,8 @@ export class SearchService {
           'highlight',
         ),
       ])
-      .where('workspaceId', '=', workspaceId)
+      .select((eb) => this.pageRepo.withSpace(eb))
+      .where('spaceId', '=', searchParams.spaceId)
       .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),

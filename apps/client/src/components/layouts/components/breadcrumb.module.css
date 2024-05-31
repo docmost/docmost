@@ -1,6 +1,0 @@
-.breadcrumb {
-    a {
-        color: var(--mantine-color-default-color);
-        text-overflow: ellipsis;
-    }
-}

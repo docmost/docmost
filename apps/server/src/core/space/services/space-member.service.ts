@@ -8,11 +8,12 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
 import { InjectKysely } from 'nestjs-kysely';
-import { SpaceMember, User } from '@docmost/db/types/entity.types';
+import { Space, SpaceMember, User } from '@docmost/db/types/entity.types';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../helpers/types/permission';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()
 export class SpaceMemberService {
@@ -49,11 +50,6 @@ export class SpaceMemberService {
     workspaceId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
-    //const existingSpaceUser = await manager.findOneBy(SpaceMember, {
-    //           userId: userId,
-    //           spaceId: spaceId,
-    //         });
-    // validations?
     await this.spaceMemberRepo.insertSpaceMember(
       {
         groupId: groupId,
@@ -275,5 +271,12 @@ export class SpaceMemberService {
         'There must be at least one space admin with full access',
       );
     }
+  }
+
+  async getUserSpaces(
+    userId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Space>> {
+    return await this.spaceMemberRepo.getUserSpaces(userId, pagination);
   }
 }

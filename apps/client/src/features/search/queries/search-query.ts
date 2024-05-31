@@ -5,17 +5,18 @@ import {
 } from "@/features/search/services/search-service";
 import {
   IPageSearch,
+  IPageSearchParams,
   ISuggestionResult,
   SearchSuggestionParams,
 } from "@/features/search/types/search.types";
 
 export function usePageSearchQuery(
-  query: string,
+  params: IPageSearchParams,
 ): UseQueryResult<IPageSearch[], Error> {
   return useQuery({
-    queryKey: ["page-search", query],
-    queryFn: () => searchPage(query),
-    enabled: !!query,
+    queryKey: ["page-search", params],
+    queryFn: () => searchPage(params),
+    enabled: !!params.query,
   });
 }
 

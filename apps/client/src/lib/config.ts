@@ -28,9 +28,17 @@ export function getCollaborationUrl(): string {
 }
 
 export function getAvatarUrl(avatarUrl: string) {
+  if (!avatarUrl) {
+    return null;
+  }
+
   if (avatarUrl.startsWith("http")) {
     return avatarUrl;
   }
 
   return getBackendUrl() + "/attachments/img/avatar/" + avatarUrl;
+}
+
+export function getSpaceUrl(spaceSlug: string) {
+  return "/s/" + spaceSlug;
 }
