@@ -325,7 +325,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
               node.data.icon ? (
                 node.data.icon
               ) : (
-                <IconFileDescription size="18px" />
+                <IconFileDescription size="18" />
               )
             }
             removeEmojiAction={handleRemoveEmoji}
