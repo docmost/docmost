@@ -11,12 +11,14 @@ import { PaginationOptions } from '../../pagination/pagination-options';
 import { MemberInfo, UserSpaceRole } from './types';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 
 @Injectable()
 export class SpaceMemberRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly groupRepo: GroupRepo,
+    private readonly spaceRepo: SpaceRepo,
   ) {}
 
   async insertSpaceMember(
@@ -183,5 +185,53 @@ export class SpaceMemberRepo {
       return undefined;
     }
     return roles;
+  }
+
+  async getUserSpaceIds(userId: string): Promise<string[]> {
+    const membership = await this.db
+      .selectFrom('spaceMembers')
+      .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
+      .select(['spaces.id'])
+      .where('userId', '=', userId)
+      .union(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
+          .select(['spaces.id'])
+          .where('groupUsers.userId', '=', userId),
+      )
+      .execute();
+
+    return membership.map((space) => space.id);
+  }
+
+  async getUserSpaces(userId: string, pagination: PaginationOptions) {
+    const userSpaceIds = await this.getUserSpaceIds(userId);
+
+    let query = this.db
+      .selectFrom('spaces')
+      .selectAll('spaces')
+      .select((eb) => [this.spaceRepo.withMemberCount(eb)])
+      //.where('workspaceId', '=', workspaceId)
+      .where('id', 'in', userSpaceIds)
+      .orderBy('createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('name', 'ilike', `%${pagination.query}%`).or(
+          'description',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
+      );
+    }
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
   }
 }

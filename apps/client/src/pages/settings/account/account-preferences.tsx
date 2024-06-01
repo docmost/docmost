@@ -1,4 +1,4 @@
-import SettingsTitle from "@/components/layouts/settings/settings-title.tsx";
+import SettingsTitle from "@/components/settings/settings-title.tsx";
 import AccountTheme from "@/features/user/components/account-theme.tsx";
 
 export default function AccountPreferences() {

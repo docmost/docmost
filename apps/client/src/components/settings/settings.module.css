@@ -1,27 +1,14 @@
 .navbar {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
     height: 100%;
     width: 100%;
     padding: var(--mantine-spacing-md);
     display: flex;
     flex-direction: column;
-    /*border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));*/
 }
 
-.navbarMain {
-    flex: 1;
-}
-
-.header {
-    padding-bottom: var(--mantine-spacing-md);
-    margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
+.title {
+    padding-bottom: var(--mantine-spacing-sm);
     border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-}
-
-.footer {
-    padding-top: var(--mantine-spacing-md);
-    margin-top: var(--mantine-spacing-md);
-    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }
 
 .link {

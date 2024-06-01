@@ -11,6 +11,7 @@ import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { DB } from '@docmost/db/types/db';
+import { validate as isValidUUID } from 'uuid';
 
 @Injectable()
 export class SpaceRepo {
@@ -22,13 +23,19 @@ export class SpaceRepo {
     opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
   ): Promise<Space> {
     const db = dbOrTx(this.db, opts?.trx);
-    return db
+
+    let query = db
       .selectFrom('spaces')
       .selectAll('spaces')
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
-      .where('id', '=', spaceId)
-      .where('workspaceId', '=', workspaceId)
-      .executeTakeFirst();
+      .where('workspaceId', '=', workspaceId);
+
+    if (isValidUUID(spaceId)) {
+      query = query.where('id', '=', spaceId);
+    } else {
+      query = query.where('slug', '=', spaceId);
+    }
+    return query.executeTakeFirst();
   }
 
   async findBySlug(

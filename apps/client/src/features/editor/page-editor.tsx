@@ -13,7 +13,7 @@ import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
-import { asideStateAtom } from "@/components/navbar/atoms/sidebar-atom";
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
   showCommentPopupAtom,

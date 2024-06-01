@@ -1,5 +1,5 @@
-import { asideStateAtom } from '@/components/navbar/atoms/sidebar-atom';
-import { useAtom } from 'jotai';
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
+import { useAtom } from "jotai";
 
 const useToggleAside = () => {
   const [asideState, setAsideState] = useAtom(asideStateAtom);

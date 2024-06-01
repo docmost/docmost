@@ -18,7 +18,7 @@ import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
-import { genPageShortId } from '../../../helpers/nanoid.utils';
+import { generateSlugId } from '../../../helpers';
 
 @Injectable()
 export class PageService {
@@ -31,8 +31,13 @@ export class PageService {
     pageId: string,
     includeContent?: boolean,
     includeYdoc?: boolean,
+    includeSpace?: boolean,
   ): Promise<Page> {
-    return this.pageRepo.findById(pageId, { includeContent, includeYdoc });
+    return this.pageRepo.findById(pageId, {
+      includeContent,
+      includeYdoc,
+      includeSpace,
+    });
   }
 
   async create(
@@ -92,7 +97,7 @@ export class PageService {
     }
 
     const createdPage = await this.pageRepo.insertPage({
-      slugId: genPageShortId(),
+      slugId: generateSlugId(),
       title: createPageDto.title,
       position: pagePosition,
       icon: createPageDto.icon,
@@ -266,9 +271,14 @@ export class PageService {
     spaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Page>> {
-    const pages = await this.pageRepo.getRecentPageUpdates(spaceId, pagination);
+    return await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
+  }
 
-    return pages;
+  async getRecentPages(
+    userId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Page>> {
+    return await this.pageRepo.getRecentPages(userId, pagination);
   }
 
   async forceDelete(pageId: string): Promise<void> {

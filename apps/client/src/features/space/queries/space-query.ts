@@ -41,6 +41,16 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   });
 }
 
+export function useGetSpaceBySlugQuery(
+  spaceId: string,
+): UseQueryResult<ISpace, Error> {
+  return useQuery({
+    queryKey: ["space", spaceId],
+    queryFn: () => getSpaceById(spaceId),
+    enabled: !!spaceId,
+  });
+}
+
 export function useUpdateSpaceMutation() {
   const queryClient = useQueryClient();
 

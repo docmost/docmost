@@ -1,5 +1,5 @@
 .navbar {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+    /*background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));*/
     height: 100%;
     width: 100%;
     padding: var(--mantine-spacing-md);
@@ -16,13 +16,6 @@
     &:not(:last-of-type) {
         border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
     }
-}
-
-.searchCode {
-    font-weight: 700;
-    font-size: rem(10px);
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
-    border: rem(1px) solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
 }
 
 .menuItems {
@@ -87,6 +80,6 @@
 }
 
 .activeButton {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
 }

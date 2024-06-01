@@ -3,7 +3,7 @@ import ChangeEmail from "@/features/user/components/change-email";
 import ChangePassword from "@/features/user/components/change-password";
 import { Divider } from "@mantine/core";
 import AccountAvatar from "@/features/user/components/account-avatar";
-import SettingsTitle from "@/components/layouts/settings/settings-title.tsx";
+import SettingsTitle from "@/components/settings/settings-title.tsx";
 
 export default function AccountSettings() {
   return (

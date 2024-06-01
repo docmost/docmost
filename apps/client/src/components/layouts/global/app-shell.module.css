@@ -1,0 +1,16 @@
+.header, .navbar, .aside {
+  background-color: light-dark(#f6f7f9, var(--mantine-color-dark-8));
+}
+
+.navbar, .aside {
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 350px;
+  }
+}
+
+.aside {
+  @media (max-width: $mantine-breakpoint-sm) {
+    margin-top: 45px;
+  }
+}
+

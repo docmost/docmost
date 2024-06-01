@@ -12,7 +12,7 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto } from './dto/move-page.dto';
-import { PageHistoryIdDto, PageIdDto } from './dto/page.dto';
+import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
@@ -26,6 +26,7 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { RecentPageDto } from './dto/recent-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -39,8 +40,10 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getPage(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
-    const page = await this.pageRepo.findById(pageIdDto.pageId);
+  async getPage(@Body() dto: PageInfoDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId, {
+      includeSpace: true,
+    });
 
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -117,24 +120,28 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('recent')
-  async getRecentSpacePages(
+  async getRecentPages(
+    @Body() recentPageDto: RecentPageDto,
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
   ) {
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      workspace.defaultSpaceId,
-    );
+    if (recentPageDto.spaceId) {
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        recentPageDto.spaceId,
+      );
 
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
+      if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
+      }
+
+      return this.pageService.getRecentSpacePages(
+        recentPageDto.spaceId,
+        pagination,
+      );
     }
 
-    return this.pageService.getRecentSpacePages(
-      workspace.defaultSpaceId,
-      pagination,
-    );
+    return this.pageService.getRecentPages(user.id, pagination);
   }
 
   // TODO: scope to workspaces

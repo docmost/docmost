@@ -1,0 +1,6 @@
+.spaceName {
+    display: block;
+    width: 100%;
+    padding: var(--mantine-spacing-sm);
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  }

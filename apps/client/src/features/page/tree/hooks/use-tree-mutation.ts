@@ -10,7 +10,7 @@ import {
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreatePageMutation,
   useDeletePageMutation,
@@ -19,7 +19,8 @@ import {
 } from "@/features/page/queries/page-query.ts";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { buildPageSlug } from "@/features/page/page.utils.ts";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { getSpaceUrl } from "@/lib/config.ts";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -29,6 +30,7 @@ export function useTreeMutation<T>(spaceId: string) {
   const deletePageMutation = useDeletePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
+  const { spaceSlug } = useParams();
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
     const payload: { spaceId: string; parentPageId?: string } = {
@@ -65,7 +67,12 @@ export function useTreeMutation<T>(spaceId: string) {
     tree.create({ parentId, index, data });
     setData(tree.data);
 
-    navigate(buildPageSlug(createdPage.slugId, createdPage.title));
+    const pageUrl = buildPageUrl(
+      spaceSlug,
+      createdPage.slugId,
+      createdPage.title,
+    );
+    navigate(pageUrl);
     return data;
   };
 
@@ -173,10 +180,12 @@ export function useTreeMutation<T>(spaceId: string) {
     try {
       await deletePageMutation.mutateAsync(args.ids[0]);
 
-      tree.drop({ id: args.ids[0] });
-      setData(tree.data);
+      if (tree.find(args.ids[0])) {
+        tree.drop({ id: args.ids[0] });
+        setData(tree.data);
+      }
 
-      navigate("/home");
+      navigate(getSpaceUrl(spaceSlug));
     } catch (error) {
       console.error("Failed to delete page:", error);
     }

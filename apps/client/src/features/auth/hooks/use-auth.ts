@@ -18,6 +18,7 @@ import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function useAuth() {
       setIsLoading(false);
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       console.log(err);
       setIsLoading(false);
@@ -54,7 +55,7 @@ export default function useAuth() {
 
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -74,7 +75,7 @@ export default function useAuth() {
       console.log(res);
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -93,7 +94,7 @@ export default function useAuth() {
 
       setAuthToken(res.tokens);
 
-      navigate("/home");
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -129,7 +130,7 @@ export default function useAuth() {
     setAuthToken(null);
     setCurrentUser(null);
     Cookies.remove("authTokens");
-    navigate("/login");
+    navigate(APP_ROUTE.AUTH.LOGIN);
   };
 
   return {

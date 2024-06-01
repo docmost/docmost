@@ -1,0 +1,23 @@
+.breadcrumbs {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+
+    a {
+        color: var(--mantine-color-default-color);
+    }
+
+    .mantine-Breadcrumbs-breadcrumb {
+        min-width: 1px;
+        overflow: hidden;
+    }
+}
+
+.truncatedText {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+

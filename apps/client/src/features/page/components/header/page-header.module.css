@@ -1,0 +1,11 @@
+.header {
+    height: 45px;
+    background-color: var(--mantine-color-body);
+    padding-left: var(--mantine-spacing-md);
+    padding-right: var(--mantine-spacing-md);
+    position: fixed;
+    z-index: 99;
+    top: var(--app-shell-header-offset, 0rem);
+    inset-inline-start: var(--app-shell-navbar-offset, 0rem);
+    inset-inline-end: var(--app-shell-aside-offset, 0rem);
+}

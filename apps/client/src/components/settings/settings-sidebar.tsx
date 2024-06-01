@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Group, Text, ScrollArea, ActionIcon, rem } from "@mantine/core";
 import {
   IconUser,
@@ -9,7 +9,7 @@ import {
   IconSpaces,
   IconBrush,
 } from "@tabler/icons-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 
 interface DataItem {
@@ -51,8 +51,13 @@ const groupedData: DataGroup[] = [
 ];
 
 export default function SettingsSidebar() {
-  const pathname = useLocation().pathname;
-  const [active, setActive] = useState(pathname);
+  const location = useLocation();
+  const [active, setActive] = useState(location.pathname);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setActive(location.pathname);
+  }, [location.pathname]);
 
   const menuItems = groupedData.map((group) => (
     <div key={group.heading}>
@@ -65,9 +70,6 @@ export default function SettingsSidebar() {
           data-active={active.startsWith(item.path) || undefined}
           key={item.label}
           to={item.path}
-          onClick={() => {
-            setActive(item.path);
-          }}
         >
           <item.icon className={classes.linkIcon} stroke={2} />
           <span>{item.label}</span>
@@ -77,32 +79,20 @@ export default function SettingsSidebar() {
   ));
 
   return (
-    <nav className={classes.navbar}>
-      <div>
-        <Group className={classes.header} justify="flex-start">
-          <ActionIcon
-            component={Link}
-            to="/home"
-            variant="transparent"
-            c="gray"
-            aria-label="Home"
-          >
-            <IconArrowLeft stroke={2} />
-          </ActionIcon>
-          <Text fw={500}>Settings</Text>
-        </Group>
+    <div className={classes.navbar}>
+      <Group className={classes.title} justify="flex-start">
+        <ActionIcon
+          onClick={() => navigate(-1)}
+          variant="transparent"
+          c="gray"
+          aria-label="Back"
+        >
+          <IconArrowLeft stroke={2} />
+        </ActionIcon>
+        <Text fw={500}>Settings</Text>
+      </Group>
 
-        <ScrollArea h="80vh" w="100%">
-          {menuItems}
-        </ScrollArea>
-      </div>
-
-      <div className={classes.footer}>
-        <Link to="/home" className={classes.link}>
-          <IconArrowLeft className={classes.linkIcon} stroke={1.5} />
-          <span>Return to the app</span>
-        </Link>
-      </div>
-    </nav>
+      <ScrollArea w="100%">{menuItems}</ScrollArea>
+    </div>
   );
 }

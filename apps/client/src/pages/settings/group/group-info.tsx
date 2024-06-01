@@ -1,4 +1,4 @@
-import SettingsTitle from "@/components/layouts/settings/settings-title.tsx";
+import SettingsTitle from "@/components/settings/settings-title.tsx";
 import GroupMembersList from "@/features/group/components/group-members";
 import GroupDetails from "@/features/group/components/group-details";
 

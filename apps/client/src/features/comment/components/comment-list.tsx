@@ -13,10 +13,11 @@ import { useFocusWithin } from "@mantine/hooks";
 import { IComment } from "@/features/comment/types/comment.types.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { IPagination } from "@/lib/types.ts";
+import { extractPageSlugId } from "@/lib";
 
 function CommentList() {
-  const { slugId } = useParams();
-  const { data: page } = usePageQuery(slugId);
+  const { pageSlug } = useParams();
+  const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const {
     data: comments,
     isLoading: isCommentsLoading,

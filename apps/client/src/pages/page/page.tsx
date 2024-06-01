@@ -3,10 +3,16 @@ import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
 import { Helmet } from "react-helmet-async";
+import PageHeader from "@/features/page/components/header/page-header.tsx";
+import { extractPageSlugId } from "@/lib";
 
 export default function Page() {
-  const { slugId } = useParams();
-  const { data: page, isLoading, isError } = usePageQuery(slugId);
+  const { pageSlug, spaceSlug } = useParams();
+  const {
+    data: page,
+    isLoading,
+    isError,
+  } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
 
   if (isLoading) {
     return <></>;
@@ -23,7 +29,15 @@ export default function Page() {
         <Helmet>
           <title>{page.title}</title>
         </Helmet>
-        <FullEditor pageId={page.id} title={page.title} slugId={page.slugId} />
+
+        <PageHeader />
+
+        <FullEditor
+          pageId={page.id}
+          title={page.title}
+          slugId={page.slugId}
+          spaceSlug={page?.space?.slug || spaceSlug}
+        />
         <HistoryModal pageId={page.id} />
       </div>
     )

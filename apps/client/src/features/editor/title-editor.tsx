@@ -20,16 +20,22 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { updateTreeNodeName } from "@/features/page/tree/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
-import { buildPageSlug } from "@/features/page/page.utils.ts";
-import { useNavigate } from "react-router-dom";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { useNavigate, useParams } from "react-router-dom";
 
 export interface TitleEditorProps {
   pageId: string;
   slugId: string;
   title: string;
+  spaceSlug: string;
 }
 
-export function TitleEditor({ pageId, slugId, title }: TitleEditorProps) {
+export function TitleEditor({
+  pageId,
+  slugId,
+  title,
+  spaceSlug,
+}: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
   const updatePageMutation = useUpdatePageMutation();
@@ -37,6 +43,7 @@ export function TitleEditor({ pageId, slugId, title }: TitleEditorProps) {
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
+
   const navigate = useNavigate();
 
   const titleEditor = useEditor({
@@ -69,7 +76,7 @@ export function TitleEditor({ pageId, slugId, title }: TitleEditorProps) {
   });
 
   useEffect(() => {
-    const pageSlug = buildPageSlug(slugId, title);
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
     navigate(pageSlug, { replace: true });
   }, [title]);
 
