@@ -10,10 +10,12 @@ import {
   getUserRoleLabel,
   userRoleData,
 } from "@/features/workspace/types/user-role-data.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function WorkspaceMembersTable() {
   const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
+  const { isAdmin } = useUserRole();
 
   const handleRoleChange = async (
     userId: string,
@@ -72,6 +74,7 @@ export default function WorkspaceMembersTable() {
                     onChange={(newRole) =>
                       handleRoleChange(user.id, user.role, newRole)
                     }
+                    disabled={!isAdmin}
                   />
                 </Table.Td>
               </Table.Tr>

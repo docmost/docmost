@@ -5,8 +5,9 @@ import { Text } from "@mantine/core";
 
 interface SpaceDetailsProps {
   spaceId: string;
+  readOnly?: boolean;
 }
-export default function SpaceDetails({ spaceId }: SpaceDetailsProps) {
+export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
   const { data: space, isLoading } = useSpaceQuery(spaceId);
 
   return (
@@ -16,7 +17,7 @@ export default function SpaceDetails({ spaceId }: SpaceDetailsProps) {
           <Text my="md" fw={600}>
             Details
           </Text>
-          <EditSpaceForm space={space} />
+          <EditSpaceForm space={space} readOnly={readOnly} />
         </div>
       )}
     </>

@@ -26,6 +26,8 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { UpdateSpaceDto } from './dto/update-space.dto';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -33,6 +35,7 @@ export class SpaceController {
   constructor(
     private readonly spaceService: SpaceService,
     private readonly spaceMemberService: SpaceMemberService,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
@@ -67,7 +70,20 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
-    return space;
+    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+      user.id,
+      space.id,
+    );
+
+    const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+
+    const membership = {
+      userId: user.id,
+      role: userSpaceRole,
+      permissions: ability.rules,
+    };
+
+    return { ...space, membership };
   }
 
   @HttpCode(HttpStatus.OK)

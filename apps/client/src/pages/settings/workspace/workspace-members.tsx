@@ -1,15 +1,16 @@
-import WorkspaceInviteSection from "@/features/workspace/components/members/components/workspace-invite-section";
 import WorkspaceInviteModal from "@/features/workspace/components/members/components/workspace-invite-modal";
-import { Divider, Group, SegmentedControl, Space, Text } from "@mantine/core";
+import { Group, SegmentedControl, Space, Text } from "@mantine/core";
 import WorkspaceMembersTable from "@/features/workspace/components/members/components/workspace-members-table";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import WorkspaceInvitesTable from "@/features/workspace/components/members/components/workspace-invites-table.tsx";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function WorkspaceMembers() {
   const [segmentValue, setSegmentValue] = useState("members");
   const [searchParams] = useSearchParams();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export default function WorkspaceMembers() {
           withItemsBorders={false}
         />
 
-        <WorkspaceInviteModal />
+        {isAdmin && <WorkspaceInviteModal />}
       </Group>
 
       <Space h="lg" />

@@ -49,11 +49,26 @@ export function useCreatePageMutation() {
 
 export function useUpdatePageMutation() {
   const queryClient = useQueryClient();
+
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
-      // update page in cache
-      queryClient.setQueryData(["pages", data.slugId], data);
+      const pageBySlug = queryClient.getQueryData<IPage>([
+        "pages",
+        data.slugId,
+      ]);
+      const pageById = queryClient.getQueryData<IPage>(["pages", data.id]);
+
+      if (pageBySlug) {
+        queryClient.setQueryData(["pages", data.slugId], {
+          ...pageBySlug,
+          ...data,
+        });
+      }
+
+      if (pageById) {
+        queryClient.setQueryData(["pages", data.id], { ...pageById, ...data });
+      }
     },
   });
 }

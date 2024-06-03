@@ -11,6 +11,7 @@ export interface FullEditorProps {
   slugId: string;
   title: string;
   spaceSlug: string;
+  editable: boolean;
 }
 
 export function FullEditor({
@@ -18,6 +19,7 @@ export function FullEditor({
   title,
   slugId,
   spaceSlug,
+  editable,
 }: FullEditorProps) {
   return (
     <div className={classes.editor}>
@@ -26,8 +28,9 @@ export function FullEditor({
         slugId={slugId}
         title={title}
         spaceSlug={spaceSlug}
+        editable={editable}
       />
-      <MemoizedPageEditor pageId={pageId} />
+      <MemoizedPageEditor pageId={pageId} editable={editable} />
     </div>
   );
 }

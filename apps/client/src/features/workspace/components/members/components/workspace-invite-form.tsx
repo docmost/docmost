@@ -1,5 +1,4 @@
 import { Group, Box, Button, TagsInput, Select } from "@mantine/core";
-import WorkspaceInviteSection from "@/features/workspace/components/members/components/workspace-invite-section.tsx";
 import React, { useState } from "react";
 import { MultiGroupSelect } from "@/features/group/components/multi-group-select.tsx";
 import { UserRole } from "@/lib/types.ts";

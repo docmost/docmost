@@ -1,3 +1,5 @@
+import { UserRole } from "@/lib/types.ts";
+
 export function formatMemberCount(memberCount: number): string {
   if (memberCount === 1) {
     return "1 member";

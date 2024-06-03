@@ -106,7 +106,7 @@ export class PageController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
     await this.pageService.forceDelete(pageIdDto.pageId);

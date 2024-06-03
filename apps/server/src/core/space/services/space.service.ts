@@ -48,10 +48,6 @@ export class SpaceService {
     updateSpaceDto: UpdateSpaceDto,
     workspaceId: string,
   ): Promise<Space> {
-    if (!updateSpaceDto.name && !updateSpaceDto.description) {
-      throw new BadRequestException('Please provide fields to update');
-    }
-
     return await this.spaceRepo.updateSpace(
       {
         name: updateSpaceDto.name,

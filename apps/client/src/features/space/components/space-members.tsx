@@ -16,12 +16,17 @@ import {
   getSpaceRoleLabel,
   spaceRoleData,
 } from "@/features/space/types/space-role-data.ts";
+import { formatMemberCount } from "@/lib";
 
 type MemberType = "user" | "group";
 interface SpaceMembersProps {
   spaceId: string;
+  readOnly?: boolean;
 }
-export default function SpaceMembersList({ spaceId }: SpaceMembersProps) {
+export default function SpaceMembersList({
+  spaceId,
+  readOnly,
+}: SpaceMembersProps) {
   const { data, isLoading } = useSpaceMembersQuery(spaceId);
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
@@ -120,7 +125,7 @@ export default function SpaceMembersList({ spaceId }: SpaceMembersProps) {
                         {member.type == "user" && member?.email}
 
                         {member.type == "group" &&
-                          `Group - ${member?.memberCount === 1 ? "1 member" : `${member?.memberCount} members`}`}
+                          `Group - ${formatMemberCount(member?.memberCount)}`}
                       </Text>
                     </div>
                   </Group>
@@ -138,32 +143,37 @@ export default function SpaceMembersList({ spaceId }: SpaceMembersProps) {
                         member.role,
                       )
                     }
+                    disabled={readOnly}
                   />
                 </Table.Td>
 
                 <Table.Td>
-                  <Menu
-                    shadow="xl"
-                    position="bottom-end"
-                    offset={20}
-                    width={200}
-                    withArrow
-                    arrowPosition="center"
-                  >
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" c="gray">
-                        <IconDots size={20} stroke={2} />
-                      </ActionIcon>
-                    </Menu.Target>
+                  {!readOnly && (
+                    <Menu
+                      shadow="xl"
+                      position="bottom-end"
+                      offset={20}
+                      width={200}
+                      withArrow
+                      arrowPosition="center"
+                    >
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" c="gray">
+                          <IconDots size={20} stroke={2} />
+                        </ActionIcon>
+                      </Menu.Target>
 
-                    <Menu.Dropdown>
-                      <Menu.Item
-                        onClick={() => openRemoveModal(member.id, member.type)}
-                      >
-                        Remove space member
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          onClick={() =>
+                            openRemoveModal(member.id, member.type)
+                          }
+                        >
+                          Remove space member
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
                 </Table.Td>
               </Table.Tr>
             ))}

@@ -24,13 +24,10 @@ import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubbl
 
 interface PageEditorProps {
   pageId: string;
-  editable?: boolean;
+  editable: boolean;
 }
 
-export default function PageEditor({
-  pageId,
-  editable = true,
-}: PageEditorProps) {
+export default function PageEditor({ pageId, editable }: PageEditorProps) {
   const [token] = useAtom(authTokensAtom);
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);

@@ -6,11 +6,13 @@ import React from "react";
 import { useDisclosure } from "@mantine/hooks";
 import EditGroupModal from "@/features/group/components/edit-group-modal.tsx";
 import GroupActionMenu from "@/features/group/components/group-action-menu.tsx";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function GroupDetails() {
   const { groupId } = useParams();
   const { data: group, isLoading } = useGroupQuery(groupId);
   const [opened, { open, close }] = useDisclosure(false);
+  const { isAdmin } = useUserRole();
 
   return (
     <>
@@ -21,8 +23,12 @@ export default function GroupDetails() {
           <Text c="dimmed">{group.description}</Text>
 
           <Group my="md" justify="flex-end">
-            <AddGroupMemberModal />
-            <GroupActionMenu />
+            {isAdmin && (
+              <>
+                <AddGroupMemberModal />
+                <GroupActionMenu />
+              </>
+            )}
           </Group>
         </div>
       )}

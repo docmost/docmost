@@ -1,7 +1,7 @@
 import { Group, Text, Box } from "@mantine/core";
 import React, { useState } from "react";
 import classes from "./comment.module.css";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { timeAgo } from "@/lib/time";
 import CommentEditor from "@/features/comment/components/comment-editor";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
@@ -14,6 +14,7 @@ import {
 } from "@/features/comment/queries/comment-query";
 import { IComment } from "@/features/comment/types/comment.types";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface CommentListItemProps {
   comment: IComment;
@@ -28,6 +29,7 @@ function CommentListItem({ comment }: CommentListItemProps) {
   const [content, setContent] = useState<string>(comment.content);
   const updateCommentMutation = useUpdateCommentMutation();
   const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);
+  const [currentUser] = useAtom(currentUserAtom);
 
   async function handleUpdateComment() {
     try {
@@ -79,10 +81,12 @@ function CommentListItem({ comment }: CommentListItemProps) {
                 <ResolveComment commentId={comment.id} pageId={comment.pageId} resolvedAt={comment.resolvedAt} />
               )*/}
 
-              <CommentMenu
-                onEditComment={handleEditToggle}
-                onDeleteComment={handleDeleteComment}
-              />
+              {currentUser?.user?.id === comment.creatorId && (
+                <CommentMenu
+                  onEditComment={handleEditToggle}
+                  onDeleteComment={handleDeleteComment}
+                />
+              )}
             </div>
           </Group>
 
@@ -106,7 +110,7 @@ function CommentListItem({ comment }: CommentListItemProps) {
             <CommentEditor
               defaultContent={content}
               editable={true}
-              onUpdate={(newContent) => setContent(newContent)}
+              onUpdate={(newContent: any) => setContent(newContent)}
               autofocus={true}
             />
 

@@ -8,15 +8,16 @@ export function UserProvider({ children }: React.PropsWithChildren) {
   const { data, isLoading, error } = useCurrentUser();
 
   useEffect(() => {
-    if (data && data.user) {
+    if (data && data.user && data.workspace) {
       setCurrentUser(data);
     }
-  }, [data, isLoading, setCurrentUser]);
+  }, [data, isLoading]);
 
   if (isLoading) return <></>;
 
+  if (!data.user && !data.workspace) return <></>;
+
   if (error) {
-    console.error(error);
     return <>an error occurred</>;
   }
 

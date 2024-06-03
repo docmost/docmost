@@ -13,8 +13,9 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 interface EditSpaceFormProps {
   space: ISpace;
+  readOnly?: boolean;
 }
-export function EditSpaceForm({ space }: EditSpaceFormProps) {
+export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
   const updateSpaceMutation = useUpdateSpaceMutation();
 
   const form = useForm<FormValues>({
@@ -51,14 +52,16 @@ export function EditSpaceForm({ space }: EditSpaceFormProps) {
             <TextInput
               id="name"
               label="Name"
-              placeholder="e.g Developers"
+              placeholder="e.g Sales"
+              variant="filled"
               {...form.getInputProps("name")}
             />
 
             <Textarea
               id="description"
               label="Description"
-              placeholder="e.g Space for developers to collaborate"
+              placeholder="e.g Space for sales team to collaborate"
+              variant="filled"
               autosize
               minRows={1}
               maxRows={3}
@@ -66,11 +69,13 @@ export function EditSpaceForm({ space }: EditSpaceFormProps) {
             />
           </Stack>
 
-          <Group justify="flex-end" mt="md">
-            <Button type="submit" disabled={!form.isDirty()}>
-              Save
-            </Button>
-          </Group>
+          {!readOnly && (
+            <Group justify="flex-end" mt="md">
+              <Button type="submit" disabled={!form.isDirty()}>
+                Save
+              </Button>
+            </Group>
+          )}
         </form>
       </Box>
     </>

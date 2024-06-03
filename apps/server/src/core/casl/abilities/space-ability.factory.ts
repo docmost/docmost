@@ -9,7 +9,7 @@ import { User } from '@docmost/db/types/entity.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import {
   SpaceCaslAction,
-  SpaceAbility,
+  ISpaceAbility,
   SpaceCaslSubject,
 } from '../interfaces/space-ability.type';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
@@ -39,7 +39,7 @@ export default class SpaceAbilityFactory {
 }
 
 function buildSpaceAdminAbility() {
-  const { can, build } = new AbilityBuilder<MongoAbility<SpaceAbility>>(
+  const { can, build } = new AbilityBuilder<MongoAbility<ISpaceAbility>>(
     createMongoAbility,
   );
   can(SpaceCaslAction.Manage, SpaceCaslSubject.Settings);
@@ -49,7 +49,7 @@ function buildSpaceAdminAbility() {
 }
 
 function buildSpaceWriterAbility() {
-  const { can, build } = new AbilityBuilder<MongoAbility<SpaceAbility>>(
+  const { can, build } = new AbilityBuilder<MongoAbility<ISpaceAbility>>(
     createMongoAbility,
   );
   can(SpaceCaslAction.Read, SpaceCaslSubject.Settings);
@@ -59,7 +59,7 @@ function buildSpaceWriterAbility() {
 }
 
 function buildSpaceReaderAbility() {
-  const { can, build } = new AbilityBuilder<MongoAbility<SpaceAbility>>(
+  const { can, build } = new AbilityBuilder<MongoAbility<ISpaceAbility>>(
     createMongoAbility,
   );
   can(SpaceCaslAction.Read, SpaceCaslSubject.Settings);

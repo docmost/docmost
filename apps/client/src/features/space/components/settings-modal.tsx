@@ -1,10 +1,14 @@
 import { Modal, Tabs, rem, Group, Divider, ScrollArea } from "@mantine/core";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
-import React from "react";
-import GroupActionMenu from "@/features/group/components/group-action-menu.tsx";
+import React, { useMemo } from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface SpaceSettingsModalProps {
   spaceId: string;
@@ -18,6 +22,9 @@ export default function SpaceSettingsModal({
   onClose,
 }: SpaceSettingsModalProps) {
   const { data: space, isLoading } = useSpaceQuery(spaceId);
+
+  const spaceRules = space?.membership?.permissions;
+  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
 
   return (
     <>
@@ -50,17 +57,30 @@ export default function SpaceSettingsModal({
 
                 <ScrollArea h="600" w="100%" scrollbarSize={5}>
                   <Tabs.Panel value="general">
-                    <SpaceDetails spaceId={space?.id} />
-                    <Divider my="sm" />
+                    <SpaceDetails
+                      spaceId={space?.id}
+                      readOnly={spaceAbility.cannot(
+                        SpaceCaslAction.Manage,
+                        SpaceCaslSubject.Settings,
+                      )}
+                    />
                   </Tabs.Panel>
 
                   <Tabs.Panel value="members">
                     <Group my="md" justify="flex-end">
-                      <AddSpaceMembersModal spaceId={space?.id} />
-                      <GroupActionMenu />
+                      {spaceAbility.can(
+                        SpaceCaslAction.Manage,
+                        SpaceCaslSubject.Member,
+                      ) && <AddSpaceMembersModal spaceId={space?.id} />}
                     </Group>
 
-                    <SpaceMembersList spaceId={space?.id} />
+                    <SpaceMembersList
+                      spaceId={space?.id}
+                      readOnly={spaceAbility.cannot(
+                        SpaceCaslAction.Manage,
+                        SpaceCaslSubject.Member,
+                      )}
+                    />
                   </Tabs.Panel>
                 </ScrollArea>
               </Tabs>

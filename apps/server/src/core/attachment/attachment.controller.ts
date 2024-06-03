@@ -33,13 +33,16 @@ import {
   MAX_AVATAR_SIZE,
   MAX_FILE_SIZE,
 } from './attachment.constants';
-import CaslAbilityFactory from '../casl/abilities/casl-ability.factory';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
-import { Action } from '../casl/ability.action';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import {
+  WorkspaceCaslAction,
+  WorkspaceCaslSubject,
+} from '../casl/interfaces/workspace-ability.type';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 
 @Controller('attachments')
 export class AttachmentController {
@@ -48,7 +51,7 @@ export class AttachmentController {
   constructor(
     private readonly attachmentService: AttachmentService,
     private readonly storageService: StorageService,
-    private readonly caslAbility: CaslAbilityFactory,
+    private readonly workspaceAbility: WorkspaceAbilityFactory,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
@@ -155,8 +158,13 @@ export class AttachmentController {
     }
 
     if (attachmentType === AttachmentType.WorkspaceLogo) {
-      const ability = this.caslAbility.createForUser(user, workspace);
-      if (ability.cannot(Action.Manage, 'Workspace')) {
+      const ability = this.workspaceAbility.createForUser(user, workspace);
+      if (
+        ability.cannot(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Settings,
+        )
+      ) {
         throw new ForbiddenException();
       }
     }

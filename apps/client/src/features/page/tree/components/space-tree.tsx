@@ -50,11 +50,12 @@ import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.
 
 interface SpaceTreeProps {
   spaceId: string;
+  readOnly: boolean;
 }
 
 const openTreeNodesAtom = atom<OpenMap>({});
 
-export default function SpaceTree({ spaceId }: SpaceTreeProps) {
+export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
@@ -190,6 +191,9 @@ export default function SpaceTree({ spaceId }: SpaceTreeProps) {
       {rootElement.current && (
         <Tree
           data={data}
+          disableDrag={readOnly}
+          disableDrop={readOnly}
+          disableEdit={readOnly}
           {...controllers}
           width={width}
           height={height}
@@ -328,6 +332,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
                 <IconFileDescription size="18" />
               )
             }
+            readOnly={tree.props.disableEdit as boolean}
             removeEmojiAction={handleRemoveEmoji}
           />
         </div>
@@ -336,11 +341,14 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} />
-          <CreateNode
-            node={node}
-            treeApi={tree}
-            onExpandTree={() => handleLoadChildren(node)}
-          />
+
+          {!tree.props.disableEdit && (
+            <CreateNode
+              node={node}
+              treeApi={tree}
+              onExpandTree={() => handleLoadChildren(node)}
+            />
+          )}
         </div>
       </div>
     </>
@@ -429,18 +437,23 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           Copy link
         </Menu.Item>
 
-        <Menu.Divider />
-        <Menu.Item
-          c="red"
-          leftSection={
-            <IconTrash style={{ width: rem(14), height: rem(14) }} />
-          }
-          onClick={() =>
-            openDeleteModal({ onConfirm: () => treeApi?.delete(node) })
-          }
-        >
-          Delete
-        </Menu.Item>
+        {!(treeApi.props.disableEdit as boolean) && (
+          <>
+            <Menu.Divider />
+
+            <Menu.Item
+              c="red"
+              leftSection={
+                <IconTrash style={{ width: rem(14), height: rem(14) }} />
+              }
+              onClick={() =>
+                openDeleteModal({ onConfirm: () => treeApi?.delete(node) })
+              }
+            >
+              Delete
+            </Menu.Item>
+          </>
+        )}
       </Menu.Dropdown>
     </Menu>
   );

@@ -9,7 +9,7 @@ export function SpaceName({ spaceName }: SpaceNameProps) {
     <UnstyledButton className={classes.spaceName}>
       <Group>
         <div style={{ flex: 1 }}>
-          <Text size="md" fw={500}>
+          <Text size="md" fw={500} lineClamp={1}>
             {spaceName}
           </Text>
         </div>

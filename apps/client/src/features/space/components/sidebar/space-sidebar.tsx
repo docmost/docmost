@@ -1,21 +1,21 @@
 import {
-  UnstyledButton,
-  Text,
-  Group,
   ActionIcon,
-  Tooltip,
+  Group,
   rem,
+  Text,
+  Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import { spotlight } from "@mantine/spotlight";
 import {
-  IconSearch,
-  IconPlus,
-  IconSettings,
   IconHome,
+  IconPlus,
+  IconSearch,
+  IconSettings,
 } from "@tabler/icons-react";
 
 import classes from "./space-sidebar.module.css";
-import React from "react";
+import React, { useMemo } from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
@@ -27,6 +27,11 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts"
 import { SpaceName } from "@/features/space/components/sidebar/space-name.tsx";
 import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 export function SpaceSidebar() {
   const [tree] = useAtom(treeApiAtom);
@@ -36,12 +41,15 @@ export function SpaceSidebar() {
   const { spaceSlug } = useParams();
   const { data: space, isLoading, isError } = useGetSpaceBySlugQuery(spaceSlug);
 
-  function handleCreatePage() {
-    tree?.create({ parentId: null, type: "internal", index: 0 });
-  }
+  const spaceRules = space?.membership?.permissions;
+  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
 
   if (!space) {
     return <></>;
+  }
+
+  function handleCreatePage() {
+    tree?.create({ parentId: null, type: "internal", index: 0 });
   }
 
   return (
@@ -110,22 +118,33 @@ export function SpaceSidebar() {
               Pages
             </Text>
 
-            <Tooltip label="Create page" withArrow position="right">
-              <ActionIcon
-                variant="default"
-                size={18}
-                onClick={handleCreatePage}
-              >
-                <IconPlus
-                  style={{ width: rem(12), height: rem(12) }}
-                  stroke={1.5}
-                />
-              </ActionIcon>
-            </Tooltip>
+            {spaceAbility.can(
+              SpaceCaslAction.Manage,
+              SpaceCaslSubject.Page,
+            ) && (
+              <Tooltip label="Create page" withArrow position="right">
+                <ActionIcon
+                  variant="default"
+                  size={18}
+                  onClick={handleCreatePage}
+                >
+                  <IconPlus
+                    style={{ width: rem(12), height: rem(12) }}
+                    stroke={1.5}
+                  />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
 
           <div className={classes.pages}>
-            <SpaceTree spaceId={space.id} />
+            <SpaceTree
+              spaceId={space.id}
+              readOnly={spaceAbility.cannot(
+                SpaceCaslAction.Manage,
+                SpaceCaslSubject.Page,
+              )}
+            />
           </div>
         </div>
       </div>

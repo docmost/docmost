@@ -19,8 +19,12 @@ import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { boolean } from "zod";
 
-export default function PageHeaderMenu() {
+interface PageHeaderMenuProps {
+  readOnly?: boolean;
+}
+export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
 
   return (
@@ -35,12 +39,15 @@ export default function PageHeaderMenu() {
         </ActionIcon>
       </Tooltip>
 
-      <PageActionMenu />
+      <PageActionMenu readOnly={readOnly} />
     </>
   );
 }
 
-function PageActionMenu() {
+interface PageActionMenuProps {
+  readOnly?: boolean;
+}
+function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
   const clipboard = useClipboard({ timeout: 500 });
   const { pageSlug, spaceSlug } = useParams();
@@ -96,14 +103,18 @@ function PageActionMenu() {
           Page history
         </Menu.Item>
 
-        <Menu.Divider />
-        <Menu.Item
-          color={"red"}
-          leftSection={<IconTrash size={16} stroke={2} />}
-          onClick={handleDeletePage}
-        >
-          Delete
-        </Menu.Item>
+        {!readOnly && (
+          <>
+            <Menu.Divider />
+            <Menu.Item
+              color={"red"}
+              leftSection={<IconTrash size={16} stroke={2} />}
+              onClick={handleDeletePage}
+            >
+              Delete
+            </Menu.Item>
+          </>
+        )}
       </Menu.Dropdown>
     </Menu>
   );

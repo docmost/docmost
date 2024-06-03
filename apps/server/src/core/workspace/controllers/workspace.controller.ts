@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   Post,
@@ -21,12 +22,13 @@ import {
   InviteUserDto,
   RevokeInviteDto,
 } from '../dto/invitation.dto';
-import { Action } from '../../casl/ability.action';
-import { CheckPolicies } from '../../casl/decorators/policies.decorator';
-import { AppAbility } from '../../casl/abilities/casl-ability.factory';
-import { PoliciesGuard } from '../../casl/guards/policies.guard';
 import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
+import {
+  WorkspaceCaslAction,
+  WorkspaceCaslSubject,
+} from '../../casl/interfaces/workspace-ability.type';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -34,12 +36,13 @@ export class WorkspaceController {
   constructor(
     private readonly workspaceService: WorkspaceService,
     private readonly workspaceInvitationService: WorkspaceInvitationService,
+    private readonly workspaceAbility: WorkspaceAbilityFactory,
   ) {}
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/public')
-  async getWorkspacePublicInfo(@Req() req) {
+  async getWorkspacePublicInfo(@Req() req: any) {
     return this.workspaceService.getWorkspacePublicData(req.raw.workspaceId);
   }
 
@@ -49,72 +52,89 @@ export class WorkspaceController {
     return this.workspaceService.getWorkspaceInfo(workspace.id);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'Workspace'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Settings)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceService.update(workspace.id, updateWorkspaceDto);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Read, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('members')
   async getWorkspaceMembers(
     @Body()
     pagination: PaginationOptions,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceService.getWorkspaceUsers(workspace.id, pagination);
   }
 
-  @UseGuards(PoliciesGuard)
-  // @CheckPolicies((ability: AppAbility) =>
-  //   ability.can(Action.Manage, 'WorkspaceUser'),
-  // )
   @HttpCode(HttpStatus.OK)
   @Post('members/deactivate')
-  async deactivateWorkspaceMember() {
+  async deactivateWorkspaceMember(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceService.deactivateUser();
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('members/change-role')
   async updateWorkspaceMemberRole(
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,
-    @AuthUser() authUser: User,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceService.updateWorkspaceUserRole(
-      authUser,
+      user,
       workspaceUserRoleDto,
       workspace.id,
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Read, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('invites')
   async getInvitations(
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
     @Body()
     pagination: PaginationOptions,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceInvitationService.getInvitations(
       workspace.id,
       pagination,
@@ -131,50 +151,61 @@ export class WorkspaceController {
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('invites/create')
   async inviteUser(
     @Body() inviteUserDto: InviteUserDto,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
-    @AuthUser() authUser: User,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceInvitationService.createInvitation(
       inviteUserDto,
       workspace.id,
-      authUser,
+      user,
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('invites/resend')
   async resendInvite(
     @Body() revokeInviteDto: RevokeInviteDto,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceInvitationService.resendInvitation(
       revokeInviteDto.invitationId,
       workspace.id,
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'WorkspaceUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('invites/revoke')
   async revokeInvite(
     @Body() revokeInviteDto: RevokeInviteDto,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.workspaceInvitationService.revokeInvitation(
       revokeInviteDto.invitationId,
       workspace.id,

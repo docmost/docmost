@@ -27,17 +27,19 @@ interface SpaceRoleMenuProps {
   roles: IRoleData[];
   roleName: string;
   onChange?: (value: string) => void;
+  disabled?: boolean;
 }
 
 export default function RoleSelectMenu({
   roles,
   roleName,
   onChange,
+  disabled,
 }: SpaceRoleMenuProps) {
   return (
     <Menu withArrow>
       <Menu.Target>
-        <RoleButton name={roleName} />
+        <RoleButton name={roleName} disabled={disabled} />
       </Menu.Target>
 
       <Menu.Dropdown>

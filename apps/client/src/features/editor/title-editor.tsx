@@ -28,6 +28,7 @@ export interface TitleEditorProps {
   slugId: string;
   title: string;
   spaceSlug: string;
+  editable: boolean;
 }
 
 export function TitleEditor({
@@ -35,6 +36,7 @@ export function TitleEditor({
   slugId,
   title,
   spaceSlug,
+  editable,
 }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
@@ -57,6 +59,7 @@ export function TitleEditor({
       Text,
       Placeholder.configure({
         placeholder: "Untitled",
+        showOnlyWhenEditable: false,
       }),
       History.configure({
         depth: 20,
@@ -72,6 +75,7 @@ export function TitleEditor({
       const currentTitle = editor.getText();
       setDebouncedTitleState(currentTitle);
     },
+    editable: editable,
     content: title,
   });
 

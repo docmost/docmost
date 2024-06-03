@@ -8,6 +8,7 @@ import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { TextInput, Button } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 const formSchema = z.object({
   name: z.string().nonempty("Workspace name cannot be blank"),
@@ -23,6 +24,7 @@ export default function WorkspaceNameForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setWorkspace] = useAtom(workspaceAtom);
+  const { isAdmin } = useUserRole();
 
   const form = useForm<FormValues>({
     validate: zodResolver(formSchema),
@@ -46,6 +48,7 @@ export default function WorkspaceNameForm() {
       });
     }
     setIsLoading(false);
+    form.resetDirty();
   }
 
   return (
@@ -57,9 +60,17 @@ export default function WorkspaceNameForm() {
         variant="filled"
         {...form.getInputProps("name")}
       />
-      <Button mt="sm" type="submit" disabled={isLoading} loading={isLoading}>
-        Save
-      </Button>
+
+      {isAdmin && (
+        <Button
+          mt="sm"
+          type="submit"
+          disabled={isLoading || !form.isDirty()}
+          loading={isLoading}
+        >
+          Save
+        </Button>
+      )}
     </form>
   );
 }

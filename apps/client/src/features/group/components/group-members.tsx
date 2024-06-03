@@ -8,11 +8,13 @@ import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function GroupMembersList() {
   const { groupId } = useParams();
   const { data, isLoading } = useGroupMembersQuery(groupId);
   const removeGroupMember = useRemoveGroupMemberMutation();
+  const { isAdmin } = useUserRole();
 
   const onRemove = async (userId: string) => {
     const memberToRemove = {
@@ -71,26 +73,28 @@ export default function GroupMembersList() {
                 </Table.Td>
 
                 <Table.Td>
-                  <Menu
-                    shadow="xl"
-                    position="bottom-end"
-                    offset={20}
-                    width={200}
-                    withArrow
-                    arrowPosition="center"
-                  >
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" c="gray">
-                        <IconDots size={20} stroke={2} />
-                      </ActionIcon>
-                    </Menu.Target>
+                  {isAdmin && (
+                    <Menu
+                      shadow="xl"
+                      position="bottom-end"
+                      offset={20}
+                      width={200}
+                      withArrow
+                      arrowPosition="center"
+                    >
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" c="gray">
+                          <IconDots size={20} stroke={2} />
+                        </ActionIcon>
+                      </Menu.Target>
 
-                    <Menu.Dropdown>
-                      <Menu.Item onClick={() => openRemoveModal(user.id)}>
-                        Remove group member
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                      <Menu.Dropdown>
+                        <Menu.Item onClick={() => openRemoveModal(user.id)}>
+                          Remove group member
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
                 </Table.Td>
               </Table.Tr>
             ))}

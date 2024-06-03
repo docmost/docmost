@@ -5,6 +5,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { GroupService } from './services/group.service';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -16,12 +17,13 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { AddGroupUserDto } from './dto/add-group-user.dto';
 import { RemoveGroupUserDto } from './dto/remove-group-user.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { Action } from '../casl/ability.action';
-import { PoliciesGuard } from '../casl/guards/policies.guard';
-import { CheckPolicies } from '../casl/decorators/policies.decorator';
-import { AppAbility } from '../casl/abilities/casl-ability.factory';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import {
+  WorkspaceCaslAction,
+  WorkspaceCaslSubject,
+} from '../casl/interfaces/workspace-ability.type';
 
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -29,10 +31,9 @@ export class GroupController {
   constructor(
     private readonly groupService: GroupService,
     private readonly groupUserService: GroupUserService,
+    private readonly workspaceAbility: WorkspaceAbilityFactory,
   ) {}
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('/')
   getWorkspaceGroups(
@@ -40,11 +41,14 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group)) {
+      throw new ForbiddenException();
+    }
+
     return this.groupService.getWorkspaceGroups(workspace.id, pagination);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   getGroup(
@@ -52,11 +56,13 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group)) {
+      throw new ForbiddenException();
+    }
     return this.groupService.getGroupInfo(groupIdDto.groupId, workspace.id);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('create')
   createGroup(
@@ -64,11 +70,15 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
+    ) {
+      throw new ForbiddenException();
+    }
     return this.groupService.createGroup(user, workspace.id, createGroupDto);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('update')
   updateGroup(
@@ -76,18 +86,29 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.groupService.updateGroup(workspace.id, updateGroupDto);
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Read, 'GroupUser'))
   @HttpCode(HttpStatus.OK)
   @Post('members')
   getGroupMembers(
     @Body() groupIdDto: GroupIdDto,
     @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group)) {
+      throw new ForbiddenException();
+    }
+
     return this.groupUserService.getGroupUsers(
       groupIdDto.groupId,
       workspace.id,
@@ -95,10 +116,6 @@ export class GroupController {
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'GroupUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('members/add')
   addGroupMember(
@@ -106,6 +123,13 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.groupUserService.addUsersToGroupBatch(
       addGroupUserDto.userIds,
       addGroupUserDto.groupId,
@@ -113,17 +137,20 @@ export class GroupController {
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) =>
-    ability.can(Action.Manage, 'GroupUser'),
-  )
   @HttpCode(HttpStatus.OK)
   @Post('members/remove')
   removeGroupMember(
     @Body() removeGroupUserDto: RemoveGroupUserDto,
-    //@AuthUser() user: User,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
+    ) {
+      throw new ForbiddenException();
+    }
+
     return this.groupUserService.removeUserFromGroup(
       removeGroupUserDto.userId,
       removeGroupUserDto.groupId,
@@ -131,8 +158,6 @@ export class GroupController {
     );
   }
 
-  @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.Manage, 'Group'))
   @HttpCode(HttpStatus.OK)
   @Post('delete')
   deleteGroup(
@@ -140,6 +165,12 @@ export class GroupController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)
+    ) {
+      throw new ForbiddenException();
+    }
     return this.groupService.deleteGroup(groupIdDto.groupId, workspace.id);
   }
 }

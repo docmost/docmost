@@ -47,7 +47,7 @@ export class AuthenticationExtension implements Extension {
 
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
-      this.logger.warn(`Page not found: ${pageId}}`);
+      this.logger.warn(`Page not found: ${pageId}`);
       throw new NotFoundException('Page not found');
     }
 
@@ -59,13 +59,13 @@ export class AuthenticationExtension implements Extension {
     const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
 
     if (!userSpaceRole) {
-      this.logger.warn(`User authorized to access page: ${pageId}}`);
+      this.logger.warn(`User not authorized to access page: ${pageId}`);
       throw new UnauthorizedException();
     }
 
     if (userSpaceRole === SpaceRole.READER) {
       data.connection.readOnly = true;
-      this.logger.warn(`User granted readonly access to page: ${pageId}}`);
+      this.logger.debug(`User granted readonly access to page: ${pageId}`);
     }
 
     this.logger.debug(`Authenticated user ${user.id} on page ${pageId}`);

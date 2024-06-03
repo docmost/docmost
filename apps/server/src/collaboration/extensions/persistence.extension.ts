@@ -57,7 +57,7 @@ export class PersistenceExtension implements Extension {
       return ydoc;
     }
 
-    this.logger.debug(`creating fresh ydoc': ${pageId}`);
+    this.logger.debug(`creating fresh ydoc: ${pageId}`);
     return new Y.Doc();
   }
 

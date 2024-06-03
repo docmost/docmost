@@ -4,12 +4,14 @@ import React from "react";
 import { getUserRoleLabel } from "@/features/workspace/types/user-role-data.ts";
 import InviteActionMenu from "@/features/workspace/components/members/components/invite-action-menu.tsx";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { format } from "date-fns";
+import { formattedDate } from "@/lib/time.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function WorkspaceInvitesTable() {
   const { data, isLoading } = useWorkspaceInvitationsQuery({
     limit: 100,
   });
+  const { isAdmin } = useUserRole();
 
   return (
     <>
@@ -44,12 +46,12 @@ export default function WorkspaceInvitesTable() {
 
                   <Table.Td>{getUserRoleLabel(invitation.role)}</Table.Td>
 
-                  <Table.Td>
-                    {format(invitation.createdAt, "MM/dd/yyyy")}
-                  </Table.Td>
+                  <Table.Td>{formattedDate(invitation.createdAt)}</Table.Td>
 
                   <Table.Td>
-                    <InviteActionMenu invitationId={invitation.id} />
+                    {isAdmin && (
+                      <InviteActionMenu invitationId={invitation.id} />
+                    )}
                   </Table.Td>
                 </Table.Tr>
               ))}
