@@ -17,8 +17,8 @@ export default function TopMenu() {
   const [currentUser] = useAtom(currentUserAtom);
   const { logout } = useAuth();
 
-  const user = currentUser.user;
-  const workspace = currentUser.workspace;
+  const user = currentUser?.user;
+  const workspace = currentUser?.workspace;
 
   if (!user || !workspace) {
     return <></>;
