@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Welcome } from "@/pages/welcome";
 import SignUpPage from "@/pages/auth/signup";
 import LoginPage from "@/pages/auth/login";
@@ -59,7 +59,7 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route index element={<Welcome />} />
+        <Route index element={<Navigate to="/home" />} />
         <Route path={"/login"} element={<LoginPage />} />
         <Route path={"/signup"} element={<SignUpPage />} />
         <Route path={"/invites/:invitationId"} element={<InviteSignUpForm />} />

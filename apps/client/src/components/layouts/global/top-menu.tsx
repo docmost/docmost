@@ -20,6 +20,10 @@ export default function TopMenu() {
   const user = currentUser.user;
   const workspace = currentUser.workspace;
 
+  if (!user || !workspace) {
+    return <></>;
+  }
+
   return (
     <Menu width={250} position="bottom-end" withArrow shadow={"lg"}>
       <Menu.Target>
