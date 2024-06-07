@@ -7,6 +7,8 @@ import {
 import { NotFoundException, ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './interceptors/http-response.interceptor';
 import fastifyMultipart from '@fastify/multipart';
+import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
+import { InternalLogFilter } from './integrations/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -15,9 +17,17 @@ async function bootstrap() {
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
     }),
+    {
+      logger: new InternalLogFilter(),
+    },
   );
 
   app.setGlobalPrefix('api');
+
+  const redisIoAdapter = new WsRedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+
+  app.useWebSocketAdapter(redisIoAdapter);
 
   await app.register(fastifyMultipart);
 
@@ -50,7 +60,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
 
 bootstrap();

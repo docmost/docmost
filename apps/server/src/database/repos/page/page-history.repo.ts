@@ -17,8 +17,13 @@ import { DB } from '@docmost/db/types/db';
 export class PageHistoryRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
-  async findById(pageHistoryId: string): Promise<PageHistory> {
-    return await this.db
+  async findById(
+    pageHistoryId: string,
+    trx?: KyselyTransaction,
+  ): Promise<PageHistory> {
+    const db = dbOrTx(this.db, trx);
+
+    return await db
       .selectFrom('pageHistory')
       .selectAll()
       .select((eb) => this.withLastUpdatedBy(eb))
@@ -38,18 +43,21 @@ export class PageHistoryRepo {
       .executeTakeFirst();
   }
 
-  async saveHistory(page: Page): Promise<void> {
-    await this.insertPageHistory({
-      pageId: page.id,
-      slugId: page.slugId,
-      title: page.title,
-      content: page.content,
-      icon: page.icon,
-      coverPhoto: page.coverPhoto,
-      lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
-      spaceId: page.spaceId,
-      workspaceId: page.workspaceId,
-    });
+  async saveHistory(page: Page, trx?: KyselyTransaction): Promise<void> {
+    await this.insertPageHistory(
+      {
+        pageId: page.id,
+        slugId: page.slugId,
+        title: page.title,
+        content: page.content,
+        icon: page.icon,
+        coverPhoto: page.coverPhoto,
+        lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
+        spaceId: page.spaceId,
+        workspaceId: page.workspaceId,
+      },
+      trx,
+    );
   }
 
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
@@ -66,6 +74,18 @@ export class PageHistoryRepo {
     });
 
     return result;
+  }
+
+  async findPageLastHistory(pageId: string, trx?: KyselyTransaction) {
+    const db = dbOrTx(this.db, trx);
+
+    return await db
+      .selectFrom('pageHistory')
+      .selectAll()
+      .where('pageId', '=', pageId)
+      .limit(1)
+      .orderBy('createdAt', 'desc')
+      .executeTakeFirst();
   }
 
   withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pageHistory'>) {

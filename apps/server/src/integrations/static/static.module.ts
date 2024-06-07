@@ -30,7 +30,7 @@ export class StaticModule implements OnModuleInit {
       const windowVar = '<!--window-config-->';
 
       const configString = {
-        ENV: this.environmentService.getEnv(),
+        ENV: this.environmentService.getNodeEnv(),
         APP_URL: this.environmentService.getAppUrl(),
         IS_CLOUD: this.environmentService.isCloud(),
       };

@@ -12,7 +12,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('slug', 'varchar', (col) => col.notNull())
     .addColumn('logo', 'varchar', (col) => col)
     .addColumn('visibility', 'varchar', (col) =>
-      col.defaultTo(SpaceVisibility.OPEN).notNull(),
+      col.defaultTo(SpaceVisibility.PRIVATE).notNull(),
     )
     .addColumn('default_role', 'varchar', (col) =>
       col.defaultTo(SpaceRole.WRITER).notNull(),

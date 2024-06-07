@@ -53,7 +53,7 @@ export class WorkspaceRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .updateTable('workspaces')
-      .set(updatableWorkspace)
+      .set({ ...updatableWorkspace, updatedAt: new Date() })
       .where('id', '=', workspaceId)
       .execute();
   }

@@ -80,7 +80,7 @@ export class UserRepo {
 
     return await db
       .updateTable('users')
-      .set(updatableUser)
+      .set({ ...updatableUser, updatedAt: new Date() })
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .execute();

@@ -54,7 +54,7 @@ export class GroupRepo {
   ): Promise<void> {
     await this.db
       .updateTable('groups')
-      .set(updatableGroup)
+      .set({ ...updatableGroup, updatedAt: new Date() })
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)
       .execute();

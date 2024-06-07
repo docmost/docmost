@@ -11,6 +11,8 @@ import {
   StorageOption,
 } from '../interfaces';
 import { LocalDriver, S3Driver } from '../drivers';
+import * as process from 'node:process';
+import { LOCAL_STORAGE_PATH } from '../../../helpers';
 
 function createStorageDriver(disk: StorageConfig): StorageDriver {
   switch (disk.driver) {
@@ -33,8 +35,7 @@ export const storageDriverConfigProvider = {
         return {
           driver,
           config: {
-            storagePath:
-              process.cwd() + '/' + environmentService.getLocalStoragePath(),
+            storagePath: process.cwd() + '/' + LOCAL_STORAGE_PATH,
           },
         };
 

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
+    "start": "pnpm --filter ./apps/server run start:prod",
     "server:build": "nx run server:build",
     "client:build": "nx run client:build",
     "editor-ext:editor-ext": "nx run editor-ext:build",
@@ -14,10 +15,12 @@
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
+    "@hocuspocus/extension-redis": "^2.13.0",
     "@hocuspocus/provider": "^2.13.0",
     "@hocuspocus/server": "^2.13.0",
     "@hocuspocus/transformer": "^2.13.0",
     "@sindresorhus/slugify": "^2.2.1",
+    "@tiptap/core": "^2.4.0",
     "@tiptap/extension-code-block": "^2.4.0",
     "@tiptap/extension-collaboration": "^2.4.0",
     "@tiptap/extension-collaboration-cursor": "^2.4.0",
@@ -45,7 +48,9 @@
     "@tiptap/react": "^2.4.0",
     "@tiptap/starter-kit": "^2.4.0",
     "@tiptap/suggestion": "^2.4.0",
+    "cross-env": "^7.0.3",
     "fractional-indexing-jittered": "^0.9.1",
+    "ioredis": "^5.4.1",
     "tiptap-extension-global-drag-handle": "^0.1.8",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.15"

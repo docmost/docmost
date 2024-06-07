@@ -15,7 +15,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
 
   if (isLoading) return <></>;
 
-  if (!data.user && !data.workspace) return <></>;
+  if (!data?.user && !data?.workspace) return <></>;
 
   if (error) {
     return <>an error occurred</>;

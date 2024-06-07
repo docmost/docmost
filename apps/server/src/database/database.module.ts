@@ -21,6 +21,7 @@ import { PageHistoryRepo } from './repos/page/page-history.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as process from 'node:process';
+import { MigrationService } from '@docmost/db/services/migration.service';
 
 // https://github.com/brianc/node-postgres/issues/811
 types.setTypeParser(types.builtins.INT8, (val) => Number(val));
@@ -39,7 +40,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         }),
         plugins: [new CamelCasePlugin()],
         log: (event: LogEvent) => {
-          if (environmentService.getEnv() !== 'development') return;
+          if (environmentService.getNodeEnv() !== 'development') return;
           if (event.level === 'query') {
             // console.log(event.query.sql);
             //if (event.query.parameters.length > 0) {
@@ -52,6 +53,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     }),
   ],
   providers: [
+    MigrationService,
     WorkspaceRepo,
     UserRepo,
     GroupRepo,
@@ -79,10 +81,18 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
 export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseModule.name);
 
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly migrationService: MigrationService,
+    private readonly environmentService: EnvironmentService,
+  ) {}
 
   async onApplicationBootstrap() {
     await this.establishConnection();
+
+    if (this.environmentService.getNodeEnv() === 'production') {
+      await this.migrationService.migrateToLatest();
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -110,7 +120,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
 
         if (i < retryAttempts - 1) {
           this.logger.log(
-            `Retrying [${i + 1}/${retryAttempts}] in ${retryDelay} ms`,
+            `Retrying [${i + 1}/${retryAttempts}] in ${retryDelay / 1000} seconds`,
           );
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         } else {

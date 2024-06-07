@@ -11,7 +11,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('email_verified_at', 'timestamptz', (col) => col)
     .addColumn('password', 'varchar', (col) => col)
     .addColumn('avatar_url', 'varchar', (col) => col)
-    .addColumn('role', 'varchar', (col) => col.notNull())
+    .addColumn('role', 'varchar', (col) => col)
     .addColumn('invited_by_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )

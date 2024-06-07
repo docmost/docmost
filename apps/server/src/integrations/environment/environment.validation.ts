@@ -1,14 +1,12 @@
-import { IsString, IsUrl, validateSync } from 'class-validator';
+import { IsNotEmpty, IsUrl, validateSync } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 export class EnvironmentVariables {
-  @IsString()
-  NODE_ENV: string;
-
+  @IsNotEmpty()
   @IsUrl({ protocols: ['postgres', 'postgresql'], require_tld: false })
   DATABASE_URL: string;
 
-  @IsString()
+  @IsNotEmpty()
   APP_SECRET: string;
 }
 

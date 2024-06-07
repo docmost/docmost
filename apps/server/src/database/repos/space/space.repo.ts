@@ -77,7 +77,7 @@ export class SpaceRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .updateTable('spaces')
-      .set(updatableSpace)
+      .set({ ...updatableSpace, updatedAt: new Date() })
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .returningAll()

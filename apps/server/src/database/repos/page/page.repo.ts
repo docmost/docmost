@@ -46,9 +46,13 @@ export class PageRepo {
       includeContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
+      withLock?: boolean;
+      trx?: KyselyTransaction;
     },
   ): Promise<Page> {
-    let query = this.db
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
       .selectFrom('pages')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
@@ -56,6 +60,10 @@ export class PageRepo {
 
     if (opts?.includeSpace) {
       query = query.select((eb) => this.withSpace(eb));
+    }
+
+    if (opts?.withLock && opts?.trx) {
+      query = query.forUpdate();
     }
 
     if (isValidUUID(pageId)) {
@@ -73,7 +81,9 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ) {
     const db = dbOrTx(this.db, trx);
-    let query = db.updateTable('pages').set(updatablePage);
+    let query = db
+      .updateTable('pages')
+      .set({ ...updatablePage, updatedAt: new Date() });
 
     if (isValidUUID(pageId)) {
       query = query.where('id', '=', pageId);

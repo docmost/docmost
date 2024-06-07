@@ -16,9 +16,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('default_role', 'varchar', (col) =>
       col.defaultTo(UserRole.MEMBER).notNull(),
     )
-    .addColumn('allowed_email_domains', sql`varchar[]`, (col) =>
-      col.defaultTo('{}'),
-    )
+    .addColumn('email_domains', sql`varchar[]`, (col) => col.defaultTo('{}'))
     .addColumn('default_space_id', 'uuid', (col) => col)
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),

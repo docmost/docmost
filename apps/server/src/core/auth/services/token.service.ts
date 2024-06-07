@@ -44,7 +44,7 @@ export class TokenService {
 
   async verifyJwt(token: string) {
     return this.jwtService.verifyAsync(token, {
-      secret: this.environmentService.getJwtSecret(),
+      secret: this.environmentService.getAppSecret(),
     });
   }
 }
