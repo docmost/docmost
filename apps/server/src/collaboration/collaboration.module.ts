@@ -6,15 +6,15 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
-import { HistoryExtension } from './extensions/history.extension';
 import { TokenModule } from '../core/auth/token.module';
+import { HistoryListener } from './listeners/history.listener';
 
 @Module({
   providers: [
     CollaborationGateway,
     AuthenticationExtension,
     PersistenceExtension,
-    HistoryExtension,
+    HistoryListener,
   ],
   imports: [TokenModule],
 })

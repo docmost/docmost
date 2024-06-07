@@ -13,6 +13,7 @@ export function usePageHistoryListQuery(
     queryKey: ["page-history-list", pageId],
     queryFn: () => getPageHistoryList(pageId),
     enabled: !!pageId,
+    gcTime: 0,
   });
 }
 
