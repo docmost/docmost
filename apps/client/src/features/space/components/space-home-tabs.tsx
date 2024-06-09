@@ -1,14 +1,19 @@
 import { Text, Tabs, Space } from "@mantine/core";
 import { IconClockHour3 } from "@tabler/icons-react";
-import SpaceRecentChanges from "@/features/space/components/space-recent-changes.tsx";
+import RecentChanges from "@/components/common/recent-changes.tsx";
+import { useParams } from "react-router-dom";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 
 export default function SpaceHomeTabs() {
+  const { spaceSlug } = useParams();
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
+
   return (
     <Tabs defaultValue="recent">
       <Tabs.List>
         <Tabs.Tab value="recent" leftSection={<IconClockHour3 size={18} />}>
           <Text size="sm" fw={500}>
-            Recent changes
+            Recently updated
           </Text>
         </Tabs.Tab>
       </Tabs.List>
@@ -16,7 +21,7 @@ export default function SpaceHomeTabs() {
       <Space my="md" />
 
       <Tabs.Panel value="recent">
-        <SpaceRecentChanges />
+        <RecentChanges spaceId={space?.id} />
       </Tabs.Panel>
     </Tabs>
   );

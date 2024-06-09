@@ -1,6 +1,6 @@
 import { Text, Tabs, Space } from "@mantine/core";
 import { IconClockHour3 } from "@tabler/icons-react";
-import RecentChanges from "@/features/home/components/recent-changes";
+import RecentChanges from "@/components/common/recent-changes.tsx";
 
 export default function HomeTabs() {
   return (
@@ -8,7 +8,7 @@ export default function HomeTabs() {
       <Tabs.List>
         <Tabs.Tab value="recent" leftSection={<IconClockHour3 size={18} />}>
           <Text size="sm" fw={500}>
-            Recent changes
+            Recently updated
           </Text>
         </Tabs.Tab>
       </Tabs.List>
