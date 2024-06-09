@@ -9,7 +9,7 @@ import {
 } from 'kysely';
 import { run } from 'kysely-migration-cli';
 import * as dotenv from 'dotenv';
-import { envPath } from '../helpers/utils';
+import { envPath } from '../common/helpers/utils';
 
 dotenv.config({ path: envPath });
 

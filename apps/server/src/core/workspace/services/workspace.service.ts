@@ -7,7 +7,7 @@ import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
 import { CreateSpaceDto } from '../../space/dto/create-space.dto';
-import { SpaceRole, UserRole } from '../../../helpers/types/permission';
+import { SpaceRole, UserRole } from '../../../common/helpers/types/permission';
 import { SpaceMemberService } from '../../space/services/space-member.service';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';

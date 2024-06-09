@@ -10,7 +10,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
-import { SpaceRole } from '../../helpers/types/permission';
+import { SpaceRole } from '../../common/helpers/types/permission';
 import { getPageId } from '../collaboration.util';
 
 @Injectable()

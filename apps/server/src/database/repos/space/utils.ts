@@ -1,5 +1,5 @@
 import { UserSpaceRole } from '@docmost/db/repos/space/types';
-import { SpaceRole } from '../../../helpers/types/permission';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 
 export function findHighestUserSpaceRole(userSpaceRoles: UserSpaceRole[]) {
   if (!userSpaceRoles) {

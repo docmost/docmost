@@ -16,12 +16,12 @@ import {
 } from '@docmost/db/types/entity.types';
 import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
-import { hashPassword } from '../../../helpers';
+import { hashPassword } from '../../../common/helpers';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { TokenService } from '../../auth/services/token.service';
-import { nanoIdGen } from '../../../helpers/nanoid.utils';
+import { nanoIdGen } from '../../../common/helpers/nanoid.utils';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { TokensDto } from '../../auth/dto/tokens.dto';

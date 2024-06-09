@@ -8,9 +8,9 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthUser } from '../../decorators/auth-user.decorator';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 
 @UseGuards(JwtAuthGuard)

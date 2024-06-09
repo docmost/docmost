@@ -1,11 +1,6 @@
-import {
-  ArrayMaxSize,
-  IsArray,
-  IsEnum,
-  IsUUID,
-} from 'class-validator';
+import { ArrayMaxSize, IsArray, IsEnum, IsUUID } from 'class-validator';
 import { SpaceIdDto } from './space-id.dto';
-import { SpaceRole } from '../../../helpers/types/permission';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 
 export class AddSpaceMembersDto extends SpaceIdDto {
   // @IsOptional()

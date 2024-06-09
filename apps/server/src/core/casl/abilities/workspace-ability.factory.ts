@@ -4,7 +4,7 @@ import {
   createMongoAbility,
   MongoAbility,
 } from '@casl/ability';
-import { UserRole } from '../../../helpers/types/permission';
+import { UserRole } from '../../../common/helpers/types/permission';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import {
   IWorkspaceAbility,

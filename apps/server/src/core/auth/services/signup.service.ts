@@ -9,7 +9,7 @@ import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { UserRole } from '../../../helpers/types/permission';
+import { UserRole } from '../../../common/helpers/types/permission';
 
 @Injectable()
 export class SignupService {

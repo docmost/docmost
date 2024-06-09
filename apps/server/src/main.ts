@@ -5,10 +5,10 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { NotFoundException, ValidationPipe } from '@nestjs/common';
-import { TransformHttpResponseInterceptor } from './interceptors/http-response.interceptor';
+import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import fastifyMultipart from '@fastify/multipart';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
-import { InternalLogFilter } from './integrations/logger/internal-log-filter';
+import { InternalLogFilter } from './common/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(

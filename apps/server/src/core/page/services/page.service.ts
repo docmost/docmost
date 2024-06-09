@@ -18,7 +18,7 @@ import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
-import { generateSlugId } from '../../../helpers';
+import { generateSlugId } from '../../../common/helpers';
 
 @Injectable()
 export class PageService {

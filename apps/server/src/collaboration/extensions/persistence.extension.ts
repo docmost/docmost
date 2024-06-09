@@ -110,6 +110,7 @@ export class PersistenceExtension implements Extension {
           ...page,
           lastUpdatedById: context.user.id,
           content: tiptapJson,
+          textContent: textContent,
         },
       });
     } catch (err) {

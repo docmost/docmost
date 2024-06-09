@@ -1,6 +1,6 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 import { SpaceIdDto } from './space-id.dto';
-import { SpaceRole } from '../../../helpers/types/permission';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 
 export class UpdateSpaceMemberRoleDto extends SpaceIdDto {
   @IsOptional()

@@ -10,15 +10,15 @@ import {
 } from '@nestjs/common';
 import { SearchService } from './search.service';
 import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
-import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
-import { AuthUser } from '../../decorators/auth-user.decorator';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')

@@ -18,16 +18,16 @@ import { AttachmentService } from './services/attachment.service';
 import { FastifyReply } from 'fastify';
 import { AttachmentInterceptor } from './interceptors/attachment.interceptor';
 import * as bytes from 'bytes';
-import { AuthUser } from '../../decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
   getAttachmentFolderPath,
   validAttachmentTypes,
 } from './attachment.utils';
-import { getMimeType } from '../../helpers';
+import { getMimeType } from '../../common/helpers';
 import {
   AttachmentType,
   MAX_AVATAR_SIZE,

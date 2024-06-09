@@ -10,7 +10,7 @@ import {
 import { streamToBuffer } from '../storage.utils';
 import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getMimeType } from '../../../helpers';
+import { getMimeType } from '../../../common/helpers';
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;

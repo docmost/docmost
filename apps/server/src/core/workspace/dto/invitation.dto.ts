@@ -11,7 +11,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { UserRole } from '../../../helpers/types/permission';
+import { UserRole } from '../../../common/helpers/types/permission';
 
 export class InviteUserDto {
   @IsArray()

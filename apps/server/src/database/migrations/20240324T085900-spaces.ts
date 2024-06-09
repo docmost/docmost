@@ -1,5 +1,8 @@
 import { Kysely, sql } from 'kysely';
-import { SpaceRole, SpaceVisibility } from '../../helpers/types/permission';
+import {
+  SpaceRole,
+  SpaceVisibility,
+} from '../../common/helpers/types/permission';
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema

@@ -11,18 +11,18 @@ import {
 import { WorkspaceService } from '../services/workspace.service';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
-import { AuthUser } from '../../../decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../../decorators/auth-workspace.decorator';
+import { AuthUser } from '../../../common/decorators/auth-user.decorator';
+import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WorkspaceInvitationService } from '../services/workspace-invitation.service';
-import { Public } from '../../../decorators/public.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 import {
   AcceptInviteDto,
   InvitationIdDto,
   InviteUserDto,
   RevokeInviteDto,
 } from '../dto/invitation.dto';
-import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.factory';
 import {

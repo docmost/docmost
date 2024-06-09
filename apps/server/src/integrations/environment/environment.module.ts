@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { EnvironmentService } from './environment.service';
 import { ConfigModule } from '@nestjs/config';
 import { validate } from './environment.validation';
-import { envPath } from '../../helpers';
+import { envPath } from '../../common/helpers';
 
 @Global()
 @Module({

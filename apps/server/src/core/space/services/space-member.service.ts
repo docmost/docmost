@@ -12,7 +12,7 @@ import { Space, SpaceMember, User } from '@docmost/db/types/entity.types';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
-import { SpaceRole } from '../../../helpers/types/permission';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @Injectable()

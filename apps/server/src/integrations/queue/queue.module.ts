@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { EnvironmentService } from '../environment/environment.service';
-import { createRetryStrategy, parseRedisUrl } from '../../helpers';
+import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
 
 @Global()

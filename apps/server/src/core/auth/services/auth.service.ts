@@ -11,7 +11,7 @@ import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { comparePasswordHash, hashPassword } from '../../../helpers';
+import { comparePasswordHash, hashPassword } from '../../../common/helpers';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { MailService } from '../../../integrations/mail/mail.service';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';

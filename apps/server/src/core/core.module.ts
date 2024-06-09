@@ -14,7 +14,7 @@ import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
-import { DomainMiddleware } from '../middlewares/domain.middleware';
+import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 
 @Module({
   imports: [

@@ -6,7 +6,11 @@ import { PersistenceExtension } from './extensions/persistence.extension';
 import { Injectable } from '@nestjs/common';
 import { Redis } from '@hocuspocus/extension-redis';
 import { EnvironmentService } from '../integrations/environment/environment.service';
-import { createRetryStrategy, parseRedisUrl, RedisConfig } from '../helpers';
+import {
+  createRetryStrategy,
+  parseRedisUrl,
+  RedisConfig,
+} from '../common/helpers';
 
 @Injectable()
 export class CollaborationGateway {

@@ -10,9 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SpaceService } from './services/space.service';
-import { AuthUser } from '../../decorators/auth-user.decorator';
-import { AuthWorkspace } from '../../decorators/auth-workspace.decorator';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AuthUser } from '../../common/decorators/auth-user.decorator';
+import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SpaceIdDto } from './dto/space-id.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceMemberService } from './services/space-member.service';
