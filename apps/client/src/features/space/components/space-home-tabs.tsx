@@ -21,7 +21,7 @@ export default function SpaceHomeTabs() {
       <Space my="md" />
 
       <Tabs.Panel value="recent">
-        <RecentChanges spaceId={space?.id} />
+        {space?.id && <RecentChanges spaceId={space.id} />}
       </Tabs.Panel>
     </Tabs>
   );
