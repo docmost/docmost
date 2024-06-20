@@ -1,9 +1,9 @@
-.ProseMirror:not(.dragging) .ProseMirror-selectednode {
+/*.ProseMirror:not(.dragging) .ProseMirror-selectednode {
   outline: none !important;
   background-color: rgba(150, 170, 220, 0.2);
   transition: background-color 0.2s;
   box-shadow: none;
-}
+}*/
 
 .drag-handle {
   position: fixed;

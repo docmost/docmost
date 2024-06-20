@@ -1,0 +1,61 @@
+.mathInline {
+    display: inline-block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    caret-color: rgb(55, 53, 47);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    padding: 0 0.25rem;
+    margin: 0 0.1rem;
+
+    &.empty {
+        color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+    }
+
+    &.error {
+        color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+    }
+
+    &:not(.error, .empty) * {
+        font-family: KaTeX_Main, Times New Roman, serif;
+    }
+}
+
+.mathBlock {
+    display: block;
+    text-align: center;
+    padding: 0.05rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    caret-color: rgb(55, 53, 47);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin: 0 0.1rem;
+    overflow-x: scroll;
+
+    .textInput {
+        width: 400px;
+    }
+
+    & > div {
+        margin: 1rem 0;
+    }
+
+    &.empty {
+        color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+    }
+
+    &.error {
+        color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
+        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+    }
+
+    &:not(.error, .empty) * {
+        font-family: KaTeX_Main, Times New Roman, serif;
+    }
+}
+
+

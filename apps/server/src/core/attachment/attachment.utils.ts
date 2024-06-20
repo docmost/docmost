@@ -26,7 +26,7 @@ export async function prepareFile(
 
     const buffer = await file.toBuffer();
     const sanitizedFilename = sanitize(file.filename).replace(/ /g, '_');
-    const fileName = `${rand}_${sanitizedFilename}`;
+    const fileName = sanitizedFilename.slice(0, 255);
     const fileSize = buffer.length;
     const fileExtension = path.extname(file.filename).toLowerCase();
 

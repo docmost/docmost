@@ -6,8 +6,8 @@
     "build": "tsc --build",
     "dev": "tsc --watch"
   },
-  "dependencies": {},
   "main": "dist/index.js",
   "module": "./src/index.ts",
-  "types": "dist/index.d.ts"
+  "types": "dist/index.d.ts",
+  "dependencies": {}
 }

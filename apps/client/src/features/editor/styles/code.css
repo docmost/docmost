@@ -1,0 +1,89 @@
+.ProseMirror {
+  pre {
+    padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+    font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
+    border-radius: var(--mantine-radius-default);
+
+    @mixin light {
+      background-color: var(--mantine-color-gray-0);
+      color: var(--mantine-color-gray-9);
+    }
+
+    @mixin dark {
+      background-color: var(--mantine-color-dark-8);
+      color: var(--mantine-color-dark-1);
+    }
+
+    code {
+      color: inherit;
+      padding: 0;
+      background: none;
+      font-size: inherit;
+    }
+
+    /* Code styling */
+    .hljs-comment,
+    .hljs-quote {
+      color: light-dark(
+        var(--mantine-color-gray-5),
+        var(--mantine-color-dark-2)
+      );
+    }
+
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-attribute,
+    .hljs-tag,
+    .hljs-name,
+    .hljs-regexp,
+    .hljs-link,
+    .hljs-name,
+    .hljs-selector-id,
+    .hljs-selector-class {
+      color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-5));
+    }
+
+    .hljs-number,
+    .hljs-meta,
+    .hljs-built_in,
+    .hljs-builtin-name,
+    .hljs-literal,
+    .hljs-type,
+    .hljs-params {
+      color: light-dark(
+        var(--mantine-color-blue-7),
+        var(--mantine-color-cyan-5)
+      );
+    }
+
+    .hljs-string,
+    .hljs-symbol,
+    .hljs-bullet {
+      color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-5));
+    }
+
+    .hljs-title,
+    .hljs-section {
+      color: light-dark(
+        var(--mantine-color-pink-7),
+        var(--mantine-color-yellow-5)
+      );
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag {
+      color: light-dark(
+        var(--mantine-color-violet-7),
+        var(--mantine-color-violet-3)
+      );
+    }
+
+    .hljs-emphasis {
+      font-style: italic;
+    }
+
+    .hljs-strong {
+      font-weight: 700;
+    }
+  }
+}

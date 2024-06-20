@@ -11,17 +11,41 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { Comment, TrailingNode } from "@docmost/editor-ext";
-import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import {
+  Comment,
+  Details,
+  DetailsContent,
+  DetailsSummary,
+  MathBlock,
+  MathInline,
+  Table,
+  TableHeader,
+  TableCell,
+  TableRow,
+  TrailingNode,
+  TiptapImage,
+  Callout,
+  TiptapVideo,
+} from "@docmost/editor-ext";
 import {
   randomElement,
   userColors,
 } from "@/features/editor/extensions/utils.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
+import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
+import MathBlockView from "@/features/editor/components/math/math-block.tsx";
+import GlobalDragHandle from "@/features/editor/extensions/drag-handle.ts";
+import { Youtube } from "@tiptap/extension-youtube";
+import ImageView from "@/features/editor/components/image/image-view.tsx";
+import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
+import { common, createLowlight } from "lowlight";
+import VideoView from "@/features/editor/components/video/video-view.tsx";
+const lowlight = createLowlight(common);
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -30,6 +54,7 @@ export const mainExtensions = [
       width: 3,
       color: "#70CFF8",
     },
+    codeBlock: false,
   }),
   Placeholder.configure({
     placeholder: 'Enter "/" for commands',
@@ -56,6 +81,36 @@ export const mainExtensions = [
     HTMLAttributes: {
       class: "comment-mark",
     },
+  }),
+  Table,
+  TableRow,
+  TableCell,
+  TableHeader,
+  MathInline.configure({
+    view: MathInlineView,
+  }),
+  MathBlock.configure({
+    view: MathBlockView,
+  }),
+  Details,
+  DetailsSummary,
+  DetailsContent,
+  Youtube.configure({
+    controls: true,
+    nocookie: true,
+  }),
+  TiptapImage.configure({
+    view: ImageView,
+    allowBase64: false,
+  }),
+  TiptapVideo.configure({
+    view: VideoView,
+  }),
+  Callout.configure({
+    view: CalloutView,
+  }),
+  CodeBlockLowlight.configure({
+    lowlight,
   }),
 ] as any;
 

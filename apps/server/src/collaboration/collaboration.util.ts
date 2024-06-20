@@ -10,7 +10,23 @@ import { Highlight } from '@tiptap/extension-highlight';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { TrailingNode, Comment } from '@docmost/editor-ext';
+import { Youtube } from '@tiptap/extension-youtube';
+import {
+  Callout,
+  Comment,
+  Details,
+  DetailsContent,
+  DetailsSummary,
+  MathBlock,
+  MathInline,
+  Table,
+  TableCell,
+  TableHeader,
+  TableRow,
+  TiptapImage,
+  TiptapVideo,
+  TrailingNode,
+} from '@docmost/editor-ext';
 import { generateHTML, generateJSON } from '@tiptap/html';
 import { generateText, JSONContent } from '@tiptap/core';
 
@@ -29,6 +45,19 @@ export const tiptapExtensions = [
   TrailingNode,
   TextStyle,
   Color,
+  MathInline,
+  MathBlock,
+  Details,
+  DetailsContent,
+  DetailsSummary,
+  Table,
+  TableHeader,
+  TableRow,
+  TableCell,
+  Youtube,
+  TiptapImage,
+  TiptapVideo,
+  Callout,
 ] as any;
 
 export function jsonToHtml(tiptapJson: JSONContent) {

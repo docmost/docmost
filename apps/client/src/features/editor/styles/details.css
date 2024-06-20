@@ -1,0 +1,77 @@
+.ProseMirror {
+  [data-type="details"] {
+    display: flex;
+    padding: 0.5em;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: border 0.3s;
+    width: 100%;
+
+    &:hover {
+      border: 1px solid
+        light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-7));
+
+      [data-type="detailsSummary"] {}
+    }
+
+    [data-type="detailsButton"] {
+      display: flex;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      background: transparent;
+
+      .ProseMirror-icon {
+        width: 2em;
+        height: 2em;
+        transform: rotateZ(0deg);
+        transition: transform 0.3s;
+      }
+
+      > div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+
+        &:hover,
+        &.active {
+          color: light-dark(
+            var(--mantine-color-gray-8),
+            var(--mantine-color-gray-0)
+          );
+          background: light-dark(
+            var(--mantine-color-gray-1),
+            var(--mantine-color-gray-8)
+          );
+        }
+      }
+    }
+
+    [data-type="detailsContainer"] {
+      flex: 1;
+      margin-left: 0.2em;
+      overflow-x: hidden;
+      word-break: break-word;
+      overflow-wrap: break-word;
+
+      [data-type="detailsContent"] {
+        display: none;
+      }
+    }
+
+    &[open] {
+      [data-type="detailsButton"] {
+        .ProseMirror-icon {
+          transform: rotateZ(90deg);
+        }
+      }
+
+      [data-type="detailsContainer"] {
+        [data-type="detailsContent"] {
+          display: block;
+        }
+      }
+    }
+  }
+}

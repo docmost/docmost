@@ -24,6 +24,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom } from "jotai";
 import { v4 as uuidv4 } from "uuid";
+import { isCellSelection } from "@docmost/editor-ext";
 
 export interface BubbleMenuItem {
   name: string;
@@ -103,6 +104,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         editor.isActive("image") ||
         empty ||
         isNodeSelection(selection) ||
+        isCellSelection(selection) ||
         showCommentPopupRef?.current
       ) {
         return false;

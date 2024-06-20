@@ -1,5 +1,12 @@
-@import './core';
-@import './collaboration';
-@import './task-list';
-@import './placeholder';
-@import './drag-handle';
+@import "./core.css";
+@import "./collaboration.css";
+@import "./task-list.css";
+@import "./placeholder.css";
+@import "./drag-handle.css";
+@import "./details.css";
+@import "./table.css";
+@import "./youtube.css";
+@import "./media.css";
+@import "./code.css";
+
+

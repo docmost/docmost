@@ -9,11 +9,7 @@ import {
 } from '../attachment.utils';
 import { v4 as uuid4 } from 'uuid';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import {
-  AttachmentType,
-  validFileExtensions,
-  validImageExtensions,
-} from '../attachment.constants';
+import { AttachmentType, validImageExtensions } from '../attachment.constants';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Attachment } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -34,31 +30,36 @@ export class AttachmentService {
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
-  async uploadFile(
-    filePromise: Promise<MultipartFile>,
-    pageId: string,
-    userId: string,
-    workspaceId: string,
-  ) {
+  async uploadFile(opts: {
+    filePromise: Promise<MultipartFile>;
+    pageId: string;
+    userId: string;
+    spaceId: string;
+    workspaceId: string;
+  }) {
+    const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise);
-    validateFileType(preparedFile.fileExtension, validFileExtensions);
 
-    const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${preparedFile.fileName}`;
+    const attachmentId = uuid4();
+    const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     await this.uploadToDrive(filePath, preparedFile.buffer);
 
     let attachment: Attachment = null;
     try {
       attachment = await this.saveAttachment({
+        attachmentId,
         preparedFile,
         filePath,
         type: AttachmentType.File,
         userId,
+        spaceId,
         workspaceId,
         pageId,
       });
     } catch (err) {
       // delete uploaded file on error
+      console.error(err);
     }
 
     return attachment;
@@ -175,6 +176,7 @@ export class AttachmentService {
   }
 
   async saveAttachment(opts: {
+    attachmentId?: string;
     preparedFile: PreparedFile;
     filePath: string;
     type: AttachmentType;
@@ -185,6 +187,7 @@ export class AttachmentService {
     trx?: KyselyTransaction;
   }): Promise<Attachment> {
     const {
+      attachmentId,
       preparedFile,
       filePath,
       type,
@@ -196,6 +199,7 @@ export class AttachmentService {
     } = opts;
     return this.attachmentRepo.insertAttachment(
       {
+        id: attachmentId,
         type: type,
         filePath: filePath,
         fileName: preparedFile.fileName,

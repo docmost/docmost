@@ -24,6 +24,7 @@ import { InviteSignUpForm } from "@/features/auth/components/invite-sign-up-form
 import SpaceHome from "@/pages/space/space-home.tsx";
 import PageRedirect from "@/pages/page/page-redirect.tsx";
 import Layout from "@/components/layouts/global/layout.tsx";
+import { ErrorBoundary } from "react-error-boundary";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
@@ -70,7 +71,16 @@ export default function App() {
           <Route path={"/home"} element={<Home />} />
 
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
-          <Route path={"/s/:spaceSlug/p/:pageSlug"} element={<Page />} />
+          <Route
+            path={"/s/:spaceSlug/p/:pageSlug"}
+            element={
+              <ErrorBoundary
+                fallback={<>Failed to load page. An error occurred.</>}
+              >
+                <Page />
+              </ErrorBoundary>
+            }
+          />
 
           <Route path={"/settings"}>
             <Route path={"account/profile"} element={<AccountSettings />} />

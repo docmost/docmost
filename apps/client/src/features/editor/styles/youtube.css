@@ -1,0 +1,21 @@
+.ProseMirror {
+    div[data-youtube-video] {
+        cursor: move;
+
+        iframe {
+            display: block;
+            outline: 0px solid transparent;
+            border-radius: var(--mantine-radius-md);
+            width: 100%;
+        }
+
+        &.ProseMirror-selectednode iframe {
+            outline: 1px solid var(--mantine-color-blue-6);
+            transition: outline 0.15s;
+        }
+
+        &.ProseMirror-selectednode {
+            background-color: transparent;
+        }
+    }
+}

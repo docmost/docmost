@@ -1,110 +1,133 @@
 .ProseMirror {
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
-    color: light-dark(var(--mantine-color-default-color), var(--mantine-color-dark-0));
-    font-size: var(--mantine-font-size-md);
-    line-height: var(--mantine-line-height-md);
-    font-weight: 400;
-    width: 100%;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+  color: light-dark(
+    var(--mantine-color-default-color),
+    var(--mantine-color-dark-0)
+  );
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height-xl);
+  font-weight: 400;
+  width: 100%;
 
-    > * + * {
-        margin-top: 0.75em;
+ {
+    margin-top: 0.75em;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  ul,
+  ol {
+    padding: 0 1rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.1;
+  }
+
+  code {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-8)
+    );
+    color: #616161;
+  }
+
+  a {
+    color: light-dark(#207af1, #587da9);
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  blockquote {
+    padding-left: 25px;
+    padding-right: 25px;
+    border-left: 2px solid var(--mantine-color-gray-6);
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-8)
+    );
+    margin: 0;
+  }
+
+  hr {
+    border: none;
+    border-top: 2px solid #ced4da;
+    margin: 2rem 0;
+
+    &:hover {
+      cursor: pointer;
     }
+  }
 
-    &:focus {
-        outline: none;
+  hr.ProseMirror-selectednode {
+    border-top: 1px solid #68cef8;
+  }
+
+  .ProseMirror-selectednode {
+    outline: 2px solid #70cff8;
+  }
+
+  .node-mathInline {
+    .katex-display {
+      margin: 0;
     }
+  }
 
-    ul,
-    ol {
-        padding: 0 1rem;
-        margin-top: .25rem;
-        margin-bottom: .25rem;
-    }
+  .react-renderer {
+    &.node-callout {
+      padding-top: var(--mantine-spacing-xs);
+      padding-bottom: var(--mantine-spacing-xs);
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-        line-height: 1.1;
-    }
-
-    code {
-        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
-        color: #616161;
-    }
-
-    pre {
-        padding: var(--mantine-spacing-xs);
-        margin: var(--mantine-spacing-md) 0;
-        font-family: var(--mantine-font-family-monospace);
-        border-radius: var(--mantine-radius-sm);
-
-        @mixin light {
-            background-color: var(--mantine-color-gray-0);
-            color: var(--mantine-color-black);
-
+      div[style*="white-space: inherit;"] {
+        > :first-child {
+          margin: 0;
         }
-
-        @mixin dark {
-            background-color: var(--mantine-color-dark-8);
-            color: var(--mantine-color-white);
-        }
-
-        code {
-            color: inherit;
-            padding: 0;
-            background: none;
-            font-size: inherit;
-        }
+      }
     }
-
-    img {
-        max-width: 100%;
-        height: auto;
-    }
-
-    a {
-        color: light-dark(#207af1, #587da9);
-        font-weight: bold;
-        text-decoration: none;
-        cursor: pointer;
-
-    }
-
-    blockquote {
-        padding-left: 25px;
-        border-left: 2px solid var(--mantine-color-gray-6);
-        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
-        margin: 0;
-    }
-
-    hr {
-        border: none;
-        border-top: 2px solid #ced4da;
-        margin: 2rem 0;
-
-        &:hover {
-            cursor: pointer;
-        }
-    }
-
-    hr.ProseMirror-selectednode {
-        border-top: 1px solid #68CEF8;
-    }
-
-    .ProseMirror-selectednode {
-        outline: 2px solid #70CFF8;
-    }
+  }
 }
 
 .resize-cursor {
-    cursor: ew-resize;
-    cursor: col-resize;
+  cursor: ew-resize;
+  cursor: col-resize;
 }
 
 .comment-mark {
-    background: rgba(255, 215, 0, .14);
-    border-bottom: 2px solid rgb(166, 158, 12);
+  background: rgba(255, 215, 0, 0.14);
+  border-bottom: 2px solid rgb(166, 158, 12);
+}
+
+.ProseMirror-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  mask-image: var(--svg);
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  background-color: currentColor;
+
+  & -open {
+    --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M10 3v2H5v14h14v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm7.586 2H13V3h8v8h-2V6.414l-7 7L10.586 12z'/%3E%3C/svg%3E");
+  }
+
+  &-right-line {
+    --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12.172 12L9.343 9.173l1.415-1.414L15 12l-4.242 4.242l-1.415-1.414z'/%3E%3C/svg%3E");
+  }
+}
+
+.actionIconGroup {
+  background: var(--mantine-color-body);
 }

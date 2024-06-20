@@ -22,7 +22,9 @@ export class DomainMiddleware implements NestMiddleware {
         return next();
       }
 
+      // TODO: unify
       (req as any).workspaceId = workspace.id;
+      (req as any).workspace = workspace;
     } else if (this.environmentService.isCloud()) {
       const header = req.headers.host;
       const subdomain = header.split('.')[0];
@@ -34,6 +36,7 @@ export class DomainMiddleware implements NestMiddleware {
       }
 
       (req as any).workspaceId = workspace.id;
+      (req as any).workspace = workspace;
     }
 
     next();

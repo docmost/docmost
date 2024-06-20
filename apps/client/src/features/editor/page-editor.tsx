@@ -1,5 +1,11 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
@@ -21,6 +27,14 @@ import {
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import EditorSkeleton from "@/features/editor/components/editor-skeleton";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
+import TableMenu from "@/features/editor/components/table/table-menu.tsx";
+import { handleMediaDrop, handleMediaPaste } from "@docmost/editor-ext";
+import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
+import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
+import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
+import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
+import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -39,6 +53,7 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const documentName = `page.${pageId}`;
+  const menuContainerRef = useRef(null);
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -97,11 +112,20 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
             }
           },
         },
+        handlePaste: (view, event) => {
+          handleMediaPaste(view, event, uploadImageAction, pageId);
+          handleMediaPaste(view, event, uploadVideoAction, pageId);
+        },
+        handleDrop: (view, event, _slice, moved) => {
+          handleMediaDrop(view, event, moved, uploadImageAction, pageId);
+          handleMediaDrop(view, event, moved, uploadVideoAction, pageId);
+        },
       },
       onCreate({ editor }) {
         if (editor) {
           // @ts-ignore
           setEditor(editor);
+          editor.storage.pageId = pageId;
         }
       },
     },
@@ -139,12 +163,17 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
   return isSynced ? (
     <div>
       {isSynced && (
-        <div>
+        <div ref={menuContainerRef}>
           <EditorContent editor={editor} />
 
           {editor && editor.isEditable && (
             <div>
               <EditorBubbleMenu editor={editor} />
+              <TableMenu editor={editor} />
+              <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+              <ImageMenu editor={editor} />
+              <VideoMenu editor={editor} />
+              <CalloutMenu editor={editor} />
             </div>
           )}
 

@@ -3,7 +3,14 @@ import {
   SlashMenuGroupedItemsType,
   SlashMenuItemType,
 } from "@/features/editor/components/slash-menu/types";
-import { Group, Paper, ScrollArea, Text, UnstyledButton } from "@mantine/core";
+import {
+  ActionIcon,
+  Group,
+  Paper,
+  ScrollArea,
+  Text,
+  UnstyledButton,
+} from "@mantine/core";
 import classes from "./slash-menu.module.css";
 import clsx from "clsx";
 
@@ -78,7 +85,7 @@ const CommandList = ({
 
   return flatItems.length > 0 ? (
     <Paper id="slash-command" shadow="md" p="xs" withBorder>
-      <ScrollArea viewportRef={viewportRef} h={350} w={250} scrollbarSize={5}>
+      <ScrollArea viewportRef={viewportRef} h={350} w={270} scrollbarSize={8}>
         {Object.entries(items).map(([category, categoryItems]) => (
           <div key={category}>
             <Text c="dimmed" mb={4} fw={500} tt="capitalize">
@@ -94,7 +101,13 @@ const CommandList = ({
                 })}
               >
                 <Group>
-                  <item.icon size={16} />
+                  <ActionIcon
+                    variant="default"
+                    component="div"
+                    aria-label={item.title}
+                  >
+                    <item.icon size={18} />
+                  </ActionIcon>
 
                   <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>

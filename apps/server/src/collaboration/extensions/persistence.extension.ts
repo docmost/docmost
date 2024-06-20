@@ -77,7 +77,13 @@ export class PersistenceExtension implements Extension {
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
 
-    const textContent = jsonToText(tiptapJson);
+    let textContent = null;
+
+    try {
+      textContent = jsonToText(tiptapJson);
+    } catch (err) {
+      this.logger.warn('jsonToText' + err?.['message']);
+    }
 
     try {
       let page = null;

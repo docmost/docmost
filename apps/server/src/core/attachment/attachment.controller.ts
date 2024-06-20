@@ -43,8 +43,12 @@ import {
   WorkspaceCaslSubject,
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { Public } from '../../common/decorators/public.decorator';
+import { validate as isValidUUID } from 'uuid';
 
-@Controller('attachments')
+@Controller()
 export class AttachmentController {
   private readonly logger = new Logger(AttachmentController.name);
 
@@ -53,11 +57,13 @@ export class AttachmentController {
     private readonly storageService: StorageService,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageRepo: PageRepo,
+    private readonly attachmentRepo: AttachmentRepo,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('upload-file')
+  @Post('files/upload')
   @UseInterceptors(AttachmentInterceptor)
   async uploadFile(
     @Req() req: any,
@@ -70,9 +76,10 @@ export class AttachmentController {
     let file = null;
     try {
       file = await req.file({
-        limits: { fileSize: maxFileSize, fields: 1, files: 1 },
+        limits: { fileSize: maxFileSize, fields: 2, files: 1 },
       });
     } catch (err: any) {
+      this.logger.error(err.message);
       if (err?.statusCode === 413) {
         throw new BadRequestException(
           `File too large. Exceeds the ${MAX_FILE_SIZE} limit`,
@@ -81,42 +88,85 @@ export class AttachmentController {
     }
 
     if (!file) {
-      throw new BadRequestException('Invalid file upload');
+      throw new BadRequestException('Failed to upload file');
     }
 
-    const pageId = file.fields?.pageId.value;
+    const pageId = file.fields?.pageId?.value;
 
     if (!pageId) {
       throw new BadRequestException('PageId is required');
     }
 
+    const page = await this.pageRepo.findById(pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+    );
+    if (spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const spaceId = page.spaceId;
+
     try {
-      const fileResponse = await this.attachmentService.uploadFile(
-        file,
-        pageId,
-        user.id,
-        workspace.id,
-      );
+      const fileResponse = await this.attachmentService.uploadFile({
+        filePromise: file,
+        pageId: pageId,
+        spaceId: spaceId,
+        userId: user.id,
+        workspaceId: workspace.id,
+      });
 
       return res.send(fileResponse);
     } catch (err: any) {
+      this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }
   }
 
-  @Get('/:fileId/:fileName')
+  @Public()
+  @UseGuards(JwtAuthGuard)
+  @Get('/files/:fileId/:fileName')
   async getFile(
-    @Req() req: any,
     @Res() res: FastifyReply,
+    //@AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
     @Param('fileId') fileId: string,
     @Param('fileName') fileName?: string,
   ) {
-    // TODO
+    if (!isValidUUID(fileId)) {
+      throw new NotFoundException('Invalid file id');
+    }
+
+    const attachment = await this.attachmentRepo.findById(fileId);
+    if (attachment.workspaceId !== workspace.id) {
+      throw new NotFoundException();
+    }
+
+    if (!attachment || !attachment.pageId) {
+      throw new NotFoundException('File record not found');
+    }
+
+    try {
+      const fileStream = await this.storageService.read(attachment.filePath);
+      res.headers({
+        'Content-Type': getMimeType(attachment.filePath),
+      });
+      return res.send(fileStream);
+    } catch (err) {
+      this.logger.error(err);
+      throw new NotFoundException('File not found');
+    }
   }
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('upload-image')
+  @Post('attachments/upload-image')
   @UseInterceptors(AttachmentInterceptor)
   async uploadAvatarOrLogo(
     @Req() req: any,
@@ -198,19 +248,13 @@ export class AttachmentController {
     }
   }
 
-  @Get('/img/:attachmentType/:fileName')
+  @Get('attachments/img/:attachmentType/:fileName')
   async getLogoOrAvatar(
-    @Req() req: any,
     @Res() res: FastifyReply,
+    @AuthWorkspace() workspace: Workspace,
     @Param('attachmentType') attachmentType: AttachmentType,
     @Param('fileName') fileName?: string,
   ) {
-    const workspaceId = req.raw?.workspaceId;
-
-    if (!workspaceId) {
-      throw new BadRequestException('Invalid workspace');
-    }
-
     if (
       !validAttachmentTypes.includes(attachmentType) ||
       attachmentType === AttachmentType.File
@@ -218,12 +262,12 @@ export class AttachmentController {
       throw new BadRequestException('Invalid image attachment type');
     }
 
-    const buildFilePath = `${getAttachmentFolderPath(attachmentType, workspaceId)}/${fileName}`;
+    const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;
 
     try {
-      const fileStream = await this.storageService.read(buildFilePath);
+      const fileStream = await this.storageService.read(filePath);
       res.headers({
-        'Content-Type': getMimeType(buildFilePath),
+        'Content-Type': getMimeType(filePath),
       });
       return res.send(fileStream);
     } catch (err) {

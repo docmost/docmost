@@ -42,7 +42,7 @@ export default function Page() {
     page && (
       <div>
         <Helmet>
-          <title>{`${page?.icon || ""}  ${page.title || "untitled"}`}</title>
+          <title>{`${page?.icon || ""}  ${page?.title || "untitled"}`}</title>
         </Helmet>
 
         <PageHeader
