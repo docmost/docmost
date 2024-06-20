@@ -16,6 +16,7 @@ async function bootstrap() {
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
+      maxParamLength: 500,
     }),
     {
       logger: new InternalLogFilter(),
