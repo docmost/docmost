@@ -15,10 +15,10 @@
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
-    "@hocuspocus/extension-redis": "^2.13.0",
-    "@hocuspocus/provider": "^2.13.0",
-    "@hocuspocus/server": "^2.13.0",
-    "@hocuspocus/transformer": "^2.13.0",
+    "@hocuspocus/extension-redis": "^2.13.2",
+    "@hocuspocus/provider": "^2.13.2",
+    "@hocuspocus/server": "^2.13.2",
+    "@hocuspocus/transformer": "^2.13.2",
     "@sindresorhus/slugify": "^2.2.1",
     "@tiptap/core": "^2.4.0",
     "@tiptap/extension-code-block": "^2.4.0",
@@ -57,13 +57,15 @@
     "cross-env": "^7.0.3",
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",
+    "uuid": "^10.0.0",
     "y-indexeddb": "^9.0.12",
-    "yjs": "^13.6.15"
+    "yjs": "^13.6.18"
   },
   "devDependencies": {
-    "@nx/js": "19.1.2",
-    "nx": "19.1.2",
-    "tsx": "^4.11.2"
+    "@nx/js": "19.3.1",
+    "@types/uuid": "^10.0.0",
+    "nx": "19.3.1",
+    "tsx": "^4.15.7"
   },
   "workspaces": {
     "packages": [

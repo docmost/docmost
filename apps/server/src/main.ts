@@ -30,7 +30,7 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.register(fastifyMultipart);
+  await app.register(fastifyMultipart as any);
 
   app
     .getHttpAdapter()

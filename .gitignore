@@ -35,5 +35,6 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
+.nx
 .nx/installation
 .nx/cache
