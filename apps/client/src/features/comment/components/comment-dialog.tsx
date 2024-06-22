@@ -13,6 +13,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { useCreateCommentMutation } from "@/features/comment/queries/comment-query";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { useEditor } from "@tiptap/react";
+import { UserAvatar } from "@/components/ui/user-avatar.tsx";
 
 interface CommentDialogProps {
   editor: ReturnType<typeof useEditor>;
@@ -93,9 +94,12 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
     >
       <Stack gap={2}>
         <Group>
-          <Avatar size="sm" color="blue">
-            {currentUser.user.name.charAt(0)}
-          </Avatar>
+          <UserAvatar
+            color="blue"
+            size="sm"
+            avatarUrl={currentUser.user.avatarUrl}
+            name={currentUser.user.name}
+          />
           <div style={{ flex: 1 }}>
             <Group justify="space-between" wrap="nowrap">
               <Text size="sm" fw={500} lineClamp={1}>

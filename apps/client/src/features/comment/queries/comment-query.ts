@@ -45,7 +45,7 @@ export function useCreateCommentMutation() {
       //queryClient.setQueryData(RQ_KEY(data.pageId), comments);
       //}
 
-      queryClient.invalidateQueries({ queryKey: RQ_KEY(data.pageId) });
+      queryClient.refetchQueries({ queryKey: RQ_KEY(data.pageId) });
       notifications.show({ message: "Comment created successfully" });
     },
     onError: (error) => {

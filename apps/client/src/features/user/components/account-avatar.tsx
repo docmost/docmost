@@ -13,29 +13,26 @@ export default function AccountAvatar() {
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleFileChange = async (selectedFile: File) => {
     if (!selectedFile) {
       return;
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
     setFile(selectedFile);
-    setPreviewUrl(URL.createObjectURL(selectedFile));
-
     try {
       setIsLoading(true);
-      await uploadAvatar(selectedFile);
+      const avatar = await uploadAvatar(selectedFile);
+
+      setUser((prev) => ({ ...prev, avatarUrl: avatar.fileName }));
     } catch (err) {
       console.log(err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  console.log(currentUser?.user.avatarUrl);
 
   return (
     <>
@@ -47,8 +44,8 @@ export default function AccountAvatar() {
               component="button"
               radius="xl"
               size="60px"
-              avatarUrl={previewUrl || currentUser.user.avatarUrl}
-              name={currentUser.user.name}
+              avatarUrl={currentUser?.user.avatarUrl}
+              name={currentUser?.user.name}
               style={{ cursor: "pointer" }}
             />
           </Tooltip>
