@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  login,
-  register,
-  setupWorkspace,
-} from "@/features/auth/services/auth-service";
+import { login, setupWorkspace } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
@@ -38,25 +34,6 @@ export default function useAuth() {
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       console.log(err);
-      setIsLoading(false);
-      notifications.show({
-        message: err.response?.data.message,
-        color: "red",
-      });
-    }
-  };
-
-  const handleSignUp = async (data: IRegister) => {
-    setIsLoading(true);
-
-    try {
-      const res = await register(data);
-      setIsLoading(false);
-
-      setAuthToken(res.tokens);
-
-      navigate(APP_ROUTE.HOME);
-    } catch (err) {
       setIsLoading(false);
       notifications.show({
         message: err.response?.data.message,
@@ -135,7 +112,6 @@ export default function useAuth() {
 
   return {
     signIn: handleSignIn,
-    signUp: handleSignUp,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,

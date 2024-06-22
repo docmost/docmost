@@ -12,10 +12,11 @@ export async function login(data: ILogin): Promise<ITokenResponse> {
   return req.data;
 }
 
+/*
 export async function register(data: IRegister): Promise<ITokenResponse> {
   const req = await api.post<ITokenResponse>("/auth/register", data);
   return req.data;
-}
+}*/
 
 export async function changePassword(
   data: IChangePassword,

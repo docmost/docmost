@@ -1,16 +1,24 @@
-import { SignUpForm } from "@/features/auth/components/sign-up-form";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { SetupWorkspaceForm } from "@/features/auth/components/setup-workspace-form.tsx";
 import { Helmet } from "react-helmet-async";
-import React from "react";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function SignUpPage() {
+export default function SetupWorkspace() {
   const {
     data: workspace,
     isLoading,
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !isError && workspace) {
+      navigate("/");
+    }
+  }, [isLoading, isError, workspace]);
 
   if (isLoading) {
     return <div></div>;
@@ -31,12 +39,5 @@ export default function SignUpPage() {
     );
   }
 
-  return workspace ? (
-    <>
-      <Helmet>
-        <title>Signup</title>
-      </Helmet>
-      <SignUpForm />
-    </>
-  ) : null;
+  return null;
 }

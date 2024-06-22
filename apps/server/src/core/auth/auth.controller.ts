@@ -33,11 +33,12 @@ export class AuthController {
     return this.authService.login(loginInput, req.raw.workspaceId);
   }
 
-  @HttpCode(HttpStatus.OK)
+  /* @HttpCode(HttpStatus.OK)
   @Post('register')
   async register(@Req() req, @Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto, req.raw.workspaceId);
   }
+  */
 
   @UseGuards(SetupGuard)
   @HttpCode(HttpStatus.OK)

@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Welcome } from "@/pages/welcome";
-import SignUpPage from "@/pages/auth/signup";
+import SetupWorkspace from "@/pages/auth/setup-workspace.tsx";
 import LoginPage from "@/pages/auth/login";
 import Home from "@/pages/dashboard/home";
 import Page from "@/pages/page/page";
@@ -20,11 +19,11 @@ import { io } from "socket.io-client";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
 import { SOCKET_URL } from "@/features/websocket/types";
 import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
-import { InviteSignUpForm } from "@/features/auth/components/invite-sign-up-form.tsx";
 import SpaceHome from "@/pages/space/space-home.tsx";
 import PageRedirect from "@/pages/page/page-redirect.tsx";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { ErrorBoundary } from "react-error-boundary";
+import InviteSignup from "@/pages/auth/invite-signup.tsx";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
@@ -62,8 +61,8 @@ export default function App() {
       <Routes>
         <Route index element={<Navigate to="/home" />} />
         <Route path={"/login"} element={<LoginPage />} />
-        <Route path={"/signup"} element={<SignUpPage />} />
-        <Route path={"/invites/:invitationId"} element={<InviteSignUpForm />} />
+        <Route path={"/installation/setup"} element={<SetupWorkspace />} />
+        <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
 

@@ -21,7 +21,7 @@ import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { TokenService } from '../../auth/services/token.service';
-import { nanoIdGen } from '../../../common/helpers/nanoid.utils';
+import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { TokensDto } from '../../auth/dto/tokens.dto';
@@ -179,6 +179,7 @@ export class WorkspaceInvitationService {
             role: invitation.role,
             lastLoginAt: new Date(),
             invitedById: invitation.invitedById,
+            emailVerifiedAt: new Date(),
           })
           .returningAll()
           .executeTakeFirst();

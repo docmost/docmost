@@ -29,7 +29,9 @@ export function InviteSignUpForm() {
   const params = useParams();
   const [searchParams] = useSearchParams();
 
-  const { data: invitation } = useGetInvitationQuery(params?.invitationId);
+  const { data: invitation, isError } = useGetInvitationQuery(
+    params?.invitationId,
+  );
   const { invitationSignup, isLoading } = useAuth();
   useRedirectIfAuthenticated();
 
@@ -50,6 +52,10 @@ export function InviteSignUpForm() {
       password: data.password,
       token: invitationToken,
     });
+  }
+
+  if (isError) {
+    return <div>invalid invitation link</div>;
   }
 
   if (!invitation) {

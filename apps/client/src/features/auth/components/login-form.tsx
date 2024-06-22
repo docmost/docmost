@@ -71,13 +71,6 @@ export function LoginForm() {
             Sign In
           </Button>
         </form>
-
-        <Text c="dimmed" size="sm" ta="center" mt="sm">
-          Don't have an account yet?{" "}
-          <Anchor size="sm" component={Link} to="/signup">
-            Create account
-          </Anchor>
-        </Text>
       </Box>
     </Container>
   );

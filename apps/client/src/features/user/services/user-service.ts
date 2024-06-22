@@ -1,6 +1,5 @@
 import api from "@/lib/api-client";
 import { ICurrentUser, IUser } from "@/features/user/types/user.types";
-import { IAttachment } from "@/lib/types.ts";
 
 export async function getMyInfo(): Promise<ICurrentUser> {
   const req = await api.post<ICurrentUser>("/users/me");
@@ -22,6 +21,5 @@ export async function uploadAvatar(file: File): Promise<any> {
       "Content-Type": "multipart/form-data",
     },
   });
-  console.log(req);
   return req;
 }
