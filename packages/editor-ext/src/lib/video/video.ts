@@ -28,8 +28,6 @@ declare module "@tiptap/core" {
   }
 }
 
-const VIDEO_INPUT_REGEX = /!\[(.+|:?)]\((\S+)(?:(?:\s+)["'](\S+)["'])?\)/;
-
 export const TiptapVideo = Node.create<VideoOptions>({
   name: "video",
 
@@ -123,23 +121,10 @@ export const TiptapVideo = Node.create<VideoOptions>({
     return ReactNodeViewRenderer(this.options.view);
   },
 
-  addInputRules() {
-    return [
-      nodeInputRule({
-        find: VIDEO_INPUT_REGEX,
-        type: this.type,
-        getAttributes: (match) => {
-          const [, , src] = match;
-          return { src };
-        },
-      }),
-    ];
-  },
-
   addProseMirrorPlugins() {
     return [
       VideoUploadPlugin({
-        placeHolderClass: "video-upload",
+        placeholderClass: "video-upload",
       }),
     ];
   },

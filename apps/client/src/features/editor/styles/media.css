@@ -5,6 +5,9 @@
   }
 
   .node-image, .node-video {
+    margin-top: 8px;
+    margin-bottom: 8px;
+
     &.ProseMirror-selectednode {
       outline: none;
     }

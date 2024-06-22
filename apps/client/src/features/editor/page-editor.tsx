@@ -29,12 +29,15 @@ import EditorSkeleton from "@/features/editor/components/editor-skeleton";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
-import { handleMediaDrop, handleMediaPaste } from "@docmost/editor-ext";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import {
+  handleFileDrop,
+  handleFilePaste,
+} from "@/features/editor/components/common/file-upload-handler.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -112,14 +115,9 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
             }
           },
         },
-        handlePaste: (view, event) => {
-          handleMediaPaste(view, event, uploadImageAction, pageId);
-          handleMediaPaste(view, event, uploadVideoAction, pageId);
-        },
-        handleDrop: (view, event, _slice, moved) => {
-          handleMediaDrop(view, event, moved, uploadImageAction, pageId);
-          handleMediaDrop(view, event, moved, uploadVideoAction, pageId);
-        },
+        handlePaste: (view, event) => handleFilePaste(view, event, pageId),
+        handleDrop: (view, event, _slice, moved) =>
+          handleFileDrop(view, event, moved, pageId),
       },
       onCreate({ editor }) {
         if (editor) {

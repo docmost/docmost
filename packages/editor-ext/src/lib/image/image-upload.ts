@@ -6,9 +6,9 @@ import { MediaUploadOptions, UploadFn } from "../media-utils";
 const uploadKey = new PluginKey("image-upload");
 
 export const ImageUploadPlugin = ({
-  placeHolderClass,
+  placeholderClass,
 }: {
-  placeHolderClass: string;
+  placeholderClass: string;
 }) =>
   new Plugin({
     key: uploadKey,
@@ -27,7 +27,7 @@ export const ImageUploadPlugin = ({
           const placeholder = document.createElement("div");
           placeholder.setAttribute("class", "img-placeholder");
           const image = document.createElement("img");
-          image.setAttribute("class", placeHolderClass);
+          image.setAttribute("class", placeholderClass);
           image.src = src;
           placeholder.appendChild(image);
           const deco = Decoration.widget(pos + 1, placeholder, {

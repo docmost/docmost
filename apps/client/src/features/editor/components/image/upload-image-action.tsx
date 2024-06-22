@@ -4,7 +4,6 @@ import { uploadFile } from "@/features/page/services/page-service.ts";
 export const uploadImageAction = handleImageUpload({
   onUpload: async (file: File, pageId: string): Promise<any> => {
     try {
-      console.log("dont upload");
       return await uploadFile(file, pageId);
     } catch (err) {
       console.error("failed to upload image", err);

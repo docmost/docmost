@@ -1,7 +1,7 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { useMemo } from "react";
 import { Image } from "@mantine/core";
-import { getBackendUrl } from "@/lib/config.ts";
+import { getFileUrl } from "@/lib/config.ts";
 
 export default function ImageView(props: NodeViewProps) {
   const { node, selected } = props;
@@ -23,9 +23,9 @@ export default function ImageView(props: NodeViewProps) {
     >
       <Image
         radius="md"
-        src={getBackendUrl() + src}
         fit="contain"
         w={width}
+        src={getFileUrl(src)}
         className={selected && "ProseMirror-selectednode"}
       />
     </NodeViewWrapper>

@@ -42,3 +42,7 @@ export function getAvatarUrl(avatarUrl: string) {
 export function getSpaceUrl(spaceSlug: string) {
   return "/s/" + spaceSlug;
 }
+
+export function getFileUrl(src: string) {
+  return src.startsWith("/files/") ? getBackendUrl() + src : src;
+}

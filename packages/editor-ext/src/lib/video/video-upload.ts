@@ -6,9 +6,9 @@ import { MediaUploadOptions, UploadFn } from "../media-utils";
 const uploadKey = new PluginKey("video-upload");
 
 export const VideoUploadPlugin = ({
-  placeHolderClass,
+  placeholderClass,
 }: {
-  placeHolderClass: string;
+  placeholderClass: string;
 }) =>
   new Plugin({
     key: uploadKey,
@@ -27,7 +27,7 @@ export const VideoUploadPlugin = ({
           const placeholder = document.createElement("div");
           placeholder.setAttribute("class", "video-placeholder");
           const video = document.createElement("video");
-          video.setAttribute("class", placeHolderClass);
+          video.setAttribute("class", placeholderClass);
           video.src = src;
           placeholder.appendChild(video);
           const deco = Decoration.widget(pos + 1, placeholder, {

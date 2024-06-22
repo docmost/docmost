@@ -1,6 +1,6 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { useMemo } from "react";
-import { getBackendUrl } from "@/lib/config.ts";
+import { getFileUrl } from "@/lib/config.ts";
 
 export default function VideoView(props: NodeViewProps) {
   const { node, selected } = props;
@@ -24,7 +24,7 @@ export default function VideoView(props: NodeViewProps) {
         preload="metadata"
         width={width}
         controls
-        src={getBackendUrl() + src}
+        src={getFileUrl(src)}
         className={selected && "ProseMirror-selectednode"}
       />
     </NodeViewWrapper>
