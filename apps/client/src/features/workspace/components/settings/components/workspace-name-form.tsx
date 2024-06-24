@@ -58,6 +58,7 @@ export default function WorkspaceNameForm() {
         label="Name"
         placeholder="e.g ACME"
         variant="filled"
+        readOnly={!isAdmin}
         {...form.getInputProps("name")}
       />
 

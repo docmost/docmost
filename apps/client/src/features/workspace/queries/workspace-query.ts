@@ -82,7 +82,7 @@ export function useCreateInvitationMutation() {
     onSuccess: (data, variables) => {
       notifications.show({ message: "Invitation sent" });
       // TODO: mutate cache
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ["invitations"],
       });
     },

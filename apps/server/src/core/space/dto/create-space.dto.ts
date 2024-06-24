@@ -2,7 +2,7 @@ import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSpaceDto {
   @MinLength(2)
-  @MaxLength(64)
+  @MaxLength(50)
   @IsString()
   name: string;
 
@@ -11,7 +11,7 @@ export class CreateSpaceDto {
   description?: string;
 
   @MinLength(2)
-  @MaxLength(64)
+  @MaxLength(50)
   @IsString()
   slug: string;
 }

@@ -64,7 +64,7 @@ export default function RecentChanges({ spaceId }: Props) {
     </Table>
   ) : (
     <Text size="md" ta="center">
-      No records to show
+      No pages yet
     </Text>
   );
 }

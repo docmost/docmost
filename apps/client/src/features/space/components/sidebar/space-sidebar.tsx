@@ -59,7 +59,6 @@ export function SpaceSidebar() {
           className={classes.section}
           style={{
             border: "none",
-            paddingTop: "8px",
             marginBottom: "0",
           }}
         >
@@ -109,6 +108,25 @@ export function SpaceSidebar() {
                 <span>Space settings</span>
               </div>
             </UnstyledButton>
+
+            {spaceAbility.can(
+              SpaceCaslAction.Manage,
+              SpaceCaslSubject.Page,
+            ) && (
+              <UnstyledButton
+                className={classes.menu}
+                onClick={handleCreatePage}
+              >
+                <div className={classes.menuItemInner}>
+                  <IconPlus
+                    size={18}
+                    className={classes.menuItemIcon}
+                    stroke={2}
+                  />
+                  <span>New page</span>
+                </div>
+              </UnstyledButton>
+            )}
           </div>
         </div>
 

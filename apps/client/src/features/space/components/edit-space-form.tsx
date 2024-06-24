@@ -54,7 +54,16 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
               label="Name"
               placeholder="e.g Sales"
               variant="filled"
+              readOnly={readOnly}
               {...form.getInputProps("name")}
+            />
+
+            <TextInput
+              id="slug"
+              label="Slug"
+              variant="filled"
+              readOnly
+              value={space.slug}
             />
 
             <Textarea
@@ -62,6 +71,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
               label="Description"
               placeholder="e.g Space for sales team to collaborate"
               variant="filled"
+              readOnly={readOnly}
               autosize
               minRows={1}
               maxRows={3}

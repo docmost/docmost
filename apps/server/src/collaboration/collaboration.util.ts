@@ -3,7 +3,6 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Underline } from '@tiptap/extension-underline';
-import { Link } from '@tiptap/extension-link';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -17,6 +16,7 @@ import {
   Details,
   DetailsContent,
   DetailsSummary,
+  LinkExtension,
   MathBlock,
   MathInline,
   Table,
@@ -37,7 +37,7 @@ export const tiptapExtensions = [
   TaskList,
   TaskItem,
   Underline,
-  Link,
+  LinkExtension,
   Superscript,
   SubScript,
   Highlight,

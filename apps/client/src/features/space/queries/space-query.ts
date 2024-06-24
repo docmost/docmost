@@ -18,6 +18,7 @@ import {
   getSpaceMembers,
   getSpaces,
   removeSpaceMember,
+  createSpace,
   updateSpace,
 } from "@/features/space/services/space-service.ts";
 import { notifications } from "@mantine/notifications";
@@ -35,10 +36,28 @@ export function useGetSpacesQuery(): UseQueryResult<
 
 export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   return useQuery({
-    queryKey: ["space", spaceId],
+    queryKey: ["spaces", spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateSpaceMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ISpace, Error, Partial<ISpace>>({
+    mutationFn: (data) => createSpace(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["spaces"],
+      });
+      notifications.show({ message: "Space created successfully" });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }
 
@@ -46,7 +65,7 @@ export function useGetSpaceBySlugQuery(
   spaceId: string,
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
-    queryKey: ["space", spaceId],
+    queryKey: ["spaces", spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
@@ -103,11 +122,9 @@ export function useAddSpaceMemberMutation() {
         queryKey: ["spaceMembers", variables.spaceId],
       });
     },
-    onError: () => {
-      notifications.show({
-        message: "Failed to add space members",
-        color: "red",
-      });
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
     },
   });
 }

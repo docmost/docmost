@@ -33,7 +33,7 @@ export class SpaceRepo {
     if (isValidUUID(spaceId)) {
       query = query.where('id', '=', spaceId);
     } else {
-      query = query.where('slug', '=', spaceId);
+      query = query.where(sql`LOWER(slug)`, '=', sql`LOWER(${spaceId})`);
     }
     return query.executeTakeFirst();
   }

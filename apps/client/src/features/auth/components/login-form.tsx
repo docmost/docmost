@@ -1,22 +1,17 @@
 import * as React from "react";
 import * as z from "zod";
-
 import { useForm, zodResolver } from "@mantine/form";
 import useAuth from "@/features/auth/hooks/use-auth";
 import { ILogin } from "@/features/auth/types/auth.types";
 import {
   Container,
   Title,
-  Anchor,
   TextInput,
   Button,
-  Text,
   PasswordInput,
   Box,
 } from "@mantine/core";
-import { Link, useNavigate } from "react-router-dom";
 import classes from "./auth.module.css";
-import { useEffect, useState } from "react";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 
 const formSchema = z.object({

@@ -6,14 +6,54 @@ import {
 import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Space } from '@docmost/db/types/entity.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { Space, User } from '@docmost/db/types/entity.types';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
+import { executeTx } from '@docmost/db/utils';
+import { InjectKysely } from 'nestjs-kysely';
+import { SpaceMemberService } from './space-member.service';
+import { SpaceRole } from '../../../common/helpers/types/permission';
 
 @Injectable()
 export class SpaceService {
-  constructor(private spaceRepo: SpaceRepo) {}
+  constructor(
+    private spaceRepo: SpaceRepo,
+    private spaceMemberService: SpaceMemberService,
+    @InjectKysely() private readonly db: KyselyDB,
+  ) {}
+
+  async createSpace(
+    authUser: User,
+    workspaceId: string,
+    createSpaceDto: CreateSpaceDto,
+    trx?: KyselyTransaction,
+  ): Promise<Space> {
+    let space = null;
+
+    await executeTx(
+      this.db,
+      async (trx) => {
+        space = await this.create(
+          authUser.id,
+          workspaceId,
+          createSpaceDto,
+          trx,
+        );
+
+        await this.spaceMemberService.addUserToSpace(
+          authUser.id,
+          space.id,
+          SpaceRole.ADMIN,
+          workspaceId,
+          trx,
+        );
+      },
+      trx,
+    );
+
+    return { ...space, memberCount: 1 };
+  }
 
   async create(
     userId: string,
@@ -28,7 +68,7 @@ export class SpaceService {
     );
     if (slugExists) {
       throw new BadRequestException(
-        'Slug exists. Please use a unique space slug',
+        'Space slug exists. Please use a unique space slug',
       );
     }
 

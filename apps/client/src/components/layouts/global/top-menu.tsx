@@ -29,10 +29,11 @@ export default function TopMenu() {
       <Menu.Target>
         <UnstyledButton>
           <Group gap={7} wrap={"nowrap"}>
-            <Avatar
-              src={workspace.logo}
-              alt={workspace.name}
+            <UserAvatar
+              avatarUrl={workspace.logo}
+              name={workspace.name}
               radius="xl"
+              color="blue"
               size={20}
             />
             <Text fw={500} size="sm" lh={1} mr={3}>

@@ -28,6 +28,12 @@ import {
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import {
+  WorkspaceCaslAction,
+  WorkspaceCaslSubject,
+} from '../casl/interfaces/workspace-ability.type';
+import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
+import { CreateSpaceDto } from './dto/create-space.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -37,6 +43,7 @@ export class SpaceController {
     private readonly spaceMemberService: SpaceMemberService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly workspaceAbility: WorkspaceAbilityFactory,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -84,6 +91,22 @@ export class SpaceController {
     };
 
     return { ...space, membership };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('create')
+  createGroup(
+    @Body() createSpaceDto: CreateSpaceDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Space)
+    ) {
+      throw new ForbiddenException();
+    }
+    return this.spaceService.createSpace(user, workspace.id, createSpaceDto);
   }
 
   @HttpCode(HttpStatus.OK)

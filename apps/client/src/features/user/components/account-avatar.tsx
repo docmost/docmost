@@ -32,8 +32,6 @@ export default function AccountAvatar() {
     }
   };
 
-  console.log(currentUser?.user.avatarUrl);
-
   return (
     <>
       <FileButton onChange={handleFileChange} accept="image/png,image/jpeg">
