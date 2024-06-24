@@ -1,7 +1,14 @@
 import { Dispatch, FC, SetStateAction } from "react";
-import { IconCheck, IconChevronDown } from "@tabler/icons-react";
-import { Button, Popover, rem, ScrollArea, Text, Tooltip } from "@mantine/core";
-import classes from "./bubble-menu.module.css";
+import { IconCheck, IconPalette } from "@tabler/icons-react";
+import {
+  ActionIcon,
+  Button,
+  Popover,
+  rem,
+  ScrollArea,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 
 export interface BubbleColorMenuItem {
@@ -110,21 +117,19 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   return (
     <Popover width={200} opened={isOpen} withArrow>
       <Popover.Target>
-        <Tooltip label="text color" withArrow>
-          <Button
+        <Tooltip label="Text color" withArrow>
+          <ActionIcon
             variant="default"
+            size="lg"
             radius="0"
-            rightSection={<IconChevronDown size={16} />}
-            className={classes.colorButton}
             style={{
+              border: "none",
               color: activeColorItem?.color,
-              paddingLeft: "8px",
-              paddingRight: "8px",
             }}
             onClick={() => setIsOpen(!isOpen)}
           >
-            A
-          </Button>
+            <IconPalette size={16} stroke={2} />
+          </ActionIcon>
         </Tooltip>
       </Popover.Target>
 

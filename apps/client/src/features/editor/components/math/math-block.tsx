@@ -30,7 +30,7 @@ export default function MathBlockView(props: NodeViewProps) {
       });
       setError(null);
     } catch (e) {
-      console.error(e.message);
+      //console.error(e.message);
       setError(e.message);
     }
   };

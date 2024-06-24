@@ -4,7 +4,7 @@ import {
   isNodeSelection,
   useEditor,
 } from "@tiptap/react";
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, memo, useEffect, useRef, useState } from "react";
 import {
   IconBold,
   IconCode,
@@ -25,6 +25,7 @@ import {
 import { useAtom } from "jotai";
 import { v4 as uuidv4 } from "uuid";
 import { isCellSelection } from "@docmost/editor-ext";
+import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 
 export interface BubbleMenuItem {
   name: string;
@@ -113,7 +114,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     },
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",
-      onHidden: () => {
+      onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
@@ -155,6 +156,14 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           ))}
         </ActionIcon.Group>
 
+        <LinkSelector
+          editor={props.editor}
+          isOpen={isLinkSelectorOpen}
+          setIsOpen={() => {
+            setIsLinkSelectorOpen(!isLinkSelectorOpen);
+          }}
+        />
+
         <ColorSelector
           editor={props.editor}
           isOpen={isColorSelectorOpen}
@@ -171,7 +180,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           style={{ border: "none" }}
           onClick={commentItem.command}
         >
-          <IconMessage style={{ width: rem(16) }} stroke={2} />
+          <IconMessage size={16} stroke={2} />
         </ActionIcon>
       </div>
     </BubbleMenu>

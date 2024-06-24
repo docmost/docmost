@@ -38,6 +38,7 @@ import {
   handleFileDrop,
   handleFilePaste,
 } from "@/features/editor/components/common/file-upload-handler.tsx";
+import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -172,6 +173,7 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
               <ImageMenu editor={editor} />
               <VideoMenu editor={editor} />
               <CalloutMenu editor={editor} />
+              <LinkMenu editor={editor} appendTo={menuContainerRef} />
             </div>
           )}
 

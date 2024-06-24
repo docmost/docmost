@@ -61,7 +61,7 @@ export default function App() {
       <Routes>
         <Route index element={<Navigate to="/home" />} />
         <Route path={"/login"} element={<LoginPage />} />
-        <Route path={"/installation/setup"} element={<SetupWorkspace />} />
+        <Route path={"/setup/register"} element={<SetupWorkspace />} />
         <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />

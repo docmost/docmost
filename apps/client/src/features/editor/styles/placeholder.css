@@ -1,24 +1,20 @@
-.ProseMirror p.is-editor-empty:first-child::before {
-    content: attr(data-placeholder);
-    float: left;
-    color: #adb5bd;
-    pointer-events: none;
-    height: 0;
-}
-
-.ProseMirror h1.is-editor-empty:first-child::before {
-    content: attr(data-placeholder);
-    float: left;
-    color: #adb5bd;
-    pointer-events: none;
-    height: 0;
-}
-
-/* Placeholder (on every new line) */
-/*.ProseMirror p.is-empty::before {
-  color: #adb5bd;
+.ProseMirror .is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  height: 0;
+  color: #adb5bd;
   pointer-events: none;
-}*/
+  height: 0;
+}
+
+.ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror table .is-editor-empty:first-child::before,
+.ProseMirror table .is-empty::before {
+  content: '';
+}

@@ -4,7 +4,7 @@
 
 .treeContainer {
     display: flex;
-    height: 60vh;
+    height: 68vh;
     flex: 1;
     min-width: 0;
 }

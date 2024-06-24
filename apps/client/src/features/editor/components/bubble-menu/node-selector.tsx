@@ -12,8 +12,7 @@ import {
   IconListNumbers,
   IconTypography,
 } from "@tabler/icons-react";
-import { Popover, Button, rem, ScrollArea } from "@mantine/core";
-import classes from "@/features/editor/components/bubble-menu/bubble-menu.module.css";
+import { Popover, Button, ScrollArea } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 
 interface NodeSelectorProps {
@@ -110,9 +109,9 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       <Popover.Target>
         <Button
           variant="default"
+          style={{ border: "none", height: "34px" }}
           radius="0"
           rightSection={<IconChevronDown size={16} />}
-          className={classes.colorButton}
           onClick={() => setIsOpen(!isOpen)}
         >
           {activeItem?.name}

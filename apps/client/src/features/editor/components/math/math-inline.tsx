@@ -24,7 +24,7 @@ export default function MathInlineView(props: NodeViewProps) {
       katex.render(katexString, container);
       setError(null);
     } catch (e) {
-      console.error(e);
+      //console.error(e);
       setError(e.message);
     }
   };

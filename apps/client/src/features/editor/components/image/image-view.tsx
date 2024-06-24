@@ -26,7 +26,7 @@ export default function ImageView(props: NodeViewProps) {
         fit="contain"
         w={width}
         src={getFileUrl(src)}
-        className={selected && "ProseMirror-selectednode"}
+        className={selected ? "ProseMirror-selectednode" : ""}
       />
     </NodeViewWrapper>
   );

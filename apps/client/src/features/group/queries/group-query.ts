@@ -29,7 +29,7 @@ export function useGetGroupsQuery(
 
 export function useGroupQuery(groupId: string): UseQueryResult<IGroup, Error> {
   return useQuery({
-    queryKey: ["group", groupId],
+    queryKey: ["groups", groupId],
     queryFn: () => getGroupById(groupId),
     enabled: !!groupId,
   });

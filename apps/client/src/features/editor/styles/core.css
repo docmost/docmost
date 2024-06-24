@@ -9,10 +9,10 @@
   );
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
-  font-weight: 400;
+  font-weight: 415;
   width: 100%;
 
- {
+  > * + * {
     margin-top: 0.75em;
   }
 
@@ -46,7 +46,7 @@
 
   a {
     color: light-dark(#207af1, #587da9);
-    font-weight: bold;
+    /*font-weight: bold;*/
     text-decoration: none;
     cursor: pointer;
   }
@@ -86,11 +86,19 @@
     }
   }
 
-  .react-renderer {
-    &.node-callout {
-      padding-top: var(--mantine-spacing-xs);
-      padding-bottom: var(--mantine-spacing-xs);
+  & > .react-renderer {
+    margin-top:  var(--mantine-spacing-xl);
+    margin-bottom: var(--mantine-spacing-xl);
 
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.node-callout {
       div[style*="white-space: inherit;"] {
         > :first-child {
           margin: 0;
@@ -98,16 +106,25 @@
       }
     }
   }
-}
 
-.resize-cursor {
-  cursor: ew-resize;
-  cursor: col-resize;
-}
+  .selection {
+    display: inline;
+  }
 
-.comment-mark {
-  background: rgba(255, 215, 0, 0.14);
-  border-bottom: 2px solid rgb(166, 158, 12);
+  .selection,
+  *::selection {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-gray-7));
+  }
+
+  .comment-mark {
+    background: rgba(255, 215, 0, 0.14);
+    border-bottom: 2px solid rgb(166, 158, 12);
+  }
+
+  .resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+  }
 }
 
 .ProseMirror-icon {

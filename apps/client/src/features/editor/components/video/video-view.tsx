@@ -25,7 +25,7 @@ export default function VideoView(props: NodeViewProps) {
         width={width}
         controls
         src={getFileUrl(src)}
-        className={selected && "ProseMirror-selectednode"}
+        className={selected ? "ProseMirror-selectednode" : ""}
       />
     </NodeViewWrapper>
   );

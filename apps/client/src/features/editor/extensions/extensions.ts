@@ -31,6 +31,8 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  LinkExtension,
+  Selection,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -57,7 +59,16 @@ export const mainExtensions = [
     codeBlock: false,
   }),
   Placeholder.configure({
-    placeholder: 'Enter "/" for commands',
+    placeholder: ({ node }) => {
+      if (node.type.name === "heading") {
+        return `Heading ${node.attrs.level}`;
+      }
+      if (node.type.name === "detailsSummary") {
+        return "Toggle title";
+      }
+      return 'Write anything. Enter "/" for commands';
+    },
+    includeChildren: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
@@ -65,7 +76,9 @@ export const mainExtensions = [
     nested: true,
   }),
   Underline,
-  Link,
+  LinkExtension.configure({
+    openOnClick: false,
+  }),
   Superscript,
   SubScript,
   Highlight.configure({
@@ -112,6 +125,7 @@ export const mainExtensions = [
   CodeBlockLowlight.configure({
     lowlight,
   }),
+  Selection,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
