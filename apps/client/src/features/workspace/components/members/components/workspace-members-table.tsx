@@ -3,7 +3,7 @@ import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
@@ -51,7 +51,7 @@ export default function WorkspaceMembersTable() {
               <Table.Tr key={index}>
                 <Table.Td>
                   <Group gap="sm">
-                    <UserAvatar avatarUrl={user.avatarUrl} name={user.name} />
+                    <CustomAvatar avatarUrl={user.avatarUrl} name={user.name} />
                     <div>
                       <Text fz="sm" fw={500}>
                         {user.name}

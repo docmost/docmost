@@ -3,7 +3,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
 import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 
 interface MultiUserSelectProps {
   onChange: (value: string[]) => void;
@@ -14,11 +14,10 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   option,
 }) => (
   <Group gap="sm">
-    <UserAvatar
+    <CustomAvatar
       avatarUrl={option?.["avatarUrl"]}
       name={option.label}
       size={36}
-      radius="xl"
     />
     <div>
       <Text size="sm">{option.label}</Text>

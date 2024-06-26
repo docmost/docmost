@@ -2,7 +2,7 @@ import { focusAtom } from "jotai-optics";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
 import { useAtom } from "jotai";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { FileButton, Tooltip } from "@mantine/core";
 import { uploadAvatar } from "@/features/user/services/user-service.ts";
 
@@ -37,10 +37,9 @@ export default function AccountAvatar() {
       <FileButton onChange={handleFileChange} accept="image/png,image/jpeg">
         {(props) => (
           <Tooltip label="Change photo" position="bottom">
-            <UserAvatar
+            <CustomAvatar
               {...props}
               component="button"
-              radius="xl"
               size="60px"
               avatarUrl={currentUser?.user.avatarUrl}
               name={currentUser?.user.name}

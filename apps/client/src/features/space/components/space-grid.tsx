@@ -20,9 +20,13 @@ export default function SpaceGrid() {
       withBorder
     >
       <Card.Section className={classes.cardSection} h={40}></Card.Section>
-      <Avatar variant="filled" size="md" mt={rem(-20)}>
-        {space.name.charAt(0).toUpperCase()}
-      </Avatar>
+      <Avatar
+        name={space.name}
+        color="initials"
+        variant="filled"
+        size="md"
+        mt={rem(-20)}
+      />
 
       <Text fz="md" fw={500} mt="xs" className={classes.title}>
         {space.name}

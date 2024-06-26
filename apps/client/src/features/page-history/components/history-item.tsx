@@ -1,5 +1,5 @@
 import { Text, Group, UnstyledButton } from "@mantine/core";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { formattedDate } from "@/lib/time";
 import classes from "./history.module.css";
 import clsx from "clsx";
@@ -25,8 +25,7 @@ function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
 
           <div style={{ flex: 1 }}>
             <Group gap={4} wrap="nowrap">
-              <UserAvatar
-                color="blue"
+              <CustomAvatar
                 size="sm"
                 avatarUrl={historyItem.lastUpdatedBy.avatarUrl}
                 name={historyItem.lastUpdatedBy.name}

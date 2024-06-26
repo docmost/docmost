@@ -3,7 +3,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
 import { IGroup } from "@/features/group/types/group.types.ts";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query.ts";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { IUser } from "@/features/user/types/user.types.ts";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
 
@@ -16,7 +16,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
 }) => (
   <Group gap="sm">
     {option["type"] === "user" && (
-      <UserAvatar
+      <CustomAvatar
         avatarUrl={option["avatarUrl"]}
         size={20}
         name={option.label}

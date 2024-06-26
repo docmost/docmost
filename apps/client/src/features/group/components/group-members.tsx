@@ -7,7 +7,7 @@ import { useParams } from "react-router-dom";
 import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function GroupMembersList() {
@@ -56,7 +56,7 @@ export default function GroupMembersList() {
               <Table.Tr key={index}>
                 <Table.Td>
                   <Group gap="sm">
-                    <UserAvatar avatarUrl={user.avatarUrl} name={user.name} />
+                    <CustomAvatar avatarUrl={user.avatarUrl} name={user.name} />
                     <div>
                       <Text fz="sm" fw={500}>
                         {user.name}

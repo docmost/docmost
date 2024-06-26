@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import {
   useChangeSpaceMemberRoleMutation,
   useRemoveSpaceMemberMutation,
@@ -109,7 +109,7 @@ export default function SpaceMembersList({
                 <Table.Td>
                   <Group gap="sm">
                     {member.type === "user" && (
-                      <UserAvatar
+                      <CustomAvatar
                         avatarUrl={member?.avatarUrl}
                         name={member.name}
                       />

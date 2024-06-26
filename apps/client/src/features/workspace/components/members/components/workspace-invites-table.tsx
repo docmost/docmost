@@ -35,7 +35,7 @@ export default function WorkspaceInvitesTable() {
                 <Table.Tr key={index}>
                   <Table.Td>
                     <Group gap="sm">
-                      <Avatar src={invitation.email} />
+                      <Avatar name={invitation.email} color="initials" />
                       <div>
                         <Text fz="sm" fw={500}>
                           {invitation.email}

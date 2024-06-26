@@ -13,7 +13,7 @@ import {
   useUpdateCommentMutation,
 } from "@/features/comment/queries/comment-query";
 import { IComment } from "@/features/comment/types/comment.types";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface CommentListItemProps {
@@ -63,8 +63,7 @@ function CommentListItem({ comment }: CommentListItemProps) {
   return (
     <Box ref={ref} pb="xs">
       <Group>
-        <UserAvatar
-          color="blue"
+        <CustomAvatar
           size="sm"
           avatarUrl={comment.creator.avatarUrl}
           name={comment.creator.name}

@@ -11,7 +11,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import useAuth from "@/features/auth/hooks/use-auth.ts";
-import { UserAvatar } from "@/components/ui/user-avatar.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 
 export default function TopMenu() {
   const [currentUser] = useAtom(currentUserAtom);
@@ -29,12 +29,11 @@ export default function TopMenu() {
       <Menu.Target>
         <UnstyledButton>
           <Group gap={7} wrap={"nowrap"}>
-            <UserAvatar
+            <CustomAvatar
               avatarUrl={workspace.logo}
               name={workspace.name}
-              radius="xl"
-              color="blue"
-              size={20}
+              variant="filled"
+              size="sm"
             />
             <Text fw={500} size="sm" lh={1} mr={3}>
               {workspace.name}
@@ -80,8 +79,7 @@ export default function TopMenu() {
         <Menu.Label>Account</Menu.Label>
         <Menu.Item component={Link} to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}>
           <Group wrap={"nowrap"}>
-            <UserAvatar
-              radius="xl"
+            <CustomAvatar
               size={"sm"}
               avatarUrl={user.avatarUrl}
               name={user.name}

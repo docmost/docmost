@@ -34,9 +34,11 @@ export default function SpaceList() {
               >
                 <Table.Td>
                   <Group gap="sm">
-                    <Avatar color="gray" radius="xl">
-                      {space.name.charAt(0).toUpperCase()}
-                    </Avatar>
+                    <Avatar
+                      color="initials"
+                      variant="filled"
+                      name={space.name}
+                    />
                     <div>
                       <Text fz="sm" fw={500}>
                         {space.name}
