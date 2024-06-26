@@ -4,7 +4,7 @@ import {
   isNodeSelection,
   useEditor,
 } from "@tiptap/react";
-import { FC, memo, useEffect, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import {
   IconBold,
   IconCode,
@@ -24,7 +24,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom } from "jotai";
 import { v4 as uuidv4 } from "uuid";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 
 export interface BubbleMenuItem {
@@ -110,7 +110,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       ) {
         return false;
       }
-      return true;
+      return isTextSelected(editor);
     },
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",

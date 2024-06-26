@@ -61,7 +61,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       updateDelay={0}
       tippyOptions={{
         getReferenceClientRect,
-        offset: [0, 2],
+        offset: [0, 10],
         placement: "bottom",
         zIndex: 99,
         popperOptions: {

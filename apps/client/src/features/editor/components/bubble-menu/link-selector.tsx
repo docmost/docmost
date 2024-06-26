@@ -4,11 +4,6 @@ import { ActionIcon, Popover, Tooltip } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 
-export interface BubbleColorMenuItem {
-  name: string;
-  color: string;
-}
-
 interface LinkSelectorProps {
   editor: ReturnType<typeof useEditor>;
   isOpen: boolean;
@@ -22,11 +17,10 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
 }) => {
   const onLink = useCallback(
     (url: string) => {
-      editor.chain().focus().setLink({ href: url }).run();
       setIsOpen(false);
-      console.log("is p[e ");
+      editor.chain().focus().setLink({ href: url }).run();
     },
-    [editor],
+    [editor, setIsOpen],
   );
 
   return (

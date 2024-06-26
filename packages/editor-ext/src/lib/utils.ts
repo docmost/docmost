@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Editor, findParentNode } from "@tiptap/core";
+import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
 import { Selection, Transaction } from "@tiptap/pm/state";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
 import { Node, ResolvedPos } from "@tiptap/pm/model";
@@ -345,15 +345,23 @@ export const isRowGripSelected = ({
   return !!gripRow;
 };
 
-export function parseAttributes(value: string) {
-  const regex = /([^=\s]+)="?([^"]+)"?/g;
-  const attrs: Record<string, string> = {};
-  let match: RegExpExecArray | null;
-  // eslint-disable-next-line no-cond-assign
-  while ((match = regex.exec(value))) {
-    attrs[match[1]] = match[2];
+export function isTextSelected(editor: Editor) {
+  const {
+    state: {
+      doc,
+      selection,
+      selection: { empty, from, to },
+    },
+  } = editor;
+
+  const isEmptyTextBlock =
+    !doc.textBetween(from, to).length && isTextSelection(selection);
+
+  if (empty || isEmptyTextBlock || !editor.isEditable) {
+    return false;
   }
-  return attrs;
+
+  return true;
 }
 
 export function setAttributes(

@@ -1,5 +1,4 @@
-import { Group } from "@mantine/core";
-import { IconSquareLetterDFilled } from "@tabler/icons-react";
+import { Group, Text } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
@@ -33,9 +32,7 @@ export function AppHeader() {
   return (
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
-        <Group>
-          <IconSquareLetterDFilled size={30} />
-
+        <Group wrap="nowrap">
           {!isHomeRoute && (
             <>
               <SidebarToggle
@@ -55,6 +52,14 @@ export function AppHeader() {
               />
             </>
           )}
+
+          <Text
+            size="lg"
+            fw={600}
+            style={{ cursor: "pointer", userSelect: "none" }}
+          >
+            Docmost
+          </Text>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
             {items}
