@@ -4,7 +4,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('workspace_invitations')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('email', 'varchar', (col) => col)
     .addColumn('role', 'varchar', (col) => col.notNull())

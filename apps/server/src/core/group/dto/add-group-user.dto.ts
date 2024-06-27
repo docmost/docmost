@@ -7,6 +7,6 @@ export class AddGroupUserDto extends GroupIdDto {
     message: 'you cannot add more than 50 users at a time',
   })
   @ArrayMinSize(1)
-  @IsUUID(4, { each: true })
+  @IsUUID('all', { each: true })
   userIds: string[];
 }

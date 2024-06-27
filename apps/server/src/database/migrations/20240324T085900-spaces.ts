@@ -8,7 +8,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('spaces')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('name', 'varchar', (col) => col)
     .addColumn('description', 'text', (col) => col)
@@ -40,7 +40,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('space_members')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('user_id', 'uuid', (col) =>
       col.references('users.id').onDelete('cascade'),
@@ -59,6 +59,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
+    .addColumn('deleted_at', 'timestamptz', (col) => col)
     .addUniqueConstraint('space_members_space_id_user_id_unique', [
       'space_id',
       'user_id',

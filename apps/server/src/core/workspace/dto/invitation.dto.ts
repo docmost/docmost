@@ -28,7 +28,7 @@ export class InviteUserDto {
     message: 'you cannot add invited users to more than 25 groups at a time',
   })
   @ArrayMinSize(0)
-  @IsUUID(4, { each: true })
+  @IsUUID('all', { each: true })
   groupIds: string[];
 
   @IsEnum(UserRole)

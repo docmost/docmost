@@ -4,7 +4,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('pages')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('slug_id', 'varchar', (col) => col.notNull())
     .addColumn('title', 'varchar', (col) => col)

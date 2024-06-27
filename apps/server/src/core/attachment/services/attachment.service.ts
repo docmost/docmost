@@ -7,7 +7,7 @@ import {
   prepareFile,
   validateFileType,
 } from '../attachment.utils';
-import { v4 as uuid4 } from 'uuid';
+import { v4 as uuid4, v7 as uuid7 } from 'uuid';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { AttachmentType, validImageExtensions } from '../attachment.constants';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
@@ -40,7 +40,7 @@ export class AttachmentService {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise);
 
-    const attachmentId = uuid4();
+    const attachmentId = uuid7();
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     await this.uploadToDrive(filePath, preparedFile.buffer);

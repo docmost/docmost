@@ -14,13 +14,13 @@ export class AddSpaceMembersDto extends SpaceIdDto {
   @ArrayMaxSize(25, {
     message: 'userIds must an array with no more than 25 elements',
   })
-  @IsUUID(4, { each: true })
+  @IsUUID('all', { each: true })
   userIds: string[];
 
   @IsArray()
   @ArrayMaxSize(25, {
     message: 'userIds must an array with no more than 25 elements',
   })
-  @IsUUID(4, { each: true })
+  @IsUUID('all', { each: true })
   groupIds: string[];
 }

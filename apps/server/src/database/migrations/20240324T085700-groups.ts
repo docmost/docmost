@@ -4,7 +4,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('groups')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('name', 'varchar', (col) => col.notNull())
     .addColumn('description', 'text', (col) => col)
@@ -19,6 +19,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
+    .addColumn('deleted_at', 'timestamptz', (col) => col)
     .addUniqueConstraint('groups_name_workspace_id_unique', [
       'name',
       'workspace_id',
@@ -29,7 +30,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('group_users')
     .addColumn('id', 'uuid', (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+      col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('user_id', 'uuid', (col) =>
       col.references('users.id').onDelete('cascade').notNull(),
