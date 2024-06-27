@@ -86,7 +86,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     command: () => {
       const commentId = uuidv4();
 
-      // @ts-ignore
       props.editor.chain().focus().setCommentDecoration().run();
       setDraftCommentId(commentId);
       setShowCommentPopup(true);

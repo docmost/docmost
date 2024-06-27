@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Avatar, Dialog, Group, Stack, Text } from "@mantine/core";
+import { Dialog, Group, Stack, Text } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import {
@@ -35,7 +35,6 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
 
   const handleDialogClose = () => {
     setShowCommentPopup(false);
-    // @ts-ignore
     editor.chain().focus().unsetCommentDecoration().run();
   };
 
@@ -48,7 +47,6 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
     try {
       const selectedText = getSelectedText();
       const commentData = {
-        id: draftCommentId,
         pageId: pageId,
         content: JSON.stringify(comment),
         selection: selectedText,
@@ -58,7 +56,6 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         await createCommentMutation.mutateAsync(commentData);
       editor
         .chain()
-        // @ts-ignore
         .setComment(createdComment.id)
         .unsetCommentDecoration()
         .run();

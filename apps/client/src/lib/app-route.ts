@@ -3,6 +3,7 @@ const APP_ROUTE = {
   AUTH: {
     LOGIN: "/login",
     SIGNUP: "/signup",
+    SETUP: "/setup/register",
   },
   SETTINGS: {
     ACCOUNT: {

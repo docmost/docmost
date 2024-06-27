@@ -1,10 +1,10 @@
 import axios, { AxiosInstance } from "axios";
 import Cookies from "js-cookie";
 import Routes from "@/lib/app-route.ts";
+import { getBackendUrl } from "@/lib/config.ts";
 
-const baseUrl = import.meta.env.DEV ? "http://localhost:3000" : "";
 const api: AxiosInstance = axios.create({
-  baseURL: baseUrl + "/api",
+  baseURL: getBackendUrl(),
 });
 
 api.interceptors.request.use(
@@ -51,8 +51,12 @@ api.interceptors.response.use(
               .toLowerCase()
               .includes("workspace not found")
           ) {
+            console.log("workspace not found");
             Cookies.remove("authTokens");
-            redirectToLogin();
+
+            if (window.location.pathname != Routes.AUTH.SETUP) {
+              window.location.href = Routes.AUTH.SETUP;
+            }
           }
           break;
         case 500:
