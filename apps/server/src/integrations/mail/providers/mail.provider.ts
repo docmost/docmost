@@ -29,12 +29,12 @@ export const mailDriverConfigProvider = {
         return {
           driver,
           config: {
-            host: environmentService.getMailHost(),
-            port: environmentService.getMailPort(),
+            host: environmentService.getSmtpHost(),
+            port: environmentService.getSmtpPort(),
             connectionTimeout: 30 * 1000, // 30 seconds
             auth: {
-              user: environmentService.getMailUsername(),
-              pass: environmentService.getMailPassword(),
+              user: environmentService.getSmtpUsername(),
+              pass: environmentService.getSmtpPassword(),
             },
           } as SMTPTransport.Options,
         };

@@ -71,28 +71,28 @@ export class EnvironmentService {
     return this.configService.get<string>('MAIL_DRIVER', 'log');
   }
 
-  getMailHost(): string {
-    return this.configService.get<string>('MAIL_HOST');
-  }
-
-  getMailPort(): number {
-    return parseInt(this.configService.get<string>('MAIL_PORT'));
-  }
-
-  getMailUsername(): string {
-    return this.configService.get<string>('MAIL_USERNAME');
-  }
-
-  getMailPassword(): string {
-    return this.configService.get<string>('MAIL_PASSWORD');
-  }
-
   getMailFromAddress(): string {
     return this.configService.get<string>('MAIL_FROM_ADDRESS');
   }
 
   getMailFromName(): string {
-    return this.configService.get<string>('MAIL_FROM_NAME');
+    return this.configService.get<string>('MAIL_FROM_NAME', 'Docmost');
+  }
+
+  getSmtpHost(): string {
+    return this.configService.get<string>('SMTP_HOST');
+  }
+
+  getSmtpPort(): number {
+    return parseInt(this.configService.get<string>('SMTP_PORT'));
+  }
+
+  getSmtpUsername(): string {
+    return this.configService.get<string>('SMTP_USERNAME');
+  }
+
+  getSmtpPassword(): string {
+    return this.configService.get<string>('SMTP_PASSWORD');
   }
 
   getPostmarkToken(): string {
