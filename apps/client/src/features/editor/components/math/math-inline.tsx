@@ -30,22 +30,22 @@ export default function MathInlineView(props: NodeViewProps) {
   };
 
   useEffect(() => {
-    renderMath(node.attrs.katex, mathResultContainer.current);
-  }, [node.attrs.katex]);
+    renderMath(node.attrs.text, mathResultContainer.current);
+  }, [node.attrs.text]);
 
   useEffect(() => {
     if (isEditing) {
       renderMath(preview || "", mathPreviewContainer.current);
     } else if (preview !== null) {
       queueMicrotask(() => {
-        updateAttributes({ katex: preview });
+        updateAttributes({ text: preview });
       });
     }
   }, [preview, isEditing]);
 
   useEffect(() => {
     setIsEditing(!!props.selected);
-    if (props.selected) setPreview(node.attrs.katex);
+    if (props.selected) setPreview(node.attrs.text);
   }, [props.selected]);
 
   return (
@@ -69,7 +69,7 @@ export default function MathInlineView(props: NodeViewProps) {
               props.selected ? classes.selected : "",
               error ? classes.error : "",
               (isEditing && !preview?.trim().length) ||
-              (!isEditing && !node.attrs.katex.trim().length)
+              (!isEditing && !node.attrs.text.trim().length)
                 ? classes.empty
                 : "",
             ].join(" ")}
@@ -83,7 +83,7 @@ export default function MathInlineView(props: NodeViewProps) {
               ref={mathResultContainer}
             ></div>
             {((isEditing && !preview?.trim().length) ||
-              (!isEditing && !node.attrs.katex.trim().length)) && (
+              (!isEditing && !node.attrs.text.trim().length)) && (
               <div>Empty equation</div>
             )}
             {error && <div>Invalid equation</div>}

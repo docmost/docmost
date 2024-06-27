@@ -1,4 +1,4 @@
-import { Node, nodeInputRule, wrappingInputRule } from "@tiptap/core";
+import { Node, nodeInputRule } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 
 declare module "@tiptap/core" {
@@ -12,6 +12,10 @@ declare module "@tiptap/core" {
 export interface MathInlineOption {
   HTMLAttributes: Record<string, any>;
   view: any;
+}
+
+export interface MathInlineAttributes {
+  text: string;
 }
 
 export const inputRegex = /(?:^|\s)((?:\$\$)((?:[^$]+))(?:\$\$))$/;
@@ -31,7 +35,7 @@ export const MathInline = Node.create<MathInlineOption>({
 
   addAttributes() {
     return {
-      katex: {
+      text: {
         default: "",
         parseHTML: (element) => element.innerHTML.split("$")[1],
       },
@@ -53,12 +57,12 @@ export const MathInline = Node.create<MathInlineOption>({
     return [
       "div",
       {},
-      ["span", { "data-katex": true }, `$${HTMLAttributes.katex}$`],
+      ["span", { "data-katex": true }, `$${HTMLAttributes.text}$`],
     ];
   },
 
   renderText({ node }) {
-    return node.attrs.katex;
+    return node.attrs.text;
   },
 
   addNodeView() {
@@ -84,7 +88,7 @@ export const MathInline = Node.create<MathInlineOption>({
         find: inputRegex,
         type: this.type,
         getAttributes: (match) => ({
-          katex: match[1].replaceAll("$", ""),
+          text: match[1].replaceAll("$", ""),
         }),
       }),
     ];

@@ -15,7 +15,7 @@ export interface MathBlockOptions {
 }
 
 export interface MathBlockAttributes {
-  katex: string;
+  text: string;
 }
 
 export const inputRegex = /(?:^|\s)((?:\$\$\$)((?:[^$]+))(?:\$\$\$))$/;
@@ -34,7 +34,7 @@ export const MathBlock = Node.create({
 
   addAttributes() {
     return {
-      katex: {
+      text: {
         default: "",
         parseHTML: (element) => element.innerHTML.split("$")[1],
       },
@@ -56,7 +56,7 @@ export const MathBlock = Node.create({
     return [
       "div",
       {},
-      ["div", { "data-katex": true }, `$${HTMLAttributes.katex}$`],
+      ["div", { "data-katex": true }, `$${HTMLAttributes.text}$`],
     ];
   },
 
@@ -65,7 +65,7 @@ export const MathBlock = Node.create({
   },
 
   renderText({ node }) {
-    return node.attrs.katex;
+    return node.attrs.text;
   },
 
   addCommands() {
@@ -87,7 +87,7 @@ export const MathBlock = Node.create({
         find: inputRegex,
         type: this.type,
         getAttributes: (match) => ({
-          katex: match[1].replaceAll("$", ""),
+          text: match[1].replaceAll("$", ""),
         }),
       }),
     ];

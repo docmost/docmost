@@ -36,8 +36,8 @@ export default function MathBlockView(props: NodeViewProps) {
   };
 
   useEffect(() => {
-    renderMath(node.attrs.katex, mathResultContainer.current);
-  }, [node.attrs.katex]);
+    renderMath(node.attrs.text, mathResultContainer.current);
+  }, [node.attrs.text]);
 
   useEffect(() => {
     if (isEditing) {
@@ -48,14 +48,14 @@ export default function MathBlockView(props: NodeViewProps) {
   useEffect(() => {
     if (debouncedPreview !== null) {
       queueMicrotask(() => {
-        updateAttributes({ katex: debouncedPreview });
+        updateAttributes({ text: debouncedPreview });
       });
     }
   }, [debouncedPreview]);
 
   useEffect(() => {
     setIsEditing(!!props.selected);
-    if (props.selected) setPreview(node.attrs.katex);
+    if (props.selected) setPreview(node.attrs.text);
   }, [props.selected]);
 
   return (
@@ -77,7 +77,7 @@ export default function MathBlockView(props: NodeViewProps) {
             props.selected ? classes.selected : "",
             error ? classes.error : "",
             (isEditing && !preview?.trim().length) ||
-            (!isEditing && !node.attrs.katex.trim().length)
+            (!isEditing && !node.attrs.text.trim().length)
               ? classes.empty
               : "",
           ].join(" ")}
@@ -93,7 +93,7 @@ export default function MathBlockView(props: NodeViewProps) {
             ref={mathResultContainer}
           ></div>
           {((isEditing && !preview?.trim().length) ||
-            (!isEditing && !node.attrs.katex.trim().length)) && (
+            (!isEditing && !node.attrs.text.trim().length)) && (
             <div>Empty equation</div>
           )}
           {error && <div>Invalid equation</div>}
