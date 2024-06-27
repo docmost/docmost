@@ -11,7 +11,7 @@ import { notifications } from "@mantine/notifications";
 import useUserRole from "@/hooks/use-user-role.tsx";
 
 const formSchema = z.object({
-  name: z.string().nonempty("Workspace name cannot be blank"),
+  name: z.string().min(4).nonempty("Workspace name cannot be blank"),
 });
 
 type FormValues = z.infer<typeof formSchema>;

@@ -5,7 +5,7 @@ import { getFileUrl } from "@/lib/config.ts";
 
 export default function ImageView(props: NodeViewProps) {
   const { node, selected } = props;
-  const { src, width, align } = node.attrs;
+  const { src, width, align, title } = node.attrs;
 
   const flexJustifyContent = useMemo(() => {
     if (align === "center") return "center";
@@ -26,6 +26,7 @@ export default function ImageView(props: NodeViewProps) {
         fit="contain"
         w={width}
         src={getFileUrl(src)}
+        alt={title}
         className={selected ? "ProseMirror-selectednode" : ""}
       />
     </NodeViewWrapper>

@@ -22,7 +22,7 @@ COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/packages/ /app/packages/
 COPY --from=builder /app/pnpm*.yaml /app/
-
+# should optimize packages
 RUN npm install -g pnpm
 
 RUN chown -R node:node /app
@@ -31,9 +31,9 @@ USER node
 
 RUN pnpm install --frozen-lockfile --prod
 
-RUN mkdir -p /app/apps/server/data/storage
+RUN mkdir -p /app/data/storage
 
-VOLUME ["/app/apps/server/data/storage"]
+VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
 
