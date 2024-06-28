@@ -2,7 +2,7 @@ version: '3'
 
 services:
   docmost:
-    image: docker.io/library/docmost:latest
+    image: docmost/docmost:latest
     depends_on:
       - db
       - redis
@@ -11,12 +11,11 @@ services:
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
       DATABASE_URL: 'postgresql://postgres:password@db:5432/docmost?schema=public'
       REDIS_URL: 'redis://redis:6379'
-      STORAGE_DRIVER: 'local'
     ports:
       - "3000:3000"
     restart: unless-stopped
     volumes:
-      - local_storage:/app/data/storage
+      - docmost:/app/data/storage
 
   db:
     image: postgres:16-alpine
@@ -35,6 +34,6 @@ services:
       - redis_data:/data
 
 volumes:
-  local_storage:
+  docmost:
   db_data:
   redis_data:

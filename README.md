@@ -1,60 +1,35 @@
+<div align="center">
+    <h1><b>Docmost</b></h1>
+    <p>
+        Open-source collaborative wiki and documentation software.
+        <br />
+        <a href="https://docmost.com"><strong>Website</strong></a> | 
+        <a href="https://docmost.com/docs"><strong>Documentation</strong></a>
+    </p>
+</div>
+<br />
 
-## Description
-WIP
+> [!NOTE]  
+> Docmost is currently in **beta**. We value your feedback as we progress towards a stable release.
 
-## Installation
-Make sure you have pnpm installed `npm install -g pnpm`
+## Getting started
+To get started with Docmost, please refer to our [documentation](https://docmost.com/docs).
 
-```bash
-$ git clone https://github.com/docmost/docmost
-$ pnpm install
-```
+## Features
+- Real-time collaboration
+- Spaces
+- Permissions management
+- Groups
+- Comments
+- Page history
+- Search
+- File attachment
 
-## Running the app
+#### Screenshots
+<p align="center">
+<img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
+<img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%">
+</p>
 
-### Development
-
-#### Frontend
-```bash
-$ pnpm nx run client:dev
-```
-#### Backend
-```bash
-# build extension package first
-$ nx run @docmost/editor-ext:build
-
-# development
-$ pnpm nx run server:start
-
-# watch mode
-$ pnpm nx run server:start:dev
-
-```
-
-### Production
-```bash
-$ pnpm run build
-
-$ pnpm nx run server:start:prod
-```
-The server will be available on `http://localhost:3000`
-
-## Migrations
-
-```bash
-# This creates a new empty migration file named 'init'
-$ pnpm nx run server:migration:create init
-
-# Generates 'init' migration file from existing entities to update the database schema
-$ pnpm nx run server:migration:generate init
-
-# Runs all pending migrations to update the database schema
-$ pnpm nx run server:migration:run
-
-# Reverts the last executed migration
-$ pnpm nx run server:migration:revert
-
-# Shows the list of executed and pending migrations
-$ pnpm nx run server:migration:show
-
-```
+### Contributing 
+See the [development doc](https://docmost.com/docs/self-hosting/development)

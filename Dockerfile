@@ -1,6 +1,6 @@
 FROM node:21-alpine AS base
 
-FROM base as builder
+FROM base AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-FROM base as installer
+FROM base AS installer
 
 RUN apk add --no-cache curl bash
 
