@@ -28,7 +28,7 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <BrowserRouter>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} defaultColorScheme="auto">
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
           <Notifications position="bottom-center" limit={3} />
