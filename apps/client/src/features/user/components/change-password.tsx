@@ -34,8 +34,9 @@ export default function ChangePassword() {
 const formSchema = z.object({
   oldPassword: z
     .string({ required_error: "your current password is required" })
+    .trim()
     .min(8),
-  newPassword: z.string({ required_error: "New password is required" }).min(8),
+  newPassword: z.string({ required_error: "New password is required" }).trim().min(8),
 });
 
 type FormValues = z.infer<typeof formSchema>;

@@ -44,9 +44,10 @@ export default function ChangeEmail() {
 }
 
 const formSchema = z.object({
-  email: z.string({ required_error: "New email is required" }).email(),
+  email: z.string({ required_error: "New email is required" }).trim().email(),
   password: z
     .string({ required_error: "your current password is required" })
+    .trim()
     .min(8),
 });
 

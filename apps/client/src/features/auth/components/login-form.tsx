@@ -17,9 +17,10 @@ import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-i
 const formSchema = z.object({
   email: z
     .string()
+    .trim()
     .min(1, { message: "email is required" })
     .email({ message: "Invalid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
+  password: z.string().trim().min(1, { message: "Password is required" }),
 });
 
 export function LoginForm() {

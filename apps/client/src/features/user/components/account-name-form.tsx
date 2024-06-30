@@ -10,7 +10,7 @@ import { TextInput, Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(40).nonempty("Your name cannot be blank"),
+  name: z.string().trim().min(2).max(40).nonempty("Your name cannot be blank"),
 });
 
 type FormValues = z.infer<typeof formSchema>;

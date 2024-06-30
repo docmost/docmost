@@ -15,13 +15,14 @@ import useAuth from "@/features/auth/hooks/use-auth";
 import classes from "@/features/auth/components/auth.module.css";
 
 const formSchema = z.object({
-  workspaceName: z.string().min(2).max(60),
-  name: z.string().min(2).max(60),
+  workspaceName: z.string().trim().min(2).max(60),
+  name: z.string().trim().min(2).max(60),
   email: z
     .string()
+    .trim()
     .min(1, { message: "email is required" })
     .email({ message: "Invalid email address" }),
-  password: z.string().min(8),
+  password: z.string().trim().min(8),
 });
 
 export function SetupWorkspaceForm() {

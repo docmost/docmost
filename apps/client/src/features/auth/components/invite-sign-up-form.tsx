@@ -19,8 +19,8 @@ import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-qu
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 
 const formSchema = z.object({
-  name: z.string().min(2),
-  password: z.string().min(8),
+  name: z.string().trim().min(2),
+  password: z.string().trim().min(8),
 });
 
 type FormValues = z.infer<typeof formSchema>;

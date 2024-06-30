@@ -9,8 +9,8 @@ import * as z from "zod";
 import { useParams } from "react-router-dom";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
-  description: z.string().max(500),
+  name: z.string().trim().min(2).max(50),
+  description: z.string().trim().max(500),
 });
 
 type FormValues = z.infer<typeof formSchema>;
