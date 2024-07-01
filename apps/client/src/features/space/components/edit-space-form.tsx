@@ -6,8 +6,8 @@ import { useUpdateSpaceMutation } from "@/features/space/queries/space-query.ts"
 import { ISpace } from "@/features/space/types/space.types.ts";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
-  description: z.string().max(250),
+  name: z.string().trim().min(2).max(50),
+  description: z.string().trim().max(250),
 });
 
 type FormValues = z.infer<typeof formSchema>;
