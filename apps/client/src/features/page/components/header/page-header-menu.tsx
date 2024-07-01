@@ -19,7 +19,6 @@ import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { boolean } from "zod";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;

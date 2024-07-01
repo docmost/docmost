@@ -7,13 +7,11 @@ declare global {
 export function getAppUrl(): string {
   let appUrl = window.CONFIG?.APP_URL || process.env.APP_URL;
 
-  if (!appUrl) {
-    appUrl = import.meta.env.DEV
-      ? "http://localhost:3000"
-      : window.location.protocol + "//" + window.location.host;
+  if (import.meta.env.DEV) {
+    return appUrl || "http://localhost:3000";
   }
 
-  return appUrl;
+  return `${window.location.protocol}//${window.location.host}`;
 }
 
 export function getBackendUrl(): string {
