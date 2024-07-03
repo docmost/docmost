@@ -1,31 +1,27 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { useMemo } from "react";
 import { getFileUrl } from "@/lib/config.ts";
+import clsx from "clsx";
 
 export default function VideoView(props: NodeViewProps) {
   const { node, selected } = props;
   const { src, width, align } = node.attrs;
 
-  const flexJustifyContent = useMemo(() => {
-    if (align === "center") return "center";
-    if (align === "right") return "flex-end";
-    return "flex-start";
+  const alignClass = useMemo(() => {
+    if (align === "left") return "alignLeft";
+    if (align === "right") return "alignRight";
+    if (align === "center") return "alignCenter";
+    return "alignCenter";
   }, [align]);
 
   return (
-    <NodeViewWrapper
-      style={{
-        position: "relative",
-        display: "flex",
-        justifyContent: flexJustifyContent,
-      }}
-    >
+    <NodeViewWrapper>
       <video
         preload="metadata"
         width={width}
         controls
         src={getFileUrl(src)}
-        className={selected ? "ProseMirror-selectednode" : ""}
+        className={clsx(selected ? "ProseMirror-selectednode" : "", alignClass)}
       />
     </NodeViewWrapper>
   );
