@@ -20,8 +20,17 @@ export class UserService {
     workspaceId: string,
   ) {
     const user = await this.userRepo.findById(userId, workspaceId);
+
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // preference update
+    if (typeof updateUserDto.fullPageWidth !== 'undefined') {
+      return this.updateUserPageWidthPreference(
+        userId,
+        updateUserDto.fullPageWidth,
+      );
     }
 
     if (updateUserDto.name) {
@@ -41,5 +50,13 @@ export class UserService {
 
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
+  }
+
+  async updateUserPageWidthPreference(userId: string, fullPageWidth: boolean) {
+    return this.userRepo.updatePreference(
+      userId,
+      'fullPageWidth',
+      fullPageWidth,
+    );
   }
 }

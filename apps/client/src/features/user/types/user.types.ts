@@ -7,7 +7,7 @@ export interface IUser {
   emailVerifiedAt: Date;
   avatarUrl: string;
   timezone: string;
-  settings: any;
+  settings: IUserSettings;
   invitedById: string;
   lastLoginAt: string;
   lastActiveAt: Date;
@@ -17,9 +17,16 @@ export interface IUser {
   workspaceId: string;
   deactivatedAt: Date;
   deletedAt: Date;
+  fullPageWidth: boolean; // used for update
 }
 
 export interface ICurrentUser {
   user: IUser;
   workspace: IWorkspace;
+}
+
+export interface IUserSettings {
+  preferences: {
+    fullPageWidth: boolean;
+  };
 }

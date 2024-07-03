@@ -1,5 +1,6 @@
-import { Avatar, Group, Menu, rem, UnstyledButton, Text } from "@mantine/core";
+import { Group, Menu, UnstyledButton, Text } from "@mantine/core";
 import {
+  IconBrush,
   IconChevronDown,
   IconLogout,
   IconSettings,
@@ -38,10 +39,7 @@ export default function TopMenu() {
             <Text fw={500} size="sm" lh={1} mr={3}>
               {workspace.name}
             </Text>
-            <IconChevronDown
-              style={{ width: rem(12), height: rem(12) }}
-              stroke={1.5}
-            />
+            <IconChevronDown size={16} />
           </Group>
         </UnstyledButton>
       </Menu.Target>
@@ -51,12 +49,7 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.WORKSPACE.GENERAL}
-          leftSection={
-            <IconSettings
-              style={{ width: rem(16), height: rem(16) }}
-              stroke={1.5}
-            />
-          }
+          leftSection={<IconSettings size={16} />}
         >
           Workspace settings
         </Menu.Item>
@@ -64,12 +57,7 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.WORKSPACE.MEMBERS}
-          leftSection={
-            <IconUsers
-              style={{ width: rem(16), height: rem(16) }}
-              stroke={1.5}
-            />
-          }
+          leftSection={<IconUsers size={16} />}
         >
           Manage members
         </Menu.Item>
@@ -98,27 +86,22 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}
-          leftSection={
-            <IconUserCircle
-              style={{ width: rem(16), height: rem(16) }}
-              stroke={1.5}
-            />
-          }
+          leftSection={<IconUserCircle size={16} />}
         >
           My profile
         </Menu.Item>
 
+        <Menu.Item
+          component={Link}
+          to={APP_ROUTE.SETTINGS.ACCOUNT.PREFERENCES}
+          leftSection={<IconBrush size={16} />}
+        >
+          My preferences
+        </Menu.Item>
+
         <Menu.Divider />
 
-        <Menu.Item
-          onClick={logout}
-          leftSection={
-            <IconLogout
-              style={{ width: rem(16), height: rem(16) }}
-              stroke={1.5}
-            />
-          }
-        >
+        <Menu.Item onClick={logout} leftSection={<IconLogout size={16} />}>
           Logout
         </Menu.Item>
       </Menu.Dropdown>
