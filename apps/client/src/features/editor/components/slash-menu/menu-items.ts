@@ -264,10 +264,20 @@ export const getSuggestionItems = ({
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
 
+  const fuzzyMatch = (query, target) => {
+    let queryIndex = 0;
+    target = target.toLowerCase();
+    for (let char of target) {
+      if (query[queryIndex] === char) queryIndex++;
+      if (queryIndex === query.length) return true;
+    }
+    return false;
+  };
+
   for (const [group, items] of Object.entries(CommandGroups)) {
     const filteredItems = items.filter((item) => {
       return (
-        item.title.toLowerCase().includes(search) ||
+        fuzzyMatch(search, item.title) ||
         item.description.toLowerCase().includes(search) ||
         (item.searchTerms &&
           item.searchTerms.some((term: string) => term.includes(search)))
