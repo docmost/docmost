@@ -15,6 +15,7 @@ import {
   executeWithPagination,
   PaginationResult,
 } from '@docmost/db/pagination/pagination';
+import { sql } from 'kysely';
 
 @Injectable()
 export class UserRepo {
@@ -155,6 +156,24 @@ export class UserRepo {
     });
 
     return result;
+  }
+
+  async updatePreference(
+    userId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+  ) {
+    return await this.db
+      .updateTable('users')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('preferences', COALESCE(settings->'preferences', '{}'::jsonb) 
+                || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', userId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
   }
 
   /*

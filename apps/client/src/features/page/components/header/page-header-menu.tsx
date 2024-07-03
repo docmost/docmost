@@ -1,5 +1,6 @@
-import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
+  IconArrowsHorizontal,
   IconDots,
   IconHistory,
   IconLink,
@@ -19,6 +20,7 @@ import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -95,6 +97,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           Copy link
         </Menu.Item>
         <Menu.Divider />
+
+        <Menu.Item leftSection={<IconArrowsHorizontal size={16} stroke={2} />}>
+          <Group wrap="nowrap">
+            <PageWidthToggle label="Full width" />
+          </Group>
+        </Menu.Item>
+
         <Menu.Item
           leftSection={<IconHistory size={16} stroke={2} />}
           onClick={openHistoryModal}
