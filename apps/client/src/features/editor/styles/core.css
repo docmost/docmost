@@ -125,6 +125,21 @@
     cursor: ew-resize;
     cursor: col-resize;
   }
+
+  .alignLeft {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .alignRight {
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  .alignCenter {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .ProseMirror-icon {
