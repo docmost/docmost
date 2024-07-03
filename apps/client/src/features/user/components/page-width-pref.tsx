@@ -1,4 +1,4 @@
-import { Group, Text, Switch } from "@mantine/core";
+import { Group, Text, Switch, MantineSize } from "@mantine/core";
 import { useAtom } from "jotai/index";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
@@ -14,12 +14,16 @@ export default function PageWidthPref() {
         </Text>
       </div>
 
-      <WidthToggle />
+      <PageWidthToggle />
     </Group>
   );
 }
 
-function WidthToggle() {
+interface PageWidthToggleProps {
+  size?: MantineSize;
+  label?: string;
+}
+export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
   const [user, setUser] = useAtom(userAtom);
   const [checked, setChecked] = useState(
     user.settings?.preferences?.fullPageWidth,
@@ -34,6 +38,9 @@ function WidthToggle() {
 
   return (
     <Switch
+      size={size}
+      label={label}
+      labelPosition="left"
       defaultChecked={checked}
       onChange={handleChange}
       aria-label="Toggle full page width"
