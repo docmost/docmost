@@ -88,8 +88,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     if (pagesData?.pages && !hasNextPage) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
-      console.log("tree data init");
-      console.log("items", treeData);
+
       if (data.length < 1 || data?.[0].spaceId !== spaceId) {
         //Thoughts
         // don't reset if there is data in state
