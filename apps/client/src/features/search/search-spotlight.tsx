@@ -1,17 +1,10 @@
 import { Group, Center, Text } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
-import {
-  IconFileDescription,
-  IconHome,
-  IconSearch,
-  IconSettings,
-} from "@tabler/icons-react";
+import { IconFileDescription, IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
 import { usePageSearchQuery } from "@/features/search/queries/search-query";
-import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 
 interface SearchSpotlightProps {

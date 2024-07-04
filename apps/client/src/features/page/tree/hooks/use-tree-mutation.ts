@@ -52,6 +52,8 @@ export function useTreeMutation<T>(spaceId: string) {
       slugId: createdPage.slugId,
       name: "",
       position: createdPage.position,
+      spaceId: createdPage.spaceId,
+      parentPageId: createdPage.parentPageId,
       children: [],
     } as any;
 

@@ -88,6 +88,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     if (pagesData?.pages && !hasNextPage) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
+
       if (data.length < 1 || data?.[0].spaceId !== spaceId) {
         //Thoughts
         // don't reset if there is data in state
@@ -106,7 +107,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     const fetchData = async () => {
       if (isDataLoaded.current && currentPage) {
         // check if pageId node is present in the tree
-        const node = dfs(treeApiRef.current.root, currentPage.id);
+        const node = dfs(treeApiRef.current?.root, currentPage.id);
         if (node) {
           // if node is found, no need to traverse its ancestors
           return;
