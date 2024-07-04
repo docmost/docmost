@@ -5,6 +5,7 @@ import { getBackendUrl } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: getBackendUrl(),
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
