@@ -31,6 +31,7 @@
     "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@casl/ability": "^6.7.1",
+    "@fastify/cookie": "^9.3.1",
     "@fastify/multipart": "^8.3.0",
     "@fastify/static": "^7.0.4",
     "@nestjs/bullmq": "^10.1.1",

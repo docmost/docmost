@@ -45,7 +45,6 @@ import {
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { Public } from '../../common/decorators/public.decorator';
 import { validate as isValidUUID } from 'uuid';
 
 @Controller()
@@ -129,12 +128,11 @@ export class AttachmentController {
     }
   }
 
-  @Public()
   @UseGuards(JwtAuthGuard)
   @Get('/files/:fileId/:fileName')
   async getFile(
     @Res() res: FastifyReply,
-    //@AuthUser() user: User,
+    @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
     @Param('fileId') fileId: string,
     @Param('fileName') fileName?: string,
@@ -144,18 +142,29 @@ export class AttachmentController {
     }
 
     const attachment = await this.attachmentRepo.findById(fileId);
-    if (attachment.workspaceId !== workspace.id) {
+    if (
+      !attachment ||
+      attachment.workspaceId !== workspace.id ||
+      !attachment.pageId ||
+      !attachment.spaceId
+    ) {
       throw new NotFoundException();
     }
 
-    if (!attachment || !attachment.pageId) {
-      throw new NotFoundException('File record not found');
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      attachment.spaceId,
+    );
+
+    if (spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
     }
 
     try {
       const fileStream = await this.storageService.read(attachment.filePath);
       res.headers({
         'Content-Type': getMimeType(attachment.filePath),
+        'Cache-Control': 'public, max-age=3600',
       });
       return res.send(fileStream);
     } catch (err) {
@@ -268,6 +277,7 @@ export class AttachmentController {
       const fileStream = await this.storageService.read(filePath);
       res.headers({
         'Content-Type': getMimeType(filePath),
+        'Cache-Control': 'public, max-age=86400',
       });
       return res.send(fileStream);
     } catch (err) {

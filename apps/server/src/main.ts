@@ -9,6 +9,7 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import fastifyMultipart from '@fastify/multipart';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
+import fastifyCookie from '@fastify/cookie';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -31,6 +32,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(redisIoAdapter);
 
   await app.register(fastifyMultipart as any);
+  await app.register(fastifyCookie as any);
 
   app
     .getHttpAdapter()
@@ -56,7 +58,16 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  app.enableCors();
+
+  if (process.env.NODE_ENV !== 'production') {
+    // make development easy
+    app.enableCors({
+      origin: ['http://localhost:5173'],
+      credentials: true,
+    });
+  } else {
+    app.enableCors();
+  }
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();

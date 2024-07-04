@@ -4,11 +4,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { JwtPayload, JwtType } from '../dto/jwt-payload';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -18,7 +19,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly environmentService: EnvironmentService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: FastifyRequest) => {
+        let accessToken = null;
+
+        try {
+          accessToken = JSON.parse(req.cookies?.authTokens)?.accessToken;
+        } catch {}
+
+        return accessToken || this.extractTokenFromHeader(req);
+      },
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),
       passReqToCallback: true,
@@ -49,5 +58,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     return { user, workspace };
+  }
+
+  private extractTokenFromHeader(request: FastifyRequest): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }
