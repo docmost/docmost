@@ -12,7 +12,8 @@
     "client:dev": "nx run client:dev",
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
-    "email:dev": "nx run @docmost/transactional:dev"
+    "email:dev": "nx run @docmost/transactional:dev",
+    "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
@@ -66,6 +67,7 @@
     "@nx/js": "19.3.2",
     "@types/uuid": "^10.0.0",
     "nx": "19.3.2",
+    "concurrently": "^8.2.2",
     "tsx": "^4.15.7"
   },
   "workspaces": {
