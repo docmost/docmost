@@ -4,7 +4,7 @@
 
         iframe {
             display: block;
-            outline: 0px solid transparent;
+            outline: 0 solid transparent;
             border-radius: var(--mantine-radius-md);
             width: 100%;
         }

@@ -9,7 +9,7 @@
   );
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
-  font-weight: 415;
+  font-weight: 400;
   width: 100%;
 
   > * + * {
