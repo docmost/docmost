@@ -48,10 +48,6 @@ export const storageDriverConfigProvider = {
             endpoint: environmentService.getAwsS3Endpoint(),
             bucket: environmentService.getAwsS3Bucket(),
             baseUrl: environmentService.getAwsS3Url(),
-            credentials: {
-              accessKeyId: environmentService.getAwsS3AccessKeyId(),
-              secretAccessKey: environmentService.getAwsS3SecretAccessKey(),
-            },
           },
         };
 
