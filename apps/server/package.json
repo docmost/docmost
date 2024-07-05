@@ -43,6 +43,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-fastify": "^10.3.9",
     "@nestjs/platform-socket.io": "^10.3.9",
+    "@nestjs/terminus": "^10.2.3",
     "@nestjs/websockets": "^10.3.9",
     "@react-email/components": "0.0.19",
     "@react-email/render": "^0.0.15",

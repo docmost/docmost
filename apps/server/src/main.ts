@@ -38,7 +38,8 @@ async function bootstrap() {
     .addHook('preHandler', function (req, reply, done) {
       if (
         req.originalUrl.startsWith('/api') &&
-        !req.originalUrl.startsWith('/api/auth/setup')
+        !req.originalUrl.startsWith('/api/auth/setup') &&
+        !req.originalUrl.startsWith('/api/health')
       ) {
         if (!req.raw?.['workspaceId']) {
           throw new NotFoundException('Workspace not found');
