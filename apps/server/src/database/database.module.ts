@@ -104,7 +104,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
   }
 
   async establishConnection() {
-    const retryAttempts = 10;
+    const retryAttempts = 15;
     const retryDelay = 3000;
 
     this.logger.log('Establishing database connection');
