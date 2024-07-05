@@ -17,21 +17,14 @@ export class PostgresHealthIndicator extends HealthIndicator {
   }
 
   async pingCheck(key: string): Promise<HealthIndicatorResult> {
-    let isHealthy = false;
-
     try {
       await sql`SELECT 1=1`.execute(this.db);
-      isHealthy = true;
+      return this.getStatus(key, true);
     } catch (e) {
       this.logger.error(JSON.stringify(e));
-    }
-
-    if (isHealthy) {
-      return this.getStatus(key, isHealthy);
-    } else {
       throw new HealthCheckError(
         `${key} is not available`,
-        this.getStatus(key, isHealthy),
+        this.getStatus(key, false),
       );
     }
   }
