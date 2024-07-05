@@ -19,5 +19,13 @@ export default defineConfig(({ mode }) => {
         "@": "/src",
       },
     },
+    server: {
+      proxy: {
+        "/api": {
+          target: APP_URL,
+          changeOrigin: true,
+        },
+      },
+    },
   };
 });
