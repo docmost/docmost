@@ -22,18 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     function extractFromCookie(req: FastifyRequest) {
       return req.cookies['authTokens']['accessToken'];
     }
-
-    function extractTokenFromHeader(
-      request: FastifyRequest,
-    ): string | undefined {
-      const [type, token] = request.headers.authorization?.split(' ') ?? [];
-      return type === 'Bearer' ? token : undefined;
-    }
-
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         extractFromCookie,
-        extractTokenFromHeader,
+        ExtractJwt.fromAuthHeaderAsBearerToken,
       ]),
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),
