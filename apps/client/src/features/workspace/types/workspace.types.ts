@@ -3,14 +3,9 @@ export interface IWorkspace {
   name: string;
   description: string;
   logo: string;
-  hostname: string;
-  defaultSpaceId: string;
-  customDomain: string;
-  enableInvite: boolean;
   inviteCode: string;
-  settings: any;
-  createdAt: Date;
-  updatedAt: Date;
+  oidcEnabled: boolean;
+  oidcButtonName: string;
 }
 
 export interface ICreateInvite {

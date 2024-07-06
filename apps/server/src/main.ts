@@ -10,6 +10,7 @@ import fastifyMultipart from '@fastify/multipart';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
 import fastifyCookie from '@fastify/cookie';
+import helmet from '@fastify/helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -31,8 +32,8 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.register(fastifyMultipart as any);
-  await app.register(fastifyCookie as any);
+  await app.register(fastifyMultipart);
+  await app.register(fastifyCookie);
 
   app
     .getHttpAdapter()
@@ -64,6 +65,8 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
+
+  app.register(helmet, { global: true });
 
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
