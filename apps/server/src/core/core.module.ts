@@ -34,7 +34,10 @@ export class CoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(DomainMiddleware)
-      .exclude({ path: 'auth/setup', method: RequestMethod.POST })
+      .exclude(
+        { path: 'auth/setup', method: RequestMethod.POST },
+        { path: 'health', method: RequestMethod.GET },
+      )
       .forRoutes('*');
   }
 }
