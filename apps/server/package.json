@@ -36,6 +36,7 @@
     "@fastify/static": "^7.0.4",
     "@nestjs/bullmq": "^10.1.1",
     "@nestjs/common": "^10.3.9",
+    "@docmost/editor-ext": "workspace:*",
     "@nestjs/config": "^3.2.2",
     "@nestjs/core": "^10.3.9",
     "@nestjs/event-emitter": "^2.0.4",

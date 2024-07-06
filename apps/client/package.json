@@ -12,6 +12,7 @@
     "@casl/ability": "^6.7.1",
     "@casl/react": "^4.0.0",
     "@emoji-mart/data": "^1.2.1",
+    "@docmost/editor-ext": "workspace:*",
     "@emoji-mart/react": "^1.1.1",
     "@mantine/core": "^7.11.0",
     "@mantine/form": "^7.11.0",
