@@ -21,16 +21,14 @@ export default function useAuth() {
   const navigate = useNavigate();
 
   const [, setCurrentUser] = useAtom(currentUserAtom);
-  const [authToken, setAuthToken] = useAtom(authTokensAtom);
 
   const handleSignIn = async (data: ILogin) => {
     setIsLoading(true);
 
     try {
-      const res = await login(data);
-      setIsLoading(false);
-      setAuthToken(res.tokens);
+      await login(data);
 
+      setIsLoading(false);
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       console.log(err);
@@ -82,13 +80,8 @@ export default function useAuth() {
   };
 
   const handleIsAuthenticated = async () => {
-    if (!authToken) {
-      return false;
-    }
-
     try {
-      const accessToken = authToken.accessToken;
-      const payload = jwtDecode(accessToken);
+      await 
 
       // true if jwt is active
       const now = Date.now().valueOf() / 1000;
@@ -99,14 +92,8 @@ export default function useAuth() {
     }
   };
 
-  const hasTokens = (): boolean => {
-    return !!authToken;
-  };
-
   const handleLogout = async () => {
-    setAuthToken(null);
     setCurrentUser(null);
-    Cookies.remove("authTokens");
     navigate(APP_ROUTE.AUTH.LOGIN);
   };
 
@@ -116,7 +103,6 @@ export default function useAuth() {
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,
     logout: handleLogout,
-    hasTokens,
     isLoading,
   };
 }

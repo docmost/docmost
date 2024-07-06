@@ -25,7 +25,7 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async login(loginDto: LoginDto, workspaceId: string) {
+  async login(loginDto: LoginDto, workspaceId: string): Promise<string> {
     const user = await this.userRepo.findByEmail(
       loginDto.email,
       workspaceId,
@@ -42,8 +42,7 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
