@@ -16,7 +16,15 @@ export class TransformHttpResponseInterceptor<T>
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
-  ): Observable<Response<T>> {
+  ): Observable<Response<T> | any> {
+    const request = context.switchToHttp().getRequest();
+    const path = request.url;
+
+    // Skip interceptor for the /api/health path
+    if (path === '/api/health') {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         const status = context.switchToHttp().getResponse().statusCode;

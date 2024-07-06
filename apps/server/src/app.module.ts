@@ -11,6 +11,7 @@ import { MailModule } from './integrations/mail/mail.module';
 import { QueueModule } from './integrations/queue/queue.module';
 import { StaticModule } from './integrations/static/static.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { HealthModule } from './integrations/health/health.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     WsModule,
     QueueModule,
     StaticModule,
+    HealthModule,
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],
     }),

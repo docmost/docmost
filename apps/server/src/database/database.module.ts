@@ -36,6 +36,8 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         dialect: new PostgresDialect({
           pool: new Pool({
             connectionString: environmentService.getDatabaseURL(),
+          }).on('error', (err) => {
+            console.error('Database error:', err.message);
           }),
         }),
         plugins: [new CamelCasePlugin()],
@@ -102,7 +104,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
   }
 
   async establishConnection() {
-    const retryAttempts = 10;
+    const retryAttempts = 15;
     const retryDelay = 3000;
 
     this.logger.log('Establishing database connection');
