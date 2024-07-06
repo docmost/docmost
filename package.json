@@ -66,6 +66,7 @@
   "devDependencies": {
     "@nx/js": "19.3.2",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^8.2.2",
     "nx": "19.3.2",
     "concurrently": "^8.2.2",
     "tsx": "^4.15.7"

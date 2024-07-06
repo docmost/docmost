@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> This is an actively maintained fork of [Docmost](https://github.com/docmost/docmost/). I will aim to upstream changes
+> where possible.
+
 <div align="center">
     <h1><b>Docmost</b></h1>
     <p>
@@ -13,9 +17,11 @@
 > Docmost is currently in **beta**. We value your feedback as we progress towards a stable release.
 
 ## Getting started
+
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs).
 
 ## Features
+
 - Real-time collaboration
 - Spaces
 - Permissions management
@@ -26,10 +32,12 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - File attachment
 
 #### Screenshots
+
 <p align="center">
 <img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
 <img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%">
 </p>
 
-### Contributing 
+### Contributing
+
 See the [development doc](https://docmost.com/docs/self-hosting/development)

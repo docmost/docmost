@@ -2,7 +2,7 @@ import * as React from "react";
 import * as z from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import useAuth from "@/features/auth/hooks/use-auth";
-import { ILogin } from "@/features/auth/types/auth.types";
+import { ILogin, IOIDCConfig } from "@/features/auth/types/auth.types";
 import {
   Container,
   Title,
@@ -13,6 +13,8 @@ import {
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import { useEffect } from "react";
+import api from "@/lib/api-client";
 
 const formSchema = z.object({
   email: z
@@ -24,7 +26,23 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
+
+  const [buttonName, setButtonName] = React.useState<string>("Login with OIDC");
+  const [oidcEnabled, setOidcEnabled] = React.useState<boolean>(false);
+
   useRedirectIfAuthenticated();
+
+  useEffect(() => {
+
+    const fetchConfig = async () => {
+      const response = await api.get<IOIDCConfig>("/auth/oidc-config");
+
+      setButtonName(response.data.buttonName);
+      setOidcEnabled(response.data.enabled);
+    };
+  
+    fetchConfig();
+  })
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -36,6 +54,10 @@ export function LoginForm() {
 
   async function onSubmit(data: ILogin) {
     await signIn(data);
+  }
+
+  async function loginWithOAuth() {
+    window.location.href = "/api/auth/oauth-redirect";
   }
 
   return (
@@ -63,8 +85,13 @@ export function LoginForm() {
             {...form.getInputProps("password")}
           />
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-            Sign In
+            Login
           </Button>
+          {oidcEnabled && 
+            <Button onClick={loginWithOAuth} hidden={!oidcEnabled} fullWidth mt="sm">
+              Login with {buttonName}
+            </Button>
+          }
         </form>
       </Box>
     </Container>

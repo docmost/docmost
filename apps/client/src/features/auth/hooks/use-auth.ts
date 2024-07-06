@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { login, setupWorkspace } from "@/features/auth/services/auth-service";
+import { setupWorkspace } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
-import { useAtom } from "jotai";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { ILogin, ISetupWorkspace } from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
 import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
@@ -18,13 +16,13 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      await login(data);
+      await api.post("/auth/login", data);
 
       setIsLoading(false);
       navigate(APP_ROUTE.HOME);
     } catch (err) {
-      console.log(err);
       setIsLoading(false);
+
       notifications.show({
         message: err.response?.data.message,
         color: "red",
@@ -42,6 +40,7 @@ export default function useAuth() {
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
+
       notifications.show({
         message: err.response?.data.message,
         color: "red",
@@ -59,6 +58,7 @@ export default function useAuth() {
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
+
       notifications.show({
         message: err.response?.data.message,
         color: "red",

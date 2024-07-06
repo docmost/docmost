@@ -18,7 +18,7 @@ export class WorkspaceRepo {
     opts?: {
       trx?: KyselyTransaction;
     },
-  ): Promise<Workspace> {
+  ): Promise<Workspace | undefined> {
     const db = dbOrTx(this.db, opts?.trx);
 
     return db

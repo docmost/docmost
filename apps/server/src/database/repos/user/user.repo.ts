@@ -61,7 +61,7 @@ export class UserRepo {
     email: string,
     workspaceId: string,
     includePassword?: boolean,
-  ): Promise<User> {
+  ): Promise<User | undefined> {
     return this.db
       .selectFrom('users')
       .select(this.baseFields)
@@ -105,10 +105,13 @@ export class UserRepo {
     const user: InsertableUser = {
       name: insertableUser.name || insertableUser.email.toLowerCase(),
       email: insertableUser.email.toLowerCase(),
-      password: await hashPassword(insertableUser.password),
+      password: insertableUser.password
+        ? await hashPassword(insertableUser.password)
+        : undefined,
       locale: 'en',
       role: insertableUser?.role,
       lastLoginAt: new Date(),
+      workspaceId: insertableUser.workspaceId,
     };
 
     const db = dbOrTx(this.db, trx);

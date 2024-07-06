@@ -4,7 +4,7 @@ import Routes from "@/lib/app-route.ts";
 import { getBackendUrl } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
-  baseURL: getBackendUrl(),
+  baseURL: "/api",
   withCredentials: true,
 });
 
@@ -27,7 +27,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  },
+  }
 );
 
 api.interceptors.response.use(
@@ -68,7 +68,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 function redirectToLogin() {

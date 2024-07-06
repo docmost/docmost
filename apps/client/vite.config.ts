@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => {
   const { APP_URL } = loadEnv(mode, envPath, "");
 
   return {
+    server: {
+      proxy: {
+        "/api": {
+          target: APP_URL,
+          changeOrigin: true,
+        },
+      },
+    },
     define: {
       "process.env": {
         APP_URL,

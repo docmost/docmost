@@ -1,10 +1,15 @@
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -182,6 +187,16 @@ export interface Workspaces {
   logo: string | null;
   name: string | null;
   settings: Json | null;
+
+  // OIDC settings
+  oidcEnabled: boolean;
+  oidcClientId: string | null;
+  oidcClientSecret: string | null;
+  oidcIssuerUrl: string | null;
+  oidcJITEnabled: boolean;
+  oidcDomains: string[];
+  oidcButtonName: string | null;
+
   updatedAt: Generated<Timestamp>;
 }
 

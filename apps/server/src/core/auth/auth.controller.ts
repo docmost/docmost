@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -11,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { SetupGuard } from './guards/setup.guard';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
@@ -20,7 +20,8 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { Issuer } from 'openid-client';
 import { AppRequest } from 'src/common/helpers/types/request';
 
 @Controller('auth')
@@ -29,6 +30,54 @@ export class AuthController {
     private authService: AuthService,
     private environmentService: EnvironmentService,
   ) {}
+
+  @Get('cb')
+  @HttpCode(HttpStatus.TEMPORARY_REDIRECT)
+  async callback(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
+    const token = await this.authService.oidcLogin(req);
+
+    this.setCookieOnReply(reply, token);
+
+    return reply.redirect(`${this.environmentService.getAppUrl()}/home`);
+  }
+
+  @Get('oauth-redirect')
+  @HttpCode(HttpStatus.TEMPORARY_REDIRECT)
+  async oauthRedirect(
+    @AuthWorkspace() workspace: Workspace,
+    @Res() reply: FastifyReply,
+  ) {
+    const redirectUri = `${this.environmentService.getAppUrl()}/api/auth/cb`;
+
+    if (!workspace.oidcIssuerUrl) {
+      return reply.redirect(`${this.environmentService.getAppUrl()}/login`);
+    }
+
+    const issuer = await Issuer.discover(workspace.oidcIssuerUrl);
+
+    if (!issuer.metadata.authorization_endpoint || !workspace.oidcClientId) {
+      return reply.redirect(`${this.environmentService.getAppUrl()}/login`);
+    }
+
+    const authRedirect =
+      `${issuer.metadata.authorization_endpoint}` +
+      `?response_type=code` +
+      `&client_id=${workspace.oidcClientId}` +
+      `&redirect_uri=${redirectUri}` +
+      `&scope=openid profile email` +
+      `&state=${workspace.id}`;
+
+    return reply.redirect(authRedirect);
+  }
+
+  @Get('oidc-config')
+  @HttpCode(HttpStatus.OK)
+  async oauthConfig(@AuthWorkspace() workspace: Workspace) {
+    return {
+      enabled: workspace.oidcEnabled,
+      buttonName: workspace.oidcButtonName,
+    };
+  }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -39,13 +88,13 @@ export class AuthController {
   ) {
     const token = await this.authService.login(loginInput, req.raw.workspaceId);
 
-    this.setCookie(reply, token);
+    this.setCookieOnReply(reply, token);
 
     return reply.send();
   }
 
-  @HttpCode(HttpStatus.OK)
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   async logout(@Res() reply: FastifyReply) {
     reply.clearCookie('token');
     return reply.send();
@@ -80,10 +129,11 @@ export class AuthController {
     return this.authService.changePassword(dto, user.id, workspace.id);
   }
 
-  private setCookie(reply: FastifyReply, token: string): void {
+  private setCookieOnReply(reply: FastifyReply, token: string) {
     reply.setCookie('token', token, {
-      path: '/',
       httpOnly: true,
+      path: '/',
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
       secure: this.environmentService.getNodeEnv() === 'production',
     });
   }

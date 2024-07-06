@@ -10,10 +10,11 @@ export class EnvironmentService {
   }
 
   getAppUrl(): string {
-    return (
-      this.configService.get<string>('APP_URL') ||
-      'http://localhost:' + this.getPort()
-    );
+    if (this.getNodeEnv() === 'production') {
+      return `${this.configService.get<string>('APP_URL')}`;
+    } else {
+      return 'http://localhost:5173';
+    }
   }
 
   getPort(): number {

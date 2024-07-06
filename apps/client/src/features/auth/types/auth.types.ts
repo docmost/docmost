@@ -1,3 +1,8 @@
+export interface IOIDCConfig {
+  enabled: boolean;
+  buttonName: string;
+}
+
 export interface ILogin {
   email: string;
   password: string;
