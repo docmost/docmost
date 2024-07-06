@@ -1,6 +1,6 @@
 > [!IMPORTANT]
-> This is an actively maintained fork of [Docmost](https://github.com/docmost/docmost/). I will aim to upstream changes
-> where possible.
+> This is an actively maintained fork of [Docmost](https://github.com/docmost/docmost/) with the goal of upstreaming changes regularly.
+> A built docker image is made available on [DockerHub](https://hub.docker.com/r/will2hew/docmost).
 
 <div align="center">
     <h1><b>Docmost</b></h1>
