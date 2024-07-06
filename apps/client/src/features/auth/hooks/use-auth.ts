@@ -2,35 +2,25 @@ import { useState } from "react";
 import { login, setupWorkspace } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
-import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import {
-  ILogin,
-  IRegister,
-  ISetupWorkspace,
-} from "@/features/auth/types/auth.types";
+import { ILogin, ISetupWorkspace } from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
 import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
 import APP_ROUTE from "@/lib/app-route.ts";
+import api from "@/lib/api-client";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const [, setCurrentUser] = useAtom(currentUserAtom);
-  const [authToken, setAuthToken] = useAtom(authTokensAtom);
-
   const handleSignIn = async (data: ILogin) => {
     setIsLoading(true);
 
     try {
-      const res = await login(data);
-      setIsLoading(false);
-      setAuthToken(res.tokens);
+      await login(data);
 
+      setIsLoading(false);
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       console.log(err);
@@ -46,12 +36,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const res = await acceptInvitation(data);
+      await acceptInvitation(data);
+
       setIsLoading(false);
-
-      console.log(res);
-      setAuthToken(res.tokens);
-
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
@@ -66,11 +53,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const res = await setupWorkspace(data);
+      await setupWorkspace(data);
+
       setIsLoading(false);
-
-      setAuthToken(res.tokens);
-
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
@@ -82,31 +67,16 @@ export default function useAuth() {
   };
 
   const handleIsAuthenticated = async () => {
-    if (!authToken) {
-      return false;
-    }
-
     try {
-      const accessToken = authToken.accessToken;
-      const payload = jwtDecode(accessToken);
-
-      // true if jwt is active
-      const now = Date.now().valueOf() / 1000;
-      return payload.exp >= now;
-    } catch (err) {
-      console.log("invalid jwt token", err);
+      await api.get(`/users/me`);
+      return true;
+    } catch {
       return false;
     }
-  };
-
-  const hasTokens = (): boolean => {
-    return !!authToken;
   };
 
   const handleLogout = async () => {
-    setAuthToken(null);
-    setCurrentUser(null);
-    Cookies.remove("authTokens");
+    await api.post(`/auth/logout`);
     navigate(APP_ROUTE.AUTH.LOGIN);
   };
 
@@ -116,7 +86,6 @@ export default function useAuth() {
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,
     logout: handleLogout,
-    hasTokens,
     isLoading,
   };
 }

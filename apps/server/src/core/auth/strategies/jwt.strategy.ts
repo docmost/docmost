@@ -4,12 +4,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-jwt';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { JwtPayload, JwtType } from '../dto/jwt-payload';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { FastifyRequest } from 'fastify';
+import { AppRequest } from 'src/common/helpers/types/request';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -18,23 +19,22 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private workspaceRepo: WorkspaceRepo,
     private readonly environmentService: EnvironmentService,
   ) {
+    function extractFromCookie(req: FastifyRequest): string | undefined {
+      return req.cookies['token'];
+    }
+
     super({
-      jwtFromRequest: (req: FastifyRequest) => {
-        let accessToken = null;
-
-        try {
-          accessToken = JSON.parse(req.cookies?.authTokens)?.accessToken;
-        } catch {}
-
-        return accessToken || this.extractTokenFromHeader(req);
-      },
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        extractFromCookie,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),
       passReqToCallback: true,
     });
   }
 
-  async validate(req: any, payload: JwtPayload) {
+  async validate(req: AppRequest, payload: JwtPayload) {
     if (!payload.workspaceId || payload.type !== JwtType.ACCESS) {
       throw new UnauthorizedException();
     }
@@ -57,11 +57,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException();
     }
 
-    return { user, workspace };
-  }
+    // If the workspace being accessed does not match the user that was
+    // authenticated, then the user is not authorized
+    if (req.raw.workspaceId !== payload.workspaceId) {
+      throw new UnauthorizedException();
+    }
 
-  private extractTokenFromHeader(request: FastifyRequest): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    return user;
   }
 }

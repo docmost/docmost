@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -19,7 +20,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('me')
+  @Get('me')
   async getUserIno(
     @AuthUser() authUser: User,
     @AuthWorkspace() workspace: Workspace,

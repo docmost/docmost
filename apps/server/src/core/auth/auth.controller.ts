@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +20,8 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { FastifyReply } from 'fastify';
+import { AppRequest } from 'src/common/helpers/types/request';
 
 @Controller('auth')
 export class AuthController {
@@ -29,8 +32,23 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Req() req, @Body() loginInput: LoginDto) {
-    return this.authService.login(loginInput, req.raw.workspaceId);
+  async login(
+    @Req() req: AppRequest,
+    @Res() reply: FastifyReply,
+    @Body() loginInput: LoginDto,
+  ) {
+    const token = await this.authService.login(loginInput, req.raw.workspaceId);
+
+    this.setCookie(reply, token);
+
+    return reply.send();
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  async logout(@Res() reply: FastifyReply) {
+    reply.clearCookie('token');
+    return reply.send();
   }
 
   /* @HttpCode(HttpStatus.OK)
@@ -60,5 +78,13 @@ export class AuthController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     return this.authService.changePassword(dto, user.id, workspace.id);
+  }
+
+  private setCookie(reply: FastifyReply, token: string): void {
+    reply.setCookie('token', token, {
+      path: '/',
+      httpOnly: true,
+      secure: this.environmentService.getNodeEnv() === 'production',
+    });
   }
 }
