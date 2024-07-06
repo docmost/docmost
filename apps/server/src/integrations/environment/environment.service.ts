@@ -44,14 +44,6 @@ export class EnvironmentService {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }
 
-  getAwsS3AccessKeyId(): string {
-    return this.configService.get<string>('AWS_S3_ACCESS_KEY_ID');
-  }
-
-  getAwsS3SecretAccessKey(): string {
-    return this.configService.get<string>('AWS_S3_SECRET_ACCESS_KEY');
-  }
-
   getAwsS3Region(): string {
     return this.configService.get<string>('AWS_S3_REGION');
   }
