@@ -15,6 +15,7 @@ import { acceptInvitation } from "@/features/workspace/services/workspace-servic
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import APP_ROUTE from "@/lib/app-route.ts";
+import api from "@/lib/api-client";
 
 export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -44,12 +45,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const res = await acceptInvitation(data);
+      await acceptInvitation(data);
+
       setIsLoading(false);
-
-      console.log(res);
-      setAuthToken(res.tokens);
-
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
@@ -64,11 +62,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const res = await setupWorkspace(data);
+      await setupWorkspace(data);
+
       setIsLoading(false);
-
-      setAuthToken(res.tokens);
-
       navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
@@ -81,19 +77,15 @@ export default function useAuth() {
 
   const handleIsAuthenticated = async () => {
     try {
-      await 
-
-      // true if jwt is active
-      const now = Date.now().valueOf() / 1000;
-      return payload.exp >= now;
-    } catch (err) {
-      console.log("invalid jwt token", err);
+      await api.get(`/api/users/me`);
+      return true;
+    } catch {
       return false;
     }
   };
 
   const handleLogout = async () => {
-    setCurrentUser(null);
+    await api.post(`/api/auth/logout`);
     navigate(APP_ROUTE.AUTH.LOGIN);
   };
 

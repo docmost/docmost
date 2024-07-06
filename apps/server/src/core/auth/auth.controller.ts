@@ -44,6 +44,13 @@ export class AuthController {
     return reply.send();
   }
 
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  async logout(@Res() reply: FastifyReply) {
+    reply.clearCookie('token');
+    return reply.send();
+  }
+
   /* @HttpCode(HttpStatus.OK)
   @Post('register')
   async register(@Req() req, @Body() createUserDto: CreateUserDto) {
