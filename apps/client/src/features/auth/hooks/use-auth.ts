@@ -14,8 +14,6 @@ export default function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const [, setCurrentUser] = useAtom(currentUserAtom);
-
   const handleSignIn = async (data: ILogin) => {
     setIsLoading(true);
 
@@ -70,7 +68,7 @@ export default function useAuth() {
 
   const handleIsAuthenticated = async () => {
     try {
-      await api.get(`/api/users/me`);
+      await api.get(`/users/me`);
       return true;
     } catch {
       return false;
@@ -78,7 +76,7 @@ export default function useAuth() {
   };
 
   const handleLogout = async () => {
-    await api.post(`/api/auth/logout`);
+    await api.post(`/auth/logout`);
     navigate(APP_ROUTE.AUTH.LOGIN);
   };
 
