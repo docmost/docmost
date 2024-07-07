@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.609.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@casl/ability": "^6.7.1",
     "@docmost/editor-ext": "workspace:*",

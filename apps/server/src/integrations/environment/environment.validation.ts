@@ -1,4 +1,5 @@
 import {
+  IsEnum,
   IsIn,
   IsNotEmpty,
   IsNotIn,
@@ -7,6 +8,7 @@ import {
   validateSync,
 } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { MailOption } from '../mail/interfaces';
 
 export class EnvironmentVariables {
   @IsNotEmpty()
@@ -32,7 +34,7 @@ export class EnvironmentVariables {
   APP_SECRET: string;
 
   @IsOptional()
-  @IsIn(['smtp', 'postmark'])
+  @IsEnum(MailOption)
   MAIL_DRIVER: string;
 
   @IsOptional()

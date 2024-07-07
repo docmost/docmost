@@ -1,6 +1,6 @@
 import { EnvironmentService } from '../../environment/environment.service';
 import { MailOption, PostmarkConfig, SMTPConfig } from '../interfaces';
-import { SmtpDriver, PostmarkDriver, LogDriver } from '../drivers';
+import { SmtpDriver, PostmarkDriver, LogDriver, SESDriver } from '../drivers';
 import { MailDriver } from '../drivers/interfaces/mail-driver.interface';
 import { MailConfig } from '../interfaces';
 import { MAIL_CONFIG_TOKEN, MAIL_DRIVER_TOKEN } from '../mail.constants';
@@ -12,6 +12,8 @@ function createMailDriver(mail: MailConfig): MailDriver {
       return new SmtpDriver(mail.config as SMTPConfig);
     case MailOption.Postmark:
       return new PostmarkDriver(mail.config as PostmarkConfig);
+    case MailOption.SES:
+      return new SESDriver(mail.config);
     case MailOption.Log:
       return new LogDriver();
     default:
@@ -37,6 +39,14 @@ export const mailDriverConfigProvider = {
               pass: environmentService.getSmtpPassword(),
             },
           } as SMTPTransport.Options,
+        };
+
+      case MailOption.SES:
+        return {
+          driver,
+          config: {
+            region: environmentService.getAwsS3Region(),
+          },
         };
 
       case MailOption.Postmark:
