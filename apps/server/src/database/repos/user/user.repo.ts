@@ -6,15 +6,11 @@ import { hashPassword } from '../../../common/helpers';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertableUser,
-  Space,
   UpdatableUser,
   User,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import {
-  executeWithPagination,
-  PaginationResult,
-} from '@docmost/db/pagination/pagination';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { sql } from 'kysely';
 
 @Injectable()
@@ -66,7 +62,7 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .$if(includePassword, (qb) => qb.select('password'))
-      .where('email', '=', email)
+      .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
