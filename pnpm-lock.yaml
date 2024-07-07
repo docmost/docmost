@@ -12,17 +12,17 @@ importers:
         specifier: workspace:*
         version: link:packages/editor-ext
       '@hocuspocus/extension-redis':
-        specifier: ^2.13.2
-        version: 2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
+        specifier: ^2.13.5
+        version: 2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
       '@hocuspocus/provider':
-        specifier: ^2.13.2
-        version: 2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
+        specifier: ^2.13.5
+        version: 2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
       '@hocuspocus/server':
-        specifier: ^2.13.2
-        version: 2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
+        specifier: ^2.13.5
+        version: 2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
       '@hocuspocus/transformer':
-        specifier: ^2.13.2
-        version: 2.13.2(@tiptap/pm@2.4.0)(y-prosemirror@1.2.3(prosemirror-model@1.19.4)(prosemirror-state@1.4.3)(prosemirror-view@1.32.7)(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18))(yjs@13.6.18)
+        specifier: ^2.13.5
+        version: 2.13.5(@tiptap/pm@2.4.0)(y-prosemirror@1.2.3(prosemirror-model@1.19.4)(prosemirror-state@1.4.3)(prosemirror-view@1.32.7)(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18))(yjs@13.6.18)
       '@sindresorhus/slugify':
         specifier: ^2.2.1
         version: 2.2.1
@@ -1938,29 +1938,29 @@ packages:
   '@floating-ui/utils@0.2.1':
     resolution: {integrity: sha512-9TANp6GPoMtYzQdt54kfAyMmz1+osLlXdg2ENroU7zzrtflTLrrC/lgrIfaSe+Wu0b89GKccT7vxXA0MoAIO+Q==}
 
-  '@hocuspocus/common@2.13.2':
-    resolution: {integrity: sha512-NMsXx/Dl9xu1KlhNbGzLYLOjKtUOVmU+zA/br+EA4DhNDEtGWvHAmqY5r9SBTr2mGtGJagt+GEqZydSzBUFj4g==}
+  '@hocuspocus/common@2.13.5':
+    resolution: {integrity: sha512-8D9FzhZFlt0WsgXw5yT2zwSxi6z9d4V2vUz6co2vo3Cj+Y2bvGZsdDiTvU/MerGcCLME5k/w6PwLPojLYH/4pg==}
 
-  '@hocuspocus/extension-redis@2.13.2':
-    resolution: {integrity: sha512-QZJKMcMDl3KqDKrwJ65a47aB6scNcmhUN3AqoaeDy8gE3Z3RHo8GCGNcrZCy7MT/+U4KzgRl2rbdJLHciGsAew==}
+  '@hocuspocus/extension-redis@2.13.5':
+    resolution: {integrity: sha512-2wShUgOVXOUd2jd+ncmK3Wd/PUUwrIWNp17XZg/YD6L6kNSNvqPKo0vPmaT4uCekhVO6qPYX3fsLgX2j2hMyUQ==}
     peerDependencies:
       y-protocols: ^1.0.6
       yjs: ^13.6.8
 
-  '@hocuspocus/provider@2.13.2':
-    resolution: {integrity: sha512-Pi+b8gcXHomSDRzohbmVW4dwo5OIqEBoLVrsuEG/pCCS13gBAeUCKCxfrl0q5XCNhK1nu3/j6UW9lxuExqiY+g==}
+  '@hocuspocus/provider@2.13.5':
+    resolution: {integrity: sha512-G3S0OiFSYkmbOwnbhV7FyJs4OBqB/+1YT9c44Ujux1RKowGm5H8+0p3FUHfXwd/3v9V0jE+E1FnFKoGonJSQwA==}
     peerDependencies:
       y-protocols: ^1.0.6
       yjs: ^13.6.8
 
-  '@hocuspocus/server@2.13.2':
-    resolution: {integrity: sha512-crUuMJaK8Ql6zC9x+N0kwKlHTZ2pXV7hG2yOQj5ieGxnQtX4uExU77yS9vji9R7w10YcPnkDwvwPMgeyWhwRfQ==}
+  '@hocuspocus/server@2.13.5':
+    resolution: {integrity: sha512-gDYax5ruaj30mMtFjq5+o5USXQD31hDOxBVU8eTAzezS6hpVllaP7HmM8iRda+UmQoeybHxzqsWAf74JCmYDug==}
     peerDependencies:
       y-protocols: ^1.0.6
       yjs: ^13.6.8
 
-  '@hocuspocus/transformer@2.13.2':
-    resolution: {integrity: sha512-F6dCg3cCNB1QPXtkNvlYuVESTy5VJglNF6AbUAx1yh5zXRz9CMzxZs7tjVCdarZtjYmyu/dtYctub7uyA2RefA==}
+  '@hocuspocus/transformer@2.13.5':
+    resolution: {integrity: sha512-G5QWvV4K7lussF4lSWPFjtqSTZjiq1tkU4WEn1u8OdKQUF0GtfNcnrGWMlCeJdz5Ucpp4qJHWt4TTPI1Lpw/9Q==}
     peerDependencies:
       '@tiptap/pm': ^2.1.12
       y-prosemirror: ^1.2.1
@@ -9976,13 +9976,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.1': {}
 
-  '@hocuspocus/common@2.13.2':
+  '@hocuspocus/common@2.13.5':
     dependencies:
       lib0: 0.2.93
 
-  '@hocuspocus/extension-redis@2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
+  '@hocuspocus/extension-redis@2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
     dependencies:
-      '@hocuspocus/server': 2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
+      '@hocuspocus/server': 2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)
       ioredis: 4.28.5
       kleur: 4.1.5
       lodash.debounce: 4.0.8
@@ -9995,9 +9995,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@hocuspocus/provider@2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
+  '@hocuspocus/provider@2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
     dependencies:
-      '@hocuspocus/common': 2.13.2
+      '@hocuspocus/common': 2.13.5
       '@lifeomic/attempt': 3.0.3
       lib0: 0.2.93
       ws: 8.17.1
@@ -10007,9 +10007,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@hocuspocus/server@2.13.2(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
+  '@hocuspocus/server@2.13.5(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18)':
     dependencies:
-      '@hocuspocus/common': 2.13.2
+      '@hocuspocus/common': 2.13.5
       async-lock: 1.4.1
       kleur: 4.1.5
       lib0: 0.2.93
@@ -10021,7 +10021,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@hocuspocus/transformer@2.13.2(@tiptap/pm@2.4.0)(y-prosemirror@1.2.3(prosemirror-model@1.19.4)(prosemirror-state@1.4.3)(prosemirror-view@1.32.7)(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18))(yjs@13.6.18)':
+  '@hocuspocus/transformer@2.13.5(@tiptap/pm@2.4.0)(y-prosemirror@1.2.3(prosemirror-model@1.19.4)(prosemirror-state@1.4.3)(prosemirror-view@1.32.7)(y-protocols@1.0.6(yjs@13.6.18))(yjs@13.6.18))(yjs@13.6.18)':
     dependencies:
       '@tiptap/core': 2.4.0(@tiptap/pm@2.4.0)
       '@tiptap/pm': 2.4.0
