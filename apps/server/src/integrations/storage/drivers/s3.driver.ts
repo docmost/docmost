@@ -34,9 +34,6 @@ export class S3Driver implements StorageDriver {
       });
 
       await this.s3Client.send(command);
-      // we can get the path from location
-
-      console.log(`File uploaded successfully: ${filePath}`);
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }

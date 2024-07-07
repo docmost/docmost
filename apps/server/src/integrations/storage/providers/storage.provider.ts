@@ -41,19 +41,33 @@ export const storageDriverConfigProvider = {
         };
 
       case StorageOption.S3:
-        return {
+        const s3Config = {
           driver,
           config: {
             region: environmentService.getAwsS3Region(),
             endpoint: environmentService.getAwsS3Endpoint(),
             bucket: environmentService.getAwsS3Bucket(),
             baseUrl: environmentService.getAwsS3Url(),
-            credentials: {
-              accessKeyId: environmentService.getAwsS3AccessKeyId(),
-              secretAccessKey: environmentService.getAwsS3SecretAccessKey(),
-            },
+            credentials: undefined,
           },
         };
+
+        /**
+         * This makes use of AWS_S3_ACCESS_KEY_ID and AWS_S3_SECRET_ACCESS_KEY if present,
+         * If not present, it makes it lenient for the AWS SDK to use
+         * AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY if they are present in the environment
+         */
+        if (
+          environmentService.getAwsS3AccessKeyId() &&
+          environmentService.getAwsS3SecretAccessKey()
+        ) {
+          s3Config.config.credentials = {
+            accessKeyId: environmentService.getAwsS3AccessKeyId(),
+            secretAccessKey: environmentService.getAwsS3SecretAccessKey(),
+          };
+        }
+
+        return s3Config;
 
       default:
         throw new Error(`Unknown storage driver: ${driver}`);
