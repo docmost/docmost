@@ -46,6 +46,12 @@ export async function up(db: Kysely<any>): Promise<void> {
     .using('GIN')
     .column('tsv')
     .execute();
+
+  await db.schema
+    .createIndex('pages_slug_id_idx')
+    .on('pages')
+    .column('slug_id')
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
