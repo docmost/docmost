@@ -4,11 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import {
-  ILogin,
-  IRegister,
-  ISetupWorkspace,
-} from "@/features/auth/types/auth.types";
+import { ILogin, ISetupWorkspace } from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
 import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
@@ -49,7 +45,6 @@ export default function useAuth() {
       const res = await acceptInvitation(data);
       setIsLoading(false);
 
-      console.log(res);
       setAuthToken(res.tokens);
 
       navigate(APP_ROUTE.HOME);
