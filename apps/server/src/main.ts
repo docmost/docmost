@@ -60,15 +60,7 @@ async function bootstrap() {
     }),
   );
 
-  if (process.env.NODE_ENV !== 'production') {
-    // make development easy
-    app.enableCors({
-      origin: ['http://localhost:5173'],
-      credentials: true,
-    });
-  } else {
-    app.enableCors();
-  }
+  app.enableCors();
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
