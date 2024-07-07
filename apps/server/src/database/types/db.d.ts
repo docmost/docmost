@@ -175,7 +175,7 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
-  allowedEmailDomains: Generated<string[] | null>;
+  approvedDomains: Generated<string[] | null>;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
   defaultRole: Generated<string>;
@@ -193,8 +193,7 @@ export interface Workspaces {
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuerUrl: string | null;
-  oidcJITEnabled: boolean;
-  oidcDomains: string[];
+  oidcJitEnabled: boolean;
   oidcButtonName: string | null;
 
   updatedAt: Generated<Timestamp>;

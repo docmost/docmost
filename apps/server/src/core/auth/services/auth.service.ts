@@ -7,7 +7,6 @@ import {
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
-import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -15,16 +14,17 @@ import { comparePasswordHash, hashPassword } from '../../../common/helpers';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { MailService } from '../../../integrations/mail/mail.service';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyRequest } from 'fastify';
 import { Issuer } from 'openid-client';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { z } from 'zod';
 import { UserRole } from 'src/common/helpers/types/permission';
-import { User } from '@docmost/db/types/entity.types';
-import { repl } from '@nestjs/core';
 import { WorkspaceService } from 'src/core/workspace/services/workspace.service';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { EnvironmentService } from 'src/integrations/environment/environment.service';
+import { UpdateOidcConfigDto } from '../dto/update-oidc.dto';
+import { OidcConfigDto } from '../dto/oidc-config.dto';
+import { Workspace } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +38,69 @@ export class AuthService {
     private workspaceService: WorkspaceService,
     private environmentService: EnvironmentService,
   ) {}
+
+  async updateApprovedDomains(
+    domains: string[],
+    workspaceId: string,
+  ): Promise<string[]> {
+    await this.workspaceRepo.updateWorkspace(
+      {
+        approvedDomains: domains,
+      },
+      workspaceId,
+    );
+
+    return domains;
+  }
+
+  async updateOidcConfig(
+    dto: UpdateOidcConfigDto,
+    workspaceId: string,
+  ): Promise<OidcConfigDto> {
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    const updateData: Partial<Workspace> = {};
+
+    if (dto.enabled !== undefined) {
+      updateData.oidcEnabled = dto.enabled;
+    }
+
+    if (dto.issuerUrl) {
+      updateData.oidcIssuerUrl = dto.issuerUrl;
+    }
+
+    if (dto.clientId) {
+      updateData.oidcClientId = dto.clientId;
+    }
+
+    if (dto.clientSecret) {
+      updateData.oidcClientSecret = dto.clientSecret;
+    }
+
+    if (dto.buttonName) {
+      updateData.oidcButtonName = dto.buttonName;
+    }
+
+    if (dto.jitEnabled !== undefined) {
+      updateData.oidcJitEnabled = dto.jitEnabled;
+    }
+
+    await this.workspaceRepo.updateWorkspace(updateData, workspaceId);
+
+    const updatedWorkspace = await this.workspaceRepo.findById(workspaceId);
+
+    return {
+      enabled: updatedWorkspace.oidcEnabled,
+      issuerUrl: updatedWorkspace.oidcIssuerUrl,
+      clientId: updatedWorkspace.oidcClientId,
+      buttonName: updatedWorkspace.oidcButtonName,
+      jitEnabled: updatedWorkspace.oidcJitEnabled,
+    };
+  }
 
   async oidcLogin(req: FastifyRequest) {
     const querySchema = z.object({
@@ -86,8 +149,8 @@ export class AuthService {
 
     if (!user) {
       if (
-        workspace.oidcJITEnabled &&
-        workspace.oidcDomains.includes(email.split('@')[1])
+        workspace.oidcJitEnabled &&
+        workspace.approvedDomains.includes(email.split('@')[1])
       ) {
         const user = await this.userRepo.insertUser({
           name,
@@ -127,7 +190,6 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
 
-    return this.tokenService.generateAccessToken(user);
     return this.tokenService.generateAccessToken(user);
   }
 

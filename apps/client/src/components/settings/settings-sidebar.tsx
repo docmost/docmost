@@ -8,9 +8,11 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
+  IconLock,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
+import useUserRole from "@/hooks/use-user-role";
 
 interface DataItem {
   label: string;
@@ -55,9 +57,21 @@ export default function SettingsSidebar() {
   const [active, setActive] = useState(location.pathname);
   const navigate = useNavigate();
 
+  const { isAdmin, isOwner } = useUserRole();
+
   useEffect(() => {
     setActive(location.pathname);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (isAdmin || isOwner) {
+      groupedData[1].items.push({
+        label: "Security",
+        icon: IconLock,
+        path: "/settings/security",
+      });
+    }
+  }, []);
 
   const menuItems = groupedData.map((group) => (
     <div key={group.heading}>

@@ -33,16 +33,15 @@ export function LoginForm() {
   useRedirectIfAuthenticated();
 
   useEffect(() => {
-
     const fetchConfig = async () => {
-      const response = await api.get<IOIDCConfig>("/auth/oidc-config");
+      const response = await api.get<IOIDCConfig>("/auth/oidc-public-config");
 
       setButtonName(response.data.buttonName);
       setOidcEnabled(response.data.enabled);
     };
-  
+
     fetchConfig();
-  })
+  });
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -87,11 +86,16 @@ export function LoginForm() {
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
             Login
           </Button>
-          {oidcEnabled && 
-            <Button onClick={loginWithOAuth} hidden={!oidcEnabled} fullWidth mt="sm">
+          {oidcEnabled && (
+            <Button
+              onClick={loginWithOAuth}
+              hidden={!oidcEnabled}
+              fullWidth
+              mt="sm"
+            >
               Login with {buttonName}
             </Button>
-          }
+          )}
         </form>
       </Box>
     </Container>

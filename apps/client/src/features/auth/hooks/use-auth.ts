@@ -3,7 +3,10 @@ import { setupWorkspace } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { ILogin, ISetupWorkspace } from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
-import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
+import {
+  IAcceptInvite,
+  IOIDCConfig,
+} from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
 import APP_ROUTE from "@/lib/app-route.ts";
 import api from "@/lib/api-client";

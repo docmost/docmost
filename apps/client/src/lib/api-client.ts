@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import Cookies from "js-cookie";
 import Routes from "@/lib/app-route.ts";
-import { getBackendUrl } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",

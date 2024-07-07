@@ -5,9 +5,11 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  Patch,
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
@@ -23,6 +25,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { Issuer } from 'openid-client';
 import { AppRequest } from 'src/common/helpers/types/request';
+import { UserRole } from 'src/common/helpers/types/permission';
+import { UpdateOidcConfigDto } from './dto/update-oidc.dto';
+import { OidcConfigDto } from './dto/oidc-config.dto';
+import { UpdateDomainsDto } from './dto/update-domains.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -70,13 +76,75 @@ export class AuthController {
     return reply.redirect(authRedirect);
   }
 
-  @Get('oidc-config')
+  @Get('oidc-public-config')
   @HttpCode(HttpStatus.OK)
-  async oauthConfig(@AuthWorkspace() workspace: Workspace) {
+  async oidcPublicConfig(@AuthWorkspace() workspace: Workspace) {
     return {
       enabled: workspace.oidcEnabled,
       buttonName: workspace.oidcButtonName,
     };
+  }
+
+  @Get('oidc-config')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async oauthConfig(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ): Promise<OidcConfigDto> {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
+      throw new UnauthorizedException();
+    }
+
+    return {
+      enabled: workspace.oidcEnabled,
+      issuerUrl: workspace.oidcIssuerUrl,
+      clientId: workspace.oidcClientId,
+      buttonName: workspace.oidcButtonName,
+      jitEnabled: workspace.oidcJitEnabled,
+    };
+  }
+
+  @Patch('oidc-config')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateOidcConfig(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Body() dto: UpdateOidcConfigDto,
+  ): Promise<OidcConfigDto> {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
+      throw new UnauthorizedException();
+    }
+
+    return this.authService.updateOidcConfig(dto, workspace.id);
+  }
+
+  @Get('approved-domains')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getApprovedDomains(@AuthWorkspace() workspace: Workspace) {
+    return { domains: workspace.approvedDomains };
+  }
+
+  @Patch('approved-domains')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateApprovedDomains(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Body() dto: UpdateDomainsDto,
+  ) {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
+      throw new UnauthorizedException();
+    }
+
+    const domains = await this.authService.updateApprovedDomains(
+      dto.domains,
+      workspace.id,
+    );
+
+    return { domains };
   }
 
   @HttpCode(HttpStatus.OK)

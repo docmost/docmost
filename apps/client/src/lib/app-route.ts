@@ -12,6 +12,7 @@ const APP_ROUTE = {
     },
     WORKSPACE: {
       GENERAL: "/settings/workspace",
+      SECURITY: "/settings/security",
       MEMBERS: "/settings/members",
       GROUPS: "/settings/groups",
       SPACES: "/settings/spaces",
