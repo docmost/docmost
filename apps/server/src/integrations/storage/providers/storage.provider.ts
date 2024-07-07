@@ -58,7 +58,7 @@ export const storageDriverConfigProvider = {
          * AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY if they are present in the environment
          */
         if (
-          environmentService.getAwsS3AccessKeyId() &&
+          environmentService.getAwsS3AccessKeyId() ||
           environmentService.getAwsS3SecretAccessKey()
         ) {
           s3Config.config.credentials = {
