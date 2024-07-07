@@ -19,15 +19,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private workspaceRepo: WorkspaceRepo,
     private readonly environmentService: EnvironmentService,
   ) {
-    function extractFromCookie(req: FastifyRequest): string | undefined {
-      return req.cookies['token'];
-    }
-
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        extractFromCookie,
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ]),
+      jwtFromRequest: (req: FastifyRequest) => {
+        return req.cookies['token'];
+      },
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),
       passReqToCallback: true,

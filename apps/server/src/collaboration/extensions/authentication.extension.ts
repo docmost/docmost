@@ -12,6 +12,8 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from '../../common/helpers/types/permission';
 import { getPageId } from '../collaboration.util';
+import * as Cookies from 'cookie';
+import { JwtPayload } from 'src/core/auth/dto/jwt-payload';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
@@ -25,16 +27,24 @@ export class AuthenticationExtension implements Extension {
   ) {}
 
   async onAuthenticate(data: onAuthenticatePayload) {
-    const { documentName, token } = data;
-    const pageId = getPageId(documentName);
+    const cookies = Cookies.parse(data.requestHeaders['cookie'] ?? '');
+    const token = cookies['token'];
 
-    let jwtPayload = null;
+    if (!token) {
+      throw new UnauthorizedException('No token provided');
+    }
+
+    let jwtPayload: JwtPayload;
 
     try {
       jwtPayload = await this.tokenService.verifyJwt(token);
     } catch (error) {
-      throw new UnauthorizedException('Could not verify jwt token');
+      throw new UnauthorizedException('Invalid JWT token');
     }
+
+    const { documentName } = data;
+
+    const pageId = getPageId(documentName);
 
     const userId = jwtPayload.sub;
     const workspaceId = jwtPayload.workspaceId;

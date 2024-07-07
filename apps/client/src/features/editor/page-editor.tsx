@@ -74,7 +74,9 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
       name: documentName,
       url: collaborationURL,
       document: ydoc,
-      token: token?.accessToken,
+      // This isn't actually used, we use the server-side cookie. Requiring this is a known bug of hocuspocus (#596)
+      // and is scheduled to be fixed in an upcoming release.
+      token: "notoken",
       connect: false,
     });
 
