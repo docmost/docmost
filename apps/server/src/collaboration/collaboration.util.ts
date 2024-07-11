@@ -60,7 +60,7 @@ export const tiptapExtensions = [
   Callout,
 ] as any;
 
-export function jsonToHtml(tiptapJson: JSONContent) {
+export function jsonToHtml(tiptapJson: any) {
   return generateHTML(tiptapJson, tiptapExtensions);
 }
 

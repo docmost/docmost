@@ -12,6 +12,7 @@ import { QueueModule } from './integrations/queue/queue.module';
 import { StaticModule } from './integrations/static/static.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './integrations/health/health.module';
+import { ExportModule } from './integrations/export/export.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HealthModule } from './integrations/health/health.module';
     QueueModule,
     StaticModule,
     HealthModule,
+    ExportModule,
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],
     }),
