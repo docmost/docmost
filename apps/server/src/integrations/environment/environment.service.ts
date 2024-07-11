@@ -87,6 +87,24 @@ export class EnvironmentService {
     return parseInt(this.configService.get<string>('SMTP_PORT'));
   }
 
+  getSmtpAuth(): object {
+    let auth = undefined;
+    if (this.getSmtpUsername() && this.getSmtpPassword()) {
+      auth = {
+          user: this.getSmtpUsername(),
+          pass: this.getSmtpPassword(),
+        };
+    }
+    return auth;
+  }
+
+  getSmtpSecure(): boolean {
+    const secure = this.configService
+      .get<string>('SMTP_SECURE', 'false')
+      .toLowerCase();
+    return secure === 'true';
+  }
+
   getSmtpUsername(): string {
     return this.configService.get<string>('SMTP_USERNAME');
   }

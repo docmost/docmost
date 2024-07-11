@@ -32,10 +32,8 @@ export const mailDriverConfigProvider = {
             host: environmentService.getSmtpHost(),
             port: environmentService.getSmtpPort(),
             connectionTimeout: 30 * 1000, // 30 seconds
-            auth: {
-              user: environmentService.getSmtpUsername(),
-              pass: environmentService.getSmtpPassword(),
-            },
+            auth: environmentService.getSmtpAuth(),
+            secure: environmentService.getSmtpSecure(),
           } as SMTPTransport.Options,
         };
 
