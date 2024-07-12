@@ -22,6 +22,10 @@ export interface IRoleData {
   description: string;
 }
 
+export interface ApiResponse<T> {
+  data: T;
+}
+
 export type IPaginationMeta = {
   limit: number;
   page: number;

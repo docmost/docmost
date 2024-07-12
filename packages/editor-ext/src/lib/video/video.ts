@@ -62,9 +62,9 @@ export const TiptapVideo = Node.create<VideoOptions>({
       },
       width: {
         default: "100%",
-        parseHTML: (element) => element.getAttribute("data-width"),
+        parseHTML: (element) => element.getAttribute("width"),
         renderHTML: (attributes: VideoAttributes) => ({
-          "data-width": attributes.width,
+          width: attributes.width,
         }),
       },
       size: {

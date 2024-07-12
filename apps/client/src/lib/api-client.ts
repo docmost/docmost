@@ -26,11 +26,16 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 api.interceptors.response.use(
   (response) => {
+    // we need the response headers
+    if (response.request.responseURL.includes("/api/pages/export")) {
+      return response;
+    }
+
     return response.data;
   },
   (error) => {
@@ -67,7 +72,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 function redirectToLogin() {

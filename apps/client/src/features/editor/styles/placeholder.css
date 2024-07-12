@@ -4,6 +4,10 @@
   color: #adb5bd;
   pointer-events: none;
   height: 0;
+
+  @media print {
+    display: none;
+  }
 }
 
 .ProseMirror .is-empty::before {
@@ -12,9 +16,17 @@
   color: #adb5bd;
   pointer-events: none;
   height: 0;
+
+  @media print {
+    display: none;
+  }
 }
 
 .ProseMirror table .is-editor-empty:first-child::before,
 .ProseMirror table .is-empty::before {
   content: '';
+
+  @media print {
+    display: none;
+  }
 }

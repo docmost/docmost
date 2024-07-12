@@ -56,16 +56,12 @@ export const MathBlock = Node.create({
     return [
       "div",
       {},
-      ["div", { "data-katex": true }, `$${HTMLAttributes.text}$`],
+      ["div", { "data-katex": true }, `$$${HTMLAttributes.text}$$`],
     ];
   },
 
   addNodeView() {
     return ReactNodeViewRenderer(this.options.view);
-  },
-
-  renderText({ node }) {
-    return node.attrs.text;
   },
 
   addCommands() {

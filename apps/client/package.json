@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "emoji-mart": "^5.6.0",
+    "file-saver": "^2.0.5",
     "jotai": "^2.8.3",
     "jotai-optics": "^0.4.0",
     "js-cookie": "^3.0.5",

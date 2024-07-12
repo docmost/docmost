@@ -8,4 +8,8 @@
     top: var(--app-shell-header-offset, 0rem);
     inset-inline-start: var(--app-shell-navbar-offset, 0rem);
     inset-inline-end: var(--app-shell-aside-offset, 0rem);
+
+    @media print {
+        display: none;
+    }
 }

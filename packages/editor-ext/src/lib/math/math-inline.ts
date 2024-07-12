@@ -54,15 +54,7 @@ export const MathInline = Node.create<MathInlineOption>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return [
-      "div",
-      {},
-      ["span", { "data-katex": true }, `$${HTMLAttributes.text}$`],
-    ];
-  },
-
-  renderText({ node }) {
-    return node.attrs.text;
+    return ["span", { "data-katex": true }, `$${HTMLAttributes.text}$` || {}];
   },
 
   addNodeView() {

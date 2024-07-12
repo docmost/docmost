@@ -21,6 +21,8 @@
     "@hocuspocus/provider": "^2.13.5",
     "@hocuspocus/server": "^2.13.5",
     "@hocuspocus/transformer": "^2.13.5",
+    "@joplin/turndown": "^4.0.74",
+    "@joplin/turndown-plugin-gfm": "^1.0.56",
     "@sindresorhus/slugify": "^2.2.1",
     "@tiptap/core": "^2.4.0",
     "@tiptap/extension-code-block": "^2.4.0",
@@ -66,8 +68,8 @@
   "devDependencies": {
     "@nx/js": "19.3.2",
     "@types/uuid": "^10.0.0",
-    "nx": "19.3.2",
     "concurrently": "^8.2.2",
+    "nx": "19.3.2",
     "tsx": "^4.15.7"
   },
   "workspaces": {

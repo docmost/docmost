@@ -3,7 +3,7 @@ import React from "react";
 import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
 import { Container } from "@mantine/core";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);

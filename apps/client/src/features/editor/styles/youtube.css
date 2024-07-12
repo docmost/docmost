@@ -17,5 +17,9 @@
         &.ProseMirror-selectednode {
             background-color: transparent;
         }
+
+        @media print {
+            display: none;
+        }
     }
 }
