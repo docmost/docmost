@@ -1,7 +1,6 @@
 import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
   IconArrowsHorizontal,
-  IconChevronRight,
   IconDots,
   IconDownload,
   IconHistory,
