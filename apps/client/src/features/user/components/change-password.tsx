@@ -95,9 +95,11 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
         {...form.getInputProps("newPassword")}
       />
 
-      <Button type="submit" disabled={isLoading} loading={isLoading}>
-        Change password
-      </Button>
+      <Group justify="flex-end" mt="md">
+        <Button type="submit" disabled={isLoading} loading={isLoading}>
+          Change password
+        </Button>
+      </Group>
     </form>
   );
 }

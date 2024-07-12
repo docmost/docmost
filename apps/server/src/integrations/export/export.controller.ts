@@ -23,6 +23,7 @@ import {
 import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
+import { getMimeType } from '../../common/helpers';
 
 @Controller()
 export class ImportController {
@@ -59,7 +60,7 @@ export class ImportController {
     const fileName = sanitize(page.title || 'Untitled') + fileExt;
 
     res.headers({
-      'Content-Type': 'application/octet-stream',
+      'Content-Type': getMimeType(fileExt),
       'Content-Disposition': 'attachment; filename="' + fileName + '"',
     });
 

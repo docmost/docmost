@@ -1,0 +1,11 @@
+@media print {
+    .mantine-AppShell-header,
+    .mantine-AppShell-navbar,
+    .mantine-AppShell-aside{
+        display: none !important;
+    }
+
+    .mantine-AppShell-main {
+        padding-top: 0 !important;
+    }
+}
