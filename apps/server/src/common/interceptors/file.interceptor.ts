@@ -9,7 +9,7 @@ import { Observable } from 'rxjs';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
-export class AttachmentInterceptor implements NestInterceptor {
+export class FileInterceptor implements NestInterceptor {
   public intercept(
     context: ExecutionContext,
     next: CallHandler,
