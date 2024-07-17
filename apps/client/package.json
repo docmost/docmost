@@ -42,6 +42,7 @@
     "react-router-dom": "^6.24.0",
     "socket.io-client": "^4.7.5",
     "tippy.js": "^6.3.7",
+    "tiptap-extension-global-drag-handle": "^0.1.10",
     "zod": "^3.23.8"
   },
   "devDependencies": {
