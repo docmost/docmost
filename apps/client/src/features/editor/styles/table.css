@@ -1,6 +1,6 @@
 .tableWrapper {
-  margin-top: 3rem;
-  margin-bottom: 3rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
   overflow-x: auto;
   & table {
     overflow-x: hidden;
