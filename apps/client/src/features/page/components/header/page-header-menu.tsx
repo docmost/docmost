@@ -174,7 +174,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
       <PageImportModal
         spaceId={page.spaceId}
         open={importOpened}
-        onClose={closeExportModal}
+        onClose={closeImportModal}
       />
     </>
   );

@@ -7,7 +7,6 @@ import {
   Logger,
   Post,
   Req,
-  Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -15,7 +14,6 @@ import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import { FastifyReply } from 'fastify';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
@@ -41,7 +39,6 @@ export class ImportController {
   @Post('pages/import')
   async importPage(
     @Req() req: any,
-    @Res({ passthrough: true }) res: FastifyReply,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -66,9 +63,8 @@ export class ImportController {
     }
 
     const spaceId = file.fields?.spaceId?.value;
-    const format = file.fields?.format?.value;
 
-    if (!spaceId || !format) {
+    if (!spaceId) {
       throw new BadRequestException('spaceId or format not found');
     }
 
@@ -77,6 +73,6 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    await this.importService.importPage(file, user.id, spaceId, workspace.id);
+    return this.importService.importPage(file, user.id, spaceId, workspace.id);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
@@ -13,6 +13,8 @@ import { transformHTML } from './utils/html.utils';
 
 @Injectable()
 export class ImportService {
+  private readonly logger = new Logger(ImportService.name);
+
   constructor(
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
@@ -38,6 +40,8 @@ export class ImportService {
     // else,  use the file name but without the file extension
 
     let prosemirrorJson = null;
+    let createdPage = null;
+
     if (fileExtension.endsWith('.md') && fileMimeType === 'text/markdown') {
       fileName = fileName.split('.md')[0];
       prosemirrorJson = await this.processMarkdown(fileContent);
@@ -69,7 +73,7 @@ export class ImportService {
       }
 
       try {
-        const createdPage = await this.pageRepo.insertPage({
+        createdPage = await this.pageRepo.insertPage({
           slugId: generateSlugId(),
           title: fileName,
           content: prosemirrorJson,
@@ -80,9 +84,12 @@ export class ImportService {
           lastUpdatedById: userId,
         });
       } catch (err) {
-        console.error('failed to create page', err);
+        // use logger
+        this.logger.error('failed to create imported page', err);
       }
     }
+
+    return createdPage;
   }
 
   async processMarkdown(markdownInput: string): Promise<any> {

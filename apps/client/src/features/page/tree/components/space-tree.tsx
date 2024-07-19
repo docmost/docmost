@@ -447,9 +447,11 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
               leftSection={
                 <IconTrash style={{ width: rem(14), height: rem(14) }} />
               }
-              onClick={() =>
-                openDeleteModal({ onConfirm: () => treeApi?.delete(node) })
-              }
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
+              }}
             >
               Delete
             </Menu.Item>
