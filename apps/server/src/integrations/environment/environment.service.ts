@@ -87,6 +87,13 @@ export class EnvironmentService {
     return parseInt(this.configService.get<string>('SMTP_PORT'));
   }
 
+  getSmtpSecure(): boolean {
+    const secure = this.configService
+      .get<string>('SMTP_SECURE', 'false')
+      .toLowerCase();
+    return secure === 'true';
+  }
+
   getSmtpUsername(): string {
     return this.configService.get<string>('SMTP_USERNAME');
   }
