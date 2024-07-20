@@ -193,7 +193,7 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
 
   return (
     <>
-      <Menu width={200} shadow="md">
+      <Menu width={200} shadow="md" withArrow>
         <Menu.Target>
           <Tooltip
             label="Import pages & space settings"
