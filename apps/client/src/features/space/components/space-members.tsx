@@ -1,5 +1,4 @@
 import { Group, Table, Text, Menu, ActionIcon } from "@mantine/core";
-import { useParams } from "react-router-dom";
 import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";

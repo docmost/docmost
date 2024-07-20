@@ -1,4 +1,4 @@
-import { UnstyledButton, Group, Avatar, Text, rem } from "@mantine/core";
+import { UnstyledButton, Group, Text } from "@mantine/core";
 import classes from "./space-name.module.css";
 
 interface SpaceNameProps {

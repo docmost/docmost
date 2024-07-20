@@ -1,4 +1,4 @@
-import { Modal, Tabs, rem, Group, Divider, ScrollArea } from "@mantine/core";
+import { Modal, Tabs, rem, Group, ScrollArea } from "@mantine/core";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React, { useMemo } from "react";

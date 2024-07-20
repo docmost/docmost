@@ -1,9 +1,4 @@
-import {
-  Editor,
-  NodeViewContent,
-  NodeViewProps,
-  NodeViewWrapper,
-} from "@tiptap/react";
+import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
   IconAlertTriangleFilled,
   IconCircleCheckFilled,

@@ -1,4 +1,4 @@
-import { Button, Divider, Group, Modal, ScrollArea } from "@mantine/core";
+import { Button, Divider, Group, Modal } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useState } from "react";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";

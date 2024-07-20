@@ -2,7 +2,6 @@ import {
   usePageHistoryListQuery,
   usePageHistoryQuery,
 } from "@/features/page-history/queries/page-history-query";
-import { useParams } from "react-router-dom";
 import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,

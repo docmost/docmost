@@ -1,4 +1,4 @@
-import { Group, Table, Avatar, Text, Badge } from "@mantine/core";
+import { Group, Table, Text, Badge } from "@mantine/core";
 import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,

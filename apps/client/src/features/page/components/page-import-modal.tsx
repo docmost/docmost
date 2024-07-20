@@ -1,4 +1,4 @@
-import { Modal, Button, SimpleGrid, FileButton, rem } from "@mantine/core";
+import { Modal, Button, SimpleGrid, FileButton } from "@mantine/core";
 import {
   IconCheck,
   IconFileCode,
