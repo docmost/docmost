@@ -1,4 +1,4 @@
-import { Modal, Button, SimpleGrid, FileButton } from "@mantine/core";
+import { Modal, Button, SimpleGrid, FileButton, rem } from "@mantine/core";
 import {
   IconCheck,
   IconFileCode,
@@ -11,6 +11,7 @@ import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { useAtom } from "jotai";
 import { buildTree } from "@/features/page/tree/utils";
 import { IPage } from "@/features/page/types/page.types.ts";
+import React from "react";
 
 interface PageImportModalProps {
   spaceId: string;
@@ -25,15 +26,26 @@ export default function PageImportModal({
 }: PageImportModalProps) {
   return (
     <>
-      <Modal
+      <Modal.Root
         opened={open}
         onClose={onClose}
-        size="500"
-        title="Import page"
-        centered
+        size={600}
+        padding="xl"
+        yOffset="10vh"
+        xOffset={0}
+        mah={400}
       >
-        <ImportFormatSelection spaceId={spaceId} onClose={onClose} />
-      </Modal>
+        <Modal.Overlay />
+        <Modal.Content style={{ overflow: "hidden" }}>
+          <Modal.Header py={0}>
+            <Modal.Title fw={500}>Import pages</Modal.Title>
+            <Modal.CloseButton />
+          </Modal.Header>
+          <Modal.Body>
+            <ImportFormatSelection spaceId={spaceId} onClose={onClose} />
+          </Modal.Body>
+        </Modal.Content>
+      </Modal.Root>
     </>
   );
 }
@@ -72,11 +84,11 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       }
     }
 
-    const treeBranch = buildTree(pages);
-    const newTree = treeData.concat(treeBranch);
+    const newTreeNodes = buildTree(pages);
+    const fullTree = treeData.concat(newTreeNodes);
 
-    if (newTree && newTree.length > 0) {
-      setTreeData(newTree);
+    if (newTreeNodes?.length && fullTree?.length > 0) {
+      setTreeData(fullTree);
     }
 
     if (pageCount > 0) {
@@ -87,7 +99,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         message: "Your import is complete.",
         icon: <IconCheck size={18} />,
         loading: false,
-        autoClose: 3000,
+        autoClose: 5000,
       });
     } else {
       notifications.update({
@@ -97,7 +109,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         message: "Unable to import pages. Please try again.",
         icon: <IconX size={18} />,
         loading: false,
-        autoClose: 3000,
+        autoClose: 5000,
       });
     }
   };

@@ -36,29 +36,38 @@ export default function PageExportModal({
   };
 
   return (
-    <>
-      <Modal
-        opened={open}
-        onClose={onClose}
-        size="350"
-        centered
-        withCloseButton={false}
-      >
-        <Group justify="space-between" wrap="nowrap">
-          <div>
-            <Text size="md">Export format</Text>
-          </div>
-          <ExportFormatSelection onChange={handleChange} />
-        </Group>
+    <Modal.Root
+      opened={open}
+      onClose={onClose}
+      size={500}
+      padding="xl"
+      yOffset="10vh"
+      xOffset={0}
+      mah={400}
+    >
+      <Modal.Overlay />
+      <Modal.Content style={{ overflow: "hidden" }}>
+        <Modal.Header py={0}>
+          <Modal.Title fw={500}>Export page</Modal.Title>
+          <Modal.CloseButton />
+        </Modal.Header>
+        <Modal.Body>
+          <Group justify="space-between" wrap="nowrap">
+            <div>
+              <Text size="md">Format</Text>
+            </div>
+            <ExportFormatSelection onChange={handleChange} />
+          </Group>
 
-        <Group justify="flex-start" mt="md">
-          <Button onClick={onClose} variant="default">
-            Cancel
-          </Button>
-          <Button onClick={handleExport}>Export</Button>
-        </Group>
-      </Modal>
-    </>
+          <Group justify="center" mt="md">
+            <Button onClick={onClose} variant="default">
+              Cancel
+            </Button>
+            <Button onClick={handleExport}>Export</Button>
+          </Group>
+        </Modal.Body>
+      </Modal.Content>
+    </Modal.Root>
   );
 }
 

@@ -57,7 +57,6 @@ export class ImportService {
 
     if (prosemirrorJson) {
       try {
-        // Imported pages will go to the bottom of the space root
         const pagePosition = await this.getNewPagePosition(spaceId);
 
         createdPage = await this.pageRepo.insertPage({
@@ -71,7 +70,7 @@ export class ImportService {
           lastUpdatedById: userId,
         });
       } catch (err) {
-        const message = 'Failed to create imported page';
+        const message = 'Failed to create page';
         this.logger.error(message, err);
         throw new BadRequestException(message);
       }

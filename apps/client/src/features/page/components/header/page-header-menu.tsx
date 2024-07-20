@@ -8,7 +8,6 @@ import {
   IconMessage,
   IconPrinter,
   IconTrash,
-  IconUpload,
 } from "@tabler/icons-react";
 import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
@@ -25,7 +24,6 @@ import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import PageExportModal from "@/features/page/components/page-export-modal.tsx";
-import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -63,8 +61,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { openDeleteModal } = useDeletePageModal();
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
-    useDisclosure(false);
-  const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
 
   const handleCopyLink = () => {
@@ -130,13 +126,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<IconUpload size={16} />}
-            onClick={openImportModal}
-          >
-            Import
-          </Menu.Item>
-
-          <Menu.Item
             leftSection={<IconDownload size={16} />}
             onClick={openExportModal}
           >
@@ -169,12 +158,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         pageId={page.id}
         open={exportOpened}
         onClose={closeExportModal}
-      />
-      {/* temporary location */}
-      <PageImportModal
-        spaceId={page.spaceId}
-        open={importOpened}
-        onClose={closeImportModal}
       />
     </>
   );
