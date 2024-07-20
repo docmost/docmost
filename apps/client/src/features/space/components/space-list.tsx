@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
+import { formatMemberCount } from "@/lib";
 
 export default function SpaceList() {
   const { data, isLoading } = useGetSpacesQuery();
@@ -50,7 +51,7 @@ export default function SpaceList() {
                   </Group>
                 </Table.Td>
 
-                <Table.Td>{space.memberCount} members</Table.Td>
+                <Table.Td>{formatMemberCount(space.memberCount)}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

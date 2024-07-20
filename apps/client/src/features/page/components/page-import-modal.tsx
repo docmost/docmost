@@ -92,10 +92,12 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }
 
     if (pageCount > 0) {
+      const pageCountText = pageCount === 1 ? "1 page" : `${pageCount} pages`;
+
       notifications.update({
         id: alert,
         color: "teal",
-        title: `Successfully imported ${pageCount} pages`,
+        title: `Successfully imported ${pageCountText}`,
         message: "Your import is complete.",
         icon: <IconCheck size={18} />,
         loading: false,
