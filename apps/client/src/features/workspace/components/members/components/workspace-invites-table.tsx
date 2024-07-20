@@ -1,4 +1,4 @@
-import { Group, Table, Avatar, Text, Badge, Alert } from "@mantine/core";
+import { Group, Table, Avatar, Text, Alert } from "@mantine/core";
 import { useWorkspaceInvitationsQuery } from "@/features/workspace/queries/workspace-query.ts";
 import React from "react";
 import { getUserRoleLabel } from "@/features/workspace/types/user-role-data.ts";

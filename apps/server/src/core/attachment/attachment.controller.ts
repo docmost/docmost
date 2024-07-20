@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { AttachmentService } from './services/attachment.service';
 import { FastifyReply } from 'fastify';
-import { AttachmentInterceptor } from './interceptors/attachment.interceptor';
+import { FileInterceptor } from '../../common/interceptors/file.interceptor';
 import * as bytes from 'bytes';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -63,7 +63,7 @@ export class AttachmentController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('files/upload')
-  @UseInterceptors(AttachmentInterceptor)
+  @UseInterceptors(FileInterceptor)
   async uploadFile(
     @Req() req: any,
     @Res() res: FastifyReply,
@@ -176,7 +176,7 @@ export class AttachmentController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('attachments/upload-image')
-  @UseInterceptors(AttachmentInterceptor)
+  @UseInterceptors(FileInterceptor)
   async uploadAvatarOrLogo(
     @Req() req: any,
     @Res() res: FastifyReply,

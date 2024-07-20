@@ -1,13 +1,15 @@
 import {
   ActionIcon,
   Group,
-  rem,
+  Menu,
   Text,
   Tooltip,
   UnstyledButton,
 } from "@mantine/core";
 import { spotlight } from "@mantine/spotlight";
 import {
+  IconArrowDown,
+  IconDots,
   IconHome,
   IconPlus,
   IconSearch,
@@ -32,6 +34,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 
 export function SpaceSidebar() {
   const [tree] = useAtom(treeApiAtom);
@@ -140,18 +143,20 @@ export function SpaceSidebar() {
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
             ) && (
-              <Tooltip label="Create page" withArrow position="right">
-                <ActionIcon
-                  variant="default"
-                  size={18}
-                  onClick={handleCreatePage}
-                >
-                  <IconPlus
-                    style={{ width: rem(12), height: rem(12) }}
-                    stroke={1.5}
-                  />
-                </ActionIcon>
-              </Tooltip>
+              <Group gap="xs">
+                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
+
+                <Tooltip label="Create page" withArrow position="right">
+                  <ActionIcon
+                    variant="default"
+                    size={18}
+                    onClick={handleCreatePage}
+                    aria-label="Create page"
+                  >
+                    <IconPlus />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
             )}
           </Group>
 
@@ -174,6 +179,57 @@ export function SpaceSidebar() {
       />
 
       <SearchSpotlight spaceId={space.id} />
+    </>
+  );
+}
+
+interface SpaceMenuProps {
+  spaceId: string;
+  onSpaceSettings: () => void;
+}
+function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
+  const [importOpened, { open: openImportModal, close: closeImportModal }] =
+    useDisclosure(false);
+
+  return (
+    <>
+      <Menu width={200} shadow="md" withArrow>
+        <Menu.Target>
+          <Tooltip
+            label="Import pages & space settings"
+            withArrow
+            position="top"
+          >
+            <ActionIcon variant="default" size={18} aria-label="Space menu">
+              <IconDots />
+            </ActionIcon>
+          </Tooltip>
+        </Menu.Target>
+
+        <Menu.Dropdown>
+          <Menu.Item
+            onClick={openImportModal}
+            leftSection={<IconArrowDown size={16} />}
+          >
+            Import pages
+          </Menu.Item>
+
+          <Menu.Divider />
+
+          <Menu.Item
+            onClick={onSpaceSettings}
+            leftSection={<IconSettings size={16} />}
+          >
+            Space settings
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+
+      <PageImportModal
+        spaceId={spaceId}
+        open={importOpened}
+        onClose={closeImportModal}
+      />
     </>
   );
 }

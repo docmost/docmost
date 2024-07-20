@@ -60,7 +60,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   });
   const { openDeleteModal } = useDeletePageModal();
   const [tree] = useAtom(treeApiAtom);
-  const [opened, { open: openExportModal, close: closeExportModal }] =
+  const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
 
   const handleCopyLink = () => {
@@ -156,7 +156,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
       <PageExportModal
         pageId={page.id}
-        open={opened}
+        open={exportOpened}
         onClose={closeExportModal}
       />
     </>

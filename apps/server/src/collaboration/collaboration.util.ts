@@ -27,8 +27,8 @@ import {
   TiptapVideo,
   TrailingNode,
 } from '@docmost/editor-ext';
-import { generateHTML, generateJSON } from '@tiptap/html';
 import { generateText, JSONContent } from '@tiptap/core';
+import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 
 export const tiptapExtensions = [
   StarterKit,

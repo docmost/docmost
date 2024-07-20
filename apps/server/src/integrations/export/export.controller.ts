@@ -28,7 +28,7 @@ import { getMimeType } from '../../common/helpers';
 @Controller()
 export class ImportController {
   constructor(
-    private readonly importService: ExportService,
+    private readonly exportService: ExportService,
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
@@ -54,7 +54,7 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    const rawContent = await this.importService.exportPage(dto.format, page);
+    const rawContent = await this.exportService.exportPage(dto.format, page);
 
     const fileExt = getExportExtension(dto.format);
     const fileName = sanitize(page.title || 'Untitled') + fileExt;

@@ -67,6 +67,20 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
   saveAs(req.data, fileName);
 }
 
+export async function importPage(file: File, spaceId: string) {
+  const formData = new FormData();
+  formData.append("spaceId", spaceId);
+  formData.append("file", file);
+
+  const req = await api.post<IPage>("/pages/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return req.data;
+}
+
 export async function uploadFile(file: File, pageId: string) {
   const formData = new FormData();
   formData.append("pageId", pageId);

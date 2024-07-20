@@ -2,7 +2,7 @@ import { Group, Center, Text } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { IconFileDescription, IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
 import { usePageSearchQuery } from "@/features/search/queries/search-query";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
