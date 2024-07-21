@@ -84,14 +84,14 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       }
     }
 
-    const newTreeNodes = buildTree(pages);
-    const fullTree = treeData.concat(newTreeNodes);
+    if (pages?.length > 0 && pageCount > 0) {
+      const newTreeNodes = buildTree(pages);
+      const fullTree = treeData.concat(newTreeNodes);
 
-    if (newTreeNodes?.length && fullTree?.length > 0) {
-      setTreeData(fullTree);
-    }
+      if (newTreeNodes?.length && fullTree?.length > 0) {
+        setTreeData(fullTree);
+      }
 
-    if (pageCount > 0) {
       const pageCountText = pageCount === 1 ? "1 page" : `${pageCount} pages`;
 
       notifications.update({

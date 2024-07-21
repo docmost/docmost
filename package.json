@@ -53,6 +53,7 @@
     "@tiptap/extension-typography": "^2.5.4",
     "@tiptap/extension-underline": "^2.5.4",
     "@tiptap/extension-youtube": "^2.5.4",
+    "@tiptap/html": "^2.5.4",
     "@tiptap/pm": "^2.5.4",
     "@tiptap/react": "^2.5.4",
     "@tiptap/starter-kit": "^2.5.4",

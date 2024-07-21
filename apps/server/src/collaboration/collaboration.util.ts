@@ -28,7 +28,9 @@ import {
   TrailingNode,
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
-import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
+import { generateHTML } from '../common/helpers/prosemirror/html';
+// default tiptap library works best generating prosemirror json state
+import { generateJSON } from '@tiptap/html';
 
 export const tiptapExtensions = [
   StarterKit,

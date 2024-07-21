@@ -4,12 +4,11 @@ import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import { htmlToJson } from '../../collaboration/collaboration.util';
-import { marked } from 'marked';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateSlugId } from '../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { transformHTML } from './utils/html.utils';
+import { markdownToHtml } from './utils/marked.utils';
 
 @Injectable()
 export class ImportService {
@@ -36,16 +35,23 @@ export class ImportService {
     let prosemirrorState = null;
     let createdPage = null;
 
-    if (fileExtension.endsWith('.md') && fileMimeType === 'text/markdown') {
-      prosemirrorState = await this.processMarkdown(fileContent);
-    }
-
-    if (fileExtension.endsWith('.html') && fileMimeType === 'text/html') {
-      prosemirrorState = await this.processHTML(fileContent);
+    try {
+      if (fileExtension.endsWith('.md') && fileMimeType === 'text/markdown') {
+        prosemirrorState = await this.processMarkdown(fileContent);
+      } else if (
+        fileExtension.endsWith('.html') &&
+        fileMimeType === 'text/html'
+      ) {
+        prosemirrorState = await this.processHTML(fileContent);
+      }
+    } catch (err) {
+      const message = 'Error processing file content';
+      this.logger.error(message, err);
+      throw new BadRequestException(message);
     }
 
     if (!prosemirrorState) {
-      const message = 'Unsupported file format or mime type';
+      const message = 'Failed to create ProseMirror state';
       this.logger.error(message);
       throw new BadRequestException(message);
     }
@@ -69,8 +75,12 @@ export class ImportService {
           workspaceId: workspaceId,
           lastUpdatedById: userId,
         });
+
+        this.logger.debug(
+          `Successfully imported "${title}${fileExtension}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
+        );
       } catch (err) {
-        const message = 'Failed to create page';
+        const message = 'Failed to create imported page';
         this.logger.error(message, err);
         throw new BadRequestException(message);
       }
@@ -80,14 +90,20 @@ export class ImportService {
   }
 
   async processMarkdown(markdownInput: string): Promise<any> {
-    // turn markdown to html
-    const html = await marked.parse(markdownInput);
-    return await this.processHTML(html);
+    try {
+      const html = await markdownToHtml(markdownInput);
+      return this.processHTML(html);
+    } catch (err) {
+      throw err;
+    }
   }
 
   async processHTML(htmlInput: string): Promise<any> {
-    // turn html to prosemirror state
-    return htmlToJson(transformHTML(htmlInput));
+    try {
+      return htmlToJson(htmlInput);
+    } catch (err) {
+      throw err;
+    }
   }
 
   extractTitleAndRemoveHeading(prosemirrorState: any) {

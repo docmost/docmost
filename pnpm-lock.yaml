@@ -119,6 +119,9 @@ importers:
       '@tiptap/extension-youtube':
         specifier: ^2.5.4
         version: 2.5.4(@tiptap/core@2.5.4(@tiptap/pm@2.5.4))
+      '@tiptap/html':
+        specifier: ^2.5.4
+        version: 2.5.4(@tiptap/core@2.5.4(@tiptap/pm@2.5.4))(@tiptap/pm@2.5.4)
       '@tiptap/pm':
         specifier: ^2.5.4
         version: 2.5.4
@@ -3780,6 +3783,12 @@ packages:
     peerDependencies:
       '@tiptap/core': ^2.5.4
 
+  '@tiptap/html@2.5.4':
+    resolution: {integrity: sha512-Fcvsa7kkO+Id7WBFimDN5zdHksVGVnyHnffaN/PaAgbKmzP53BC38Pd0XuHS+KL6btqQIFE2GlqNYnyIos7i+g==}
+    peerDependencies:
+      '@tiptap/core': ^2.5.4
+      '@tiptap/pm': ^2.5.4
+
   '@tiptap/pm@2.5.4':
     resolution: {integrity: sha512-oFIsuniptdUXn93x4aM2sVN3hYKo9Fj55zAkYrWhwxFYUYcPxd5ibra2we+wRK5TaiPu098wpC+yMSTZ/KKMpA==}
 
@@ -4756,6 +4765,10 @@ packages:
 
   css-to-mat@1.1.1:
     resolution: {integrity: sha512-kvpxFYZb27jRd2vium35G7q5XZ2WJ9rWjDUMNT36M3Hc41qCrLXFM5iEKMGXcrPsKfXEN+8l/riB4QzwwwiEyQ==}
+
+  css-what@6.1.0:
+    resolution: {integrity: sha512-HTUrgRJ7r4dsZKU6GjmpfRK1O76h97Z8MfS1G0FozR+oF2kG6Vfe8JE6zwrkbxigziPHinCJ+gCPjA9EaBDtRw==}
+    engines: {node: '>= 6'}
 
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
@@ -6178,8 +6191,8 @@ packages:
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
 
-  markdown-it@14.0.0:
-    resolution: {integrity: sha512-seFjF0FIcPt4P9U39Bq1JYblX0KZCjDLFFQPHpL5AzHpqPEKtosxmdq/LTVZnjfH7tjt9BxStm+wXcDBNuYmzw==}
+  markdown-it@14.1.0:
+    resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
     hasBin: true
 
   marked@13.0.2:
@@ -7790,8 +7803,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  uc.micro@2.0.0:
-    resolution: {integrity: sha512-DffL94LsNOccVn4hyfRe5rdKa273swqeA5DJpMOeFmEn1wCDc7nAbbB0gXlgBCL7TNzeTv6G7XVWzan7iJtfig==}
+  uc.micro@2.1.0:
+    resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
 
   uid2@1.0.0:
     resolution: {integrity: sha512-+I6aJUv63YAcY9n4mQreLUt0d4lvwkkopDNmpomkAUz0fAkEMV9pRWxN0EjhW1YfRhcuyHg2v3mwddCDW1+LFQ==}
@@ -8159,6 +8172,10 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zeed-dom@0.10.11:
+    resolution: {integrity: sha512-7ukbu6aQKx34OQ7PfUIxOuAhk2MvyZY/t4/IJsVzy76zuMzfhE74+Dbyp8SHiUJPTPkF0FflP1KVrGJ7gk9IHw==}
+    engines: {node: '>=14.13.1'}
 
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
@@ -12059,6 +12076,12 @@ snapshots:
     dependencies:
       '@tiptap/core': 2.5.4(@tiptap/pm@2.5.4)
 
+  '@tiptap/html@2.5.4(@tiptap/core@2.5.4(@tiptap/pm@2.5.4))(@tiptap/pm@2.5.4)':
+    dependencies:
+      '@tiptap/core': 2.5.4(@tiptap/pm@2.5.4)
+      '@tiptap/pm': 2.5.4
+      zeed-dom: 0.10.11
+
   '@tiptap/pm@2.5.4':
     dependencies:
       prosemirror-changeset: 2.2.1
@@ -13271,6 +13294,8 @@ snapshots:
     dependencies:
       '@daybrush/utils': 1.13.0
       '@scena/matrix': 1.1.1
+
+  css-what@6.1.0: {}
 
   cssesc@3.0.0: {}
 
@@ -14899,7 +14924,7 @@ snapshots:
 
   linkify-it@5.0.0:
     dependencies:
-      uc.micro: 2.0.0
+      uc.micro: 2.1.0
 
   linkifyjs@4.1.3: {}
 
@@ -14994,14 +15019,14 @@ snapshots:
     dependencies:
       tmpl: 1.0.5
 
-  markdown-it@14.0.0:
+  markdown-it@14.1.0:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
       linkify-it: 5.0.0
       mdurl: 2.0.0
       punycode.js: 2.3.1
-      uc.micro: 2.0.0
+      uc.micro: 2.1.0
 
   marked@13.0.2: {}
 
@@ -15690,7 +15715,7 @@ snapshots:
 
   prosemirror-markdown@1.13.0:
     dependencies:
-      markdown-it: 14.0.0
+      markdown-it: 14.1.0
       prosemirror-model: 1.22.1
 
   prosemirror-menu@1.2.4:
@@ -16778,7 +16803,7 @@ snapshots:
 
   typescript@5.5.2: {}
 
-  uc.micro@2.0.0: {}
+  uc.micro@2.1.0: {}
 
   uid2@1.0.0: {}
 
@@ -17100,5 +17125,9 @@ snapshots:
   yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zeed-dom@0.10.11:
+    dependencies:
+      css-what: 6.1.0
 
   zod@3.23.8: {}

@@ -20,6 +20,7 @@ import {
 } from '../../core/casl/interfaces/space-ability.type';
 import { FileInterceptor } from '../../common/interceptors/file.interceptor';
 import * as bytes from 'bytes';
+import * as path from 'path';
 import { MAX_FILE_SIZE } from '../../core/attachment/attachment.constants';
 import { ImportService } from './import.service';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -42,6 +43,8 @@ export class ImportController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const validFileExtensions = ['.md', '.html'];
+
     const maxFileSize = bytes(MAX_FILE_SIZE);
 
     let file = null;
@@ -60,6 +63,12 @@ export class ImportController {
 
     if (!file) {
       throw new BadRequestException('Failed to upload file');
+    }
+
+    if (
+      !validFileExtensions.includes(path.extname(file.filename).toLowerCase())
+    ) {
+      throw new BadRequestException('Invalid import file type.');
     }
 
     const spaceId = file.fields?.spaceId?.value;
