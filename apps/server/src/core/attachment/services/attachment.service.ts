@@ -59,7 +59,7 @@ export class AttachmentService {
       });
     } catch (err) {
       // delete uploaded file on error
-      console.error(err);
+      this.logger.error(err);
     }
 
     return attachment;
