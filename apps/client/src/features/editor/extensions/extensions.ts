@@ -66,7 +66,9 @@ export const mainExtensions = [
       if (node.type.name === "detailsSummary") {
         return "Toggle title";
       }
-      return 'Write anything. Enter "/" for commands';
+      if (node.type.name === "paragraph") {
+        return 'Write anything. Enter "/" for commands';
+      }
     },
     includeChildren: true,
   }),
