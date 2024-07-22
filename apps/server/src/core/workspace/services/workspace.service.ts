@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -217,11 +218,21 @@ export class WorkspaceService {
   ) {
     const user = await this.userRepo.findById(userRoleDto.userId, workspaceId);
 
+    const newRole = userRoleDto.role.toLowerCase();
+
     if (!user) {
       throw new BadRequestException('Workspace member not found');
     }
 
-    if (user.role === userRoleDto.role) {
+    // prevent ADMIN from managing OWNER role
+    if (
+      (authUser.role === UserRole.ADMIN && newRole === UserRole.OWNER) ||
+      (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER)
+    ) {
+      throw new ForbiddenException();
+    }
+
+    if (user.role === newRole) {
       return user;
     }
 
@@ -238,7 +249,7 @@ export class WorkspaceService {
 
     await this.userRepo.updateUser(
       {
-        role: userRoleDto.role,
+        role: newRole,
       },
       user.id,
       workspaceId,
