@@ -23,7 +23,7 @@ const RoleButton = forwardRef<HTMLButtonElement, RoleButtonProps>(
   ),
 );
 
-interface SpaceRoleMenuProps {
+interface RoleMenuProps {
   roles: IRoleData[];
   roleName: string;
   onChange?: (value: string) => void;
@@ -35,7 +35,7 @@ export default function RoleSelectMenu({
   roleName,
   onChange,
   disabled,
-}: SpaceRoleMenuProps) {
+}: RoleMenuProps) {
   return (
     <Menu withArrow>
       <Menu.Target>

@@ -53,9 +53,10 @@ export function useChangeMemberRoleMutation() {
   return useMutation<any, Error, any>({
     mutationFn: (data) => changeMemberRole(data),
     onSuccess: (data, variables) => {
+      // TODO: change in cache instead
       notifications.show({ message: "Member role updated successfully" });
       queryClient.refetchQueries({
-        queryKey: ["workspaceMembers", variables.spaceId],
+        queryKey: ["workspaceMembers"],
       });
     },
     onError: (error) => {
