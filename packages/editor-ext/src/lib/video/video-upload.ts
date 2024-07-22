@@ -1,7 +1,7 @@
 import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { IAttachment } from "client/src/lib/types";
 import { MediaUploadOptions, UploadFn } from "../media-utils";
+import { IAttachment } from "../types";
 
 const uploadKey = new PluginKey("video-upload");
 
