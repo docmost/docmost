@@ -34,19 +34,15 @@ export class ImportService {
     const fileBuffer = await file.toBuffer();
     const fileName = sanitize(file.filename).slice(0, 255).split('.')[0];
     const fileExtension = path.extname(file.filename).toLowerCase();
-    const fileMimeType = file.mimetype;
     const fileContent = fileBuffer.toString();
 
     let prosemirrorState = null;
     let createdPage = null;
 
     try {
-      if (fileExtension.endsWith('.md') && fileMimeType === 'text/markdown') {
+      if (fileExtension.endsWith('.md')) {
         prosemirrorState = await this.processMarkdown(fileContent);
-      } else if (
-        fileExtension.endsWith('.html') &&
-        fileMimeType === 'text/html'
-      ) {
+      } else if (fileExtension.endsWith('.html')) {
         prosemirrorState = await this.processHTML(fileContent);
       }
     } catch (err) {
