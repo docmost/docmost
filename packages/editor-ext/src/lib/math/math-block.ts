@@ -36,7 +36,9 @@ export const MathBlock = Node.create({
     return {
       text: {
         default: "",
-        parseHTML: (element) => element.innerHTML.split("$")[1],
+        parseHTML: (element) => {
+          return element.innerHTML;
+        },
       },
     };
   },
@@ -44,7 +46,7 @@ export const MathBlock = Node.create({
   parseHTML() {
     return [
       {
-        tag: "div",
+        tag: `div[data-type="${this.name}"]`,
         getAttrs: (node: HTMLElement) => {
           return node.hasAttribute("data-katex") ? {} : false;
         },
@@ -55,8 +57,8 @@ export const MathBlock = Node.create({
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      {},
-      ["div", { "data-katex": true }, `$$${HTMLAttributes.text}$$`],
+      { "data-type": this.name, "data-katex": true },
+      `${HTMLAttributes.text}`,
     ];
   },
 

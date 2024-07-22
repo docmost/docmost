@@ -37,7 +37,9 @@ export const MathInline = Node.create<MathInlineOption>({
     return {
       text: {
         default: "",
-        parseHTML: (element) => element.innerHTML.split("$")[1],
+        parseHTML: (element) => {
+          return element.innerHTML;
+        },
       },
     };
   },
@@ -45,7 +47,7 @@ export const MathInline = Node.create<MathInlineOption>({
   parseHTML() {
     return [
       {
-        tag: "span",
+        tag: `span[data-type="${this.name}"]`,
         getAttrs: (node: HTMLElement) => {
           return node.hasAttribute("data-katex") ? {} : false;
         },
@@ -54,7 +56,11 @@ export const MathInline = Node.create<MathInlineOption>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["span", { "data-katex": true }, `$${HTMLAttributes.text}$` || {}];
+    return [
+      "span",
+      { "data-type": this.name, "data-katex": true },
+      `${HTMLAttributes.text}`,
+    ];
   },
 
   addNodeView() {
