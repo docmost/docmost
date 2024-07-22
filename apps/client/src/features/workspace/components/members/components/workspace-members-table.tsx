@@ -11,11 +11,14 @@ import {
   userRoleData,
 } from "@/features/workspace/types/user-role-data.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { UserRole } from "@/lib/types.ts";
 
 export default function WorkspaceMembersTable() {
   const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isOwner } = useUserRole();
+
+  const assignableUserRoles =  isOwner ? userRoleData : userRoleData.filter((role) => role.value !== UserRole.OWNER);
 
   const handleRoleChange = async (
     userId: string,
@@ -69,7 +72,7 @@ export default function WorkspaceMembersTable() {
 
                 <Table.Td>
                   <RoleSelectMenu
-                    roles={userRoleData}
+                    roles={assignableUserRoles}
                     roleName={getUserRoleLabel(user.role)}
                     onChange={(newRole) =>
                       handleRoleChange(user.id, user.role, newRole)
