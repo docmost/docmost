@@ -18,13 +18,12 @@ export function turndown(html: string): string {
     highlightedCodeBlock,
     taskList,
     callout,
-    toggleListTitle,
-    toggleListBody,
+    preserveDetail,
     listParagraph,
     mathInline,
     mathBlock,
   ]);
-
+  console.log(turndownService.turndown(html));
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
 
@@ -74,29 +73,23 @@ function taskList(turndownService: TurndownService) {
   });
 }
 
-function toggleListTitle(turndownService: TurndownService) {
-  turndownService.addRule('toggleListTitle', {
+function preserveDetail(turndownService: TurndownService) {
+  turndownService.addRule('preserveDetail', {
     filter: function (node: HTMLInputElement) {
-      return (
-        node.nodeName === 'SUMMARY' && node.parentNode.nodeName === 'DETAILS'
-      );
+      return node.nodeName === 'DETAILS';
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      return '- ' + content;
-    },
-  });
-}
+      // TODO: preserve summary of nested details
+      const summary = node.querySelector(':scope > summary');
+      let detailSummary = '';
 
-function toggleListBody(turndownService: TurndownService) {
-  turndownService.addRule('toggleListContent', {
-    filter: function (node: HTMLInputElement) {
-      return (
-        node.getAttribute('data-type') === 'detailsContent' &&
-        node.parentNode.nodeName === 'DETAILS'
-      );
-    },
-    replacement: function (content: any, node: HTMLInputElement) {
-      return `   ${content.replace(/\n/g, '\n    ')}  `;
+      if (summary) {
+        detailSummary = `<summary>${turndownService.turndown(summary.innerHTML)}</summary>`;
+        summary.remove();
+      }
+
+      const detailsContent = turndownService.turndown(node.innerHTML);
+      return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });
 }
@@ -124,7 +117,7 @@ function mathBlock(turndownService: TurndownService) {
       );
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      return `$$${content}$$`;
+      return `\n$$${content}$$\n`;
     },
   });
 }
