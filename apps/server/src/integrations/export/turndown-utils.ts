@@ -23,7 +23,6 @@ export function turndown(html: string): string {
     mathInline,
     mathBlock,
   ]);
-  console.log(turndownService.turndown(html));
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
 
