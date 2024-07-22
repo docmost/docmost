@@ -56,7 +56,7 @@ export default function PageExportModal({
             <div>
               <Text size="md">Format</Text>
             </div>
-            <ExportFormatSelection onChange={handleChange} />
+            <ExportFormatSelection format={format} onChange={handleChange} />
           </Group>
 
           <Group justify="center" mt="md">
@@ -72,16 +72,17 @@ export default function PageExportModal({
 }
 
 interface ExportFormatSelection {
+  format: ExportFormat;
   onChange: (value: string) => void;
 }
-function ExportFormatSelection({ onChange }: ExportFormatSelection) {
+function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
   return (
     <Select
       data={[
         { value: "markdown", label: "Markdown" },
         { value: "html", label: "HTML" },
       ]}
-      defaultValue={ExportFormat.Markdown}
+      defaultValue={format}
       onChange={onChange}
       styles={{ wrapper: { maxWidth: 120 } }}
       comboboxProps={{ width: "120" }}
