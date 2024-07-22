@@ -29,7 +29,9 @@ import {
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
-// default tiptap library works best generating prosemirror json state
+// @tiptap/html library works best for generating prosemirror json state but not HTML
+// see: https://github.com/ueberdosis/tiptap/issues/5352
+// see:https://github.com/ueberdosis/tiptap/issues/4089
 import { generateJSON } from '@tiptap/html';
 
 export const tiptapExtensions = [
