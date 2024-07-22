@@ -21,6 +21,8 @@ export function turndown(html: string): string {
     toggleListTitle,
     toggleListBody,
     listParagraph,
+    mathInline,
+    mathBlock,
   ]);
 
   return turndownService.turndown(html).replaceAll('<br>', ' ');
@@ -95,6 +97,34 @@ function toggleListBody(turndownService: TurndownService) {
     },
     replacement: function (content: any, node: HTMLInputElement) {
       return `   ${content.replace(/\n/g, '\n    ')}  `;
+    },
+  });
+}
+
+function mathInline(turndownService: TurndownService) {
+  turndownService.addRule('mathInline', {
+    filter: function (node: HTMLInputElement) {
+      return (
+        node.nodeName === 'SPAN' &&
+        node.getAttribute('data-type') === 'mathInline'
+      );
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      return `$${content}$`;
+    },
+  });
+}
+
+function mathBlock(turndownService: TurndownService) {
+  turndownService.addRule('mathBlock', {
+    filter: function (node: HTMLInputElement) {
+      return (
+        node.nodeName === 'DIV' &&
+        node.getAttribute('data-type') === 'mathBlock'
+      );
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      return `$$${content}$$`;
     },
   });
 }
