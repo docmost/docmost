@@ -4,13 +4,14 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { Underline } from "@tiptap/extension-underline";
-import { Link } from "@tiptap/extension-link";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
+import Table from "@tiptap/extension-table";
+import TableHeader from "@tiptap/extension-table-header";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
@@ -23,8 +24,6 @@ import {
   DetailsSummary,
   MathBlock,
   MathInline,
-  Table,
-  TableHeader,
   TableCell,
   TableRow,
   TrailingNode,
@@ -97,10 +96,16 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-  Table,
+
+  Table.configure({
+    resizable: true,
+    lastColumnResizable: false,
+    allowTableNodeSelection: true,
+  }),
   TableRow,
   TableCell,
   TableHeader,
+
   MathInline.configure({
     view: MathInlineView,
   }),

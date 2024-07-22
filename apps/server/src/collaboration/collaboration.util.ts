@@ -10,6 +10,8 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
+import Table from '@tiptap/extension-table';
+import TableHeader from '@tiptap/extension-table-header';
 import {
   Callout,
   Comment,
@@ -19,9 +21,7 @@ import {
   LinkExtension,
   MathBlock,
   MathInline,
-  Table,
   TableCell,
-  TableHeader,
   TableRow,
   TiptapImage,
   TiptapVideo,

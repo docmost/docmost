@@ -3,7 +3,7 @@ import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
 import { Selection, Transaction } from "@tiptap/pm/state";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
 import { Node, ResolvedPos } from "@tiptap/pm/model";
-import { Table } from "./table/table-extension";
+import Table from "@tiptap/extension-table";
 
 export const isRectSelected = (rect: any) => (selection: CellSelection) => {
   const map = TableMap.get(selection.$anchorCell.node(-1));
