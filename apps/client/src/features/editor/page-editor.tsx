@@ -31,8 +31,6 @@ import TableCellMenu from "@/features/editor/components/table/table-cell-menu.ts
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
-import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
-import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import {
   handleFileDrop,
