@@ -27,6 +27,12 @@
     margin-bottom: 0.25rem;
   }
 
+  ul p,
+  ol p {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
   h1,
   h2,
   h3,
