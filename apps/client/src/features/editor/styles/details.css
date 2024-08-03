@@ -50,8 +50,7 @@
 
     [data-type="detailsContainer"] {
       flex: 1;
-      margin-left: 0.2em;
-      overflow-x: hidden;
+      padding: 4px;
       word-break: break-word;
       overflow-wrap: break-word;
 
