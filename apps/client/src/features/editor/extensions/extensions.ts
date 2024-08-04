@@ -56,6 +56,11 @@ export const mainExtensions = [
       color: "#70CFF8",
     },
     codeBlock: false,
+    code: {
+      HTMLAttributes: {
+        spellcheck: false,
+      },
+    },
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -131,6 +136,9 @@ export const mainExtensions = [
   }),
   CodeBlockLowlight.configure({
     lowlight,
+    HTMLAttributes: {
+      spellcheck: false,
+    },
   }),
   Selection,
 ] as any;

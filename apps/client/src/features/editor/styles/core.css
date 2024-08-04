@@ -20,11 +20,22 @@
     outline: none;
   }
 
+  p {
+    margin-top: 0.65em;
+    margin-bottom: 0.65em;
+  }
+
   ul,
   ol {
     padding: 0 1rem;
     margin-top: 0.25rem;
     margin-bottom: 0.25rem;
+  }
+
+  ul p,
+  ol p {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   h1,
@@ -80,15 +91,9 @@
     outline: 2px solid #70cff8;
   }
 
-  .node-mathInline {
-    .katex-display {
-      margin: 0;
-    }
-  }
-
   & > .react-renderer {
-    margin-top:  var(--mantine-spacing-xl);
-    margin-bottom: var(--mantine-spacing-xl);
+    margin-top:  var(--mantine-spacing-sm);
+    margin-bottom: var(--mantine-spacing-sm);
 
     &:first-child {
       margin-top: 0;
