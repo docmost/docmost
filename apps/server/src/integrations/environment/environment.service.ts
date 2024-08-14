@@ -62,6 +62,10 @@ export class EnvironmentService {
   getAwsS3Endpoint(): string {
     return this.configService.get<string>('AWS_S3_ENDPOINT');
   }
+  
+  getAwsS3ForcePathStyle(): boolean {
+    return this.configService.get<boolean>('AWS_S3_FORCE_PATH_STYLE')
+  }
 
   getAwsS3Url(): string {
     return this.configService.get<string>('AWS_S3_URL');
