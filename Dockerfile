@@ -1,4 +1,5 @@
 FROM node:21-alpine AS base
+LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 FROM base AS builder
 
