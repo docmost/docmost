@@ -1,6 +1,7 @@
 import type { EditorView } from "@tiptap/pm/view";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
+import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 
 export const handleFilePaste = (
   view: EditorView,
@@ -15,6 +16,7 @@ export const handleFilePaste = (
     if (file) {
       uploadImageAction(file, view, pos, pageId);
       uploadVideoAction(file, view, pos, pageId);
+      uploadAttachmentAction(file, view, pos, pageId);
     }
     return true;
   }
@@ -38,6 +40,7 @@ export const handleFileDrop = (
     if (file) {
       uploadImageAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
       uploadVideoAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
+      uploadAttachmentAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
     }
     return true;
   }

@@ -32,6 +32,7 @@ import {
   TiptapVideo,
   LinkExtension,
   Selection,
+  Attachment,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -46,6 +47,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 const lowlight = createLowlight(common);
 
 export const mainExtensions = [
@@ -141,6 +143,9 @@ export const mainExtensions = [
     },
   }),
   Selection,
+  Attachment.configure({
+    view: AttachmentView,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
