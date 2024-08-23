@@ -10,9 +10,6 @@ export default function CodeBlockView(props: NodeViewProps) {
     language || null,
   );
 
-  console.log(node.textContent);
-  //   const {attrs: {language: defaultLanguage, mode}, textContent} = node;
-
   function changeLanguage(language: string) {
     setLanguageValue(language);
     updateAttributes({
