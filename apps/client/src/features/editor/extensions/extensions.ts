@@ -46,7 +46,12 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
+import plaintext from "highlight.js/lib/languages/plaintext";
+
 const lowlight = createLowlight(common);
+lowlight.register("mermaid", plaintext);
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -134,7 +139,11 @@ export const mainExtensions = [
   Callout.configure({
     view: CalloutView,
   }),
-  CodeBlockLowlight.configure({
+  CodeBlockLowlight.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(CodeBlockView);
+    },
+  }).configure({
     lowlight,
     HTMLAttributes: {
       spellcheck: false,
