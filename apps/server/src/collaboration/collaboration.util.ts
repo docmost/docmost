@@ -15,6 +15,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import {
   Callout,
   Comment,
+  CustomCodeBlock,
   Details,
   DetailsContent,
   DetailsSummary,
@@ -35,7 +36,9 @@ import { generateHTML } from '../common/helpers/prosemirror/html';
 import { generateJSON } from '@tiptap/html';
 
 export const tiptapExtensions = [
-  StarterKit,
+  StarterKit.configure({
+    codeBlock: false
+  }),
   Comment,
   TextAlign,
   TaskList,
@@ -62,6 +65,7 @@ export const tiptapExtensions = [
   TiptapImage,
   TiptapVideo,
   Callout,
+  CustomCodeBlock
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
