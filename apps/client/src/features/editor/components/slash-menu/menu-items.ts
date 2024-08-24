@@ -7,6 +7,7 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
+  IconLetterY,
   IconList,
   IconListNumbers,
   IconMath,
@@ -252,6 +253,19 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconMath,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setMathBlock().run(),
+    },
+    {
+      title: "Mermaid diagram",
+      description: "Insert mermaid diagram",
+      searchTerms: ["mermaid", "diagram", "chart"],
+      icon: IconLetterY,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setCodeBlock({ language: "mermaid" })
+          .run(),
     },
   ],
 };

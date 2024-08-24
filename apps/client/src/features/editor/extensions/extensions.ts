@@ -12,7 +12,6 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import Table from "@tiptap/extension-table";
 import TableHeader from "@tiptap/extension-table-header";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -32,6 +31,7 @@ import {
   TiptapVideo,
   LinkExtension,
   Selection,
+  CustomCodeBlock,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -46,7 +46,6 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
-import { ReactNodeViewRenderer } from "@tiptap/react";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
@@ -139,11 +138,8 @@ export const mainExtensions = [
   Callout.configure({
     view: CalloutView,
   }),
-  CodeBlockLowlight.extend({
-    addNodeView() {
-      return ReactNodeViewRenderer(CodeBlockView);
-    },
-  }).configure({
+  CustomCodeBlock.configure({
+    view: CodeBlockView,
     lowlight,
     HTMLAttributes: {
       spellcheck: false,
