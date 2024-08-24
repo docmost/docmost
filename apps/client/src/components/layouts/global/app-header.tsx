@@ -52,14 +52,17 @@ export function AppHeader() {
               />
             </>
           )}
-
-          <Text
-            size="lg"
-            fw={600}
-            style={{ cursor: "pointer", userSelect: "none" }}
-          >
-            Docmost
-          </Text>
+        <Link 
+        to="/home">
+            <Text
+              size="lg"
+              fw={600}
+              style={{ cursor: "pointer", userSelect: "none" }}
+            >
+              Docmost
+            </Text>
+          </Link>
+        
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
             {items}
