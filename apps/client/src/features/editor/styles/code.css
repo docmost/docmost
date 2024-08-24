@@ -95,7 +95,7 @@
   }
 
   :not(pre) > code {
-    font-family: var(--mantine-font-family-monospace);
+    font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
     line-height: var(--mantine-line-height);
     padding: 2px calc(var(--mantine-spacing-xs) / 2);
     border-radius: var(--mantine-radius-sm);
