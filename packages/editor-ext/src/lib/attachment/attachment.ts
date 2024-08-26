@@ -53,7 +53,7 @@ export const Attachment = Node.create<AttachmentOptions>({
           "data-attachment-name": attributes.name,
         }),
       },
-      extension: {
+      mime: {
         default: undefined,
         parseHTML: (element) => element.getAttribute("data-attachment-mime"),
         renderHTML: (attributes: AttachmentAttributes) => ({
