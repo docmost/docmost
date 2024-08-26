@@ -180,7 +180,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
-      title: "File",
+      title: "File attachment",
       description: "Upload any file from your device.",
       searchTerms: ["file", "attachment", "upload", "pdf", "csv", "zip"],
       icon: IconPaperclip,
