@@ -1,8 +1,8 @@
-import { handleVideoUpload } from "@docmost/editor-ext";
+import { handleAttachmentUpload } from "@docmost/editor-ext";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { notifications } from "@mantine/notifications";
 
-export const uploadVideoAction = handleVideoUpload({
+export const uploadAttachmentAction = handleAttachmentUpload({
   onUpload: async (file: File, pageId: string): Promise<any> => {
     try {
       return await uploadFile(file, pageId);
@@ -15,10 +15,9 @@ export const uploadVideoAction = handleVideoUpload({
     }
   },
   validateFn: (file) => {
-    if (!file.type.includes("video/")) {
+    if (file.type.includes("image/") || file.type.includes("video/")) {
       return false;
     }
-
     if (file.size / 1024 / 1024 > 50) {
       notifications.show({
         color: "red",
@@ -26,6 +25,7 @@ export const uploadVideoAction = handleVideoUpload({
       });
       return false;
     }
+
     return true;
   },
 });

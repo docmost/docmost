@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { Slider } from "@mantine/core";
 
 export type ImageWidthProps = {
@@ -8,6 +8,10 @@ export type ImageWidthProps = {
 
 export const NodeWidthResize = memo(({ onChange, value }: ImageWidthProps) => {
   const [currentValue, setCurrentValue] = useState(value);
+
+  useEffect(() => {
+    setCurrentValue(value);
+  }, [value]);
 
   const handleChange = useCallback(
     (newValue: number) => {

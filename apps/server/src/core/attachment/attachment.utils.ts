@@ -38,7 +38,6 @@ export async function prepareFile(
       mimeType: file.mimetype,
     };
   } catch (error) {
-    console.error('Error in file preparation:', error);
     throw error;
   }
 }

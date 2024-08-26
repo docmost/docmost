@@ -31,6 +31,7 @@ import {
   TiptapVideo,
   LinkExtension,
   Selection,
+  Attachment,
   CustomCodeBlock,
 } from "@docmost/editor-ext";
 import {
@@ -46,6 +47,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
@@ -146,6 +148,9 @@ export const mainExtensions = [
     },
   }),
   Selection,
+  Attachment.configure({
+    view: AttachmentView,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

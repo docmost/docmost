@@ -27,6 +27,7 @@ import {
   TiptapImage,
   TiptapVideo,
   TrailingNode,
+  Attachment,
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -65,6 +66,7 @@ export const tiptapExtensions = [
   TiptapImage,
   TiptapVideo,
   Callout,
+  Attachment,
   CustomCodeBlock
 ] as any;
 

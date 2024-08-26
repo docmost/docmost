@@ -30,7 +30,7 @@ export function getAvatarUrl(avatarUrl: string) {
     return null;
   }
 
-  if (avatarUrl.startsWith("http")) {
+  if (avatarUrl?.startsWith("http")) {
     return avatarUrl;
   }
 
@@ -42,5 +42,5 @@ export function getSpaceUrl(spaceSlug: string) {
 }
 
 export function getFileUrl(src: string) {
-  return src.startsWith("/files/") ? getBackendUrl() + src : src;
+  return src?.startsWith("/files/") ? getBackendUrl() + src : src;
 }

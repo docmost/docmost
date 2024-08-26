@@ -13,6 +13,7 @@ import {
   IconMath,
   IconMathFunction,
   IconMovie,
+  IconPaperclip,
   IconPhoto,
   IconTable,
   IconTypography,
@@ -23,6 +24,7 @@ import {
 } from "@/features/editor/components/slash-menu/types";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
+import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -127,7 +129,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Image",
-      description: "Upload an image from your computer.",
+      description: "Upload any image from your device.",
       searchTerms: ["photo", "picture", "media"],
       icon: IconPhoto,
       command: ({ editor, range }) => {
@@ -140,11 +142,13 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "image/*";
+        input.multiple = true;
         input.onchange = async () => {
           if (input.files?.length) {
-            const file = input.files[0];
-            const pos = editor.view.state.selection.from;
-            uploadImageAction(file, editor.view, pos, pageId);
+            for (const file of input.files) {
+              const pos = editor.view.state.selection.from;
+              uploadImageAction(file, editor.view, pos, pageId);
+            }
           }
         };
         input.click();
@@ -152,7 +156,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Video",
-      description: "Upload an video from your computer.",
+      description: "Upload any video from your device.",
       searchTerms: ["video", "mp4", "media"],
       icon: IconMovie,
       command: ({ editor, range }) => {
@@ -170,6 +174,37 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             const file = input.files[0];
             const pos = editor.view.state.selection.from;
             uploadVideoAction(file, editor.view, pos, pageId);
+          }
+        };
+        input.click();
+      },
+    },
+    {
+      title: "File attachment",
+      description: "Upload any file from your device.",
+      searchTerms: ["file", "attachment", "upload", "pdf", "csv", "zip"],
+      icon: IconPaperclip,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).run();
+
+        const pageId = editor.storage?.pageId;
+        if (!pageId) return;
+
+        // upload file
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "";
+        input.onchange = async () => {
+          if (input.files?.length) {
+            const file = input.files[0];
+            const pos = editor.view.state.selection.from;
+            if (file.type.includes("image/*")) {
+              uploadImageAction(file, editor.view, pos, pageId);
+            } else if (file.type.includes("video/*")) {
+              uploadVideoAction(file, editor.view, pos, pageId);
+            } else {
+              uploadAttachmentAction(file, editor.view, pos, pageId);
+            }
           }
         };
         input.click();

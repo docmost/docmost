@@ -123,6 +123,11 @@ export class AttachmentController {
 
       return res.send(fileResponse);
     } catch (err: any) {
+      if (err?.statusCode === 413) {
+        const errMessage = `File too large. Exceeds the ${MAX_FILE_SIZE} limit`;
+        this.logger.error(errMessage);
+        throw new BadRequestException(errMessage);
+      }
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }
