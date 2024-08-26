@@ -1,6 +1,13 @@
 .ProseMirror {
+  .codeBlock {
+    padding: 4px;
+    border-radius: var(--mantine-radius-default);
+    background-color: light-dark(var(--mantine-color-gray-0),  var(--mantine-color-dark-8));
+    }
+
   pre {
-    padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    margin: 4px;
     font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
     border-radius: var(--mantine-radius-default);
 
@@ -87,7 +94,7 @@
     }
   }
 
-  :not(pre) > code  {
+  :not(pre) > code {
     font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
     line-height: var(--mantine-line-height);
     padding: 2px calc(var(--mantine-spacing-xs) / 2);

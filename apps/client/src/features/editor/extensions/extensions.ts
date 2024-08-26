@@ -12,7 +12,6 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import Table from "@tiptap/extension-table";
 import TableHeader from "@tiptap/extension-table-header";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -33,6 +32,7 @@ import {
   LinkExtension,
   Selection,
   Attachment,
+  CustomCodeBlock,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -48,7 +48,11 @@ import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
+import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
+import plaintext from "highlight.js/lib/languages/plaintext";
+
 const lowlight = createLowlight(common);
+lowlight.register("mermaid", plaintext);
 
 export const mainExtensions = [
   StarterKit.configure({
@@ -136,7 +140,8 @@ export const mainExtensions = [
   Callout.configure({
     view: CalloutView,
   }),
-  CodeBlockLowlight.configure({
+  CustomCodeBlock.configure({
+    view: CodeBlockView,
     lowlight,
     HTMLAttributes: {
       spellcheck: false,

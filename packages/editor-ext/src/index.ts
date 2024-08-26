@@ -11,3 +11,4 @@ export * from "./lib/media-utils";
 export * from "./lib/link";
 export * from "./lib/selection";
 export * from "./lib/attachment";
+export * from "./lib/custom-code-block"
