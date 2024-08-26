@@ -7,7 +7,7 @@ import { formatBytes } from "@/lib";
 
 export default function AttachmentView(props: NodeViewProps) {
   const { node, selected } = props;
-  const { src, name, size } = node.attrs;
+  const { url, name, size } = node.attrs;
   const { hovered, ref } = useHover();
 
   return (
@@ -33,7 +33,7 @@ export default function AttachmentView(props: NodeViewProps) {
           </Group>
 
           {selected || hovered ? (
-            <a href={getFileUrl(src)} target="_blank">
+            <a href={getFileUrl(url)} target="_blank">
               <ActionIcon variant="default" aria-label="download file">
                 <IconDownload size={18} />
               </ActionIcon>

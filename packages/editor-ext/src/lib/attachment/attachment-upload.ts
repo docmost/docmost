@@ -29,7 +29,7 @@ export const AttachmentUploadPlugin = ({
 
           const uploadingText = document.createElement("span");
           uploadingText.setAttribute("class", "uploading-text");
-          uploadingText.textContent = `Uploading ${fileName} ...`;
+          uploadingText.textContent = `Uploading ${fileName}`;
 
           placeholder.appendChild(uploadingText);
 
@@ -95,11 +95,11 @@ export const handleAttachmentUpload =
         if (!attachment) return;
 
         const node = schema.nodes.attachment?.create({
-          src: `/files/${attachment.id}/${attachment.fileName}`,
-          attachmentId: attachment.id,
-          extension: attachment.fileExt,
+          url: `/files/${attachment.id}/${attachment.fileName}`,
           name: attachment.fileName,
+          mime: attachment.mimeType,
           size: attachment.fileSize,
+          attachmentId: attachment.id,
         });
         if (!node) return;
 

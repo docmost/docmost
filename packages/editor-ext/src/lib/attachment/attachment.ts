@@ -7,11 +7,11 @@ export interface AttachmentOptions {
   view: any;
 }
 export interface AttachmentAttributes {
-  src?: string;
-  extension?: string;
+  url?: string;
   name?: string;
-  attachmentId?: string;
+  mime?: string; // mime type e.g. application/zip
   size?: number;
+  attachmentId?: string;
 }
 
 declare module "@tiptap/core" {
@@ -39,25 +39,32 @@ export const Attachment = Node.create<AttachmentOptions>({
   },
   addAttributes() {
     return {
-      src: {
+      url: {
         default: "",
-        parseHTML: (element) => element.getAttribute("data-src"),
+        parseHTML: (element) => element.getAttribute("data-attachment-url"),
         renderHTML: (attributes) => ({
-          "data-src": attributes.src,
-        }),
-      },
-      extension: {
-        default: undefined,
-        parseHTML: (element) => element.getAttribute("data-extension"),
-        renderHTML: (attributes: AttachmentAttributes) => ({
-          "data-extension": attributes.extension,
+          "data-attachment-url": attributes.url,
         }),
       },
       name: {
         default: undefined,
-        parseHTML: (element) => element.getAttribute("data-name"),
+        parseHTML: (element) => element.getAttribute("data-attachment-name"),
         renderHTML: (attributes: AttachmentAttributes) => ({
-          "data-name": attributes.name,
+          "data-attachment-name": attributes.name,
+        }),
+      },
+      extension: {
+        default: undefined,
+        parseHTML: (element) => element.getAttribute("data-attachment-mime"),
+        renderHTML: (attributes: AttachmentAttributes) => ({
+          "data-attachment-mime": attributes.mime,
+        }),
+      },
+      size: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-attachment-size"),
+        renderHTML: (attributes: AttachmentAttributes) => ({
+          "data-attachment-size": attributes.size,
         }),
       },
       attachmentId: {
@@ -65,13 +72,6 @@ export const Attachment = Node.create<AttachmentOptions>({
         parseHTML: (element) => element.getAttribute("data-attachment-id"),
         renderHTML: (attributes: AttachmentAttributes) => ({
           "data-attachment-id": attributes.attachmentId,
-        }),
-      },
-      size: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
-        renderHTML: (attributes: AttachmentAttributes) => ({
-          "data-size": attributes.size,
         }),
       },
     };
