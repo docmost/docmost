@@ -28,6 +28,7 @@ import {
   TiptapVideo,
   TrailingNode,
   Attachment,
+  Excalidraw,
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -38,7 +39,7 @@ import { generateJSON } from '@tiptap/html';
 
 export const tiptapExtensions = [
   StarterKit.configure({
-    codeBlock: false
+    codeBlock: false,
   }),
   Comment,
   TextAlign,
@@ -67,7 +68,8 @@ export const tiptapExtensions = [
   TiptapVideo,
   Callout,
   Attachment,
-  CustomCodeBlock
+  CustomCodeBlock,
+  Excalidraw,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

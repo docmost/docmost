@@ -81,7 +81,7 @@ export async function importPage(file: File, spaceId: string) {
   return req.data;
 }
 
-export async function uploadFile(file: File, pageId: string) {
+export async function uploadFile(file: File, pageId: string): Promise<IAttachment> {
   const formData = new FormData();
   formData.append("pageId", pageId);
   formData.append("file", file);
@@ -92,5 +92,5 @@ export async function uploadFile(file: File, pageId: string) {
     },
   });
 
-  return req;
+  return req as unknown as IAttachment;
 }

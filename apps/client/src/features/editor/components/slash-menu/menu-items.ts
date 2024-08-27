@@ -25,6 +25,7 @@ import {
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
+import { v4 } from "uuid";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -301,6 +302,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .setCodeBlock({ language: "mermaid" })
           .run(),
+    },
+    {
+      title: "Excalidraw diagram",
+      description: "Insert excalidraw diagram",
+      searchTerms: ["diagram"],
+      icon: IconLetterY,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setExcalidraw().run(),
     },
   ],
 };

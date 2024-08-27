@@ -9,5 +9,7 @@
   "main": "dist/index.js",
   "module": "./src/index.ts",
   "types": "dist/index.d.ts",
-  "dependencies": {}
+  "dependencies": {
+    "react-modal": "^3.16.1"
+  }
 }
