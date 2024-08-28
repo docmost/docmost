@@ -302,6 +302,19 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .setCodeBlock({ language: "mermaid" })
           .run(),
     },
+    {
+      title: "Draw.io (diagrams.net) ",
+      description: "Insert drawio diagram",
+      searchTerms: ["drawio", "diagram"],
+      icon: IconLetterY,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setDrawio()
+          .run(),
+    },
   ],
 };
 

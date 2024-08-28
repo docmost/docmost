@@ -255,6 +255,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      react-drawio:
+        specifier: ^0.2.0
+        version: 0.2.0(react@18.3.1)
       react-error-boundary:
         specifier: ^4.0.13
         version: 4.0.13(react@18.3.1)
@@ -2360,6 +2363,9 @@ packages:
     resolution: {integrity: sha512-o4lfCnEeIkfJhGBbLZxTuVWcGuqDCFwg5OrvpgRUBM7vI/vONvKKiB5riVNpO+JqXoH0I42NNeDb0m4V5RREig==}
     peerDependencies:
       typescript: '>=4.8.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@nestjs/terminus@10.2.3':
     resolution: {integrity: sha512-iX7gXtAooePcyQqFt57aDke5MzgdkBeYgF5YsFNNFwOiAFdIQEhfv3PR0G+HlH9F6D7nBCDZt9U87Pks/qHijg==}
@@ -7305,6 +7311,11 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
+  react-drawio@0.2.0:
+    resolution: {integrity: sha512-LQRk8miMq7ats+ram6M9DjR77ur1PaweWMf26mWQha9nvBMC98KcT1OyjISvOMhU+v1JCdUqMkTuGMNMD9nMew==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+
   react-email@2.1.4:
     resolution: {integrity: sha512-YKZ4jhkalWcNyaw4qyI//+QeTeUxe/ptqI+wSc4wVIoHzqffAWoV5x/jBpFex3FQ636xVIDFrvGq39rUVL7zSQ==}
     engines: {node: '>=18.0.0'}
@@ -11021,6 +11032,7 @@ snapshots:
       comment-json: 4.2.3
       jsonc-parser: 3.2.1
       pluralize: 8.0.0
+    optionalDependencies:
       typescript: 5.3.3
     transitivePeerDependencies:
       - chokidar
@@ -11032,6 +11044,7 @@ snapshots:
       comment-json: 4.2.3
       jsonc-parser: 3.2.1
       pluralize: 8.0.0
+    optionalDependencies:
       typescript: 5.5.2
     transitivePeerDependencies:
       - chokidar
@@ -16619,6 +16632,10 @@ snapshots:
       loose-envify: 1.4.0
       react: 18.3.1
       scheduler: 0.23.2
+
+  react-drawio@0.2.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   react-email@2.1.4(@swc/helpers@0.5.11)(eslint@9.5.0)(ts-node@10.9.2(@swc/core@1.5.25(@swc/helpers@0.5.11))(@types/node@20.14.9)(typescript@5.5.2)):
     dependencies:
