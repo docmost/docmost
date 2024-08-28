@@ -8,9 +8,9 @@ export interface ExcalidrawOptions {
 export interface ExcalidrawAttributes {
   src?: string;
   title?: string;
-  attachmentId?: string;
   size?: number;
   width?: string;
+  attachmentId?: string;
 }
 
 declare module "@tiptap/core" {

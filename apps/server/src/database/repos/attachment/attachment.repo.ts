@@ -43,8 +43,8 @@ export class AttachmentRepo {
   async updateAttachment(
     updatableAttachment: UpdatableAttachment,
     attachmentId: string,
-  ): Promise<void> {
-    await this.db
+  ): Promise<Attachment> {
+    return await this.db
       .updateTable('attachments')
       .set(updatableAttachment)
       .where('id', '=', attachmentId)

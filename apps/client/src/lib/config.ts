@@ -5,12 +5,6 @@ declare global {
 }
 
 export function getAppUrl(): string {
-  let appUrl = window.CONFIG?.APP_URL || process.env.APP_URL;
-
-  if (import.meta.env.DEV) {
-    return appUrl || "http://localhost:3000";
-  }
-
   return `${window.location.protocol}//${window.location.host}`;
 }
 

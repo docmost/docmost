@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
@@ -36,27 +41,64 @@ export class AttachmentService {
     userId: string;
     spaceId: string;
     workspaceId: string;
+    attachmentId?: string;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise);
 
-    const attachmentId = uuid7();
+    let isUpdate = false;
+    let attachmentId = null;
+
+    // passing attachmentId to allow for updating diagrams
+    // instead of creating new files for each save
+    if (opts?.attachmentId) {
+      let existingAttachment = await this.attachmentRepo.findById(
+        opts.attachmentId,
+      );
+      if (!existingAttachment) {
+        throw new NotFoundException(
+          'Existing attachment to overwrite not found',
+        );
+      }
+
+      if (
+        existingAttachment.pageId !== pageId &&
+        existingAttachment.fileExt !== preparedFile.fileExtension &&
+        existingAttachment.workspaceId !== workspaceId
+      ) {
+        throw new BadRequestException('File attachment does not match');
+      }
+      attachmentId = opts.attachmentId;
+      isUpdate = true;
+    } else {
+      attachmentId = uuid7();
+    }
+
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     await this.uploadToDrive(filePath, preparedFile.buffer);
 
     let attachment: Attachment = null;
     try {
-      attachment = await this.saveAttachment({
-        attachmentId,
-        preparedFile,
-        filePath,
-        type: AttachmentType.File,
-        userId,
-        spaceId,
-        workspaceId,
-        pageId,
-      });
+      if (isUpdate) {
+        attachment = await this.attachmentRepo.updateAttachment(
+          {
+            updatedAt: new Date(),
+          },
+          attachmentId,
+        );
+      } else {
+        attachment = await this.saveAttachment({
+          attachmentId,
+          preparedFile,
+          filePath,
+          type: AttachmentType.File,
+          userId,
+          spaceId,
+          workspaceId,
+          pageId,
+        });
+      }
     } catch (err) {
       // delete uploaded file on error
       this.logger.error(err);

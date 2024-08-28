@@ -13,10 +13,11 @@ import { svgStringToFile } from '@/lib';
 import { useDisclosure } from '@mantine/hooks';
 import { getFileUrl } from '@/lib/config.ts';
 import { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types/types';
+import { IAttachment } from '@/lib/types';
 
 export default function ExcalidrawView(props: NodeViewProps) {
   const { node, updateAttributes, editor } = props;
-  const { src, title, width } = node.attrs;
+  const { src, title, width, attachmentId } = node.attrs;
 
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
@@ -24,14 +25,20 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
 
-  const handleOpen = async () => {
-    if(!editor.isEditable){
+  const handleOpen = async (event: React.MouseEvent<HTMLImageElement>) => {
+    if (!editor.isEditable) {
       return;
     }
-    
+
+    // only respond on double click
+    if (event.detail !== 2) {
+      return;
+    }
+
     try {
       const url = getFileUrl(src);
-      const request = await fetch(window.decodeURIComponent(url));
+      const request = await fetch(url, { credentials: 'include' });
+
       const data = await loadFromBlob(await request.blob(), null, null);
       setExcalidrawData(data);
     } catch (err) {
@@ -59,14 +66,20 @@ export default function ExcalidrawView(props: NodeViewProps) {
     const svgString = serializer.serializeToString(svg);
 
     const fileName = 'diagram.excalidraw.svg';
+
     const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
     const pageId = editor.storage?.pageId;
 
-    const attachment = await uploadFile(excalidrawSvgFile, pageId);
+    let attachment: IAttachment = null;
+    if (attachmentId) {
+      attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+    } else {
+      attachment = await uploadFile(excalidrawSvgFile, pageId);
+    }
 
     updateAttributes({
-      src: `/files/${attachment.id}/${attachment.fileName}`,
+      src: `/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
       title: attachment.fileName,
       size: attachment.fileSize,
       attachmentId: attachment.id,
@@ -77,15 +90,15 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper>
-      <Modal.Root opened={opened} onClose={close} size={'90%'}>
+      <Modal.Root opened={opened} onClose={close} size={'90%'} fullScreen>
         <Modal.Overlay />
-        <Modal.Content>
+        <Modal.Content style={{ overflow: 'hidden' }}>
           <Modal.Body>
             <Group justify="flex-end">
               <Button variant="default" onClick={handleSave}>
                 Save & Exit
               </Button>
-              <Button variant="light" color="red">
+              <Button onClick={close} variant="light" color="red">
                 Discard
               </Button>
             </Group>
