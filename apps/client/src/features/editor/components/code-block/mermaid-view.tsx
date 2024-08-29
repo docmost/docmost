@@ -20,7 +20,7 @@ export default function MermaidView({ props }: MermaidViewProps) {
   useEffect(() => {
     const id = `mermaid-${uuidv4()}`;
 
-    if (node.textContent.trim.length > 0) {
+    if (node.textContent.length > 0) {
       mermaid
         .render(id, node.textContent)
         .then((item) => {

@@ -1,5 +1,6 @@
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import {
+  ActionIcon,
   Button,
   Card,
   Group,
@@ -16,9 +17,11 @@ import { getFileUrl } from '@/lib/config.ts';
 import { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types/types';
 import { IAttachment } from '@/lib/types';
 import ReactClearModal from 'react-clear-modal';
+import clsx from 'clsx';
+import { IconEdit } from '@tabler/icons-react';
 
 export default function ExcalidrawView(props: NodeViewProps) {
-  const { node, updateAttributes, editor } = props;
+  const { node, updateAttributes, editor, selected } = props;
   const { src, title, width, attachmentId } = node.attrs;
 
   const [excalidrawAPI, setExcalidrawAPI] =
@@ -27,13 +30,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
 
-  const handleOpen = async (event: React.MouseEvent<HTMLImageElement>) => {
+  const handleOpen = async () => {
     if (!editor.isEditable) {
-      return;
-    }
-
-    // only respond on double click
-    if (event.detail !== 2) {
       return;
     }
 
@@ -92,7 +90,6 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper>
-
       <ReactClearModal
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -125,27 +122,65 @@ export default function ExcalidrawView(props: NodeViewProps) {
         <div style={{ height: '90vh' }}>
           <Excalidraw
             excalidrawAPI={(api) => setExcalidrawAPI(api)}
-            initialData={excalidrawData}
-            theme={computedColorScheme}
+            initialData={{
+              ...excalidrawData,
+              scrollToContent: true,
+            }}
           />
         </div>
       </ReactClearModal>
 
-      {attachmentId ? (
-        <Image
-          onClick={handleOpen}
-          radius="md"
-          fit="contain"
-          src={getFileUrl(src)}
-          width={width}
-          fallbackSrc="https://placehold.co/600x25?text=click%20to%20draw"
-          alt={title}
-        />
+      {src ? (
+        <div style={{ position: 'relative' }}>
+          <Image
+            onClick={(e) => e.detail === 2 && handleOpen()}
+            radius="md"
+            fit="contain"
+            w={width}
+            src={getFileUrl(src)}
+            alt={title}
+            className={clsx(
+              selected ? 'ProseMirror-selectednode' : '',
+              'alignCenter'
+            )}
+          />
+
+          {selected && (
+            <ActionIcon
+              onClick={handleOpen}
+              variant="default"
+              color="gray"
+              mx="xs"
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+              }}
+            >
+              <IconEdit size={20} />
+            </ActionIcon>
+          )}
+        </div>
       ) : (
-        <Card radius="md" onClick={handleOpen} p="xs" withBorder>
-          <div>
-            <Text size="lg" fw={700}>
-              Click to edit excalidraw
+        <Card
+          radius="md"
+          onClick={(e) => e.detail === 2 && handleOpen()}
+          p="xs"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          withBorder
+          className={clsx(selected ? 'ProseMirror-selectednode' : '')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ActionIcon variant="transparent" color="gray" mx="xs">
+              <IconEdit size={20} />
+            </ActionIcon>
+
+            <Text component="span" size="lg" c="dimmed">
+              Double-click to edit excalidraw diagram
             </Text>
           </div>
         </Card>
