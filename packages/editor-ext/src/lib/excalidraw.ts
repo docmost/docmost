@@ -10,6 +10,7 @@ export interface ExcalidrawAttributes {
   title?: string;
   size?: number;
   width?: string;
+  align?: string;
   attachmentId?: string;
 }
 
@@ -64,6 +65,13 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
         parseHTML: (element) => element.getAttribute("data-size"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
           "data-size": attributes.size,
+        }),
+      },
+      align: {
+        default: "center",
+        parseHTML: (element) => element.getAttribute("data-align"),
+        renderHTML: (attributes: ExcalidrawAttributes) => ({
+          "data-align": attributes.align,
         }),
       },
       attachmentId: {
