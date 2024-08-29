@@ -1,9 +1,10 @@
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import {
   Button,
+  Card,
   Group,
   Image,
-  Modal,
+  Text,
   useComputedColorScheme,
 } from '@mantine/core';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { getFileUrl } from '@/lib/config.ts';
 import { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types/types';
 import { IAttachment } from '@/lib/types';
+import ReactClearModal from 'react-clear-modal';
 
 export default function ExcalidrawView(props: NodeViewProps) {
   const { node, updateAttributes, editor } = props;
@@ -90,37 +92,64 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper>
-      <Modal.Root opened={opened} onClose={close} size={'90%'} fullScreen>
-        <Modal.Overlay />
-        <Modal.Content style={{ overflow: 'hidden' }}>
-          <Modal.Body>
-            <Group justify="flex-end">
-              <Button variant="default" onClick={handleSave}>
-                Save & Exit
-              </Button>
-              <Button onClick={close} variant="light" color="red">
-                Discard
-              </Button>
-            </Group>
-            <div style={{ height: '80vh' }}>
-              <Excalidraw
-                excalidrawAPI={(api) => setExcalidrawAPI(api)}
-                initialData={excalidrawData}
-              />
-            </div>
-          </Modal.Body>
-        </Modal.Content>
-      </Modal.Root>
 
-      <Image
-        onClick={handleOpen}
-        radius="md"
-        fit="contain"
-        src={getFileUrl(src)}
-        width={width}
-        fallbackSrc="https://placehold.co/600x25?text=click%20to%20draw"
-        alt={title}
-      />
+      <ReactClearModal
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          padding: 0,
+          zIndex: 200,
+        }}
+        isOpen={opened}
+        onRequestClose={close}
+        disableCloseOnBgClick={true}
+        contentProps={{
+          style: {
+            padding: 0,
+            width: '90vw',
+          },
+        }}
+      >
+        <Group
+          justify="flex-end"
+          wrap="nowrap"
+          bg="var(--mantine-color-body)"
+          p="xs"
+        >
+          <Button variant="" onClick={handleSave} size={'compact-sm'}>
+            Save & Exit
+          </Button>
+          <Button onClick={close} variant="" color="red" size={'compact-sm'}>
+            Exit
+          </Button>
+        </Group>
+        <div style={{ height: '90vh' }}>
+          <Excalidraw
+            excalidrawAPI={(api) => setExcalidrawAPI(api)}
+            initialData={excalidrawData}
+            theme={computedColorScheme}
+          />
+        </div>
+      </ReactClearModal>
+
+      {attachmentId ? (
+        <Image
+          onClick={handleOpen}
+          radius="md"
+          fit="contain"
+          src={getFileUrl(src)}
+          width={width}
+          fallbackSrc="https://placehold.co/600x25?text=click%20to%20draw"
+          alt={title}
+        />
+      ) : (
+        <Card radius="md" onClick={handleOpen} p="xs" withBorder>
+          <div>
+            <Text size="lg" fw={700}>
+              Click to edit excalidraw
+            </Text>
+          </div>
+        </Card>
+      )}
     </NodeViewWrapper>
   );
 }

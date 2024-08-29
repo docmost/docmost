@@ -255,6 +255,9 @@ importers:
       react-arborist:
         specifier: ^3.4.0
         version: 3.4.0(@types/node@20.14.9)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-clear-modal:
+        specifier: ^2.0.9
+        version: 2.0.9(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
@@ -2513,6 +2516,9 @@ packages:
     resolution: {integrity: sha512-o4lfCnEeIkfJhGBbLZxTuVWcGuqDCFwg5OrvpgRUBM7vI/vONvKKiB5riVNpO+JqXoH0I42NNeDb0m4V5RREig==}
     peerDependencies:
       typescript: '>=4.8.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@nestjs/terminus@10.2.3':
     resolution: {integrity: sha512-iX7gXtAooePcyQqFt57aDke5MzgdkBeYgF5YsFNNFwOiAFdIQEhfv3PR0G+HlH9F6D7nBCDZt9U87Pks/qHijg==}
@@ -7366,6 +7372,16 @@ packages:
       react: '>= 16.14'
       react-dom: '>= 16.14'
 
+  react-clear-modal@2.0.9:
+    resolution: {integrity: sha512-7Yztw9va+ZmP/qZfsmTO1eQJmPealWBFB2oiBszYKSDyvBsJxyW6TIF+xq0Ey6KOXvOCAHSJuAEqad4hT3ISiw==}
+    peerDependencies:
+      '@types/react': ^16.8 || ^17 || ^18
+      react: ^16.8 || ^17 || ^18
+      react-dom: ^16.8 || ^17 || ^18
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   react-css-styled@1.1.9:
     resolution: {integrity: sha512-M7fJZ3IWFaIHcZEkoFOnkjdiUFmwd8d+gTh2bpqMOcnxy/0Gsykw4dsL4QBiKsxcGow6tETUa4NAUcmJF+/nfw==}
 
@@ -11185,6 +11201,7 @@ snapshots:
       comment-json: 4.2.3
       jsonc-parser: 3.2.1
       pluralize: 8.0.0
+    optionalDependencies:
       typescript: 5.3.3
     transitivePeerDependencies:
       - chokidar
@@ -11196,6 +11213,7 @@ snapshots:
       comment-json: 4.2.3
       jsonc-parser: 3.2.1
       pluralize: 8.0.0
+    optionalDependencies:
       typescript: 5.5.2
     transitivePeerDependencies:
       - chokidar
@@ -16684,6 +16702,13 @@ snapshots:
       - '@types/hoist-non-react-statics'
       - '@types/node'
       - '@types/react'
+
+  react-clear-modal@2.0.9(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    optionalDependencies:
+      '@types/react': 18.3.3
 
   react-css-styled@1.1.9:
     dependencies:

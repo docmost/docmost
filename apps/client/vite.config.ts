@@ -25,16 +25,6 @@ export default defineConfig(({ mode }) => {
           target: APP_URL,
           changeOrigin: true,
         },
-        "/collab": {
-          target: APP_URL,
-          changeOrigin: true,
-          ws: true,
-        },
-        "/socket.io": {
-          target: APP_URL,
-          changeOrigin: true,
-          ws: true,
-        },
       },
     },
   };
