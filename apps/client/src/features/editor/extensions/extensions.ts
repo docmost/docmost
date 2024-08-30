@@ -83,6 +83,7 @@ export const mainExtensions = [
       }
     },
     includeChildren: true,
+    showOnlyWhenEditable: false,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
