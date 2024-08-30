@@ -16,6 +16,7 @@ import {
   spaceRoleData,
 } from "@/features/space/types/space-role-data.ts";
 import { formatMemberCount } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 type MemberType = "user" | "group";
 interface SpaceMembersProps {
@@ -26,6 +27,9 @@ export default function SpaceMembersList({
   spaceId,
   readOnly,
 }: SpaceMembersProps) {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "workspace.space",
+  });
   const { data, isLoading } = useSpaceMembersQuery(spaceId);
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
@@ -77,15 +81,16 @@ export default function SpaceMembersList({
 
   const openRemoveModal = (memberId: string, type: MemberType) =>
     modals.openConfirmModal({
-      title: "Remove space member",
+      title: t("Remove space member"),
       children: (
         <Text size="sm">
-          Are you sure you want to remove this user from the space? The user
-          will lose all access to this space.
+          {t(
+            "Are you sure you want to remove this user from the space? The user will lose all access to this space.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: { confirm: "Remove", cancel: "Cancel" },
+      labels: { confirm: t("Remove"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
       onConfirm: () => onRemove(memberId, type),
     });
@@ -96,8 +101,8 @@ export default function SpaceMembersList({
         <Table verticalSpacing={8}>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Member</Table.Th>
-              <Table.Th>Role</Table.Th>
+              <Table.Th>{t("Member")}</Table.Th>
+              <Table.Th>{t("Role")}</Table.Th>
               <Table.Th></Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -168,7 +173,7 @@ export default function SpaceMembersList({
                             openRemoveModal(member.id, member.type)
                           }
                         >
-                          Remove space member
+                          {t("Remove space member")}
                         </Menu.Item>
                       </Menu.Dropdown>
                     </Menu>

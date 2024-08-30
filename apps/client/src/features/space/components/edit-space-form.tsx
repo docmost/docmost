@@ -4,6 +4,7 @@ import { useForm, zodResolver } from "@mantine/form";
 import * as z from "zod";
 import { useUpdateSpaceMutation } from "@/features/space/queries/space-query.ts";
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -16,6 +17,9 @@ interface EditSpaceFormProps {
   readOnly?: boolean;
 }
 export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "workspace.space",
+  });
   const updateSpaceMutation = useUpdateSpaceMutation();
 
   const form = useForm<FormValues>({
@@ -51,8 +55,8 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
           <Stack>
             <TextInput
               id="name"
-              label="Name"
-              placeholder="e.g Sales"
+              label={t("Name")}
+              placeholder={t("e.g Sales")}
               variant="filled"
               readOnly={readOnly}
               {...form.getInputProps("name")}
@@ -60,7 +64,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
 
             <TextInput
               id="slug"
-              label="Slug"
+              label={t("Slug")}
               variant="filled"
               readOnly
               value={space.slug}
@@ -68,8 +72,8 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
 
             <Textarea
               id="description"
-              label="Description"
-              placeholder="e.g Space for sales team to collaborate"
+              label={t("Description")}
+              placeholder={t("e.g Space for sales team to collaborate")}
               variant="filled"
               readOnly={readOnly}
               autosize
@@ -82,7 +86,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
           {!readOnly && (
             <Group justify="flex-end" mt="md">
               <Button type="submit" disabled={!form.isDirty()}>
-                Save
+                {t("Save")}
               </Button>
             </Group>
           )}

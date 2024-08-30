@@ -24,6 +24,7 @@ import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import PageExportModal from "@/features/page/components/page-export-modal.tsx";
+import { useTranslation } from "react-i18next";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -52,6 +53,8 @@ interface PageActionMenuProps {
   readOnly?: boolean;
 }
 function PageActionMenu({ readOnly }: PageActionMenuProps) {
+  const { t } = useTranslation("translation", { keyPrefix: "page" });
+
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
   const clipboard = useClipboard({ timeout: 500 });
   const { pageSlug, spaceSlug } = useParams();
@@ -68,7 +71,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
       getAppUrl() + buildPageUrl(spaceSlug, page.slugId, page.title);
 
     clipboard.copy(pageUrl);
-    notifications.show({ message: "Link copied" });
+    notifications.show({ message: t("Link copied") });
   };
 
   const handlePrint = () => {
@@ -106,13 +109,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             leftSection={<IconLink size={16} />}
             onClick={handleCopyLink}
           >
-            Copy link
+            {t("Copy link")}
           </Menu.Item>
           <Menu.Divider />
 
           <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
             <Group wrap="nowrap">
-              <PageWidthToggle label="Full width" />
+              <PageWidthToggle label={t("Full width")} />
             </Group>
           </Menu.Item>
 
@@ -120,7 +123,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             leftSection={<IconHistory size={16} />}
             onClick={openHistoryModal}
           >
-            Page history
+            {t("Page history")}
           </Menu.Item>
 
           <Menu.Divider />
@@ -129,14 +132,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             leftSection={<IconDownload size={16} />}
             onClick={openExportModal}
           >
-            Export
+            {t("Export")}
           </Menu.Item>
 
           <Menu.Item
             leftSection={<IconPrinter size={16} />}
             onClick={handlePrint}
           >
-            Print PDF
+            {t("Print PDF")}
           </Menu.Item>
 
           {!readOnly && (
@@ -147,7 +150,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
                 leftSection={<IconTrash size={16} />}
                 onClick={handleDeletePage}
               >
-                Delete
+                {t("Delete")}
               </Menu.Item>
             </>
           )}

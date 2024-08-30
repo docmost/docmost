@@ -1,11 +1,14 @@
 import { Helmet } from "react-helmet-async";
 import { InviteSignUpForm } from "@/features/auth/components/invite-sign-up-form.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function InviteSignup() {
+  const { t } = useTranslation("invite-signup");
+
   return (
     <>
       <Helmet>
-        <title>Invitation signup</title>
+        <title>{t("Invitation signup")}</title>
       </Helmet>
       <InviteSignUpForm />
     </>

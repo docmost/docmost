@@ -1,0 +1,55 @@
+{
+  "common": {
+    "Failed to fetch recent pages": "Failed to fetch recent pages",
+    "Untitled": "Untitled",
+    "No pages yet": "No pages yet",
+    "Failed to load page. An error occurred.": "Failed to load page. An error occurred."
+  },
+  "layout": {
+    "Home": "Home",
+    "Workspace": "Workspace",
+    "Workspace settings": "Workspace settings",
+    "Manage members": "Manage members",
+    "Account": "Account",
+    "My profile": "My profile",
+    "My preferences": "My preferences",
+    "Logout": "Logout",
+    "Settings": "Settings",
+    "Profile": "Profile",
+    "Preferences": "Preferences",
+    "General": "General",
+    "Members": "Members",
+    "Groups": "Groups",
+    "Spaces": "Spaces"
+  },
+  "home": {
+    "Recently updated": "Recently updated"
+  },
+  "space": {
+    "Spaces you belong to": "Spaces you belong to",
+    "Recently updated": "Recently updated"
+  },
+  "page": {
+    "Error fetching page data.": "Error fetching page data.",
+    "untitled": "untitled",
+    "Link copied": "Link copied",
+    "Copy link": "Copy link",
+    "Full width": "Full width",
+    "Page history": "Page history",
+    "Export": "Export",
+    "Print PDF": "Print PDF",
+    "Delete": "Delete"
+  },
+  "page-history": {
+    "Page history": "Page history",
+    "Error loading page history.": "Error loading page history.",
+    "No page history saved yet.": "No page history saved yet.",
+    "Please confirm your action": "Please confirm your action",
+    "Are you sure you want to restore this version? Any changes not versioned will be lost.": "Are you sure you want to restore this version? Any changes not versioned will be lost.",
+    "Confirm": "Confirm",
+    "Cancel": "Cancel",
+    "Successfully restored": "Successfully restored",
+    "Restore": "Restore",
+    "Error fetching page data.": "Error fetching page data."
+  }
+}

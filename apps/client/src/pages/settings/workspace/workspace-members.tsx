@@ -6,8 +6,12 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import WorkspaceInvitesTable from "@/features/workspace/components/members/components/workspace-invites-table.tsx";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceMembers() {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "workspace.member",
+  });
   const [segmentValue, setSegmentValue] = useState("members");
   const [searchParams] = useSearchParams();
   const { isAdmin } = useUserRole();
@@ -31,7 +35,7 @@ export default function WorkspaceMembers() {
 
   return (
     <>
-      <SettingsTitle title="Members" />
+      <SettingsTitle title={t("Members")} />
 
       {/* <WorkspaceInviteSection /> */}
       {/* <Divider my="lg" /> */}
@@ -41,8 +45,8 @@ export default function WorkspaceMembers() {
           value={segmentValue}
           onChange={handleSegmentChange}
           data={[
-            { label: "Members", value: "members" },
-            { label: "Pending", value: "invites" },
+            { label: t("Members"), value: "members" },
+            { label: t("Pending"), value: "invites" },
           ]}
           withItemsBorders={false}
         />

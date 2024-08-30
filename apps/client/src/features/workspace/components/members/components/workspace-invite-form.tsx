@@ -5,11 +5,15 @@ import { UserRole } from "@/lib/types.ts";
 import { userRoleData } from "@/features/workspace/types/user-role-data.ts";
 import { useCreateInvitationMutation } from "@/features/workspace/queries/workspace-query.ts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   onClose: () => void;
 }
 export function WorkspaceInviteForm({ onClose }: Props) {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "workspace.member",
+  });
   const [emails, setEmails] = useState<string[]>([]);
   const [role, setRole] = useState<string | null>(UserRole.MEMBER);
   const [groupIds, setGroupIds] = useState<string[]>([]);
@@ -44,9 +48,11 @@ export function WorkspaceInviteForm({ onClose }: Props) {
 
         <TagsInput
           mt="sm"
-          description="Enter valid email addresses separated by comma or space [max: 50]"
-          label="Invite by email"
-          placeholder="enter valid emails addresses"
+          description={t(
+            "Enter valid email addresses separated by comma or space max_50",
+          )}
+          label={t("Invite by email")}
+          placeholder={t("enter valid emails addresses")}
           variant="filled"
           splitChars={[",", " "]}
           maxDropdownHeight={200}
@@ -56,9 +62,9 @@ export function WorkspaceInviteForm({ onClose }: Props) {
 
         <Select
           mt="sm"
-          description="Select role to assign to all invited members"
-          label="Select role"
-          placeholder="Choose a role"
+          description={t("Select role to assign to all invited members")}
+          label={t("Select role")}
+          placeholder={t("Choose a role")}
           variant="filled"
           data={userRoleData.filter((role) => role.value !== UserRole.OWNER)}
           defaultValue={UserRole.MEMBER}
@@ -69,8 +75,10 @@ export function WorkspaceInviteForm({ onClose }: Props) {
 
         <MultiGroupSelect
           mt="sm"
-          description="Invited members will be granted access to spaces the groups can access"
-          label={"Add to groups"}
+          description={t(
+            "Invited members will be granted access to spaces the groups can access",
+          )}
+          label={t("Add to groups")}
           onChange={handleGroupSelect}
         />
 
@@ -79,7 +87,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
             onClick={handleSubmit}
             loading={createInvitationMutation.isPending}
           >
-            Send invitation
+            {t("Send invitation")}
           </Button>
         </Group>
       </Box>

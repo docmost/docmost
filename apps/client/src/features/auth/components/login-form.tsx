@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   email: z
@@ -25,6 +26,7 @@ const formSchema = z.object({
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
   useRedirectIfAuthenticated();
+  const { t } = useTranslation("login");
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -42,28 +44,28 @@ export function LoginForm() {
     <Container size={420} my={40} className={classes.container}>
       <Box p="xl" mt={200}>
         <Title order={2} ta="center" fw={500} mb="md">
-          Login
+          {t("Login")}
         </Title>
 
         <form onSubmit={form.onSubmit(onSubmit)}>
           <TextInput
             id="email"
             type="email"
-            label="Email"
+            label={t("Email")}
             placeholder="email@example.com"
             variant="filled"
             {...form.getInputProps("email")}
           />
 
           <PasswordInput
-            label="Password"
-            placeholder="Your password"
+            label={t("Password")}
+            placeholder={t("Your password")}
             variant="filled"
             mt="md"
             {...form.getInputProps("password")}
           />
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-            Sign In
+            {t("Sign In")}
           </Button>
         </form>
       </Box>

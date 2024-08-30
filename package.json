@@ -78,5 +78,8 @@
       "apps/*",
       "packages/*"
     ]
+  },
+  "prettier": {
+    "semi": true
   }
 }

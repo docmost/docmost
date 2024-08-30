@@ -3,8 +3,10 @@ import { SetupWorkspaceForm } from "@/features/auth/components/setup-workspace-f
 import { Helmet } from "react-helmet-async";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function SetupWorkspace() {
+  const { t } = useTranslation("setup-workspace");
   const {
     data: workspace,
     isLoading,
@@ -32,7 +34,7 @@ export default function SetupWorkspace() {
     return (
       <>
         <Helmet>
-          <title>Setup workspace</title>
+          <title>{t("Setup workspace")}</title>
         </Helmet>
         <SetupWorkspaceForm />
       </>

@@ -12,13 +12,19 @@ import {
 } from "@/features/workspace/types/user-role-data.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { UserRole } from "@/lib/types.ts";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceMembersTable() {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "workspace.member",
+  });
   const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
   const { isAdmin, isOwner } = useUserRole();
 
-  const assignableUserRoles =  isOwner ? userRoleData : userRoleData.filter((role) => role.value !== UserRole.OWNER);
+  const assignableUserRoles = isOwner
+    ? userRoleData
+    : userRoleData.filter((role) => role.value !== UserRole.OWNER);
 
   const handleRoleChange = async (
     userId: string,
@@ -43,9 +49,9 @@ export default function WorkspaceMembersTable() {
         <Table verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>User</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Role</Table.Th>
+              <Table.Th>{t("User")}</Table.Th>
+              <Table.Th>{t("Status")}</Table.Th>
+              <Table.Th>{t("Role")}</Table.Th>
             </Table.Tr>
           </Table.Thead>
 
@@ -67,7 +73,7 @@ export default function WorkspaceMembersTable() {
                 </Table.Td>
 
                 <Table.Td>
-                  <Badge variant="light">Active</Badge>
+                  <Badge variant="light">{t("Active")}</Badge>
                 </Table.Td>
 
                 <Table.Td>

@@ -4,11 +4,16 @@ import ChangePassword from "@/features/user/components/change-password";
 import { Divider } from "@mantine/core";
 import AccountAvatar from "@/features/user/components/account-avatar";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function AccountSettings() {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "account",
+  });
+
   return (
     <>
-      <SettingsTitle title="My Profile" />
+      <SettingsTitle title={t("My Profile")} />
 
       <AccountAvatar />
 

@@ -1,0 +1,55 @@
+{
+  "common": {
+    "Failed to fetch recent pages": "获取最近页面失败",
+    "Untitled": "无标题",
+    "No pages yet": "暂无页面",
+    "Failed to load page. An error occurred.": "加载页面失败。发生错误。"
+  },
+  "layout": {
+    "Home": "首页",
+    "Workspace": "工作区",
+    "Workspace settings": "工作区设置",
+    "Manage members": "管理成员",
+    "Account": "账户",
+    "My profile": "我的个人资料",
+    "My preferences": "我的偏好设置",
+    "Logout": "退出登录",
+    "Settings": "设置",
+    "Profile": "个人资料",
+    "Preferences": "偏好设置",
+    "General": "常规",
+    "Members": "成员",
+    "Groups": "群组",
+    "Spaces": "空间"
+  },
+  "home": {
+    "Recently updated": "最近更新"
+  },
+  "space": {
+    "Spaces you belong to": "您所属的空间",
+    "Recently updated": "最近更新"
+  },
+  "page": {
+    "Error fetching page data.": "获取页面数据时出错。",
+    "untitled": "无标题",
+    "Link copied": "链接已复制",
+    "Copy link": "复制链接",
+    "Full width": "全宽",
+    "Page history": "页面历史",
+    "Export": "导出",
+    "Print PDF": "打印 PDF",
+    "Delete": "删除"
+  },
+  "page-history": {
+    "Page history": "页面历史",
+    "Error loading page history.": "加载页面历史时出错。",
+    "No page history saved yet.": "尚未保存页面历史。",
+    "Please confirm your action": "请确认您的操作",
+    "Are you sure you want to restore this version? Any changes not versioned will be lost.": "您确定要恢复此版本吗？任何未版本化的更改将会丢失。",
+    "Confirm": "确认",
+    "Cancel": "取消",
+    "Successfully restored": "恢复成功",
+    "Restore": "恢复",
+    "Error fetching page data.": "获取页面数据时出错。"
+  }
+}

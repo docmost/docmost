@@ -5,14 +5,19 @@ import {
   Select,
   MantineColorScheme,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 export default function AccountTheme() {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "preference",
+  });
+
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">Theme</Text>
+        <Text size="md">{t("Theme")}</Text>
         <Text size="sm" c="dimmed">
-          Choose your preferred color scheme.
+          {t("Choose your preferred color scheme.")}
         </Text>
       </div>
 
@@ -22,6 +27,10 @@ export default function AccountTheme() {
 }
 
 function ThemeSwitcher() {
+  const { t } = useTranslation("settings", {
+    keyPrefix: "preference",
+  });
+
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const handleChange = (value: MantineColorScheme) => {
@@ -30,11 +39,11 @@ function ThemeSwitcher() {
 
   return (
     <Select
-      label="Select theme"
+      label={t("Select theme")}
       data={[
-        { value: "light", label: "Light" },
-        { value: "dark", label: "Dark" },
-        { value: "auto", label: "System settings" },
+        { value: "light", label: t("Light") },
+        { value: "dark", label: t("Dark") },
+        { value: "auto", label: t("System settings") },
       ]}
       value={colorScheme}
       onChange={handleChange}
