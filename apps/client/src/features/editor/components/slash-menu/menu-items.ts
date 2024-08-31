@@ -25,6 +25,8 @@ import {
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
+import IconExcalidraw from "@/components/icons/icon-excalidraw";
+import IconMermaid from "@/components/icons/icon-mermaid";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -292,8 +294,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Mermaid diagram",
       description: "Insert mermaid diagram",
-      searchTerms: ["mermaid", "diagram", "chart"],
-      icon: IconLetterY,
+      searchTerms: ["mermaid", "diagrams", "chart", "uml"],
+      icon: IconMermaid,
       command: ({ editor, range }: CommandProps) =>
         editor
           .chain()
@@ -301,6 +303,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .setCodeBlock({ language: "mermaid" })
           .run(),
+    },
+    {
+      title: "Excalidraw diagram",
+      description: "Draw and sketch excalidraw diagrams",
+      searchTerms: ["diagrams", "draw", "sketch"],
+      icon: IconExcalidraw,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setExcalidraw().run(),
     },
   ],
 };

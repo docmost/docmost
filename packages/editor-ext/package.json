@@ -8,6 +8,5 @@
   },
   "main": "dist/index.js",
   "module": "./src/index.ts",
-  "types": "dist/index.d.ts",
-  "dependencies": {}
+  "types": "dist/index.d.ts"
 }

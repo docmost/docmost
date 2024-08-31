@@ -5,11 +5,11 @@ declare global {
 }
 
 export function getAppUrl(): string {
-  let appUrl = window.CONFIG?.APP_URL || process.env.APP_URL;
+  //let appUrl = window.CONFIG?.APP_URL || process.env.APP_URL;
 
-  if (import.meta.env.DEV) {
-    return appUrl || "http://localhost:3000";
-  }
+ // if (import.meta.env.DEV) {
+ //   return appUrl || "http://localhost:3000";
+  //}
 
   return `${window.location.protocol}//${window.location.host}`;
 }
@@ -20,9 +20,10 @@ export function getBackendUrl(): string {
 
 export function getCollaborationUrl(): string {
   const COLLAB_PATH = "/collab";
+  const url = process.env.APP_URL || getAppUrl();
 
-  const wsProtocol = getAppUrl().startsWith("https") ? "wss" : "ws";
-  return `${wsProtocol}://${getAppUrl().split("://")[1]}${COLLAB_PATH}`;
+  const wsProtocol = url.startsWith("https") ? "wss" : "ws";
+  return `${wsProtocol}://${url.split("://")[1]}${COLLAB_PATH}`;
 }
 
 export function getAvatarUrl(avatarUrl: string) {

@@ -4,7 +4,7 @@
     height: auto;
   }
 
-  .node-image, .node-video {
+  .node-image, .node-video, .node-excalidraw{
     &.ProseMirror-selectednode {
       outline: none;
     }
