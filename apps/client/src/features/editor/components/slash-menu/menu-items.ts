@@ -294,7 +294,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Mermaid diagram",
       description: "Insert mermaid diagram",
-      searchTerms: ["mermaid", "diagram", "chart"],
+      searchTerms: ["mermaid", "diagrams", "chart", "uml"],
       icon: IconMermaid,
       command: ({ editor, range }: CommandProps) =>
         editor
@@ -306,8 +306,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Excalidraw diagram",
-      description: "Insert excalidraw diagram",
-      searchTerms: ["diagram"],
+      description: "Draw and sketch excalidraw diagrams",
+      searchTerms: ["diagrams", "draw", "sketch"],
       icon: IconExcalidraw,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setExcalidraw().run(),

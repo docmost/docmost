@@ -36,10 +36,14 @@ export default function ExcalidrawView(props: NodeViewProps) {
     }
 
     try {
-      const url = getFileUrl(src);
-      const request = await fetch(url, { credentials: 'include' });
+      let data = null;
+      if (src) {
+        const url = getFileUrl(src);
+        const request = await fetch(url, { credentials: 'include' });
 
-      const data = await loadFromBlob(await request.blob(), null, null);
+        data = await loadFromBlob(await request.blob(), null, null);
+      }
+
       setExcalidrawData(data);
     } catch (err) {
       console.error(err);
@@ -112,10 +116,10 @@ export default function ExcalidrawView(props: NodeViewProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button variant="" onClick={handleSave} size={'compact-sm'}>
+          <Button onClick={handleSave} size={'compact-sm'}>
             Save & Exit
           </Button>
-          <Button onClick={close} variant="" color="red" size={'compact-sm'}>
+          <Button onClick={close} color="red" size={'compact-sm'}>
             Exit
           </Button>
         </Group>
@@ -157,7 +161,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
                 right: 8,
               }}
             >
-              <IconEdit size={20} />
+              <IconEdit size={18} />
             </ActionIcon>
           )}
         </div>
@@ -175,8 +179,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
           className={clsx(selected ? 'ProseMirror-selectednode' : '')}
         >
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <ActionIcon variant="transparent" color="gray" mx="xs">
-              <IconEdit size={20} />
+            <ActionIcon variant="transparent" color="gray">
+              <IconEdit size={18} />
             </ActionIcon>
 
             <Text component="span" size="lg" c="dimmed">
