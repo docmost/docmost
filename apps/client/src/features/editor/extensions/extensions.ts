@@ -34,6 +34,7 @@ import {
   Attachment,
   CustomCodeBlock,
   Drawio,
+  Excalidraw,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -51,6 +52,7 @@ import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
+import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
 const lowlight = createLowlight(common);
@@ -83,6 +85,7 @@ export const mainExtensions = [
       }
     },
     includeChildren: true,
+    showOnlyWhenEditable: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
@@ -155,6 +158,8 @@ export const mainExtensions = [
   }),
   Drawio.configure({
     view: DrawioView,
+  Excalidraw.configure({
+    view: ExcalidrawView,
   }),
 ] as any;
 

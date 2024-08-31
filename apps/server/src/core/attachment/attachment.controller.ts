@@ -75,7 +75,7 @@ export class AttachmentController {
     let file = null;
     try {
       file = await req.file({
-        limits: { fileSize: maxFileSize, fields: 2, files: 1 },
+        limits: { fileSize: maxFileSize, fields: 3, files: 1 },
       });
     } catch (err: any) {
       this.logger.error(err.message);
@@ -112,6 +112,11 @@ export class AttachmentController {
 
     const spaceId = page.spaceId;
 
+    const attachmentId = file.fields?.attachmentId?.value;
+    if (attachmentId && !isValidUUID(attachmentId)) {
+      throw new BadRequestException('Invalid attachment id');
+    }
+
     try {
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
@@ -119,6 +124,7 @@ export class AttachmentController {
         spaceId: spaceId,
         userId: user.id,
         workspaceId: workspace.id,
+        attachmentId: attachmentId,
       });
 
       return res.send(fileResponse);
@@ -168,7 +174,7 @@ export class AttachmentController {
     try {
       const fileStream = await this.storageService.read(attachment.filePath);
       res.headers({
-        'Content-Type': getMimeType(attachment.filePath),
+        'Content-Type': attachment.mimeType,
         'Cache-Control': 'public, max-age=3600',
       });
       return res.send(fileStream);

@@ -29,6 +29,7 @@ import {
   TrailingNode,
   Attachment,
   Drawio,
+  Excalidraw,
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -70,6 +71,7 @@ export const tiptapExtensions = [
   Attachment,
   CustomCodeBlock,
   Drawio,
+  Excalidraw,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

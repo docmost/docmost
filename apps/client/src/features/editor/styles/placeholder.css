@@ -24,7 +24,7 @@
 
 .ProseMirror table .is-editor-empty:first-child::before,
 .ProseMirror table .is-empty::before {
-  content: '';
+  display: none;
 
   @media print {
     display: none;

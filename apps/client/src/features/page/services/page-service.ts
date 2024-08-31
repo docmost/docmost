@@ -81,10 +81,14 @@ export async function importPage(file: File, spaceId: string) {
   return req.data;
 }
 
-export async function uploadFile(file: File, pageId: string) {
+export async function uploadFile(file: File, pageId: string, attachmentId?: string): Promise<IAttachment> {
   const formData = new FormData();
+  if(attachmentId){
+    formData.append("attachmentId", attachmentId);
+  }
   formData.append("pageId", pageId);
   formData.append("file", file);
+  
 
   const req = await api.post<IAttachment>("/files/upload", formData, {
     headers: {
@@ -92,5 +96,5 @@ export async function uploadFile(file: File, pageId: string) {
     },
   });
 
-  return req;
+  return req as unknown as IAttachment;
 }
