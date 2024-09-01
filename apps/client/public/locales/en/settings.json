@@ -98,7 +98,10 @@
       "Active": "Active",
       "Add members": "Add members",
       "Search for users": "Search for users",
-      "No user found": "No user found"
+      "No user found": "No user found",
+      "Add groups": "Add groups",
+      "Search for groups": "Search for groups",
+      "No group found": "No group found"
     },
     "space": {
       "Spaces": "Spaces",

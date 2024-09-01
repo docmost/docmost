@@ -98,7 +98,10 @@
       "Active": "活跃",
       "Add members": "添加成员",
       "Search for users": "搜索用户",
-      "No user found": "未找到用户"
+      "No user found": "未找到用户",
+      "Add groups": "添加群组",
+      "Search for groups": "搜索群组",
+      "No group found": "未找到群组"
     },
     "space": {
       "Spaces": "空间",

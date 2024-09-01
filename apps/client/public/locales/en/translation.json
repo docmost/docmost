@@ -5,6 +5,20 @@
     "No pages yet": "No pages yet",
     "Failed to load page. An error occurred.": "Failed to load page. An error occurred."
   },
+  "role": {
+    "Full access": "Full access",
+    "Has full access to space settings and pages.": "Has full access to space settings and pages.",
+    "Can edit": "Can edit",
+    "Can create and edit pages in space.": "Can create and edit pages in space.",
+    "Can view": "Can view",
+    "Can view pages in space but not edit.": "Can view pages in space but not edit.",
+    "Owner": "Owner",
+    "Can manage workspace": "Can manage workspace",
+    "Admin": "Admin",
+    "Can manage workspace but cannot delete it": "Can manage workspace but cannot delete it",
+    "Member": "Member",
+    "Can become members of groups and spaces in workspace": "Can become members of groups and spaces in workspace"
+  },
   "layout": {
     "Home": "Home",
     "Workspace": "Workspace",
