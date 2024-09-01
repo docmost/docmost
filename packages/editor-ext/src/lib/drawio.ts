@@ -8,9 +8,10 @@ export interface DrawioOptions {
 export interface DrawioAttributes {
   src?: string;
   title?: string;
-  attachmentId?: string;
   size?: number;
   width?: string;
+  align?: string;
+  attachmentId?: string;
 }
 
 declare module "@tiptap/core" {
@@ -36,41 +37,49 @@ export const Drawio = Node.create<DrawioOptions>({
       view: null,
     };
   },
+
   addAttributes() {
     return {
       src: {
-        default: "",
-        parseHTML: (element) => element.getAttribute("data-src"),
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-src'),
         renderHTML: (attributes) => ({
-          "data-src": attributes.src,
+          'data-src': attributes.src,
         }),
       },
       title: {
         default: undefined,
-        parseHTML: (element) => element.getAttribute("data-title"),
+        parseHTML: (element) => element.getAttribute('data-title'),
         renderHTML: (attributes: DrawioAttributes) => ({
-          "data-title": attributes.title,
+          'data-title': attributes.title,
         }),
       },
       width: {
-        default: "100%",
-        parseHTML: (element) => element.getAttribute("data-width"),
+        default: '100%',
+        parseHTML: (element) => element.getAttribute('data-width'),
         renderHTML: (attributes: DrawioAttributes) => ({
-          "data-width": attributes.width,
+          'data-width': attributes.width,
         }),
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-size"),
+        parseHTML: (element) => element.getAttribute('data-size'),
         renderHTML: (attributes: DrawioAttributes) => ({
-          "data-size": attributes.size,
+          'data-size': attributes.size,
+        }),
+      },
+      align: {
+        default: 'center',
+        parseHTML: (element) => element.getAttribute('data-align'),
+        renderHTML: (attributes: DrawioAttributes) => ({
+          'data-align': attributes.align,
         }),
       },
       attachmentId: {
         default: undefined,
-        parseHTML: (element) => element.getAttribute("data-attachment-id"),
+        parseHTML: (element) => element.getAttribute('data-attachment-id'),
         renderHTML: (attributes: DrawioAttributes) => ({
-          "data-attachment-id": attributes.attachmentId,
+          'data-attachment-id': attributes.attachmentId,
         }),
       },
     };
@@ -86,12 +95,13 @@ export const Drawio = Node.create<DrawioOptions>({
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(
-        { "data-type": this.name },
+        { 'data-type': this.name },
         this.options.HTMLAttributes,
-        HTMLAttributes,
+        HTMLAttributes
       ),
+      ['img', { src: HTMLAttributes['data-src'], alt: HTMLAttributes['data-title'], width: HTMLAttributes['data-width'] }],
     ];
   },
 

@@ -158,6 +158,7 @@ export const mainExtensions = [
   }),
   Drawio.configure({
     view: DrawioView,
+  }),
   Excalidraw.configure({
     view: ExcalidrawView,
   }),

@@ -36,15 +36,16 @@ export default function ExcalidrawView(props: NodeViewProps) {
     }
 
     try {
-      let data = null;
       if (src) {
         const url = getFileUrl(src);
-        const request = await fetch(url, { credentials: 'include' });
+        const request = await fetch(url, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
 
-        data = await loadFromBlob(await request.blob(), null, null);
+        const data = await loadFromBlob(await request.blob(), null, null);
+        setExcalidrawData(data);
       }
-
-      setExcalidrawData(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -69,7 +70,10 @@ export default function ExcalidrawView(props: NodeViewProps) {
     const serializer = new XMLSerializer();
     let svgString = serializer.serializeToString(svg);
 
-    svgString = svgString.replace(/https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g, 'https://unpkg.com/@excalidraw/excalidraw@latest');
+    svgString = svgString.replace(
+      /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
+      'https://unpkg.com/@excalidraw/excalidraw@latest'
+    );
 
     const fileName = 'diagram.excalidraw.svg';
     const excalidrawSvgFile = await svgStringToFile(svgString, fileName);

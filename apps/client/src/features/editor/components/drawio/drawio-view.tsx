@@ -1,16 +1,23 @@
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
-import { Image, Modal } from '@mantine/core';
+import { ActionIcon, Card, Image, Modal, Text } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { uploadFile } from '@/features/page/services/page-service.ts';
 import { useDisclosure } from '@mantine/hooks';
 import { getFileUrl } from '@/lib/config.ts';
-import { DrawIoEmbed, DrawIoEmbedRef, EventSave } from 'react-drawio';
+import {
+  DrawIoEmbed,
+  DrawIoEmbedRef,
+  EventExit,
+  EventSave,
+} from 'react-drawio';
 import { IAttachment } from '@/lib/types';
 import { decodeBase64ToSvgString, svgStringToFile } from '@/lib/utils';
+import clsx from 'clsx';
+import { IconEdit } from '@tabler/icons-react';
 
 export default function DrawioView(props: NodeViewProps) {
-  const { node, updateAttributes, editor } = props;
-  const { src, title, width } = node.attrs;
+  const { node, updateAttributes, editor, selected } = props;
+  const { src, title, width, attachmentId } = node.attrs;
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const [initialXML, setInitialXML] = useState<string>('');
   const [opened, { open, close }] = useDisclosure(false);
@@ -21,16 +28,21 @@ export default function DrawioView(props: NodeViewProps) {
     }
 
     try {
-      const url = getFileUrl(src);
-      const request = await fetch(window.decodeURIComponent(url));
-      const blob = await request.blob();
+      if (src) {
+        const url = getFileUrl(src);
+        const request = await fetch(url, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const blob = await request.blob();
 
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = () => {
-        let base64data = (reader.result || '') as string;
-        setInitialXML(base64data);
-      };
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          let base64data = (reader.result || '') as string;
+          setInitialXML(base64data);
+        };
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,13 +58,16 @@ export default function DrawioView(props: NodeViewProps) {
 
     const pageId = editor.storage?.pageId;
 
-    const attachment = (await uploadFile(
-      drawioSVGFile,
-      pageId
-    )) as unknown as IAttachment;
+    let attachment: IAttachment = null;
+
+    if (attachmentId) {
+      attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
+    } else {
+      attachment = await uploadFile(drawioSVGFile, pageId);
+    }
 
     updateAttributes({
-      src: `/files/${attachment.id}/${attachment.fileName}`,
+      src: `/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
       title: attachment.fileName,
       size: attachment.fileSize,
       attachmentId: attachment.id,
@@ -85,7 +100,7 @@ export default function DrawioView(props: NodeViewProps) {
                   }
                   handleSave(data);
                 }}
-                onClose={(data) => {
+                onClose={(data: EventExit) => {
                   // If the exit is triggered by another event, then do nothing
                   if (data.parentEvent) {
                     return;
@@ -98,15 +113,61 @@ export default function DrawioView(props: NodeViewProps) {
         </Modal.Content>
       </Modal.Root>
 
-      <Image
-        onClick={handleOpen}
-        radius="md"
-        fit="contain"
-        src={getFileUrl(src)}
-        width={width}
-        fallbackSrc="https://placehold.co/600x25?text=click%20to%20draw"
-        alt={title}
-      />
+      {src ? (
+        <div style={{ position: 'relative' }}>
+          <Image
+            onClick={(e) => e.detail === 2 && handleOpen()}
+            radius="md"
+            fit="contain"
+            w={width}
+            src={getFileUrl(src)}
+            alt={title}
+            className={clsx(
+              selected ? 'ProseMirror-selectednode' : '',
+              'alignCenter'
+            )}
+          />
+
+          {selected && (
+            <ActionIcon
+              onClick={handleOpen}
+              variant="default"
+              color="gray"
+              mx="xs"
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+              }}
+            >
+              <IconEdit size={18} />
+            </ActionIcon>
+          )}
+        </div>
+      ) : (
+        <Card
+          radius="md"
+          onClick={(e) => e.detail === 2 && handleOpen()}
+          p="xs"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          withBorder
+          className={clsx(selected ? 'ProseMirror-selectednode' : '')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ActionIcon variant="transparent" color="gray">
+              <IconEdit size={18} />
+            </ActionIcon>
+
+            <Text component="span" size="lg" c="dimmed">
+              Double-click to edit drawio diagram
+            </Text>
+          </div>
+        </Card>
+      )}
     </NodeViewWrapper>
   );
 }

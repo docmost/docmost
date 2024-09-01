@@ -38,6 +38,7 @@ import {
 } from "@/features/editor/components/common/file-upload-handler.tsx";
 import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
+import DrawioMenu from "./components/drawio/drawio-menu";
 
 interface PageEditorProps {
   pageId: string;
@@ -173,6 +174,7 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
               <VideoMenu editor={editor} />
               <CalloutMenu editor={editor} />
               <ExcalidrawMenu editor={editor} />
+              <DrawioMenu editor={editor} />
               <LinkMenu editor={editor} appendTo={menuContainerRef} />
             </div>
           )}
