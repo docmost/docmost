@@ -57,6 +57,8 @@ export function AppHeader() {
             size="lg"
             fw={600}
             style={{ cursor: "pointer", userSelect: "none" }}
+            component={Link}
+            to="/home"
           >
             Docmost
           </Text>
