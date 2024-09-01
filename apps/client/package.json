@@ -38,6 +38,7 @@
     "react-arborist": "^3.4.0",
     "react-clear-modal": "^2.0.9",
     "react-dom": "^18.3.1",
+    "react-drawio": "^0.2.0",
     "react-error-boundary": "^4.0.13",
     "react-helmet-async": "^2.0.5",
     "react-moveable": "^0.56.0",

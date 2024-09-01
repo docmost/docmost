@@ -52,3 +52,12 @@ export async function svgStringToFile(
   const blob = new Blob([svgString], { type: "image/svg+xml" });
   return new File([blob], fileName, { type: "image/svg+xml" });
 }
+
+export function decodeBase64ToSvgString(base64Data: string): string {
+  const base64Prefix = 'data:image/svg+xml;base64,';
+  if (base64Data.startsWith(base64Prefix)) {
+      base64Data = base64Data.replace(base64Prefix, '');
+  }
+
+  return atob(base64Data);
+}

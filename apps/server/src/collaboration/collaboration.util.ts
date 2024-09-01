@@ -28,6 +28,7 @@ import {
   TiptapVideo,
   TrailingNode,
   Attachment,
+  Drawio,
   Excalidraw,
 } from '@docmost/editor-ext';
 import { generateText, JSONContent } from '@tiptap/core';
@@ -69,6 +70,7 @@ export const tiptapExtensions = [
   Callout,
   Attachment,
   CustomCodeBlock,
+  Drawio,
   Excalidraw,
 ] as any;
 
