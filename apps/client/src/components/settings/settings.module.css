@@ -57,3 +57,8 @@
     display: flex;
     align-items: center;
 }
+
+.version {
+    padding-left: var(--mantine-spacing-xs) ;
+    padding-top: 10px;
+}

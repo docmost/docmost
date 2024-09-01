@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
       "process.env": {
         APP_URL,
       },
+      'APP_VERSION': JSON.stringify(process.env.npm_package_version),
     },
     plugins: [react()],
     resolve: {

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Group, Text, ScrollArea, ActionIcon, rem } from "@mantine/core";
+import React, { useEffect, useState } from 'react';
+import { Group, Text, ScrollArea, ActionIcon, rem } from '@mantine/core';
 import {
   IconUser,
   IconSettings,
@@ -8,9 +8,9 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
-} from "@tabler/icons-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import classes from "./settings.module.css";
+} from '@tabler/icons-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import classes from './settings.module.css';
 
 interface DataItem {
   label: string;
@@ -25,27 +25,27 @@ interface DataGroup {
 
 const groupedData: DataGroup[] = [
   {
-    heading: "Account",
+    heading: 'Account',
     items: [
-      { label: "Profile", icon: IconUser, path: "/settings/account/profile" },
+      { label: 'Profile', icon: IconUser, path: '/settings/account/profile' },
       {
-        label: "Preferences",
+        label: 'Preferences',
         icon: IconBrush,
-        path: "/settings/account/preferences",
+        path: '/settings/account/preferences',
       },
     ],
   },
   {
-    heading: "Workspace",
+    heading: 'Workspace',
     items: [
-      { label: "General", icon: IconSettings, path: "/settings/workspace" },
+      { label: 'General', icon: IconSettings, path: '/settings/workspace' },
       {
-        label: "Members",
+        label: 'Members',
         icon: IconUsers,
-        path: "/settings/members",
+        path: '/settings/members',
       },
-      { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
-      { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      { label: 'Groups', icon: IconUsersGroup, path: '/settings/groups' },
+      { label: 'Spaces', icon: IconSpaces, path: '/settings/spaces' },
     ],
   },
 ];
@@ -93,6 +93,17 @@ export default function SettingsSidebar() {
       </Group>
 
       <ScrollArea w="100%">{menuItems}</ScrollArea>
+      <div className={classes.version}>
+        <Text
+          className={classes.version}
+          c="dimmed"
+          component="a"
+          href="https://github.com/docmost/docmost/releases"
+          target="_blank"
+        >
+          v{APP_VERSION}
+        </Text>
+      </div>
     </div>
   );
 }
