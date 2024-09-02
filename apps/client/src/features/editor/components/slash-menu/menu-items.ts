@@ -10,6 +10,7 @@ import {
   IconLetterY,
   IconList,
   IconListNumbers,
+  IconListTree,
   IconMath,
   IconMathFunction,
   IconMovie,
@@ -93,6 +94,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setNode("heading", { level: 3 })
+          .run();
+      },
+    },
+    {
+      title: "Table of Contents",
+      description: "Create a table of contents.",
+      searchTerms: ["table", "contents", "list"],
+      icon: IconListTree,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .toggleTableOfContents()
           .run();
       },
     },

@@ -1,0 +1,9 @@
+.divider {
+    flex: 1 0 0;
+}
+
+.heading {
+    :hover {
+        background-color: var(--mantine-color-default-hover);
+    }
+}

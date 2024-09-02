@@ -35,6 +35,7 @@ import {
   CustomCodeBlock,
   Drawio,
   Excalidraw,
+  TableofContents,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -54,6 +55,7 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
+import TableOfContentsView from "../components/table-of-contents/table-of-contents-view";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -162,6 +164,9 @@ export const mainExtensions = [
   Excalidraw.configure({
     view: ExcalidrawView,
   }),
+  TableofContents.configure({
+    view: TableOfContentsView
+  })
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
