@@ -9,7 +9,6 @@ import {
   useComputedColorScheme,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Excalidraw, exportToSvg, loadFromBlob } from '@excalidraw/excalidraw';
 import { uploadFile } from '@/features/page/services/page-service.ts';
 import { svgStringToFile } from '@/lib';
 import { useDisclosure } from '@mantine/hooks';
@@ -19,6 +18,14 @@ import { IAttachment } from '@/lib/types';
 import ReactClearModal from 'react-clear-modal';
 import clsx from 'clsx';
 import { IconEdit } from '@tabler/icons-react';
+import { lazy } from 'react';
+import { Suspense } from 'react';
+
+const Excalidraw = lazy(() =>
+  import('@excalidraw/excalidraw').then((module) => ({
+    default: module.Excalidraw,
+  }))
+);
 
 export default function ExcalidrawView(props: NodeViewProps) {
   const { node, updateAttributes, editor, selected } = props;
@@ -43,6 +50,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
           cache: 'no-store',
         });
 
+        const { loadFromBlob } = await import('@excalidraw/excalidraw');
+
         const data = await loadFromBlob(await request.blob(), null, null);
         setExcalidrawData(data);
       }
@@ -57,6 +66,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
     if (!excalidrawAPI) {
       return;
     }
+
+    const { exportToSvg } = await import('@excalidraw/excalidraw');
 
     const svg = await exportToSvg({
       elements: excalidrawAPI?.getSceneElements(),
@@ -129,13 +140,15 @@ export default function ExcalidrawView(props: NodeViewProps) {
           </Button>
         </Group>
         <div style={{ height: '90vh' }}>
-          <Excalidraw
-            excalidrawAPI={(api) => setExcalidrawAPI(api)}
-            initialData={{
-              ...excalidrawData,
-              scrollToContent: true,
-            }}
-          />
+          <Suspense fallback={null}>
+            <Excalidraw
+              excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              initialData={{
+                ...excalidrawData,
+                scrollToContent: true,
+              }}
+            />
+          </Suspense>
         </div>
       </ReactClearModal>
 
