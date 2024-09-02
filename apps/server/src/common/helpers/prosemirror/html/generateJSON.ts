@@ -10,10 +10,7 @@ export function generateJSON(
   const schema = getSchema(extensions);
 
   const window = new Window();
-  const dom = new HappyDomParser(window).parseFromString(
-    html,
-    'text/html',
-  ).body;
+  const dom = new HappyDomParser().parseFromString(html, 'text/html').body;
 
   // @ts-ignore
   return DOMParser.fromSchema(schema).parse(dom, options).toJSON();
