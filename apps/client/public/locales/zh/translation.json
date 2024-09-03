@@ -39,10 +39,7 @@
   "home": {
     "Recently updated": "最近更新"
   },
-  "space": {
-    "Spaces you belong to": "您所属的空间",
-    "Recently updated": "最近更新"
-  },
+  "space": {},
   "page": {
     "Error fetching page data.": "获取页面数据时出错。",
     "untitled": "无标题",

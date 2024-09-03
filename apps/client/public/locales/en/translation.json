@@ -39,10 +39,7 @@
   "home": {
     "Recently updated": "Recently updated"
   },
-  "space": {
-    "Spaces you belong to": "Spaces you belong to",
-    "Recently updated": "Recently updated"
-  },
+  "space": {},
   "page": {
     "Error fetching page data.": "Error fetching page data.",
     "untitled": "untitled",

@@ -103,39 +103,6 @@
       "Search for groups": "Search for groups",
       "No group found": "No group found"
     },
-    "space": {
-      "Spaces": "Spaces",
-      "Create space": "Create space",
-      "Space": "Space",
-      "Members": "Members",
-      "Settings": "Settings",
-      "Details": "Details",
-      "Name": "Name",
-      "e.g Sales": "e.g Sales",
-      "Slug": "Slug",
-      "Description": "Description",
-      "e.g Space for sales team to collaborate": "e.g Space for sales team to collaborate",
-      "Save": "Save",
-      "Space name": "Space name",
-      "e.g Product Team": "e.g Product Team",
-      "Space slug": "Space slug",
-      "e.g product": "e.g product",
-      "Space description": "Space description",
-      "e.g Space for product team": "e.g Space for product team",
-      "Create": "Create",
-      "addSpaceMembers": "addSpaceMembers",
-      "add": "add",
-      "selectRole": "selectRole",
-      "Remove space member": "Remove space member",
-      "Are you sure you want to remove this user from the space? The user will lose all access to this space.": "Are you sure you want to remove this user from the space? The user will lose all access to this space.",
-      "Remove": "Remove",
-      "Cancel": "Cancel",
-      "Member": "Member",
-      "Role": "Role",
-      "Failed to load page. An error occurred.": "Failed to load page. An error occurred.",
-      "Add members": "Add members",
-      "Search for users and groups": "Search for users and groups",
-      "No user found": "No user found"
-    }
+    "space": {}
   }
 }

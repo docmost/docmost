@@ -27,9 +27,7 @@ export default function SpaceMembersList({
   spaceId,
   readOnly,
 }: SpaceMembersProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.space",
-  });
+  const { t } = useTranslation("space");
   const { data, isLoading } = useSpaceMembersQuery(spaceId);
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
