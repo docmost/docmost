@@ -19,9 +19,7 @@ interface EditGroupFormProps {
   onClose?: () => void;
 }
 export function EditGroupForm({ onClose }: EditGroupFormProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
   const updateGroupMutation = useUpdateGroupMutation();
   const { isSuccess } = updateGroupMutation;
   const { groupId } = useParams();

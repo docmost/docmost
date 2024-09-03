@@ -4,9 +4,7 @@ import { CreateGroupForm } from "@/features/group/components/create-group-form.t
 import { useTranslation } from "react-i18next";
 
 export default function CreateGroupModal() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
   const [opened, { open, close }] = useDisclosure(false);
 
   return (

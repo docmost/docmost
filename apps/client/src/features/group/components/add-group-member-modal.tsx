@@ -7,9 +7,7 @@ import { useAddGroupMemberMutation } from "@/features/group/queries/group-query.
 import { useTranslation } from "react-i18next";
 
 export default function AddGroupMemberModal() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
   const { groupId } = useParams();
   const [opened, { open, close }] = useDisclosure(false);
   const [userIds, setUserIds] = useState<string[]>([]);

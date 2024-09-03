@@ -11,9 +11,7 @@ export default function EditGroupModal({
   opened,
   onClose,
 }: EditGroupModalProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
 
   return (
     <>

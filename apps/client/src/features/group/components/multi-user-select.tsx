@@ -30,9 +30,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
 );
 
 export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: users, isLoading } = useWorkspaceMembersQuery({

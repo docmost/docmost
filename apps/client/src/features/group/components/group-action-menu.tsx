@@ -12,9 +12,7 @@ import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
 
 export default function GroupActionMenu() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
   const { groupId } = useParams();
   const { data: group, isLoading } = useGroupQuery(groupId);
   const deleteGroupMutation = useDeleteGroupMutation();

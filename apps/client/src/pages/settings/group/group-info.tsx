@@ -4,9 +4,7 @@ import GroupDetails from "@/features/group/components/group-details";
 import { useTranslation } from "react-i18next";
 
 export default function GroupInfo() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.group",
-  });
+  const { t } = useTranslation("group");
 
   return (
     <>
