@@ -38,19 +38,5 @@
   },
   "home": {
     "Recently updated": "Recently updated"
-  },
-  "space": {},
-  "page": {},
-  "page-history": {
-    "Page history": "Page history",
-    "Error loading page history.": "Error loading page history.",
-    "No page history saved yet.": "No page history saved yet.",
-    "Please confirm your action": "Please confirm your action",
-    "Are you sure you want to restore this version? Any changes not versioned will be lost.": "Are you sure you want to restore this version? Any changes not versioned will be lost.",
-    "Confirm": "Confirm",
-    "Cancel": "Cancel",
-    "Successfully restored": "Successfully restored",
-    "Restore": "Restore",
-    "Error fetching page data.": "Error fetching page data."
   }
 }

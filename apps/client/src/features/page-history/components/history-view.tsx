@@ -7,7 +7,7 @@ interface HistoryProps {
 }
 
 function HistoryView({ historyId }: HistoryProps) {
-  const { t } = useTranslation("translation", { keyPrefix: "pageHistory" });
+  const { t } = useTranslation("page");
   const { data, isLoading, isError } = usePageHistoryQuery(historyId);
 
   if (isLoading) {

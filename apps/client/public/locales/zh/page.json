@@ -22,5 +22,12 @@
   "Full width": "全宽",
   "Page history": "页面历史",
   "Export": "导出",
-  "Print PDF": "打印 PDF"
+  "Print PDF": "打印 PDF",
+  "Error loading page history.": "加载页面历史时出错。",
+  "No page history saved yet.": "尚未保存页面历史。",
+  "Please confirm your action": "请确认您的操作",
+  "Are you sure you want to restore this version? Any changes not versioned will be lost.": "您确定要恢复此版本吗？任何未版本化的更改将会丢失。",
+  "Confirm": "确认",
+  "Successfully restored": "恢复成功",
+  "Restore": "恢复"
 }
