@@ -18,7 +18,7 @@ export default function AccountLanguage() {
 }
 
 function LanguageSwitcher() {
-  const { t } = useTranslation("user");
+  const { t, i18n } = useTranslation("user");
 
   const handleChange = (value: string) => {
     i18n.changeLanguage(value);
