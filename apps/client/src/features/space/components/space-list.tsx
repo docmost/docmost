@@ -53,7 +53,7 @@ export default function SpaceList() {
                   </Group>
                 </Table.Td>
 
-                <Table.Td>{formatMemberCount(space.memberCount)}</Table.Td>
+                <Table.Td>{formatMemberCount(space.memberCount, t)}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

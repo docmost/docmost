@@ -35,7 +35,7 @@ export default function SpaceGrid() {
       </Text>
 
       <Text c="dimmed" size="xs" fw={700} mt="md">
-        {formatMemberCount(space.memberCount)}
+        {formatMemberCount(space.memberCount, t)}
       </Text>
     </Card>
   ));
