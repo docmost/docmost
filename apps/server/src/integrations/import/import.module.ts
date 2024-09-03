@@ -4,6 +4,6 @@ import { ImportController } from './import.controller';
 
 @Module({
   providers: [ImportService],
-  controllers: [ImportController]
+  controllers: [ImportController],
 })
 export class ImportModule {}

@@ -11,6 +11,7 @@ import {
   GroupUsers,
   SpaceMembers,
   WorkspaceInvitations,
+  TemporaryCodes,
 } from './db';
 
 // Workspace
@@ -71,3 +72,8 @@ export type UpdatableComment = Updateable<Omit<Comments, 'id'>>;
 export type Attachment = Selectable<Attachments>;
 export type InsertableAttachment = Insertable<Attachments>;
 export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
+
+// Temporary Code
+export type TemporaryCode = Selectable<TemporaryCodes>;
+export type InsertableTemporaryCode = Insertable<TemporaryCodes>;
+export type UpdatableTemporaryCode = Updateable<Omit<TemporaryCodes, 'id'>>;
