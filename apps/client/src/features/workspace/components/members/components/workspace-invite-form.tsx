@@ -11,7 +11,7 @@ interface Props {
   onClose: () => void;
 }
 export function WorkspaceInviteForm({ onClose }: Props) {
-  const { t } = useTranslation(["settings", "translation"]);
+  const { t } = useTranslation(["workspace", "translation"]);
   const [emails, setEmails] = useState<string[]>([]);
   const [role, setRole] = useState<string | null>(UserRole.MEMBER);
   const [groupIds, setGroupIds] = useState<string[]>([]);
@@ -47,10 +47,10 @@ export function WorkspaceInviteForm({ onClose }: Props) {
         <TagsInput
           mt="sm"
           description={t(
-            "workspace.member.Enter valid email addresses separated by comma or space max_50",
+            "Enter valid email addresses separated by comma or space max_50",
           )}
-          label={t("workspace.member.Invite by email")}
-          placeholder={t("workspace.member.enter valid emails addresses")}
+          label={t("Invite by email")}
+          placeholder={t("enter valid emails addresses")}
           variant="filled"
           splitChars={[",", " "]}
           maxDropdownHeight={200}
@@ -60,11 +60,9 @@ export function WorkspaceInviteForm({ onClose }: Props) {
 
         <Select
           mt="sm"
-          description={t(
-            "workspace.member.Select role to assign to all invited members",
-          )}
-          label={t("workspace.member.Select role")}
-          placeholder={t("workspace.member.Choose a role")}
+          description={t("Select role to assign to all invited members")}
+          label={t("Select role")}
+          placeholder={t("Choose a role")}
           variant="filled"
           data={userRoleData
             .filter((role) => role.value !== UserRole.OWNER)
@@ -82,9 +80,9 @@ export function WorkspaceInviteForm({ onClose }: Props) {
         <MultiGroupSelect
           mt="sm"
           description={t(
-            "workspace.member.Invited members will be granted access to spaces the groups can access",
+            "Invited members will be granted access to spaces the groups can access",
           )}
-          label={t("workspace.member.Add to groups")}
+          label={t("Add to groups")}
           onChange={handleGroupSelect}
         />
 
@@ -93,7 +91,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
             onClick={handleSubmit}
             loading={createInvitationMutation.isPending}
           >
-            {t("workspace.member.Send invitation")}
+            {t("Send invitation")}
           </Button>
         </Group>
       </Box>

@@ -9,9 +9,7 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceInvitesTable() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.member",
-  });
+  const { t } = useTranslation("workspace");
   const { data, isLoading } = useWorkspaceInvitationsQuery({
     limit: 100,
   });

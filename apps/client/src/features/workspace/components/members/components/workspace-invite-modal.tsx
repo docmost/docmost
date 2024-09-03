@@ -4,9 +4,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceInviteModal() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.member",
-  });
+  const { t } = useTranslation("workspace");
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
