@@ -37,18 +37,5 @@
     "Full page width": "全页宽度",
     "Choose your preferred page width.": "选择您喜欢的页面宽度。",
     "Toggle full page width": "切换全页宽度"
-  },
-  "workspace": {
-    "general": {
-      "General": "常规",
-      "Name": "名称",
-      "e.g ACME": "例如：ACME",
-      "Save": "保存",
-      "Updated successfully": "更新成功",
-      "Failed to update data": "数据更新失败"
-    },
-    "member": {},
-    "group": {},
-    "space": {}
   }
 }

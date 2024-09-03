@@ -1,4 +1,10 @@
 {
+  "General": "常规",
+  "Name": "名称",
+  "e.g ACME": "例如：ACME",
+  "Save": "保存",
+  "Updated successfully": "更新成功",
+  "Failed to update data": "数据更新失败",
   "Members": "成员",
   "Invite members": "邀请成员",
   "Invite new members": "邀请新成员",

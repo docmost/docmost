@@ -3,9 +3,7 @@ import WorkspaceNameForm from "@/features/workspace/components/settings/componen
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceSettings() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "workspace.general",
-  });
+  const { t } = useTranslation("workspace");
 
   return (
     <>

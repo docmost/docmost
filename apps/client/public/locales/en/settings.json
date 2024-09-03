@@ -37,18 +37,5 @@
     "Full page width": "Full page width",
     "Choose your preferred page width.": "Choose your preferred page width.",
     "Toggle full page width": "Toggle full page width"
-  },
-  "workspace": {
-    "general": {
-      "General": "General",
-      "Name": "Name",
-      "e.g ACME": "e.g ACME",
-      "Save": "Save",
-      "Updated successfully": "Updated successfully",
-      "Failed to update data": "Failed to update data"
-    },
-    "member": {},
-    "group": {},
-    "space": {}
   }
 }
