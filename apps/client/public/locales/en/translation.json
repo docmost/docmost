@@ -40,17 +40,7 @@
     "Recently updated": "Recently updated"
   },
   "space": {},
-  "page": {
-    "Error fetching page data.": "Error fetching page data.",
-    "untitled": "untitled",
-    "Link copied": "Link copied",
-    "Copy link": "Copy link",
-    "Full width": "Full width",
-    "Page history": "Page history",
-    "Export": "Export",
-    "Print PDF": "Print PDF",
-    "Delete": "Delete"
-  },
+  "page": {},
   "page-history": {
     "Page history": "Page history",
     "Error loading page history.": "Error loading page history.",

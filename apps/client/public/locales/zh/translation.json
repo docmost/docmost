@@ -40,17 +40,7 @@
     "Recently updated": "最近更新"
   },
   "space": {},
-  "page": {
-    "Error fetching page data.": "获取页面数据时出错。",
-    "untitled": "无标题",
-    "Link copied": "链接已复制",
-    "Copy link": "复制链接",
-    "Full width": "全宽",
-    "Page history": "页面历史",
-    "Export": "导出",
-    "Print PDF": "打印 PDF",
-    "Delete": "删除"
-  },
+  "page": {},
   "page-history": {
     "Page history": "页面历史",
     "Error loading page history.": "加载页面历史时出错。",
