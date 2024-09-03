@@ -19,9 +19,7 @@ type FormValues = z.infer<typeof formSchema>;
 const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
 
 export default function AccountNameForm() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "account",
-  });
+  const { t } = useTranslation("user");
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);

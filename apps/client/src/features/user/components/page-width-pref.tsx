@@ -6,9 +6,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function PageWidthPref() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "preference",
-  });
+  const { t } = useTranslation("user");
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
@@ -29,9 +27,7 @@ interface PageWidthToggleProps {
   label?: string;
 }
 export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "preference",
-  });
+  const { t } = useTranslation("user");
   const [user, setUser] = useAtom(userAtom);
   const [checked, setChecked] = useState(
     user.settings?.preferences?.fullPageWidth,

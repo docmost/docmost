@@ -16,9 +16,7 @@ import { useForm, zodResolver } from "@mantine/form";
 import { useTranslation } from "react-i18next";
 
 export default function ChangeEmail() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "account",
-  });
+  const { t } = useTranslation("user");
   const [currentUser] = useAtom(currentUserAtom);
   const [opened, { open, close }] = useDisclosure(false);
 
@@ -59,9 +57,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function ChangeEmailForm() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "account",
-  });
+  const { t } = useTranslation("user");
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({

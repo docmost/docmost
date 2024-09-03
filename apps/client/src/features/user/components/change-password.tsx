@@ -9,9 +9,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 
 export default function ChangePassword() {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "account",
-  });
+  const { t } = useTranslation("user");
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
@@ -55,9 +53,7 @@ interface ChangePasswordFormProps {
   onClose?: () => void;
 }
 function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
-  const { t } = useTranslation("settings", {
-    keyPrefix: "account",
-  });
+  const { t } = useTranslation("user");
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
