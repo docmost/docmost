@@ -13,6 +13,7 @@ import {
     Text,
     Checkbox,
     Card,
+    Fieldset,
 } from "@mantine/core";
 import { IconLayoutAlignCenter, IconLayoutAlignLeft, IconLayoutAlignRight } from "@tabler/icons-react";
 import { NodeWidthResize } from "@/features/editor/components/common/node-width-resize.tsx";
@@ -81,35 +82,29 @@ export function TableOfContentsMenu({ editor }: EditorMenuProps) {
             }}
             shouldShow={shouldShow}
         >
-            <Group gap={0}>
-                <Tooltip position="top" label="Divider type">
-                    <Select
-                        w={100}
-                        value={editor.getAttributes("tableOfContents").dividerType}
-                        data={[
-                            { value: "solid", label: "Solid" },
-                            { value: "dashed", label: "Dashed" },
-                            { value: "dotted", label: "Dotted" },
-                            { value: "none", label: "None" },
-                        ]}
-                        onChange={(_value, option) => setDividerType(_value as DividerVariant)}
-                    />
-                </Tooltip>
-                <Tooltip position="top" label="Table type">
-                    <SegmentedControl
-                        value={editor.getAttributes("tableOfContents").tableType}
-                        data={["Contents", "Child Pages"]}
-                        onChange={(value: "Contents" | "Child Pages") => setTableType(value)}
-                    />
-                </Tooltip>
-                <Tooltip position="top" label="Show page icons">
-                    <Card
-                        p="xs"
-                        m={0}
-                        onClick={() => setPageIcons(!editor.getAttributes("tableOfContents").icons)}
-                        style={{ cursor: "pointer" }}
-                        withBorder
-                    >
+            <Fieldset variant="filled" p="xs">
+                <Group gap="xs">
+                    <Tooltip position="top" label="Divider type">
+                        <Select
+                            w={100}
+                            value={editor.getAttributes("tableOfContents").dividerType}
+                            data={[
+                                { value: "solid", label: "Solid" },
+                                { value: "dashed", label: "Dashed" },
+                                { value: "dotted", label: "Dotted" },
+                                { value: "none", label: "None" },
+                            ]}
+                            onChange={(_value, option) => setDividerType(_value as DividerVariant)}
+                        />
+                    </Tooltip>
+                    <Tooltip position="top" label="Table type">
+                        <SegmentedControl
+                            value={editor.getAttributes("tableOfContents").tableType}
+                            data={["Contents", "Child Pages"]}
+                            onChange={(value: "Contents" | "Child Pages") => setTableType(value)}
+                        />
+                    </Tooltip>
+                    <Tooltip position="top" label="Show page icons">
                         <Group gap="xs">
                             <Text size="sm">Page Icons</Text>
                             <Checkbox
@@ -117,9 +112,9 @@ export function TableOfContentsMenu({ editor }: EditorMenuProps) {
                                 onChange={(event) => setPageIcons(event.currentTarget.checked)}
                             />
                         </Group>
-                    </Card>
-                </Tooltip>
-            </Group>
+                    </Tooltip>
+                </Group>
+            </Fieldset>
         </BaseBubbleMenu>
     );
 }
