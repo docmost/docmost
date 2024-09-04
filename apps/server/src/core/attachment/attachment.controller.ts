@@ -30,6 +30,7 @@ import {
 import { getMimeType } from '../../common/helpers';
 import {
   AttachmentType,
+  inlineFileExtensions,
   MAX_AVATAR_SIZE,
   MAX_FILE_SIZE,
 } from './attachment.constants';
@@ -177,6 +178,14 @@ export class AttachmentController {
         'Content-Type': attachment.mimeType,
         'Cache-Control': 'public, max-age=3600',
       });
+
+      if (!inlineFileExtensions.includes(attachment.fileExt)) {
+        res.header(
+          'Content-Disposition',
+          `attachment; filename="${attachment.fileName}"`,
+        );
+      }
+
       return res.send(fileStream);
     } catch (err) {
       this.logger.error(err);

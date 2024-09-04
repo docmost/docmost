@@ -7,7 +7,6 @@ import {
   IconH2,
   IconH3,
   IconInfoCircle,
-  IconLetterY,
   IconList,
   IconListNumbers,
   IconListTree,
@@ -18,6 +17,7 @@ import {
   IconPhoto,
   IconTable,
   IconTypography,
+  IconMenu4
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -139,11 +139,19 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Code",
-      description: "Capture a code snippet.",
+      description: "Insert code snippet.",
       searchTerms: ["codeblock"],
       icon: IconCode,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+    },
+    {
+      title: "Divider",
+      description: "Insert horizontal rule divider",
+      searchTerms: ["horizontal rule", "hr"],
+      icon: IconMenu4,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
     },
     {
       title: "Image",

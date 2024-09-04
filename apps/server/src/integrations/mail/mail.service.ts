@@ -19,8 +19,8 @@ export class MailService {
   async sendEmail(message: MailMessage): Promise<void> {
     if (message.template) {
       // in case this method is used directly. we do not send the tsx template from queue
-      message.html = render(message.template, { pretty: true });
-      message.text = render(message.template, { plainText: true });
+      message.html = await render(message.template, { pretty: true });
+      message.text = await render(message.template, { plainText: true });
     }
 
     const sender = `${this.environmentService.getMailFromName()} <${this.environmentService.getMailFromAddress()}> `;
@@ -30,8 +30,8 @@ export class MailService {
   async sendToQueue(message: MailMessage): Promise<void> {
     if (message.template) {
       // transform the React object because it gets lost when sent via the queue
-      message.html = render(message.template, { pretty: true });
-      message.text = render(message.template, {
+      message.html = await render(message.template, { pretty: true });
+      message.text = await render(message.template, {
         plainText: true,
       });
       delete message.template;
