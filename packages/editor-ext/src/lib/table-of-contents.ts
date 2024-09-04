@@ -8,6 +8,9 @@ declare module "@tiptap/core" {
             setTableOfContents: () => ReturnType;
             unsetTableOfContents: () => ReturnType;
             toggleTableOfContents: () => ReturnType;
+            setDividerType: (type: "solid" | "dashed" | "dotted" | "none") => ReturnType;
+            setTableType: (type: "Contents" | "Child Pages") => ReturnType;
+            setPageIcons: (icons: boolean) => ReturnType;
         };
     }
 }
@@ -43,7 +46,33 @@ export const TableofContents = Node.create<TableofContentsOptions>({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ["div", mergeAttributes({ "data-type": this.name }, this.options.HTMLAttributes, HTMLAttributes), 0];
+        return ["div", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)];
+    },
+
+    addAttributes() {
+        return {
+            dividerType: {
+                default: "solid",
+                parseHTML: (element) => element.getAttribute("data-divider-type"),
+                renderHTML: (attributes) => ({
+                    "data-divider-type": attributes.dividerType,
+                }),
+            },
+            tableType: {
+                default: "Contents",
+                parseHTML: (element) => element.getAttribute("data-table-type"),
+                renderHTML: (attributes) => ({
+                    "data-table-type": attributes.tableType,
+                }),
+            },
+            icons: {
+                default: true,
+                parseHTML: (element) => element.getAttribute("data-page-icons"),
+                renderHTML: (attributes) => ({
+                    "data-page-icons": attributes.tableType,
+                }),
+            },
+        };
     },
 
     addNodeView() {
@@ -54,36 +83,33 @@ export const TableofContents = Node.create<TableofContentsOptions>({
         return {
             setTableOfContents:
                 () =>
-                ({ commands }) => {
-                    return commands.setNode(this.name);
-                },
+                ({ commands }) =>
+                    commands.setNode(this.name),
 
             unsetTableOfContents:
                 () =>
-                ({ commands }) => {
-                    return commands.lift(this.name);
-                },
+                ({ commands }) =>
+                    commands.lift(this.name),
 
             toggleTableOfContents:
                 () =>
-                ({ commands }) => {
-                    return commands.toggleWrap(this.name);
-                },
+                ({ commands }) =>
+                    commands.toggleWrap(this.name),
+
+            setDividerType:
+                (type) =>
+                ({ commands }) =>
+                    commands.updateAttributes("tableOfContents", { dividerType: type }),
+
+            setTableType:
+                (type) =>
+                ({ commands }) =>
+                    commands.updateAttributes("tableOfContents", { tableType: type }),
+
+            setPageIcons:
+                (icons) =>
+                ({ commands }) =>
+                    commands.updateAttributes("tableOfContents", { icons: icons }),
         };
     },
-
-    // addInputRules() {
-    //     return [
-    //         wrappingInputRule({
-    //             find: /^:::details\s$/,
-    //             type: this.type,
-    //         }),
-    //     ];
-    // },
-
-    // addKeyboardShortcuts() {
-    //     return {
-    //         "Mod-Alt-d": () => this.editor.commands.toggleDetails(),
-    //     };
-    // },
 });
