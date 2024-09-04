@@ -6,7 +6,6 @@ import {
     IconInfoCircleFilled,
 } from "@tabler/icons-react";
 import { Alert, Divider, Group, Stack, Title, UnstyledButton, Text, DividerVariant } from "@mantine/core";
-// import classes from "./callout.module.css";
 import { CalloutType } from "@docmost/editor-ext";
 import React, { useEffect, useMemo, useState } from "react";
 import { TextSelection } from "@tiptap/pm/state";
@@ -99,7 +98,7 @@ export default function TableOfContentsView(props: NodeViewProps) {
                 // Fetch all children recursively
                 await fetchAllChildren(page, pages);
 
-                const tocChildPages = pages.map((value, index) => (
+                const tocChildPages: JSX.Element[] = pages.map((value, index) => (
                     <UnstyledButton
                         key={`toc-${index}`}
                         className={classes.heading}
@@ -130,7 +129,7 @@ export default function TableOfContentsView(props: NodeViewProps) {
             } else {
                 const contentHeadings = editor.getJSON().content?.filter((c) => c.type == "heading");
 
-                const tocHeadings = contentHeadings.map((value, index) => (
+                const tocHeadings: JSX.Element[] = contentHeadings.map((value, index) => (
                     <UnstyledButton
                         key={`toc-${index}`}
                         className={classes.heading}
