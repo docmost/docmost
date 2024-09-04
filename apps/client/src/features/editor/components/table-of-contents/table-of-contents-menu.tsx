@@ -104,15 +104,17 @@ export function TableOfContentsMenu({ editor }: EditorMenuProps) {
                             onChange={(value: "Contents" | "Child Pages") => setTableType(value)}
                         />
                     </Tooltip>
-                    <Tooltip position="top" label="Show page icons">
-                        <Group gap="xs">
-                            <Text size="sm">Page Icons</Text>
-                            <Checkbox
-                                checked={editor.getAttributes("tableOfContents").icons}
-                                onChange={(event) => setPageIcons(event.currentTarget.checked)}
-                            />
-                        </Group>
-                    </Tooltip>
+                    {editor.getAttributes("tableOfContents").tableType == "Child Pages" && (
+                        <Tooltip position="top" label="Show page icons">
+                            <Group gap="xs">
+                                <Text size="sm">Page Icons</Text>
+                                <Checkbox
+                                    checked={editor.getAttributes("tableOfContents").icons}
+                                    onChange={(event) => setPageIcons(event.currentTarget.checked)}
+                                />
+                            </Group>
+                        </Tooltip>
+                    )}
                 </Group>
             </Fieldset>
         </BaseBubbleMenu>
