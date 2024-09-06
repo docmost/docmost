@@ -17,6 +17,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 
 ## Features
 - Real-time collaboration
+- Diagrams (Draw.io, Excalidraw and Mermaid)
 - Spaces
 - Permissions management
 - Groups
@@ -32,4 +33,4 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 </p>
 
 ### Contributing 
-See the [development doc](https://docmost.com/docs/self-hosting/development)
+See the [development documentation](https://docmost.com/docs/self-hosting/development)
