@@ -11,14 +11,13 @@ import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { comparePasswordHash, hashPassword } from '../../../common/helpers';
+import { comparePasswordHash, hashPassword, nanoIdGen } from '../../../common/helpers';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { MailService } from '../../../integrations/mail/mail.service';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { TemporaryCodeRepo } from '@docmost/db/repos/temporary-code/temporary-code.repo';
-import { randomBytes } from 'crypto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
+import { UserTokensRepo } from '@docmost/db/repos/user-tokens/user-tokens.repo';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +25,7 @@ export class AuthService {
     private signupService: SignupService,
     private tokenService: TokenService,
     private userRepo: UserRepo,
-    private temporaryCodeRepo: TemporaryCodeRepo,
+    private userTokensRepo: UserTokensRepo,
     private mailService: MailService,
   ) {}
 
@@ -68,14 +67,15 @@ export class AuthService {
       forgotPasswordDto.code == null ||
       forgotPasswordDto.newPassword == null
     ) {
-      // Generate 5-character temporary code
-      const code = randomBytes(8).toString('hex').slice(0, 5).toUpperCase();
+      // Generate 5-character user token
+      const code = nanoIdGen().slice(0, 5).toUpperCase();
       const hashedCode = await hashPassword(code);
-      await this.temporaryCodeRepo.insertTemporaryCode({
+      await this.userTokensRepo.insertUserToken({
         code: hashedCode,
         user_id: user.id,
         workspace_id: user.workspaceId,
         expires_at: new Date(new Date().getTime() + 5 * 60 * 1000), // should expires in 5 minute
+        type: "forgot-password",
       });
 
       const emailTemplate = ForgotPasswordEmail({
@@ -91,29 +91,27 @@ export class AuthService {
       return;
     }
 
-    // Get all temporary codes that are not expired
-    const temporaryCodes = await this.temporaryCodeRepo.findByUserId(
+    // Get all user tokens that are not expired
+    const userTokens = await this.userTokensRepo.findByUserId(
       user.id,
       user.workspaceId,
+      "forgot-password"
     );
     // Limit to the last 3 codes, so we have a total time window of 15 minutes
-    const validTemporaryCodes = temporaryCodes
+    const validUserTokens = userTokens
       .filter((code) => code.expires_at > new Date() && code.used_at == null)
       .slice(0, 3);
 
-    for (const code of validTemporaryCodes) {
+    for (const code of validUserTokens) {
       const validated = await comparePasswordHash(
         forgotPasswordDto.code,
         code.code,
       );
       if (validated) {
-        // Update the used_at field to the current time
-        await this.temporaryCodeRepo.updateTemporaryCode(
-          {
-            used_at: new Date(),
-          },
-          code.id,
-        );
+        await Promise.all([
+          this.userTokensRepo.deleteUserToken(user.id, user.workspaceId, "forgot-password"),
+          this.userTokensRepo.deleteExpiredUserTokens(),
+        ]);
 
         const newPasswordHash = await hashPassword(
           forgotPasswordDto.newPassword,

@@ -11,7 +11,7 @@ import {
   GroupUsers,
   SpaceMembers,
   WorkspaceInvitations,
-  TemporaryCodes,
+  UserTokens,
 } from './db';
 
 // Workspace
@@ -73,7 +73,7 @@ export type Attachment = Selectable<Attachments>;
 export type InsertableAttachment = Insertable<Attachments>;
 export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
 
-// Temporary Code
-export type TemporaryCode = Selectable<TemporaryCodes>;
-export type InsertableTemporaryCode = Insertable<TemporaryCodes>;
-export type UpdatableTemporaryCode = Updateable<Omit<TemporaryCodes, 'id'>>;
+// User Tokens
+export type UserToken = Selectable<UserTokens>;
+export type InsertableUserToken = Insertable<UserTokens>;
+export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;

@@ -190,12 +190,13 @@ export interface Workspaces {
   updatedAt: Generated<Timestamp>;
 }
 
-export interface TemporaryCodes {
+export interface UserTokens {
   id: Generated<string>;
   code: string;
   user_id: string;
   workspace_id: string;
-  expires_at: Timestamp;
+  type: string;
+  expires_at: Timestamp | null;
   used_at: Timestamp | null;
   created_at: Generated<Timestamp>;
 }
@@ -212,5 +213,5 @@ export interface DB {
   users: Users;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
-  temporaryCodes: TemporaryCodes;
+  userTokens: UserTokens;
 }
