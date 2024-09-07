@@ -6,7 +6,7 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts"
 import { useTranslation } from "react-i18next";
 
 export default function SpaceHomeTabs() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
 

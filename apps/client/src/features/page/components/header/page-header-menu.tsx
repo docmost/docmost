@@ -53,7 +53,7 @@ interface PageActionMenuProps {
   readOnly?: boolean;
 }
 function PageActionMenu({ readOnly }: PageActionMenuProps) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
   const clipboard = useClipboard({ timeout: 500 });
   const { pageSlug, spaceSlug } = useParams();

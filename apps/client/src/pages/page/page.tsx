@@ -15,7 +15,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 export default function Page() {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const {
     data: page,

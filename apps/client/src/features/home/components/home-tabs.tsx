@@ -4,7 +4,7 @@ import RecentChanges from "@/components/common/recent-changes.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function HomeTabs() {
-  const { t } = useTranslation("translation", { keyPrefix: "home" });
+  const { t } = useTranslation();
 
   return (
     <Tabs defaultValue="recent">

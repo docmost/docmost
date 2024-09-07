@@ -19,7 +19,7 @@ interface Props {
   spaceId?: string;
 }
 export default function RecentChanges({ spaceId }: Props) {
-  const { t } = useTranslation("translation", { keyPrefix: "common" });
+  const { t } = useTranslation();
 
   const { data: pages, isLoading, isError } = useRecentChangesQuery(spaceId);
 

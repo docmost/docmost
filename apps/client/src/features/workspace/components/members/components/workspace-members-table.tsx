@@ -15,7 +15,7 @@ import { UserRole } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceMembersTable() {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation();
   const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
   const { isAdmin, isOwner } = useUserRole();

@@ -25,7 +25,7 @@ export default function PageImportModal({
   open,
   onClose,
 }: PageImportModalProps) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   return (
     <>
       <Modal.Root
@@ -57,7 +57,7 @@ interface ImportFormatSelection {
   onClose: () => void;
 }
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
 
   const handleFileUpload = async (selectedFiles: File[]) => {

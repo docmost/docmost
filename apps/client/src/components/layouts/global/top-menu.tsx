@@ -16,9 +16,7 @@ import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function TopMenu() {
-  const { t } = useTranslation("translation", {
-    keyPrefix: "layout",
-  });
+  const { t } = useTranslation();
   const [currentUser] = useAtom(currentUserAtom);
   const { logout } = useAuth();
 

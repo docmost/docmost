@@ -17,7 +17,7 @@ interface EditSpaceFormProps {
   readOnly?: boolean;
 }
 export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const updateSpaceMutation = useUpdateSpaceMutation();
 
   const form = useForm<FormValues>({

@@ -6,7 +6,7 @@ import { Divider } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
 export default function AccountPreferences() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
 
   return (
     <>

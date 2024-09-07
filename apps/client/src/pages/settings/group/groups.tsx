@@ -6,7 +6,7 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function Groups() {
-  const { t } = useTranslation("group");
+  const { t } = useTranslation();
   const { isAdmin } = useUserRole();
 
   return (

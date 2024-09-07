@@ -9,7 +9,7 @@ interface SpaceDetailsProps {
   readOnly?: boolean;
 }
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { data: space, isLoading } = useSpaceQuery(spaceId);
 
   return (

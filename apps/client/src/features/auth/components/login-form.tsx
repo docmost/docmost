@@ -26,7 +26,7 @@ const formSchema = z.object({
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
   useRedirectIfAuthenticated();
-  const { t } = useTranslation("login");
+  const { t } = useTranslation();
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),

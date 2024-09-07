@@ -27,7 +27,7 @@ export default function SpaceMembersList({
   spaceId,
   readOnly,
 }: SpaceMembersProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { data, isLoading } = useSpaceMembersQuery(spaceId);
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();

@@ -13,7 +13,7 @@ interface AddSpaceMemberModalProps {
 export default function AddSpaceMembersModal({
   spaceId,
 }: AddSpaceMemberModalProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [role, setRole] = useState<string>(SpaceRole.WRITER);

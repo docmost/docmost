@@ -39,10 +39,10 @@ export function usePageQuery(
 }
 
 export function useCreatePageMutation() {
-  const { t } = useTranslation('page');
+  const { t } = useTranslation();
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => createPage(data),
-    onSuccess: (data) => { },
+    onSuccess: (data) => {},
     onError: (error) => {
       notifications.show({ message: t("Failed to create page"), color: "red" });
     },
@@ -76,7 +76,7 @@ export function useUpdatePageMutation() {
 }
 
 export function useDeletePageMutation() {
-  const { t } = useTranslation('page');
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId),
     onSuccess: () => {

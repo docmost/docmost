@@ -52,9 +52,7 @@ const groupedData: DataGroup[] = [
 ];
 
 export default function SettingsSidebar() {
-  const { t } = useTranslation("translation", {
-    keyPrefix: "layout",
-  });
+  const { t } = useTranslation();
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const navigate = useNavigate();

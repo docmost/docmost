@@ -23,7 +23,7 @@ interface Props {
 }
 
 function HistoryList({ pageId }: Props) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const {
     data: pageHistoryList,

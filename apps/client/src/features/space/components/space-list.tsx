@@ -7,7 +7,7 @@ import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 
 export default function SpaceList() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { data, isLoading } = useGetSpacesQuery();
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);

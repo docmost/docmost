@@ -4,7 +4,7 @@ import GroupDetails from "@/features/group/components/group-details";
 import { useTranslation } from "react-i18next";
 
 export default function GroupInfo() {
-  const { t } = useTranslation("group");
+  const { t } = useTranslation();
 
   return (
     <>

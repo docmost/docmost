@@ -29,9 +29,7 @@ import { useTranslation } from "react-i18next";
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
   const authToken = useAtomValue(authTokensAtom);
-  const { t } = useTranslation("translation", {
-    keyPrefix: "common",
-  });
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!authToken?.accessToken) {

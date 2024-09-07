@@ -8,7 +8,7 @@ import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 
 export default function SpaceGrid() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { data, isLoading } = useGetSpacesQuery();
 
   const cards = data?.items.map((space, index) => (

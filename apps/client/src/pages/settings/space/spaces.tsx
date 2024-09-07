@@ -6,7 +6,7 @@ import CreateSpaceModal from "@/features/space/components/create-space-modal.tsx
 import { useTranslation } from "react-i18next";
 
 export default function Spaces() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const { isAdmin } = useUserRole();
 
   return (

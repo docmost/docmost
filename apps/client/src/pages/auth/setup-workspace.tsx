@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export default function SetupWorkspace() {
-  const { t } = useTranslation("setup-workspace");
+  const { t } = useTranslation();
   const {
     data: workspace,
     isLoading,

@@ -3,7 +3,7 @@ import { InviteSignUpForm } from "@/features/auth/components/invite-sign-up-form
 import { useTranslation } from "react-i18next";
 
 export default function InviteSignup() {
-  const { t } = useTranslation("invite-signup");
+  const { t } = useTranslation();
 
   return (
     <>

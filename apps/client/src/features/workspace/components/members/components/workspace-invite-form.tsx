@@ -11,7 +11,7 @@ interface Props {
   onClose: () => void;
 }
 export function WorkspaceInviteForm({ onClose }: Props) {
-  const { t } = useTranslation(["workspace", "translation"]);
+  const { t } = useTranslation();
   const [emails, setEmails] = useState<string[]>([]);
   const [role, setRole] = useState<string | null>(UserRole.MEMBER);
   const [groupIds, setGroupIds] = useState<string[]>([]);
@@ -68,8 +68,8 @@ export function WorkspaceInviteForm({ onClose }: Props) {
             .filter((role) => role.value !== UserRole.OWNER)
             .map((role) => ({
               ...role,
-              label: t(`role.${role.label}`, { ns: "translation" }),
-              description: t(`role.${role.description}`, { ns: "translation" }),
+              label: t(`${role.label}`),
+              description: t(`${role.description}`),
             }))}
           defaultValue={UserRole.MEMBER}
           allowDeselect={false}

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { formatMemberCount } from "@/lib";
 
 export default function GroupList() {
-  const { t } = useTranslation(["group"]);
+  const { t } = useTranslation();
   const { data, isLoading } = useGetGroupsQuery();
 
   return (

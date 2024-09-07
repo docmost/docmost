@@ -37,9 +37,7 @@ export default function RoleSelectMenu({
   onChange,
   disabled,
 }: RoleMenuProps) {
-  const { t } = useTranslation("translation", {
-    keyPrefix: "role",
-  });
+  const { t } = useTranslation();
 
   return (
     <Menu withArrow>

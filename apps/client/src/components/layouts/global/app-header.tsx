@@ -16,9 +16,7 @@ import { useTranslation } from "react-i18next";
 const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
 export function AppHeader() {
-  const { t } = useTranslation("translation", {
-    keyPrefix: "layout",
-  });
+  const { t } = useTranslation();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
 

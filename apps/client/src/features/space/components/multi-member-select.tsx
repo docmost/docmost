@@ -31,7 +31,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
 );
 
 export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({

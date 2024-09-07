@@ -22,7 +22,7 @@ const workspaceAtom = focusAtom(currentUserAtom, (optic) =>
 );
 
 export default function WorkspaceNameForm() {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setWorkspace] = useAtom(workspaceAtom);

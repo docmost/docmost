@@ -7,7 +7,7 @@ import SettingsTitle from "@/components/settings/settings-title.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function AccountSettings() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
 
   return (
     <>

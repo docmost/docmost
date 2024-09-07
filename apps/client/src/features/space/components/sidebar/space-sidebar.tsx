@@ -38,7 +38,7 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 
 export function SpaceSidebar() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const [tree] = useAtom(treeApiAtom);
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
@@ -190,7 +190,7 @@ interface SpaceMenuProps {
   onSpaceSettings: () => void;
 }
 function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
 

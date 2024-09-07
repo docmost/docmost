@@ -27,7 +27,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function InviteSignUpForm() {
-  const { t } = useTranslation("invite-signup");
+  const { t } = useTranslation();
   const params = useParams();
   const [searchParams] = useSearchParams();
 

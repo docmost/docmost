@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 
 export default function LoginPage() {
-  const { t } = useTranslation("login");
+  const { t } = useTranslation();
 
   return (
     <>

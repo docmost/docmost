@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
 
 export default function AccountAvatar() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);

@@ -29,7 +29,7 @@ export function SetupWorkspaceForm() {
   const { setupWorkspace, isLoading } = useAuth();
   // useRedirectIfAuthenticated();
 
-  const { t } = useTranslation("setup-workspace");
+  const { t } = useTranslation();
   const form = useForm<ISetupWorkspace>({
     validate: zodResolver(formSchema),
     initialValues: {

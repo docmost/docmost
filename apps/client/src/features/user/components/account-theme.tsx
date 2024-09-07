@@ -8,7 +8,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 export default function AccountTheme() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
@@ -25,7 +25,7 @@ export default function AccountTheme() {
 }
 
 function ThemeSwitcher() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const handleChange = (value: MantineColorScheme) => {

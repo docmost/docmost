@@ -398,7 +398,7 @@ interface NodeMenuProps {
 }
 
 function NodeMenu({ node, treeApi }: NodeMenuProps) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();

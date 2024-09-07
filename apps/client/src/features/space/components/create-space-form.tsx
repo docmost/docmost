@@ -23,7 +23,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateSpaceForm() {
-  const { t } = useTranslation("space");
+  const { t } = useTranslation();
   const createSpaceMutation = useCreateSpaceMutation();
   const navigate = useNavigate();
 

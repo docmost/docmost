@@ -15,7 +15,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateGroupForm() {
-  const { t } = useTranslation("group");
+  const { t } = useTranslation();
   const createGroupMutation = useCreateGroupMutation();
   const [userIds, setUserIds] = useState<string[]>([]);
   const navigate = useNavigate();

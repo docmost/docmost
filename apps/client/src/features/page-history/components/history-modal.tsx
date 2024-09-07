@@ -8,7 +8,7 @@ interface Props {
   pageId: string;
 }
 export default function HistoryModal({ pageId }: Props) {
-  const { t } = useTranslation("page");
+  const { t } = useTranslation();
   const [isModalOpen, setModalOpen] = useAtom(historyAtoms);
 
   return (

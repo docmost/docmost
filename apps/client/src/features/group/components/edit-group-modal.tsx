@@ -11,7 +11,7 @@ export default function EditGroupModal({
   opened,
   onClose,
 }: EditGroupModalProps) {
-  const { t } = useTranslation("group");
+  const { t } = useTranslation();
 
   return (
     <>

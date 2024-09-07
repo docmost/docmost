@@ -2,7 +2,7 @@ import { Group, Text, Select } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
 export default function AccountLanguage() {
-  const { t } = useTranslation("user");
+  const { t } = useTranslation();
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
@@ -18,7 +18,7 @@ export default function AccountLanguage() {
 }
 
 function LanguageSwitcher() {
-  const { t, i18n } = useTranslation("user");
+  const { t, i18n } = useTranslation();
 
   const handleChange = (value: string) => {
     i18n.changeLanguage(value);

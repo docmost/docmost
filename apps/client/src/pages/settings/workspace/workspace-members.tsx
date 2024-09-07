@@ -9,7 +9,7 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceMembers() {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation();
   const [segmentValue, setSegmentValue] = useState("members");
   const [searchParams] = useSearchParams();
   const { isAdmin } = useUserRole();
