@@ -74,7 +74,7 @@ export class AuthService {
         code: hashedCode,
         user_id: user.id,
         workspace_id: user.workspaceId,
-        expires_at: new Date(new Date().getTime() + 5 * 60 * 1000), // should expires in 5 minute
+        expires_at: new Date(new Date().getTime() + 3_600_000), // should expires in 1 hour
         type: "forgot-password",
       });
 
