@@ -231,9 +231,6 @@ importers:
       i18next:
         specifier: ^23.14.0
         version: 23.14.0
-      i18next-browser-languagedetector:
-        specifier: ^8.0.0
-        version: 8.0.0
       i18next-http-backend:
         specifier: ^2.6.1
         version: 2.6.1
@@ -5467,9 +5464,6 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
-
-  i18next-browser-languagedetector@8.0.0:
-    resolution: {integrity: sha512-zhXdJXTTCoG39QsrOCiOabnWj2jecouOqbchu3EfhtSHxIB5Uugnm9JaizenOy39h7ne3+fLikIjeW88+rgszw==}
 
   i18next-http-backend@2.6.1:
     resolution: {integrity: sha512-rCilMAnlEQNeKOZY1+x8wLM5IpYOj10guGvEpeC59tNjj6MMreLIjIW8D1RclhD3ifLwn6d/Y9HEM1RUE6DSog==}
@@ -13961,10 +13955,6 @@ snapshots:
 
   human-signals@2.1.0: {}
 
-  i18next-browser-languagedetector@8.0.0:
-    dependencies:
-      '@babel/runtime': 7.23.7
-
   i18next-http-backend@2.6.1:
     dependencies:
       cross-fetch: 4.0.0
@@ -16335,7 +16325,7 @@ snapshots:
   terser@5.29.2:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.11.3
+      acorn: 8.12.1
       commander: 2.20.3
       source-map-support: 0.5.21
 

@@ -33,6 +33,13 @@ export class UserService {
       );
     }
 
+    if (typeof updateUserDto.language !== 'undefined') {
+      return this.updateUserLanguagePreference(
+        userId,
+        updateUserDto.language,
+      );
+    }
+
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
@@ -58,5 +65,9 @@ export class UserService {
       'fullPageWidth',
       fullPageWidth,
     );
+  }
+
+  async updateUserLanguagePreference(userId: string, language: string) {
+    return this.userRepo.updatePreference(userId, 'language', language);
   }
 }

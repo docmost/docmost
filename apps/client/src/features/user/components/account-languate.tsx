@@ -1,5 +1,10 @@
 import { Group, Text, Select } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { updateUser } from "../services/user-service";
+import { IUser } from "../types/user.types";
+import { useAtom } from "jotai";
+import { userAtom } from "../atoms/current-user-atom";
+import { useState } from "react";
 
 export default function AccountLanguage() {
   const { t } = useTranslation();
@@ -19,8 +24,17 @@ export default function AccountLanguage() {
 
 function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
+  const [user, setUser] = useAtom(userAtom);
+  const [language, setLanguage] = useState(
+    user.settings?.preferences?.language || "en-US",
+  );
 
-  const handleChange = (value: string) => {
+  const handleChange = async (value: string) => {
+    const updatedUser = await updateUser({ language: value });
+
+    setLanguage(value);
+    setUser(updatedUser);
+
     i18n.changeLanguage(value);
   };
 
@@ -28,13 +42,14 @@ function LanguageSwitcher() {
     <Select
       label={t("Select language")}
       data={[
-        { value: "zh", label: "中文" },
-        { value: "en", label: "English" },
+        { value: "en-US", label: "English (United States)" },
+        { value: "zh-CN", label: "中文 (简体)" },
       ]}
-      value={i18n.language}
+      value={language}
       onChange={handleChange}
       allowDeselect={false}
       checkIconPosition="right"
     />
   );
 }
+

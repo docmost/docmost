@@ -1,6 +1,11 @@
 import { IWorkspace } from "@/features/workspace/types/workspace.types";
 
-export interface IUser {
+type IUserPreferences = {
+  fullPageWidth: boolean;
+  language: string;
+};
+
+export interface IUser extends IUserPreferences {
   id: string;
   name: string;
   email: string;
@@ -17,7 +22,6 @@ export interface IUser {
   workspaceId: string;
   deactivatedAt: Date;
   deletedAt: Date;
-  fullPageWidth: boolean; // used for update
 }
 
 export interface ICurrentUser {
@@ -26,7 +30,5 @@ export interface ICurrentUser {
 }
 
 export interface IUserSettings {
-  preferences: {
-    fullPageWidth: boolean;
-  };
+  preferences: IUserPreferences
 }
