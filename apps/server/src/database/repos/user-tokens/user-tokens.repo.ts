@@ -34,7 +34,7 @@ export class UserTokensRepo {
       .selectFrom('userTokens')
       .select([
         'id',
-        'code',
+        'token',
         'user_id',
         'workspace_id',
         'type',

@@ -7,7 +7,7 @@ export class ForgotPasswordDto {
 
   @IsOptional()
   @IsString()
-  code: string;
+  token: string;
 
   @IsOptional()
   @IsString()

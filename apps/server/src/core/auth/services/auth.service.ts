@@ -64,14 +64,14 @@ export class AuthService {
     }
 
     if (
-      forgotPasswordDto.code == null ||
+      forgotPasswordDto.token == null ||
       forgotPasswordDto.newPassword == null
     ) {
       // Generate 5-character user token
       const code = nanoIdGen().slice(0, 5).toUpperCase();
-      const hashedCode = await hashPassword(code);
+      const hashedToken = await hashPassword(code);
       await this.userTokensRepo.insertUserToken({
-        code: hashedCode,
+        token: hashedToken,
         user_id: user.id,
         workspace_id: user.workspaceId,
         expires_at: new Date(new Date().getTime() + 3_600_000), // should expires in 1 hour
@@ -97,15 +97,15 @@ export class AuthService {
       user.workspaceId,
       "forgot-password"
     );
-    // Limit to the last 3 codes, so we have a total time window of 15 minutes
+    // Limit to the last 3 token, so we have a total time window of 15 minutes
     const validUserTokens = userTokens
-      .filter((code) => code.expires_at > new Date() && code.used_at == null)
+      .filter((token) => token.expires_at > new Date() && token.used_at == null)
       .slice(0, 3);
 
-    for (const code of validUserTokens) {
+    for (const token of validUserTokens) {
       const validated = await comparePasswordHash(
-        forgotPasswordDto.code,
-        code.code,
+        forgotPasswordDto.token,
+        token.token,
       );
       if (validated) {
         await Promise.all([

@@ -192,7 +192,7 @@ export interface Workspaces {
 
 export interface UserTokens {
   id: Generated<string>;
-  code: string;
+  token: string;
   user_id: string;
   workspace_id: string;
   type: string;
