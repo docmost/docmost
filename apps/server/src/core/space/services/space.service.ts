@@ -88,10 +88,24 @@ export class SpaceService {
     updateSpaceDto: UpdateSpaceDto,
     workspaceId: string,
   ): Promise<Space> {
+    if (updateSpaceDto?.slug) {
+      const slugExists = await this.spaceRepo.slugExists(
+        updateSpaceDto.slug,
+        workspaceId,
+      );
+
+      if (slugExists) {
+        throw new BadRequestException(
+          'Space slug exists. Please use a unique space slug',
+        );
+      }
+    }
+
     return await this.spaceRepo.updateSpace(
       {
         name: updateSpaceDto.name,
         description: updateSpaceDto.description,
+        slug: updateSpaceDto.slug,
       },
       updateSpaceDto.spaceId,
       workspaceId,
