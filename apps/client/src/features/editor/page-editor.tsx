@@ -39,6 +39,7 @@ import {
 import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
+import TableOfContentsMenu from "./components/table-of-contents/table-of-contents-menu";
 
 interface PageEditorProps {
   pageId: string;
@@ -175,6 +176,7 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
               <CalloutMenu editor={editor} />
               <ExcalidrawMenu editor={editor} />
               <DrawioMenu editor={editor} />
+              <TableOfContentsMenu editor={editor} />
               <LinkMenu editor={editor} appendTo={menuContainerRef} />
             </div>
           )}
