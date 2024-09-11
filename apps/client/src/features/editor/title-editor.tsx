@@ -39,7 +39,7 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const [, setCurrentTitle] = useState(title);
   const [debouncedTitleState, setDebouncedTitleState] = useState(title);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
