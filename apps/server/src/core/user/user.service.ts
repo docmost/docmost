@@ -33,13 +33,6 @@ export class UserService {
       );
     }
 
-    if (typeof updateUserDto.language !== 'undefined') {
-      return this.updateUserLanguagePreference(
-        userId,
-        updateUserDto.language,
-      );
-    }
-
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
@@ -55,6 +48,10 @@ export class UserService {
       user.avatarUrl = updateUserDto.avatarUrl;
     }
 
+    if (updateUserDto.locale) {
+      user.locale = updateUserDto.locale;
+    }
+
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
   }
@@ -65,9 +62,5 @@ export class UserService {
       'fullPageWidth',
       fullPageWidth,
     );
-  }
-
-  async updateUserLanguagePreference(userId: string, language: string) {
-    return this.userRepo.updatePreference(userId, 'language', language);
   }
 }

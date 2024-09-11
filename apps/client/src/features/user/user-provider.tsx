@@ -13,7 +13,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
     if (data && data.user && data.workspace) {
       setCurrentUser(data);
       i18n.changeLanguage(
-        data.user?.settings?.preferences?.language || "en-US",
+        data.user.locale === "en" ? "en-US" : data.user.locale,
       );
     }
   }, [data, isLoading]);

@@ -1,7 +1,6 @@
 import { Group, Text, Select } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { updateUser } from "../services/user-service";
-import { IUser } from "../types/user.types";
 import { useAtom } from "jotai";
 import { userAtom } from "../atoms/current-user-atom";
 import { useState } from "react";
@@ -26,11 +25,11 @@ function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
   const [language, setLanguage] = useState(
-    user.settings?.preferences?.language || "en-US",
+    user?.locale === "en" ? "en-US" : user.locale,
   );
 
   const handleChange = async (value: string) => {
-    const updatedUser = await updateUser({ language: value });
+    const updatedUser = await updateUser({ locale: value });
 
     setLanguage(value);
     setUser(updatedUser);
@@ -52,4 +51,3 @@ function LanguageSwitcher() {
     />
   );
 }
-
