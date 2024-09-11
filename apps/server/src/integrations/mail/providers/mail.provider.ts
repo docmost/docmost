@@ -41,6 +41,7 @@ export const mailDriverConfigProvider = {
             connectionTimeout: 30 * 1000, // 30 seconds
             auth,
             secure: environmentService.getSmtpSecure(),
+            ignoreTLS: environmentService.getSmtpIgnoreTLS()
           } as SMTPTransport.Options,
         };
 
