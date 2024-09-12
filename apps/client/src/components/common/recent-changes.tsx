@@ -5,14 +5,15 @@ import {
   Badge,
   Table,
   ScrollArea,
-} from "@mantine/core";
-import { Link } from "react-router-dom";
-import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { formattedDate } from "@/lib/time.ts";
-import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
-import { IconFileDescription } from "@tabler/icons-react";
-import { getSpaceUrl } from "@/lib/config.ts";
+  ActionIcon,
+} from '@mantine/core';
+import { Link } from 'react-router-dom';
+import PageListSkeleton from '@/components/ui/page-list-skeleton.tsx';
+import { buildPageUrl } from '@/features/page/page.utils.ts';
+import { formattedDate } from '@/lib/time.ts';
+import { useRecentChangesQuery } from '@/features/page/queries/page-query.ts';
+import { IconFileDescription } from '@tabler/icons-react';
+import { getSpaceUrl } from '@/lib/config.ts';
 
 interface Props {
   spaceId?: string;
@@ -40,10 +41,14 @@ export default function RecentChanges({ spaceId }: Props) {
                   to={buildPageUrl(page?.space.slug, page.slugId, page.title)}
                 >
                   <Group wrap="nowrap">
-                    {page.icon || <IconFileDescription size={18} />}
+                    {page.icon || (
+                      <ActionIcon variant='transparent' color='gray' size={18}>
+                        <IconFileDescription size={18} />
+                      </ActionIcon>
+                    )}
 
                     <Text fw={500} size="md" lineClamp={1}>
-                      {page.title || "Untitled"}
+                      {page.title || 'Untitled'}
                     </Text>
                   </Group>
                 </UnstyledButton>
@@ -55,7 +60,7 @@ export default function RecentChanges({ spaceId }: Props) {
                     variant="light"
                     component={Link}
                     to={getSpaceUrl(page?.space.slug)}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: 'pointer' }}
                   >
                     {page?.space.name}
                   </Badge>

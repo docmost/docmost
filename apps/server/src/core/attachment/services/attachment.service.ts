@@ -264,12 +264,15 @@ export class AttachmentService {
         return;
       }
 
+      const failedDeletions = [];
+
       await Promise.all(
         attachments.map(async (attachment) => {
           try {
             await this.storageService.delete(attachment.filePath);
             await this.attachmentRepo.deleteAttachmentById(attachment.id);
           } catch (err) {
+            failedDeletions.push(attachment.id);
             this.logger.log(
               `DeleteSpaceAttachments: failed to delete attachment ${attachment.id}:`,
               err,
@@ -277,6 +280,11 @@ export class AttachmentService {
           }
         }),
       );
+
+      if(failedDeletions.length === attachments.length){
+        throw new Error(`Failed to delete any attachments for spaceId: ${spaceId}`);
+      }
+
     } catch (err) {
       throw err;
     }

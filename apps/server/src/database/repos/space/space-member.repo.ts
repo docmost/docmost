@@ -64,7 +64,7 @@ export class SpaceMemberRepo {
     } else if (opts.groupId) {
       query = query.where('groupId', '=', opts.groupId);
     } else {
-      throw new BadRequestException('Please provider a userId or groupId');
+      throw new BadRequestException('Please provide a userId or groupId');
     }
     return query.executeTakeFirst();
   }
