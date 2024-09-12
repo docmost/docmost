@@ -256,4 +256,29 @@ export class AttachmentService {
       trx,
     );
   }
+
+  async handleDeleteSpaceAttachments(spaceId: string) {
+    try {
+      const attachments = await this.attachmentRepo.findBySpaceId(spaceId);
+      if (!attachments || attachments.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            await this.storageService.delete(attachment.filePath);
+            await this.attachmentRepo.deleteAttachmentById(attachment.id);
+          } catch (err) {
+            this.logger.log(
+              `DeleteSpaceAttachments: failed to delete attachment ${attachment.id}:`,
+              err,
+            );
+          }
+        }),
+      );
+    } catch (err) {
+      throw err;
+    }
+  }
 }
