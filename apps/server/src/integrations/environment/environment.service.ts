@@ -110,6 +110,22 @@ export class EnvironmentService {
     return this.configService.get<string>('POSTMARK_TOKEN');
   }
 
+  getLdapBaseDn(): string {
+    return this.configService.get<string>('LDAP_BASEDN')
+  }
+
+  getLdapDomainSuffix(): string {
+    return this.configService.get<string>('LDAP_DOMAINSUFFIX');
+  }
+
+  getLdapUsername(): string {
+    return this.configService.get<string>('LDAP_USERNAME')
+  }
+
+  getLdapPassword(): string {
+    return this.configService.get<string>('LDAP_PASSWORD')
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')
