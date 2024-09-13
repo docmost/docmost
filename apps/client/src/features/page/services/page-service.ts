@@ -59,7 +59,7 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
   const req = await api.post("/pages/export", data, {
     responseType: "blob",
   });
-  console.log(req?.headers);
+
   const fileName = req?.headers["content-disposition"]
     .split("filename=")[1]
     .replace(/"/g, "");
