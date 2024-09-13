@@ -59,12 +59,12 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
   const req = await api.post("/pages/export", data, {
     responseType: "blob",
   });
-
+  console.log(req?.headers);
   const fileName = req?.headers["content-disposition"]
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, fileName);
+  saveAs(req.data, decodeURIComponent(fileName));
 }
 
 export async function importPage(file: File, spaceId: string) {
@@ -81,14 +81,17 @@ export async function importPage(file: File, spaceId: string) {
   return req.data;
 }
 
-export async function uploadFile(file: File, pageId: string, attachmentId?: string): Promise<IAttachment> {
+export async function uploadFile(
+  file: File,
+  pageId: string,
+  attachmentId?: string,
+): Promise<IAttachment> {
   const formData = new FormData();
-  if(attachmentId){
+  if (attachmentId) {
     formData.append("attachmentId", attachmentId);
   }
   formData.append("pageId", pageId);
   formData.append("file", file);
-  
 
   const req = await api.post<IAttachment>("/files/upload", formData, {
     headers: {
