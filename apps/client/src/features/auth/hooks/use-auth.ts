@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { login, setupWorkspace } from "@/features/auth/services/auth-service";
+import { login, ntlmLogin, setupWorkspace } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
@@ -24,6 +24,25 @@ export default function useAuth() {
 
     try {
       const res = await login(data);
+      setIsLoading(false);
+      setAuthToken(res.tokens);
+
+      navigate(APP_ROUTE.HOME);
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
+  const handleNtlmSignIn = async () => {
+    setIsLoading(true);
+
+    try {
+      const res = await ntlmLogin();
       setIsLoading(false);
       setAuthToken(res.tokens);
 
@@ -107,6 +126,7 @@ export default function useAuth() {
 
   return {
     signIn: handleSignIn,
+    ntlmSignIn: handleNtlmSignIn,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,

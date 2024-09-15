@@ -6,9 +6,16 @@ import {
   ISetupWorkspace,
   ITokenResponse,
 } from "@/features/auth/types/auth.types";
+import axios from "axios";
 
 export async function login(data: ILogin): Promise<ITokenResponse> {
   const req = await api.post<ITokenResponse>("/auth/login", data);
+  return req.data;
+}
+
+export async function ntlmLogin(): Promise<ITokenResponse> {
+  // Use separate axios instance to avoid passing app auth headers to allow for NTLM authentication challenge
+  const req = await axios.post<ITokenResponse>("/api/auth/ntlm");
   return req.data;
 }
 

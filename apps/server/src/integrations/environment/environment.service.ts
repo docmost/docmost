@@ -126,6 +126,21 @@ export class EnvironmentService {
     return this.configService.get<string>('LDAP_PASSWORD')
   }
 
+  getLdapNameAttribute(): string {
+    return this.configService.get<string>('LDAP_NAMEATTRIBUTE')
+  }
+
+  getLdapMailAttribute(): string {
+    return this.configService.get<string>('LDAP_MAILATTRIBUTE')
+  }
+
+  usingNtlmAuth(): boolean {
+    const ntlmAuth = this.configService
+      .get<string>('VITE_NTLM_AUTH', 'false')
+      .toLowerCase();
+    return ntlmAuth === 'true';
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')

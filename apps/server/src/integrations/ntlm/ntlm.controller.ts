@@ -5,6 +5,7 @@ import {
   Res,
   HttpException,
   HttpStatus,
+  Post,
 } from '@nestjs/common';
 
 import { FastifyRequest, FastifyReply } from 'fastify';
@@ -21,19 +22,18 @@ import { NTLMService } from './ntlm.service';
 
 @Controller()
 export class NTLMController {
-  constructor(private readonly ntlmService: NTLMService) {}
+  constructor(
+    private readonly ntlmService: NTLMService,
+    private readonly environmentService: EnvironmentService,
+  ) {}
 
-  @Get('auth/ntlm')
-  async ntlmAuth(
-    @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
-  ): Promise<void> {
+  @Post('auth/ntlm')
+  async ntlmAuth(@Req() req, @Res() res: FastifyReply) {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
       // Step 1: Challenge the client for NTLM authentication
-      res.status(401).header('WWW-Authenticate', 'NTLM').send();
-      return;
+      return res.status(401).header('WWW-Authenticate', 'NTLM').send();
     }
 
     if (authHeader.startsWith('NTLM ')) {
@@ -45,11 +45,10 @@ export class NTLMController {
         const serverChallenge = new NTLMChallengeMessage(clientNegotiation);
         const base64Challenge = serverChallenge.toBuffer().toString('base64');
 
-        res
+        return res
           .status(401)
           .header('WWW-Authenticate', `NTLM ${base64Challenge}`)
           .send();
-        return;
       } else if (clientNegotiation.messageType === MessageType.AUTHENTICATE) {
         // Step 4: Handle NTLM Authenticate message
         const clientAuthentication = new NTLMAuthenticateMessage(authHeader);
@@ -68,13 +67,17 @@ export class NTLMController {
           filter: `(userPrincipalName=${clientAuthentication.userName}@${clientAuthentication.domainName}*)`,
         });
 
-        // Assuming authentication is successful
-        res.status(200).send(results);
-        return;
+        if (results.length == 1) {
+          const ntlmSignInResult = await this.ntlmService.login(
+            results.at(0)[this.environmentService.getLdapNameAttribute()],
+            results.at(0)[this.environmentService.getLdapMailAttribute()],
+            req.raw.workspaceId,
+          );
+          return res.status(200).send(ntlmSignInResult);
+        } else return res.status(403).send();
       } else {
         console.warn('Invalid NTLM Message received.');
-        res.status(400).send('Invalid NTLM Message');
-        return;
+        return res.status(400).send('Invalid NTLM Message');
       }
     }
 
