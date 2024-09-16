@@ -49,7 +49,7 @@ export default function CodeBlockView(props: NodeViewProps) {
         <Select
           placeholder="auto"
           checkIconPosition="right"
-          data={extension.options.lowlight.listLanguages()}
+          data={extension.options.lowlight.listLanguages().sort()}
           value={languageValue}
           onChange={changeLanguage}
           searchable
