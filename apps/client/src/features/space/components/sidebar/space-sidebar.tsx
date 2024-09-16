@@ -5,8 +5,8 @@ import {
   Text,
   Tooltip,
   UnstyledButton,
-} from "@mantine/core";
-import { spotlight } from "@mantine/spotlight";
+} from '@mantine/core';
+import { spotlight } from '@mantine/spotlight';
 import {
   IconArrowDown,
   IconDots,
@@ -14,27 +14,27 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
-} from "@tabler/icons-react";
+} from '@tabler/icons-react';
 
-import classes from "./space-sidebar.module.css";
-import React, { useMemo } from "react";
-import { useAtom } from "jotai";
-import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
-import { Link, useLocation, useParams } from "react-router-dom";
-import clsx from "clsx";
-import { useDisclosure } from "@mantine/hooks";
-import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
-import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { SpaceName } from "@/features/space/components/sidebar/space-name.tsx";
-import { getSpaceUrl } from "@/lib/config.ts";
-import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import classes from './space-sidebar.module.css';
+import React, { useMemo } from 'react';
+import { useAtom } from 'jotai';
+import { SearchSpotlight } from '@/features/search/search-spotlight.tsx';
+import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom.ts';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import clsx from 'clsx';
+import { useDisclosure } from '@mantine/hooks';
+import SpaceSettingsModal from '@/features/space/components/settings-modal.tsx';
+import { useGetSpaceBySlugQuery } from '@/features/space/queries/space-query.ts';
+import { getSpaceUrl } from '@/lib/config.ts';
+import SpaceTree from '@/features/page/tree/components/space-tree.tsx';
+import { useSpaceAbility } from '@/features/space/permissions/use-space-ability.ts';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
-} from "@/features/space/permissions/permissions.type.ts";
-import PageImportModal from "@/features/page/components/page-import-modal.tsx";
+} from '@/features/space/permissions/permissions.type.ts';
+import PageImportModal from '@/features/page/components/page-import-modal.tsx';
+import { SwitchSpace } from './switch-space';
 
 export function SpaceSidebar() {
   const [tree] = useAtom(treeApiAtom);
@@ -52,7 +52,7 @@ export function SpaceSidebar() {
   }
 
   function handleCreatePage() {
-    tree?.create({ parentId: null, type: "internal", index: 0 });
+    tree?.create({ parentId: null, type: 'internal', index: 0 });
   }
 
   return (
@@ -61,11 +61,12 @@ export function SpaceSidebar() {
         <div
           className={classes.section}
           style={{
-            border: "none",
-            marginBottom: "0",
+            border: 'none',
+            marginTop: 2,
+            marginBottom: 3,
           }}
         >
-          <SpaceName spaceName={space?.name} />
+          <SwitchSpace spaceName={space?.name} spaceSlug={space?.slug} />
         </div>
 
         <div className={classes.section}>
@@ -77,7 +78,7 @@ export function SpaceSidebar() {
                 classes.menu,
                 location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
                   ? classes.activeButton
-                  : "",
+                  : ''
               )}
             >
               <div className={classes.menuItemInner}>
@@ -114,7 +115,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
+              SpaceCaslSubject.Page
             ) && (
               <UnstyledButton
                 className={classes.menu}
@@ -141,7 +142,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
+              SpaceCaslSubject.Page
             ) && (
               <Group gap="xs">
                 <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
@@ -165,7 +166,7 @@ export function SpaceSidebar() {
               spaceId={space.id}
               readOnly={spaceAbility.cannot(
                 SpaceCaslAction.Manage,
-                SpaceCaslSubject.Page,
+                SpaceCaslSubject.Page
               )}
             />
           </div>
