@@ -333,7 +333,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Date",
-      description: "Insert",
+      description: "Insert current date",
       searchTerms: ["date", "today"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
