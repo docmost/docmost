@@ -95,7 +95,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('create')
-  createGroup(
+  createSpace(
     @Body() createSpaceDto: CreateSpaceDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
@@ -111,7 +111,7 @@ export class SpaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async updateGroup(
+  async updateSpace(
     @Body() updateSpaceDto: UpdateSpaceDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
@@ -124,6 +124,23 @@ export class SpaceController {
       throw new ForbiddenException();
     }
     return this.spaceService.updateSpace(updateSpaceDto, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('delete')
+  async deleteSpace(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      spaceIdDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+    return this.spaceService.deleteSpace(spaceIdDto.spaceId, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
