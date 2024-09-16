@@ -41,7 +41,6 @@
     "react-drawio": "^0.2.0",
     "react-error-boundary": "^4.0.13",
     "react-helmet-async": "^2.0.5",
-    "react-moveable": "^0.56.0",
     "react-router-dom": "^6.26.1",
     "socket.io-client": "^4.7.5",
     "tippy.js": "^6.3.7",
