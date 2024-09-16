@@ -100,6 +100,36 @@ export function useUpdateSpaceMutation() {
   });
 }
 
+export function useDeleteSpaceMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Partial<ISpace>) => deleteSpace(data.id),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: 'Space deleted successfully' });
+
+      if (variables.slug) {
+        queryClient.removeQueries({
+          queryKey: ['spaces', variables.slug],
+          exact: true,
+        });
+      }
+
+      const spaces = queryClient.getQueryData(['spaces']) as any;
+      if (spaces) {
+        spaces.items = spaces.items?.filter(
+          (space: ISpace) => space.id !== variables.id
+        );
+        queryClient.setQueryData(['spaces'], spaces);
+      }
+    },
+    onError: (error) => {
+      const errorMessage = error['response']?.data?.message;
+      notifications.show({ message: errorMessage, color: 'red' });
+    },
+  });
+}
+
 export function useSpaceMembersQuery(
   spaceId: string
 ): UseQueryResult<IPagination<ISpaceMember>, Error> {
