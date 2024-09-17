@@ -107,7 +107,19 @@ export class PageRepo {
   }
 
   async deletePage(pageId: string): Promise<void> {
-    let query = this.db.deleteFrom('pages');
+    let query = this.db.updateTable('pages').set({ deletedAt: new Date() });
+
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    await query.execute();
+  }
+
+  async restorePage(pageId: string): Promise<void> {
+    let query = this.db.updateTable('pages').set({ deletedAt: null });
 
     if (isValidUUID(pageId)) {
       query = query.where('id', '=', pageId);

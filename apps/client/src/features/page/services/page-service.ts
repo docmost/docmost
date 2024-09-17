@@ -30,6 +30,10 @@ export async function deletePage(pageId: string): Promise<void> {
   await api.post("/pages/delete", { pageId });
 }
 
+export async function restorePage(pageId: string): Promise<void> {
+  await api.post("/pages/restore", { pageId });
+}
+
 export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
 }

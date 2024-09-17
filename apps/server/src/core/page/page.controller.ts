@@ -116,7 +116,7 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('restore')
   async restore(@Body() pageIdDto: PageIdDto) {
-    //  await this.pageService.restore(deletePageDto.id);
+     await this.pageService.restore(pageIdDto.pageId);
   }
 
   @HttpCode(HttpStatus.OK)

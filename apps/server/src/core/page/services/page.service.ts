@@ -284,6 +284,10 @@ export class PageService {
   async forceDelete(pageId: string): Promise<void> {
     await this.pageRepo.deletePage(pageId);
   }
+
+  async restore(pageId: string): Promise<void> {
+    await this.pageRepo.restorePage(pageId);
+  }
 }
 
 /*
