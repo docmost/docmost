@@ -32,8 +32,10 @@ export class ImportService {
   ): Promise<void> {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
-    const fileName = sanitize(file.filename).slice(0, 255).split('.')[0];
     const fileExtension = path.extname(file.filename).toLowerCase();
+    const fileName = sanitize(
+      path.basename(file.filename, fileExtension).slice(0, 255),
+    );
     const fileContent = fileBuffer.toString();
 
     let prosemirrorState = null;

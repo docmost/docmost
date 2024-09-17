@@ -20,18 +20,16 @@ import {
   removeSpaceMember,
   createSpace,
   updateSpace,
-  deleteSpace,
 } from '@/features/space/services/space-service.ts';
 import { notifications } from '@mantine/notifications';
-import { IPagination } from '@/lib/types.ts';
+import { IPagination, QueryParams } from '@/lib/types.ts';
 
-export function useGetSpacesQuery(): UseQueryResult<
-  IPagination<ISpace>,
-  Error
-> {
+export function useGetSpacesQuery(
+  params?: QueryParams
+): UseQueryResult<IPagination<ISpace>, Error> {
   return useQuery({
-    queryKey: ['spaces'],
-    queryFn: () => getSpaces(),
+    queryKey: ['spaces', params],
+    queryFn: () => getSpaces(params),
   });
 }
 

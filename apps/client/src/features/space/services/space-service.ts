@@ -4,12 +4,12 @@ import {
   IChangeSpaceMemberRole,
   IRemoveSpaceMember,
   ISpace,
-} from '@/features/space/types/space.types';
-import { IPagination } from '@/lib/types.ts';
-import { IUser } from '@/features/user/types/user.types.ts';
+} from "@/features/space/types/space.types";
+import { IPagination, QueryParams } from "@/lib/types.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
 
-export async function getSpaces(): Promise<IPagination<ISpace>> {
-  const req = await api.post('/spaces');
+export async function getSpaces(params?: QueryParams): Promise<IPagination<ISpace>> {
+  const req = await api.post("/spaces", params);
   return req.data;
 }
 
