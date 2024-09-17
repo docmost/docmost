@@ -27,11 +27,14 @@ export const mailDriverConfigProvider = {
     switch (driver) {
       case MailOption.SMTP:
         let auth = undefined;
-        if (environmentService.getSmtpUsername() && environmentService.getSmtpPassword()) {
+        if (
+          environmentService.getSmtpUsername() &&
+          environmentService.getSmtpPassword()
+        ) {
           auth = {
-              user: environmentService.getSmtpUsername(),
-              pass: environmentService.getSmtpPassword(),
-            };
+            user: environmentService.getSmtpUsername(),
+            pass: environmentService.getSmtpPassword(),
+          };
         }
         return {
           driver,

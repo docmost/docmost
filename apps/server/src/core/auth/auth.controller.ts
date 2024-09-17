@@ -19,6 +19,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +32,18 @@ export class AuthController {
   @Post('login')
   async login(@Req() req, @Body() loginInput: LoginDto) {
     return this.authService.login(loginInput, req.raw.workspaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('forgot-password')
+  async forgotPassword(
+    @Req() req,
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+  ) {
+    return this.authService.forgotPassword(
+      forgotPasswordDto,
+      req.raw.workspaceId,
+    );
   }
 
   /* @HttpCode(HttpStatus.OK)

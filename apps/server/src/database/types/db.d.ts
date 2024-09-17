@@ -1,10 +1,15 @@
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -185,6 +190,17 @@ export interface Workspaces {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface UserTokens {
+  id: Generated<string>;
+  token: string;
+  user_id: string;
+  workspace_id: string;
+  type: string;
+  expires_at: Timestamp | null;
+  used_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface DB {
   attachments: Attachments;
   comments: Comments;
@@ -197,4 +213,5 @@ export interface DB {
   users: Users;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
+  userTokens: UserTokens;
 }

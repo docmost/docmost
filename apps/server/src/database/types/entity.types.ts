@@ -11,6 +11,7 @@ import {
   GroupUsers,
   SpaceMembers,
   WorkspaceInvitations,
+  UserTokens,
 } from './db';
 
 // Workspace
@@ -71,3 +72,8 @@ export type UpdatableComment = Updateable<Omit<Comments, 'id'>>;
 export type Attachment = Selectable<Attachments>;
 export type InsertableAttachment = Insertable<Attachments>;
 export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
+
+// User Tokens
+export type UserToken = Selectable<UserTokens>;
+export type InsertableUserToken = Insertable<UserTokens>;
+export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;
