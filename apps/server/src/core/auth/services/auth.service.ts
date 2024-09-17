@@ -68,7 +68,7 @@ export class AuthService {
       forgotPasswordDto.newPassword == null
     ) {
       // Generate 5-character user token
-      const code = nanoIdGen().slice(0, 5).toUpperCase();
+      const code = nanoIdGen(5).toUpperCase();
       const hashedToken = await hashPassword(code);
       await this.userTokensRepo.insertUserToken({
         token: hashedToken,
