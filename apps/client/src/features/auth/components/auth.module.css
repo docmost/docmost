@@ -3,3 +3,12 @@
     border-radius: 4px;
     background: light-dark(var(--mantine-color-body), rgba(0, 0, 0, 0.1));
 }
+
+.forgotPasswordBtn {
+    font-size: var(--input-label-size, var(--mantine-font-size-sm));
+    text-decoration: underline;
+}
+
+.formElemWithTopMargin {
+    margin-top: var(--mantine-spacing-md);
+}

@@ -10,9 +10,13 @@ import {
   Button,
   PasswordInput,
   Box,
+  UnstyledButton,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import clsx from "clsx";
+import {useNavigate} from "react-router-dom";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
   email: z
@@ -24,6 +28,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
+  const navigate = useNavigate();
   useRedirectIfAuthenticated();
 
   const form = useForm<ILogin>({
@@ -62,6 +67,14 @@ export function LoginForm() {
             mt="md"
             {...form.getInputProps("password")}
           />
+
+          <UnstyledButton
+              onClick={() => navigate(APP_ROUTE.AUTH.FORGOT_PASSWORD)}
+              className = {clsx(classes.forgotPasswordBtn, classes.formElemWithTopMargin)}>
+            <div>
+              <span>Forgot Password</span>
+            </div>
+          </UnstyledButton>
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
             Sign In
           </Button>

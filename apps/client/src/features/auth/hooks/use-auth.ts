@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { login, setupWorkspace } from "@/features/auth/services/auth-service";
+import {forgotPassword, login, setupWorkspace} from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import { ILogin, ISetupWorkspace } from "@/features/auth/types/auth.types";
+import {IForgotPassword, ILogin, ISetupWorkspace} from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
 import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
@@ -105,12 +105,33 @@ export default function useAuth() {
     navigate(APP_ROUTE.AUTH.LOGIN);
   };
 
+  const handleForgotPassword = async (data: IForgotPassword) => {
+    setIsLoading(true);
+
+    try {
+      const res = await forgotPassword(data);
+      setIsLoading(false);
+
+      return true;
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+
+      return false;
+    }
+  };
+
   return {
     signIn: handleSignIn,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,
     logout: handleLogout,
+    forgotPassword: handleForgotPassword,
     hasTokens,
     isLoading,
   };

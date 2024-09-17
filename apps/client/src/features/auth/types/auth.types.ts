@@ -3,6 +3,12 @@ export interface ILogin {
   password: string;
 }
 
+export interface IForgotPassword {
+  email: string;
+  token: string;
+  newPassword: string;
+}
+
 export interface IRegister {
   name?: string;
   email: string;

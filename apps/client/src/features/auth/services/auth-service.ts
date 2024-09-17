@@ -1,6 +1,7 @@
 import api from "@/lib/api-client";
 import {
   IChangePassword,
+  IForgotPassword,
   ILogin,
   IRegister,
   ISetupWorkspace,
@@ -31,3 +32,9 @@ export async function setupWorkspace(
   const req = await api.post<ITokenResponse>("/auth/setup", data);
   return req.data;
 }
+
+export async function forgotPassword(data: IForgotPassword): Promise<any> {
+  const req = await api.post<any>("/auth/forgot-password", data);
+  return req.data;
+}
+
