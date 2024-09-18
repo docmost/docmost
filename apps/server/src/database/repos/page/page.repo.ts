@@ -106,8 +106,20 @@ export class PageRepo {
       .executeTakeFirst();
   }
 
-  async deletePage(pageId: string): Promise<void> {
+  async removePage(pageId: string): Promise<void> {
     let query = this.db.updateTable('pages').set({ deletedAt: new Date() });
+
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    await query.execute();
+  }
+
+  async deletePage(pageId: string): Promise<void> {
+    let query = this.db.deleteFrom('pages');
 
     if (isValidUUID(pageId)) {
       query = query.where('id', '=', pageId);
@@ -154,6 +166,23 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', userSpaceIds)
+      .orderBy('updatedAt', 'desc');
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
+  }
+
+  async getDeletedPagesInSpace(spaceId: string, pagination: PaginationOptions) {
+    const query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select((eb) => this.withSpace(eb))
+      .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is not', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {

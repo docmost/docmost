@@ -26,8 +26,17 @@ export async function updatePage(data: Partial<IPageInput>): Promise<IPage> {
   return req.data;
 }
 
+export async function removePage(pageId: string): Promise<void> {
+  await api.post("/pages/remove", { pageId });
+}
+
 export async function deletePage(pageId: string): Promise<void> {
   await api.post("/pages/delete", { pageId });
+}
+
+export async function getDeletedPages(spaceId: string): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/deleted", { spaceId });
+  return req.data;
 }
 
 export async function restorePage(pageId: string): Promise<void> {
