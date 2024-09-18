@@ -73,7 +73,7 @@ export type Attachment = Selectable<Attachments>;
 export type InsertableAttachment = Insertable<Attachments>;
 export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
 
-// User Tokens
+// User Token
 export type UserToken = Selectable<UserTokens>;
 export type InsertableUserToken = Insertable<UserTokens>;
 export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;

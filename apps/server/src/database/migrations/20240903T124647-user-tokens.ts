@@ -7,13 +7,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('token', 'varchar', (col) => col.notNull())
+    .addColumn('type', 'varchar', (col) => col.notNull())
     .addColumn('user_id', 'uuid', (col) =>
       col.notNull().references('users.id').onDelete('cascade'),
     )
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade'),
     )
-    .addColumn('type', 'varchar', (col) => col.notNull())
     .addColumn('expires_at', 'timestamptz')
     .addColumn('used_at', 'timestamptz', (col) => col)
     .addColumn('created_at', 'timestamptz', (col) =>

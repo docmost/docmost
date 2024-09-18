@@ -1,6 +1,7 @@
 import {
   InsertableUserToken,
   UpdatableUserToken,
+  UserToken,
 } from '@docmost/db/types/entity.types';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -8,8 +9,32 @@ import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 
 @Injectable()
-export class UserTokensRepo {
+export class UserTokenRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
+
+  async findById(
+    token: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<UserToken> {
+    const db = dbOrTx(this.db, trx);
+
+    return db
+      .selectFrom('userTokens')
+      .select([
+        'id',
+        'token',
+        'userId',
+        'workspaceId',
+        'type',
+        'expiresAt',
+        'usedAt',
+        'createdAt',
+      ])
+      .where('token', '=', token)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+  }
 
   async insertUserToken(
     insertableUserToken: InsertableUserToken,
@@ -28,24 +53,24 @@ export class UserTokensRepo {
     workspaceId: string,
     tokenType: string,
     trx?: KyselyTransaction,
-  ) {
+  ): Promise<UserToken[]> {
     const db = dbOrTx(this.db, trx);
     return db
       .selectFrom('userTokens')
       .select([
         'id',
         'token',
-        'user_id',
-        'workspace_id',
+        'userId',
+        'workspaceId',
         'type',
-        'expires_at',
-        'used_at',
-        'created_at',
+        'expiresAt',
+        'usedAt',
+        'createdAt',
       ])
-      .where('user_id', '=', userId)
-      .where('workspace_id', '=', workspaceId)
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
       .where('type', '=', tokenType)
-      .orderBy('expires_at desc')
+      .orderBy('expiresAt desc')
       .execute();
   }
 
@@ -57,33 +82,21 @@ export class UserTokensRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .updateTable('userTokens')
-      .set({ ...updatableUserToken })
+      .set(updatableUserToken)
       .where('id', '=', userTokenId)
       .execute();
   }
 
-  async deleteUserToken(
-    userId: string,
-    workspaceId: string,
-    tokenType: string,
-    trx?: KyselyTransaction,
-  ) {
+  async deleteToken(token: string, trx?: KyselyTransaction): Promise<void> {
     const db = dbOrTx(this.db, trx);
-    return db
-      .deleteFrom('userTokens')
-      .where('user_id', '=', userId)
-      .where('workspace_id', '=', workspaceId)
-      .where('type', '=', tokenType)
-      .execute();
+    await db.deleteFrom('userTokens').where('token', '=', token).execute();
   }
 
-  async deleteExpiredUserTokens(
-    trx?: KyselyTransaction,
-  ) {
+  async deleteExpiredUserTokens(trx?: KyselyTransaction): Promise<void> {
     const db = dbOrTx(this.db, trx);
-    return db
+    await db
       .deleteFrom('userTokens')
-      .where('expires_at', '<', new Date())
-      .execute(); 
+      .where('expiresAt', '<', new Date())
+      .execute();
   }
 }
