@@ -248,7 +248,7 @@ export class WorkspaceInvitationService {
       });
 
       await this.mailService.sendToQueue({
-        to: invitation.email,
+        to: invitedByUser.email,
         subject: `${newUser.name} has accepted your Docmost invite`,
         template: emailTemplate,
       });
