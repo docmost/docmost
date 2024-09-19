@@ -5,7 +5,7 @@ export default function ForgotPassword() {
     return (
         <>
             <Helmet>
-                <title>Forgot Password</title>
+                <title>Forgot Password - Docmost</title>
             </Helmet>
             <ForgotPasswordForm />
         </>

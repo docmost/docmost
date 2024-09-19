@@ -20,6 +20,7 @@ import {
   removeSpaceMember,
   createSpace,
   updateSpace,
+  deleteSpace,
 } from '@/features/space/services/space-service.ts';
 import { notifications } from '@mantine/notifications';
 import { IPagination, QueryParams } from '@/lib/types.ts';

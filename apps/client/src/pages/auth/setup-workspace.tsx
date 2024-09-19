@@ -32,7 +32,7 @@ export default function SetupWorkspace() {
     return (
       <>
         <Helmet>
-          <title>Setup workspace</title>
+          <title>Setup workspace - Docmost</title>
         </Helmet>
         <SetupWorkspaceForm />
       </>

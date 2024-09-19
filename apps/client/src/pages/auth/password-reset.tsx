@@ -1,35 +1,42 @@
 import { Helmet } from "react-helmet-async";
 import { PasswordResetForm } from "@/features/auth/components/password-reset-form";
-import { useSearchParams } from "react-router-dom";
-import useAuth from "@/features/auth/hooks/use-auth";
+import { Link, useSearchParams } from "react-router-dom";
 import { useVerifyUserTokenQuery } from "@/features/auth/queries/auth-query";
-import { Container, Text } from "@mantine/core";
+import { Button, Container, Group, Text } from "@mantine/core";
+import APP_ROUTE from "@/lib/app-route";
 
 export default function PasswordReset() {
   const [searchParams] = useSearchParams();
-  const {
-    data: workspace,
-    isLoading,
-    isError,
-    error,
-  } = useVerifyUserTokenQuery({
+  const { data, isLoading, isError } = useVerifyUserTokenQuery({
     token: searchParams.get("token"),
     type: "forgot-password",
   });
-  const token = searchParams.get("token");
+  const resetToken = searchParams.get("token");
 
   if (isLoading) {
     return <div></div>;
   }
 
-  if (isError || !token) {
+  if (isError || !resetToken) {
     return (
       <>
         <Helmet>
-          <title>Password Reset</title>
+          <title>Password Reset - Docmost</title>
         </Helmet>
-        <Container size={500} my={40}>
-          <Text size="md">Invalid or expired token</Text>
+        <Container my={40}>
+          <Text size="lg" ta="center">
+            Invalid or expired password reset link
+          </Text>
+          <Group justify="center">
+            <Button
+              component={Link}
+              to={APP_ROUTE.AUTH.LOGIN}
+              variant="subtle"
+              size="md"
+            >
+              Goto login page
+            </Button>
+          </Group>
         </Container>
       </>
     );
@@ -38,14 +45,9 @@ export default function PasswordReset() {
   return (
     <>
       <Helmet>
-        <title>Password Reset</title>
+        <title>Password Reset - Docmost</title>
       </Helmet>
-      <PasswordResetForm resetToken={token} />
+      <PasswordResetForm resetToken={resetToken} />
     </>
   );
 }
-
-// get token params
-// validate that it is valid from the server response.
-// if not valid, output error
-// if valid render form

@@ -99,7 +99,7 @@ export default function useAuth() {
 
       navigate(APP_ROUTE.HOME);
       notifications.show({
-        message: "Password was reset successful",
+        message: "Password reset was successful",
       });
     } catch (err) {
       setIsLoading(false);
