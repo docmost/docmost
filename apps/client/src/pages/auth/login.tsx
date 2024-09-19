@@ -8,7 +8,7 @@ export default function LoginPage() {
   return (
     <>
       <Helmet>
-        <title>{t("Login")}</title>
+        <title>{t("Login")} - Docmost</title>
       </Helmet>
       <LoginForm />
     </>

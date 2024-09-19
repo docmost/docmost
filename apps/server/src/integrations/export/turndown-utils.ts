@@ -22,6 +22,7 @@ export function turndown(html: string): string {
     listParagraph,
     mathInline,
     mathBlock,
+    iframeEmbed,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
@@ -117,6 +118,18 @@ function mathBlock(turndownService: TurndownService) {
     },
     replacement: function (content: any, node: HTMLInputElement) {
       return `\n$$${content}$$\n`;
+    },
+  });
+}
+
+function iframeEmbed(turndownService: TurndownService) {
+  turndownService.addRule('iframeEmbed', {
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'IFRAME';
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      const src = node.getAttribute('src');
+      return '[' + src + '](' + src + ')';
     },
   });
 }

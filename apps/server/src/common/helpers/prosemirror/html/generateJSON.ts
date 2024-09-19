@@ -1,7 +1,9 @@
 import { Extensions, getSchema } from '@tiptap/core';
 import { DOMParser, ParseOptions } from '@tiptap/pm/model';
-import { Window, DOMParser as HappyDomParser } from 'happy-dom';
+import { Window } from 'happy-dom';
 
+// this function does not work as intended
+// it has issues with closing tags
 export function generateJSON(
   html: string,
   extensions: Extensions,
@@ -10,8 +12,10 @@ export function generateJSON(
   const schema = getSchema(extensions);
 
   const window = new Window();
-  const dom = new HappyDomParser().parseFromString(html, 'text/html').body;
+  const document = window.document;
+  document.body.innerHTML = html;
 
-  // @ts-ignore
-  return DOMParser.fromSchema(schema).parse(dom, options).toJSON();
+  return DOMParser.fromSchema(schema)
+    .parse(document as never, options)
+    .toJSON();
 }

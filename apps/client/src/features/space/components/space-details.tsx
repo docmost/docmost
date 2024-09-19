@@ -1,7 +1,8 @@
 import React from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { EditSpaceForm } from "@/features/space/components/edit-space-form.tsx";
-import { Text } from "@mantine/core";
+import { Divider, Group, Text } from '@mantine/core';
+import DeleteSpaceModal from './delete-space-modal';
 import { useTranslation } from "react-i18next";
 
 interface SpaceDetailsProps {
@@ -20,6 +21,23 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
             {t("Details")}
           </Text>
           <EditSpaceForm space={space} readOnly={readOnly} />
+
+          {!readOnly && (
+            <>
+              <Divider my="lg" />
+
+              <Group justify="space-between" wrap="nowrap" gap="xl">
+                <div>
+                  <Text size="md">Delete space</Text>
+                  <Text size="sm" c="dimmed">
+                    Delete this space with all its pages and data.
+                  </Text>
+                </div>
+
+                <DeleteSpaceModal space={space} />
+              </Group>
+            </>
+          )}
         </div>
       )}
     </>

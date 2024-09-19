@@ -9,6 +9,14 @@ import { useTranslation } from "react-i18next";
 const formSchema = z.object({
   name: z.string().min(2).max(50),
   description: z.string().max(250),
+  slug: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(
+      /^[a-zA-Z0-9]+$/,
+      "Space slug must be alphanumeric. No special characters",
+    ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -25,12 +33,14 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
     initialValues: {
       name: space?.name,
       description: space?.description || "",
+      slug: space.slug,
     },
   });
 
   const handleSubmit = async (values: {
     name?: string;
     description?: string;
+    slug?: string;
   }) => {
     const spaceData: Partial<ISpace> = {
       spaceId: space.id,
@@ -40,6 +50,10 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
     }
     if (form.isDirty("description")) {
       spaceData.description = values.description;
+    }
+
+    if (form.isDirty("slug")) {
+      spaceData.slug = values.slug;
     }
 
     await updateSpaceMutation.mutateAsync(spaceData);
@@ -64,8 +78,8 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
               id="slug"
               label={t("Slug")}
               variant="filled"
-              readOnly
-              value={space.slug}
+              readOnly={readOnly}
+              {...form.getInputProps("slug")}
             />
 
             <Textarea

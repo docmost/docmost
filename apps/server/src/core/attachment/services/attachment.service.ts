@@ -256,4 +256,37 @@ export class AttachmentService {
       trx,
     );
   }
+
+  async handleDeleteSpaceAttachments(spaceId: string) {
+    try {
+      const attachments = await this.attachmentRepo.findBySpaceId(spaceId);
+      if (!attachments || attachments.length === 0) {
+        return;
+      }
+
+      const failedDeletions = [];
+
+      await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            await this.storageService.delete(attachment.filePath);
+            await this.attachmentRepo.deleteAttachmentById(attachment.id);
+          } catch (err) {
+            failedDeletions.push(attachment.id);
+            this.logger.log(
+              `DeleteSpaceAttachments: failed to delete attachment ${attachment.id}:`,
+              err,
+            );
+          }
+        }),
+      );
+
+      if(failedDeletions.length === attachments.length){
+        throw new Error(`Failed to delete any attachments for spaceId: ${spaceId}`);
+      }
+
+    } catch (err) {
+      throw err;
+    }
+  }
 }

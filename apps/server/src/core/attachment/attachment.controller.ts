@@ -182,7 +182,7 @@ export class AttachmentController {
       if (!inlineFileExtensions.includes(attachment.fileExt)) {
         res.header(
           'Content-Disposition',
-          `attachment; filename="${attachment.fileName}"`,
+          `attachment; filename="${encodeURIComponent(attachment.fileName)}"`,
         );
       }
 

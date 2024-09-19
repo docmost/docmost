@@ -34,7 +34,7 @@ export default function SetupWorkspace() {
     return (
       <>
         <Helmet>
-          <title>{t("Setup workspace")}</title>
+          <title>{t("Setup workspace")} - Docmost</title>
         </Helmet>
         <SetupWorkspaceForm />
       </>

@@ -61,7 +61,8 @@ export class ImportController {
 
     res.headers({
       'Content-Type': getMimeType(fileExt),
-      'Content-Disposition': 'attachment; filename="' + fileName + '"',
+      'Content-Disposition':
+        'attachment; filename="' + encodeURIComponent(fileName) + '"',
     });
 
     res.send(rawContent);

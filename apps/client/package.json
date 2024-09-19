@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -44,7 +44,6 @@
     "react-error-boundary": "^4.0.13",
     "react-helmet-async": "^2.0.5",
     "react-i18next": "^15.0.1",
-    "react-moveable": "^0.56.0",
     "react-router-dom": "^6.26.1",
     "socket.io-client": "^4.7.5",
     "tippy.js": "^6.3.7",

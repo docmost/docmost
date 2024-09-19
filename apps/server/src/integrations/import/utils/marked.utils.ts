@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { calloutExtension } from './callout.marked';
 
 marked.use({
   renderer: {
@@ -24,6 +25,8 @@ marked.use({
     },
   },
 });
+
+marked.use({ extensions: [calloutExtension] });
 
 export async function markdownToHtml(markdownInput: string): Promise<string> {
   const YAML_FONT_MATTER_REGEX = /^\s*---[\s\S]*?---\s*/;

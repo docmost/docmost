@@ -6,10 +6,11 @@ export interface AttachmentOptions {
   HTMLAttributes: Record<string, any>;
   view: any;
 }
+
 export interface AttachmentAttributes {
   url?: string;
   name?: string;
-  mime?: string; // mime type e.g. application/zip
+  mime?: string; // e.g. application/zip
   size?: number;
   attachmentId?: string;
 }
@@ -93,6 +94,15 @@ export const Attachment = Node.create<AttachmentOptions>({
         this.options.HTMLAttributes,
         HTMLAttributes,
       ),
+      [
+        "a",
+        {
+          href: HTMLAttributes["data-attachment-url"],
+          class: "attachment",
+          target: "blank",
+        },
+        `${HTMLAttributes["data-attachment-name"]}`,
+      ],
     ];
   },
 
