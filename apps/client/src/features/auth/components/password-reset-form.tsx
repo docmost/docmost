@@ -45,7 +45,7 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
     <Container size={420} my={40} className={classes.container}>
       <Box p="xl" mt={200}>
         <Title order={2} ta="center" fw={500} mb="md">
-          Password Reset
+          Password reset
         </Title>
 
         <form onSubmit={form.onSubmit(onSubmit)}>
