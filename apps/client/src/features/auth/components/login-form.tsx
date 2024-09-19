@@ -1,4 +1,3 @@
-import * as React from "react";
 import * as z from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import useAuth from "@/features/auth/hooks/use-auth";
@@ -10,12 +9,12 @@ import {
   Button,
   PasswordInput,
   Box,
-  UnstyledButton,
+
+  Anchor,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
-import clsx from "clsx";
-import {useNavigate} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
@@ -28,7 +27,6 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const { signIn, isLoading } = useAuth();
-  const navigate = useNavigate();
   useRedirectIfAuthenticated();
 
   const form = useForm<ILogin>({
@@ -68,17 +66,19 @@ export function LoginForm() {
             {...form.getInputProps("password")}
           />
 
-          <UnstyledButton
-              onClick={() => navigate(APP_ROUTE.AUTH.FORGOT_PASSWORD)}
-              className = {clsx(classes.forgotPasswordBtn, classes.formElemWithTopMargin)}>
-            <div>
-              <span>Forgot Password</span>
-            </div>
-          </UnstyledButton>
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
             Sign In
           </Button>
         </form>
+
+        <Anchor
+          to={APP_ROUTE.AUTH.FORGOT_PASSWORD}
+          component={Link}
+          underline="never"
+          size="sm"
+        >
+          Forgot your password?
+        </Anchor>
       </Box>
     </Container>
   );

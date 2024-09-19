@@ -1,10 +1,22 @@
 import { useState } from "react";
-import {forgotPassword, login, setupWorkspace} from "@/features/auth/services/auth-service";
+import {
+  forgotPassword,
+  login,
+  passwordReset,
+  setupWorkspace,
+  verifyUserToken,
+} from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import {IForgotPassword, ILogin, ISetupWorkspace} from "@/features/auth/types/auth.types";
+import {
+  IForgotPassword,
+  ILogin,
+  IPasswordReset,
+  ISetupWorkspace,
+  IVerifyUserToken,
+} from "@/features/auth/types/auth.types";
 import { notifications } from "@mantine/notifications";
 import { IAcceptInvite } from "@/features/workspace/types/workspace.types.ts";
 import { acceptInvitation } from "@/features/workspace/services/workspace-service.ts";
@@ -76,6 +88,28 @@ export default function useAuth() {
     }
   };
 
+  const handlePasswordReset = async (data: IPasswordReset) => {
+    setIsLoading(true);
+
+    try {
+      const res = await passwordReset(data);
+      setIsLoading(false);
+
+      setAuthToken(res.tokens);
+
+      navigate(APP_ROUTE.HOME);
+      notifications.show({
+        message: "Password reset was successful",
+      });
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
   const handleIsAuthenticated = async () => {
     if (!authToken) {
       return false;
@@ -109,7 +143,7 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const res = await forgotPassword(data);
+      await forgotPassword(data);
       setIsLoading(false);
 
       return true;
@@ -125,13 +159,31 @@ export default function useAuth() {
     }
   };
 
+  const handleVerifyUserToken = async (data: IVerifyUserToken) => {
+    setIsLoading(true);
+
+    try {
+      await verifyUserToken(data);
+      setIsLoading(false);
+    } catch (err) {
+      console.log(err);
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
   return {
     signIn: handleSignIn,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
     isAuthenticated: handleIsAuthenticated,
-    logout: handleLogout,
     forgotPassword: handleForgotPassword,
+    passwordReset: handlePasswordReset,
+    verifyUserToken: handleVerifyUserToken,
+    logout: handleLogout,
     hasTokens,
     isLoading,
   };
