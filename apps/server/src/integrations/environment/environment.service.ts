@@ -98,6 +98,13 @@ export class EnvironmentService {
     return secure === 'true';
   }
 
+  getSmtpIgnoreTLS(): boolean {
+    const ignoretls = this.configService
+      .get<string>('SMTP_IGNORETLS', 'false')
+      .toLowerCase();
+    return ignoretls === 'true';
+  }
+
   getSmtpUsername(): string {
     return this.configService.get<string>('SMTP_USERNAME');
   }
