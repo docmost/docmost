@@ -12,6 +12,7 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto } from './dto/move-page.dto';
+// import { RestorePageDto } from './dto/restore-page.dto';
 import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -133,8 +134,19 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('restore')
-  async restore(@Body() pageIdDto: PageIdDto) {
-     await this.pageService.restore(pageIdDto.pageId);
+  async restore(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(pageIdDto.pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    await this.pageService.restore(pageIdDto.pageId);
   }
 
   @HttpCode(HttpStatus.OK)

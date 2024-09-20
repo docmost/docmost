@@ -10,6 +10,7 @@ interface RecycledPagesProps {
 
 export default function RecycledPagesList({
     spaceId,
+    readOnly,
 }: RecycledPagesProps) {
     const { data, isLoading } = useDeletedPagesQuery(spaceId);
     const restorePageMutation = useRestorePageMutation();
@@ -65,13 +66,13 @@ export default function RecycledPagesList({
                                 <Table.Td>
                                     <div>
                                         <Text fz="sm" fw={500}>
-                                            {page?.title}
+                                            {page?.title || "Untitled"}
                                         </Text>
                                     </div>
                                 </Table.Td>
 
                                 <Table.Td>
-                                    {(
+                                    {!readOnly && (
                                         <Menu>
                                             <Menu.Target>
                                                 <ActionIcon variant="subtle" c="gray">
@@ -88,7 +89,7 @@ export default function RecycledPagesList({
                                                 </Menu.Item>
                                                 <Menu.Item
                                                     onClick={() =>
-                                                        openRemovePageModal
+                                                        openRemovePageModal(page.id)
                                                     }>
                                                         Delete Page permanently
                                                 </Menu.Item>

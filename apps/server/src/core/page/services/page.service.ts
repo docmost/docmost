@@ -162,9 +162,11 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'deletedAt',
       ])
       .select((eb) => this.withHasChildren(eb))
       .orderBy('position', 'asc')
+      .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 
     if (pageId) {

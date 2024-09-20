@@ -3,6 +3,10 @@ import React, { useMemo } from "react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import RecycledPagesList from "@/features/space/components/recycled-pages.tsx"
+import {
+    SpaceCaslAction,
+    SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface RecycleBinModalProps {
     spaceId: string;
@@ -40,7 +44,13 @@ export default function RecycleBinModal({
                     <Modal.Body>
                         <div style={{ height: rem("600px") }}>
                             <ScrollArea h="600" w="100%" scrollbarSize={5}>
-                                <RecycledPagesList spaceId={space.id} />
+                                <RecycledPagesList
+                                    spaceId={space?.id}
+                                    readOnly={spaceAbility.cannot(
+                                        SpaceCaslAction.Manage,
+                                        SpaceCaslSubject.Page
+                                    )}
+                                />
                             </ScrollArea>
                         </div>
                     </Modal.Body>
