@@ -31,7 +31,7 @@ export class TokenService {
       workspaceId,
       type: JwtType.REFRESH,
     };
-    const expiresIn = '30d'; // todo: fix
+    const expiresIn = this.environmentService.getJwtTokenExpiresIn();
     return this.jwtService.sign(payload, { expiresIn });
   }
 
