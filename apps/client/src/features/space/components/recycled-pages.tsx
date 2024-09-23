@@ -54,8 +54,8 @@ export default function RecycledPagesList({
 
     return (
         <>
-            {data && (
-                <Table>
+            {data && data.items.length > 0 ? (
+                <Table highlightOnHover verticalSpacing="sm">
                     <Table.Thead>
                         <Table.Th>Deleted Pages</Table.Th>
                     </Table.Thead>
@@ -101,6 +101,10 @@ export default function RecycledPagesList({
                         ))}
                     </Table.Tbody>
                 </Table>
+            ) : (
+                <Text size="sm" c="dimmed">
+                    No deleted pages
+                </Text>
             )}
         </>
     );

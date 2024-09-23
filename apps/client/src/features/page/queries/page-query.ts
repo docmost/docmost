@@ -194,5 +194,6 @@ export function useDeletedPagesQuery(
   return useQuery({
     queryKey: ["deleted-pages", spaceId],
     queryFn: () => getDeletedPages(spaceId),
+    refetchOnMount: true,
   });
 }

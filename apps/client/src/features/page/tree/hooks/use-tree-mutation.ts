@@ -13,7 +13,6 @@ import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreatePageMutation,
-  // useDeletePageMutation,
   useRemovePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
@@ -29,7 +28,6 @@ export function useTreeMutation<T>(spaceId: string) {
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
-  // const deletePageMutation = useDeletePageMutation();
   const removePageMutation = useRemovePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
