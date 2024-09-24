@@ -43,7 +43,7 @@ export default function RecycledPagesList({
             title: "Restore page",
             children: (
                 <Text size="sm">
-                    "Restore this page ?"
+                    Restore this page ?
                 </Text>
             ),
             centered: true,
