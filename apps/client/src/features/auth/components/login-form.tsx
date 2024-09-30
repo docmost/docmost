@@ -1,4 +1,3 @@
-import * as React from "react";
 import * as z from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import useAuth from "@/features/auth/hooks/use-auth";
@@ -10,9 +9,13 @@ import {
   Button,
   PasswordInput,
   Box,
+
+  Anchor,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import { Link, useNavigate } from "react-router-dom";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
   email: z
@@ -62,10 +65,20 @@ export function LoginForm() {
             mt="md"
             {...form.getInputProps("password")}
           />
+
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
             Sign In
           </Button>
         </form>
+
+        <Anchor
+          to={APP_ROUTE.AUTH.FORGOT_PASSWORD}
+          component={Link}
+          underline="never"
+          size="sm"
+        >
+          Forgot your password?
+        </Anchor>
       </Box>
     </Container>
   );

@@ -33,7 +33,7 @@
     border-radius: 4px;
     transition: background-color 0.2s;
     margin: 0 0.1rem;
-    overflow-x: scroll;
+    overflow-x: auto;
 
     .textInput {
         width: 400px;

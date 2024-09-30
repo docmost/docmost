@@ -40,6 +40,21 @@ export class AttachmentRepo {
       .executeTakeFirst();
   }
 
+  async findBySpaceId(
+    spaceId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .selectAll()
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
   async updateAttachment(
     updatableAttachment: UpdatableAttachment,
     attachmentId: string,
@@ -52,7 +67,7 @@ export class AttachmentRepo {
       .executeTakeFirst();
   }
 
-  async deleteAttachment(attachmentId: string): Promise<void> {
+  async deleteAttachmentById(attachmentId: string): Promise<void> {
     await this.db
       .deleteFrom('attachments')
       .where('id', '=', attachmentId)

@@ -5,7 +5,7 @@ export default function InviteSignup() {
   return (
     <>
       <Helmet>
-        <title>Invitation signup</title>
+        <title>Invitation Signup - Docmost</title>
       </Helmet>
       <InviteSignUpForm />
     </>

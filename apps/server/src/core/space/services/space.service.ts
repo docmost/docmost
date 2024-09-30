@@ -14,6 +14,9 @@ import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { SpaceMemberService } from './space-member.service';
 import { SpaceRole } from '../../../common/helpers/types/permission';
+import { QueueJob, QueueName } from 'src/integrations/queue/constants';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class SpaceService {
@@ -21,6 +24,7 @@ export class SpaceService {
     private spaceRepo: SpaceRepo,
     private spaceMemberService: SpaceMemberService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.ATTACHEMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async createSpace(
@@ -88,10 +92,24 @@ export class SpaceService {
     updateSpaceDto: UpdateSpaceDto,
     workspaceId: string,
   ): Promise<Space> {
+    if (updateSpaceDto?.slug) {
+      const slugExists = await this.spaceRepo.slugExists(
+        updateSpaceDto.slug,
+        workspaceId,
+      );
+
+      if (slugExists) {
+        throw new BadRequestException(
+          'Space slug exists. Please use a unique space slug',
+        );
+      }
+    }
+
     return await this.spaceRepo.updateSpace(
       {
         name: updateSpaceDto.name,
         description: updateSpaceDto.description,
+        slug: updateSpaceDto.slug,
       },
       updateSpaceDto.spaceId,
       workspaceId,
@@ -119,5 +137,15 @@ export class SpaceService {
     );
 
     return spaces;
+  }
+
+  async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    await this.spaceRepo.deleteSpace(spaceId, workspaceId);
+    await this.attachmentQueue.add(QueueJob.DELETE_SPACE_ATTACHMENTS, space);
   }
 }

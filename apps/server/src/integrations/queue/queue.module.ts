@@ -31,6 +31,9 @@ import { QueueName } from './constants';
     BullModule.registerQueue({
       name: QueueName.EMAIL_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: QueueName.ATTACHEMENT_QUEUE,
+    }),
   ],
   exports: [BullModule],
 })

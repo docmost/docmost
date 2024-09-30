@@ -24,6 +24,8 @@ import PageRedirect from "@/pages/page/page-redirect.tsx";
 import Layout from "@/components/layouts/global/layout.tsx";
 import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
+import ForgotPassword from "@/pages/auth/forgot-password.tsx";
+import PasswordReset from "./pages/auth/password-reset";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
@@ -63,6 +65,8 @@ export default function App() {
         <Route path={"/login"} element={<LoginPage />} />
         <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
         <Route path={"/setup/register"} element={<SetupWorkspace />} />
+        <Route path={"/forgot-password"} element={<ForgotPassword />} />
+        <Route path={"/password-reset"} element={<PasswordReset />} />
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
 
