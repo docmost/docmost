@@ -107,15 +107,32 @@ export class PageRepo {
   }
 
   async removePage(pageId: string): Promise<void> {
-    let query = this.db.updateTable('pages').set({ deletedAt: new Date() });
+    const currentDate = new Date();
 
-    if (isValidUUID(pageId)) {
-      query = query.where('id', '=', pageId);
-    } else {
-      query = query.where('slugId', '=', pageId);
-    }
+    const descendants = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+          )
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
 
-    await query.execute();
+    const pageIds = descendants.map((d) => d.id);
+
+    await this.db
+      .updateTable('pages')
+      .set({ deletedAt: currentDate })
+      .where('id', 'in', pageIds)
+      .execute();
   }
 
   async deletePage(pageId: string): Promise<void> {
@@ -131,15 +148,30 @@ export class PageRepo {
   }
 
   async restorePage(pageId: string): Promise<void> {
-    let query = this.db.updateTable('pages').set({ deletedAt: null });
+    const pages = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+          )
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
 
-    if (isValidUUID(pageId)) {
-      query = query.where('id', '=', pageId);
-    } else {
-      query = query.where('slugId', '=', pageId);
-    }
+    const pageIds = pages.map((p) => p.id);
 
-    await query.execute();
+    await this.db
+      .updateTable('pages')
+      .set({ deletedAt: null })
+      .where('id', 'in', pageIds)
+      .execute();
   }
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
