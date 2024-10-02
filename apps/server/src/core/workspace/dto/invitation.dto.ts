@@ -40,6 +40,10 @@ export class InvitationIdDto {
   invitationId: string;
 }
 
+export class InvitationLinkDto {
+  inviteLink: string;
+}
+
 export class AcceptInviteDto extends InvitationIdDto {
   @MinLength(2)
   @MaxLength(60)

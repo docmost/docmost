@@ -73,6 +73,21 @@ export class WorkspaceInvitationService {
     return invitation;
   }
 
+  async getInvitationTokenById(invitationId: string, workspaceId: string) {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['token'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    return invitation;
+  }
+
   async createInvitation(
     inviteUserDto: InviteUserDto,
     workspaceId: string,
@@ -298,13 +313,20 @@ export class WorkspaceInvitationService {
       .execute();
   }
 
+  async buildInviteLink(
+    invitationId: string,
+    inviteToken: string,
+  ): Promise<string> {
+    return `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
+  }
+
   async sendInvitationMail(
     invitationId: string,
     inviteeEmail: string,
     inviteToken: string,
     invitedByName: string,
   ): Promise<void> {
-    const inviteLink = `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
+    const inviteLink = await this.buildInviteLink(invitationId,inviteToken);
 
     const emailTemplate = InvitationEmail({
       inviteLink,

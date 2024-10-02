@@ -5,6 +5,7 @@ import {
   IInvitation,
   IWorkspace,
   IAcceptInvite,
+  IInvitationLink,
 } from "../types/workspace.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { ITokenResponse } from "@/features/auth/types/auth.types.ts";
@@ -55,6 +56,13 @@ export async function acceptInvitation(
   data: IAcceptInvite,
 ): Promise<ITokenResponse> {
   const req = await api.post("/workspace/invites/accept", data);
+  return req.data;
+}
+
+export async function getInviteLink(data: {
+  invitationId: string;
+}): Promise<IInvitationLink> {
+  const req = await api.post("/workspace/invites/link", data);
   return req.data;
 }
 
