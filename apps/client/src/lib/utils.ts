@@ -53,11 +53,21 @@ export async function svgStringToFile(
   return new File([blob], fileName, { type: "image/svg+xml" });
 }
 
+// Convert a string holding Base64 encoded UTF-8 data into a proper UTF-8 encoded string
+// as a replacement for `atob`.
+// based on: https://developer.mozilla.org/en-US/docs/Glossary/Base64
+function decodeBase64(base64: string): string {
+  // convert string to bytes
+  const bytes = Uint8Array.from(atob(base64), (m) => m.codePointAt(0));
+  // properly decode bytes to UTF-8 encoded string
+  return new TextDecoder().decode(bytes);
+}
+
 export function decodeBase64ToSvgString(base64Data: string): string {
   const base64Prefix = 'data:image/svg+xml;base64,';
   if (base64Data.startsWith(base64Prefix)) {
       base64Data = base64Data.replace(base64Prefix, '');
   }
 
-  return atob(base64Data);
+  return decodeBase64(base64Data);
 }
