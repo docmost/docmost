@@ -29,6 +29,7 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../../casl/interfaces/workspace-ability.type';
+import { DeactivateMemberDto } from '../dto/deactivate-member.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -88,6 +89,7 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('members/deactivate')
   async deactivateWorkspaceMember(
+    @Body() deactivateMemberDto: DeactivateMemberDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -98,7 +100,11 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.deactivateUser();
+    return this.workspaceService.deactivateUser(
+      user,
+      deactivateMemberDto.userId,
+      deactivateMemberDto.workspaceId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

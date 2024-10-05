@@ -256,7 +256,48 @@ export class WorkspaceService {
     );
   }
 
-  async deactivateUser(): Promise<any> {
-    return 'todo';
+  async deactivateUser(
+    authUser: User,
+    userId: string,
+    workspaceId: string,
+  ): Promise<any> {
+    // get user from database
+    const user = await this.userRepo.findById(userId, workspaceId);
+
+    if (!user) {
+      throw new BadRequestException('Workspace member not found');
+    }
+
+    // get workspace owner count
+    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+      'OWNER',
+      workspaceId,
+    );
+
+    // prevent deactivating last owner
+    if (user.role === 'OWNER' && workspaceOwnerCount === 1) {
+      throw new BadRequestException(
+        'There must be at least one workspace owner',
+      );
+    }
+
+    // prevent user from deactivating themselves
+    if (authUser.id === userId) {
+      throw new ForbiddenException('You cannot delete yourself');
+    }
+
+    // prevent admin from deactivating owner
+    if (authUser.role === 'ADMIN' && user.role === 'OWNER') {
+      throw new ForbiddenException('Admin cannot delete owner');
+    }
+
+    // deactivate user
+    await this.userRepo.updateUser(
+      {
+        deactivatedAt: new Date(),
+      },
+      userId,
+      workspaceId,
+    );
   }
 }
