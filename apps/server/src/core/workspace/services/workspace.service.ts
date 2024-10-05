@@ -302,4 +302,14 @@ export class WorkspaceService {
       workspaceId,
     );
   }
+
+  async getDeactivatedUsers(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    return await this.userRepo.getDeactivatedUsersPaginated(
+      workspaceId,
+      pagination,
+    );
+  }
 }

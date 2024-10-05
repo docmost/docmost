@@ -108,6 +108,24 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('members/deactivated')
+  async getDeactivatedMembers(
+    @Body()
+    pagination: PaginationOptions,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return this.workspaceService.getDeactivatedUsers(workspace.id, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('members/change-role')
   async updateWorkspaceMemberRole(
     @Body() workspaceUserRoleDto: UpdateWorkspaceUserRoleDto,

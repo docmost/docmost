@@ -155,6 +155,35 @@ export class UserRepo {
     return result;
   }
 
+  async getDeactivatedUsersPaginated(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    let query = this.db
+      .selectFrom('users')
+      .select(this.baseFields)
+      .where('workspaceId', '=', workspaceId)
+      .where('deactivatedAt', 'is not', null)
+      .orderBy('createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`).or(
+          'users.email',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
+      );
+    }
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
+  }
+
   async updatePreference(
     userId: string,
     prefKey: string,
