@@ -9,7 +9,7 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -23,7 +23,7 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
-export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+export type Timestamp = ColumnType<Date, Date | string>;
 
 export interface Attachments {
   createdAt: Generated<Timestamp>;
@@ -51,6 +51,7 @@ export interface Comments {
   id: Generated<string>;
   pageId: string;
   parentCommentId: string | null;
+  resolvedAt: Timestamp | null;
   selection: string | null;
   type: string | null;
   workspaceId: string;
@@ -59,6 +60,7 @@ export interface Comments {
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
+  deletedAt: Timestamp | null;
   description: string | null;
   id: Generated<string>;
   isDefault: boolean;
@@ -118,6 +120,7 @@ export interface Pages {
 export interface SpaceMembers {
   addedById: string | null;
   createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
   groupId: string | null;
   id: Generated<string>;
   role: string;
@@ -135,7 +138,7 @@ export interface Spaces {
   id: Generated<string>;
   logo: string | null;
   name: string | null;
-  slug: string | null;
+  slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
   workspaceId: string;
@@ -155,7 +158,7 @@ export interface Users {
   locale: string | null;
   name: string | null;
   password: string | null;
-  role: string;
+  role: string | null;
   settings: Json | null;
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
@@ -186,13 +189,13 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
-  allowedEmailDomains: Generated<string[] | null>;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
   defaultRole: Generated<string>;
   defaultSpaceId: string | null;
   deletedAt: Timestamp | null;
   description: string | null;
+  emailDomains: Generated<string[] | null>;
   hostname: string | null;
   id: Generated<string>;
   logo: string | null;
