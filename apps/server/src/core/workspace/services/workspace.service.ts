@@ -283,12 +283,14 @@ export class WorkspaceService {
 
     // prevent user from deactivating themselves
     if (authUser.id === userId) {
-      throw new ForbiddenException('You cannot delete yourself');
+      throw new ForbiddenException('You cannot deactivate yourself');
     }
 
     // prevent admin from deactivating owner
     if (authUser.role === 'ADMIN' && user.role === 'OWNER') {
-      throw new ForbiddenException('Admin cannot delete owner');
+      throw new ForbiddenException(
+        'You are not allowed to perform this action',
+      );
     }
 
     // deactivate user

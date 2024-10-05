@@ -10,6 +10,7 @@ import {
 } from "@mantine/core";
 import {
 	useChangeMemberRoleMutation,
+	useDeactivateUserMutation,
 	useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -49,6 +50,15 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 	currentUser,
 }) => {
 	const [opened, { open, close }] = useDisclosure(false);
+	const deactivateUserMutation = useDeactivateUserMutation();
+
+	const handleDelete = async (userId: string) => {
+		if (userId && currentUser?.workspace?.id)
+			await deactivateUserMutation.mutateAsync({
+				userId,
+				workspaceId: currentUser?.workspace?.id,
+			});
+	};
 
 	return (
 		<Table.Tr>
@@ -105,7 +115,9 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 								<Button variant="outline" onClick={close}>
 									Cancel
 								</Button>
-								<Button color="red">Confirm</Button>
+								<Button color="red" onClick={() => handleDelete(user?.id)}>
+									Confirm
+								</Button>
 							</Flex>
 						</Popover.Dropdown>
 					</Popover>

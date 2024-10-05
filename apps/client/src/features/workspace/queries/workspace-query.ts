@@ -1,149 +1,169 @@
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  UseQueryResult,
+	useMutation,
+	useQuery,
+	useQueryClient,
+	UseQueryResult,
 } from "@tanstack/react-query";
 import {
-  changeMemberRole,
-  getInvitationById,
-  getPendingInvitations,
-  getWorkspaceMembers,
-  createInvitation,
-  resendInvitation,
-  revokeInvitation,
-  getWorkspace,
-  getWorkspacePublicData,
+	changeMemberRole,
+	getInvitationById,
+	getPendingInvitations,
+	getWorkspaceMembers,
+	createInvitation,
+	resendInvitation,
+	revokeInvitation,
+	getWorkspace,
+	getWorkspacePublicData,
+	deactivateUser,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
-  ICreateInvite,
-  IInvitation,
-  IWorkspace,
+	ICreateInvite,
+	IInvitation,
+	IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
+import { queryClient } from "../../../main";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
-  return useQuery({
-    queryKey: ["workspace"],
-    queryFn: () => getWorkspace(),
-  });
+	return useQuery({
+		queryKey: ["workspace"],
+		queryFn: () => getWorkspace(),
+	});
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
-  Error
+	IWorkspace,
+	Error
 > {
-  return useQuery({
-    queryKey: ["workspace-public"],
-    queryFn: () => getWorkspacePublicData(),
-  });
+	return useQuery({
+		queryKey: ["workspace-public"],
+		queryFn: () => getWorkspacePublicData(),
+	});
 }
 
 export function useWorkspaceMembersQuery(params?: QueryParams) {
-  return useQuery({
-    queryKey: ["workspaceMembers", params],
-    queryFn: () => getWorkspaceMembers(params),
-  });
+	return useQuery({
+		queryKey: ["workspaceMembers", params],
+		queryFn: () => getWorkspaceMembers(params),
+	});
 }
 
 export function useChangeMemberRoleMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation<any, Error, any>({
-    mutationFn: (data) => changeMemberRole(data),
-    onSuccess: (data, variables) => {
-      // TODO: change in cache instead
-      notifications.show({ message: "Member role updated successfully" });
-      queryClient.refetchQueries({
-        queryKey: ["workspaceMembers"],
-      });
-    },
-    onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
-    },
-  });
+	return useMutation<any, Error, any>({
+		mutationFn: data => changeMemberRole(data),
+		onSuccess: (data, variables) => {
+			// TODO: change in cache instead
+			notifications.show({ message: "Member role updated successfully" });
+			queryClient.refetchQueries({
+				queryKey: ["workspaceMembers"],
+			});
+		},
+		onError: error => {
+			const errorMessage = error["response"]?.data?.message;
+			notifications.show({ message: errorMessage, color: "red" });
+		},
+	});
 }
 
 export function useWorkspaceInvitationsQuery(
-  params?: QueryParams,
+	params?: QueryParams
 ): UseQueryResult<IPagination<IInvitation>, Error> {
-  return useQuery({
-    queryKey: ["invitations", params],
-    queryFn: () => getPendingInvitations(params),
-  });
+	return useQuery({
+		queryKey: ["invitations", params],
+		queryFn: () => getPendingInvitations(params),
+	});
 }
 
 export function useCreateInvitationMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation<void, Error, ICreateInvite>({
-    mutationFn: (data) => createInvitation(data),
-    onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
-      // TODO: mutate cache
-      queryClient.refetchQueries({
-        queryKey: ["invitations"],
-      });
-    },
-    onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
-    },
-  });
+	return useMutation<void, Error, ICreateInvite>({
+		mutationFn: data => createInvitation(data),
+		onSuccess: (data, variables) => {
+			notifications.show({ message: "Invitation sent" });
+			// TODO: mutate cache
+			queryClient.refetchQueries({
+				queryKey: ["invitations"],
+			});
+		},
+		onError: error => {
+			const errorMessage = error["response"]?.data?.message;
+			notifications.show({ message: errorMessage, color: "red" });
+		},
+	});
 }
 
 export function useResendInvitationMutation() {
-  return useMutation<
-    void,
-    Error,
-    {
-      invitationId: string;
-    }
-  >({
-    mutationFn: (data) => resendInvitation(data),
-    onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation resent" });
-    },
-    onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
-    },
-  });
+	return useMutation<
+		void,
+		Error,
+		{
+			invitationId: string;
+		}
+	>({
+		mutationFn: data => resendInvitation(data),
+		onSuccess: (data, variables) => {
+			notifications.show({ message: "Invitation resent" });
+		},
+		onError: error => {
+			const errorMessage = error["response"]?.data?.message;
+			notifications.show({ message: errorMessage, color: "red" });
+		},
+	});
 }
 
 export function useRevokeInvitationMutation() {
-  const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-  return useMutation<
-    void,
-    Error,
-    {
-      invitationId: string;
-    }
-  >({
-    mutationFn: (data) => revokeInvitation(data),
-    onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation revoked" });
-      queryClient.invalidateQueries({
-        queryKey: ["invitations"],
-      });
-    },
-    onError: (error) => {
-      const errorMessage = error["response"]?.data?.message;
-      notifications.show({ message: errorMessage, color: "red" });
-    },
-  });
+	return useMutation<
+		void,
+		Error,
+		{
+			invitationId: string;
+		}
+	>({
+		mutationFn: data => revokeInvitation(data),
+		onSuccess: (data, variables) => {
+			notifications.show({ message: "Invitation revoked" });
+			queryClient.invalidateQueries({
+				queryKey: ["invitations"],
+			});
+		},
+		onError: error => {
+			const errorMessage = error["response"]?.data?.message;
+			notifications.show({ message: errorMessage, color: "red" });
+		},
+	});
 }
 
 export function useGetInvitationQuery(
-  invitationId: string,
+	invitationId: string
 ): UseQueryResult<any, Error> {
-  return useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: ["invitations", invitationId],
-    queryFn: () => getInvitationById({ invitationId }),
-    enabled: !!invitationId,
-  });
+	return useQuery({
+		// eslint-disable-next-line @tanstack/query/exhaustive-deps
+		queryKey: ["invitations", invitationId],
+		queryFn: () => getInvitationById({ invitationId }),
+		enabled: !!invitationId,
+	});
 }
+
+export const useDeactivateUserMutation = () => {
+	return useMutation({
+		mutationKey: ["deactivateUser"],
+		mutationFn: deactivateUser,
+		onSuccess: () => {
+			notifications.show({ message: "User deactivated", color: "green" });
+			// refetch user data
+			queryClient.refetchQueries({
+				queryKey: ["workspaceMembers"],
+			});
+		},
+		onError: error => {
+			const errorMessage = error["response"]?.data?.message;
+			notifications.show({ message: errorMessage, color: "red" });
+		},
+	});
+};
