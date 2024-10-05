@@ -13,15 +13,92 @@ import {
 	useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import React from "react";
+import React, { FC } from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
 	getUserRoleLabel,
 	userRoleData,
 } from "@/features/workspace/types/user-role-data.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
-import { UserRole } from "@/lib/types.ts";
+import { IRoleData, UserRole } from "@/lib/types.ts";
 import { IconTrash } from "@tabler/icons-react";
+import { IUser } from "../../../../user/types/user.types";
+import { useDisclosure } from "@mantine/hooks";
+
+interface WorkspaceMembersTableRowProps {
+	user: IUser;
+	assignableUserRoles: IRoleData[];
+	handleRoleChange: (
+		userId: string,
+		currentRole: string,
+		newRole: string
+	) => Promise<void>;
+	isAdmin: boolean;
+}
+
+const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
+	user,
+	assignableUserRoles,
+	handleRoleChange,
+	isAdmin,
+}) => {
+	const [opened, { open, close }] = useDisclosure(false);
+
+	return (
+		<Table.Tr>
+			<Table.Td>
+				<Group gap="sm">
+					<CustomAvatar avatarUrl={user.avatarUrl} name={user.name} />
+					<div>
+						<Text fz="sm" fw={500}>
+							{user.name}
+						</Text>
+						<Text fz="xs" c="dimmed">
+							{user.email}
+						</Text>
+					</div>
+				</Group>
+			</Table.Td>
+
+			<Table.Td>
+				<Badge variant="light">Active</Badge>
+			</Table.Td>
+
+			<Table.Td>
+				<RoleSelectMenu
+					roles={assignableUserRoles}
+					roleName={getUserRoleLabel(user.role)}
+					onChange={newRole => handleRoleChange(user.id, user.role, newRole)}
+					disabled={!isAdmin}
+				/>
+			</Table.Td>
+			<Table.Td>
+				<Popover
+					position="bottom"
+					withArrow
+					shadow="md"
+					opened={opened}
+					onClose={close}
+				>
+					<Popover.Target>
+						<Button variant="subtle" color="red" onClick={open}>
+							<IconTrash size={20} />
+						</Button>
+					</Popover.Target>
+					<Popover.Dropdown>
+						<Text>Are you sure? This action is not reversible</Text>
+						<Flex justify={"space-evenly"} align={"center"} mt={8}>
+							<Button variant="outline" onClick={close}>
+								Cancel
+							</Button>
+							<Button color="red">Confirm</Button>
+						</Flex>
+					</Popover.Dropdown>
+				</Popover>
+			</Table.Td>
+		</Table.Tr>
+	);
+};
 
 export default function WorkspaceMembersTable() {
 	const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
@@ -64,52 +141,13 @@ export default function WorkspaceMembersTable() {
 
 					<Table.Tbody>
 						{data?.items.map((user, index) => (
-							<Table.Tr key={index}>
-								<Table.Td>
-									<Group gap="sm">
-										<CustomAvatar avatarUrl={user.avatarUrl} name={user.name} />
-										<div>
-											<Text fz="sm" fw={500}>
-												{user.name}
-											</Text>
-											<Text fz="xs" c="dimmed">
-												{user.email}
-											</Text>
-										</div>
-									</Group>
-								</Table.Td>
-
-								<Table.Td>
-									<Badge variant="light">Active</Badge>
-								</Table.Td>
-
-								<Table.Td>
-									<RoleSelectMenu
-										roles={assignableUserRoles}
-										roleName={getUserRoleLabel(user.role)}
-										onChange={newRole =>
-											handleRoleChange(user.id, user.role, newRole)
-										}
-										disabled={!isAdmin}
-									/>
-								</Table.Td>
-								<Table.Td>
-									<Popover position="bottom" withArrow shadow="md">
-										<Popover.Target>
-											<Button variant="subtle" color="red">
-												<IconTrash size={20} />
-											</Button>
-										</Popover.Target>
-										<Popover.Dropdown>
-											<Text>Are you sure? This action is not reversible</Text>
-											<Flex justify={"space-evenly"} align={"center"} mt={8}>
-												<Button variant="outline">Cancel</Button>
-												<Button color="red">Confirm</Button>
-											</Flex>
-										</Popover.Dropdown>
-									</Popover>
-								</Table.Td>
-							</Table.Tr>
+							<WorkspaceMembersTableRow
+								key={index}
+								user={user}
+								assignableUserRoles={assignableUserRoles}
+								isAdmin={isAdmin}
+								handleRoleChange={handleRoleChange}
+							/>
 						))}
 					</Table.Tbody>
 				</Table>
