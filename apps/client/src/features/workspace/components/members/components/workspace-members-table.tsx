@@ -22,8 +22,10 @@ import {
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { IRoleData, UserRole } from "@/lib/types.ts";
 import { IconTrash } from "@tabler/icons-react";
-import { IUser } from "../../../../user/types/user.types";
+import { ICurrentUser, IUser } from "../../../../user/types/user.types";
 import { useDisclosure } from "@mantine/hooks";
+import { useAtom } from "jotai";
+import { currentUserAtom } from "../../../../user/atoms/current-user-atom";
 
 interface WorkspaceMembersTableRowProps {
 	user: IUser;
@@ -34,6 +36,8 @@ interface WorkspaceMembersTableRowProps {
 		newRole: string
 	) => Promise<void>;
 	isAdmin: boolean;
+	isOwner: boolean;
+	currentUser: ICurrentUser;
 }
 
 const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
@@ -41,6 +45,8 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 	assignableUserRoles,
 	handleRoleChange,
 	isAdmin,
+	isOwner,
+	currentUser,
 }) => {
 	const [opened, { open, close }] = useDisclosure(false);
 
@@ -72,30 +78,39 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 					disabled={!isAdmin}
 				/>
 			</Table.Td>
-			<Table.Td>
-				<Popover
-					position="bottom"
-					withArrow
-					shadow="md"
-					opened={opened}
-					onClose={close}
-				>
-					<Popover.Target>
-						<Button variant="subtle" color="red" onClick={open}>
-							<IconTrash size={20} />
-						</Button>
-					</Popover.Target>
-					<Popover.Dropdown>
-						<Text>Are you sure? This action is not reversible</Text>
-						<Flex justify={"space-evenly"} align={"center"} mt={8}>
-							<Button variant="outline" onClick={close}>
-								Cancel
+			{(isOwner || isAdmin) && (
+				<Table.Td>
+					<Popover
+						position="bottom"
+						withArrow
+						shadow="md"
+						opened={opened}
+						onClose={close}
+					>
+						<Popover.Target>
+							<Button
+								variant="subtle"
+								color="red"
+								onClick={open}
+								disabled={
+									currentUser.user.role === "admin" && user.role === "owner"
+								}
+							>
+								<IconTrash size={20} />
 							</Button>
-							<Button color="red">Confirm</Button>
-						</Flex>
-					</Popover.Dropdown>
-				</Popover>
-			</Table.Td>
+						</Popover.Target>
+						<Popover.Dropdown>
+							<Text>Are you sure? This action is not reversible</Text>
+							<Flex justify={"space-evenly"} align={"center"} mt={8}>
+								<Button variant="outline" onClick={close}>
+									Cancel
+								</Button>
+								<Button color="red">Confirm</Button>
+							</Flex>
+						</Popover.Dropdown>
+					</Popover>
+				</Table.Td>
+			)}
 		</Table.Tr>
 	);
 };
@@ -104,6 +119,7 @@ export default function WorkspaceMembersTable() {
 	const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
 	const changeMemberRoleMutation = useChangeMemberRoleMutation();
 	const { isAdmin, isOwner } = useUserRole();
+	const [currentUser] = useAtom(currentUserAtom);
 
 	const assignableUserRoles = isOwner
 		? userRoleData
@@ -135,7 +151,7 @@ export default function WorkspaceMembersTable() {
 							<Table.Th>User</Table.Th>
 							<Table.Th>Status</Table.Th>
 							<Table.Th>Role</Table.Th>
-							<Table.Th>Action</Table.Th>
+							{(isOwner || isAdmin) && <Table.Th>Action</Table.Th>}
 						</Table.Tr>
 					</Table.Thead>
 
@@ -146,7 +162,9 @@ export default function WorkspaceMembersTable() {
 								user={user}
 								assignableUserRoles={assignableUserRoles}
 								isAdmin={isAdmin}
+								isOwner={isOwner}
 								handleRoleChange={handleRoleChange}
+								currentUser={currentUser}
 							/>
 						))}
 					</Table.Tbody>

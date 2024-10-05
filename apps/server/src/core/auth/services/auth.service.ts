@@ -57,6 +57,11 @@ export class AuthService {
       throw new UnauthorizedException('email or password does not match');
     }
 
+    // don't let user login if they are deactivated
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new BadRequestException('You can no longer access this workspace');
+    }
+
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
 
