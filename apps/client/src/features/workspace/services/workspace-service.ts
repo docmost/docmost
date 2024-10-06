@@ -27,6 +27,13 @@ export async function getWorkspaceMembers(
 	return req.data;
 }
 
+export const getWorkspaceDeactivatedMembers = async (
+	params?: QueryParams
+): Promise<IPagination<IUser>> => {
+	const req = await api.post("/workspace/members/deactivated", params);
+	return req.data;
+};
+
 export async function updateWorkspace(data: Partial<IWorkspace>) {
 	const req = await api.post<IWorkspace>("/workspace/update", data);
 	return req.data;

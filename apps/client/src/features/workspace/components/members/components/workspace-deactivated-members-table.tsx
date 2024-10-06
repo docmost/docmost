@@ -12,6 +12,7 @@ import {
 import {
 	useChangeMemberRoleMutation,
 	useDeactivateUserMutation,
+	useWorkspaceDeactivatedMembersQuery,
 	useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -23,33 +24,22 @@ import {
 } from "@/features/workspace/types/user-role-data.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { IRoleData, UserRole } from "@/lib/types.ts";
-import { IconLock } from "@tabler/icons-react";
+import { IconTrash } from "@tabler/icons-react";
 import { ICurrentUser, IUser } from "../../../../user/types/user.types";
 import { useDisclosure } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { currentUserAtom } from "../../../../user/atoms/current-user-atom";
 
-interface WorkspaceMembersTableRowProps {
+interface WorkspaceDeactivatedMembersTableRowProps {
 	user: IUser;
-	assignableUserRoles: IRoleData[];
-	handleRoleChange: (
-		userId: string,
-		currentRole: string,
-		newRole: string
-	) => Promise<void>;
 	isAdmin: boolean;
 	isOwner: boolean;
 	currentUser: ICurrentUser;
 }
 
-const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
-	user,
-	assignableUserRoles,
-	handleRoleChange,
-	isAdmin,
-	isOwner,
-	currentUser,
-}) => {
+const WorkspaceDeactivatedMembersTableRow: FC<
+	WorkspaceDeactivatedMembersTableRowProps
+> = ({ user, isAdmin, isOwner, currentUser }) => {
 	const [opened, { open, close }] = useDisclosure(false);
 	const deactivateUserMutation = useDeactivateUserMutation();
 
@@ -78,17 +68,11 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 			</Table.Td>
 
 			<Table.Td>
-				<Badge variant="light">Active</Badge>
+				<Badge variant="light" color="gray">
+					Deactivated
+				</Badge>
 			</Table.Td>
 
-			<Table.Td>
-				<RoleSelectMenu
-					roles={assignableUserRoles}
-					roleName={getUserRoleLabel(user.role)}
-					onChange={newRole => handleRoleChange(user.id, user.role, newRole)}
-					disabled={!isAdmin}
-				/>
-			</Table.Td>
 			{(isOwner || isAdmin) && (
 				<Table.Td>
 					<Popover
@@ -104,16 +88,19 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 								color="red"
 								onClick={open}
 								disabled={
-									currentUser.user.role === "admin" && user.role === "owner"
+									// currentUser.user.role === "admin" && user.role === "owner"
+									true
 								}
 							>
-								<Tooltip label="Deactivate member">
-									<IconLock size={20} />
+								<Tooltip label="Permanently delete member">
+									<IconTrash size={20} />
 								</Tooltip>
 							</Button>
 						</Popover.Target>
 						<Popover.Dropdown>
-							<Text>Do you want to deactivate this member?</Text>
+							<Text>
+								Are you sure? This action is <strong>not reversible</strong>
+							</Text>
 							<Flex justify={"space-evenly"} align={"center"} mt={8}>
 								<Button variant="outline" onClick={close}>
 									Cancel
@@ -130,32 +117,12 @@ const WorkspaceMembersTableRow: FC<WorkspaceMembersTableRowProps> = ({
 	);
 };
 
-export default function WorkspaceMembersTable() {
-	const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
-	const changeMemberRoleMutation = useChangeMemberRoleMutation();
+export default function WorkspaceDeactivatedMembersTable() {
+	const { data, isLoading } = useWorkspaceDeactivatedMembersQuery({
+		limit: 100,
+	});
 	const { isAdmin, isOwner } = useUserRole();
 	const [currentUser] = useAtom(currentUserAtom);
-
-	const assignableUserRoles = isOwner
-		? userRoleData
-		: userRoleData.filter(role => role.value !== UserRole.OWNER);
-
-	const handleRoleChange = async (
-		userId: string,
-		currentRole: string,
-		newRole: string
-	) => {
-		if (newRole === currentRole) {
-			return;
-		}
-
-		const memberRoleUpdate = {
-			userId: userId,
-			role: newRole,
-		};
-
-		await changeMemberRoleMutation.mutateAsync(memberRoleUpdate);
-	};
 
 	return (
 		<>
@@ -165,20 +132,17 @@ export default function WorkspaceMembersTable() {
 						<Table.Tr>
 							<Table.Th>User</Table.Th>
 							<Table.Th>Status</Table.Th>
-							<Table.Th>Role</Table.Th>
 							{(isOwner || isAdmin) && <Table.Th>Action</Table.Th>}
 						</Table.Tr>
 					</Table.Thead>
 
 					<Table.Tbody>
 						{data?.items.map((user, index) => (
-							<WorkspaceMembersTableRow
+							<WorkspaceDeactivatedMembersTableRow
 								key={index}
 								user={user}
-								assignableUserRoles={assignableUserRoles}
 								isAdmin={isAdmin}
 								isOwner={isOwner}
-								handleRoleChange={handleRoleChange}
 								currentUser={currentUser}
 							/>
 						))}

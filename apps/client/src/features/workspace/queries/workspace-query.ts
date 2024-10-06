@@ -15,6 +15,7 @@ import {
 	getWorkspace,
 	getWorkspacePublicData,
 	deactivateUser,
+	getWorkspaceDeactivatedMembers,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
@@ -167,3 +168,10 @@ export const useDeactivateUserMutation = () => {
 		},
 	});
 };
+
+export function useWorkspaceDeactivatedMembersQuery(params?: QueryParams) {
+	return useQuery({
+		queryKey: ["workspaceDeactivatedMembers", params],
+		queryFn: () => getWorkspaceDeactivatedMembers(params),
+	});
+}
