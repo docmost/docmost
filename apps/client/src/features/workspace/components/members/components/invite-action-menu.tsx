@@ -19,7 +19,6 @@ export default function InviteActionMenu({ invitationId }: Props) {
   
   const onCopyLink = async () => {
     if (error) {
-      console.log(error)
       notifications.show({ message: error.message, color: "red" })
     } else {
       navigator.clipboard.writeText(inviteLink.inviteLink)
