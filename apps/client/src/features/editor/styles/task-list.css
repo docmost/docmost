@@ -13,6 +13,8 @@ ul[data-type="taskList"] {
             flex: 0 0 auto;
             margin-right: 0.5rem;
             user-select: none;
+            display: flex;
+            align-items: center;
         }
 
         > div {
