@@ -16,4 +16,4 @@ export const inlineFileExtensions = [
   '.mp4',
   '.mov',
 ];
-export const MAX_FILE_SIZE = '50MB';
+export const MAX_FILE_SIZE = process.env.MAX_FILE_SIZE ?? '50MB';
