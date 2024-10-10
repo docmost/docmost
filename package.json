@@ -59,6 +59,7 @@
     "@tiptap/react": "^2.6.6",
     "@tiptap/starter-kit": "^2.6.6",
     "@tiptap/suggestion": "^2.6.6",
+    "bytes": "^3.1.2",
     "cross-env": "^7.0.3",
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",
@@ -68,6 +69,7 @@
   },
   "devDependencies": {
     "@nx/js": "19.6.3",
+    "@types/bytes": "^3.1.4",
     "@types/uuid": "^10.0.0",
     "concurrently": "^8.2.2",
     "nx": "19.6.3",
