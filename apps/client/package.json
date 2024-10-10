@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@docmost/editor-ext": "workspace:*",
     "@casl/ability": "^6.7.1",
     "@casl/react": "^4.0.0",
     "@emoji-mart/data": "^1.2.1",
@@ -67,6 +68,6 @@
     "postcss-simple-vars": "^7.0.1",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4",
-    "vite": "^5.4.2"
+    "vite": "^5.4.8"
   }
 }

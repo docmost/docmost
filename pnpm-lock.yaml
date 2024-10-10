@@ -186,6 +186,9 @@ importers:
       '@casl/react':
         specifier: ^4.0.0
         version: 4.0.0(@casl/ability@6.7.1)(react@18.3.1)
+      '@docmost/editor-ext':
+        specifier: workspace:*
+        version: link:../../packages/editor-ext
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
@@ -321,7 +324,7 @@ importers:
         version: 8.3.0(eslint@9.9.1(jiti@1.21.0))(typescript@5.5.4)
       '@vitejs/plugin-react':
         specifier: ^4.3.1
-        version: 4.3.1(vite@5.4.2(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2))
+        version: 4.3.1(vite@5.4.8(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2))
       eslint:
         specifier: ^9.9.1
         version: 9.9.1(jiti@1.21.0)
@@ -350,8 +353,8 @@ importers:
         specifier: ^5.5.4
         version: 5.5.4
       vite:
-        specifier: ^5.4.2
-        version: 5.4.2(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2)
+        specifier: ^5.4.8
+        version: 5.4.8(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2)
 
   apps/server:
     dependencies:
@@ -7756,8 +7759,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vite@5.4.2:
-    resolution: {integrity: sha512-dDrQTRHp5C1fTFzcSaMxjk6vdpKvT+2/mIdE07Gw2ykehT49O0z/VHS3zZ8iV/Gh8BJJKHWOe5RjaNrW5xf/GA==}
+  vite@5.4.8:
+    resolution: {integrity: sha512-FqrItQ4DT1NC4zCUqMB4c4AZORMKIa0m8/URVCZ77OZ/QSNeJ54bU1vrFADbDsuwfIPcgknRkmqakQcgnL4GiQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
@@ -11994,14 +11997,14 @@ snapshots:
     dependencies:
       '@ucast/core': 1.10.2
 
-  '@vitejs/plugin-react@4.3.1(vite@5.4.2(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2))':
+  '@vitejs/plugin-react@4.3.1(vite@5.4.8(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2))':
     dependencies:
       '@babel/core': 7.24.6
       '@babel/plugin-transform-react-jsx-self': 7.24.6(@babel/core@7.24.6)
       '@babel/plugin-transform-react-jsx-source': 7.24.6(@babel/core@7.24.6)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.2
-      vite: 5.4.2(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2)
+      vite: 5.4.8(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -16378,7 +16381,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@5.4.2(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2):
+  vite@5.4.8(@types/node@22.5.2)(less@4.2.0)(sugarss@4.0.1(postcss@8.4.43))(terser@5.29.2):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.4.43
