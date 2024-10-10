@@ -39,3 +39,4 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+apps/client/dev-dist

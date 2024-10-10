@@ -1,0 +1,47 @@
+name: Sync Merged-Downstream with Docmost Upstream Main
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight UTC
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # Fetch all history to detect changes properly
+
+    - name: Set up git
+      run: |
+        git config --global user.name "Shadowfita"
+        git config --global user.email "www.ryan.palmer@hotmail.com"
+
+    - name: Fetch upstream
+      run: |
+        git remote add upstream https://github.com/docmost/docmost.git
+        git fetch upstream
+
+    - name: Check if upstream has changes
+      id: check_changes
+      run: |
+        UPSTREAM_DIFF=$(git diff --name-only upstream/main)
+        if [ -z "$UPSTREAM_DIFF" ]; then
+          echo "No changes in upstream main branch."
+          echo "::set-output name=changes::false"
+        else
+          echo "Changes detected in upstream main branch."
+          echo "::set-output name=changes::true"
+        fi
+
+    - name: Merge upstream/main into Merged-Downstream
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git checkout Merged-Downstream
+        git merge upstream/main
+
+    - name: Push changes to Merged-Downstream
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git push origin Merged-Downstream
