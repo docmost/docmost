@@ -4,8 +4,10 @@ import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 export default function SpaceList() {
+  const { t } = useTranslation();
   const { data, isLoading } = useGetSpacesQuery();
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
@@ -21,8 +23,8 @@ export default function SpaceList() {
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Space</Table.Th>
-              <Table.Th>Members</Table.Th>
+              <Table.Th>{t("Space")}</Table.Th>
+              <Table.Th>{t("Members")}</Table.Th>
             </Table.Tr>
           </Table.Thead>
 
@@ -51,7 +53,7 @@ export default function SpaceList() {
                   </Group>
                 </Table.Td>
 
-                <Table.Td>{formatMemberCount(space.memberCount)}</Table.Td>
+                <Table.Td>{formatMemberCount(space.memberCount, t)}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

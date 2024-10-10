@@ -9,6 +9,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useTranslation } from "react-i18next";
 
 interface SpaceSettingsModalProps {
   spaceId: string;
@@ -21,6 +22,7 @@ export default function SpaceSettingsModal({
   opened,
   onClose,
 }: SpaceSettingsModalProps) {
+  const { t } = useTranslation();
   const { data: space, isLoading } = useSpaceQuery(spaceId);
 
   const spaceRules = space?.membership?.permissions;
@@ -48,10 +50,10 @@ export default function SpaceSettingsModal({
               <Tabs defaultValue="members">
                 <Tabs.List>
                   <Tabs.Tab fw={500} value="general">
-                    Settings
+                    {t("Settings")}
                   </Tabs.Tab>
                   <Tabs.Tab fw={500} value="members">
-                    Members
+                    {t("Members")}
                   </Tabs.Tab>
                 </Tabs.List>
 

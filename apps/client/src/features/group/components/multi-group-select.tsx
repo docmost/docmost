@@ -4,6 +4,7 @@ import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
 import { useGetGroupsQuery } from "@/features/group/queries/group-query.ts";
 import { IGroup } from "@/features/group/types/group.types.ts";
 import { IconUsersGroup } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 interface MultiGroupSelectProps {
   onChange: (value: string[]) => void;
@@ -29,6 +30,7 @@ export function MultiGroupSelect({
   description,
   mt,
 }: MultiGroupSelectProps) {
+  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: groups, isLoading } = useGetGroupsQuery({
@@ -64,8 +66,8 @@ export function MultiGroupSelect({
       hidePickedOptions
       maxDropdownHeight={300}
       description={description}
-      label={label || "Add groups"}
-      placeholder="Search for groups"
+      label={label || t("Add groups")}
+      placeholder={t("Search for groups")}
       mt={mt}
       searchable
       searchValue={searchValue}
@@ -73,7 +75,7 @@ export function MultiGroupSelect({
       clearable
       variant="filled"
       onChange={onChange}
-      nothingFoundMessage="No group found"
+      nothingFoundMessage={t("No group found")}
       maxValues={50}
     />
   );

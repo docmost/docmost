@@ -14,7 +14,7 @@ import { useQuerySubscription } from "@/features/websocket/use-query-subscriptio
 import { useAtom, useAtomValue } from "jotai";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
 import { useTreeSocket } from "@/features/websocket/use-tree-socket.ts";
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
 import { io } from "socket.io-client";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
 import { SOCKET_URL } from "@/features/websocket/types";
@@ -26,10 +26,12 @@ import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
 import PasswordReset from "./pages/auth/password-reset";
+import { useTranslation } from "react-i18next";
 
 export default function App() {
   const [, setSocket] = useAtom(socketAtom);
   const authToken = useAtomValue(authTokensAtom);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!authToken?.accessToken) {
@@ -78,7 +80,7 @@ export default function App() {
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={
               <ErrorBoundary
-                fallback={<>Failed to load page. An error occurred.</>}
+                fallback={<>{t("Failed to load page. An error occurred.")}</>}
               >
                 <Page />
               </ErrorBoundary>

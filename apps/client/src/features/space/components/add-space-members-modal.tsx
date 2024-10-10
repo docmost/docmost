@@ -5,6 +5,7 @@ import { useAddSpaceMemberMutation } from "@/features/space/queries/space-query.
 import { MultiMemberSelect } from "@/features/space/components/multi-member-select.tsx";
 import { SpaceMemberRole } from "@/features/space/components/space-member-role.tsx";
 import { SpaceRole } from "@/lib/types.ts";
+import { useTranslation } from "react-i18next";
 
 interface AddSpaceMemberModalProps {
   spaceId: string;
@@ -12,6 +13,7 @@ interface AddSpaceMemberModalProps {
 export default function AddSpaceMembersModal({
   spaceId,
 }: AddSpaceMemberModalProps) {
+  const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [role, setRole] = useState<string>(SpaceRole.WRITER);
@@ -48,8 +50,8 @@ export default function AddSpaceMembersModal({
 
   return (
     <>
-      <Button onClick={open}>Add space members</Button>
-      <Modal opened={opened} onClose={close} title="Add space members">
+      <Button onClick={open}>{t("addSpaceMembers")}</Button>
+      <Modal opened={opened} onClose={close} title={t("addSpaceMembers")}>
         <Divider size="xs" mb="xs" />
 
         <Stack>
@@ -57,13 +59,13 @@ export default function AddSpaceMembersModal({
           <SpaceMemberRole
             onSelect={handleRoleSelection}
             defaultRole={role}
-            label="Select role"
+            label={t("selectRole")}
           />
         </Stack>
 
         <Group justify="flex-end" mt="md">
           <Button onClick={handleSubmit} type="submit">
-            Add
+            {t("add")}
           </Button>
         </Group>
       </Modal>
