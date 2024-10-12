@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  react-arborist@3.4.0:
+    hash: gjrtleyvvmuvu5j5zdnhxauhsu
+    path: patches/react-arborist@3.4.0.patch
+
 importers:
 
   .:
@@ -263,7 +268,7 @@ importers:
         version: 18.3.1
       react-arborist:
         specifier: ^3.4.0
-        version: 3.4.0(@types/node@22.5.2)(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.4.0(patch_hash=gjrtleyvvmuvu5j5zdnhxauhsu)(@types/node@22.5.2)(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-clear-modal:
         specifier: ^2.0.9
         version: 2.0.9(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -15434,7 +15439,7 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  react-arborist@3.4.0(@types/node@22.5.2)(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-arborist@3.4.0(patch_hash=gjrtleyvvmuvu5j5zdnhxauhsu)(@types/node@22.5.2)(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dnd: 14.0.5(@types/node@22.5.2)(@types/react@18.3.5)(react@18.3.1)
