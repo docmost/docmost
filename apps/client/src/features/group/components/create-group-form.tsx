@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().trim().min(2).max(50),
   description: z.string().max(500),
 });
 

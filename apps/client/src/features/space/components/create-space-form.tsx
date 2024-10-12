@@ -11,6 +11,7 @@ const formSchema = z.object({
   name: z.string().min(2).max(50),
   slug: z
     .string()
+    .trim()
     .min(2)
     .max(50)
     .regex(
