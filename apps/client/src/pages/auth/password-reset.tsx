@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useVerifyUserTokenQuery } from "@/features/auth/queries/auth-query";
 import { Button, Container, Group, Text } from "@mantine/core";
 import APP_ROUTE from "@/lib/app-route";
+import {getAppName} from "@/lib/config.ts";
 
 export default function PasswordReset() {
   const [searchParams] = useSearchParams();
@@ -21,7 +22,7 @@ export default function PasswordReset() {
     return (
       <>
         <Helmet>
-          <title>Password Reset - Docmost</title>
+          <title>Password Reset - {getAppName()}</title>
         </Helmet>
         <Container my={40}>
           <Text size="lg" ta="center">
@@ -45,7 +46,7 @@ export default function PasswordReset() {
   return (
     <>
       <Helmet>
-        <title>Password Reset - Docmost</title>
+        <title>Password Reset - {getAppName()}</title>
       </Helmet>
       <PasswordResetForm resetToken={resetToken} />
     </>
