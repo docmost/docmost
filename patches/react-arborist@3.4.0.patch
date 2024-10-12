@@ -1,0 +1,33 @@
+diff --git a/dist/module/components/default-container.js b/dist/module/components/default-container.js
+index 47724f59b482454fe3144dbb98bd16d3df6a9c17..2285e35ea0073a773b7b74e22758056fd3514c1a 100644
+--- a/dist/module/components/default-container.js
++++ b/dist/module/components/default-container.js
+@@ -34,28 +34,6 @@ export function DefaultContainer() {
+                 return;
+             }
+             if (e.key === "Backspace") {
+-                if (!tree.props.onDelete)
+-                    return;
+-                const ids = Array.from(tree.selectedIds);
+-                if (ids.length > 1) {
+-                    let nextFocus = tree.mostRecentNode;
+-                    while (nextFocus && nextFocus.isSelected) {
+-                        nextFocus = nextFocus.nextSibling;
+-                    }
+-                    if (!nextFocus)
+-                        nextFocus = tree.lastNode;
+-                    tree.focus(nextFocus, { scroll: false });
+-                    tree.delete(Array.from(ids));
+-                }
+-                else {
+-                    const node = tree.focusedNode;
+-                    if (node) {
+-                        const sib = node.nextSibling;
+-                        const parent = node.parent;
+-                        tree.focus(sib || parent, { scroll: false });
+-                        tree.delete(node);
+-                    }
+-                }
+                 return;
+             }
+             if (e.key === "Tab" && !e.shiftKey) {
