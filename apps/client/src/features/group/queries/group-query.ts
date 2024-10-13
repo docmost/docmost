@@ -29,24 +29,22 @@ export function useGetGroupsQuery(
 
 export function useGroupQuery(groupId: string): UseQueryResult<IGroup, Error> {
   return useQuery({
-    queryKey: ['groups', groupId],
+    queryKey: ['group', groupId],
     queryFn: () => getGroupById(groupId),
     enabled: !!groupId,
   });
 }
 
-export function useGroupMembersQuery(groupId: string) {
-  return useQuery({
-    queryKey: ['groupMembers', groupId],
-    queryFn: () => getGroupMembers(groupId),
-    enabled: !!groupId,
-  });
-}
-
 export function useCreateGroupMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation<IGroup, Error, Partial<IGroup>>({
     mutationFn: (data) => createGroup(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['groups'],
+      });
+
       notifications.show({ message: 'Group created successfully' });
     },
     onError: () => {
@@ -93,6 +91,14 @@ export function useDeleteGroupMutation() {
       const errorMessage = error['response']?.data?.message;
       notifications.show({ message: errorMessage, color: 'red' });
     },
+  });
+}
+
+export function useGroupMembersQuery(groupId: string) {
+  return useQuery({
+    queryKey: ['groupMembers', groupId],
+    queryFn: () => getGroupMembers(groupId),
+    enabled: !!groupId,
   });
 }
 

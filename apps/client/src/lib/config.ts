@@ -6,6 +6,10 @@ declare global {
     }
 }
 
+export function getAppName(): string{
+    return 'Docmost';
+}
+
 export function getAppUrl(): string {
     //let appUrl = window.CONFIG?.APP_URL || process.env.APP_URL;
 

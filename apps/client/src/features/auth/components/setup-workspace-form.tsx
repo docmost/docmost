@@ -15,8 +15,8 @@ import useAuth from "@/features/auth/hooks/use-auth";
 import classes from "@/features/auth/components/auth.module.css";
 
 const formSchema = z.object({
-  workspaceName: z.string().min(2).max(60),
-  name: z.string().min(2).max(60),
+  workspaceName: z.string().trim().min(3).max(50),
+  name: z.string().min(1).max(50),
   email: z
     .string()
     .min(1, { message: "email is required" })
