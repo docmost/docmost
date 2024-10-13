@@ -8,7 +8,7 @@ import { computeSpaceSlug } from "@/lib";
 import { getSpaceUrl } from "@/lib/config.ts";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().trim().min(2).max(50),
   slug: z
     .string()
     .trim()

@@ -10,7 +10,7 @@ export class CreateAdminUserDto extends CreateUserDto {
   name: string;
 
   @IsNotEmpty()
-  @MinLength(4)
+  @MinLength(3)
   @MaxLength(50)
   @IsString()
   @Transform(({ value }: TransformFnParams) => value?.trim())
