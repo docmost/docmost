@@ -11,4 +11,12 @@ export type UpdateEvent = {
   payload: Partial<any>;
 };
 
-export type WebSocketEvent = InvalidateEvent | UpdateEvent;
+export type DeleteEvent = {
+  operation: "deleteOne";
+  entity: Array<string>;
+  id: string;
+  payload?: Partial<any>;
+};
+
+
+export type WebSocketEvent = InvalidateEvent | UpdateEvent | DeleteEvent;

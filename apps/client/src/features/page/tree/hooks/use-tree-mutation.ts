@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import {useMemo} from "react";
 import {
   CreateHandler,
   DeleteHandler,
@@ -7,20 +7,21 @@ import {
   RenameHandler,
   SimpleTree,
 } from "react-arborist";
-import { useAtom } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
-import { useNavigate, useParams } from "react-router-dom";
+import {useAtom} from "jotai";
+import {treeDataAtom} from "@/features/page/tree/atoms/tree-data-atom.ts";
+import {IMovePage, IPage} from "@/features/page/types/page.types.ts";
+import {useNavigate, useParams} from "react-router-dom";
 import {
   useCreatePageMutation,
   useDeletePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { getSpaceUrl } from "@/lib/config.ts";
+import {generateJitteredKeyBetween} from "fractional-indexing-jittered";
+import {SpaceTreeNode} from "@/features/page/tree/types.ts";
+import {buildPageUrl} from "@/features/page/page.utils.ts";
+import {getSpaceUrl} from "@/lib/config.ts";
+import {useQueryEmit} from "@/features/websocket/use-query-emit.ts";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -30,9 +31,13 @@ export function useTreeMutation<T>(spaceId: string) {
   const deletePageMutation = useDeletePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
-  const { spaceSlug } = useParams();
+  const {spaceSlug} = useParams();
+  const {pageSlug} = useParams();
 
-  const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
+  const emit = useQueryEmit();
+
+
+  const onCreate: CreateHandler<T> = async ({parentId, index, type}) => {
     const payload: { spaceId: string; parentPageId?: string } = {
       spaceId: spaceId,
     };
@@ -66,7 +71,7 @@ export function useTreeMutation<T>(spaceId: string) {
     // to place the newly created node at the bottom
     index = lastIndex;
 
-    tree.create({ parentId, index, data });
+    tree.create({parentId, index, data});
     setData(tree.data);
 
     const pageUrl = buildPageUrl(
@@ -130,7 +135,7 @@ export function useTreeMutation<T>(spaceId: string) {
     // update the node position in tree
     tree.update({
       id: draggedNodeId,
-      changes: { position: newPosition } as any,
+      changes: {position: newPosition} as any,
     });
 
     const previousParent = args.dragNodes[0].parent;
@@ -147,7 +152,7 @@ export function useTreeMutation<T>(spaceId: string) {
       if (childrenCount === 0) {
         tree.update({
           id: previousParent.id,
-          changes: { ...previousParent.data, hasChildren: false } as any,
+          changes: {...previousParent.data, hasChildren: false} as any,
         });
       }
     }
@@ -167,12 +172,12 @@ export function useTreeMutation<T>(spaceId: string) {
     }
   };
 
-  const onRename: RenameHandler<T> = ({ name, id }) => {
-    tree.update({ id, changes: { name } as any });
+  const onRename: RenameHandler<T> = ({name, id}) => {
+    tree.update({id, changes: {name} as any});
     setData(tree.data);
 
     try {
-      updatePageMutation.mutateAsync({ pageId: id, title: name });
+      updatePageMutation.mutateAsync({pageId: id, title: name});
     } catch (error) {
       console.error("Error updating page title:", error);
     }
@@ -182,17 +187,33 @@ export function useTreeMutation<T>(spaceId: string) {
     try {
       await deletePageMutation.mutateAsync(args.ids[0]);
 
-      if (tree.find(args.ids[0])) {
-        tree.drop({ id: args.ids[0] });
-        setData(tree.data);
+      const node = tree.find(args.ids[0]);
+      if (!node) {
+        return
       }
 
-      navigate(getSpaceUrl(spaceSlug));
+      tree.drop({id: args.ids[0]});
+      setData(tree.data);
+
+      // navigate only if the current url is same as the deleted page
+      if (pageSlug && node.data.slugId === pageSlug.split('-')[1]) {
+        navigate(getSpaceUrl(spaceSlug));
+      }
+
+      setTimeout(() => {
+        emit({
+          operation: "deleteOne",
+          entity: ["pages"],
+          id: node.id,
+          payload: {slugId: node.data.slugId}
+        });
+      }, 50);
+
     } catch (error) {
       console.error("Failed to delete page:", error);
     }
   };
 
-  const controllers = { onMove, onRename, onCreate, onDelete };
-  return { data, setData, controllers } as const;
+  const controllers = {onMove, onRename, onCreate, onDelete};
+  return {data, setData, controllers} as const;
 }

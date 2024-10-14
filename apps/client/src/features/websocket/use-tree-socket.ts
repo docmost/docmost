@@ -1,17 +1,20 @@
-import { useEffect, useRef } from "react";
-import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
-import { useAtom } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import {useEffect, useRef} from "react";
+import {socketAtom} from "@/features/websocket/atoms/socket-atom.ts";
+import {useAtom} from "jotai";
+import {treeDataAtom} from "@/features/page/tree/atoms/tree-data-atom.ts";
 import {
+  deleteTreeNode,
   updateTreeNodeIcon,
   updateTreeNodeName,
 } from "@/features/page/tree/utils";
-import { WebSocketEvent } from "@/features/websocket/types";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import {WebSocketEvent} from "@/features/websocket/types";
+import {SpaceTreeNode} from "@/features/page/tree/types.ts";
+import {useQueryClient} from "@tanstack/react-query";
 
 export const useTreeSocket = () => {
   const [socket] = useAtom(socketAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const queryClient = useQueryClient();
 
   const initialTreeData = useRef(treeData);
 
@@ -55,6 +58,26 @@ export const useTreeSocket = () => {
               }
             }
           }
+          break;
+        case "deleteOne":
+          if (initialData && initialData.length > 0) {
+            let newTreeData: SpaceTreeNode[];
+
+            if (data.entity[0] === "pages") {
+              newTreeData = deleteTreeNode(
+                initialData,
+                data.id,
+              );
+
+              if (newTreeData) {
+                setTreeData(newTreeData);
+              }
+              queryClient.invalidateQueries({
+                queryKey: ['pages', data.payload.slugId].filter(Boolean),
+              });
+            }
+          }
+
           break;
       }
     });
