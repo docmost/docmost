@@ -1,4 +1,4 @@
-import { NodeApi, NodeRendererProps, TreeApi } from "react-arborist";
+import { NodeApi, NodeRendererProps } from "react-arborist";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUpdatePageMutation } from "@/features/page/queries/page-query.ts";
 import { useAtom } from "jotai";
@@ -17,22 +17,11 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import clsx from "clsx";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
-import {
-  IconChevronDown,
-  IconChevronRight,
-  IconDotsVertical,
-  IconFileDescription,
-  IconLink,
-  IconPlus,
-  IconPointFilled,
-  IconTrash,
-} from "@tabler/icons-react";
-import { ActionIcon, Menu, rem } from "@mantine/core";
-import { useClipboard } from "@mantine/hooks";
-import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { getAppUrl } from "@/lib/config.ts";
-import { notifications } from "@mantine/notifications";
+import { IconFileDescription } from "@tabler/icons-react";
 import React from "react";
+import { CreateNode } from "@/features/page/tree/components/node/components/create-node.tsx";
+import { NodeMenu } from "@/features/page/tree/components/node/components/node-menu.tsx";
+import { PageArrow } from "@/features/page/tree/components/node/components/page-arrow.tsx";
 
 export function Node({
   node,
@@ -48,6 +37,7 @@ export function Node({
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
+
     if (node.data.children && node.data.children.length > 0) {
       return;
     }
@@ -147,6 +137,8 @@ export function Node({
         <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
+            readOnly={tree.props.disableEdit as boolean}
+            removeEmojiAction={handleRemoveEmoji}
             icon={
               node.data.icon ? (
                 node.data.icon
@@ -154,8 +146,6 @@ export function Node({
                 <IconFileDescription size="18" />
               )
             }
-            readOnly={tree.props.disableEdit as boolean}
-            removeEmojiAction={handleRemoveEmoji}
           />
         </div>
 
@@ -174,144 +164,5 @@ export function Node({
         </div>
       </div>
     </>
-  );
-}
-
-interface CreateNodeProps {
-  node: NodeApi<SpaceTreeNode>;
-  treeApi: TreeApi<SpaceTreeNode>;
-  onExpandTree?: () => void;
-}
-
-function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  function handleCreate() {
-    if (node.data.hasChildren && node.children.length === 0) {
-      node.toggle();
-      onExpandTree();
-
-      setTimeout(() => {
-        treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
-      }, 500);
-    } else {
-      treeApi?.create({ type: "internal", parentId: node.id });
-    }
-  }
-
-  return (
-    <ActionIcon
-      variant="transparent"
-      c="gray"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCreate();
-      }}
-    >
-      <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
-    </ActionIcon>
-  );
-}
-
-interface NodeMenuProps {
-  node: NodeApi<SpaceTreeNode>;
-  treeApi: TreeApi<SpaceTreeNode>;
-}
-
-function NodeMenu({ node, treeApi }: NodeMenuProps) {
-  const clipboard = useClipboard({ timeout: 500 });
-  const { spaceSlug } = useParams();
-  const { openDeleteModal } = useDeletePageModal();
-
-  const handleCopyLink = () => {
-    const pageUrl =
-      getAppUrl() + buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-    clipboard.copy(pageUrl);
-    notifications.show({ message: "Link copied" });
-  };
-
-  return (
-    <Menu shadow="md" width={200}>
-      <Menu.Target>
-        <ActionIcon
-          variant="transparent"
-          c="gray"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <IconDotsVertical
-            style={{ width: rem(20), height: rem(20) }}
-            stroke={2}
-          />
-        </ActionIcon>
-      </Menu.Target>
-
-      <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<IconLink style={{ width: rem(14), height: rem(14) }} />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleCopyLink();
-          }}
-        >
-          Copy link
-        </Menu.Item>
-
-        {!(treeApi.props.disableEdit as boolean) && (
-          <>
-            <Menu.Divider />
-
-            <Menu.Item
-              c="red"
-              leftSection={
-                <IconTrash style={{ width: rem(14), height: rem(14) }} />
-              }
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
-              }}
-            >
-              Delete
-            </Menu.Item>
-          </>
-        )}
-      </Menu.Dropdown>
-    </Menu>
-  );
-}
-
-interface PageArrowProps {
-  node: NodeApi<SpaceTreeNode>;
-  onExpandTree?: () => void;
-}
-
-function PageArrow({ node, onExpandTree }: PageArrowProps) {
-  return (
-    <ActionIcon
-      size={20}
-      variant="subtle"
-      c="gray"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        node.toggle();
-        onExpandTree();
-      }}
-    >
-      {node.isInternal ? (
-        node.children && (node.children.length > 0 || node.data.hasChildren) ? (
-          node.isOpen ? (
-            <IconChevronDown stroke={2} size={18} />
-          ) : (
-            <IconChevronRight stroke={2} size={18} />
-          )
-        ) : (
-          <IconPointFilled size={8} />
-        )
-      ) : null}
-    </ActionIcon>
   );
 }
