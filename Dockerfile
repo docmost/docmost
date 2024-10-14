@@ -30,6 +30,9 @@ COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-e
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm*.yaml /app/
 
+# Copy patches
+COPY --from=builder /app/patches /app/patches
+
 RUN npm install -g pnpm
 
 RUN chown -R node:node /app
