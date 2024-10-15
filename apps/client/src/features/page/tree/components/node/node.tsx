@@ -35,17 +35,17 @@ export function Node({
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
 
-  async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
-    if (!node.data.hasChildren) return;
+  async function handleLoadChildren({ data }: NodeApi<SpaceTreeNode>) {
+    if (!data.hasChildren) return;
 
-    if (node.data.children && node.data.children.length > 0) {
+    if (data.children && data.children.length > 0) {
       return;
     }
 
     try {
       const params: SidebarPagesParams = {
-        pageId: node.data.id,
-        spaceId: node.data.spaceId,
+        pageId: data.id,
+        spaceId: data.spaceId,
       };
 
       const newChildren = await queryClient.fetchQuery({
@@ -58,7 +58,7 @@ export function Node({
 
       const updatedTreeData = appendNodeChildren(
         treeData,
-        node.data.id,
+        data.id,
         childrenTree,
       );
 
@@ -87,10 +87,10 @@ export function Node({
 
     setTimeout(() => {
       emit({
-        operation: "updateOne",
         entity: ["pages"],
-        id: node.id,
+        operation: "updateOne",
         payload: { icon: emojiValue },
+        id: node.id,
       });
     }, 50);
   }
