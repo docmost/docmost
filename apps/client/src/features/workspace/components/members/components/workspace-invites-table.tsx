@@ -6,17 +6,21 @@ import InviteActionMenu from "@/features/workspace/components/members/components
 import {IconInfoCircle} from "@tabler/icons-react";
 import {formattedDate, timeAgo} from "@/lib/time.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceInvitesTable() {
-  const {data, isLoading} = useWorkspaceInvitationsQuery({
+  const { t } = useTranslation();
+  const { data, isLoading } = useWorkspaceInvitationsQuery({
     limit: 100,
   });
   const {isAdmin} = useUserRole();
 
   return (
     <>
-      <Alert variant="light" color="blue" icon={<IconInfoCircle/>}>
-        Invited members who are yet to accept their invitation will appear here.
+      <Alert variant="light" color="blue" icon={<IconInfoCircle />}>
+        {t(
+          "Invited members who are yet to accept their invitation will appear here.",
+        )}
       </Alert>
 
       {data && (
@@ -25,9 +29,9 @@ export default function WorkspaceInvitesTable() {
             <Table verticalSpacing="sm">
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Email</Table.Th>
-                  <Table.Th>Role</Table.Th>
-                  <Table.Th>Date</Table.Th>
+                  <Table.Th>{t("Email")}</Table.Th>
+                  <Table.Th>{t("Role")}</Table.Th>
+                  <Table.Th>{t("Date")}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
 

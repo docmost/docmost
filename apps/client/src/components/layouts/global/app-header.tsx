@@ -11,10 +11,12 @@ import {
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import {useToggleSidebar} from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
+import { useTranslation } from "react-i18next";
 
 const links = [{link: APP_ROUTE.HOME, label: "Home"}];
 
 export function AppHeader() {
+  const { t } = useTranslation();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
 
@@ -25,7 +27,7 @@ export function AppHeader() {
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
-      {link.label}
+      {t(link.label)}
     </Link>
   ));
 

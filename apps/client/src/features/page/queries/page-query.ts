@@ -25,6 +25,7 @@ import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
 import { queryClient } from "@/main.tsx";
 import { buildTree } from "@/features/page/tree/utils";
+import { useTranslation } from "react-i18next";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
@@ -38,11 +39,12 @@ export function usePageQuery(
 }
 
 export function useCreatePageMutation() {
+  const { t } = useTranslation();
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => createPage(data),
     onSuccess: (data) => {},
     onError: (error) => {
-      notifications.show({ message: "Failed to create page", color: "red" });
+      notifications.show({ message: t("Failed to create page"), color: "red" });
     },
   });
 }
@@ -74,13 +76,14 @@ export function useUpdatePageMutation() {
 }
 
 export function useDeletePageMutation() {
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId),
     onSuccess: () => {
-      notifications.show({ message: "Page deleted successfully" });
+      notifications.show({ message: t("Page deleted successfully") });
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to delete page", color: "red" });
+      notifications.show({ message: t("Failed to delete page"), color: "red" });
     },
   });
 }

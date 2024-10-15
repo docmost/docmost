@@ -8,6 +8,7 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import { useState } from "react";
 import { TextInput, Button } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(2).max(40).nonempty("Your name cannot be blank"),
@@ -18,6 +19,7 @@ type FormValues = z.infer<typeof formSchema>;
 const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
 
 export default function AccountNameForm() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);
@@ -36,12 +38,12 @@ export default function AccountNameForm() {
       const updatedUser = await updateUser(data);
       setUser(updatedUser);
       notifications.show({
-        message: "Updated successfully",
+        message: t("Updated successfully"),
       });
     } catch (err) {
       console.log(err);
       notifications.show({
-        message: "Failed to update data",
+        message: t("Failed to update data"),
         color: "red",
       });
     }
@@ -53,13 +55,13 @@ export default function AccountNameForm() {
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <TextInput
         id="name"
-        label="Name"
-        placeholder="Your name"
+        label={t("Name")}
+        placeholder={t("Your name")}
         variant="filled"
         {...form.getInputProps("name")}
       />
       <Button type="submit" mt="sm" disabled={isLoading} loading={isLoading}>
-        Save
+        {t("Save")}
       </Button>
     </form>
   );
