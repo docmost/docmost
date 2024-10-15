@@ -34,7 +34,7 @@ const openTreeNodesAtom = atom<OpenMap>({});
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
-    useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
+    useTreeMutation<SpaceTreeNode>(spaceId);
   const {
     data: pagesData,
     hasNextPage,
@@ -166,7 +166,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
-        <Tree
+        <Tree<SpaceTreeNode>
           data={data}
           disableDrag={readOnly}
           disableDrop={readOnly}

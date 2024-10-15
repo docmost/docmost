@@ -28,7 +28,7 @@ export function Node({
   style,
   dragHandle,
   tree,
-}: NodeRendererProps<any>) {
+}: NodeRendererProps<SpaceTreeNode>) {
   const navigate = useNavigate();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
