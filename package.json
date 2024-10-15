@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -59,6 +59,7 @@
     "@tiptap/react": "^2.6.6",
     "@tiptap/starter-kit": "^2.6.6",
     "@tiptap/suggestion": "^2.6.6",
+    "bytes": "^3.1.2",
     "cross-env": "^7.0.3",
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",
@@ -68,6 +69,7 @@
   },
   "devDependencies": {
     "@nx/js": "19.6.3",
+    "@types/bytes": "^3.1.4",
     "@types/uuid": "^10.0.0",
     "concurrently": "^8.2.2",
     "nx": "19.6.3",
@@ -79,7 +81,9 @@
       "packages/*"
     ]
   },
-  "prettier": {
-    "semi": true
+  "pnpm": {
+    "patchedDependencies": {
+      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
+    }
   }
 }

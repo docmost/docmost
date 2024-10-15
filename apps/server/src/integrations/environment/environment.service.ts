@@ -43,6 +43,11 @@ export class EnvironmentService {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }
 
+  getFileUploadSizeLimit(): string {
+
+    return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
+  }
+
   getAwsS3AccessKeyId(): string {
     return this.configService.get<string>('AWS_S3_ACCESS_KEY_ID');
   }
@@ -96,6 +101,13 @@ export class EnvironmentService {
       .get<string>('SMTP_SECURE', 'false')
       .toLowerCase();
     return secure === 'true';
+  }
+
+  getSmtpIgnoreTLS(): boolean {
+    const ignoretls = this.configService
+      .get<string>('SMTP_IGNORETLS', 'false')
+      .toLowerCase();
+    return ignoretls === 'true';
   }
 
   getSmtpUsername(): string {

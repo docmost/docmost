@@ -9,9 +9,10 @@ import { getSpaceUrl } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().trim().min(2).max(50),
   slug: z
     .string()
+    .trim()
     .min(2)
     .max(50)
     .regex(

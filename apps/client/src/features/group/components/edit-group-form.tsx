@@ -81,7 +81,7 @@ export function EditGroupForm({ onClose }: EditGroupFormProps) {
           </Stack>
 
           <Group justify="flex-end" mt="md">
-            <Button type="submit">{t("Edit")}</Button>
+            <Button type="submit">{t("Save")}</Button>
           </Group>
         </form>
       </Box>

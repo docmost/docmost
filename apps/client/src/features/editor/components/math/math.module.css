@@ -17,10 +17,6 @@
         color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
         background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
     }
-
-    &:not(.error, .empty) * {
-        font-family: KaTeX_Main, Times New Roman, serif;
-    }
 }
 
 .mathBlock {
@@ -33,7 +29,7 @@
     border-radius: 4px;
     transition: background-color 0.2s;
     margin: 0 0.1rem;
-    overflow-x: scroll;
+    overflow-x: auto;
 
     .textInput {
         width: 400px;
@@ -52,10 +48,4 @@
         color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
         background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
     }
-
-    &:not(.error, .empty) * {
-        font-family: KaTeX_Main, Times New Roman, serif;
-    }
 }
-
-

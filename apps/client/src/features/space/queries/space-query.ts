@@ -36,7 +36,7 @@ export function useGetSpacesQuery(
 
 export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   return useQuery({
-    queryKey: ['spaces', spaceId],
+    queryKey: ['space', spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
@@ -65,7 +65,7 @@ export function useGetSpaceBySlugQuery(
   spaceId: string
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
-    queryKey: ['spaces', spaceId],
+    queryKey: ['space', spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
@@ -111,7 +111,7 @@ export function useDeleteSpaceMutation() {
 
       if (variables.slug) {
         queryClient.removeQueries({
-          queryKey: ['spaces', variables.slug],
+          queryKey: ['space', variables.slug],
           exact: true,
         });
       }

@@ -20,7 +20,7 @@ import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-i
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().trim().min(1),
   password: z.string().min(8),
 });
 

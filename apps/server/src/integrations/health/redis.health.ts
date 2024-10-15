@@ -22,6 +22,7 @@ export class RedisHealthIndicator extends HealthIndicator {
       });
 
       await redis.ping();
+      redis.disconnect();
       return this.getStatus(key, true);
     } catch (e) {
       this.logger.error(e);

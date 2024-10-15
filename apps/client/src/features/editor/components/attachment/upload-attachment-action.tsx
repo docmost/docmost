@@ -1,6 +1,8 @@
 import { handleAttachmentUpload } from "@docmost/editor-ext";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { notifications } from "@mantine/notifications";
+import {getFileUploadSizeLimit} from "@/lib/config.ts";
+import {formatBytes} from "@/lib";
 
 export const uploadAttachmentAction = handleAttachmentUpload({
   onUpload: async (file: File, pageId: string): Promise<any> => {
@@ -18,10 +20,10 @@ export const uploadAttachmentAction = handleAttachmentUpload({
     if (file.type.includes("image/") || file.type.includes("video/")) {
       return false;
     }
-    if (file.size / 1024 / 1024 > 50) {
+    if (file.size > getFileUploadSizeLimit()) {
       notifications.show({
         color: "red",
-        message: `File exceeds the 50 MB attachment limit`,
+        message: `File exceeds the ${formatBytes(getFileUploadSizeLimit())} attachment limit`,
       });
       return false;
     }

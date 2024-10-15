@@ -8,7 +8,7 @@ import { MultiUserSelect } from "@/features/group/components/multi-user-select.t
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().trim().min(2).max(50),
   description: z.string().max(500),
 });
 

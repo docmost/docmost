@@ -1,19 +1,19 @@
-import { Group, Text } from "@mantine/core";
+import {Group, Text, Tooltip} from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
-import { Link } from "react-router-dom";
+import {Link} from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
-import { useAtom } from "jotai/index";
+import {useAtom} from "jotai/index";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
-import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import {useToggleSidebar} from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 
-const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
+const links = [{link: APP_ROUTE.HOME, label: "Home"}];
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -37,28 +37,33 @@ export function AppHeader() {
         <Group wrap="nowrap">
           {!isHomeRoute && (
             <>
-              <SidebarToggle
-                aria-label="sidebar toggle"
-                opened={mobileOpened}
-                onClick={toggleMobile}
-                hiddenFrom="sm"
-                size="sm"
-              />
+              <Tooltip label="Sidebar toggle">
 
-              <SidebarToggle
-                aria-label="sidebar toggle"
-                opened={desktopOpened}
-                onClick={toggleDesktop}
-                visibleFrom="sm"
-                size="sm"
-              />
+                <SidebarToggle
+                  aria-label="Sidebar toggle"
+                  opened={mobileOpened}
+                  onClick={toggleMobile}
+                  hiddenFrom="sm"
+                  size="sm"
+                />
+              </Tooltip>
+
+              <Tooltip label="Sidebar toggle">
+                <SidebarToggle
+                  aria-label="Sidebar toggle"
+                  opened={desktopOpened}
+                  onClick={toggleDesktop}
+                  visibleFrom="sm"
+                  size="sm"
+                />
+              </Tooltip>
             </>
           )}
 
           <Text
             size="lg"
             fw={600}
-            style={{ cursor: "pointer", userSelect: "none" }}
+            style={{cursor: "pointer", userSelect: "none"}}
             component={Link}
             to="/home"
           >
@@ -71,7 +76,7 @@ export function AppHeader() {
         </Group>
 
         <Group px={"xl"}>
-          <TopMenu />
+          <TopMenu/>
         </Group>
       </Group>
     </>
