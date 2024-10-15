@@ -73,42 +73,34 @@ export function Node({
     navigate(pageUrl);
   };
 
-  const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
-    const updatedTree = updateTreeNodeIcon(treeData, nodeId, newIcon);
-    setTreeData(updatedTree);
-  };
-
   const handleEmojiIconClick = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleEmojiSelect = (emoji: { native: string }) => {
-    handleUpdateNodeIcon(node.id, emoji.native);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native });
+  function updateEmoji(emojiValue: string | null) {
+    const updatedTree = updateTreeNodeIcon(treeData, node.id, emojiValue);
+
+    setTreeData(updatedTree);
+
+    updatePageMutation.mutateAsync({ pageId: node.id, icon: emojiValue });
 
     setTimeout(() => {
       emit({
         operation: "updateOne",
         entity: ["pages"],
         id: node.id,
-        payload: { icon: emoji.native },
+        payload: { icon: emojiValue },
       });
     }, 50);
+  }
+
+  const handleEmojiSelect = (emoji: { native: string }) => {
+    updateEmoji(emoji.native);
   };
 
   const handleRemoveEmoji = () => {
-    handleUpdateNodeIcon(node.id, null);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: null });
-
-    setTimeout(() => {
-      emit({
-        operation: "updateOne",
-        entity: ["pages"],
-        id: node.id,
-        payload: { icon: null },
-      });
-    }, 50);
+    updateEmoji(null);
   };
 
   if (
