@@ -29,6 +29,8 @@ import { uploadAttachmentAction } from "@/features/editor/components/attachment/
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
+import { SiLoom } from '@icons-pack/react-simple-icons';
+//import { EmbedProvider } from "@/features/editor/components/embed/providers";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -343,7 +345,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           day: "numeric",
         });
 
-        return editor
+        editor
           .chain()
           .focus()
           .deleteRange(range)
@@ -352,6 +354,17 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
   ],
+  embeds: [
+    {
+      title: "Loom",
+      description: "Embed Loom video",
+      searchTerms: ["loom"],
+      icon: SiLoom,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
+      },
+    },
+  ]
 };
 
 export const getSuggestionItems = ({
@@ -362,7 +375,7 @@ export const getSuggestionItems = ({
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
 
-  const fuzzyMatch = (query, target) => {
+  const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
     target = target.toLowerCase();
     for (let char of target) {
