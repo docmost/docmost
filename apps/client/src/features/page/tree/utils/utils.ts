@@ -100,6 +100,28 @@ export const updateTreeNodeIcon = (
   });
 };
 
+export const deleteTreeNode = (
+  nodes: SpaceTreeNode[],
+  nodeId: string,
+): SpaceTreeNode[] => {
+  return nodes
+    .map((node) => {
+      if (node.id === nodeId) {
+        return null;
+      }
+
+      if (node.children && node.children.length > 0) {
+        return {
+          ...node,
+          children: deleteTreeNode(node.children, nodeId),
+        };
+      }
+      return node;
+    })
+    .filter((node) => node !== null);
+};
+
+
 export function buildTreeWithChildren(items: SpaceTreeNode[]): SpaceTreeNode[] {
   const nodeMap = {};
   let result: SpaceTreeNode[] = [];
