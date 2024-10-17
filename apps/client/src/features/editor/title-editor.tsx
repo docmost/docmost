@@ -30,7 +30,6 @@ export interface TitleEditorProps {
   spaceSlug: string;
   editable: boolean;
 }
-
 export function TitleEditor({
   pageId,
   slugId,
@@ -38,8 +37,9 @@ export function TitleEditor({
   spaceSlug,
   editable,
 }: TitleEditorProps) {
-  const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
+  const [, setCurrentTitle] = useState(title);
+  const [debouncedTitleState, setDebouncedTitleState] = useState(title);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
@@ -73,7 +73,9 @@ export function TitleEditor({
     },
     onUpdate({ editor }) {
       const currentTitle = editor.getText();
-      setDebouncedTitleState(currentTitle);
+      if (currentTitle !== title) {
+        setDebouncedTitleState(currentTitle);
+      }
     },
     editable: editable,
     content: title,
@@ -85,7 +87,7 @@ export function TitleEditor({
   }, [title]);
 
   useEffect(() => {
-    if (debouncedTitle !== null) {
+    if (debouncedTitle && debouncedTitle !== title) {
       updatePageMutation.mutate({
         pageId: pageId,
         title: debouncedTitle,
@@ -104,6 +106,11 @@ export function TitleEditor({
       setTreeData(newTreeData);
     }
   }, [debouncedTitle]);
+
+  useEffect(() => {
+    setCurrentTitle(title);
+    setDebouncedTitleState(title);
+  }, [title]);
 
   useEffect(() => {
     if (titleEditor && title !== titleEditor.getText()) {
