@@ -24,6 +24,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       hasChildren: page.hasChildren,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      isPinned: page.isPinned,
       children: [],
     };
   });

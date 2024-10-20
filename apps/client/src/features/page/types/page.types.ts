@@ -18,6 +18,7 @@ export interface IPage {
   updatedAt: Date;
   deletedAt: Date;
   position: string;
+  isPinned: boolean;
   hasChildren: boolean;
   space: Partial<ISpace>;
 }

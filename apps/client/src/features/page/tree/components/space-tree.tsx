@@ -163,12 +163,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [treeApiRef.current]);
 
+  const disableDrag = (t: SpaceTreeNode) => readOnly || t.isPinned;
+
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
         <Tree<SpaceTreeNode>
           data={data}
-          disableDrag={readOnly}
+          disableDrag={disableDrag}
           disableDrop={readOnly}
           disableEdit={readOnly}
           {...controllers}

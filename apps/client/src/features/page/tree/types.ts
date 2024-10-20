@@ -4,6 +4,7 @@ export type SpaceTreeNode = {
   name: string;
   icon?: string;
   position: string;
+  isPinned: boolean;
   spaceId: string;
   parentPageId: string;
   hasChildren: boolean;
