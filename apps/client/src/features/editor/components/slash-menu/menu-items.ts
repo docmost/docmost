@@ -29,8 +29,15 @@ import { uploadAttachmentAction } from "@/features/editor/components/attachment/
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
-import { SiLoom } from '@icons-pack/react-simple-icons';
-//import { EmbedProvider } from "@/features/editor/components/embed/providers";
+import {
+  SiAirtable,
+  SiFigma,
+  SiFramer, SiGoogledrive,
+  SiLoom,
+  SiMiro,
+  SiTypeform,
+  SiVimeo,
+} from '@icons-pack/react-simple-icons';
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -353,8 +360,6 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run();
       },
     },
-  ],
-  embeds: [
     {
       title: "Loom",
       description: "Embed Loom video",
@@ -364,7 +369,70 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
       },
     },
-  ]
+    {
+      title: "Airtable",
+      description: "Embed Airtable",
+      searchTerms: ["airtable"],
+      icon: SiAirtable,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'airtable' }).run();
+      },
+    },
+    {
+      title: "Figma",
+      description: "Embed Figma files",
+      searchTerms: ["figma"],
+      icon: SiFigma,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'figma' }).run();
+      },
+    },
+    {
+      title: "Typeform",
+      description: "Embed Typeform",
+      searchTerms: ["typeform"],
+      icon: SiTypeform,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'typeform' }).run();
+      },
+    },
+    {
+      title: "Miro",
+      description: "Embed Miro board",
+      searchTerms: ["miro"],
+      icon: SiMiro,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'miro' }).run();
+      },
+    },
+    {
+      title: "Framer",
+      description: "Embed Framer prototype",
+      searchTerms: ["framer"],
+      icon: SiFramer,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'framer' }).run();
+      },
+    },
+    {
+      title: "Vimeo",
+      description: "Embed Vimeo video",
+      searchTerms: ["vimeo"],
+      icon: SiVimeo,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'vimeo' }).run();
+      },
+    },
+    {
+      title: "Google Drive",
+      description: "Embed Google Drive content",
+      searchTerms: ["google drive","gdrive"],
+      icon: SiGoogledrive,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'google drive' }).run();
+      },
+    },
+  ],
 };
 
 export const getSuggestionItems = ({

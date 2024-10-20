@@ -23,7 +23,6 @@ export default function EmbedView(props: NodeViewProps) {
 
   const embedUrl = useMemo(() => {
     if (src) {
-      console.log('yrl', src);
       return getEmbedUrlAndProvider(src).embedUrl;
     }
     return null;
@@ -58,8 +57,10 @@ export default function EmbedView(props: NodeViewProps) {
           <AspectRatio ratio={16 / 9}>
             <iframe
               src={embedUrl}
-              allowFullScreen
               allow="encrypted-media"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              allowFullScreen
+              frameBorder="0"
             ></iframe>
           </AspectRatio>
 
