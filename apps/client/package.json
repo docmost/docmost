@@ -9,12 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@docmost/editor-ext": "workspace:*",
     "@casl/ability": "^6.7.1",
     "@casl/react": "^4.0.0",
+    "@docmost/editor-ext": "workspace:*",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@excalidraw/excalidraw": "^0.17.6",
+    "@icons-pack/react-simple-icons": "^10.0.0",
     "@mantine/core": "^7.12.2",
     "@mantine/form": "^7.12.2",
     "@mantine/hooks": "^7.12.2",
