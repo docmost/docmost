@@ -207,7 +207,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           overscanCount={10}
           dndRootElement={rootElement.current}
           onToggle={() => {
-            setOpenTreeNodes(treeApiRef.current.openState);
+            setOpenTreeNodes(treeApiRef.current?.openState);
           }}
           initialOpenState={openTreeNodes}
         >
