@@ -38,7 +38,7 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 300);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
