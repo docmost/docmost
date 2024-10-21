@@ -151,6 +151,7 @@ export class PageService {
     pagination: PaginationOptions,
     pageId?: string,
   ): Promise<any> {
+    // TODO isPinned
     let query = this.db
       .selectFrom('pages')
       .select([
