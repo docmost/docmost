@@ -21,6 +21,7 @@ import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
+import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -31,6 +32,8 @@ export function useTreeMutation<T>(spaceId: string) {
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
   const { spaceSlug } = useParams();
+  const { pageSlug } = useParams();
+  const emit = useQueryEmit();
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
     const payload: { spaceId: string; parentPageId?: string } = {
@@ -69,6 +72,17 @@ export function useTreeMutation<T>(spaceId: string) {
     tree.create({ parentId, index, data });
     setData(tree.data);
 
+    setTimeout(() => {
+      emit({
+        operation: "addTreeNode",
+        payload: {
+          parentId,
+          index,
+          data
+        }
+      });
+    }, 50);
+
     const pageUrl = buildPageUrl(
       spaceSlug,
       createdPage.slugId,
@@ -100,7 +114,7 @@ export function useTreeMutation<T>(spaceId: string) {
       : tree.data;
 
     // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
-    // we have to access the node differently viq currentTreeData[args.index]?.data?.position
+    // we have to access the node differently via currentTreeData[args.index]?.data?.position
     // this makes it possible to correctly sort children of a parent node that is not the root
 
     const afterPosition =
@@ -147,10 +161,12 @@ export function useTreeMutation<T>(spaceId: string) {
       if (childrenCount === 0) {
         tree.update({
           id: previousParent.id,
-          changes: { ...previousParent.data, hasChildren: false } as any,
+          changes: { ... previousParent.data, hasChildren: false } as any,
         });
       }
     }
+
+    //console.log()
 
     setData(tree.data);
 
@@ -162,6 +178,13 @@ export function useTreeMutation<T>(spaceId: string) {
 
     try {
       movePageMutation.mutateAsync(payload);
+
+      setTimeout(() => {
+        emit({
+          operation: "moveTreeNode",
+          payload: { id: draggedNodeId, parentId: args.parentId, index: args.index, position: newPosition },
+        });
+      }, 50);
     } catch (error) {
       console.error("Error moving page:", error);
     }
@@ -182,12 +205,26 @@ export function useTreeMutation<T>(spaceId: string) {
     try {
       await deletePageMutation.mutateAsync(args.ids[0]);
 
-      if (tree.find(args.ids[0])) {
-        tree.drop({ id: args.ids[0] });
-        setData(tree.data);
+      const node = tree.find(args.ids[0]);
+      if (!node) {
+        return;
       }
 
-      navigate(getSpaceUrl(spaceSlug));
+      tree.drop({ id: args.ids[0] });
+      setData(tree.data);
+
+      // navigate only if the current url is same as the deleted page
+      if (pageSlug && node.data.slugId === pageSlug.split('-')[1]) {
+        navigate(getSpaceUrl(spaceSlug));
+      }
+
+      setTimeout(() => {
+        emit({
+          operation: "deleteTreeNode",
+          payload: { node: node.data }
+        });
+      }, 50);
+
     } catch (error) {
       console.error("Failed to delete page:", error);
     }

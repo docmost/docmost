@@ -11,7 +11,6 @@ import {
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import {
-  usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query";
 import { useDebouncedValue } from "@mantine/hooks";
@@ -21,7 +20,7 @@ import { updateTreeNodeName } from "@/features/page/tree/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -39,14 +38,15 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 1000);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
   const updatePageMutation = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
-
   const navigate = useNavigate();
+  const [activePageId, setActivePageId] = useState(pageId);
+
 
   const titleEditor = useEditor({
     extensions: [
@@ -74,6 +74,7 @@ export function TitleEditor({
     onUpdate({ editor }) {
       const currentTitle = editor.getText();
       setDebouncedTitleState(currentTitle);
+      setActivePageId(pageId);
     },
     editable: editable,
     content: title,
@@ -85,7 +86,7 @@ export function TitleEditor({
   }, [title]);
 
   useEffect(() => {
-    if (debouncedTitle !== null) {
+    if (debouncedTitle !== null && activePageId === pageId) {
       updatePageMutation.mutate({
         pageId: pageId,
         title: debouncedTitle,
