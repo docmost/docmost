@@ -30,14 +30,15 @@ import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
 import {
-  SiAirtable,
-  SiFigma,
-  SiFramer, SiGoogledrive,
-  SiLoom,
-  SiMiro,
-  SiTypeform,
-  SiVimeo,
-} from '@icons-pack/react-simple-icons';
+  AirtableIcon,
+  FigmaIcon,
+  FramerIcon,
+  GoogleDriveIcon,
+  LoomIcon,
+  MiroIcon,
+  TypeformIcon,
+  VimeoIcon
+} from "@/components/icons";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -364,7 +365,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Loom",
       description: "Embed Loom video",
       searchTerms: ["loom"],
-      icon: SiLoom,
+      icon: LoomIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
       },
@@ -373,7 +374,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Airtable",
       description: "Embed Airtable",
       searchTerms: ["airtable"],
-      icon: SiAirtable,
+      icon: AirtableIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'airtable' }).run();
       },
@@ -382,7 +383,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Figma",
       description: "Embed Figma files",
       searchTerms: ["figma"],
-      icon: SiFigma,
+      icon: FigmaIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'figma' }).run();
       },
@@ -391,7 +392,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Typeform",
       description: "Embed Typeform",
       searchTerms: ["typeform"],
-      icon: SiTypeform,
+      icon: TypeformIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'typeform' }).run();
       },
@@ -400,7 +401,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Miro",
       description: "Embed Miro board",
       searchTerms: ["miro"],
-      icon: SiMiro,
+      icon: MiroIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'miro' }).run();
       },
@@ -409,7 +410,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Framer",
       description: "Embed Framer prototype",
       searchTerms: ["framer"],
-      icon: SiFramer,
+      icon: FramerIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'framer' }).run();
       },
@@ -418,7 +419,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       title: "Vimeo",
       description: "Embed Vimeo video",
       searchTerms: ["vimeo"],
-      icon: SiVimeo,
+      icon: VimeoIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'vimeo' }).run();
       },
@@ -426,8 +427,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Google Drive",
       description: "Embed Google Drive content",
-      searchTerms: ["google drive","gdrive"],
-      icon: SiGoogledrive,
+      searchTerms: ["google drive", "gdrive"],
+      icon: GoogleDriveIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'google drive' }).run();
       },

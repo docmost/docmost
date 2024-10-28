@@ -203,9 +203,6 @@ importers:
       '@excalidraw/excalidraw':
         specifier: ^0.17.6
         version: 0.17.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@icons-pack/react-simple-icons':
-        specifier: ^10.0.0
-        version: 10.0.0(react@18.3.1)
       '@mantine/core':
         specifier: ^7.12.2
         version: 7.12.2(@mantine/hooks@7.12.2(react@18.3.1))(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2165,11 +2162,6 @@ packages:
   '@humanwhocodes/retry@0.3.0':
     resolution: {integrity: sha512-d2CGZR2o7fS6sWB7DG/3a95bGKQyHMACZ5aW8qGkkqQpUoZV6C0X7Pc7l4ZNMZkfNBf4VWNe9E1jRsf0G146Ew==}
     engines: {node: '>=18.18'}
-
-  '@icons-pack/react-simple-icons@10.0.0':
-    resolution: {integrity: sha512-oU0PVDx9sbNQjRxJN555dsHbRApYN+aBq/O9+wo3JgNkEfvBMgAEtsSGtXWWXQsLAxJcYiFOCzBWege/Xj/JFQ==}
-    peerDependencies:
-      react: ^16.13 || ^17 || ^18
 
   '@ioredis/commands@1.2.0':
     resolution: {integrity: sha512-Sx1pU8EM64o2BrqNpEO1CNLtKQwyhuXuqyfH7oGKCk+1a33d2r5saW8zNwm3j6BTExtjrv2BxTgzzkMwts6vGg==}
@@ -10072,10 +10064,6 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.3.0': {}
-
-  '@icons-pack/react-simple-icons@10.0.0(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
 
   '@ioredis/commands@1.2.0': {}
 
