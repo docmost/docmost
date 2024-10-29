@@ -407,7 +407,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
-      title: "Youtube",
+      title: "YouTube",
       description: "Embed YouTube video",
       searchTerms: ["youtube", "yt"],
       icon: YoutubeIcon,
