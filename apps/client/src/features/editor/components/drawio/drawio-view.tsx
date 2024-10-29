@@ -1,5 +1,5 @@
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
-import { ActionIcon, Card, Image, Modal, Text } from '@mantine/core';
+import { ActionIcon, Card, Image, Modal, Text, useComputedColorScheme } from '@mantine/core';
 import { useRef, useState } from 'react';
 import { uploadFile } from '@/features/page/services/page-service.ts';
 import { useDisclosure } from '@mantine/hooks';
@@ -21,6 +21,7 @@ export default function DrawioView(props: NodeViewProps) {
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const [initialXML, setInitialXML] = useState<string>('');
   const [opened, { open, close }] = useDisclosure(false);
+  const computedColorScheme = useComputedColorScheme();
 
   const handleOpen = async () => {
     if (!editor.isEditable) {
@@ -87,7 +88,7 @@ export default function DrawioView(props: NodeViewProps) {
                 ref={drawioRef}
                 xml={initialXML}
                 urlParameters={{
-                  ui: 'kennedy',
+                  ui: computedColorScheme === 'light' ? 'kennedy' : 'dark',
                   spin: true,
                   libraries: true,
                   saveAndExit: true,
