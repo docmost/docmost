@@ -50,7 +50,7 @@ export const embedProviders: IEmbedProvider[] = [
   {
     id: 'youtube',
     name: 'YouTube',
-    regex: /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
+    regex: /^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
     getEmbedUrl: (match) => {
       return `https://www.youtube-nocookie.com/embed/${match[5]}`;
     }
