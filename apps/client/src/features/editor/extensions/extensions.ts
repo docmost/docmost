@@ -151,6 +151,7 @@ export const mainExtensions = [
   DetailsSummary,
   DetailsContent,
   Youtube.configure({
+    addPasteHandler: false,
     controls: true,
     nocookie: true,
   }),

@@ -37,7 +37,7 @@ import {
   LoomIcon,
   MiroIcon,
   TypeformIcon,
-  VimeoIcon
+  VimeoIcon, YoutubeIcon
 } from "@/components/icons";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
@@ -362,21 +362,21 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
-      title: "Loom",
-      description: "Embed Loom video",
-      searchTerms: ["loom"],
-      icon: LoomIcon,
-      command: ({ editor, range }: CommandProps) => {
-        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
-      },
-    },
-    {
       title: "Airtable",
       description: "Embed Airtable",
       searchTerms: ["airtable"],
       icon: AirtableIcon,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).setEmbed({ provider: 'airtable' }).run();
+      },
+    },
+    {
+      title: "Loom",
+      description: "Embed Loom video",
+      searchTerms: ["loom"],
+      icon: LoomIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
       },
     },
     {
@@ -407,12 +407,12 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
-      title: "Framer",
-      description: "Embed Framer prototype",
-      searchTerms: ["framer"],
-      icon: FramerIcon,
+      title: "Youtube",
+      description: "Embed YouTube video",
+      searchTerms: ["youtube", "yt"],
+      icon: YoutubeIcon,
       command: ({ editor, range }: CommandProps) => {
-        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'framer' }).run();
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'youtube' }).run();
       },
     },
     {
@@ -425,12 +425,21 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
+      title: "Framer",
+      description: "Embed Framer prototype",
+      searchTerms: ["framer"],
+      icon: FramerIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'framer' }).run();
+      },
+    },
+    {
       title: "Google Drive",
       description: "Embed Google Drive content",
       searchTerms: ["google drive", "gdrive"],
       icon: GoogleDriveIcon,
       command: ({ editor, range }: CommandProps) => {
-        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'google drive' }).run();
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'gdrive' }).run();
       },
     },
   ],

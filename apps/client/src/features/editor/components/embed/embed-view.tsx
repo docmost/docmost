@@ -6,10 +6,9 @@ import { IconEdit } from "@tabler/icons-react";
 import { z } from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import {
-  getEmbedProviderByName,
+  getEmbedProviderById,
   getEmbedUrlAndProvider
 } from "@/features/editor/components/embed/providers.ts";
-import { capitalizeFirstChar } from "@/lib";
 import { notifications } from '@mantine/notifications';
 
 const schema = z.object({
@@ -37,7 +36,7 @@ export default function EmbedView(props: NodeViewProps) {
 
   async function onSubmit(data: { url: string }) {
     if (provider) {
-      const embedProvider = getEmbedProviderByName(provider);
+      const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.regex.test(data.url)) {
         updateAttributes({ src: data.url });
       } else {
@@ -85,7 +84,7 @@ export default function EmbedView(props: NodeViewProps) {
                 </ActionIcon>
 
                 <Text component="span" size="lg" c="dimmed">
-                  Embed {capitalizeFirstChar(provider)}
+                  Embed {getEmbedProviderById(provider).name}
                 </Text>
               </div>
             </Card>
@@ -93,7 +92,7 @@ export default function EmbedView(props: NodeViewProps) {
           <Popover.Dropdown bg="var(--mantine-color-body)">
             <form onSubmit={embedForm.onSubmit(onSubmit)}>
               <FocusTrap active={true}>
-                <TextInput placeholder={`Enter ${capitalizeFirstChar(provider)} link to embed`}
+                <TextInput placeholder={`Enter ${getEmbedProviderById(provider).name} link to embed`}
                            key={embedForm.key('url')}
                            {... embedForm.getInputProps('url')}
                            data-autofocus
