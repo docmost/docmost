@@ -187,11 +187,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [treeApiRef.current]);
 
-  useEffect(() => {
-    if (rootElement.current) {
-    }
-  })
-
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
