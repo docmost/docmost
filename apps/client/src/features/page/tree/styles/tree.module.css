@@ -4,9 +4,20 @@
 
 .treeContainer {
     display: flex;
-    height: 68vh;
+    max-height: 100%;
+    height: 100%;
     flex: 1;
     min-width: 0;
+
+    > div {
+        max-height: 100% !important;
+        height: 100% !important;
+
+        > div {
+            max-height: 100% !important;
+            height: 100% !important;
+        }
+    }
 }
 
 .node {

@@ -187,6 +187,11 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [treeApiRef.current]);
 
+  useEffect(() => {
+    if (rootElement.current) {
+    }
+  })
+
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
@@ -197,7 +202,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           disableEdit={readOnly}
           {...controllers}
           width={width}
-          height={height}
+          height={height - 32}
           ref={treeApiRef}
           openByDefault={false}
           disableMultiSelection={true}
