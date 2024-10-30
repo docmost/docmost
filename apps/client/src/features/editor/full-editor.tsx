@@ -5,6 +5,7 @@ import PageEditor from "@/features/editor/page-editor";
 import { Container } from "@mantine/core";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useOs } from "@mantine/hooks";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -25,12 +26,21 @@ export function FullEditor({
   editable,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
+  const os = useOs();
+
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
+
+  // intercept ctrl+s to prevent default browser save behavior
+  document.addEventListener("keydown", function (e) {
+    if (editable && os === 'macos' ? e.metaKey : e.ctrlKey && e.code.toLowerCase() === 'keys') {
+      e.preventDefault();
+    }
+  }, false);
 
   return (
     <Container
       fluid={fullPageWidth}
-      {...(fullPageWidth && { mx: 80 })}
+      {... (fullPageWidth && { mx: 80 })}
       size={850}
       className={classes.editor}
     >
