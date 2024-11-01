@@ -1,12 +1,12 @@
 import { AppShell, Container } from "@mantine/core";
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SettingsSidebar from "@/components/settings/settings-sidebar.tsx";
 import { useAtom } from "jotai";
 import {
   asideStateAtom,
   desktopSidebarAtom,
-  mobileSidebarAtom,
+  mobileSidebarAtom, sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
@@ -21,6 +21,45 @@ export default function GlobalAppShell({
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const [{ isAsideOpen }] = useAtom(asideStateAtom);
+  const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef(null);
+
+  const startResizing = React.useCallback((mouseDownEvent) => {
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = React.useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = React.useCallback(
+    (mouseMoveEvent) => {
+      if (isResizing) {
+        const newWidth = mouseMoveEvent.clientX - sidebarRef.current.getBoundingClientRect().left;
+        if (newWidth < 220) {
+          setSidebarWidth(220);
+          return;
+        }
+        if (newWidth > 600) {
+          setSidebarWidth(600);
+          return;
+        }
+        setSidebarWidth(newWidth);
+      }
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    //https://codesandbox.io/p/sandbox/kz9de
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   const location = useLocation();
   const isSettingsRoute = location.pathname.startsWith("/settings");
@@ -33,7 +72,7 @@ export default function GlobalAppShell({
       header={{ height: 45 }}
       navbar={
         !isHomeRoute && {
-          width: 300,
+          width: isSpaceRoute ? sidebarWidth : 300,
           breakpoint: "sm",
           collapsed: {
             mobile: !mobileOpened,
@@ -54,7 +93,10 @@ export default function GlobalAppShell({
         <AppHeader />
       </AppShell.Header>
       {!isHomeRoute && (
-        <AppShell.Navbar className={classes.navbar} withBorder={false}>
+        <AppShell.Navbar className={classes.navbar} withBorder={false} ref={sidebarRef}
+                         onMouseDown={(e) => e.preventDefault()}
+        >
+          <div className={classes.resizeHandle} onMouseDown={startResizing} />
           {isSpaceRoute && <SpaceSidebar />}
           {isSettingsRoute && <SettingsSidebar />}
         </AppShell.Navbar>
