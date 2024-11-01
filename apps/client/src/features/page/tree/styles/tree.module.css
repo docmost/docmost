@@ -3,10 +3,12 @@
 }
 
 .treeContainer {
-    display: flex;
-    height: 68vh;
-    flex: 1;
+    height: 100%;
     min-width: 0;
+
+    > div, > div > .tree {
+        height: 100% !important;
+    }
 }
 
 .node {

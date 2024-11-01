@@ -18,6 +18,16 @@
     }
 }
 
+.sectionPages {
+    margin-bottom: 0;
+    overflow-y: hidden;
+
+    .pages {
+        height: 100%;
+        padding-bottom: 26px;
+    }
+}
+
 .menuItems {
     padding-left: calc(var(--mantine-spacing-md) - var(--mantine-spacing-xs));
     padding-right: calc(var(--mantine-spacing-md) - var(--mantine-spacing-xs));

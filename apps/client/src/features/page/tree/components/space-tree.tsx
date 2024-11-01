@@ -197,7 +197,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           disableEdit={readOnly}
           {...controllers}
           width={width}
-          height={height}
+          height={rootElement.current.clientHeight}
           ref={treeApiRef}
           openByDefault={false}
           disableMultiSelection={true}
