@@ -1,11 +1,11 @@
 .breadcrumbs {
-    flex: 1 1 auto;
     display: flex;
     align-items: center;
     overflow: hidden;
 
     a {
         color: var(--mantine-color-default-color);
+        line-height: inherit;
     }
 
     .mantine-Breadcrumbs-breadcrumb {
