@@ -93,9 +93,7 @@ export default function GlobalAppShell({
         <AppHeader />
       </AppShell.Header>
       {!isHomeRoute && (
-        <AppShell.Navbar className={classes.navbar} withBorder={false} ref={sidebarRef}
-                         onMouseDown={(e) => e.preventDefault()}
-        >
+        <AppShell.Navbar className={classes.navbar} withBorder={false} ref={sidebarRef}>
           <div className={classes.resizeHandle} onMouseDown={startResizing} />
           {isSpaceRoute && <SpaceSidebar />}
           {isSettingsRoute && <SettingsSidebar />}
