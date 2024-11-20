@@ -24,3 +24,17 @@ export class ExportPageDto {
   @IsBoolean()
   includeFiles?: boolean;
 }
+
+export class ExportSpaceDto {
+  @IsString()
+  @IsNotEmpty()
+  spaceId: string;
+
+  @IsString()
+  @IsIn(['html', 'markdown'])
+  format: ExportFormat;
+
+  @IsOptional()
+  @IsBoolean()
+  includeFiles?: boolean;
+}

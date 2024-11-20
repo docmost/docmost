@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -10,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ExportService } from './export.service';
-import { ExportPageDto } from './dto/export-dto';
+import { ExportPageDto, ExportSpaceDto } from './dto/export-dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
@@ -66,5 +67,40 @@ export class ImportController {
     });
 
     res.send(rawContent);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('spaces/export')
+  async exportSpace(
+    @Body() dto: ExportSpaceDto,
+    // @AuthUser() user: User,
+    // @Res() res: FastifyReply,
+  ) {
+    await this.exportService.exportSpace(dto.spaceId, dto.format);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Get('spaces/export')
+  async exportSpaceX(
+    //@Body() dto: ExportSpaceDto,
+    // @AuthUser() user: User,
+    @Res() res: FastifyReply,
+  ) {
+    const exportFile = await this.exportService.exportSpace(
+      'f57e9819-188b-4509-b11a-b695d82deb23',
+      'html',
+    );
+
+    res.headers({
+      'Content-Type': 'application/zip',
+      'Content-Disposition':
+        'attachment; filename="' +
+        encodeURIComponent(exportFile.fileName) +
+        '"',
+    });
+
+    res.send(exportFile.fileBuffer);
   }
 }
