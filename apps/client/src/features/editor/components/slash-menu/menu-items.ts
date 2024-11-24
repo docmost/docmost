@@ -18,7 +18,10 @@ import {
   IconTypography,
   IconMenu4,
   IconCalendar,
+  IconRobot,
 } from "@tabler/icons-react";
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import {
   CommandProps,
   SlashMenuGroupedItemsType,
@@ -42,6 +45,14 @@ import {
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
+    {
+      title: "Mistral AI",
+      description: "Generate content using Mistral AI",
+      searchTerms: ["ai", "mistral", "generate", "assistant"],
+      icon: IconRobot,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setMistralBlock().run(),
+    },
     {
       title: "Text",
       description: "Just start typing with plain text.",
@@ -215,7 +226,6 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         // upload file
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = "";
         input.onchange = async () => {
           if (input.files?.length) {
             const file = input.files[0];
