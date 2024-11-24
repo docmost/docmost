@@ -2,7 +2,11 @@ version: '3'
 
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_MISTRAL_API_KEY: ${VITE_MISTRAL_API_KEY}
     depends_on:
       - db
       - redis
@@ -11,6 +15,7 @@ services:
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
       DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
       REDIS_URL: 'redis://redis:6379'
+      VITE_MISTRAL_API_KEY: ${VITE_MISTRAL_API_KEY}
     ports:
       - "3000:3000"
     restart: unless-stopped

@@ -9,6 +9,11 @@ COPY . .
 
 RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
+
+# Add build-time environment variables for Vite
+ARG VITE_MISTRAL_API_KEY
+ENV VITE_MISTRAL_API_KEY=${VITE_MISTRAL_API_KEY}
+
 RUN pnpm build
 
 FROM base AS installer
