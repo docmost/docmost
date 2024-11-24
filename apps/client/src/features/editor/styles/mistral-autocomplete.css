@@ -1,0 +1,17 @@
+.mistral-completion {
+  color: #666;
+  pointer-events: none;
+  user-select: none;
+  position: relative;
+  display: inline-block;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.ProseMirror .mistral-completion::before {
+  content: "⌨";
+  font-size: 12px;
+  color: #999;
+  margin-right: 4px;
+  vertical-align: middle;
+}
