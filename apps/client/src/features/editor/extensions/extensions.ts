@@ -64,6 +64,10 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import { MistralAutocomplete } from "./mistral-autocomplete";
+import { AIAutocomplete } from "./ai-autocomplete";
+import { MistralBlock } from "./mistral-extension";
+import "@/features/editor/styles/ai-autocomplete.css";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -79,6 +83,9 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
+    heading: {
+      levels: [1, 2, 3, 4, 5, 6],
+    },
     history: false,
     dropcursor: {
       width: 3,
@@ -91,6 +98,9 @@ export const mainExtensions = [
       },
     },
   }),
+  MistralAutocomplete,
+  AIAutocomplete,
+  MistralBlock,
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
