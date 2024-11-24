@@ -1,0 +1,18 @@
+.ai-suggestion {
+  color: #6B7280;
+  opacity: 0.7;
+  background-color: #F3F4F6;
+  padding: 0 4px;
+  margin-left: 1px;
+  border-radius: 2px;
+  font-style: italic;
+  pointer-events: none;
+  user-select: none;
+  display: inline;
+}
+
+.ai-suggestion::before {
+  content: '✨';
+  margin-right: 2px;
+  font-size: 0.9em;
+}
