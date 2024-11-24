@@ -5,13 +5,15 @@ import * as path from "path";
 export const envPath = path.resolve(process.cwd(), "..", "..");
 
 export default defineConfig(({ mode }) => {
-  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT } = loadEnv(mode, envPath, "");
+  const env = loadEnv(mode, envPath, "");
+  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, VITE_MISTRAL_API_KEY } = env;
 
   return {
     define: {
       "process.env": {
         APP_URL,
-        FILE_UPLOAD_SIZE_LIMIT
+        FILE_UPLOAD_SIZE_LIMIT,
+        VITE_MISTRAL_API_KEY
       },
       'APP_VERSION': JSON.stringify(process.env.npm_package_version),
     },
