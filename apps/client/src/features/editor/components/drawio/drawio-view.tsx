@@ -3,7 +3,7 @@ import { ActionIcon, Card, Image, Modal, Text, useComputedColorScheme } from '@m
 import { useRef, useState } from 'react';
 import { uploadFile } from '@/features/page/services/page-service.ts';
 import { useDisclosure } from '@mantine/hooks';
-import { getFileUrl } from '@/lib/config.ts';
+import { getDrawioUrl, getFileUrl } from '@/lib/config.ts';
 import {
   DrawIoEmbed,
   DrawIoEmbedRef,
@@ -87,6 +87,7 @@ export default function DrawioView(props: NodeViewProps) {
               <DrawIoEmbed
                 ref={drawioRef}
                 xml={initialXML}
+                baseUrl={getDrawioUrl()}
                 urlParameters={{
                   ui: computedColorScheme === 'light' ? 'kennedy' : 'dark',
                   spin: true,
