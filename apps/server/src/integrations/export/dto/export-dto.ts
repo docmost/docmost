@@ -22,7 +22,7 @@ export class ExportPageDto {
 
   @IsOptional()
   @IsBoolean()
-  includeFiles?: boolean;
+  includeChildren?: boolean;
 }
 
 export class ExportSpaceDto {
@@ -36,5 +36,5 @@ export class ExportSpaceDto {
 
   @IsOptional()
   @IsBoolean()
-  includeFiles?: boolean;
+  includeAttachments?: boolean;
 }

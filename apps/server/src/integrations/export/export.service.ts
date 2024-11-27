@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { jsonToHtml } from '../../collaboration/collaboration.util';
 import { turndown } from './turndown-utils';
 import { ExportFormat } from './dto/export-dto';
@@ -7,22 +7,39 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as JSZip from 'jszip';
+import { StorageService } from '../storage/storage.service';
+import {
+  buildTree,
+  computeLocalPath,
+  getAttachmentIds,
+  getExportExtension,
+  getPageTitle,
+  getProsemirrorContent,
+  PageExportTree,
+  replaceInternalLinks,
+  updateAttachmentUrls,
+} from './utils';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @Injectable()
 export class ExportService {
+  private readonly logger = new Logger(ExportService.name);
+
   constructor(
     private readonly spaceRepo: SpaceRepo,
+    private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    private readonly storageService: StorageService,
   ) {}
 
   async exportPage(format: string, page: Page) {
     const titleNode = {
       type: 'heading',
       attrs: { level: 1 },
-      content: [{ type: 'text', text: page.title }],
+      content: [{ type: 'text', text: getPageTitle(page.title) }],
     };
 
-    let prosemirrorJson: any = page.content || { type: 'doc', content: [] };
+    let prosemirrorJson: any = getProsemirrorContent(page.content);
 
     if (page.title) {
       prosemirrorJson.content.unshift(titleNode);
@@ -31,7 +48,13 @@ export class ExportService {
     const pageHtml = jsonToHtml(prosemirrorJson);
 
     if (format === ExportFormat.HTML) {
-      return `<!DOCTYPE html><html><head><title>${page.title}</title></head><body>${pageHtml}</body></html>`;
+      return `<!DOCTYPE html>
+      <html>
+        <head>
+         <title>${getPageTitle(page.title)}</title>
+        </head>
+        <body>${pageHtml}</body>
+      </html>`;
     }
 
     if (format === ExportFormat.Markdown) {
@@ -41,51 +64,24 @@ export class ExportService {
     return;
   }
 
-  async exportSpace(spaceId: string, format: string) {
-    // select all pages in the space? that the user has access to? or only allow admins to do this?
-    // we could allow ordinary users to only export pages and their sub children
+  async exportPageWithChildren(pageId: string, format: string) {
+    const pages = await this.pageRepo.getPageAndDescendants(pageId);
 
-    // TODO - MVP
-    // select all pages in space
-    // format them as tree
-    // convert them to the export format
-    // zip them
+    // throw if no data
+    if (!pages || pages.length === 0) {
+      // throw
+    }
 
-    // TODO - work
-    // select all pages where spaceId = id.
-    // now, we need to create a tree with the pages by their parent associations
-    // should that be done on the db side or code side?
-    // I think code side is the best way to go about it
+    // is page a child of another page?
+    // if yes then the parentPageId has a value, the code does not work in such cases
+    // we should figure out a way to deal with it
+    const parentPageIndex = pages.findIndex((obj) => obj.id === pageId);
+    pages[parentPageIndex].parentPageId = null;
 
-    // we are to create a tree
-    // loop through the resulting array, traverse by parent id and create a tree
-
-    // get the space data.
-    // make sure user has permission to space
-    // create a folder with the space name as the folder title
-    // insert the files into the folder
-    const space = await this.db
-      .selectFrom('spaces')
-      .selectAll()
-      .where('id', '=', spaceId)
-      .executeTakeFirst();
-
-    const pages = await this.db
-      .selectFrom('pages')
-      .select([
-        'pages.id',
-        'pages.title',
-        'pages.content',
-        'pages.parentPageId',
-      ])
-      .where('spaceId', '=', spaceId)
-      .execute();
-
-    const tree = this.buildTree(pages as Page[]);
+    const tree = buildTree(pages as Page[]);
 
     const zip = new JSZip();
-
-    await this.exportTree(tree, format, zip);
+    await this.zipPages(tree, format, zip);
 
     const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
@@ -93,81 +89,65 @@ export class ExportService {
       compression: 'DEFLATE',
     });
 
-    // todo:
-    // account for pages in same directory with the same name
-    // account for attached files and images with their links
-    // fix internal page links
-    /*
-    for (const page of pages) {
-      // first, add root pages to the export root
-      if (page.parentPageId === null) {
-        const pageContent = await this.exportPage(format, page as Page);
-        zip.file(`${page.title || 'untitled'}.${format}`, pageContent);
+    return zipFile;
+  }
 
-        // to make this recursive, we have to create a reusable function
-        await this.archiveChildPages(
-          page as Page,
-          pages as Page[],
-          format,
-          zip,
-        );
-      }
+  async exportSpace(
+    spaceId: string,
+    format: string,
+    includeAttachments: boolean,
+  ) {
+    const space = await this.db
+      .selectFrom('spaces')
+      .selectAll()
+      .where('id', '=', spaceId)
+      .executeTakeFirst();
+
+    if (!space) {
+      // throw
     }
 
-    const zipFile = await zip.generateNodeStream({
+    const pages = await this.db
+      .selectFrom('pages')
+      .select([
+        'pages.id',
+        'pages.slugId',
+        'pages.title',
+        'pages.content',
+        'pages.parentPageId',
+      ])
+      .where('spaceId', '=', spaceId)
+      .execute();
+
+    const tree = buildTree(pages as Page[]);
+
+    const zip = new JSZip();
+
+    await this.zipPages(tree, format, zip, includeAttachments);
+
+    const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
       streamFiles: true,
       compression: 'DEFLATE',
     });
-*/
-    const fileName = `${space.name}-export.zip`;
-    //console.log(zipFile);
 
+    const fileName = `${space.name}-export.zip`;
     return {
       fileBuffer: zipFile,
       fileName,
     };
   }
 
-  async archiveChildPages(
-    parentPage: Page,
-    pages: Page[],
+  async zipPages(
+    tree: PageExportTree,
     format: string,
-    parentFolder: JSZip,
-  ) {
-    for (const childPage of pages) {
-      if (childPage.parentPageId === parentPage.id) {
-        const pageContent = await this.exportPage(format, childPage as Page);
+    zip: JSZip,
+    includeAttachments = true,
+  ): Promise<void> {
+    const slugIdToPath: Record<string, string> = {};
 
-        const childFolder = parentFolder
-          .folder(parentPage.title || 'untitled')
-          .file(childPage.title + '.html', pageContent);
+    computeLocalPath(tree, format, null, '', slugIdToPath);
 
-        // get folder path
-        await this.archiveChildPages(
-          childPage as Page,
-          pages as Page[],
-          format,
-          childFolder,
-        );
-      }
-    }
-  }
-
-  buildTree(pages: Page[]) {
-    const tree: Record<string, Page[]> = {};
-
-    for (const page of pages) {
-      const parentPageId = page.parentPageId;
-      if (!tree[parentPageId]) {
-        tree[parentPageId] = [];
-      }
-      tree[parentPageId].push(page);
-    }
-    return tree;
-  }
-
-  async exportTree(tree: Record<string, Page[]>, format: string, zip: JSZip) {
     const stack: { folder: JSZip; parentPageId: string }[] = [
       { folder: zip, parentPageId: null },
     ];
@@ -179,11 +159,31 @@ export class ExportService {
       for (const page of children) {
         const childPages = tree[page.id] || [];
 
-        const pageTitle = page.title ? page.title : 'untitled';
-        const pageContent = this.exportPage(format, page);
+        const prosemirrorJson = getProsemirrorContent(page.content);
 
-        folder.file(`${pageTitle}.${format}`, pageContent);
+        const currentPagePath = slugIdToPath[page.slugId];
 
+        let updatedJsonContent = replaceInternalLinks(
+          prosemirrorJson,
+          slugIdToPath,
+          currentPagePath,
+        );
+
+        if (includeAttachments) {
+          await this.zipAttachments(updatedJsonContent, folder);
+          updatedJsonContent = updateAttachmentUrls(updatedJsonContent);
+        }
+
+        const pageTitle = getPageTitle(page.title);
+        const pageExportContent = await this.exportPage(format, {
+          ...page,
+          content: updatedJsonContent,
+        });
+
+        folder.file(
+          `${pageTitle}${getExportExtension(format)}`,
+          pageExportContent,
+        );
         if (childPages.length > 0) {
           const pageFolder = folder.folder(pageTitle);
           stack.push({ folder: pageFolder, parentPageId: page.id });
@@ -192,29 +192,84 @@ export class ExportService {
     }
   }
 
+  async zipAttachments(prosemirrorJson: any, zip: JSZip) {
+    const attachmentIds = getAttachmentIds(prosemirrorJson);
+
+    if (attachmentIds.length > 0) {
+      const attachments = await this.db
+        .selectFrom('attachments')
+        .selectAll()
+        .where('id', 'in', attachmentIds)
+        .execute();
+
+      await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            const fileBuffer = await this.storageService.read(
+              attachment.filePath,
+            );
+            const filePath = `/files/${attachment.id}/${attachment.fileName}`;
+            zip.file(filePath, fileBuffer);
+          } catch (err) {
+            this.logger.debug(`Attachment export error ${attachment.id}`, err);
+          }
+        }),
+      );
+    }
+  }
 }
 
-// we have got the pages and the pages have got children
-// what do we do
-// we have to create root pages first without parents
-// then we create new directories with the names of root pages and then add their childrent to it recursivelu
+/*
+[backend] tree {
+[backend]   'a8d36c4a-9984-441f-91f7-b13e28f54b36': [
+[backend]     {
+[backend]       id: '774d2b29-5bf1-403f-8335-528347c49ca0',
+[backend]       slugId: 'MJjN28GBGJh8',
+[backend]       title: 'Sales Team',
+[backend]       icon: '👥',
+[backend]       content: [Object],
+[backend]       parentPageId: 'a8d36c4a-9984-441f-91f7-b13e28f54b36'
+[backend]     }
+[backend]   ],
+[backend]   '774d2b29-5bf1-403f-8335-528347c49ca0': [
+[backend]     {
+[backend]       id: 'c2b5e7eb-729a-4051-924d-6429bb1ff570',
+[backend]       slugId: 'On2Q0G9SDmcl',
+[backend]       title: 'Staff',
+[backend]       icon: '👩‍💻',
+[backend]       content: [Object],
+[backend]       parentPageId: '774d2b29-5bf1-403f-8335-528347c49ca0'
+[backend]     },
+[backend]     {
+[backend]       id: '7b1a5781-cffe-431c-91f2-11b6e29caa6c',
+[backend]       slugId: 'UBFEEuTjQBav',
+[backend]       title: 'Execs',
+[backend]       icon: '💵',
+[backend]       content: [Object],
+[backend]       parentPageId: '774d2b29-5bf1-403f-8335-528347c49ca0'
+[backend]     }
+[backend]   ],
+[backend]   '7b1a5781-cffe-431c-91f2-11b6e29caa6c': [
+[backend]     {
+[backend]       id: 'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f',
+[backend]       slugId: 'FKVKBVOrqe',
+[backend]       title: 'Math Zecs',
+[backend]       icon: null,
+[backend]       content: [Object],
+[backend]       parentPageId: '7b1a5781-cffe-431c-91f2-11b6e29caa6c'
+[backend]     }
+[backend]   ],
+[backend]   'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f': [
+[backend]     {
+[backend]       id: '31a8fd70-9b40-4e1c-ac05-9e7ead957dd3',
+[backend]       slugId: '1STtdJ8scY',
+[backend]       title: 'EWU SCHL',
+[backend]       icon: null,
+[backend]       content: [Object],
+[backend]       parentPageId: 'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f'
+[backend]     }
+[backend]   ]
+[backend] }
 
-// Attachments
-// we should traverse all attachments by spaceId and linked to pages
-//
 
-// we should check each page for attachments and fetch all the attachment ids
-// we should store the attachments relative to the pages directory
-// we should rewrite the attachments to point locally to the pages
-// we should think ahead of the import back to docmost
-
-// WE COULD WORK OUT INTERNAL LINKS BY KEEPING TRACK OF THE PAGE ID AND IT'S USAGE ACROSS
-// WE THEN PROCESS THE PROSEMIRROR STATE AND REPLACE THE INTERNAL LINK STRUCTURE WITH BUILT PATHS
-
-// WE COULD STORE ALL THE ATTACHMENTS IN THE ROOT DIR /FILES FOLDER, MAINTAINING THEIR IDS
-// THEN WE INTERNALLY LINK THEM OR JUST LEAVE THE DEFAULT /FILES/UUID/STR.JPG
-// WHICH TO WORK ON FIRST
-
-// FILES
-// WE GET THE FILES IN THE PROSEMIRROR JSON OF ALL PAGES OR BY SPACE ID?
-// files are broad though. we have to do same for attachments, images, videos, excalidraw and drawio.
+*/

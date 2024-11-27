@@ -25,6 +25,7 @@ import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
 import { getMimeType } from '../../common/helpers';
+import * as path from 'path';
 
 @Controller()
 export class ImportController {
@@ -55,10 +56,28 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    const rawContent = await this.exportService.exportPage(dto.format, page);
-
     const fileExt = getExportExtension(dto.format);
-    const fileName = sanitize(page.title || 'Untitled') + fileExt;
+    const fileName = sanitize(page.title || 'untitled') + fileExt;
+
+    if (dto.includeChildren) {
+      const zipFileBuffer = await this.exportService.exportPageWithChildren(
+        dto.pageId,
+        dto.format,
+      );
+
+      const newName = path.parse(fileName).name + '.zip';
+
+      res.headers({
+        'Content-Type': 'application/zip',
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(newName) + '"',
+      });
+
+      res.send(zipFileBuffer);
+      return;
+    }
+
+    const rawContent = await this.exportService.exportPage(dto.format, page);
 
     res.headers({
       'Content-Type': getMimeType(fileExt),
@@ -74,23 +93,18 @@ export class ImportController {
   @Post('spaces/export')
   async exportSpace(
     @Body() dto: ExportSpaceDto,
-    // @AuthUser() user: User,
-    // @Res() res: FastifyReply,
-  ) {
-    await this.exportService.exportSpace(dto.spaceId, dto.format);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @Get('spaces/export')
-  async exportSpaceX(
-    //@Body() dto: ExportSpaceDto,
-    // @AuthUser() user: User,
+    @AuthUser() user: User,
     @Res() res: FastifyReply,
   ) {
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     const exportFile = await this.exportService.exportSpace(
-      'f57e9819-188b-4509-b11a-b695d82deb23',
-      'html',
+      dto.spaceId,
+      dto.format,
+      dto.includeAttachments,
     );
 
     res.headers({

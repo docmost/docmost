@@ -24,6 +24,7 @@ import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import PageExportModal from "@/features/page/components/page-export-modal.tsx";
+import ExportModal from "@/components/common/export-modal";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -154,8 +155,9 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         </Menu.Dropdown>
       </Menu>
 
-      <PageExportModal
-        pageId={page.id}
+      <ExportModal
+        type="page"
+        id={page.id}
         open={exportOpened}
         onClose={closeExportModal}
       />

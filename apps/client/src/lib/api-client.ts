@@ -26,14 +26,18 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  },
+  }
 );
 
 api.interceptors.response.use(
   (response) => {
-    // we need the response headers
-    if (response.request.responseURL.includes("/api/pages/export")) {
-      return response;
+    // we need the response headers for these endpoints
+    const exemptEndpoints = ["/api/pages/export", "/api/spaces/export"];
+    if (response.request.responseURL) {
+      const path = new URL(response.request.responseURL)?.pathname;
+      if (path && exemptEndpoints.includes(path)) {
+        return response;
+      }
     }
 
     return response.data;
@@ -72,7 +76,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 function redirectToLogin() {
