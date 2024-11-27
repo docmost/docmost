@@ -72,10 +72,8 @@ export class ExportService {
       // throw
     }
 
-    // is page a child of another page?
-    // if yes then the parentPageId has a value, the code does not work in such cases
-    // we should figure out a way to deal with it
     const parentPageIndex = pages.findIndex((obj) => obj.id === pageId);
+    // set to null to make export of pages with parentId work
     pages[parentPageIndex].parentPageId = null;
 
     const tree = buildTree(pages as Page[]);
@@ -218,58 +216,3 @@ export class ExportService {
     }
   }
 }
-
-/*
-[backend] tree {
-[backend]   'a8d36c4a-9984-441f-91f7-b13e28f54b36': [
-[backend]     {
-[backend]       id: '774d2b29-5bf1-403f-8335-528347c49ca0',
-[backend]       slugId: 'MJjN28GBGJh8',
-[backend]       title: 'Sales Team',
-[backend]       icon: '👥',
-[backend]       content: [Object],
-[backend]       parentPageId: 'a8d36c4a-9984-441f-91f7-b13e28f54b36'
-[backend]     }
-[backend]   ],
-[backend]   '774d2b29-5bf1-403f-8335-528347c49ca0': [
-[backend]     {
-[backend]       id: 'c2b5e7eb-729a-4051-924d-6429bb1ff570',
-[backend]       slugId: 'On2Q0G9SDmcl',
-[backend]       title: 'Staff',
-[backend]       icon: '👩‍💻',
-[backend]       content: [Object],
-[backend]       parentPageId: '774d2b29-5bf1-403f-8335-528347c49ca0'
-[backend]     },
-[backend]     {
-[backend]       id: '7b1a5781-cffe-431c-91f2-11b6e29caa6c',
-[backend]       slugId: 'UBFEEuTjQBav',
-[backend]       title: 'Execs',
-[backend]       icon: '💵',
-[backend]       content: [Object],
-[backend]       parentPageId: '774d2b29-5bf1-403f-8335-528347c49ca0'
-[backend]     }
-[backend]   ],
-[backend]   '7b1a5781-cffe-431c-91f2-11b6e29caa6c': [
-[backend]     {
-[backend]       id: 'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f',
-[backend]       slugId: 'FKVKBVOrqe',
-[backend]       title: 'Math Zecs',
-[backend]       icon: null,
-[backend]       content: [Object],
-[backend]       parentPageId: '7b1a5781-cffe-431c-91f2-11b6e29caa6c'
-[backend]     }
-[backend]   ],
-[backend]   'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f': [
-[backend]     {
-[backend]       id: '31a8fd70-9b40-4e1c-ac05-9e7ead957dd3',
-[backend]       slugId: '1STtdJ8scY',
-[backend]       title: 'EWU SCHL',
-[backend]       icon: null,
-[backend]       content: [Object],
-[backend]       parentPageId: 'fbc22f11-6f0a-4efa-9e2e-8e1ce794b47f'
-[backend]     }
-[backend]   ]
-[backend] }
-
-
-*/
