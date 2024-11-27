@@ -38,7 +38,7 @@ export default function MathInlineView(props: NodeViewProps) {
       renderMath(preview || "", mathPreviewContainer.current);
     } else if (preview !== null) {
       queueMicrotask(() => {
-        updateAttributes({ text: preview });
+        updateAttributes({ text: preview.trim() });
       });
     }
   }, [preview, isEditing]);
@@ -97,7 +97,7 @@ export default function MathInlineView(props: NodeViewProps) {
             ref={textAreaRef}
             draggable={false}
             classNames={{ input: classes.textInput }}
-            value={preview?.trim() ?? ""}
+            value={preview ?? ""}
             placeholder={"E = mc^2"}
             onKeyDown={(e) => {
               if (e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)) {
