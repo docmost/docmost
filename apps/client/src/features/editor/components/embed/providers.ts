@@ -10,7 +10,10 @@ export const embedProviders: IEmbedProvider[] = [
     id: 'loom',
     name: 'Loom',
     regex: /^https?:\/\/(?:www\.)?loom\.com\/(?:share|embed)\/([\da-zA-Z]+)\/?/,
-    getEmbedUrl: (match) => {
+    getEmbedUrl: (match, url) => {
+      if(url.includes("/embed/")){
+        return url;
+      }
       return `https://loom.com/embed/${match[1]}`;
     }
   },
@@ -20,6 +23,9 @@ export const embedProviders: IEmbedProvider[] = [
     regex: /^https:\/\/(www.)?airtable.com\/([a-zA-Z0-9]{2,})\/.*/,
     getEmbedUrl: (match, url: string) => {
       const path = url.split('airtable.com/');
+      if(url.includes("/embed/")){
+        return url;
+      }
       return `https://airtable.com/embed/${path[1]}`;
     }
   },
@@ -43,7 +49,10 @@ export const embedProviders: IEmbedProvider[] = [
     id: 'miro',
     name: 'Miro',
     regex: /^https:\/\/(www\.)?miro\.com\/app\/board\/([\w-]+=)/,
-    getEmbedUrl: (match) => {
+    getEmbedUrl: (match, url) => {
+      if(url.includes("/live-embed/")){
+        return url;
+      }
       return `https://miro.com/app/live-embed/${match[2]}?embedMode=view_only_without_ui&autoplay=true&embedSource=docmost`;
     }
   },
@@ -51,7 +60,10 @@ export const embedProviders: IEmbedProvider[] = [
     id: 'youtube',
     name: 'YouTube',
     regex: /^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
-    getEmbedUrl: (match) => {
+    getEmbedUrl: (match, url) => {
+      if (url.includes("/embed/")){
+        return url;
+      }
       return `https://www.youtube-nocookie.com/embed/${match[5]}`;
     }
   },
