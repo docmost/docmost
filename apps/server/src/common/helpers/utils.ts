@@ -18,15 +18,25 @@ export async function comparePasswordHash(
 export type RedisConfig = {
   host: string;
   port: number;
+  db: number;
   password?: string;
 };
 
 export function parseRedisUrl(redisUrl: string): RedisConfig {
   // format - redis[s]://[[username][:password]@][host][:port][/db-number]
-  const { hostname, port, password } = new URL(redisUrl);
+  const { hostname, port, password, pathname } = new URL(redisUrl);
   const portInt = parseInt(port, 10);
 
-  return { host: hostname, port: portInt, password };
+  let db: number = 0;
+  // extract db value if present
+  if (pathname.length > 1) {
+    const value = pathname.slice(1);
+    if (!isNaN(parseInt(value))){
+      db = parseInt(value, 10);
+    }
+  }
+
+  return { host: hostname, port: portInt, password, db };
 }
 
 export function createRetryStrategy() {
