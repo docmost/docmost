@@ -75,18 +75,19 @@ export function useTreeMutation<T>(spaceId: string) {
     setTimeout(() => {
       emit({
         operation: "addTreeNode",
+        spaceId: spaceId,
         payload: {
           parentId,
           index,
-          data
-        }
+          data,
+        },
       });
     }, 50);
 
     const pageUrl = buildPageUrl(
       spaceSlug,
       createdPage.slugId,
-      createdPage.title,
+      createdPage.title
     );
     navigate(pageUrl);
     return data;
@@ -156,17 +157,15 @@ export function useTreeMutation<T>(spaceId: string) {
       // check if the previous still has children
       // if no children left, change 'hasChildren' to false, to make the page toggle arrows work properly
       const childrenCount = previousParent.children.filter(
-        (child) => child.id !== draggedNodeId,
+        (child) => child.id !== draggedNodeId
       ).length;
       if (childrenCount === 0) {
         tree.update({
           id: previousParent.id,
-          changes: { ... previousParent.data, hasChildren: false } as any,
+          changes: { ...previousParent.data, hasChildren: false } as any,
         });
       }
     }
-
-    //console.log()
 
     setData(tree.data);
 
@@ -182,7 +181,13 @@ export function useTreeMutation<T>(spaceId: string) {
       setTimeout(() => {
         emit({
           operation: "moveTreeNode",
-          payload: { id: draggedNodeId, parentId: args.parentId, index: args.index, position: newPosition },
+          spaceId: spaceId,
+          payload: {
+            id: draggedNodeId,
+            parentId: args.parentId,
+            index: args.index,
+            position: newPosition,
+          },
         });
       }, 50);
     } catch (error) {
@@ -214,17 +219,17 @@ export function useTreeMutation<T>(spaceId: string) {
       setData(tree.data);
 
       // navigate only if the current url is same as the deleted page
-      if (pageSlug && node.data.slugId === pageSlug.split('-')[1]) {
+      if (pageSlug && node.data.slugId === pageSlug.split("-")[1]) {
         navigate(getSpaceUrl(spaceSlug));
       }
 
       setTimeout(() => {
         emit({
           operation: "deleteTreeNode",
-          payload: { node: node.data }
+          spaceId: spaceId,
+          payload: { node: node.data },
         });
       }, 50);
-
     } catch (error) {
       console.error("Failed to delete page:", error);
     }
