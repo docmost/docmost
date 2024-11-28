@@ -26,6 +26,7 @@ export default function GlobalAppShell({
   const sidebarRef = useRef(null);
 
   const startResizing = React.useCallback((mouseDownEvent) => {
+    mouseDownEvent.preventDefault();
     setIsResizing(true);
   }, []);
 
