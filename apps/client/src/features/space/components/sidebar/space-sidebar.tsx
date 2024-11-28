@@ -14,6 +14,7 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconTrash,
 } from '@tabler/icons-react';
 
 import classes from './space-sidebar.module.css';
@@ -25,6 +26,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { useDisclosure } from '@mantine/hooks';
 import SpaceSettingsModal from '@/features/space/components/settings-modal.tsx';
+import RecycleBinModal from "@/features/space/components/recycle-bin-modal.tsx";
 import { useGetSpaceBySlugQuery } from '@/features/space/queries/space-query.ts';
 import { getSpaceUrl } from '@/lib/config.ts';
 import SpaceTree from '@/features/page/tree/components/space-tree.tsx';
@@ -40,6 +42,8 @@ export function SpaceSidebar() {
   const [tree] = useAtom(treeApiAtom);
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
+    useDisclosure(false);
+  const [openedRecycleBin, { open: openRecycleBin, close: closeRecycleBin }] =
     useDisclosure(false);
   const { spaceSlug } = useParams();
   const { data: space, isLoading, isError } = useGetSpaceBySlugQuery(spaceSlug);
@@ -113,6 +117,17 @@ export function SpaceSidebar() {
               </div>
             </UnstyledButton>
 
+            <UnstyledButton className={classes.menu} onClick={openRecycleBin}>
+              <div className={classes.menuItemInner}>
+                <IconTrash
+                  size={18}
+                  className={classes.menuItemIcon}
+                  stroke={2}
+                />
+                <span>Recycle Bin</span>
+              </div>
+            </UnstyledButton>
+
             {spaceAbility.can(
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page
@@ -176,6 +191,12 @@ export function SpaceSidebar() {
       <SpaceSettingsModal
         opened={opened}
         onClose={closeSettings}
+        spaceId={space?.slug}
+      />
+
+      <RecycleBinModal
+        opened={openedRecycleBin}
+        onClose={closeRecycleBin}
         spaceId={space?.slug}
       />
 
