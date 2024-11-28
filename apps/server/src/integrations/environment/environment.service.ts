@@ -122,6 +122,10 @@ export class EnvironmentService {
     return this.configService.get<string>('POSTMARK_TOKEN');
   }
 
+  getDrawioUrl(): string {
+    return this.configService.get<string>('DRAWIO_URL');
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')
