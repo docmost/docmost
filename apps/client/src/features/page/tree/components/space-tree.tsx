@@ -191,7 +191,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
         <Tree
-          data={data}
+          data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
           disableDrop={readOnly}
           disableEdit={readOnly}
