@@ -10,9 +10,7 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import {
-  useUpdatePageMutation,
-} from "@/features/page/queries/page-query";
+import { useUpdatePageMutation } from "@/features/page/queries/page-query";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
@@ -39,14 +37,17 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
   const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
-  const updatePageMutation = useUpdatePageMutation();
+  const {
+    data: updatedPageData,
+    mutate: updatePageMutation,
+    status,
+  } = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
-
 
   const titleEditor = useEditor({
     extensions: [
@@ -87,24 +88,29 @@ export function TitleEditor({
 
   useEffect(() => {
     if (debouncedTitle !== null && activePageId === pageId) {
-      updatePageMutation.mutate({
+      updatePageMutation({
         pageId: pageId,
         title: debouncedTitle,
       });
+    }
+  }, [debouncedTitle]);
+
+  useEffect(() => {
+    if (status === "success" && updatedPageData) {
+      const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
+      setTreeData(newTreeData);
 
       setTimeout(() => {
         emit({
           operation: "updateOne",
+          spaceId: updatedPageData.spaceId,
           entity: ["pages"],
           id: pageId,
           payload: { title: debouncedTitle, slugId: slugId },
         });
       }, 50);
-
-      const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
-      setTreeData(newTreeData);
     }
-  }, [debouncedTitle]);
+  }, [updatedPageData, status]);
 
   useEffect(() => {
     if (titleEditor && title !== titleEditor.getText()) {
