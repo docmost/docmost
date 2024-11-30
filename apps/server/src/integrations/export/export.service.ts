@@ -131,7 +131,7 @@ export class ExportService {
       compression: 'DEFLATE',
     });
 
-    const fileName = `${space.name}-export${getExportExtension(format)}.zip`;
+    const fileName = `${space.name}-space-export${getExportExtension(format)}.zip`;
     return {
       fileBuffer: zipFile,
       fileName,
