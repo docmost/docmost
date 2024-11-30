@@ -1,26 +1,45 @@
-import { Modal, Button, Group, Text, Select, Switch } from "@mantine/core";
+import {
+  Modal,
+  Button,
+  Group,
+  Text,
+  Select,
+  Switch,
+  Divider,
+} from "@mantine/core";
 import { exportPage } from "@/features/page/services/page-service.ts";
 import { useState } from "react";
-import * as React from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
+import { exportSpace } from "@/features/space/services/space-service";
 
-interface PageExportModalProps {
-  pageId: string;
+interface ExportModalProps {
+  id: string;
+  type: "space" | "page";
   open: boolean;
   onClose: () => void;
 }
 
-export default function PageExportModal({
-  pageId,
+export default function ExportModal({
+  id,
+  type,
   open,
   onClose,
-}: PageExportModalProps) {
+}: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
+  const [includeChildren, setIncludeChildren] = useState<boolean>(false);
+  const [includeAttachments, setIncludeAttachments] = useState<boolean>(true);
 
   const handleExport = async () => {
     try {
-      await exportPage({ pageId: pageId, format });
+      if (type === "page") {
+        await exportPage({ pageId: id, format, includeChildren });
+      }
+      if (type === "space") {
+        await exportSpace({ spaceId: id, format, includeAttachments });
+      }
+      setIncludeChildren(false);
+      setIncludeAttachments(true);
       onClose();
     } catch (err) {
       notifications.show({
@@ -48,7 +67,7 @@ export default function PageExportModal({
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>Export page</Modal.Title>
+          <Modal.Title fw={500}>Export {type}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
@@ -57,17 +76,43 @@ export default function PageExportModal({
               <Text size="md">Format</Text>
             </div>
             <ExportFormatSelection format={format} onChange={handleChange} />
-
           </Group>
 
-          <Group justify="space-between" wrap="nowrap" pt="md">
-            <div>
-              <Text size="md">Include subpages</Text>
-            </div>
-            <Switch defaultChecked />
+          {type === "page" && (
+            <>
+              <Divider my="sm" />
 
-          </Group>
+              <Group justify="space-between" wrap="nowrap">
+                <div>
+                  <Text size="md">Include subpages</Text>
+                </div>
+                <Switch
+                  onChange={(event) =>
+                    setIncludeChildren(event.currentTarget.checked)
+                  }
+                  checked={includeChildren}
+                />
+              </Group>
+            </>
+          )}
 
+          {type === "space" && (
+            <>
+              <Divider my="sm" />
+
+              <Group justify="space-between" wrap="nowrap">
+                <div>
+                  <Text size="md">Include attachments</Text>
+                </div>
+                <Switch
+                  onChange={(event) =>
+                    setIncludeAttachments(event.currentTarget.checked)
+                  }
+                  checked={includeAttachments}
+                />
+              </Group>
+            </>
+          )}
 
           <Group justify="center" mt="md">
             <Button onClick={onClose} variant="default">

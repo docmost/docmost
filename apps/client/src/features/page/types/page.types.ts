@@ -48,6 +48,7 @@ export interface IPageInput {
 export interface IExportPageParams {
   pageId: string;
   format: ExportFormat;
+  includeChildren?: boolean;
 }
 
 export enum ExportFormat {

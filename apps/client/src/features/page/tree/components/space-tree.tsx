@@ -15,7 +15,7 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconDotsVertical,
-  IconFileDescription,
+  IconFileDescription, IconFileExport,
   IconLink,
   IconPlus,
   IconPointFilled,
@@ -39,7 +39,12 @@ import {
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
-import { useClipboard, useElementSize, useMergedRef } from "@mantine/hooks";
+import {
+  useClipboard,
+  useDisclosure,
+  useElementSize,
+  useMergedRef,
+} from "@mantine/hooks";
 import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -47,6 +52,7 @@ import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import ExportModal from "@/components/common/export-modal";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -402,6 +408,8 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
+  const [exportOpened, { open: openExportModal, close: closeExportModal }] =
+    useDisclosure(false);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -411,56 +419,76 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   };
 
   return (
-    <Menu shadow="md" width={200}>
-      <Menu.Target>
-        <ActionIcon
-          variant="transparent"
-          c="gray"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <IconDotsVertical
-            style={{ width: rem(20), height: rem(20) }}
-            stroke={2}
-          />
-        </ActionIcon>
-      </Menu.Target>
+    <>
+      <Menu shadow="md" width={200}>
+        <Menu.Target>
+          <ActionIcon
+            variant="transparent"
+            c="gray"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <IconDotsVertical
+              style={{ width: rem(20), height: rem(20) }}
+              stroke={2}
+            />
+          </ActionIcon>
+        </Menu.Target>
 
-      <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<IconLink style={{ width: rem(14), height: rem(14) }} />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleCopyLink();
-          }}
-        >
-          Copy link
-        </Menu.Item>
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<IconLink size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleCopyLink();
+            }}
+          >
+            Copy link
+          </Menu.Item>
 
-        {!(treeApi.props.disableEdit as boolean) && (
-          <>
-            <Menu.Divider />
+          <Menu.Item
+            leftSection={<IconFileExport size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openExportModal();
+            }}
+          >
+            Export page
+          </Menu.Item>
 
-            <Menu.Item
-              c="red"
-              leftSection={
-                <IconTrash style={{ width: rem(14), height: rem(14) }} />
-              }
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
-              }}
-            >
-              Delete
-            </Menu.Item>
-          </>
-        )}
-      </Menu.Dropdown>
-    </Menu>
+          {!(treeApi.props.disableEdit as boolean) && (
+            <>
+              <Menu.Divider />
+
+              <Menu.Item
+                c="red"
+                leftSection={
+                  <IconTrash size={16} />
+                }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
+                }}
+              >
+                Delete
+              </Menu.Item>
+            </>
+          )}
+        </Menu.Dropdown>
+      </Menu>
+
+      <ExportModal
+        type="page"
+        id={node.id}
+        open={exportOpened}
+        onClose={closeExportModal}
+      />
+    </>
   );
 }
 

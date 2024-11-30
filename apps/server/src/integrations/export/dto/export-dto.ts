@@ -22,5 +22,19 @@ export class ExportPageDto {
 
   @IsOptional()
   @IsBoolean()
-  includeFiles?: boolean;
+  includeChildren?: boolean;
+}
+
+export class ExportSpaceDto {
+  @IsString()
+  @IsNotEmpty()
+  spaceId: string;
+
+  @IsString()
+  @IsIn(['html', 'markdown'])
+  format: ExportFormat;
+
+  @IsOptional()
+  @IsBoolean()
+  includeAttachments?: boolean;
 }
