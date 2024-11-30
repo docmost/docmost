@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   ForbiddenException,
-  Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -25,7 +24,6 @@ import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
 import { getMimeType } from '../../common/helpers';
-import * as path from 'path';
 
 @Controller()
 export class ImportController {
@@ -65,7 +63,7 @@ export class ImportController {
         dto.format,
       );
 
-      const newName = path.parse(fileName).name + '.zip';
+      const newName = fileName + '.zip';
 
       res.headers({
         'Content-Type': 'application/zip',
@@ -111,7 +109,7 @@ export class ImportController {
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(exportFile.fileName) +
+        encodeURIComponent(sanitize(exportFile.fileName)) +
         '"',
     });
 

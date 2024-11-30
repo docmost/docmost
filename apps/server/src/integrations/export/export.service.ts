@@ -1,9 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { jsonToHtml } from '../../collaboration/collaboration.util';
 import { turndown } from './turndown-utils';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
-import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as JSZip from 'jszip';
@@ -26,7 +30,6 @@ export class ExportService {
   private readonly logger = new Logger(ExportService.name);
 
   constructor(
-    private readonly spaceRepo: SpaceRepo,
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
@@ -67,9 +70,8 @@ export class ExportService {
   async exportPageWithChildren(pageId: string, format: string) {
     const pages = await this.pageRepo.getPageAndDescendants(pageId);
 
-    // throw if no data
     if (!pages || pages.length === 0) {
-      // throw
+      throw new BadRequestException('No pages to export');
     }
 
     const parentPageIndex = pages.findIndex((obj) => obj.id === pageId);
@@ -102,7 +104,7 @@ export class ExportService {
       .executeTakeFirst();
 
     if (!space) {
-      // throw
+      throw new NotFoundException('Space not found');
     }
 
     const pages = await this.db
@@ -129,7 +131,7 @@ export class ExportService {
       compression: 'DEFLATE',
     });
 
-    const fileName = `${space.name}-export.zip`;
+    const fileName = `${space.name}-export${getExportExtension(format)}.zip`;
     return {
       fileBuffer: zipFile,
       fileName,
@@ -168,7 +170,7 @@ export class ExportService {
         );
 
         if (includeAttachments) {
-          await this.zipAttachments(updatedJsonContent, folder);
+          await this.zipAttachments(updatedJsonContent, page.spaceId, folder);
           updatedJsonContent = updateAttachmentUrls(updatedJsonContent);
         }
 
@@ -190,7 +192,7 @@ export class ExportService {
     }
   }
 
-  async zipAttachments(prosemirrorJson: any, zip: JSZip) {
+  async zipAttachments(prosemirrorJson: any, spaceId: string, zip: JSZip) {
     const attachmentIds = getAttachmentIds(prosemirrorJson);
 
     if (attachmentIds.length > 0) {
@@ -198,6 +200,7 @@ export class ExportService {
         .selectFrom('attachments')
         .selectAll()
         .where('id', 'in', attachmentIds)
+        .where('spaceId', '=', spaceId)
         .execute();
 
       await Promise.all(
