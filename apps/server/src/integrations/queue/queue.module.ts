@@ -15,6 +15,7 @@ import { QueueName } from './constants';
             host: redisConfig.host,
             port: redisConfig.port,
             password: redisConfig.password,
+            db: redisConfig.db,
             retryStrategy: createRetryStrategy(),
           },
           defaultJobOptions: {

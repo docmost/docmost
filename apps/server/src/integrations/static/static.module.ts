@@ -33,7 +33,8 @@ export class StaticModule implements OnModuleInit {
         ENV: this.environmentService.getNodeEnv(),
         APP_URL: this.environmentService.getAppUrl(),
         IS_CLOUD: this.environmentService.isCloud(),
-        FILE_UPLOAD_SIZE_LIMIT: this.environmentService.getFileUploadSizeLimit()
+        FILE_UPLOAD_SIZE_LIMIT: this.environmentService.getFileUploadSizeLimit(),
+        DRAWIO_URL: this.environmentService.getDrawioUrl()
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;

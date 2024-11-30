@@ -57,6 +57,14 @@ export function getFileUrl(src: string) {
 }
 
 export function getFileUploadSizeLimit() {
-    const limit = window.CONFIG?.FILE_UPLOAD_SIZE_LIMIT || process?.env.FILE_UPLOAD_SIZE_LIMIT || '50mb';
+    const limit =getConfigValue("FILE_UPLOAD_SIZE_LIMIT", "50mb");
     return bytes(limit);
+}
+
+export function getDrawioUrl() {
+    return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
+}
+
+function getConfigValue(key: string, defaultValue: string = undefined) {
+    return window.CONFIG?.[key] || process?.env?.[key] || defaultValue;
 }

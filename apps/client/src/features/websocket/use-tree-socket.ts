@@ -46,30 +46,34 @@ export const useTreeSocket = () => {
           break;
         case 'moveTreeNode':
           // move node
-          treeApi.move({
-            id: event.payload.id,
-            parentId: event.payload.parentId,
-            index: event.payload.index
-          });
+          if (treeApi.find(event.payload.id)) {
+            treeApi.move({
+              id: event.payload.id,
+              parentId: event.payload.parentId,
+              index: event.payload.index
+            });
 
-          // update node position
-          treeApi.update({
-            id: event.payload.id,
-            changes: {
-              position: event.payload.position,
-            }
-          });
+            // update node position
+            treeApi.update({
+              id: event.payload.id,
+              changes: {
+                position: event.payload.position,
+              }
+            });
 
-          setTreeData(treeApi.data);
+            setTreeData(treeApi.data);
+          }
 
           break;
         case "deleteTreeNode":
-          treeApi.drop({ id: event.payload.node.id });
-          setTreeData(treeApi.data);
+          if (treeApi.find(event.payload.node.id)){
+            treeApi.drop({ id: event.payload.node.id });
+            setTreeData(treeApi.data);
 
-          queryClient.invalidateQueries({
-            queryKey: ['pages', event.payload.node.slugId].filter(Boolean),
-          });
+            queryClient.invalidateQueries({
+              queryKey: ['pages', event.payload.node.slugId].filter(Boolean),
+            });
+          }
           break;
       }
     });
