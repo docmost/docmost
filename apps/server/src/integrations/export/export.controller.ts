@@ -24,9 +24,10 @@ import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
 import { getMimeType } from '../../common/helpers';
+import * as path from 'path';
 
 @Controller()
-export class ImportController {
+export class ExportController {
   constructor(
     private readonly exportService: ExportService,
     private readonly pageRepo: PageRepo,
@@ -63,7 +64,7 @@ export class ImportController {
         dto.format,
       );
 
-      const newName = fileName + '.zip';
+      const newName = path.parse(fileName).name + '.zip';
 
       res.headers({
         'Content-Type': 'application/zip',
