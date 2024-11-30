@@ -15,8 +15,7 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconDotsVertical,
-  IconDownload,
-  IconFileDescription,
+  IconFileDescription, IconFileExport,
   IconLink,
   IconPlus,
   IconPointFilled,
@@ -449,7 +448,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<IconDownload size={16} />}
+            leftSection={<IconFileExport size={16} />}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

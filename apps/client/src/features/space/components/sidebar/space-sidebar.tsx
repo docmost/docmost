@@ -10,7 +10,7 @@ import { spotlight } from "@mantine/spotlight";
 import {
   IconArrowDown,
   IconDots,
-  IconDownload,
+  IconFileExport,
   IconHome,
   IconPlus,
   IconSearch,
@@ -221,7 +221,7 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
 
           <Menu.Item
             onClick={openExportModal}
-            leftSection={<IconDownload size={16} />}
+            leftSection={<IconFileExport size={16} />}
           >
             Export space
           </Menu.Item>

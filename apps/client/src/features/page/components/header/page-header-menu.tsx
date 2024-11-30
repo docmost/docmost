@@ -2,7 +2,7 @@ import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
   IconArrowsHorizontal,
   IconDots,
-  IconDownload,
+  IconFileExport,
   IconHistory,
   IconLink,
   IconMessage,
@@ -127,7 +127,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<IconDownload size={16} />}
+            leftSection={<IconFileExport size={16} />}
             onClick={openExportModal}
           >
             Export
