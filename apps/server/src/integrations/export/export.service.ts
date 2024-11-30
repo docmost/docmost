@@ -115,6 +115,7 @@ export class ExportService {
         'pages.title',
         'pages.content',
         'pages.parentPageId',
+        'pages.spaceId'
       ])
       .where('spaceId', '=', spaceId)
       .execute();
