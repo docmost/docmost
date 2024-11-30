@@ -23,7 +23,7 @@ import {
   showCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom } from "jotai";
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 
@@ -84,7 +84,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     name: "comment",
     isActive: () => props.editor.isActive("comment"),
     command: () => {
-      const commentId = uuidv4();
+      const commentId = uuid7();
 
       props.editor.chain().focus().setCommentDecoration().run();
       setDraftCommentId(commentId);
