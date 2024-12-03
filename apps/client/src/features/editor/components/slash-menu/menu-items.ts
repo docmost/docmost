@@ -29,6 +29,16 @@ import { uploadAttachmentAction } from "@/features/editor/components/attachment/
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
+import {
+  AirtableIcon,
+  FigmaIcon,
+  FramerIcon,
+  GoogleDriveIcon,
+  LoomIcon,
+  MiroIcon,
+  TypeformIcon,
+  VimeoIcon, YoutubeIcon
+} from "@/components/icons";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -343,12 +353,93 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           day: "numeric",
         });
 
-        return editor
+        editor
           .chain()
           .focus()
           .deleteRange(range)
           .insertContent(currentDate)
           .run();
+      },
+    },
+    {
+      title: "Airtable",
+      description: "Embed Airtable",
+      searchTerms: ["airtable"],
+      icon: AirtableIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'airtable' }).run();
+      },
+    },
+    {
+      title: "Loom",
+      description: "Embed Loom video",
+      searchTerms: ["loom"],
+      icon: LoomIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'loom' }).run();
+      },
+    },
+    {
+      title: "Figma",
+      description: "Embed Figma files",
+      searchTerms: ["figma"],
+      icon: FigmaIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'figma' }).run();
+      },
+    },
+    {
+      title: "Typeform",
+      description: "Embed Typeform",
+      searchTerms: ["typeform"],
+      icon: TypeformIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'typeform' }).run();
+      },
+    },
+    {
+      title: "Miro",
+      description: "Embed Miro board",
+      searchTerms: ["miro"],
+      icon: MiroIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'miro' }).run();
+      },
+    },
+    {
+      title: "YouTube",
+      description: "Embed YouTube video",
+      searchTerms: ["youtube", "yt"],
+      icon: YoutubeIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'youtube' }).run();
+      },
+    },
+    {
+      title: "Vimeo",
+      description: "Embed Vimeo video",
+      searchTerms: ["vimeo"],
+      icon: VimeoIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'vimeo' }).run();
+      },
+    },
+    {
+      title: "Framer",
+      description: "Embed Framer prototype",
+      searchTerms: ["framer"],
+      icon: FramerIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'framer' }).run();
+      },
+    },
+    {
+      title: "Google Drive",
+      description: "Embed Google Drive content",
+      searchTerms: ["google drive", "gdrive"],
+      icon: GoogleDriveIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).setEmbed({ provider: 'gdrive' }).run();
       },
     },
   ],
@@ -362,7 +453,7 @@ export const getSuggestionItems = ({
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
 
-  const fuzzyMatch = (query, target) => {
+  const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
     target = target.toLowerCase();
     for (let char of target) {

@@ -5,37 +5,39 @@ import {
   Text,
   Tooltip,
   UnstyledButton,
-} from '@mantine/core';
-import { spotlight } from '@mantine/spotlight';
+} from "@mantine/core";
+import { spotlight } from "@mantine/spotlight";
 import {
   IconArrowDown,
   IconDots,
+  IconFileExport,
   IconHome,
   IconPlus,
   IconSearch,
   IconSettings,
-} from '@tabler/icons-react';
+} from "@tabler/icons-react";
 
-import classes from './space-sidebar.module.css';
-import React, { useMemo } from 'react';
-import { useAtom } from 'jotai';
-import { SearchSpotlight } from '@/features/search/search-spotlight.tsx';
-import { treeApiAtom } from '@/features/page/tree/atoms/tree-api-atom.ts';
-import { Link, useLocation, useParams } from 'react-router-dom';
-import clsx from 'clsx';
-import { useDisclosure } from '@mantine/hooks';
-import SpaceSettingsModal from '@/features/space/components/settings-modal.tsx';
-import { useGetSpaceBySlugQuery } from '@/features/space/queries/space-query.ts';
-import { getSpaceUrl } from '@/lib/config.ts';
-import SpaceTree from '@/features/page/tree/components/space-tree.tsx';
-import { useSpaceAbility } from '@/features/space/permissions/use-space-ability.ts';
+import classes from "./space-sidebar.module.css";
+import React, { useMemo } from "react";
+import { useAtom } from "jotai";
+import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
+import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { Link, useLocation, useParams } from "react-router-dom";
+import clsx from "clsx";
+import { useDisclosure } from "@mantine/hooks";
+import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { getSpaceUrl } from "@/lib/config.ts";
+import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import PageImportModal from "@/features/page/components/page-import-modal.tsx";
-import { SwitchSpace } from './switch-space';
 import { useTranslation } from "react-i18next";
+import { SwitchSpace } from "./switch-space";
+import ExportModal from "@/components/common/export-modal";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -54,7 +56,7 @@ export function SpaceSidebar() {
   }
 
   function handleCreatePage() {
-    tree?.create({ parentId: null, type: 'internal', index: 0 });
+    tree?.create({ parentId: null, type: "internal", index: 0 });
   }
 
   return (
@@ -63,7 +65,7 @@ export function SpaceSidebar() {
         <div
           className={classes.section}
           style={{
-            border: 'none',
+            border: "none",
             marginTop: 2,
             marginBottom: 3,
           }}
@@ -80,7 +82,7 @@ export function SpaceSidebar() {
                 classes.menu,
                 location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
                   ? classes.activeButton
-                  : ''
+                  : ""
               )}
             >
               <div className={classes.menuItemInner}>
@@ -136,7 +138,7 @@ export function SpaceSidebar() {
           </div>
         </div>
 
-        <div className={classes.section}>
+        <div className={clsx(classes.section, classes.sectionPages)}>
           <Group className={classes.pagesHeader} justify="space-between">
             <Text size="xs" fw={500} c="dimmed">
               {t("Pages")}
@@ -194,6 +196,8 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
   const { t } = useTranslation();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
+  const [exportOpened, { open: openExportModal, close: closeExportModal }] =
+    useDisclosure(false);
 
   return (
     <>
@@ -222,6 +226,13 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             {t("Import pages")}
           </Menu.Item>
 
+          <Menu.Item
+            onClick={openExportModal}
+            leftSection={<IconFileExport size={16} />}
+          >
+            Export space
+          </Menu.Item>
+
           <Menu.Divider />
 
           <Menu.Item
@@ -237,6 +248,13 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
         spaceId={spaceId}
         open={importOpened}
         onClose={closeImportModal}
+      />
+
+      <ExportModal
+        type="space"
+        id={spaceId}
+        open={exportOpened}
+        onClose={closeExportModal}
       />
     </>
   );

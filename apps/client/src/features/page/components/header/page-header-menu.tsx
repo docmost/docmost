@@ -2,7 +2,7 @@ import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
   IconArrowsHorizontal,
   IconDots,
-  IconDownload,
+  IconFileExport,
   IconHistory,
   IconLink,
   IconMessage,
@@ -25,6 +25,7 @@ import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
 import PageExportModal from "@/features/page/components/page-export-modal.tsx";
 import { useTranslation } from "react-i18next";
+import ExportModal from "@/components/common/export-modal";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -128,7 +129,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           <Menu.Divider />
 
           <Menu.Item
-            leftSection={<IconDownload size={16} />}
+            leftSection={<IconFileExport size={16} />}
             onClick={openExportModal}
           >
             {t("Export")}
@@ -156,8 +157,9 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         </Menu.Dropdown>
       </Menu>
 
-      <PageExportModal
-        pageId={page.id}
+      <ExportModal
+        type="page"
+        id={page.id}
         open={exportOpened}
         onClose={closeExportModal}
       />

@@ -41,21 +41,23 @@ export function MultiGroupSelect({
 
   useEffect(() => {
     if (groups) {
-      const groupsData = groups?.items.map((group: IGroup) => {
-        return {
-          value: group.id,
-          label: group.name,
-        };
-      });
+      const groupsData = groups?.items
+        .filter((group: IGroup) => group.name.toLowerCase() !== 'everyone')
+        .map((group: IGroup) => {
+          return {
+            value: group.id,
+            label: group.name,
+          };
+        });
 
-      // Filter out existing users by their ids
+      // Filter out existing groups by their ids
       const filteredGroupData = groupsData.filter(
-        (user) =>
-          !data.find((existingUser) => existingUser.value === user.value),
+        (group) =>
+          !data.find((existingGroup) => existingGroup.value === group.value),
       );
 
       // Combine existing data with new search data
-      setData((prevData) => [...prevData, ...filteredGroupData]);
+      setData((prevData) => [... prevData, ... filteredGroupData]);
     }
   }, [groups]);
 

@@ -6,6 +6,7 @@
     padding-top: 0;
     display: flex;
     flex-direction: column;
+    user-select: none;
 }
 
 .section {
@@ -15,6 +16,16 @@
 
     &:not(:last-of-type) {
         border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    }
+}
+
+.sectionPages {
+    margin-bottom: 0;
+    overflow-y: hidden;
+
+    .pages {
+        height: 100%;
+        padding-bottom: 26px;
     }
 }
 

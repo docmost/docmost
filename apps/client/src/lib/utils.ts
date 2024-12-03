@@ -73,3 +73,7 @@ export function decodeBase64ToSvgString(base64Data: string): string {
 
   return decodeBase64(base64Data);
 }
+
+export function capitalizeFirstChar(string: string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}

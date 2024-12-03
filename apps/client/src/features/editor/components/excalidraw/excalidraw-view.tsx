@@ -73,7 +73,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
       elements: excalidrawAPI?.getSceneElements(),
       appState: {
         exportEmbedScene: true,
-        exportWithDarkMode: computedColorScheme == 'light' ? false : true,
+        exportWithDarkMode: false,
       },
       files: excalidrawAPI?.getFiles(),
     });
@@ -147,6 +147,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
                 ...excalidrawData,
                 scrollToContent: true,
               }}
+              theme={computedColorScheme}
             />
           </Suspense>
         </div>
@@ -202,7 +203,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
             </ActionIcon>
 
             <Text component="span" size="lg" c="dimmed">
-              Double-click to edit excalidraw diagram
+              Double-click to edit Excalidraw diagram
             </Text>
           </div>
         </Card>

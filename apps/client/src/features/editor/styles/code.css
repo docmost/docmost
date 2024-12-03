@@ -25,7 +25,7 @@
       color: inherit;
       padding: 0;
       background: none;
-      font-size: inherit;
+      font-size: var(--mantine-font-size-sm);
     }
 
     /* Code styling */
@@ -103,12 +103,12 @@
 
     @mixin where-light {
       background-color: var(--code-bg, var(--mantine-color-gray-1));
-      color: var(--mantine-color-black);
+      color: var(--mantine-color-pink-7);
     }
 
     @mixin where-dark {
       background-color: var(--mantine-color-dark-8);
-      color: var(--mantine-color-gray-4);
+      color: var(--mantine-color-pink-7);
     }
   }
 }

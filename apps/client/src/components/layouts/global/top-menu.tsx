@@ -75,11 +75,11 @@ export default function TopMenu() {
               name={user.name}
             />
 
-            <div>
+            <div style={{width: 190}}>
               <Text size="sm" fw={500} lineClamp={1}>
                 {user.name}
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="dimmed" truncate="end">
                 {user.email}
               </Text>
             </div>

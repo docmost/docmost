@@ -160,4 +160,31 @@ export class PageRepo {
         .whereRef('spaces.id', '=', 'pages.spaceId'),
     ).as('space');
   }
+
+  async getPageAndDescendants(parentPageId: string) {
+    return this.db
+      .withRecursive('page_hierarchy', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id', 'slugId', 'title', 'icon', 'content', 'parentPageId', 'spaceId'])
+          .where('id', '=', parentPageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select([
+                'p.id',
+                'p.slugId',
+                'p.title',
+                'p.icon',
+                'p.content',
+                'p.parentPageId',
+                'p.spaceId',
+              ])
+              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
+          ),
+      )
+      .selectFrom('page_hierarchy')
+      .selectAll()
+      .execute();
+  }
 }

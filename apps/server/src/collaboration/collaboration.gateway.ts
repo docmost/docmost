@@ -36,6 +36,7 @@ export class CollaborationGateway {
           port: this.redisConfig.port,
           options: {
             password: this.redisConfig.password,
+            db: this.redisConfig.db,
             retryStrategy: createRetryStrategy(),
           },
         }),
