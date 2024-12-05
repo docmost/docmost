@@ -10,21 +10,41 @@ export class ResendDriver implements MailDriver {
   private readonly resendClient: Resend;
 
   constructor(config: ResendConfig) {
+    this.logger.debug(`TOKEN ${config.resendApiToken}`);
     this.resendClient = new Resend(config.resendApiToken);
+  }
+
+  private formatEmailAddress(email: string): string {
+    if (email.includes('<') && email.includes('>')) {
+      const matches = email.match(/<(.+)>/);
+      if (matches && matches[1]) {
+        return matches[1];
+      }
+    }
+    return email;
   }
 
   async sendMail(message: MailMessage): Promise<void> {
     try {
-      await this.resendClient.emails.send({
-        from: message.from,
+      const fromEmail = this.formatEmailAddress(message.from);
+      this.logger.debug(`Attempting to send mail from ${fromEmail}`);
+
+      const { data, error } = await this.resendClient.emails.send({
+        from: fromEmail,
         to: message.to,
         subject: message.subject,
         text: message.text,
         html: message.html,
       });
-      this.logger.debug(`Sent mail to ${message.to}`);
+
+      if (error) {
+        this.logger.error(`Failed to send mail: ${error.message}`);
+        throw new Error(error.message);
+      }
+
+      this.logger.debug(`Email sent successfully. ID: ${data?.id}`);
     } catch (err) {
-      this.logger.warn(`Failed to send mail to ${message.to}: ${err}`);
+      this.logger.error(`Failed to send mail: ${err}`);
       throw err;
     }
   }
