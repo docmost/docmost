@@ -10,10 +10,10 @@ export const mathBlockExtension = {
   name: 'mathBlock',
   level: 'block',
   start(src: string) {
-    return src.match(/$$/)?.index ?? -1;
+    return src.match(/\$\$/)?.index ?? -1;
   },
   tokenizer(src: string): MathBlockToken | undefined {
-    const rule = /^\$\$(?!(\$))([\s\S]+?)\$\$/; //([\s\S]+?) or (.*)
+    const rule = /^\$\$(?!(\$))([\s\S]+?)\$\$/;
     const match = rule.exec(src);
 
     if (match) {
