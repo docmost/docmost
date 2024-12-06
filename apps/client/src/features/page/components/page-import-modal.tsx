@@ -119,7 +119,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   return (
     <>
       <SimpleGrid cols={2}>
-        <FileButton onChange={handleFileUpload} accept="text/markdown" multiple>
+        <FileButton onChange={handleFileUpload} accept=".md" multiple>
           {(props) => (
             <Button
               justify="start"
