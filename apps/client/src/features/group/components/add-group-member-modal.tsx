@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
 import { useParams } from "react-router-dom";
 import { useAddGroupMemberMutation } from "@/features/group/queries/group-query.ts";
+import { useTranslation } from "react-i18next";
 
 export default function AddGroupMemberModal() {
+  const { t } = useTranslation();
   const { groupId } = useParams();
   const [opened, { open, close }] = useDisclosure(false);
   const [userIds, setUserIds] = useState<string[]>([]);
@@ -27,19 +29,19 @@ export default function AddGroupMemberModal() {
 
   return (
     <>
-      <Button onClick={open}>Add group members</Button>
+      <Button onClick={open}>{t("addGroupMembers")}</Button>
 
-      <Modal opened={opened} onClose={close} title="Add group members">
+      <Modal opened={opened} onClose={close} title={t("addGroupMembers")}>
         <Divider size="xs" mb="xs" />
 
         <MultiUserSelect
-          label={"Add group members"}
+          label={t("addGroupMembers")}
           onChange={handleMultiSelectChange}
         />
 
         <Group justify="flex-end" mt="md">
           <Button onClick={handleSubmit} type="submit">
-            Add
+            {t("add")}
           </Button>
         </Group>
       </Modal>

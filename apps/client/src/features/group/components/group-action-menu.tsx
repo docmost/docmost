@@ -9,8 +9,10 @@ import { IconDots, IconTrash } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import EditGroupModal from "@/features/group/components/edit-group-modal.tsx";
 import { modals } from "@mantine/modals";
+import { useTranslation } from "react-i18next";
 
 export default function GroupActionMenu() {
+  const { t } = useTranslation();
   const { groupId } = useParams();
   const { data: group, isLoading } = useGroupQuery(groupId);
   const deleteGroupMutation = useDeleteGroupMutation();
@@ -24,15 +26,16 @@ export default function GroupActionMenu() {
 
   const openDeleteModal = () =>
     modals.openConfirmModal({
-      title: "Delete group",
+      title: t("Delete group"),
       children: (
         <Text size="sm">
-          Are you sure you want to delete this group? Members will lose access
-          to resources this group has access to.
+          {t(
+            "Are you sure you want to delete this group? Members will lose access to resources this group has access to.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: { confirm: "Delete", cancel: "Cancel" },
+      labels: { confirm: t("Delete"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
       onConfirm: onDelete,
     });
@@ -57,7 +60,7 @@ export default function GroupActionMenu() {
 
             <Menu.Dropdown>
               <Menu.Item onClick={open} disabled={group.isDefault}>
-                Edit group
+                {t("Edit group")}
               </Menu.Item>
               <Menu.Divider />
               <Menu.Item
@@ -66,7 +69,7 @@ export default function GroupActionMenu() {
                 disabled={group.isDefault}
                 leftSection={<IconTrash size={16} stroke={2} />}
               >
-                Delete group
+                {t("Delete group")}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
