@@ -47,7 +47,7 @@ export function SpaceSidebar() {
   const { data: space, isLoading, isError } = useGetSpaceBySlugQuery(spaceSlug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (!space) {
     return <></>;

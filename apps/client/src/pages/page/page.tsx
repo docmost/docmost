@@ -23,7 +23,7 @@ export default function Page() {
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
+  const spaceAbility =  useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;

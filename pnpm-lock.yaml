@@ -514,6 +514,9 @@ importers:
         specifier: ^8.18.0
         version: 8.18.0
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.16.0
+        version: 9.16.0
       '@nestjs/cli':
         specifier: ^10.4.8
         version: 10.4.8(@swc/core@1.5.25(@swc/helpers@0.5.5))
