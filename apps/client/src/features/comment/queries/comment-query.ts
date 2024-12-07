@@ -25,7 +25,6 @@ export function useCommentsQuery(
   params: ICommentParams,
 ): UseQueryResult<IPagination<IComment>, Error> {
   return useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: RQ_KEY(params.pageId),
     queryFn: () => getPageComments(params),
     enabled: !!params.pageId,

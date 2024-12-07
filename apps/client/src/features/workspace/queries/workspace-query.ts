@@ -141,7 +141,6 @@ export function useGetInvitationQuery(
   invitationId: string,
 ): UseQueryResult<any, Error> {
   return useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ["invitations", invitationId],
     queryFn: () => getInvitationById({ invitationId }),
     enabled: !!invitationId,

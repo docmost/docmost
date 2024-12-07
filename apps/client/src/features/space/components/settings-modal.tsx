@@ -24,7 +24,7 @@ export default function SpaceSettingsModal({
   const {data: space, isLoading} = useSpaceQuery(spaceId);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   return (
     <>

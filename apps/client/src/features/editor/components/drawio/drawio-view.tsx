@@ -40,7 +40,7 @@ export default function DrawioView(props: NodeViewProps) {
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          let base64data = (reader.result || '') as string;
+          const base64data = (reader.result || '') as string;
           setInitialXML(base64data);
         };
       }

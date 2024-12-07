@@ -24,7 +24,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
         try {
           accessToken = JSON.parse(req.cookies?.authTokens)?.accessToken;
-        } catch {}
+        } catch {
+          throw new BadRequestException('Failed to parse access token');
+        }
 
         return accessToken || this.extractTokenFromHeader(req);
       },

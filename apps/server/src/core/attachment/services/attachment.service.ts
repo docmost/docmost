@@ -52,7 +52,7 @@ export class AttachmentService {
     // passing attachmentId to allow for updating diagrams
     // instead of creating new files for each save
     if (opts?.attachmentId) {
-      let existingAttachment = await this.attachmentRepo.findById(
+      const existingAttachment = await this.attachmentRepo.findById(
         opts.attachmentId,
       );
       if (!existingAttachment) {

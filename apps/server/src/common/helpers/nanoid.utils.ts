@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { customAlphabet } = require('fix-esm').require('nanoid');
 
 const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';

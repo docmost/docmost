@@ -25,7 +25,7 @@ export const mailDriverConfigProvider = {
     const driver = environmentService.getMailDriver().toLocaleLowerCase();
 
     switch (driver) {
-      case MailOption.SMTP:
+      case MailOption.SMTP: {
         let auth = undefined;
         if (
           environmentService.getSmtpUsername() &&
@@ -44,9 +44,10 @@ export const mailDriverConfigProvider = {
             connectionTimeout: 30 * 1000, // 30 seconds
             auth,
             secure: environmentService.getSmtpSecure(),
-            ignoreTLS: environmentService.getSmtpIgnoreTLS()
+            ignoreTLS: environmentService.getSmtpIgnoreTLS(),
           } as SMTPTransport.Options,
         };
+      }
 
       case MailOption.Postmark:
         return {
