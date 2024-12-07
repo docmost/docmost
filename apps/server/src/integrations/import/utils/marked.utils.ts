@@ -1,5 +1,7 @@
 import { marked } from 'marked';
 import { calloutExtension } from './callout.marked';
+import { mathBlockExtension } from './math-block.marked';
+import { mathInlineExtension } from "./math-inline.marked";
 
 marked.use({
   renderer: {
@@ -26,7 +28,7 @@ marked.use({
   },
 });
 
-marked.use({ extensions: [calloutExtension] });
+marked.use({ extensions: [calloutExtension, mathBlockExtension, mathInlineExtension] });
 
 export async function markdownToHtml(markdownInput: string): Promise<string> {
   const YAML_FONT_MATTER_REGEX = /^\s*---[\s\S]*?---\s*/;

@@ -117,7 +117,7 @@ function mathBlock(turndownService: TurndownService) {
       );
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      return `\n$$${content}$$\n`;
+      return `\n$$\n${content}\n$$\n`;
     },
   });
 }
