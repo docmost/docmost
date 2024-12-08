@@ -18,7 +18,8 @@ services:
       - docmost:/app/data/storage
 
   db:
-    image: postgres:16-alpine
+    #image: postgres:16-alpine
+    image: abcfy2/zhparser:16-alpine
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
