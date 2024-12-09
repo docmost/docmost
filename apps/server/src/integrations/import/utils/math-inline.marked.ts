@@ -53,9 +53,3 @@ export const mathInlineExtension = {
     return `<span data-type="${mathInlineToken.type}" data-katex="true">${latex}</span>`;
   },
 };
-
-//// match [
-// // [backend]   '$ is half$',
-// // [backend]   '$',
-// // [backend]   ' is half',
-// // [backend]   index: 0,
