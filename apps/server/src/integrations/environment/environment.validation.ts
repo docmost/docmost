@@ -11,14 +11,22 @@ import { plainToInstance } from 'class-transformer';
 export class EnvironmentVariables {
   @IsNotEmpty()
   @IsUrl(
-    { protocols: ['postgres', 'postgresql'], require_tld: false },
+    {
+      protocols: ['postgres', 'postgresql'],
+      require_tld: false,
+      allow_underscores: true,
+    },
     { message: 'DATABASE_URL must be a valid postgres connection string' },
   )
   DATABASE_URL: string;
 
   @IsNotEmpty()
   @IsUrl(
-    { protocols: ['redis', 'rediss'], require_tld: false },
+    {
+      protocols: ['redis', 'rediss'],
+      require_tld: false,
+      allow_underscores: true,
+    },
     { message: 'REDIS_URL must be a valid redis connection string' },
   )
   REDIS_URL: string;
