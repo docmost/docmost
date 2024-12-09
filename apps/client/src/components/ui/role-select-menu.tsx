@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import { Group, Text, Menu, Button } from "@mantine/core";
 import { IRoleData } from "@/lib/types.ts";
+import { useTranslation } from "react-i18next";
 
 interface RoleButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   name: string;
@@ -36,10 +37,12 @@ export default function RoleSelectMenu({
   onChange,
   disabled,
 }: RoleMenuProps) {
+  const { t } = useTranslation();
+
   return (
     <Menu withArrow>
       <Menu.Target>
-        <RoleButton name={roleName} disabled={disabled} />
+        <RoleButton name={t(roleName)} disabled={disabled} />
       </Menu.Target>
 
       <Menu.Dropdown>
@@ -50,9 +53,9 @@ export default function RoleSelectMenu({
           >
             <Group flex="1" gap="xs">
               <div>
-                <Text size="sm">{item.label}</Text>
+                <Text size="sm">{t(item.label)}</Text>
                 <Text size="xs" opacity={0.65}>
-                  {item.description}
+                  {t(item.description)}
                 </Text>
               </div>
               {item.label === roleName && <IconCheck size={20} />}

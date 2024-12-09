@@ -8,17 +8,19 @@ import {
 } from '@mantine/core';
 import {Link} from 'react-router-dom';
 import PageListSkeleton from '@/components/ui/page-list-skeleton.tsx';
-import {buildPageUrl} from '@/features/page/page.utils.ts';
-import {formattedDate} from '@/lib/time.ts';
-import {useRecentChangesQuery} from '@/features/page/queries/page-query.ts';
-import {IconFileDescription} from '@tabler/icons-react';
-import {getSpaceUrl} from '@/lib/config.ts';
+import { buildPageUrl } from '@/features/page/page.utils.ts';
+import { formattedDate } from '@/lib/time.ts';
+import { useRecentChangesQuery } from '@/features/page/queries/page-query.ts';
+import { IconFileDescription } from '@tabler/icons-react';
+import { getSpaceUrl } from '@/lib/config.ts';
+import { useTranslation } from "react-i18next";
 
 interface Props {
   spaceId?: string;
 }
 
 export default function RecentChanges({spaceId}: Props) {
+  const { t } = useTranslation();
   const {data: pages, isLoading, isError} = useRecentChangesQuery(spaceId);
 
   if (isLoading) {
@@ -26,7 +28,7 @@ export default function RecentChanges({spaceId}: Props) {
   }
 
   if (isError) {
-    return <Text>Failed to fetch recent pages</Text>;
+    return <Text>{t("Failed to fetch recent pages")}</Text>;
   }
 
   return pages && pages.items.length > 0 ? (
@@ -48,7 +50,7 @@ export default function RecentChanges({spaceId}: Props) {
                     )}
 
                     <Text fw={500} size="md" lineClamp={1}>
-                      {page.title || 'Untitled'}
+                      {page.title || t("Untitled")}
                     </Text>
                   </Group>
                 </UnstyledButton>
@@ -78,7 +80,7 @@ export default function RecentChanges({spaceId}: Props) {
     </Table.ScrollContainer>
   ) : (
     <Text size="md" ta="center">
-      No pages yet
+      {t("No pages yet")}
     </Text>
   );
 }

@@ -12,8 +12,10 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const {
     data: page,
@@ -31,7 +33,7 @@ export default function Page() {
 
   if (isError || !page) {
     // TODO: fix this
-    return <div>Error fetching page data.</div>;
+    return <div>{t("Error fetching page data.")}</div>;
   }
 
   if (!space) {
@@ -42,7 +44,7 @@ export default function Page() {
     page && (
       <div>
         <Helmet>
-          <title>{`${page?.icon || ""}  ${page?.title || "untitled"}`}</title>
+          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
         <PageHeader
