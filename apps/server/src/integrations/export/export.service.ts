@@ -42,7 +42,7 @@ export class ExportService {
       content: [{ type: 'text', text: getPageTitle(page.title) }],
     };
 
-    let prosemirrorJson: any = getProsemirrorContent(page.content);
+    const prosemirrorJson: any = getProsemirrorContent(page.content);
 
     if (page.title) {
       prosemirrorJson.content.unshift(titleNode);

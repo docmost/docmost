@@ -456,7 +456,7 @@ export const getSuggestionItems = ({
   const fuzzyMatch = (query: string, target: string) => {
     let queryIndex = 0;
     target = target.toLowerCase();
-    for (let char of target) {
+    for (const char of target) {
       if (query[queryIndex] === char) queryIndex++;
       if (queryIndex === query.length) return true;
     }
