@@ -1,10 +1,16 @@
 import { EnvironmentService } from '../../environment/environment.service';
-import { MailOption, PostmarkConfig, SMTPConfig } from '../interfaces';
+import {
+  MailOption,
+  PostmarkConfig,
+  ResendConfig,
+  SMTPConfig,
+} from '../interfaces';
 import { SmtpDriver, PostmarkDriver, LogDriver } from '../drivers';
 import { MailDriver } from '../drivers/interfaces/mail-driver.interface';
 import { MailConfig } from '../interfaces';
 import { MAIL_CONFIG_TOKEN, MAIL_DRIVER_TOKEN } from '../mail.constants';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { ResendDriver } from '../drivers/resend.driver';
 
 function createMailDriver(mail: MailConfig): MailDriver {
   switch (mail.driver) {
@@ -12,6 +18,8 @@ function createMailDriver(mail: MailConfig): MailDriver {
       return new SmtpDriver(mail.config as SMTPConfig);
     case MailOption.Postmark:
       return new PostmarkDriver(mail.config as PostmarkConfig);
+    case MailOption.Resend:
+      return new ResendDriver(mail.config as ResendConfig);
     case MailOption.Log:
       return new LogDriver();
     default:
@@ -55,6 +63,14 @@ export const mailDriverConfigProvider = {
           config: {
             postmarkToken: environmentService.getPostmarkToken(),
           } as PostmarkConfig,
+        };
+
+      case MailOption.Resend:
+        return {
+          driver,
+          config: {
+            resendApiToken: environmentService.getResendApiToken(),
+          } as ResendConfig,
         };
 
       case MailOption.Log:
