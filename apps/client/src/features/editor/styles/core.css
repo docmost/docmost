@@ -12,6 +12,10 @@
   font-weight: 400;
   width: 100%;
 
+  * {
+    unicode-bidi: plaintext;
+  }
+
   > * + * {
     margin-top: 0.75em;
   }
