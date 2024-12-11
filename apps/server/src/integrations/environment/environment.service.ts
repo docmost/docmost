@@ -44,7 +44,6 @@ export class EnvironmentService {
   }
 
   getFileUploadSizeLimit(): string {
-
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
   }
 
@@ -124,6 +123,10 @@ export class EnvironmentService {
 
   getDrawioUrl(): string {
     return this.configService.get<string>('DRAWIO_URL');
+  }
+
+  getResendApiToken(): string {
+    return this.configService.get<string>('RESEND_API_TOKEN');
   }
 
   isCloud(): boolean {
