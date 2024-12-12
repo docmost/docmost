@@ -1,6 +1,6 @@
-import {Table, Group, Text, Avatar} from "@mantine/core";
-import React, {useState} from "react";
-import {useGetSpacesQuery} from "@/features/space/queries/space-query.ts";
+import { Table, Group, Text, Avatar } from "@mantine/core";
+import React, { useState } from "react";
+import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
@@ -33,7 +33,7 @@ export default function SpaceList() {
               {data?.items.map((space, index) => (
                 <Table.Tr
                   key={index}
-                  style={{cursor: "pointer"}}
+                  style={{ cursor: "pointer" }}
                   onClick={() => handleClick(space.id)}
                 >
                   <Table.Td>
@@ -54,7 +54,9 @@ export default function SpaceList() {
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" style={{whiteSpace: 'nowrap'}}>{formatMemberCount(space.memberCount)}</Text>
+                    <Text size="sm" style={{ whiteSpace: "nowrap" }}>
+                      {formatMemberCount(space.memberCount, t)}
+                    </Text>
                   </Table.Td>
                 </Table.Tr>
               ))}

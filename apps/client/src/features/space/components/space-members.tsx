@@ -1,15 +1,15 @@
-import {Group, Table, Text, Menu, ActionIcon} from "@mantine/core";
+import { Group, Table, Text, Menu, ActionIcon } from "@mantine/core";
 import React from "react";
-import {IconDots} from "@tabler/icons-react";
-import {modals} from "@mantine/modals";
-import {CustomAvatar} from "@/components/ui/custom-avatar.tsx";
+import { IconDots } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import {
   useChangeSpaceMemberRoleMutation,
   useRemoveSpaceMemberMutation,
   useSpaceMembersQuery,
 } from "@/features/space/queries/space-query.ts";
-import {IconGroupCircle} from "@/components/icons/icon-people-circle.tsx";
-import {IRemoveSpaceMember} from "@/features/space/types/space.types.ts";
+import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
+import { IRemoveSpaceMember } from "@/features/space/types/space.types.ts";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getSpaceRoleLabel,
@@ -121,7 +121,7 @@ export default function SpaceMembersList({
                         />
                       )}
 
-                      {member.type === "group" && <IconGroupCircle/>}
+                      {member.type === "group" && <IconGroupCircle />}
 
                       <div>
                         <Text fz="sm" fw={500}>
@@ -131,7 +131,7 @@ export default function SpaceMembersList({
                           {member.type == "user" && member?.email}
 
                           {member.type == "group" &&
-                            `Group - ${formatMemberCount(member?.memberCount)}`}
+                            `Group - ${formatMemberCount(member?.memberCount, t)}`}
                         </Text>
                       </div>
                     </Group>
@@ -165,7 +165,7 @@ export default function SpaceMembersList({
                       >
                         <Menu.Target>
                           <ActionIcon variant="subtle" c="gray">
-                            <IconDots size={20} stroke={2}/>
+                            <IconDots size={20} stroke={2} />
                           </ActionIcon>
                         </Menu.Target>
 
