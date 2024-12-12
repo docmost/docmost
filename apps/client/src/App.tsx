@@ -14,7 +14,7 @@ import { useQuerySubscription } from "@/features/websocket/use-query-subscriptio
 import { useAtom, useAtomValue } from "jotai";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
 import { useTreeSocket } from "@/features/websocket/use-tree-socket.ts";
-import { useEffect, useTransition } from "react";
+import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
 import { SOCKET_URL } from "@/features/websocket/types";
@@ -29,9 +29,9 @@ import PasswordReset from "./pages/auth/password-reset";
 import { useTranslation } from "react-i18next";
 
 export default function App() {
+  const { t } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   const authToken = useAtomValue(authTokensAtom);
-  const { t } = useTranslation();
 
   useEffect(() => {
     if (!authToken?.accessToken) {
