@@ -52,6 +52,7 @@ import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 
 interface SpaceTreeProps {
@@ -405,6 +406,7 @@ interface NodeMenuProps {
 }
 
 function NodeMenu({ node, treeApi }: NodeMenuProps) {
+  const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
@@ -415,7 +417,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
     const pageUrl =
       getAppUrl() + buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
     clipboard.copy(pageUrl);
-    notifications.show({ message: "Link copied" });
+    notifications.show({ message: t("Link copied") });
   };
 
   return (
@@ -446,7 +448,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
               handleCopyLink();
             }}
           >
-            Copy link
+            {t("Copy link")}
           </Menu.Item>
 
           <Menu.Item
@@ -457,7 +459,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
               openExportModal();
             }}
           >
-            Export page
+            {t("Export page")}
           </Menu.Item>
 
           {!(treeApi.props.disableEdit as boolean) && (
@@ -475,7 +477,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                   openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
                 }}
               >
-                Delete
+                {t("Delete")}
               </Menu.Item>
             </>
           )}

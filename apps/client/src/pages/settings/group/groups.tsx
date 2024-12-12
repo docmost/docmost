@@ -5,16 +5,18 @@ import CreateGroupModal from "@/features/group/components/create-group-modal";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import {getAppName} from "@/lib/config.ts";
 import {Helmet} from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 
 export default function Groups() {
+  const { t } = useTranslation();
   const { isAdmin } = useUserRole();
 
   return (
     <>
         <Helmet>
-            <title>Groups - {getAppName()}</title>
+            <title>{t("Groups")} - {getAppName()}</title>
         </Helmet>
-      <SettingsTitle title="Groups" />
+      <SettingsTitle title={t("Groups")} />
 
       <Group my="md" justify="flex-end">
         {isAdmin && <CreateGroupModal />}

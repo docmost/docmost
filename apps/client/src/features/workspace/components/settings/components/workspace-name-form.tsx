@@ -9,6 +9,7 @@ import { TextInput, Button } from "@mantine/core";
 import { useForm, zodResolver } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(4).nonempty("Workspace name cannot be blank"),
@@ -21,6 +22,7 @@ const workspaceAtom = focusAtom(currentUserAtom, (optic) =>
 );
 
 export default function WorkspaceNameForm() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setWorkspace] = useAtom(workspaceAtom);
@@ -39,11 +41,11 @@ export default function WorkspaceNameForm() {
     try {
       const updatedWorkspace = await updateWorkspace(data);
       setWorkspace(updatedWorkspace);
-      notifications.show({ message: "Updated successfully" });
+      notifications.show({ message: t("Updated successfully") });
     } catch (err) {
       console.log(err);
       notifications.show({
-        message: "Failed to update data",
+        message: t("Failed to update data"),
         color: "red",
       });
     }
@@ -55,8 +57,8 @@ export default function WorkspaceNameForm() {
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <TextInput
         id="name"
-        label="Name"
-        placeholder="e.g ACME"
+        label={t("Name")}
+        placeholder={t("e.g ACME")}
         variant="filled"
         readOnly={!isAdmin}
         {...form.getInputProps("name")}
@@ -69,7 +71,7 @@ export default function WorkspaceNameForm() {
           disabled={isLoading || !form.isDirty()}
           loading={isLoading}
         >
-          Save
+          {t("Save")}
         </Button>
       )}
     </form>

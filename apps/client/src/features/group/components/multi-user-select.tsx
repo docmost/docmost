@@ -4,6 +4,7 @@ import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace
 import { IUser } from "@/features/user/types/user.types.ts";
 import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { useTranslation } from "react-i18next";
 
 interface MultiUserSelectProps {
   onChange: (value: string[]) => void;
@@ -29,6 +30,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
 );
 
 export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
+  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: users, isLoading } = useWorkspaceMembersQuery({
@@ -65,15 +67,15 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
       renderOption={renderMultiSelectOption}
       hidePickedOptions
       maxDropdownHeight={300}
-      label={label || "Add members"}
-      placeholder="Search for users"
+      label={label || t("Add members")}
+      placeholder={t("Search for users")}
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       clearable
       variant="filled"
       onChange={onChange}
-      nothingFoundMessage="No user found"
+      nothingFoundMessage={t("No user found")}
       maxValues={50}
     />
   );

@@ -13,15 +13,17 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useDisclosure } from "@mantine/hooks";
 import * as React from "react";
 import { useForm, zodResolver } from "@mantine/form";
+import { useTranslation } from "react-i18next";
 
 export default function ChangeEmail() {
+  const { t } = useTranslation();
   const [currentUser] = useAtom(currentUserAtom);
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">Email</Text>
+        <Text size="md">{t("Email")}</Text>
         <Text size="sm" c="dimmed">
           {currentUser?.user.email}
         </Text>
@@ -29,13 +31,15 @@ export default function ChangeEmail() {
 
       {/*
       <Button onClick={open} variant="default">
-        Change email
+        {t("Change email")}
       </Button>
       */}
 
-      <Modal opened={opened} onClose={close} title="Change email" centered>
+      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
         <Text mb="md">
-          To change your email, you have to enter your password and new email.
+          {t(
+            "To change your email, you have to enter your password and new email.",
+          )}
         </Text>
         <ChangeEmailForm />
       </Modal>
@@ -53,6 +57,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function ChangeEmailForm() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
@@ -71,8 +76,8 @@ function ChangeEmailForm() {
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <PasswordInput
-        label="Password"
-        placeholder="Enter your password"
+        label={t("Password")}
+        placeholder={t("Enter your password")}
         variant="filled"
         mb="md"
         {...form.getInputProps("password")}
@@ -80,16 +85,16 @@ function ChangeEmailForm() {
 
       <TextInput
         id="email"
-        label="Email"
-        description="Enter your new preferred email"
-        placeholder="New email"
+        label={t("Email")}
+        description={t("Enter your new preferred email")}
+        placeholder={t("New email")}
         variant="filled"
         mb="md"
         {...form.getInputProps("email")}
       />
 
       <Button type="submit" disabled={isLoading} loading={isLoading}>
-        Change email
+        {t("Change email")}
       </Button>
     </form>
   );
