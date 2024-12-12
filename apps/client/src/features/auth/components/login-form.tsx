@@ -26,9 +26,9 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
+  const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
   useRedirectIfAuthenticated();
-  const { t } = useTranslation();
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -78,7 +78,7 @@ export function LoginForm() {
           underline="never"
           size="sm"
         >
-          Forgot your password?
+          {t("Forgot your password?")}
         </Anchor>
       </Box>
     </Container>

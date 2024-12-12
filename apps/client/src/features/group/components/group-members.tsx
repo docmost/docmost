@@ -1,22 +1,23 @@
-import {Group, Table, Text, Badge, Menu, ActionIcon} from "@mantine/core";
+import { Group, Table, Text, Badge, Menu, ActionIcon } from "@mantine/core";
 import {
   useGroupMembersQuery,
   useRemoveGroupMemberMutation,
 } from "@/features/group/queries/group-query";
-import {useParams} from "react-router-dom";
+import { useParams } from "react-router-dom";
 import React from "react";
-import {IconDots} from "@tabler/icons-react";
-import {modals} from "@mantine/modals";
-import {CustomAvatar} from "@/components/ui/custom-avatar.tsx";
+import { IconDots } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
+import { IUser } from "@/features/user/types/user.types.ts";
 
 export default function GroupMembersList() {
   const { t } = useTranslation();
   const { groupId } = useParams();
   const { data, isLoading } = useGroupMembersQuery(groupId);
   const removeGroupMember = useRemoveGroupMemberMutation();
-  const {isAdmin} = useUserRole();
+  const { isAdmin } = useUserRole();
 
   const onRemove = async (userId: string) => {
     const memberToRemove = {
@@ -56,11 +57,14 @@ export default function GroupMembersList() {
             </Table.Thead>
 
             <Table.Tbody>
-              {data?.items.map((user, index) => (
+              {data?.items.map((user: IUser, index: number) => (
                 <Table.Tr key={index}>
                   <Table.Td>
                     <Group gap="sm">
-                      <CustomAvatar avatarUrl={user.avatarUrl} name={user.name}/>
+                      <CustomAvatar
+                        avatarUrl={user.avatarUrl}
+                        name={user.name}
+                      />
                       <div>
                         <Text fz="sm" fw={500}>
                           {user.name}
@@ -86,7 +90,7 @@ export default function GroupMembersList() {
                       >
                         <Menu.Target>
                           <ActionIcon variant="subtle" c="gray">
-                            <IconDots size={20} stroke={2}/>
+                            <IconDots size={20} stroke={2} />
                           </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>

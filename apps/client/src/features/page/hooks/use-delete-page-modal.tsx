@@ -11,7 +11,13 @@ export function useDeletePageModal() {
   const openDeleteModal = ({ onConfirm }: UseDeleteModalProps) => {
     modals.openConfirmModal({
       title: t("Are you sure you want to delete this page?"),
-      children: <Text size="sm">{t("deletePageModalContent")}</Text>,
+      children: (
+        <Text size="sm">
+          {t(
+            "Are you sure you want to delete this page? This will delete its children and page history. This action is irreversible.",
+          )}
+        </Text>
+      ),
       centered: true,
       labels: { confirm: t("Delete"), cancel: t("Cancel") },
       confirmProps: { color: "red" },

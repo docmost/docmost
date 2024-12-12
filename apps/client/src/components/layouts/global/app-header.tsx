@@ -37,10 +37,10 @@ export function AppHeader() {
         <Group wrap="nowrap">
           {!isHomeRoute && (
             <>
-              <Tooltip label="Sidebar toggle">
+              <Tooltip label={t("Sidebar toggle")}>
 
                 <SidebarToggle
-                  aria-label="Sidebar toggle"
+                  aria-label={t("Sidebar toggle")}
                   opened={mobileOpened}
                   onClick={toggleMobile}
                   hiddenFrom="sm"
@@ -48,9 +48,9 @@ export function AppHeader() {
                 />
               </Tooltip>
 
-              <Tooltip label="Sidebar toggle">
+              <Tooltip label={t("Sidebar toggle")}>
                 <SidebarToggle
-                  aria-label="Sidebar toggle"
+                  aria-label={t("Sidebar toggle")}
                   opened={desktopOpened}
                   onClick={toggleDesktop}
                   visibleFrom="sm"

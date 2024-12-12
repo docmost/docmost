@@ -50,8 +50,8 @@ export default function AddSpaceMembersModal({
 
   return (
     <>
-      <Button onClick={open}>{t("addSpaceMembers")}</Button>
-      <Modal opened={opened} onClose={close} title={t("addSpaceMembers")}>
+      <Button onClick={open}>{t("Add space members")}</Button>
+      <Modal opened={opened} onClose={close} title={t("Add space members")}>
         <Divider size="xs" mb="xs" />
 
         <Stack>
@@ -59,13 +59,13 @@ export default function AddSpaceMembersModal({
           <SpaceMemberRole
             onSelect={handleRoleSelection}
             defaultRole={role}
-            label={t("selectRole")}
+            label={t("Select role")}
           />
         </Stack>
 
         <Group justify="flex-end" mt="md">
           <Button onClick={handleSubmit} type="submit">
-            {t("add")}
+            {t("Add")}
           </Button>
         </Group>
       </Modal>

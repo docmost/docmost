@@ -85,14 +85,14 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       const updatedUserGroups = mergeItemsIntoGroups(
         data,
         userItems,
-        "Select a user",
+        t("Select a user"),
       );
 
       // Merge group items into groups
       const finalData = mergeItemsIntoGroups(
         updatedUserGroups,
         groupItems,
-        "Select a group",
+        t("Select a group"),
       );
 
       setData(finalData);

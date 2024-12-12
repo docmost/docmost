@@ -131,7 +131,7 @@ export default function SpaceMembersList({
                           {member.type == "user" && member?.email}
 
                           {member.type == "group" &&
-                            `Group - ${formatMemberCount(member?.memberCount, t)}`}
+                            `${t("Group")} - ${formatMemberCount(member?.memberCount, t)}`}
                         </Text>
                       </div>
                     </Group>

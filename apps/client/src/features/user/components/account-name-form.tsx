@@ -11,7 +11,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(40).nonempty("Your name cannot be blank"),
+  name: z.string().min(2).max(40),
 });
 
 type FormValues = z.infer<typeof formSchema>;

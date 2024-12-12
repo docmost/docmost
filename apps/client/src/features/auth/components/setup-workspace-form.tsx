@@ -26,10 +26,10 @@ const formSchema = z.object({
 });
 
 export function SetupWorkspaceForm() {
+  const { t } = useTranslation();
   const { setupWorkspace, isLoading } = useAuth();
   // useRedirectIfAuthenticated();
 
-  const { t } = useTranslation();
   const form = useForm<ISetupWorkspace>({
     validate: zodResolver(formSchema),
     initialValues: {

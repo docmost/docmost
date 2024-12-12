@@ -29,19 +29,19 @@ export default function AddGroupMemberModal() {
 
   return (
     <>
-      <Button onClick={open}>{t("addGroupMembers")}</Button>
+      <Button onClick={open}>{t("Add group members")}</Button>
 
-      <Modal opened={opened} onClose={close} title={t("addGroupMembers")}>
+      <Modal opened={opened} onClose={close} title={t("Add group members")}>
         <Divider size="xs" mb="xs" />
 
         <MultiUserSelect
-          label={t("addGroupMembers")}
+          label={t("Add group members")}
           onChange={handleMultiSelectChange}
         />
 
         <Group justify="flex-end" mt="md">
           <Button onClick={handleSubmit} type="submit">
-            {t("add")}
+            {t("Add")}
           </Button>
         </Group>
       </Modal>

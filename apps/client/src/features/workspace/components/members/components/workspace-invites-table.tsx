@@ -49,7 +49,7 @@ export default function WorkspaceInvitesTable() {
                       </Group>
                     </Table.Td>
 
-                    <Table.Td>{getUserRoleLabel(invitation.role)}</Table.Td>
+                    <Table.Td>{t(getUserRoleLabel(invitation.role))}</Table.Td>
 
                     <Table.Td>{timeAgo(invitation.createdAt)}</Table.Td>
 
