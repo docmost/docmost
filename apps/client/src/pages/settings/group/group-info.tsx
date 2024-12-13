@@ -6,6 +6,7 @@ import {Helmet} from "react-helmet-async";
 import { useTranslation } from "react-i18next";
     
 export default function GroupInfo() {
+    const { t } = useTranslation();
     return (
         <>
             <Helmet>

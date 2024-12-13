@@ -54,7 +54,7 @@ export default function SpaceList() {
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" style={{whiteSpace: 'nowrap'}}>{formatMemberCount(space.memberCount)}</Text>
+                    <Text size="sm" style={{whiteSpace: 'nowrap'}}>{formatMemberCount(space.memberCount,t)}</Text>
                   </Table.Td>
                 </Table.Tr>
               ))}
