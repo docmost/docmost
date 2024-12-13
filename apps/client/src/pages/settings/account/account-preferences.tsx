@@ -20,6 +20,8 @@ export default function AccountPreferences() {
             <AccountTheme/>
             <Divider my={"md"}/>
             <PageWidthPref/>
+            <Divider my={"md"}/>
+            <AccountLanguage/>
         </>
     );
 }
