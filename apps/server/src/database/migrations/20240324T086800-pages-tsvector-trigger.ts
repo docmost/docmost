@@ -4,8 +4,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE OR REPLACE FUNCTION pages_tsvector_trigger() RETURNS trigger AS $$
         begin
             new.tsv :=
-                      setweight(to_tsvector('english', coalesce(new.title, '')), 'A') ||
-                      setweight(to_tsvector('english', coalesce(new.text_content, '')), 'B');
+                      setweight(to_tsvector('chinese_zh', coalesce(new.title, '')), 'A') ||
+                      setweight(to_tsvector('chinese_zh', coalesce(new.text_content, '')), 'B');
             return new;
         end;
         $$ LANGUAGE plpgsql;`.execute(db);
