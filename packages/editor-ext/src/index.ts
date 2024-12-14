@@ -15,4 +15,5 @@ export * from "./lib/custom-code-block"
 export * from "./lib/drawio";
 export * from "./lib/excalidraw";
 export * from "./lib/embed";
+export * from "./lib/mention";
 
