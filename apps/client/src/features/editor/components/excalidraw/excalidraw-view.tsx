@@ -1,4 +1,4 @@
-import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
+import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
   ActionIcon,
   Button,
@@ -7,27 +7,29 @@ import {
   Image,
   Text,
   useComputedColorScheme,
-} from '@mantine/core';
-import { useState } from 'react';
-import { uploadFile } from '@/features/page/services/page-service.ts';
-import { svgStringToFile } from '@/lib';
-import { useDisclosure } from '@mantine/hooks';
-import { getFileUrl } from '@/lib/config.ts';
-import { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types/types';
-import { IAttachment } from '@/lib/types';
-import ReactClearModal from 'react-clear-modal';
-import clsx from 'clsx';
-import { IconEdit } from '@tabler/icons-react';
-import { lazy } from 'react';
-import { Suspense } from 'react';
+} from "@mantine/core";
+import { useState } from "react";
+import { uploadFile } from "@/features/page/services/page-service.ts";
+import { svgStringToFile } from "@/lib";
+import { useDisclosure } from "@mantine/hooks";
+import { getFileUrl } from "@/lib/config.ts";
+import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types/types";
+import { IAttachment } from "@/lib/types";
+import ReactClearModal from "react-clear-modal";
+import clsx from "clsx";
+import { IconEdit } from "@tabler/icons-react";
+import { lazy } from "react";
+import { Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 const Excalidraw = lazy(() =>
-  import('@excalidraw/excalidraw').then((module) => ({
+  import("@excalidraw/excalidraw").then((module) => ({
     default: module.Excalidraw,
-  }))
+  })),
 );
 
 export default function ExcalidrawView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
   const { src, title, width, attachmentId } = node.attrs;
 
@@ -46,11 +48,11 @@ export default function ExcalidrawView(props: NodeViewProps) {
       if (src) {
         const url = getFileUrl(src);
         const request = await fetch(url, {
-          credentials: 'include',
-          cache: 'no-store',
+          credentials: "include",
+          cache: "no-store",
         });
 
-        const { loadFromBlob } = await import('@excalidraw/excalidraw');
+        const { loadFromBlob } = await import("@excalidraw/excalidraw");
 
         const data = await loadFromBlob(await request.blob(), null, null);
         setExcalidrawData(data);
@@ -67,7 +69,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
       return;
     }
 
-    const { exportToSvg } = await import('@excalidraw/excalidraw');
+    const { exportToSvg } = await import("@excalidraw/excalidraw");
 
     const svg = await exportToSvg({
       elements: excalidrawAPI?.getSceneElements(),
@@ -83,10 +85,10 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
     svgString = svgString.replace(
       /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
-      'https://unpkg.com/@excalidraw/excalidraw@latest'
+      "https://unpkg.com/@excalidraw/excalidraw@latest",
     );
 
-    const fileName = 'diagram.excalidraw.svg';
+    const fileName = "diagram.excalidraw.svg";
     const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
     const pageId = editor.storage?.pageId;
@@ -112,7 +114,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
     <NodeViewWrapper>
       <ReactClearModal
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
           padding: 0,
           zIndex: 200,
         }}
@@ -122,7 +124,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
         contentProps={{
           style: {
             padding: 0,
-            width: '90vw',
+            width: "90vw",
           },
         }}
       >
@@ -132,14 +134,14 @@ export default function ExcalidrawView(props: NodeViewProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button onClick={handleSave} size={'compact-sm'}>
-            Save & Exit
+          <Button onClick={handleSave} size={"compact-sm"}>
+            {t("Save & Exit")}
           </Button>
-          <Button onClick={close} color="red" size={'compact-sm'}>
-            Exit
+          <Button onClick={close} color="red" size={"compact-sm"}>
+            {t("Exit")}
           </Button>
         </Group>
-        <div style={{ height: '90vh' }}>
+        <div style={{ height: "90vh" }}>
           <Suspense fallback={null}>
             <Excalidraw
               excalidrawAPI={(api) => setExcalidrawAPI(api)}
@@ -154,7 +156,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
       </ReactClearModal>
 
       {src ? (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: "relative" }}>
           <Image
             onClick={(e) => e.detail === 2 && handleOpen()}
             radius="md"
@@ -163,8 +165,8 @@ export default function ExcalidrawView(props: NodeViewProps) {
             src={getFileUrl(src)}
             alt={title}
             className={clsx(
-              selected ? 'ProseMirror-selectednode' : '',
-              'alignCenter'
+              selected ? "ProseMirror-selectednode" : "",
+              "alignCenter",
             )}
           />
 
@@ -175,7 +177,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
               color="gray"
               mx="xs"
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: 8,
                 right: 8,
               }}
@@ -190,20 +192,20 @@ export default function ExcalidrawView(props: NodeViewProps) {
           onClick={(e) => e.detail === 2 && handleOpen()}
           p="xs"
           style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
           withBorder
-          className={clsx(selected ? 'ProseMirror-selectednode' : '')}
+          className={clsx(selected ? "ProseMirror-selectednode" : "")}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
             <ActionIcon variant="transparent" color="gray">
               <IconEdit size={18} />
             </ActionIcon>
 
             <Text component="span" size="lg" c="dimmed">
-              Double-click to edit Excalidraw diagram
+              {t("Double-click to edit Excalidraw diagram")}
             </Text>
           </div>
         </Card>

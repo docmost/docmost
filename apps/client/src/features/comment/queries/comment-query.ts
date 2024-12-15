@@ -18,6 +18,7 @@ import {
 } from "@/features/comment/types/comment.types";
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
+import { useTranslation } from "react-i18next";
 
 export const RQ_KEY = (pageId: string) => ["comments", pageId];
 
@@ -33,6 +34,7 @@ export function useCommentsQuery(
 
 export function useCreateCommentMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<IComment, Error, Partial<IComment>>({
     mutationFn: (data) => createComment(data),
@@ -45,28 +47,37 @@ export function useCreateCommentMutation() {
       //}
 
       queryClient.refetchQueries({ queryKey: RQ_KEY(data.pageId) });
-      notifications.show({ message: "Comment created successfully" });
+      notifications.show({ message: t("Comment created successfully") });
     },
     onError: (error) => {
-      notifications.show({ message: "Error creating comment", color: "red" });
+      notifications.show({
+        message: t("Error creating comment"),
+        color: "red",
+      });
     },
   });
 }
 
 export function useUpdateCommentMutation() {
+  const { t } = useTranslation();
+
   return useMutation<IComment, Error, Partial<IComment>>({
     mutationFn: (data) => updateComment(data),
     onSuccess: (data) => {
-      notifications.show({ message: "Comment updated successfully" });
+      notifications.show({ message: t("Comment updated successfully") });
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to update comment", color: "red" });
+      notifications.show({
+        message: t("Failed to update comment"),
+        color: "red",
+      });
     },
   });
 }
 
 export function useDeleteCommentMutation(pageId?: string) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
@@ -86,16 +97,20 @@ export function useDeleteCommentMutation(pageId?: string) {
         });
       }
 
-      notifications.show({ message: "Comment deleted successfully" });
+      notifications.show({ message: t("Comment deleted successfully") });
     },
     onError: (error) => {
-      notifications.show({ message: "Failed to delete comment", color: "red" });
+      notifications.show({
+        message: t("Failed to delete comment"),
+        color: "red",
+      });
     },
   });
 }
 
 export function useResolveCommentMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: (data: IResolveComment) => resolveComment(data),
@@ -114,11 +129,11 @@ export function useResolveCommentMutation() {
         queryClient.setQueryData(RQ_KEY(data.pageId), updatedComments);
       }*/
 
-      notifications.show({ message: "Comment resolved successfully" });
+      notifications.show({ message: t("Comment resolved successfully") });
     },
     onError: (error) => {
       notifications.show({
-        message: "Failed to resolve comment",
+        message: t("Failed to resolve comment"),
         color: "red",
       });
     },

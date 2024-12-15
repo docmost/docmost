@@ -1,11 +1,15 @@
-import {Table, Group, Text, Anchor} from "@mantine/core";
-import {useGetGroupsQuery} from "@/features/group/queries/group-query";
+import { Table, Group, Text, Anchor } from "@mantine/core";
+import { useGetGroupsQuery } from "@/features/group/queries/group-query";
 import React from "react";
-import {Link} from "react-router-dom";
-import {IconGroupCircle} from "@/components/icons/icon-people-circle.tsx";
+import { Link } from "react-router-dom";
+import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
+import { useTranslation } from "react-i18next";
+import { formatMemberCount } from "@/lib";
+import { IGroup } from "@/features/group/types/group.types.ts";
 
 export default function GroupList() {
-  const {data, isLoading} = useGetGroupsQuery();
+  const { t } = useTranslation();
+  const { data, isLoading } = useGetGroupsQuery();
 
   return (
     <>
@@ -14,13 +18,13 @@ export default function GroupList() {
           <Table highlightOnHover verticalSpacing="sm">
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Group</Table.Th>
-                <Table.Th>Members</Table.Th>
+                <Table.Th>{t("Group")}</Table.Th>
+                <Table.Th>{t("Members")}</Table.Th>
               </Table.Tr>
             </Table.Thead>
 
             <Table.Tbody>
-              {data?.items.map((group, index) => (
+              {data?.items.map((group: IGroup, index: number) => (
                 <Table.Tr key={index}>
                   <Table.Td>
                     <Anchor
@@ -34,7 +38,7 @@ export default function GroupList() {
                       to={`/settings/groups/${group.id}`}
                     >
                       <Group gap="sm" wrap="nowrap">
-                        <IconGroupCircle/>
+                        <IconGroupCircle />
                         <div>
                           <Text fz="sm" fw={500} lineClamp={1}>
                             {group.name}
@@ -46,7 +50,6 @@ export default function GroupList() {
                       </Group>
                     </Anchor>
                   </Table.Td>
-
                   <Table.Td>
                     <Anchor
                       size="sm"
@@ -54,12 +57,12 @@ export default function GroupList() {
                       style={{
                         cursor: "pointer",
                         color: "var(--mantine-color-text)",
-                        whiteSpace: "nowrap"
+                        whiteSpace: "nowrap",
                       }}
                       component={Link}
                       to={`/settings/groups/${group.id}`}
                     >
-                      {group.memberCount} members
+                      {formatMemberCount(group.memberCount, t)}
                     </Anchor>
                   </Table.Td>
                 </Table.Tr>

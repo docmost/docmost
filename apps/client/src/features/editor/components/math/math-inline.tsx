@@ -6,8 +6,10 @@ import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Popover, Textarea } from "@mantine/core";
 import classes from "./math.module.css";
 import { v4 } from "uuid";
+import { useTranslation } from "react-i18next";
 
 export default function MathInlineView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, updateAttributes, editor, getPos } = props;
   const mathResultContainer = useRef<HTMLDivElement>(null);
   const mathPreviewContainer = useRef<HTMLDivElement>(null);
@@ -84,9 +86,9 @@ export default function MathInlineView(props: NodeViewProps) {
             ></div>
             {((isEditing && !preview?.trim().length) ||
               (!isEditing && !node.attrs.text.trim().length)) && (
-              <div>Empty equation</div>
+              <div>{t("Empty equation")}</div>
             )}
-            {error && <div>Invalid equation</div>}
+            {error && <div>{t("Invalid equation")}</div>}
           </NodeViewWrapper>
         </Popover.Target>
         <Popover.Dropdown p={"xs"}>

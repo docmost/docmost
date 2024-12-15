@@ -2,16 +2,17 @@ import { NodeViewContent, NodeViewProps, NodeViewWrapper } from '@tiptap/react';
 import { ActionIcon, CopyButton, Group, Select, Tooltip } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { IconCheck, IconCopy } from '@tabler/icons-react';
-//import MermaidView from "@/features/editor/components/code-block/mermaid-view.tsx";
 import classes from './code-block.module.css';
 import React from 'react';
 import { Suspense } from 'react';
+import { useTranslation } from "react-i18next";
 
 const MermaidView = React.lazy(
   () => import('@/features/editor/components/code-block/mermaid-view.tsx')
 );
 
 export default function CodeBlockView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, updateAttributes, extension, editor, getPos } = props;
   const { language } = node.attrs;
   const [languageValue, setLanguageValue] = useState<string | null>(
@@ -61,7 +62,7 @@ export default function CodeBlockView(props: NodeViewProps) {
         <CopyButton value={node?.textContent} timeout={2000}>
           {({ copied, copy }) => (
             <Tooltip
-              label={copied ? 'Copied' : 'Copy'}
+              label={copied ? t('Copied') : t('Copy')}
               withArrow
               position="right"
             >

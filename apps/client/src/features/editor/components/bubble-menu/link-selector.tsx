@@ -3,6 +3,7 @@ import { IconLink } from "@tabler/icons-react";
 import { ActionIcon, Popover, Tooltip } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
+import { useTranslation } from "react-i18next";
 
 interface LinkSelectorProps {
   editor: ReturnType<typeof useEditor>;
@@ -15,6 +16,7 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
   isOpen,
   setIsOpen,
 }) => {
+  const { t } = useTranslation();
   const onLink = useCallback(
     (url: string) => {
       setIsOpen(false);
@@ -32,7 +34,7 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
       withArrow
     >
       <Popover.Target>
-        <Tooltip label="Add link" withArrow>
+        <Tooltip label={t("Add link")} withArrow>
           <ActionIcon
             variant="default"
             size="lg"

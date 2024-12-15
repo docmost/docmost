@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import mermaid from "mermaid";
 import { v4 as uuidv4 } from "uuid";
 import classes from "./code-block.module.css";
+import { t } from "i18next";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -29,11 +30,11 @@ export default function MermaidView({ props }: MermaidViewProps) {
         .catch((err) => {
           if (props.editor.isEditable) {
             setPreview(
-              `<div class="${classes.error}">Mermaid diagram error: ${err}</div>`,
+              `<div class="${classes.error}">${t("Mermaid diagram error:")} ${err}</div>`,
             );
           } else {
             setPreview(
-              `<div class="${classes.error}">Invalid Mermaid Diagram</div>`,
+              `<div class="${classes.error}">${t("Invalid Mermaid diagram")}</div>`,
             );
           }
         });

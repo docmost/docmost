@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import classes from "./slash-menu.module.css";
 import clsx from "clsx";
+import { useTranslation } from "react-i18next";
 
 const CommandList = ({
   items,
@@ -25,6 +26,7 @@ const CommandList = ({
   editor: any;
   range: any;
 }) => {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -104,18 +106,17 @@ const CommandList = ({
                   <ActionIcon
                     variant="default"
                     component="div"
-                    aria-label={item.title}
                   >
                     <item.icon size={18} />
                   </ActionIcon>
 
                   <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
-                      {item.title}
+                      {t(item.title)}
                     </Text>
 
                     <Text c="dimmed" size="xs">
-                      {item.description}
+                      {t(item.description)}
                     </Text>
                   </div>
                 </Group>

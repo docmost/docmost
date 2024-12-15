@@ -5,12 +5,14 @@ import { Button, Divider, Group, Text } from '@mantine/core';
 import DeleteSpaceModal from './delete-space-modal';
 import { useDisclosure } from "@mantine/hooks";
 import ExportModal from "@/components/common/export-modal.tsx";
+import { useTranslation } from "react-i18next";
 
 interface SpaceDetailsProps {
   spaceId: string;
   readOnly?: boolean;
 }
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
+  const { t } = useTranslation();
   const { data: space, isLoading } = useSpaceQuery(spaceId);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
@@ -20,7 +22,7 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
       {space && (
         <div>
           <Text my="md" fw={600}>
-            Details
+            {t("Details")}
           </Text>
           <EditSpaceForm space={space} readOnly={readOnly} />
 
@@ -33,12 +35,12 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
                 <div>
                   <Text size="md">Export space</Text>
                   <Text size="sm" c="dimmed">
-                    Export all pages and attachments in this space
+                    {t("Export all pages and attachments in this space.")}
                   </Text>
                 </div>
 
                 <Button onClick={openExportModal}>
-                  Export
+                  {t("Export")}
                 </Button>
               </Group>
 
@@ -46,9 +48,9 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
 
               <Group justify="space-between" wrap="nowrap" gap="xl">
                 <div>
-                  <Text size="md">Delete space</Text>
+                  <Text size="md">{t("Delete space")}</Text>
                   <Text size="sm" c="dimmed">
-                    Delete this space with all its pages and data.
+                    {t("Delete this space with all its pages and data.")}
                   </Text>
                 </div>
 

@@ -17,8 +17,10 @@ import {
   IconInfoCircleFilled,
 } from "@tabler/icons-react";
 import { CalloutType } from "@docmost/editor-ext";
+import { useTranslation } from "react-i18next";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
+  const { t } = useTranslation();
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -71,11 +73,11 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
-        <Tooltip position="top" label="Info">
+        <Tooltip position="top" label={t("Info")}>
           <ActionIcon
             onClick={() => setCalloutType("info")}
             size="lg"
-            aria-label="Info"
+            aria-label={t("Info")}
             variant={
               editor.isActive("callout", { type: "info" }) ? "light" : "default"
             }
@@ -84,11 +86,11 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Success">
+        <Tooltip position="top" label={t("Success")}>
           <ActionIcon
             onClick={() => setCalloutType("success")}
             size="lg"
-            aria-label="Success"
+            aria-label={t("Success")}
             variant={
               editor.isActive("callout", { type: "success" })
                 ? "light"
@@ -99,11 +101,11 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Warning">
+        <Tooltip position="top" label={t("Warning")}>
           <ActionIcon
             onClick={() => setCalloutType("warning")}
             size="lg"
-            aria-label="Warning"
+            aria-label={t("Warning")}
             variant={
               editor.isActive("callout", { type: "warning" })
                 ? "light"
@@ -114,11 +116,11 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Danger">
+        <Tooltip position="top" label={t("Danger")}>
           <ActionIcon
             onClick={() => setCalloutType("danger")}
             size="lg"
-            aria-label="Danger"
+            aria-label={t("Danger")}
             variant={
               editor.isActive("callout", { type: "danger" })
                 ? "light"

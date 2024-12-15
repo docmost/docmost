@@ -1,22 +1,37 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { useMemo } from "react";
 import clsx from "clsx";
-import { ActionIcon, AspectRatio, Button, Card, FocusTrap, Group, Popover, Text, TextInput } from "@mantine/core";
+import {
+  ActionIcon,
+  AspectRatio,
+  Button,
+  Card,
+  FocusTrap,
+  Group,
+  Popover,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import { IconEdit } from "@tabler/icons-react";
 import { z } from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import {
   getEmbedProviderById,
-  getEmbedUrlAndProvider
+  getEmbedUrlAndProvider,
 } from "@/features/editor/components/embed/providers.ts";
-import { notifications } from '@mantine/notifications';
+import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 
 const schema = z.object({
   url: z
-    .string().trim().url({ message: 'please enter a valid url' }),
+    .string()
+    .trim()
+    .url({ message: i18n.t("Please enter a valid url") }),
 });
 
 export default function EmbedView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, selected, updateAttributes } = props;
   const { src, provider } = node.attrs;
 
@@ -41,9 +56,9 @@ export default function EmbedView(props: NodeViewProps) {
         updateAttributes({ src: data.url });
       } else {
         notifications.show({
-          message: `Invalid ${provider} embed link`,
-          position: 'top-right',
-          color: 'red'
+          message: t("Invalid {{provider}} embed link", { provider: provider }),
+          position: "top-right",
+          color: "red",
         });
       }
     }
@@ -62,7 +77,6 @@ export default function EmbedView(props: NodeViewProps) {
               frameBorder="0"
             ></iframe>
           </AspectRatio>
-
         </>
       ) : (
         <Popover width={300} position="bottom" withArrow shadow="md">
@@ -71,20 +85,22 @@ export default function EmbedView(props: NodeViewProps) {
               radius="md"
               p="xs"
               style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
               withBorder
-              className={clsx(selected ? 'ProseMirror-selectednode' : '')}
+              className={clsx(selected ? "ProseMirror-selectednode" : "")}
             >
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
                 <ActionIcon variant="transparent" color="gray">
                   <IconEdit size={18} />
                 </ActionIcon>
 
                 <Text component="span" size="lg" c="dimmed">
-                  Embed {getEmbedProviderById(provider).name}
+                  {t("Embed {{provider}}", {
+                    provider: getEmbedProviderById(provider).name,
+                  })}
                 </Text>
               </div>
             </Card>
@@ -92,15 +108,18 @@ export default function EmbedView(props: NodeViewProps) {
           <Popover.Dropdown bg="var(--mantine-color-body)">
             <form onSubmit={embedForm.onSubmit(onSubmit)}>
               <FocusTrap active={true}>
-                <TextInput placeholder={`Enter ${getEmbedProviderById(provider).name} link to embed`}
-                           key={embedForm.key('url')}
-                           {... embedForm.getInputProps('url')}
-                           data-autofocus
+                <TextInput
+                  placeholder={t("Enter {{provider}} link to embed", {
+                    provider: getEmbedProviderById(provider).name,
+                  })}
+                  key={embedForm.key("url")}
+                  {...embedForm.getInputProps("url")}
+                  data-autofocus
                 />
               </FocusTrap>
 
               <Group justify="center" mt="xs">
-                <Button type="submit">Embed link</Button>
+                <Button type="submit">{t("Embed link")}</Button>
               </Group>
             </form>
           </Popover.Dropdown>

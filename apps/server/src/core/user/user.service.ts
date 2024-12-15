@@ -48,6 +48,10 @@ export class UserService {
       user.avatarUrl = updateUserDto.avatarUrl;
     }
 
+    if (updateUserDto.locale) {
+      user.locale = updateUserDto.locale;
+    }
+
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
   }

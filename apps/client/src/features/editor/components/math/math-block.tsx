@@ -8,8 +8,10 @@ import classes from "./math.module.css";
 import { v4 } from "uuid";
 import { IconTrashX } from "@tabler/icons-react";
 import { useDebouncedValue } from "@mantine/hooks";
+import { useTranslation } from "react-i18next";
 
 export default function MathBlockView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, updateAttributes, editor, getPos } = props;
   const mathResultContainer = useRef<HTMLDivElement>(null);
   const mathPreviewContainer = useRef<HTMLDivElement>(null);
@@ -94,9 +96,9 @@ export default function MathBlockView(props: NodeViewProps) {
           ></div>
           {((isEditing && !preview?.trim().length) ||
             (!isEditing && !node.attrs.text.trim().length)) && (
-            <div>Empty equation</div>
+            <div>{t("Empty equation")}</div>
           )}
-          {error && <div>Invalid equation</div>}
+          {error && <div>{t("Invalid equation")}</div>}
         </NodeViewWrapper>
       </Popover.Target>
       <Popover.Dropdown>

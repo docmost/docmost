@@ -3,11 +3,13 @@ import { Button, Group, TextInput } from "@mantine/core";
 import { IconLink } from "@tabler/icons-react";
 import { useLinkEditorState } from "@/features/editor/components/link/use-link-editor-state.tsx";
 import { LinkEditorPanelProps } from "@/features/editor/components/link/types.ts";
+import { useTranslation } from "react-i18next";
 
 export const LinkEditorPanel = ({
   onSetLink,
   initialUrl,
 }: LinkEditorPanelProps) => {
+  const { t } = useTranslation();
   const state = useLinkEditorState({
     onSetLink,
     initialUrl,
@@ -20,12 +22,12 @@ export const LinkEditorPanel = ({
           <TextInput
             leftSection={<IconLink size={16} />}
             variant="filled"
-            placeholder="Paste link"
+            placeholder={t("Paste link")}
             value={state.url}
             onChange={state.onChange}
           />
           <Button p={"xs"} type="submit" disabled={!state.isValidUrl}>
-            Save
+            {t("Save")}
           </Button>
         </Group>
       </form>

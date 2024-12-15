@@ -7,6 +7,7 @@ import {
   Flex,
 } from "@mantine/core";
 import { IconLinkOff, IconPencil } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 export type LinkPreviewPanelProps = {
   url: string;
@@ -19,6 +20,8 @@ export const LinkPreviewPanel = ({
   onEdit,
   url,
 }: LinkPreviewPanelProps) => {
+  const { t } = useTranslation();
+
   return (
     <>
       <Card withBorder radius="md" padding="xs" bg="var(--mantine-color-body)">
@@ -42,13 +45,13 @@ export const LinkPreviewPanel = ({
           <Flex align="center">
             <Divider mx={4} orientation="vertical" />
 
-            <Tooltip label="Edit link">
+            <Tooltip label={t("Edit link")}>
               <ActionIcon onClick={onEdit} variant="subtle" color="gray">
                 <IconPencil size={16} />
               </ActionIcon>
             </Tooltip>
 
-            <Tooltip label="Remove link">
+            <Tooltip label={t("Remove link")}>
               <ActionIcon onClick={onClear} variant="subtle" color="red">
                 <IconLinkOff size={16} />
               </ActionIcon>

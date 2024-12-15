@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
+import { useTranslation } from "react-i18next";
 
 export interface BubbleColorMenuItem {
   name: string;
@@ -106,6 +107,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   isOpen,
   setIsOpen,
 }) => {
+  const { t } = useTranslation();
   const activeColorItem = TEXT_COLORS.find(({ color }) =>
     editor.isActive("textStyle", { color }),
   );
@@ -117,7 +119,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   return (
     <Popover width={200} opened={isOpen} withArrow>
       <Popover.Target>
-        <Tooltip label="Text color" withArrow>
+        <Tooltip label={t("Text color")} withArrow>
           <ActionIcon
             variant="default"
             size="lg"
@@ -136,8 +138,8 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
       <Popover.Dropdown>
         {/* make mah responsive */}
         <ScrollArea.Autosize type="scroll" mah="400">
-          <Text span c="dimmed" inherit>
-            COLOR
+          <Text span c="dimmed" tt="uppercase" inherit>
+            {t("Color")}
           </Text>
 
           <Button.Group orientation="vertical">
@@ -155,7 +157,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 }
                 onClick={() => {
                   editor.commands.unsetColor();
-                  name !== "Default" &&
+                  name !== t("Default") &&
                     editor
                       .chain()
                       .focus()
@@ -165,7 +167,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 }}
                 style={{ border: "none" }}
               >
-                {name}
+                {t(name)}
               </Button>
             ))}
           </Button.Group>
