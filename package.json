@@ -38,7 +38,6 @@
     "@tiptap/extension-link": "^2.10.3",
     "@tiptap/extension-list-item": "^2.10.3",
     "@tiptap/extension-list-keymap": "^2.10.3",
-    "@tiptap/extension-mention": "^2.10.3",
     "@tiptap/extension-placeholder": "^2.10.3",
     "@tiptap/extension-subscript": "^2.10.3",
     "@tiptap/extension-superscript": "^2.10.3",

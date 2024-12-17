@@ -35,7 +35,8 @@ import {
   CustomCodeBlock,
   Drawio,
   Excalidraw,
-  Embed
+  Embed,
+  Mention,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -64,6 +65,7 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -131,7 +133,18 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-
+  Mention.configure({
+    suggestion: {
+      items: () => {
+        return [];
+      },
+      // @ts-ignore
+      render: mentionRenderItems,
+    },
+    HTMLAttributes: {
+      class: "mention",
+    },
+  }),
   Table.configure({
     resizable: true,
     lastColumnResizable: false,
@@ -140,7 +153,6 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
-
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -184,7 +196,8 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
-  })
+  }),
+
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

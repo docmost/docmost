@@ -1,0 +1,10 @@
+.mention {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+    color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-1));
+    border-radius: 0.4rem;
+    box-decoration-break: clone;
+    padding: 0.1rem 0.3rem;
+    &::after {
+        content: "\200B";
+    }
+}
