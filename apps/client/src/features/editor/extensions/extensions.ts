@@ -135,6 +135,7 @@ export const mainExtensions = [
   }),
   Mention.configure({
     suggestion: {
+      allowSpaces: true,
       items: () => {
         return [];
       },

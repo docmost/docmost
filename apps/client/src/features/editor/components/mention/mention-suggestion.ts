@@ -2,6 +2,11 @@ import { ReactRenderer, useEditor } from "@tiptap/react";
 import tippy from "tippy.js";
 import MentionList from "@/features/editor/components/mention/mention-list.tsx";
 
+function getWhitespaceCount(query: string) {
+  const matches = query?.match(/([\s]+)/g);
+  return matches?.length || 0;
+}
+
 const mentionRenderItems = () => {
   let component: ReactRenderer | null = null;
   let popup: any | null = null;
@@ -10,7 +15,14 @@ const mentionRenderItems = () => {
     onStart: (props: {
       editor: ReturnType<typeof useEditor>;
       clientRect: DOMRect;
+      query: string;
     }) => {
+      // don't render component if space between the search query words is greater than 4
+      const whitespaceCount = getWhitespaceCount(props.query);
+      if (whitespaceCount > 4) {
+        return;
+      }
+
       component = new ReactRenderer(MentionList, {
         props,
         editor: props.editor,
@@ -34,30 +46,49 @@ const mentionRenderItems = () => {
     onUpdate: (props: {
       editor: ReturnType<typeof useEditor>;
       clientRect: DOMRect;
+      query: string;
     }) => {
-      component?.updateProps(props);
+      // only update component if popup is not destroyed
+      if (!popup?.[0].state.isDestroyed) {
+        component?.updateProps(props);
+      }
 
-      if (!props.clientRect) {
+      if (!props || !props.clientRect) {
+        return;
+      }
+
+      const whitespaceCount = getWhitespaceCount(props.query);
+
+      // destroy component if space is greater 3 without a match
+      if (
+        whitespaceCount > 3 &&
+        props.editor.storage.mentionItems.length === 0
+      ) {
+        popup?.[0]?.destroy();
+        component?.destroy();
         return;
       }
 
       popup &&
-        popup[0].setProps({
+        !popup?.[0].state.isDestroyed &&
+        popup?.[0].setProps({
           getReferenceClientRect: props.clientRect,
         });
     },
     onKeyDown: (props: { event: KeyboardEvent }) => {
-      if (props.event.key === "Escape") {
-        popup?.[0].hide();
-
-        return true;
-      }
-
-      // @ts-ignore
-      return component?.ref?.onKeyDown(props);
+      if (props.event.key)
+        if (
+          props.event.key === "Escape" ||
+          (props.event.key === "Enter" && !popup?.[0].state.isShown)
+        ) {
+          popup?.[0].destroy();
+          component?.destroy();
+          return false;
+        }
+      return (component?.ref as any)?.onKeyDown(props);
     },
     onExit: () => {
-      if (popup && !popup[0].state.isDestroyed) {
+      if (popup && !popup?.[0].state.isDestroyed) {
         popup[0].destroy();
       }
 

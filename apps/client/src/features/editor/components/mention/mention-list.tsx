@@ -101,6 +101,8 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       }
 
       setRenderItems(items);
+      // update editor storage
+      props.editor.storage.mentionItems = items;
     }
   }, [suggestion, isLoading]);
 
@@ -175,6 +177,10 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       }
 
       if (event.key === "Enter") {
+        // don't trap the enter button if there are no items to render
+        if (renderItems.length === 0){
+          return false;
+        }
         enterHandler();
         return true;
       }
@@ -182,6 +188,8 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       return false;
     },
   }));
+
+  // if no results and enter what to do?
 
   useEffect(() => {
     viewportRef.current
