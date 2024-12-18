@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from "uuid";
+
 export function formatMemberCount(memberCount: number): string {
   if (memberCount === 1) {
     return "1 member";
@@ -6,12 +8,15 @@ export function formatMemberCount(memberCount: number): string {
   }
 }
 
-export function extractPageSlugId(input: string): string {
-  if (!input) {
+export function extractPageSlugId(slug: string): string {
+  if (!slug) {
     return undefined;
   }
-  const parts = input.split("-");
-  return parts.length > 1 ? parts[parts.length - 1] : input;
+  if (isValidUUID(slug)) {
+    return slug;
+  }
+  const parts = slug.split("-");
+  return parts.length > 1 ? parts[parts.length - 1] : slug;
 }
 
 export const computeSpaceSlug = (name: string) => {
@@ -64,9 +69,9 @@ function decodeBase64(base64: string): string {
 }
 
 export function decodeBase64ToSvgString(base64Data: string): string {
-  const base64Prefix = 'data:image/svg+xml;base64,';
+  const base64Prefix = "data:image/svg+xml;base64,";
   if (base64Data.startsWith(base64Prefix)) {
-      base64Data = base64Data.replace(base64Prefix, '');
+    base64Data = base64Data.replace(base64Prefix, "");
   }
 
   return decodeBase64(base64Data);
