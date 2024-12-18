@@ -5,7 +5,7 @@ import Suggestion, { SuggestionOptions } from "@tiptap/suggestion";
 
 export interface MentionNodeAttrs {
   /**
-   * generated unique mention node id
+   *  unique mention node id (uuidv7)
    */
   id: string | null;
   /**
@@ -17,7 +17,7 @@ export interface MentionNodeAttrs {
   /**
    * the entity type - user or page
    */
-  entityType?: "user" | "page";
+  entityType: "user" | "page";
 
   /**
    * the entity id - userId or pageId
@@ -100,10 +100,11 @@ export const Mention = Node.create<MentionOptions>({
       },
       deleteTriggerWithBackspace: false,
       renderHTML({ options, node }) {
+        const isUserMention = node.attrs.entityType === "user";
         return [
           "span",
           mergeAttributes(this.HTMLAttributes, options.HTMLAttributes),
-          `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`,
+          `${isUserMention ? options.suggestion.char : "📄 "}${node.attrs.label ?? node.attrs.id}`,
         ];
       },
       suggestion: {
