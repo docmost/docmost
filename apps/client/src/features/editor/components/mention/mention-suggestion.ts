@@ -17,6 +17,11 @@ const mentionRenderItems = () => {
       clientRect: DOMRect;
       query: string;
     }) => {
+      // query must not start with a whitespace
+      if (props.query.charAt(0) === ' '){
+        return;
+      }
+
       // don't render component if space between the search query words is greater than 4
       const whitespaceCount = getWhitespaceCount(props.query);
       if (whitespaceCount > 4) {
@@ -48,6 +53,12 @@ const mentionRenderItems = () => {
       clientRect: DOMRect;
       query: string;
     }) => {
+      // query must not start with a whitespace
+      if (props.query.charAt(0) === ' '){
+        component?.destroy();
+        return;
+      }
+
       // only update component if popup is not destroyed
       if (!popup?.[0].state.isDestroyed) {
         component?.updateProps(props);
