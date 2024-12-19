@@ -12,6 +12,16 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { Queue } from 'bullmq';
+import {
+  extractMentions,
+  extractPageMentions,
+} from '../../common/helpers/prosemirror/utils';
+import { isDeepStrictEqual } from 'node:util';
+import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
+import { Page } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -21,6 +31,7 @@ export class PersistenceExtension implements Extension {
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private eventEmitter: EventEmitter2,
+    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -85,17 +96,23 @@ export class PersistenceExtension implements Extension {
       this.logger.warn('jsonToText' + err?.['message']);
     }
 
-    try {
-      let page = null;
+    let page: Page = null;
 
+    try {
       await executeTx(this.db, async (trx) => {
         page = await this.pageRepo.findById(pageId, {
           withLock: true,
+          includeContent: true,
           trx,
         });
 
         if (!page) {
           this.logger.error(`Page with id ${pageId} not found`);
+          return;
+        }
+
+        if (isDeepStrictEqual(tiptapJson, page.content)) {
+          page = null;
           return;
         }
 
@@ -110,7 +127,11 @@ export class PersistenceExtension implements Extension {
           trx,
         );
       });
+    } catch (err) {
+      this.logger.error(`Failed to update page ${pageId}`, err);
+    }
 
+    if (page) {
       this.eventEmitter.emit('collab.page.updated', {
         page: {
           ...page,
@@ -119,8 +140,17 @@ export class PersistenceExtension implements Extension {
           textContent: textContent,
         },
       });
-    } catch (err) {
-      this.logger.error(`Failed to update page ${pageId}`, err);
+
+      // push page mention queue
+      const mentions = extractMentions(tiptapJson);
+      const pageMentions = extractPageMentions(mentions);
+
+      await this.generalQueue.add(QueueJob.PAGE_BACKLINKS, {
+        pageId: pageId,
+        spaceId: page.spaceId,
+        workspaceId: page.workspaceId,
+        mentions: pageMentions,
+      } as IPageBacklinkJob);
     }
   }
 }
