@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode,useRef,useEffect  } from 'react';
 import {
   ActionIcon,
   Popover,
@@ -7,7 +7,6 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Suspense } from 'react';
-
 const Picker = React.lazy(() => import('@emoji-mart/react'));
 
 export interface EmojiPickerInterface {
@@ -15,6 +14,7 @@ export interface EmojiPickerInterface {
   icon: ReactNode;
   removeEmojiAction: () => void;
   readOnly: boolean;
+ 
 }
 
 function EmojiPicker({
@@ -35,21 +35,42 @@ function EmojiPicker({
     removeEmojiAction();
     handlers.close();
   };
+  const targetRef = useRef(null); 
+  const dropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const closeOpenMenus = (e: any) => {
+      if (
+        opened &&
+        targetRef.current &&
+        dropdownRef.current &&
+        !targetRef.current.contains(e.target) &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        handlers.close();
+      }
+    };
+
+      document.addEventListener('mousedown', closeOpenMenus);
+    return () => {
+      document.removeEventListener('mousedown', closeOpenMenus);
+    };
+  }, [opened]);
 
   return (
     <Popover
-      opened={opened}
+    opened={opened}
       onClose={handlers.close}
       width={332}
       position="bottom"
       disabled={readOnly}
     >
-      <Popover.Target>
-        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle}>
+      <Popover.Target ref={targetRef}>
+        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle} >
           {icon}
         </ActionIcon>
       </Popover.Target>
-      <Popover.Dropdown bg="000" style={{ border: 'none' }}>
+      <Popover.Dropdown bg="000" style={{ border: 'none' }} ref={dropdownRef}>
         <Suspense fallback={null}>
           <Picker
             data={async () => (await import('@emoji-mart/data')).default}
