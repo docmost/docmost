@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode,useRef,useEffect  } from 'react';
 import {
   ActionIcon,
   Popover,
@@ -7,8 +7,6 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Suspense } from 'react';
-import { nodeIdAtom } from '@/features/page/tree/atoms/node-id-atom.ts';
-import { useAtom } from "jotai";
 const Picker = React.lazy(() => import('@emoji-mart/react'));
 
 export interface EmojiPickerInterface {
@@ -16,7 +14,7 @@ export interface EmojiPickerInterface {
   icon: ReactNode;
   removeEmojiAction: () => void;
   readOnly: boolean;
-  nodeId:string;
+ 
 }
 
 function EmojiPicker({
@@ -24,36 +22,55 @@ function EmojiPicker({
   icon,
   removeEmojiAction,
   readOnly,
-  nodeId,
 }: EmojiPickerInterface) {
   const [opened, handlers] = useDisclosure(false);
   const { colorScheme } = useMantineColorScheme();
-  const [nodeIdValueAtom,setNodeIdValueAtom]=useAtom(nodeIdAtom)
 
   const handleEmojiSelect = (emoji) => {
     onEmojiSelect(emoji);
-    setNodeIdValueAtom(null);
+    handlers.close();
   };
 
   const handleRemoveEmoji = () => {
     removeEmojiAction();
-    setNodeIdValueAtom(null);
+    handlers.close();
   };
+  const targetRef = useRef(null); 
+  const dropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const closeOpenMenus = (e: any) => {
+      if (
+        opened &&
+        targetRef.current &&
+        dropdownRef.current &&
+        !targetRef.current.contains(e.target) &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        handlers.close();
+      }
+    };
+
+      document.addEventListener('mousedown', closeOpenMenus);
+    return () => {
+      document.removeEventListener('mousedown', closeOpenMenus);
+    };
+  }, [opened]);
 
   return (
     <Popover
-      opened={nodeIdValueAtom===nodeId}
+    opened={opened}
       onClose={handlers.close}
       width={332}
       position="bottom"
       disabled={readOnly}
     >
-      <Popover.Target>
-        <ActionIcon c="gray" variant="transparent" onClick={()=>setNodeIdValueAtom((prev:string|null)=>prev===nodeId?null:nodeId)}>
+      <Popover.Target ref={targetRef}>
+        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle} >
           {icon}
         </ActionIcon>
       </Popover.Target>
-      <Popover.Dropdown bg="000" style={{ border: 'none' }}>
+      <Popover.Dropdown bg="000" style={{ border: 'none' }} ref={dropdownRef}>
         <Suspense fallback={null}>
           <Picker
             data={async () => (await import('@emoji-mart/data')).default}
