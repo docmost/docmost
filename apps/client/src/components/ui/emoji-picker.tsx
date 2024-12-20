@@ -7,7 +7,8 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Suspense } from 'react';
-
+import { nodeIdAtom } from '@/features/page/tree/atoms/node-id-atom.ts';
+import { useAtom } from "jotai";
 const Picker = React.lazy(() => import('@emoji-mart/react'));
 
 export interface EmojiPickerInterface {
@@ -15,6 +16,7 @@ export interface EmojiPickerInterface {
   icon: ReactNode;
   removeEmojiAction: () => void;
   readOnly: boolean;
+  nodeId:string;
 }
 
 function EmojiPicker({
@@ -22,30 +24,32 @@ function EmojiPicker({
   icon,
   removeEmojiAction,
   readOnly,
+  nodeId,
 }: EmojiPickerInterface) {
   const [opened, handlers] = useDisclosure(false);
   const { colorScheme } = useMantineColorScheme();
+  const [nodeIdValueAtom,setNodeIdValueAtom]=useAtom(nodeIdAtom)
 
   const handleEmojiSelect = (emoji) => {
     onEmojiSelect(emoji);
-    handlers.close();
+    setNodeIdValueAtom(null);
   };
 
   const handleRemoveEmoji = () => {
     removeEmojiAction();
-    handlers.close();
+    setNodeIdValueAtom(null);
   };
 
   return (
     <Popover
-      opened={opened}
+      opened={nodeIdValueAtom===nodeId}
       onClose={handlers.close}
       width={332}
       position="bottom"
       disabled={readOnly}
     >
       <Popover.Target>
-        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle}>
+        <ActionIcon c="gray" variant="transparent" onClick={()=>setNodeIdValueAtom((prev:string|null)=>prev===nodeId?null:nodeId)}>
           {icon}
         </ActionIcon>
       </Popover.Target>
