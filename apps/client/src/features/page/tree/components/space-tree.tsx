@@ -342,8 +342,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
               )
             }
             readOnly={tree.props.disableEdit as boolean}
-            removeEmojiAction={handleRemoveEmoji}
-                  
+            removeEmojiAction={handleRemoveEmoji}      
           />
         </div>
 
