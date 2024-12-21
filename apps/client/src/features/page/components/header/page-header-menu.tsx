@@ -73,8 +73,22 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   };
 
   const handlePrint = () => {
+    // Create a style element
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.media = 'print';
+    style.appendChild(document.createTextNode(`
+      img {
+        page-break-inside: avoid;
+      }
+    `));
+    // Append the style element to the document head
+    document.head.appendChild(style);
+  
     setTimeout(() => {
       window.print();
+      // Remove the style element after printing
+      document.head.removeChild(style);
     }, 250);
   };
 
