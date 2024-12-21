@@ -39,7 +39,7 @@ export class SearchService {
         'createdAt',
         'updatedAt',
         sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}), 'MinWords=9, MaxWords=10, MaxFragments=10')`.as(
+        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
         ),
       ])
@@ -75,13 +75,19 @@ export class SearchService {
     let groups = [];
     let pages = [];
 
-    const limit = suggestion?.limit || 25;
+    const limit = suggestion?.limit || 10;
 
     if (suggestion.includeUsers) {
       users = await this.db
         .selectFrom('users')
         .select(['id', 'name', 'avatarUrl'])
-        .where((eb) => eb('users.name', 'ilike', `%${suggestion.query.trim()}%`))
+        .where((eb) =>
+          eb(
+            sql`LOWER(users.name)`,
+            'like',
+            `%${suggestion.query.toLowerCase().trim()}%`,
+          ),
+        )
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -91,29 +97,54 @@ export class SearchService {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) => eb('groups.name', 'ilike', `%${suggestion.query.trim()}%`))
+        .where((eb) =>
+          eb(
+            sql`LOWER(groups.name)`,
+            'like',
+            `%${suggestion.query.toLowerCase().trim()}%`,
+          ),
+        )
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
     }
 
     if (suggestion.includePages) {
+      const searchQuery = tsquery(suggestion.query.trim() + '*');
+      let hasSpaceId = true;
+
       let pageSearch = this.db
         .selectFrom('pages')
-        .select(['id', 'slugId', 'title', 'icon'])
-        .where((eb) => eb('pages.title', 'ilike', `%${suggestion.query.trim()}%`))
+        .select([
+          'id',
+          'slugId',
+          'title',
+          'icon',
+          'spaceId',
+          sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
+        ])
+        .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
+        .orderBy('rank', 'desc')
         .where('workspaceId', '=', workspaceId)
-        .$if(Boolean(suggestion.spaceId), (qb) =>
-          qb.where('spaceId', '=', suggestion.spaceId),
-        )
         .limit(limit);
 
-      if (!suggestion.spaceId) {
+      if (suggestion.spaceId) {
+        pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
+      } else {
         // only search spaces the user has access to
         const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-        pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
+
+        // we need this check or the query will throw an error if the userSpaceIds array is empty
+        if (userSpaceIds.length > 0) {
+          // make sure users can only search pages they have access to
+          pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
+        } else {
+          hasSpaceId = false;
+        }
       }
-      pages = await pageSearch.execute();
+      if (hasSpaceId) {
+        pages = await pageSearch.execute();
+      }
     }
 
     return { users, groups, pages };
