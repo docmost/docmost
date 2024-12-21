@@ -126,6 +126,8 @@ export class PersistenceExtension implements Extension {
           pageId,
           trx,
         );
+
+        this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
@@ -135,13 +137,11 @@ export class PersistenceExtension implements Extension {
       this.eventEmitter.emit('collab.page.updated', {
         page: {
           ...page,
-          lastUpdatedById: context.user.id,
           content: tiptapJson,
-          textContent: textContent,
+          lastUpdatedById: context.user.id,
         },
       });
 
-      // push page mention queue
       const mentions = extractMentions(tiptapJson);
       const pageMentions = extractPageMentions(mentions);
 
