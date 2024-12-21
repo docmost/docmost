@@ -18,18 +18,21 @@ export default function Page() {
     data: page,
     isLoading,
     isError,
+    error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility =  useSpaceAbility(spaceRules);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;
   }
 
   if (isError || !page) {
-    // TODO: fix this
+    if ([401, 403, 404].includes(error?.["status"])) {
+      return <div>Page not found</div>;
+    }
     return <div>Error fetching page data.</div>;
   }
 

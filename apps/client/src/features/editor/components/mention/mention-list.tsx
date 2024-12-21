@@ -6,7 +6,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Editor, Range } from "@tiptap/core";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query.ts";
 import {
   ActionIcon,
@@ -17,41 +16,18 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import clsx from "clsx";
-import classes from "./mention-list.module.css";
+import classes from "./mention.module.css";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { IconFileDescription } from "@tabler/icons-react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useParams } from "react-router-dom";
 import { v7 as uuid7 } from "uuid";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
-
-export interface MentionListProps {
-  query: string;
-  command: any;
-  items: [];
-  range: Range;
-  text: string;
-  editor: Editor;
-}
-
-export type SuggestionItem =
-  | { entityType: "header"; label: string }
-  | {
-      id: string;
-      label: string;
-
-      entityType: "user";
-      entityId: string;
-      avatarUrl: string;
-    }
-  | {
-      id: string;
-      label: string;
-      entityType: "page";
-      entityId: string;
-      icon: string;
-    };
+import {
+  MentionListProps,
+  MentionSuggestionItem,
+} from "@/features/editor/components/mention/mention.type.ts";
 
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
@@ -59,7 +35,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const { spaceSlug } = useParams();
   const { data: space } = useSpaceQuery(spaceSlug);
   const [currentUser] = useAtom(currentUserAtom);
-  const [renderItems, setRenderItems] = useState<SuggestionItem[]>([]);
+  const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
 
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
     query: props.query,
@@ -71,7 +47,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
   useEffect(() => {
     if (suggestion && !isLoading) {
-      let items: SuggestionItem[] = [];
+      let items: MentionSuggestionItem[] = [];
 
       if (suggestion?.users?.length > 0) {
         items.push({ entityType: "header", label: "Users" });
@@ -95,6 +71,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             label: page.title,
             entityType: "page",
             entityId: page.id,
+            slugId: page.slugId,
             icon: page.icon,
           })),
         );
@@ -125,6 +102,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             label: item.label,
             entityType: "page",
             entityId: item.entityId,
+            slugId: item.slugId,
             creatorId: currentUser?.user.id,
           });
         }
@@ -178,7 +156,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
       if (event.key === "Enter") {
         // don't trap the enter button if there are no items to render
-        if (renderItems.length === 0){
+        if (renderItems.length === 0) {
           return false;
         }
         enterHandler();

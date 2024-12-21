@@ -1,4 +1,7 @@
 import { validate as isValidUUID } from "uuid";
+import { ActionIcon } from "@mantine/core";
+import { IconFileDescription } from "@tabler/icons-react";
+import { ReactNode } from "react";
 
 export function formatMemberCount(memberCount: number): string {
   if (memberCount === 1) {
@@ -79,4 +82,14 @@ export function decodeBase64ToSvgString(base64Data: string): string {
 
 export function capitalizeFirstChar(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function getPageIcon(icon: string, size = 18): string | ReactNode {
+  return (
+    icon || (
+      <ActionIcon variant="transparent" color="gray" size={size}>
+        <IconFileDescription size={size} />
+      </ActionIcon>
+    )
+  );
 }

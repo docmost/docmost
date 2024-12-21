@@ -25,6 +25,11 @@ export interface MentionNodeAttrs {
   entityId?: string | null;
 
   /**
+   * page slugId
+   */
+  slugId?: string | null;
+
+  /**
    * the id of the user who initiated the mention
    */
   creatorId?: string;
@@ -104,7 +109,7 @@ export const Mention = Node.create<MentionOptions>({
         return [
           "span",
           mergeAttributes(this.HTMLAttributes, options.HTMLAttributes),
-          `${isUserMention ? options.suggestion.char : "📄 "}${node.attrs.label ?? node.attrs.id}`,
+          `${isUserMention ? options.suggestion.char : ""}${node.attrs.label ?? node.attrs.entityId}`,
         ];
       },
       suggestion: {
@@ -153,7 +158,7 @@ export const Mention = Node.create<MentionOptions>({
 
   group: "inline",
   inline: true,
-  selectable: false,
+  selectable: true,
   atom: true,
 
   addAttributes() {
@@ -210,6 +215,20 @@ export const Mention = Node.create<MentionOptions>({
 
           return {
             "data-entity-id": attributes.entityId,
+          };
+        },
+      },
+
+      slugId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-slug-id"),
+        renderHTML: (attributes) => {
+          if (!attributes.slugId) {
+            return {};
+          }
+
+          return {
+            "data-slug-id": attributes.slugId,
           };
         },
       },

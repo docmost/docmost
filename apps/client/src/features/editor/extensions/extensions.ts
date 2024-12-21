@@ -66,6 +66,8 @@ import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -145,6 +147,10 @@ export const mainExtensions = [
     HTMLAttributes: {
       class: "mention",
     },
+  }).extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(MentionView);
+    },
   }),
   Table.configure({
     resizable: true,
@@ -198,7 +204,6 @@ export const mainExtensions = [
   Embed.configure({
     view: EmbedView,
   }),
-
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
