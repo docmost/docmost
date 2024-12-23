@@ -43,6 +43,7 @@ export class PageController {
   async getPage(@Body() dto: PageInfoDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(dto.pageId, {
       includeSpace: true,
+      includeContent: true,
     });
 
     if (!page) {
