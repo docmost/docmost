@@ -147,7 +147,6 @@ export class PersistenceExtension implements Extension {
 
       await this.generalQueue.add(QueueJob.PAGE_BACKLINKS, {
         pageId: pageId,
-        spaceId: page.spaceId,
         workspaceId: page.workspaceId,
         mentions: pageMentions,
       } as IPageBacklinkJob);

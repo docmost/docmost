@@ -25,7 +25,6 @@ export class BacklinkRepo {
         'id',
         'sourcePageId',
         'targetPageId',
-        'spaceId',
         'workspaceId',
         'createdAt',
         'updatedAt',

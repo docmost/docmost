@@ -46,7 +46,6 @@ export interface Backlinks {
   createdAt: Generated<Timestamp>;
   id: Generated<string>;
   sourcePageId: string;
-  spaceId: string;
   targetPageId: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;

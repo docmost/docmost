@@ -20,7 +20,7 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
 
   async process(job: Job<IPageBacklinkJob, void>): Promise<void> {
     try {
-      const { pageId, mentions, spaceId, workspaceId } = job.data;
+      const { pageId, mentions, workspaceId } = job.data;
 
       switch (job.name) {
         case QueueJob.PAGE_BACKLINKS:
@@ -30,12 +30,10 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 .selectFrom('backlinks')
                 .select('targetPageId')
                 .where('sourcePageId', '=', pageId)
-                .where('spaceId', '=', spaceId)
+                .where('workspaceId', '=', workspaceId)
                 .execute();
 
               if (existingBacklinks.length === 0 && mentions.length === 0) {
-                // nothing to do
-                console.log('nothing to do');
                 return;
               }
 
@@ -43,19 +41,18 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 (backlink) => backlink.targetPageId,
               );
 
-              // cannot add link to self
               const targetPageIds = mentions
                 .filter((mention) => mention.entityId !== pageId)
                 .map((mention) => mention.entityId);
 
-              // make sure target pages belong to same space
+              // make sure target pages belong to the same workspace
               let validTargetPages = [];
               if (targetPageIds.length > 0) {
                 validTargetPages = await trx
                   .selectFrom('pages')
                   .select('id')
                   .where('id', 'in', targetPageIds)
-                  .where('spaceId', '=', spaceId)
+                  .where('workspaceId', '=', workspaceId)
                   .execute();
               }
 
@@ -63,19 +60,13 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 (page) => page.id,
               );
 
-              console.log('valid targetPageIds', validTargetPageIds);
-
-              console.log('existing targetPageIds', existingTargetPageIds);
-
               // new backlinks
               const backlinksToAdd = validTargetPageIds.filter(
                 (id) => !existingTargetPageIds.includes(id),
               );
 
-              console.log('backlinksToAdd', backlinksToAdd);
-
               // stale backlinks
-              const staleBacklinks = existingTargetPageIds.filter(
+              const backlinksToRemove = existingTargetPageIds.filter(
                 (existingId) => !validTargetPageIds.includes(existingId),
               );
 
@@ -84,7 +75,6 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 const newBacklinks = backlinksToAdd.map((targetPageId) => ({
                   sourcePageId: pageId,
                   targetPageId: targetPageId,
-                  spaceId: spaceId,
                   workspaceId: workspaceId,
                 }));
 
@@ -94,17 +84,16 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 );
               }
 
-              // remove outdated backlinks
-              if (staleBacklinks.length > 0) {
+              // remove stale backlinks
+              if (backlinksToRemove.length > 0) {
                 await this.db
                   .deleteFrom('backlinks')
                   .where('sourcePageId', '=', pageId)
-                  .where('targetPageId', 'in', staleBacklinks)
-                  .where('spaceId', '=', spaceId)
+                  .where('targetPageId', 'in', backlinksToRemove)
                   .execute();
 
                 this.logger.debug(
-                  `Removed ${staleBacklinks.length} outdated backlinks from ${pageId}.`,
+                  `Removed ${backlinksToRemove.length} outdated backlinks from ${pageId}.`,
                 );
               }
             });
