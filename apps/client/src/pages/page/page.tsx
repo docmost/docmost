@@ -55,6 +55,7 @@ export default function Page() {
         <FullEditor
           pageId={page.id}
           title={page.title}
+          content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={spaceAbility.can(
