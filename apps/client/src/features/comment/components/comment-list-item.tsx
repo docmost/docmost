@@ -59,10 +59,6 @@ function CommentListItem({ comment }: CommentListItemProps) {
   function handleEditToggle() {
     setIsEditing(true);
   }
-  function cancelEdit(){
-    setIsEditing(false);
-    setContent(comment.content);
-  }
 
   return (
     <Box ref={ref} pb="xs">
@@ -120,8 +116,6 @@ function CommentListItem({ comment }: CommentListItemProps) {
             <CommentActions
               onSave={handleUpdateComment}
               isLoading={isLoading}
-              onCancel={cancelEdit}
-              isCommentEditor={true}
             />
           </>
         )}
