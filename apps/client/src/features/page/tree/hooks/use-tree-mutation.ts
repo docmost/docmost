@@ -22,6 +22,7 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -34,6 +35,7 @@ export function useTreeMutation<T>(spaceId: string) {
   const { spaceSlug } = useParams();
   const { pageSlug } = useParams();
   const emit = useQueryEmit();
+  const queryClient = useQueryClient();
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
     const payload: { spaceId: string; parentPageId?: string } = {
@@ -217,6 +219,7 @@ export function useTreeMutation<T>(spaceId: string) {
 
       tree.drop({ id: args.ids[0] });
       setData(tree.data);
+      queryClient.invalidateQueries(["recent-changes", node.data.spaceId]);
 
       // navigate only if the current url is same as the deleted page
       if (pageSlug && node.data.slugId === pageSlug.split("-")[1]) {
