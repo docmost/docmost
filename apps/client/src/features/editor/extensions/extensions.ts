@@ -16,6 +16,7 @@ import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
+import { t } from "i18next";
 import {
   Comment,
   Details,
@@ -94,13 +95,13 @@ export const mainExtensions = [
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
-        return `Heading ${node.attrs.level}`;
+        return `${t("Heading")} ${node.attrs.level}`;
       }
       if (node.type.name === "detailsSummary") {
-        return "Toggle title";
+        return t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        return 'Write anything. Enter "/" for commands';
+        return t("Write anything. Enter \"/\" for commands");
       }
     },
     includeChildren: true,

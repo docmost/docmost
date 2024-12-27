@@ -19,6 +19,7 @@ import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -48,6 +49,7 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  const { t } = useTranslation();
 
   const titleEditor = useEditor({
     extensions: [
@@ -59,7 +61,7 @@ export function TitleEditor({
       }),
       Text,
       Placeholder.configure({
-        placeholder: "Untitled",
+        placeholder: t("Untitled"),
         showOnlyWhenEditable: false,
       }),
       History.configure({

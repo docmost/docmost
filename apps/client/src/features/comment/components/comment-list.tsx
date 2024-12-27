@@ -14,6 +14,7 @@ import { IComment } from "@/features/comment/types/comment.types.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { IPagination } from "@/lib/types.ts";
 import { extractPageSlugId } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 function CommentList() {
   const { pageSlug } = useParams();
@@ -24,6 +25,7 @@ function CommentList() {
     isError,
   } = useCommentsQuery({ pageId: page?.id, limit: 100 });
   const createCommentMutation = useCreateCommentMutation();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAddReply = useCallback(
@@ -79,11 +81,11 @@ function CommentList() {
   }
 
   if (isError) {
-    return <div>Error loading comments.</div>;
+    return <div>{t("Error loading comments.")}</div>;
   }
 
   if (!comments || comments.items.length === 0) {
-    return <>No comments yet.</>;
+    return <>{t("No comments yet.")}</>;
   }
 
   return (

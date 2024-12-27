@@ -4,6 +4,7 @@ import { useState } from "react";
 import * as React from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 
 interface PageExportModalProps {
   pageId: string;
@@ -17,6 +18,7 @@ export default function PageExportModal({
   onClose,
 }: PageExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
+  const { t } = useTranslation();
 
   const handleExport = async () => {
     try {
@@ -48,7 +50,7 @@ export default function PageExportModal({
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>Export page</Modal.Title>
+          <Modal.Title fw={500}>{t("Export page")}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
@@ -62,7 +64,7 @@ export default function PageExportModal({
 
           <Group justify="space-between" wrap="nowrap" pt="md">
             <div>
-              <Text size="md">Include subpages</Text>
+              <Text size="md">{t("Include subpages")}</Text>
             </div>
             <Switch defaultChecked />
 
@@ -73,7 +75,7 @@ export default function PageExportModal({
             <Button onClick={onClose} variant="default">
               Cancel
             </Button>
-            <Button onClick={handleExport}>Export</Button>
+            <Button onClick={handleExport}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>

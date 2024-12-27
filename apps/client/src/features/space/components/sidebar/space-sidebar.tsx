@@ -230,7 +230,7 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             onClick={openExportModal}
             leftSection={<IconFileExport size={16} />}
           >
-            Export space
+            {t("Export space")}
           </Menu.Item>
 
           <Menu.Divider />

@@ -12,6 +12,7 @@ import { useState } from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
 import { exportSpace } from "@/features/space/services/space-service";
+import { useTranslation } from "react-i18next";
 
 interface ExportModalProps {
   id: string;
@@ -25,10 +26,11 @@ export default function ExportModal({
   type,
   open,
   onClose,
-}: ExportModalProps) {
+}: ExportModalProps) {  
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
   const [includeAttachments, setIncludeAttachments] = useState<boolean>(true);
+  const { t } = useTranslation();
 
   const handleExport = async () => {
     try {
@@ -67,13 +69,13 @@ export default function ExportModal({
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>Export {type}</Modal.Title>
+          <Modal.Title fw={500}>{t("Export")} {type}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
           <Group justify="space-between" wrap="nowrap">
             <div>
-              <Text size="md">Format</Text>
+              <Text size="md">{t("Format")}</Text>
             </div>
             <ExportFormatSelection format={format} onChange={handleChange} />
           </Group>
@@ -84,7 +86,9 @@ export default function ExportModal({
 
               <Group justify="space-between" wrap="nowrap">
                 <div>
-                  <Text size="md">Include subpages</Text>
+                  <Text size="md">
+                    {t("Include subpages")}
+                  </Text>
                 </div>
                 <Switch
                   onChange={(event) =>
@@ -102,7 +106,7 @@ export default function ExportModal({
 
               <Group justify="space-between" wrap="nowrap">
                 <div>
-                  <Text size="md">Include attachments</Text>
+                  <Text size="md">{t("Include attachments")}</Text>
                 </div>
                 <Switch
                   onChange={(event) =>
@@ -116,9 +120,9 @@ export default function ExportModal({
 
           <Group justify="center" mt="md">
             <Button onClick={onClose} variant="default">
-              Cancel
+              {t("Cancel")} 
             </Button>
-            <Button onClick={handleExport}>Export</Button>
+            <Button onClick={handleExport}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>

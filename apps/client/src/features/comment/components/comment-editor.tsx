@@ -7,6 +7,7 @@ import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { useTranslation } from "react-i18next";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -28,6 +29,7 @@ const CommentEditor = forwardRef(
     ref,
   ) => {
     const { ref: focusRef, focused } = useFocusWithin();
+    const { t } = useTranslation();
 
     const commentEditor = useEditor({
       extensions: [
@@ -36,7 +38,7 @@ const CommentEditor = forwardRef(
           dropcursor: false,
         }),
         Placeholder.configure({
-          placeholder: placeholder || "Reply...",
+          placeholder: placeholder || t("Reply..."),
         }),
         Underline,
         Link,

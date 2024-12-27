@@ -1,6 +1,7 @@
 import { ActionIcon, Menu } from '@mantine/core';
 import { IconDots, IconEdit, IconTrash } from '@tabler/icons-react';
 import { modals } from '@mantine/modals';
+import { useTranslation } from 'react-i18next';
 
 type CommentMenuProps = {
   onEditComment: () => void;
@@ -8,13 +9,14 @@ type CommentMenuProps = {
 };
 
 function CommentMenu({ onEditComment, onDeleteComment }: CommentMenuProps) {
+  const { t } = useTranslation();
 
   //@ts-ignore
   const openDeleteModal = () =>
     modals.openConfirmModal({
-      title: 'Are you sure you want to delete this comment?',
+      title: t("Are you sure you want to delete this comment?"),
       centered: true,
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      labels: { confirm: t("Delete"), cancel: t("Cancel") },
       confirmProps: { color: 'red' },
       onConfirm: onDeleteComment,
     });
@@ -30,12 +32,12 @@ function CommentMenu({ onEditComment, onDeleteComment }: CommentMenuProps) {
       <Menu.Dropdown>
         <Menu.Item onClick={onEditComment}
                    leftSection={<IconEdit size={14} />}>
-          Edit comment
+          {t("Edit comment")}
         </Menu.Item>
         <Menu.Item leftSection={<IconTrash size={14} />}
                    onClick={openDeleteModal}
         >
-          Delete comment
+          {t("Delete comment")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

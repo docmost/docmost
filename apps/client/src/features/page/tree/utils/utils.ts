@@ -1,5 +1,6 @@
 import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { t } from "i18next";
 
 function sortPositionKeys(keys: any[]) {
   return keys.sort((a, b) => {
@@ -39,10 +40,10 @@ export function findBreadcrumbPath(
   tree: SpaceTreeNode[],
   pageId: string,
   path: SpaceTreeNode[] = [],
-): SpaceTreeNode[] | null {
+): SpaceTreeNode[] | null {  
   for (const node of tree) {
     if (!node.name || node.name.trim() === "") {
-      node.name = "untitled";
+      node.name = t("untitled");
     }
 
     if (node.id === pageId) {

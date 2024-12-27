@@ -3,6 +3,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { Avatar, Group, Select, SelectProps, Text } from '@mantine/core';
 import { useGetSpacesQuery } from '@/features/space/queries/space-query.ts';
 import { ISpace } from '../../types/space.types';
+import { useTranslation } from 'react-i18next';
 
 interface SpaceSelectProps {
   onChange: (value: string) => void;
@@ -27,6 +28,7 @@ export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
     limit: 50,
   });
   const [data, setData] = useState([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (spaces) {
@@ -53,14 +55,14 @@ export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
       renderOption={renderSelectOption}
       maxDropdownHeight={300}
       //label={label || 'Select space'}
-      placeholder="Search for spaces"
+      placeholder={t("Search for spaces")}
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       clearable
       variant="filled"
       onChange={onChange}
-      nothingFoundMessage="No space found"
+      nothingFoundMessage={t("No space found")}
       limit={50}
       checkIconPosition="right"
       comboboxProps={{ width: 300, withinPortal: false }}

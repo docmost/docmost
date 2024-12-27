@@ -19,6 +19,8 @@ export default function AccountPreferences() {
             <SettingsTitle title={t("Preferences")}/>
             <AccountTheme/>
             <Divider my={"md"}/>
+            <AccountLanguage/>
+            <Divider my={"md"}/>
             <PageWidthPref/>
         </>
     );

@@ -43,6 +43,7 @@ function LanguageSwitcher() {
       data={[
         { value: "en-US", label: "English (United States)" },
         { value: "zh-CN", label: "中文 (简体)" },
+        { value: "pt-BR", label: "Português (Brasil)" },
       ]}
       value={language}
       onChange={handleChange}
