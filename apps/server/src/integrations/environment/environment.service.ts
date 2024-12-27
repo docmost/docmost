@@ -136,4 +136,16 @@ export class EnvironmentService {
   isSelfHosted(): boolean {
     return !this.isCloud();
   }
+
+  getStripeKey(): string {
+    return this.configService.get<string>('STRIPE_KEY');
+  }
+
+  getStripeSecretKey(): string {
+    return this.configService.get<string>('STRIPE_SECRET');
+  }
+
+  getStripeWebhookSecret(): string {
+    return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+  }
 }

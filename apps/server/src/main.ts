@@ -17,9 +17,10 @@ async function bootstrap() {
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
-      maxParamLength: 500,
+      maxParamLength: 1000,
     }),
     {
+      rawBody: true,
       logger: new InternalLogFilter(),
     },
   );

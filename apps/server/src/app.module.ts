@@ -15,6 +15,17 @@ import { HealthModule } from './integrations/health/health.module';
 import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
 
+const enterpriseModules = [];
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  if (require('@docmost/ee/ee.module')?.EEModule) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    enterpriseModules.push(require('@docmost/ee/ee.module')?.EEModule);
+  }
+} catch (e) {
+  /* empty */
+}
+
 @Module({
   imports: [
     CoreModule,
@@ -34,6 +45,7 @@ import { ImportModule } from './integrations/import/import.module';
       imports: [EnvironmentModule],
     }),
     EventEmitterModule.forRoot(),
+    ...enterpriseModules,
   ],
   controllers: [AppController],
   providers: [AppService],
