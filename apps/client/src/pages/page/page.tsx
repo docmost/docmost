@@ -23,7 +23,7 @@ export default function Page() {
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility =  useSpaceAbility(spaceRules);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;
@@ -53,6 +53,7 @@ export default function Page() {
         />
 
         <FullEditor
+          key={page.id}
           pageId={page.id}
           title={page.title}
           content={page.content}

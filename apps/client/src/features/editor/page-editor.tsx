@@ -20,7 +20,7 @@ import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   pageEditorAtom,
-  yjsConnectionStatus,
+  yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -28,7 +28,6 @@ import {
   showCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
-import EditorSkeleton from "@/features/editor/components/editor-skeleton";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
@@ -56,7 +55,6 @@ export default function PageEditor({
 }: PageEditorProps) {
   const [token] = useAtom(authTokensAtom);
   const collaborationURL = useCollaborationUrl();
-  const [isYjsConnected, setIsYjsConnected] = useAtom(yjsConnectionStatus);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -65,8 +63,11 @@ export default function PageEditor({
   const ydoc = useMemo(() => new Y.Doc(), [pageId]);
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
-  const documentName = `page.${pageId}`;
+  const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
+    yjsConnectionStatusAtom,
+  );
   const menuContainerRef = useRef(null);
+  const documentName = `page.${pageId}`;
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -85,11 +86,19 @@ export default function PageEditor({
       document: ydoc,
       token: token?.accessToken,
       connect: false,
-      onStatus: (status) => setIsYjsConnected(status.status),
+      onStatus: (status) => {
+        if (status.status === "connected") {
+          setYjsConnectionStatus(status.status);
+        }
+      },
     });
 
     provider.on("synced", () => {
       setRemoteSynced(true);
+    });
+
+    provider.on("disconnect", () => {
+      setYjsConnectionStatus(WebSocketStatus.Disconnected);
     });
 
     return provider;
@@ -169,13 +178,14 @@ export default function PageEditor({
 
   useEffect(() => {
     if (editable) {
-      if (isYjsConnected === WebSocketStatus.Connected) {
+      if (yjsConnectionStatus === WebSocketStatus.Connected) {
         editor.setEditable(true);
       } else {
+        // disable edits if connection fails
         editor.setEditable(false);
       }
     }
-  }, [isYjsConnected]);
+  }, [yjsConnectionStatus]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
@@ -214,4 +224,3 @@ export default function PageEditor({
     ></EditorProvider>
   );
 }
-//  <EditorSkeleton />
