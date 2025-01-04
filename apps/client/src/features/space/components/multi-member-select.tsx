@@ -6,6 +6,7 @@ import { useSearchSuggestionsQuery } from "@/features/search/queries/search-quer
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { IUser } from "@/features/user/types/user.types.ts";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
+import { useTranslation } from "react-i18next";
 
 interface MultiMemberSelectProps {
   onChange: (value: string[]) => void;
@@ -30,6 +31,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
 );
 
 export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
+  const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
@@ -83,14 +85,14 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       const updatedUserGroups = mergeItemsIntoGroups(
         data,
         userItems,
-        "Select a user",
+        t("Select a user"),
       );
 
       // Merge group items into groups
       const finalData = mergeItemsIntoGroups(
         updatedUserGroups,
         groupItems,
-        "Select a group",
+        t("Select a group"),
       );
 
       setData(finalData);
@@ -103,8 +105,8 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       renderOption={renderMultiSelectOption}
       hidePickedOptions
       maxDropdownHeight={300}
-      label="Add members"
-      placeholder="Search for users and groups"
+      label={t("Add members")}
+      placeholder={t("Search for users and groups")}
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}

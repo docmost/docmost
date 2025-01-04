@@ -2,12 +2,13 @@ import { validate as isValidUUID } from "uuid";
 import { ActionIcon } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
 import { ReactNode } from "react";
+import { TFunction } from "i18next";
 
-export function formatMemberCount(memberCount: number): string {
+export function formatMemberCount(memberCount: number, t: TFunction): string {
   if (memberCount === 1) {
-    return "1 member";
+    return `1 ${t("member")}`;
   } else {
-    return `${memberCount} members`;
+    return `${memberCount} ${t("members")}`;
   }
 }
 

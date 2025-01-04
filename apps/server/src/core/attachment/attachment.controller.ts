@@ -178,7 +178,7 @@ export class AttachmentController {
             const fileStream = await this.storageService.read(attachment.filePath);
             res.headers({
                 'Content-Type': attachment.mimeType,
-                'Cache-Control': 'public, max-age=3600',
+                'Cache-Control': 'private, max-age=3600',
             });
 
             if (!inlineFileExtensions.includes(attachment.fileExt)) {
@@ -299,7 +299,7 @@ export class AttachmentController {
             const fileStream = await this.storageService.read(filePath);
             res.headers({
                 'Content-Type': getMimeType(filePath),
-                'Cache-Control': 'public, max-age=86400',
+                'Cache-Control': 'private, max-age=86400',
             });
             return res.send(fileStream);
         } catch (err) {

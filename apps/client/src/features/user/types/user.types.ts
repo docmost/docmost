@@ -11,6 +11,7 @@ export interface IUser {
   invitedById: string;
   lastLoginAt: string;
   lastActiveAt: Date;
+  locale: string;
   createdAt: Date;
   updatedAt: Date;
   role: string;

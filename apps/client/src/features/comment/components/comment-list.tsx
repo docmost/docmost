@@ -6,7 +6,6 @@ import {
   useCommentsQuery,
   useCreateCommentMutation,
 } from "@/features/comment/queries/comment-query";
-
 import CommentEditor from "@/features/comment/components/comment-editor";
 import CommentActions from "@/features/comment/components/comment-actions";
 import { useFocusWithin } from "@mantine/hooks";
@@ -14,8 +13,10 @@ import { IComment } from "@/features/comment/types/comment.types.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { IPagination } from "@/lib/types.ts";
 import { extractPageSlugId } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 function CommentList() {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const {
@@ -79,11 +80,11 @@ function CommentList() {
   }
 
   if (isError) {
-    return <div>Error loading comments.</div>;
+    return <div>{t("Error loading comments.")}</div>;
   }
 
   if (!comments || comments.items.length === 0) {
-    return <>No comments yet.</>;
+    return <>{t("No comments yet.")}</>;
   }
 
   return (

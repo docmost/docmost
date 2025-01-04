@@ -17,8 +17,10 @@ import {
   IconLayoutAlignRight,
 } from "@tabler/icons-react";
 import { NodeWidthResize } from "@/features/editor/components/common/node-width-resize.tsx";
+import { useTranslation } from "react-i18next";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
+  const { t } = useTranslation();
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -96,11 +98,11 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
-        <Tooltip position="top" label="Align image left">
+        <Tooltip position="top" label={t("Align left")}>
           <ActionIcon
             onClick={alignImageLeft}
             size="lg"
-            aria-label="Align image left"
+            aria-label={t("Align left")}
             variant={
               editor.isActive("image", { align: "left" }) ? "light" : "default"
             }
@@ -109,11 +111,11 @@ export function ImageMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Align image center">
+        <Tooltip position="top" label={t("Align center")}>
           <ActionIcon
             onClick={alignImageCenter}
             size="lg"
-            aria-label="Align image center"
+            aria-label={t("Align center")}
             variant={
               editor.isActive("image", { align: "center" })
                 ? "light"
@@ -124,11 +126,11 @@ export function ImageMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Align image right">
+        <Tooltip position="top" label={t("Align right")}>
           <ActionIcon
             onClick={alignImageRight}
             size="lg"
-            aria-label="Align image right"
+            aria-label={t("Align right")}
             variant={
               editor.isActive("image", { align: "right" }) ? "light" : "default"
             }
