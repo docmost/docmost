@@ -125,6 +125,8 @@ export default function PageEditor({
       extensions,
       editable,
       editorProps: {
+        scrollThreshold: 80,
+        scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
