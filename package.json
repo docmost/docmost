@@ -65,6 +65,7 @@
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
+    "marked": "^13.0.3",
     "uuid": "^11.0.3",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.20"

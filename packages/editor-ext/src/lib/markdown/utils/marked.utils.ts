@@ -30,7 +30,7 @@ marked.use({
 
 marked.use({ extensions: [calloutExtension, mathBlockExtension, mathInlineExtension] });
 
-export async function markdownToHtml(markdownInput: string): Promise<string> {
+export function markdownToHtml(markdownInput: string): string | Promise<string> {
   const YAML_FONT_MATTER_REGEX = /^\s*---[\s\S]*?---\s*/;
 
   const markdown = markdownInput

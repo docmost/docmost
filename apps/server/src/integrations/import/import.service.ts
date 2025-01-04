@@ -11,9 +11,9 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateSlugId } from '../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { markdownToHtml } from './utils/marked.utils';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
+import { markdownToHtml } from "@docmost/editor-ext";
 
 @Injectable()
 export class ImportService {

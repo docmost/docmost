@@ -160,6 +160,9 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
+      marked:
+        specifier: ^13.0.3
+        version: 13.0.3
       uuid:
         specifier: ^11.0.3
         version: 11.0.3
@@ -474,9 +477,6 @@ importers:
       kysely-migration-cli:
         specifier: ^0.4.2
         version: 0.4.2
-      marked:
-        specifier: ^13.0.3
-        version: 13.0.3
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
