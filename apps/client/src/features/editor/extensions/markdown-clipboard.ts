@@ -2,8 +2,8 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { DOMParser } from "@tiptap/pm/model";
-import { markdownToHtml } from "./utils/marked.utils";
 import { find } from "linkifyjs";
+import { markdownToHtml } from "@docmost/editor-ext";
 
 export const MarkdownClipboard = Extension.create({
   name: "markdownClipboard",

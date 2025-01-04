@@ -37,7 +37,6 @@ import {
   Excalidraw,
   Embed,
   Mention,
-  MarkdownClipboard,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -70,6 +69,7 @@ import mentionRenderItems from "@/features/editor/components/mention/mention-sug
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
+import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
