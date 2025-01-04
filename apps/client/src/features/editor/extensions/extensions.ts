@@ -36,7 +36,6 @@ import {
   Drawio,
   Excalidraw,
   Embed,
-  MarkdownClipboard,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -66,6 +65,7 @@ import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
 import i18n from "@/i18n.ts";
+import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -133,7 +133,6 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-
   Table.configure({
     resizable: true,
     lastColumnResizable: false,
@@ -142,7 +141,6 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
-
   MathInline.configure({
     view: MathInlineView,
   }),
