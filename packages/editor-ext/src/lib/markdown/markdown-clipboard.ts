@@ -8,6 +8,10 @@ import { find } from "linkifyjs";
 export const MarkdownClipboard = Extension.create({
   name: "markdownClipboard",
   priority: 50,
+
+export const MarkdownClipboard = Extension.create({
+  name: "markdownClipboard",
+
   addOptions() {
     return {
       transformPastedText: false,
@@ -19,6 +23,7 @@ export const MarkdownClipboard = Extension.create({
         key: new PluginKey("markdownClipboard"),
         props: {
           clipboardTextParser: (text, context, plainText) => {
+
             const link = find(text, {
               defaultProtocol: "http",
             }).find((item) => item.isLink && item.value === text);
@@ -28,7 +33,7 @@ export const MarkdownClipboard = Extension.create({
               // pasting with shift key prevents formatting
               return null;
             }
-
+            
             const parsed = markdownToHtml(text);
             return DOMParser.fromSchema(this.editor.schema).parseSlice(
               elementFromString(parsed),
