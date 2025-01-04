@@ -326,5 +326,8 @@
   "Insert and design Drawio diagrams": "Insert and design Drawio diagrams",
   "Insert current date": "Insert current date",
   "Draw and sketch excalidraw diagrams": "Draw and sketch excalidraw diagrams",
-  "Multiple": "Multiple"
+  "Multiple": "Multiple",
+  "Heading {{level}}": "Heading {{level}}",
+  "Toggle title": "Toggle title",
+  "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands"
 }
