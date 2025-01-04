@@ -9,7 +9,7 @@ export const spaceRoleData: IRoleData[] = [
   {
     label: "Can edit",
     value: SpaceRole.WRITER,
-    description: "Can create and edit pages in space.",
+    description: "Can create and edit pages in space",
   },
   {
     label: "Can view",

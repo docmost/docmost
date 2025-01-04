@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 import { Popover, Button, ScrollArea } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
+import { useTranslation } from "react-i18next";
 
 interface NodeSelectorProps {
   editor: ReturnType<typeof useEditor>;
@@ -33,6 +34,8 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
   isOpen,
   setIsOpen,
 }) => {
+  const { t } = useTranslation();
+
   const items: BubbleMenuItem[] = [
     {
       name: "Text",
@@ -114,7 +117,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
           rightSection={<IconChevronDown size={16} />}
           onClick={() => setIsOpen(!isOpen)}
         >
-          {activeItem?.name}
+          {t(activeItem?.name)}
         </Button>
       </Popover.Target>
 
@@ -137,7 +140,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
                 }}
                 style={{ border: "none" }}
               >
-                {item.name}
+                {t(item.name)}
               </Button>
             ))}
           </Button.Group>

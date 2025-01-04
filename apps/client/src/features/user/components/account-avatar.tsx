@@ -5,10 +5,12 @@ import { useAtom } from "jotai";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { FileButton, Tooltip } from "@mantine/core";
 import { uploadAvatar } from "@/features/user/services/user-service.ts";
+import { useTranslation } from "react-i18next";
 
 const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
 
 export default function AccountAvatar() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);
@@ -36,7 +38,7 @@ export default function AccountAvatar() {
     <>
       <FileButton onChange={handleFileChange} accept="image/png,image/jpeg">
         {(props) => (
-          <Tooltip label="Change photo" position="bottom">
+          <Tooltip label={t("Change photo")} position="bottom">
             <CustomAvatar
               {...props}
               component="button"

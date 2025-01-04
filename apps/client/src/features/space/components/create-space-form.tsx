@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useCreateSpaceMutation } from "@/features/space/queries/space-query.ts";
 import { computeSpaceSlug } from "@/lib";
 import { getSpaceUrl } from "@/lib/config.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().trim().min(2).max(50),
@@ -23,6 +24,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateSpaceForm() {
+  const { t } = useTranslation();
   const createSpaceMutation = useCreateSpaceMutation();
   const navigate = useNavigate();
 
@@ -74,8 +76,8 @@ export function CreateSpaceForm() {
             <TextInput
               withAsterisk
               id="name"
-              label="Space name"
-              placeholder="e.g Product Team"
+              label={t("Space name")}
+              placeholder={t("e.g Product Team")}
               variant="filled"
               {...form.getInputProps("name")}
             />
@@ -83,16 +85,16 @@ export function CreateSpaceForm() {
             <TextInput
               withAsterisk
               id="slug"
-              label="Space slug"
-              placeholder="e.g product"
+              label={t("Space slug")}
+              placeholder={t("e.g product")}
               variant="filled"
               {...form.getInputProps("slug")}
             />
 
             <Textarea
               id="description"
-              label="Space description"
-              placeholder="e.g Space for product team"
+              label={t("Space description")}
+              placeholder={t("e.g Space for product team")}
               variant="filled"
               autosize
               minRows={2}
@@ -102,7 +104,7 @@ export function CreateSpaceForm() {
           </Stack>
 
           <Group justify="flex-end" mt="md">
-            <Button type="submit">Create</Button>
+            <Button type="submit">{t("Create")}</Button>
           </Group>
         </form>
       </Box>

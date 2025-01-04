@@ -35,7 +35,7 @@ import {
   CustomCodeBlock,
   Drawio,
   Excalidraw,
-  Embed
+  Embed,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -64,6 +64,7 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import i18n from "@/i18n.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -94,13 +95,13 @@ export const mainExtensions = [
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
-        return `Heading ${node.attrs.level}`;
+        return i18n.t("Heading {{level}}", { level: node.attrs.level });
       }
       if (node.type.name === "detailsSummary") {
-        return "Toggle title";
+        return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        return 'Write anything. Enter "/" for commands';
+        return i18n.t('Write anything. Enter "/" for commands');
       }
     },
     includeChildren: true,
@@ -184,7 +185,7 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
-  })
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
