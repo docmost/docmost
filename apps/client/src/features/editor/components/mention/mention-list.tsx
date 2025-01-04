@@ -68,7 +68,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         items = items.concat(
           suggestion.pages.map((page) => ({
             id: uuid7(),
-            label: page.title,
+            label: page.title || "Untitled",
             entityType: "page",
             entityId: page.id,
             slugId: page.slugId,
@@ -99,7 +99,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         if (item.entityType === "page") {
           props.command({
             id: item.id,
-            label: item.label,
+            label: item.label || "Untitled",
             entityType: "page",
             entityId: item.entityId,
             slugId: item.slugId,
