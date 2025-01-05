@@ -1,0 +1,6 @@
+.link {
+    color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

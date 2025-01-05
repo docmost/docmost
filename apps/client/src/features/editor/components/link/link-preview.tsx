@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import { IconLinkOff, IconPencil } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import classes from "./link.module.css";
 
 export type LinkPreviewPanelProps = {
   url: string;
@@ -31,12 +32,7 @@ export const LinkPreviewPanel = ({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              inherit
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
+              className={classes.link}
             >
               {url}
             </Anchor>
