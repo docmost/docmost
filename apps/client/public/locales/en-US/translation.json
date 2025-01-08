@@ -1,7 +1,7 @@
 {
   "Account": "Account",
   "Active": "Active",
-  "Add": "Add ",
+  "Add": "Add",
   "Add group members": "Add group members",
   "Add groups": "Add groups",
   "Add members": "Add members",
@@ -111,7 +111,6 @@
   "New email": "New email",
   "New page": "New page",
   "New password": "New password",
-  "No group found": "No group found",
   "No page history saved yet.": "No page history saved yet.",
   "No pages yet": "No pages yet",
   "No results found...": "No results found...",
@@ -278,7 +277,7 @@
   "Pink": "Pink",
   "Gray": "Gray",
   "Embed link": "Embed link",
-  "Invalid {{provider}} embed link": "",
+  "Invalid {{provider}} embed link": "Invalid {{provider}} embed link",
   "Embed {{provider}}": "Embed {{provider}}",
   "Enter {{provider}} link to embed": "Enter {{provider}} link to embed",
   "Bold": "Bold",
@@ -331,5 +330,6 @@
   "Multiple": "Multiple",
   "Heading {{level}}": "Heading {{level}}",
   "Toggle title": "Toggle title",
-  "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands"
+  "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands",
+  "No groups found": "No groups found"
 }
