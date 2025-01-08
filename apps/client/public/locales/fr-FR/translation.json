@@ -231,7 +231,7 @@
   "Include attachments": "Inclure les pièces jointes",
   "Select export format": "Sélectionner le format d'exportation",
   "Export failed:": "Échec de l'exportation :",
-  "export error": "Exporter l'erreur",
+  "export error": "exporter l'erreur",
   "Export page": "Exporter la page",
   "Export space": "Exporter l'espace",
   "Export {{type}}": "Exporter {{type}}",
