@@ -1,7 +1,7 @@
 {
   "Account": "账户",
   "Active": "活跃",
-  "Add": "添加",
+  "Add": "Add ",
   "Add group members": "添加群组成员",
   "Add groups": "添加群组",
   "Add members": "添加成员",
@@ -111,6 +111,7 @@
   "New email": "新电子邮箱",
   "New page": "新建页面",
   "New password": "新密码",
+  "No group found": "No group found",
   "No page history saved yet.": "尚未保存页面历史。",
   "No pages yet": "暂无页面",
   "No results found...": "未找到结果...",
@@ -277,7 +278,7 @@
   "Pink": "粉色",
   "Gray": "灰色",
   "Embed link": "嵌入链接",
-  "Invalid {{provider}} embed link": "无效的 {{provider}} 嵌入链接",
+  "Invalid {{provider}} embed link": "",
   "Embed {{provider}}": "嵌入 {{provider}}",
   "Enter {{provider}} link to embed": "输入 {{provider}} 链接来嵌入",
   "Bold": "粗体",
@@ -330,6 +331,5 @@
   "Multiple": "多个",
   "Heading {{level}}": "{{level}} 级标题",
   "Toggle title": "切换标题",
-  "Write anything. Enter \"/\" for commands": "开始编写内容，输入 \"/\" 以使用指令",
-  "No groups found": "未找到群组"
+  "Write anything. Enter \"/\" for commands": "开始编写内容，输入 \"/\" 以使用指令"
 }
