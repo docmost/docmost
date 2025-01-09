@@ -1,7 +1,7 @@
 {
   "Account": "Compte",
   "Active": "Actif",
-  "Add": "Ajouter",
+  "Add": "Add ",
   "Add group members": "Ajouter des membres au groupe",
   "Add groups": "Ajouter des groupes",
   "Add members": "Ajouter des membres",
@@ -19,7 +19,7 @@
   "Can manage workspace": "Peut gérer l'espace de travail",
   "Can manage workspace but cannot delete it": "Peut gérer l'espace de travail mais ne peut pas le supprimer",
   "Can view": "Peut voir",
-  "Can view pages in space but not edit.": "Peut voir les pages dans l'espace mais pas les modifier.",
+  "Can view pages in space but not edit.": "Peut voir les pages dans l'espace mais ne peut pas les modifier.",
   "Cancel": "Annuler",
   "Change email": "Changer l'email",
   "Change password": "Changer le mot de passe",
@@ -111,6 +111,7 @@
   "New email": "Nouvel email",
   "New page": "Nouvelle page",
   "New password": "Nouveau mot de passe",
+  "No group found": "No group found",
   "No page history saved yet.": "Aucun historique de la page enregistré pour l'instant.",
   "No pages yet": "Aucune page pour l'instant",
   "No results found...": "Aucun résultat trouvé...",
@@ -277,7 +278,7 @@
   "Pink": "Rose",
   "Gray": "Gris",
   "Embed link": "Intégrer un lien",
-  "Invalid {{provider}} embed link": "Lien d'intégration {{provider}} non valide",
+  "Invalid {{provider}} embed link": "",
   "Embed {{provider}}": "Intégrer {{provider}}",
   "Enter {{provider}} link to embed": "Entrez le lien {{provider}} à intégrer",
   "Bold": "Gras",
@@ -330,6 +331,5 @@
   "Multiple": "Multiple",
   "Heading {{level}}": "Titre {{level}}",
   "Toggle title": "Basculer le titre",
-  "Write anything. Enter \"/\" for commands": "Écrivez n'importe quoi. Entrez \"/\" pour les commandes",
-  "No groups found": "Aucun groupe trouvé"
+  "Write anything. Enter \"/\" for commands": "Écrivez n'importe quoi. Entrez \"/\" pour les commandes"
 }
