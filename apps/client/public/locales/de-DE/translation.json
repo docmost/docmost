@@ -1,7 +1,7 @@
 {
   "Account": "Konto",
   "Active": "Aktiv",
-  "Add": "Hinzufügen",
+  "Add": "Add ",
   "Add group members": "Gruppenmitglieder hinzufügen",
   "Add groups": "Gruppen hinzufügen",
   "Add members": "Mitglieder hinzufügen",
@@ -111,6 +111,7 @@
   "New email": "Neue E-Mail",
   "New page": "Neue Seite",
   "New password": "Neues Passwort",
+  "No group found": "No group found",
   "No page history saved yet.": "Es wurde noch keine Seitengeschichte gespeichert.",
   "No pages yet": "Noch keine Seiten",
   "No results found...": "Keine Ergebnisse gefunden...",
@@ -277,7 +278,7 @@
   "Pink": "Rosa",
   "Gray": "Grau",
   "Embed link": "Link einbetten",
-  "Invalid {{provider}} embed link": "Ungültiger {{provider}}-Einbettungslink",
+  "Invalid {{provider}} embed link": "",
   "Embed {{provider}}": "{{provider}} einbetten",
   "Enter {{provider}} link to embed": "Geben Sie den Einbettungslink für {{provider}} ein",
   "Bold": "Fett",
@@ -330,6 +331,5 @@
   "Multiple": "Mehrere",
   "Heading {{level}}": "Überschrift {{level}}",
   "Toggle title": "Titel umschalten",
-  "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein",
-  "No groups found": "Keine Gruppe gefunden"
+  "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein"
 }
