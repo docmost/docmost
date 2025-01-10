@@ -19,6 +19,13 @@ export async function getWorkspacePublicData(): Promise<IWorkspace> {
   return req.data;
 }
 
+export async function getCheckHostname(
+  hostname: string,
+): Promise<{ found: boolean }> {
+  const req = await api.post("/workspace/check-hostname", { hostname });
+  return req.data;
+}
+
 // Todo: fix all paginated types
 export async function getWorkspaceMembers(
   params?: QueryParams,

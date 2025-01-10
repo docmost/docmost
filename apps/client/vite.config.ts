@@ -5,14 +5,15 @@ import * as path from "path";
 export const envPath = path.resolve(process.cwd(), "..", "..");
 
 export default defineConfig(({ mode }) => {
-  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, DRAWIO_URL } = loadEnv(mode, envPath, "");
+  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, DRAWIO_URL, CLOUD } = loadEnv(mode, envPath, "");
 
   return {
     define: {
       "process.env": {
         APP_URL,
         FILE_UPLOAD_SIZE_LIMIT,
-        DRAWIO_URL
+        DRAWIO_URL,
+        CLOUD,
       },
       'APP_VERSION': JSON.stringify(process.env.npm_package_version),
     },
@@ -26,8 +27,18 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": {
           target: APP_URL,
-          changeOrigin: true,
+          changeOrigin: false,
         },
+        "/socket.io": {
+          target: APP_URL,
+          ws: true,
+          rewriteWsOrigin: true,
+        },
+        "/collab": {
+          target: APP_URL,
+          ws: true,
+          rewriteWsOrigin: true,
+        }
       },
     },
   };

@@ -3,7 +3,9 @@ import { SetupWorkspaceForm } from "@/features/auth/components/setup-workspace-f
 import { Helmet } from "react-helmet-async";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {getAppName} from "@/lib/config.ts";
+import { getAppName } from "@/lib/config.ts";
+import useAuth from "@/features/auth/hooks/use-auth.ts";
+import APP_ROUTE from "@/lib/app-route.ts";
 
 export default function SetupWorkspace() {
   const {
@@ -12,12 +14,17 @@ export default function SetupWorkspace() {
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+  const { isAuthenticated } = useAuth();
 
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading && !isError && workspace) {
-      navigate("/");
+      if (isAuthenticated) {
+        navigate(APP_ROUTE.HOME);
+      } else {
+        navigate(APP_ROUTE.AUTH.LOGIN);
+      }
     }
   }, [isLoading, isError, workspace]);
 

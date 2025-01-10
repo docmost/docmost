@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Group, Text, ScrollArea, ActionIcon, rem } from "@mantine/core";
+import { Group, Text, ScrollArea, ActionIcon } from "@mantine/core";
 import {
   IconUser,
   IconSettings,
@@ -8,14 +8,18 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
+  IconCoin,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
+import { isCloud } from "@/lib/config.ts";
 
 interface DataItem {
   label: string;
   icon: React.ElementType;
   path: string;
+  isCloudOnly?: boolean;
+  isAdmin?: boolean;
 }
 
 interface DataGroup {
@@ -44,6 +48,12 @@ const groupedData: DataGroup[] = [
         icon: IconUsers,
         path: "/settings/members",
       },
+      {
+        label: "Billing",
+        icon: IconCoin,
+        path: "/settings/billing",
+        isCloudOnly: true,
+      },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
     ],
@@ -64,17 +74,23 @@ export default function SettingsSidebar() {
       <Text c="dimmed" className={classes.linkHeader}>
         {group.heading}
       </Text>
-      {group.items.map((item) => (
-        <Link
-          className={classes.link}
-          data-active={active.startsWith(item.path) || undefined}
-          key={item.label}
-          to={item.path}
-        >
-          <item.icon className={classes.linkIcon} stroke={2} />
-          <span>{item.label}</span>
-        </Link>
-      ))}
+      {group.items.map((item) => {
+        if (item.isCloudOnly && !isCloud()) {
+          return null;
+        }
+
+        return (
+          <Link
+            className={classes.link}
+            data-active={active.startsWith(item.path) || undefined}
+            key={item.label}
+            to={item.path}
+          >
+            <item.icon className={classes.linkIcon} stroke={2} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
     </div>
   ));
 

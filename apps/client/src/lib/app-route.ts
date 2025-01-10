@@ -6,6 +6,8 @@ const APP_ROUTE = {
     SETUP: "/setup/register",
     FORGOT_PASSWORD: "/forgot-password",
     PASSWORD_RESET: "/password-reset",
+    CREATE: "/workspace/create",
+    WORKSPACE_LOGIN: "/workspace/login",
   },
   SETTINGS: {
     ACCOUNT: {
