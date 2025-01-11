@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { jsonToHtml } from '../../collaboration/collaboration.util';
+import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
 import { turndown } from './turndown-utils';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
@@ -24,6 +24,11 @@ import {
   updateAttachmentUrls,
 } from './utils';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { Node } from '@tiptap/pm/model';
+import { EditorState } from '@tiptap/pm/state';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import slugify = require('@sindresorhus/slugify');
+import { EnvironmentService } from '../environment/environment.service';
 
 @Injectable()
 export class ExportService {
@@ -33,16 +38,26 @@ export class ExportService {
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
-  async exportPage(format: string, page: Page) {
+  async exportPage(format: string, page: Page, singlePage?: boolean) {
     const titleNode = {
       type: 'heading',
       attrs: { level: 1 },
       content: [{ type: 'text', text: getPageTitle(page.title) }],
     };
 
-    const prosemirrorJson: any = getProsemirrorContent(page.content);
+    let prosemirrorJson: any;
+
+    if (singlePage) {
+      prosemirrorJson = await this.turnPageMentionsToLinks(
+        getProsemirrorContent(page.content),
+      );
+    } else {
+      // mentions is already turned to links during the zip process
+      prosemirrorJson = getProsemirrorContent(page.content);
+    }
 
     if (page.title) {
       prosemirrorJson.content.unshift(titleNode);
@@ -115,7 +130,7 @@ export class ExportService {
         'pages.title',
         'pages.content',
         'pages.parentPageId',
-        'pages.spaceId'
+        'pages.spaceId',
       ])
       .where('spaceId', '=', spaceId)
       .execute();
@@ -160,7 +175,9 @@ export class ExportService {
       for (const page of children) {
         const childPages = tree[page.id] || [];
 
-        const prosemirrorJson = getProsemirrorContent(page.content);
+        const prosemirrorJson = await this.turnPageMentionsToLinks(
+          getProsemirrorContent(page.content),
+        );
 
         const currentPagePath = slugIdToPath[page.slugId];
 
@@ -218,5 +235,89 @@ export class ExportService {
         }),
       );
     }
+  }
+
+  async turnPageMentionsToLinks(prosemirrorJson: any) {
+    const doc = jsonToNode(prosemirrorJson);
+
+    //TODO: make sure user has access to the page
+    // limit to pages from the same workspace
+    const pageMentionIds = [];
+
+    doc.descendants((node: Node) => {
+      if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
+        if (node.attrs.entityId) {
+          pageMentionIds.push(node.attrs.entityId);
+        }
+      }
+    });
+
+    if (pageMentionIds.length < 1) {
+      return prosemirrorJson;
+    }
+
+    const pages = await this.db
+      .selectFrom('pages')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'coverPhoto',
+        'position',
+        'parentPageId',
+        'creatorId',
+        'lastUpdatedById',
+        'spaceId',
+        'workspaceId',
+      ])
+      .select((eb) => this.pageRepo.withSpace(eb))
+      .where('id', 'in', pageMentionIds)
+      .execute();
+
+    const pageMap = new Map(pages.map((page) => [page.id, page]));
+
+    let editorState = EditorState.create({
+      doc: doc,
+    });
+
+    const transaction = editorState.tr;
+
+    let offset = 0;
+    // find and convert page mentions to links (maintain local page paths in exports and links in markdown export)
+    editorState.doc.descendants((node: Node, pos: number) => {
+      if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
+        const pageId = node.attrs.entityId;
+        // if page is not found in map, what do we do? just maintain a generic path?
+        // must the pages belong to the same space?
+        const page = pageMap.get(pageId);
+
+        if (page) {
+          const pageSlug = `${slugify(page?.title.substring(0, 70) || 'untitled')}-${page.slugId}`;
+
+          // todo: if isCloud, get the url from the workspace hostname
+          const link = `${this.environmentService.getAppUrl()}/s/${page.space.slug}/p/${pageSlug}`;
+          const linkMark = editorState.schema.marks.link.create({
+            href: link,
+          });
+          const linkTextNode = editorState.schema.text(page.title, [linkMark]);
+
+          const from = pos + offset;
+          const to = pos + offset + node.nodeSize;
+
+          // Replace the node and update the offset
+          transaction.replaceWith(from, to, linkTextNode);
+          offset += linkTextNode.nodeSize - node.nodeSize;
+        }
+      }
+    });
+
+    if (transaction.docChanged) {
+      editorState = editorState.apply(transaction);
+    }
+
+    const updatedDoc = editorState.doc;
+
+    return updatedDoc.toJSON();
   }
 }
