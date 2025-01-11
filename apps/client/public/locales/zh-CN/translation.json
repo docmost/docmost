@@ -1,7 +1,7 @@
 {
   "Account": "账户",
   "Active": "活跃",
-  "Add": "Add ",
+  "Add": "Add",
   "Add group members": "添加群组成员",
   "Add groups": "添加群组",
   "Add members": "添加成员",
@@ -278,7 +278,7 @@
   "Pink": "粉色",
   "Gray": "灰色",
   "Embed link": "嵌入链接",
-  "Invalid {{provider}} embed link": "",
+  "Invalid {{provider}} embed link": "Invalid {{provider}} embed link",
   "Embed {{provider}}": "嵌入 {{provider}}",
   "Enter {{provider}} link to embed": "输入 {{provider}} 链接来嵌入",
   "Bold": "粗体",
