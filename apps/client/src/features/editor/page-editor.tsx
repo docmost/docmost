@@ -164,9 +164,16 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
   return isSynced ? (
     <div>
       {isSynced && (
-        <Box style={{ position: 'relative' }} ref={menuContainerRef}>
+        <Box
+          style={{
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          ref={menuContainerRef}
+        >
           <EditorContent editor={editor} />
-          <EditorHeadingsMenu editor={editor} />
+          {currentUser.user.viewHeadings && <EditorHeadingsMenu editor={editor} />}
 
           {editor && editor.isEditable && (
             <div>

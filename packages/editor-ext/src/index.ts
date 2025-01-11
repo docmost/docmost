@@ -6,7 +6,6 @@ export * from "./lib/details";
 export * from "./lib/drawio";
 export * from "./lib/embed";
 export * from "./lib/excalidraw";
-export * from "./lib/heading/heading";
 export * from "./lib/image";
 export * from "./lib/link";
 export * from "./lib/markdown";
@@ -17,3 +16,4 @@ export * from "./lib/table";
 export * from "./lib/trailing-node";
 export * from "./lib/utils";
 export * from "./lib/video";
+

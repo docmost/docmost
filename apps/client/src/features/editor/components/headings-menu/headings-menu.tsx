@@ -1,15 +1,14 @@
-import { Box, Group, Text } from "@mantine/core";
 import { NodePos, useEditor } from "@tiptap/react";
-import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { HeadingMenuDesktop } from "./components/heading-menu-desktop";
+import { HeadingMenuMobile } from "./components/heading-menu-mobile";
 import classes from './headings-menu.module.css';
 
 type HeadingsMenuProps = {
 	editor: ReturnType<typeof useEditor>;
 };
 
-type HeadingLink = {
+export type HeadingLink = {
 	label: string;
 	level: number;
 	element: HTMLElement;
@@ -33,17 +32,15 @@ const recalculateLinks = (nodePos: NodePos[]) => {
 };
 
 export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
-	const { t } = useTranslation();
-
 	const [links, setLinks] = useState<HeadingLink[]>([]);
 	const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
 	const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
 
-	const handleScrollToHeading = (element: HTMLElement) => {
+	const handleScrollToHeading = (element: HTMLElement, accordionHeight = 0) => {
 		const coords = element.getBoundingClientRect();
-		const menuContainer = document.querySelector(`.${classes.menu}`);
+		const menuContainer = document.querySelector(`.${classes.menu_desktop}`);
 		const headerOffset = parseInt(window.getComputedStyle(menuContainer).getPropertyValue('top'));
-		const y = coords.top + window.scrollY - element.offsetHeight - headerOffset;
+		const y = coords.top + window.scrollY - element.offsetHeight - headerOffset - accordionHeight;
 		window.scrollTo({ top: y, behavior: 'smooth' });
 	}
 
@@ -62,9 +59,12 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 
 	useEffect(() => {
 		const handleScroll = () => {
+			const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 			for (const node of headingDOMNodes) {
 				const coords = node.getBoundingClientRect();
-				if (coords.top >= 0) {
+
+				// more 33% percents screen
+				if (coords.top >= 0 && viewportHeight / coords.top > 3) {
 					setActiveElement(node);
 					return;
 				}
@@ -81,24 +81,16 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 	}
 
 	return (
-		<div className={classes.container}>
-			<div className={classes.menu}>
-				<Group mb="sm">
-					<Text size="md" fw={500}>{t('On this page')}</Text>
-				</Group>
-				{links.map((item, idx) => (
-					<Box<'button'>
-						component="button"
-						onClick={() => handleScrollToHeading(item.element)}
-						key={idx}
-						className={clsx(classes.link, { [classes.linkActive]: item.element === activeElement })}
-						style={{ paddingLeft: `calc(${item.level} * var(--mantine-spacing-md))` }}
-						title={item.label}
-					>
-						{item.label}
-					</Box>
-				))}
-			</div>
-		</div>
+		<>
+			<HeadingMenuDesktop
+				links={links}
+				activeElement={activeElement}
+				handleScrollToHeading={handleScrollToHeading}
+			/>
+			<HeadingMenuMobile
+				links={links}
+				handleScrollToHeading={handleScrollToHeading}
+			/>
+		</>
 	);
 };

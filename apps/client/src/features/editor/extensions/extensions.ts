@@ -26,7 +26,6 @@ import {
   Drawio,
   Embed,
   Excalidraw,
-  Heading,
   LinkExtension,
   MathBlock,
   MathInline,
@@ -189,7 +188,6 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  Heading,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

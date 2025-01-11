@@ -14,8 +14,14 @@
 	left: 100%;
 	width: 100%;
 	max-width: 300px;
+
+	@media (max-width: $mantine-breakpoint-sm) {
+		& {
+			display: none;
+		}
+	}
 }
-.menu {
+.menu_desktop {
 	position: sticky;
 	top: calc(
 		var(--app-shell-header-offset, 0rem) +
@@ -24,13 +30,17 @@
 	max-height: calc(100dvh - var(--headings-menu-offset));
 	overflow-y: auto;
 }
-body {
+.menu_mobile {
+	display: none;
+
 	@media (max-width: $mantine-breakpoint-sm) {
-		.menu {
-			display: none;
+		& {
+			display: block;
+			order: -1;
 		}
 	}
 }
+
 .link {
 	outline: none;
 	cursor: pointer;
@@ -54,6 +64,13 @@ body {
 			var(--mantine-color-gray-0),
 			var(--mantine-color-dark-6)
 		);
+	}
+
+	@media (max-width: $mantine-breakpoint-sm) {
+		& {
+			border: none !important;
+			padding-left: 0px;
+		}
 	}
 }
 
