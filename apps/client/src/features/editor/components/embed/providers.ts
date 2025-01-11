@@ -91,6 +91,14 @@ export const embedProviders: IEmbedProvider[] = [
       return `https://drive.google.com/file/d/${match[4]}/preview`;
     }
   },
+  {
+    id: 'gsheets',
+    name: 'Google Sheets',
+    regex: /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/.*$/,
+    getEmbedUrl: (match, url: string) => {
+      return url
+    }
+  },
 ];
 
 export function getEmbedProviderById(id: string) {
