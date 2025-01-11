@@ -32,7 +32,6 @@ const recalculateLinks = (nodePos: NodePos[]) => {
 };
 
 export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
-	console.log('render')
 	const [links, setLinks] = useState<HeadingLink[]>([]);
 	const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
 	const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
