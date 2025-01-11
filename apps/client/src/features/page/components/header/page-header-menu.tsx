@@ -1,5 +1,19 @@
+import ExportModal from "@/components/common/export-modal";
+import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
+import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
+import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
+import useToggleAside from "@/hooks/use-toggle-aside.tsx";
+import { extractPageSlugId } from "@/lib";
+import { getAppUrl } from "@/lib/config.ts";
 import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
+import { useClipboard, useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
+  IconAlignRight2,
   IconArrowsHorizontal,
   IconDots,
   IconFileExport,
@@ -7,25 +21,11 @@ import {
   IconLink,
   IconMessage,
   IconPrinter,
-  IconTrash,
+  IconTrash
 } from "@tabler/icons-react";
-import React from "react";
-import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
-import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
-import { useClipboard, useDisclosure } from "@mantine/hooks";
-import { useParams } from "react-router-dom";
-import { usePageQuery } from "@/features/page/queries/page-query.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { notifications } from "@mantine/notifications";
-import { getAppUrl } from "@/lib/config.ts";
-import { extractPageSlugId } from "@/lib";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
-import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
-import PageExportModal from "@/features/page/components/page-export-modal.tsx";
 import { useTranslation } from "react-i18next";
-import ExportModal from "@/components/common/export-modal";
+import { useParams } from "react-router-dom";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -116,6 +116,12 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
             <Group wrap="nowrap">
               <PageWidthToggle label={t("Full width")} />
+            </Group>
+          </Menu.Item>
+
+          <Menu.Item leftSection={<IconAlignRight2 size={16} />}>
+            <Group wrap="nowrap">
+              <ViewHeadingsToggle label={t("View headings")} />
             </Group>
           </Menu.Item>
 

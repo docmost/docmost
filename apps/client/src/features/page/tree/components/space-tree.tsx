@@ -1,16 +1,41 @@
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
-import { atom, useAtom } from "jotai";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import ExportModal from "@/components/common/export-modal";
+import EmojiPicker from "@/components/ui/emoji-picker.tsx";
+import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
 import {
   fetchAncestorChildren,
   useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import React, { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  getPageBreadcrumbs,
+  getSidebarPages,
+} from "@/features/page/services/page-service.ts";
+import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import classes from "@/features/page/tree/styles/tree.module.css";
+import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import {
+  appendNodeChildren,
+  buildTree,
+  buildTreeWithChildren,
+  updateTreeNodeIcon,
+} from "@/features/page/tree/utils/utils.ts";
+import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
+import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { extractPageSlugId } from "@/lib";
+import { getAppUrl } from "@/lib/config.ts";
+import { queryClient } from "@/main.tsx";
 import { ActionIcon, Menu, rem } from "@mantine/core";
+import {
+  useClipboard,
+  useDisclosure,
+  useElementSize,
+  useMergedRef,
+} from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -21,39 +46,14 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
-import EmojiPicker from "@/components/ui/emoji-picker.tsx";
-import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
-import {
-  appendNodeChildren,
-  buildTree,
-  buildTreeWithChildren,
-  updateTreeNodeIcon,
-} from "@/features/page/tree/utils/utils.ts";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import {
-  getPageBreadcrumbs,
-  getSidebarPages,
-} from "@/features/page/services/page-service.ts";
-import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
-import { queryClient } from "@/main.tsx";
+import { atom, useAtom } from "jotai";
+import { useEffect, useRef } from "react";
+import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
-import {
-  useClipboard,
-  useDisclosure,
-  useElementSize,
-  useMergedRef,
-} from "@mantine/hooks";
 import { dfs } from "react-arborist/dist/module/utils";
-import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { notifications } from "@mantine/notifications";
-import { getAppUrl } from "@/lib/config.ts";
-import { extractPageSlugId } from "@/lib";
-import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
-import ExportModal from "@/components/common/export-modal";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface SpaceTreeProps {
   spaceId: string;

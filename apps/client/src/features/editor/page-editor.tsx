@@ -1,5 +1,35 @@
+import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
+import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
+import {
+  activeCommentIdAtom,
+  showCommentPopupAtom,
+} from "@/features/comment/atoms/comment-atom";
+import CommentDialog from "@/features/comment/components/comment-dialog";
+import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
+import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
+import {
+  handleFileDrop,
+  handleFilePaste,
+} from "@/features/editor/components/common/file-upload-handler.tsx";
+import EditorSkeleton from "@/features/editor/components/editor-skeleton";
+import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
+import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
+import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
+import TableMenu from "@/features/editor/components/table/table-menu.tsx";
+import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import {
+  collabExtensions,
+  mainExtensions,
+} from "@/features/editor/extensions/extensions";
+import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import "@/features/editor/styles/index.css";
-import React, {
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+import { Box } from "@mantine/core";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { useAtom } from "jotai";
+import {
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,37 +38,9 @@ import React, {
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import { HocuspocusProvider } from "@hocuspocus/provider";
-import { EditorContent, useEditor } from "@tiptap/react";
-import {
-  collabExtensions,
-  mainExtensions,
-} from "@/features/editor/extensions/extensions";
-import { useAtom } from "jotai";
-import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
-import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
-import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
-import {
-  activeCommentIdAtom,
-  showCommentPopupAtom,
-} from "@/features/comment/atoms/comment-atom";
-import CommentDialog from "@/features/comment/components/comment-dialog";
-import EditorSkeleton from "@/features/editor/components/editor-skeleton";
-import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
-import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
-import TableMenu from "@/features/editor/components/table/table-menu.tsx";
-import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
-import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
-import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
-import {
-  handleFileDrop,
-  handleFilePaste,
-} from "@/features/editor/components/common/file-upload-handler.tsx";
-import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
-import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
+import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
+import { EditorHeadingsMenu } from "./components/headings-menu/headings-menu";
 
 interface PageEditorProps {
   pageId: string;
@@ -97,8 +99,8 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
   }, [remoteProvider, localProvider]);
 
   const extensions = [
-    ... mainExtensions,
-    ... collabExtensions(remoteProvider, currentUser.user),
+    ...mainExtensions,
+    ...collabExtensions(remoteProvider, currentUser.user),
   ];
 
   const editor = useEditor(
@@ -162,8 +164,9 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
   return isSynced ? (
     <div>
       {isSynced && (
-        <div ref={menuContainerRef}>
+        <Box style={{ position: 'relative' }} ref={menuContainerRef}>
           <EditorContent editor={editor} />
+          <EditorHeadingsMenu editor={editor} />
 
           {editor && editor.isEditable && (
             <div>
@@ -182,7 +185,7 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
           {showCommentPopup && (
             <CommentDialog editor={editor} pageId={pageId} />
           )}
-        </div>
+        </Box>
       )}
       <div onClick={() => editor.commands.focus('end')} style={{ paddingBottom: '20vh' }}></div>
     </div>
