@@ -1,7 +1,7 @@
 {
   "Account": "Compte",
   "Active": "Actif",
-  "Add": "Add ",
+  "Add": "Add",
   "Add group members": "Ajouter des membres au groupe",
   "Add groups": "Ajouter des groupes",
   "Add members": "Ajouter des membres",
@@ -278,7 +278,7 @@
   "Pink": "Rose",
   "Gray": "Gris",
   "Embed link": "Intégrer un lien",
-  "Invalid {{provider}} embed link": "",
+  "Invalid {{provider}} embed link": "Invalid {{provider}} embed link",
   "Embed {{provider}}": "Intégrer {{provider}}",
   "Enter {{provider}} link to embed": "Entrez le lien {{provider}} à intégrer",
   "Bold": "Gras",
