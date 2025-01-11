@@ -1,7 +1,7 @@
 {
   "Account": "Account",
   "Active": "Active",
-  "Add": "Add ",
+  "Add": "Add",
   "Add group members": "Add group members",
   "Add groups": "Add groups",
   "Add members": "Add members",
@@ -278,7 +278,7 @@
   "Pink": "Pink",
   "Gray": "Gray",
   "Embed link": "Embed link",
-  "Invalid {{provider}} embed link": "",
+  "Invalid {{provider}} embed link": "Invalid {{provider}} embed link",
   "Embed {{provider}}": "Embed {{provider}}",
   "Enter {{provider}} link to embed": "Enter {{provider}} link to embed",
   "Bold": "Bold",
