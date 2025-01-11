@@ -42,6 +42,9 @@ function LanguageSwitcher() {
       label={t("Select language")}
       data={[
         { value: "en-US", label: "English (United States)" },
+        { value: "de-DE", label: "Deutsch (Germany)" },
+        { value: "fr-FR", label: "Français (France)" },
+        { value: "pt-BR", label: "Português (Brazilian)" },
         { value: "zh-CN", label: "中文 (简体)" },
       ]}
       value={language}
