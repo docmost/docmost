@@ -173,7 +173,9 @@ export default function PageEditor({ pageId, editable }: PageEditorProps) {
           ref={menuContainerRef}
         >
           <EditorContent editor={editor} />
-          {currentUser.user.viewHeadings && <EditorHeadingsMenu editor={editor} />}
+          {currentUser.user.settings.preferences.viewHeadings && (
+            <EditorHeadingsMenu editor={editor} />
+          )}
 
           {editor && editor.isEditable && (
             <div>

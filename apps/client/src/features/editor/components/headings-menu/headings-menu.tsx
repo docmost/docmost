@@ -32,6 +32,7 @@ const recalculateLinks = (nodePos: NodePos[]) => {
 };
 
 export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
+	console.log('render')
 	const [links, setLinks] = useState<HeadingLink[]>([]);
 	const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
 	const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
@@ -44,17 +45,22 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 		window.scrollTo({ top: y, behavior: 'smooth' });
 	}
 
+	const handleUpdate = () => {
+		const result = recalculateLinks(props.editor.$nodes('heading'));
+		setLinks(result.links);
+		setHeadingDOMNodes(result.nodes);
+	};
+
 	useEffect(() => {
-		const handleUpdate = () => {
-			const result = recalculateLinks(props.editor.$nodes('heading'));
-			setLinks(result.links);
-			setHeadingDOMNodes(result.nodes);
-		};
 		props.editor.on('update', handleUpdate);
 
 		return () => {
 			props.editor.off('update', handleUpdate);
 		}
+	}, [props.editor])
+
+	useEffect(() => {
+		handleUpdate();
 	}, [])
 
 	useEffect(() => {
@@ -64,7 +70,7 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 				const coords = node.getBoundingClientRect();
 
 				// more 33% percents screen
-				if (coords.top >= 0 && viewportHeight / coords.top > 3) {
+				if (viewportHeight / coords.top > 3) {
 					setActiveElement(node);
 					return;
 				}

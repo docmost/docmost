@@ -28,8 +28,10 @@ interface ViewHeadingsToggleProps {
   label?: string;
 }
 
-const getPreferencesOptions = (viewHeadings: boolean): Partial<IUser> => {
-  const obj: Partial<IUser> = {};
+const getPreferencesOptions = (viewHeadings: boolean, fullPageWidth: boolean): Partial<IUser> => {
+  const obj: Partial<IUser> = {
+    fullPageWidth
+  };
   if (viewHeadings) {
     obj.fullPageWidth = false;
   }
@@ -40,15 +42,13 @@ const getPreferencesOptions = (viewHeadings: boolean): Partial<IUser> => {
 export function ViewHeadingsToggle({ size, label }: ViewHeadingsToggleProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
-  const [checked, setChecked] = useState(
-    user.settings?.preferences?.viewHeadings,
-  );
-
-  console.log(checked)
+  const [checked, setChecked] = useState(user.settings?.preferences?.viewHeadings);
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
-    const updatedUser = await updateUser(getPreferencesOptions(value));
+    const updatedUser = await updateUser(
+      getPreferencesOptions(value, user.settings.preferences.fullPageWidth ?? false)
+    );
     setChecked(value);
     setUser(updatedUser);
   };
