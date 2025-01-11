@@ -6,11 +6,13 @@ import {
   useResendInvitationMutation,
   useRevokeInvitationMutation,
 } from "@/features/workspace/queries/workspace-query.ts";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   invitationId: string;
 }
 export default function InviteActionMenu({ invitationId }: Props) {
+  const { t } = useTranslation();
   const resendInvitationMutation = useResendInvitationMutation();
   const revokeInvitationMutation = useRevokeInvitationMutation();
 
@@ -24,15 +26,16 @@ export default function InviteActionMenu({ invitationId }: Props) {
 
   const openRevokeModal = () =>
     modals.openConfirmModal({
-      title: "Revoke invitation",
+      title: t("Revoke invitation"),
       children: (
         <Text size="sm">
-          Are you sure you want to revoke this invitation? The user will not be
-          able to join the workspace.
+          {t(
+            "Are you sure you want to revoke this invitation? The user will not be able to join the workspace.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: { confirm: "Revoke", cancel: "Don't" },
+      labels: { confirm: t("Revoke"), cancel: t("Don't") },
       confirmProps: { color: "red" },
       onConfirm: onRevoke,
     });
@@ -54,14 +57,14 @@ export default function InviteActionMenu({ invitationId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item onClick={onResend}>Resend invitation</Menu.Item>
+          <Menu.Item onClick={onResend}>{t("Resend invitation")}</Menu.Item>
           <Menu.Divider />
           <Menu.Item
             c="red"
             onClick={openRevokeModal}
             leftSection={<IconTrash size={16} stroke={2} />}
           >
-            Revoke invitation
+            {t("Revoke invitation")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>

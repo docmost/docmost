@@ -26,6 +26,7 @@ import { useAtom } from "jotai";
 import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
+import { useTranslation } from "react-i18next";
 
 export interface BubbleMenuItem {
   name: string;
@@ -39,6 +40,7 @@ type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
+  const { t } = useTranslation();
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
@@ -49,31 +51,31 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const items: BubbleMenuItem[] = [
     {
-      name: "bold",
+      name: "Bold",
       isActive: () => props.editor.isActive("bold"),
       command: () => props.editor.chain().focus().toggleBold().run(),
       icon: IconBold,
     },
     {
-      name: "italic",
+      name: "Italic",
       isActive: () => props.editor.isActive("italic"),
       command: () => props.editor.chain().focus().toggleItalic().run(),
       icon: IconItalic,
     },
     {
-      name: "underline",
+      name: "Underline",
       isActive: () => props.editor.isActive("underline"),
       command: () => props.editor.chain().focus().toggleUnderline().run(),
       icon: IconUnderline,
     },
     {
-      name: "strike",
+      name: "Strike",
       isActive: () => props.editor.isActive("strike"),
       command: () => props.editor.chain().focus().toggleStrike().run(),
       icon: IconStrikethrough,
     },
     {
-      name: "code",
+      name: "Code",
       isActive: () => props.editor.isActive("code"),
       command: () => props.editor.chain().focus().toggleCode().run(),
       icon: IconCode,
@@ -81,7 +83,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   ];
 
   const commentItem: BubbleMenuItem = {
-    name: "comment",
+    name: "Comment",
     isActive: () => props.editor.isActive("comment"),
     command: () => {
       const commentId = uuid7();
@@ -138,13 +140,13 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
         <ActionIcon.Group>
           {items.map((item, index) => (
-            <Tooltip key={index} label={item.name} withArrow>
+            <Tooltip key={index} label={t(item.name)} withArrow>
               <ActionIcon
                 key={index}
                 variant="default"
                 size="lg"
                 radius="0"
-                aria-label={item.name}
+                aria-label={t(item.name)}
                 className={clsx({ [classes.active]: item.isActive() })}
                 style={{ border: "none" }}
                 onClick={item.command}
@@ -175,7 +177,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           variant="default"
           size="lg"
           radius="0"
-          aria-label={commentItem.name}
+          aria-label={t(commentItem.name)}
           style={{ border: "none" }}
           onClick={commentItem.command}
         >

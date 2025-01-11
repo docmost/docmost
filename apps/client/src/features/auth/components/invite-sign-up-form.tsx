@@ -17,6 +17,7 @@ import useAuth from "@/features/auth/hooks/use-auth";
 import classes from "@/features/auth/components/auth.module.css";
 import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().trim().min(1),
@@ -26,6 +27,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function InviteSignUpForm() {
+  const { t } = useTranslation();
   const params = useParams();
   const [searchParams] = useSearchParams();
 
@@ -55,7 +57,7 @@ export function InviteSignUpForm() {
   }
 
   if (isError) {
-    return <div>invalid invitation link</div>;
+    return <div>{t("invalid invitation link")}</div>;
   }
 
   if (!invitation) {
@@ -66,7 +68,7 @@ export function InviteSignUpForm() {
     <Container size={420} my={40} className={classes.container}>
       <Box p="xl" mt={200}>
         <Title order={2} ta="center" fw={500} mb="md">
-          Join the workspace
+          {t("Join the workspace")}
         </Title>
 
         <Stack align="stretch" justify="center" gap="xl">
@@ -74,8 +76,8 @@ export function InviteSignUpForm() {
             <TextInput
               id="name"
               type="text"
-              label="Name"
-              placeholder="enter your full name"
+              label={t("Name")}
+              placeholder={t("enter your full name")}
               variant="filled"
               {...form.getInputProps("name")}
             />
@@ -83,7 +85,7 @@ export function InviteSignUpForm() {
             <TextInput
               id="email"
               type="email"
-              label="Email"
+              label={t("Email")}
               value={invitation.email}
               disabled
               variant="filled"
@@ -91,14 +93,14 @@ export function InviteSignUpForm() {
             />
 
             <PasswordInput
-              label="Password"
-              placeholder="Your password"
+              label={t("Password")}
+              placeholder={t("Your password")}
               variant="filled"
               mt="md"
               {...form.getInputProps("password")}
             />
             <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-              Sign Up
+              {t("Sign Up")}
             </Button>
           </form>
         </Stack>

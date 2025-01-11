@@ -1,8 +1,10 @@
-export function formatMemberCount(memberCount: number): string {
+import { TFunction } from "i18next";
+
+export function formatMemberCount(memberCount: number, t: TFunction): string {
   if (memberCount === 1) {
-    return "1 member";
+    return `1 ${t("member")}`;
   } else {
-    return `${memberCount} members`;
+    return `${memberCount} ${t("members")}`;
   }
 }
 

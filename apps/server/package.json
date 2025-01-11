@@ -58,7 +58,6 @@
     "happy-dom": "^15.11.6",
     "kysely": "^0.27.4",
     "kysely-migration-cli": "^0.4.2",
-    "marked": "^13.0.3",
     "mime-types": "^2.1.35",
     "nanoid": "^5.0.9",
     "nestjs-kysely": "^1.0.0",

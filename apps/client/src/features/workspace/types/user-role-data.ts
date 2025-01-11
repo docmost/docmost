@@ -14,7 +14,7 @@ export const userRoleData: IRoleData[] = [
   {
     label: "Member",
     value: UserRole.MEMBER,
-    description: "Can become members of groups and spaces in workspace.",
+    description: "Can become members of groups and spaces in workspace",
   },
 ];
 

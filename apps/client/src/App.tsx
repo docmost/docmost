@@ -26,8 +26,10 @@ import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
 import PasswordReset from "./pages/auth/password-reset";
+import { useTranslation } from "react-i18next";
 
 export default function App() {
+  const { t } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   const authToken = useAtomValue(authTokensAtom);
 
@@ -78,7 +80,7 @@ export default function App() {
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={
               <ErrorBoundary
-                fallback={<>Failed to load page. An error occurred.</>}
+                fallback={<>{t("Failed to load page. An error occurred.")}</>}
               >
                 <Page />
               </ErrorBoundary>

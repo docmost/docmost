@@ -12,6 +12,7 @@ import { useAtom } from "jotai";
 import { buildTree } from "@/features/page/tree/utils";
 import { IPage } from "@/features/page/types/page.types.ts";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface PageImportModalProps {
   spaceId: string;
@@ -24,6 +25,7 @@ export default function PageImportModal({
   open,
   onClose,
 }: PageImportModalProps) {
+  const { t } = useTranslation();
   return (
     <>
       <Modal.Root
@@ -38,7 +40,7 @@ export default function PageImportModal({
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Header py={0}>
-            <Modal.Title fw={500}>Import pages</Modal.Title>
+            <Modal.Title fw={500}>{t("Import pages")}</Modal.Title>
             <Modal.CloseButton />
           </Modal.Header>
           <Modal.Body>
@@ -55,6 +57,7 @@ interface ImportFormatSelection {
   onClose: () => void;
 }
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
+  const { t } = useTranslation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
 
   const handleFileUpload = async (selectedFiles: File[]) => {
@@ -65,8 +68,8 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     onClose();
 
     const alert = notifications.show({
-      title: "Importing pages",
-      message: "Page import is in progress. Please do not close this tab.",
+      title: t("Importing pages"),
+      message: t("Page import is in progress. Please do not close this tab."),
       loading: true,
       autoClose: false,
     });
@@ -92,13 +95,14 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         setTreeData(fullTree);
       }
 
-      const pageCountText = pageCount === 1 ? "1 page" : `${pageCount} pages`;
+      const pageCountText =
+        pageCount === 1 ? `1 ${t("page")}` : `${pageCount} ${t("pages")}`;
 
       notifications.update({
         id: alert,
         color: "teal",
-        title: `Successfully imported ${pageCountText}`,
-        message: "Your import is complete.",
+        title: `${t("Successfully imported")} ${pageCountText}`,
+        message: t("Your import is complete."),
         icon: <IconCheck size={18} />,
         loading: false,
         autoClose: 5000,
@@ -107,8 +111,8 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       notifications.update({
         id: alert,
         color: "red",
-        title: `Failed to import pages`,
-        message: "Unable to import pages. Please try again.",
+        title: t("Failed to import pages"),
+        message: t("Unable to import pages. Please try again."),
         icon: <IconX size={18} />,
         loading: false,
         autoClose: 5000,
