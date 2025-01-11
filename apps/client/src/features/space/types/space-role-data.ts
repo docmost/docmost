@@ -1,20 +1,21 @@
 import { IRoleData, SpaceRole } from "@/lib/types.ts";
+import i18n from "i18next";
 
 export const spaceRoleData: IRoleData[] = [
   {
-    label: "Full access",
+    label: i18n.t("Full access"),
     value: SpaceRole.ADMIN,
-    description: "Has full access to space settings and pages",
+    description: i18n.t("Has full access to space settings and pages."),
   },
   {
-    label: "Can edit",
+    label: i18n.t("Can edit"),
     value: SpaceRole.WRITER,
-    description: "Can create and edit pages in space",
+    description: i18n.t("Can create and edit pages in space."),
   },
   {
-    label: "Can view",
+    label: i18n.t("Can view"),
     value: SpaceRole.READER,
-    description: "Can view pages in space but not edit",
+    description: i18n.t("Can view pages in space but not edit."),
   },
 ];
 

@@ -1,5 +1,6 @@
 import { formatDistanceStrict } from "date-fns";
 import { format, isToday, isYesterday } from "date-fns";
+import i18n from "i18next";
 
 export function timeAgo(date: Date) {
   return formatDistanceStrict(new Date(date), new Date(), { addSuffix: true });
@@ -7,9 +8,9 @@ export function timeAgo(date: Date) {
 
 export function formattedDate(date: Date) {
   if (isToday(date)) {
-    return `Today, ${format(date, "h:mma")}`;
+    return i18n.t("Today, {{time}}", { time: format(date, "h:mma") });
   } else if (isYesterday(date)) {
-    return `Yesterday, ${format(date, "h:mma")}`;
+    return i18n.t("Yesterday, {{time}}", { time: format(date, "h:mma") });
   } else {
     return format(date, "MMM dd, yyyy, h:mma");
   }
