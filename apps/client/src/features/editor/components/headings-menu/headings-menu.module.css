@@ -1,3 +1,12 @@
+:root {
+	--headings-menu-offset: calc(
+		(
+			var(--app-shell-header-offset, 0rem) +
+				var(--app-shell-header-height, 0rem)
+		)
+	);
+}
+
 .container {
 	position: absolute;
 	top: 0;
@@ -12,14 +21,15 @@
 		var(--app-shell-header-offset, 0rem) +
 			var(--app-shell-header-height, 0rem)
 	);
-	max-height: calc(
-		100dvh -
-			(
-				var(--app-shell-header-offset, 0rem) +
-					var(--app-shell-header-height, 0rem)
-			)
-	);
+	max-height: calc(100dvh - var(--headings-menu-offset));
 	overflow-y: auto;
+}
+body {
+	@media (max-width: $mantine-breakpoint-sm) {
+		.menu {
+			display: none;
+		}
+	}
 }
 .link {
 	outline: none;
@@ -27,6 +37,7 @@
 	display: block;
 	width: 100%;
 	text-align: start;
+	word-wrap: break-word;
 	background-color: transparent;
 	color: var(--mantine-color-text);
 	font-size: var(--mantine-font-size-sm);

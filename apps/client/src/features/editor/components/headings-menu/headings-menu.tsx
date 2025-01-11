@@ -2,6 +2,7 @@ import { Box, Group, Text } from "@mantine/core";
 import { NodePos, useEditor } from "@tiptap/react";
 import clsx from "clsx";
 import { FC, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import classes from './headings-menu.module.css';
 
 type HeadingsMenuProps = {
@@ -28,19 +29,22 @@ const recalculateLinks = (nodePos: NodePos[]) => {
 		}
 		return acc;
 	}, [])
-	return {
-		links,
-		nodes
-	};
+	return { links, nodes };
 };
 
 export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
+	const { t } = useTranslation();
+
 	const [links, setLinks] = useState<HeadingLink[]>([]);
 	const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
 	const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
 
 	const handleScrollToHeading = (element: HTMLElement) => {
-		element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		const coords = element.getBoundingClientRect();
+		const menuContainer = document.querySelector(`.${classes.menu}`);
+		const headerOffset = parseInt(window.getComputedStyle(menuContainer).getPropertyValue('top'));
+		const y = coords.top + window.scrollY - element.offsetHeight - headerOffset;
+		window.scrollTo({ top: y, behavior: 'smooth' });
 	}
 
 	useEffect(() => {
@@ -57,23 +61,20 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 	}, [])
 
 	useEffect(() => {
-		const handleObserve = (entries: IntersectionObserverEntry[]) => {
-			let active: HTMLElement | null = entries[0].target as HTMLElement || null;
-			entries.forEach((entry) => {
-				if (entry.isIntersecting) {
-					active = entry.target as HTMLElement;
+		const handleScroll = () => {
+			for (const node of headingDOMNodes) {
+				const coords = node.getBoundingClientRect();
+				if (coords.top >= 0) {
+					setActiveElement(node);
+					return;
 				}
-			})
-			setActiveElement(active);
+			}
 		}
-		const observer = new IntersectionObserver(handleObserve, { root: document.body });
-
+		document.addEventListener('scroll', handleScroll, false);
 		return () => {
-			headingDOMNodes.forEach((element) => {
-				observer.unobserve(element);
-			})
+			document.removeEventListener('scroll', handleScroll, false);
 		}
-	}, [])
+	}, [headingDOMNodes, props.editor])
 
 	if (!links.length) {
 		return null;
@@ -83,13 +84,13 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 		<div className={classes.container}>
 			<div className={classes.menu}>
 				<Group mb="sm">
-					<Text size="md" fw={500}>On this page</Text>
+					<Text size="md" fw={500}>{t('On this page')}</Text>
 				</Group>
-				{links.map((item) => (
+				{links.map((item, idx) => (
 					<Box<'button'>
 						component="button"
 						onClick={() => handleScrollToHeading(item.element)}
-						key={item.label}
+						key={idx}
 						className={clsx(classes.link, { [classes.linkActive]: item.element === activeElement })}
 						style={{ paddingLeft: `calc(${item.level} * var(--mantine-spacing-md))` }}
 						title={item.label}

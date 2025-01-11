@@ -1,5 +1,5 @@
+import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
-import * as bcrypt from 'bcrypt';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -31,7 +31,7 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
   // extract db value if present
   if (pathname.length > 1) {
     const value = pathname.slice(1);
-    if (!isNaN(parseInt(value))){
+    if (!isNaN(parseInt(value))) {
       db = parseInt(value, 10);
     }
   }
