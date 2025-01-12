@@ -56,7 +56,9 @@ export default function EmbedView(props: NodeViewProps) {
         updateAttributes({ src: data.url });
       } else {
         notifications.show({
-          message: t("Invalid {{provider}} embed link", { provider: provider }),
+          message: t("Invalid {{provider}} embed link", {
+            provider: embedProvider.name,
+          }),
           position: "top-right",
           color: "red",
         });
