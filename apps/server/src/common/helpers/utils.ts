@@ -1,5 +1,5 @@
-import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
+import * as bcrypt from 'bcrypt';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
