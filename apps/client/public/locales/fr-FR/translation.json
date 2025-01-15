@@ -226,11 +226,11 @@
   "Select a group": "Sélectionner un groupe",
   "Export all pages and attachments in this space.": "Exporter toutes les pages et pièces jointes dans cet espace.",
   "Delete space": "Supprimer l'espace",
-  "Are you sure you want to delete this space?": "Are you sure you want to delete this space?",
+  "Are you sure you want to delete this space?": "Êtes-vous sûr de vouloir supprimer cet espace ?",
   "Delete this space with all its pages and data.": "Supprimer cet espace avec toutes ses pages et données.",
-  "All pages, comments, attachments and permissions in this space will be deleted irreversibly.": "All pages, comments, attachments and permissions in this space will be deleted irreversibly.",
-  "Confirm space name": "Confirm space name",
-  "Type the space name <b>{{spaceName}}</b> to confirm your action.": "Type the space name <b>{{spaceName}}</b> to confirm your action.",
+  "All pages, comments, attachments and permissions in this space will be deleted irreversibly.": "Toutes les pages, commentaires, pièces jointes et autorisations dans cet espace seront supprimés irréversiblement.",
+  "Confirm space name": "Confirmer le nom de l'espace",
+  "Type the space name <b>{{spaceName}}</b> to confirm your action.": "Tapez le nom de l'espace <b>{{spaceName}}</b> pour confirmer votre action.",
   "Format": "Format",
   "Include subpages": "Inclure les sous-pages",
   "Include attachments": "Inclure les pièces jointes",
@@ -336,7 +336,7 @@
   "Heading {{level}}": "Titre {{level}}",
   "Toggle title": "Basculer le titre",
   "Write anything. Enter \"/\" for commands": "Écrivez n'importe quoi. Entrez \"/\" pour les commandes",
-  "Names do not match": "Names do not match",
-  "Today, {{time}}": "Today, {{time}}",
-  "Yesterday, {{time}}": "Yesterday, {{time}}"
+  "Names do not match": "Les noms ne correspondent pas",
+  "Today, {{time}}": "Aujourd'hui, {{time}}",
+  "Yesterday, {{time}}": "Hier, {{time}}"
 }
