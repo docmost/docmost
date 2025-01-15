@@ -1,4 +1,5 @@
 import { Button, Group } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 type CommentActionsProps = {
   onSave: () => void;
@@ -13,16 +14,18 @@ function CommentActions({
   onCancel,
   isCommentEditor,
 }: CommentActionsProps) {
+  const { t } = useTranslation();
+  
   return (
     <Group justify="flex-end" pt="sm" wrap="nowrap">
       {isCommentEditor && (
         <Button size="compact-sm" variant="default" onClick={onCancel}>
-          Cancel
+          {t("Cancel")}
         </Button>
       )}
 
       <Button size="compact-sm" loading={isLoading} onClick={onSave}>
-        Save
+        {t("Save")}
       </Button>
     </Group>
   );

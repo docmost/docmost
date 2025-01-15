@@ -1,21 +1,22 @@
-import {Group, Table, Text, Menu, ActionIcon} from "@mantine/core";
+import { Group, Table, Text, Menu, ActionIcon } from "@mantine/core";
 import React from "react";
-import {IconDots} from "@tabler/icons-react";
-import {modals} from "@mantine/modals";
-import {CustomAvatar} from "@/components/ui/custom-avatar.tsx";
+import { IconDots } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import {
   useChangeSpaceMemberRoleMutation,
   useRemoveSpaceMemberMutation,
   useSpaceMembersQuery,
 } from "@/features/space/queries/space-query.ts";
-import {IconGroupCircle} from "@/components/icons/icon-people-circle.tsx";
-import {IRemoveSpaceMember} from "@/features/space/types/space.types.ts";
+import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
+import { IRemoveSpaceMember } from "@/features/space/types/space.types.ts";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getSpaceRoleLabel,
   spaceRoleData,
 } from "@/features/space/types/space-role-data.ts";
-import {formatMemberCount} from "@/lib";
+import { formatMemberCount } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 type MemberType = "user" | "group";
 
@@ -25,10 +26,12 @@ interface SpaceMembersProps {
 }
 
 export default function SpaceMembersList({
-                                           spaceId,
-                                           readOnly,
-                                         }: SpaceMembersProps) {
-  const {data, isLoading} = useSpaceMembersQuery(spaceId);
+  spaceId,
+  readOnly,
+}: SpaceMembersProps) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useSpaceMembersQuery(spaceId);
+
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
 
@@ -79,16 +82,17 @@ export default function SpaceMembersList({
 
   const openRemoveModal = (memberId: string, type: MemberType) =>
     modals.openConfirmModal({
-      title: "Remove space member",
+      title: t("Remove space member"),
       children: (
         <Text size="sm">
-          Are you sure you want to remove this user from the space? The user
-          will lose all access to this space.
+          {t(
+            "Are you sure you want to remove this user from the space? The user will lose all access to this space.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: {confirm: "Remove", cancel: "Cancel"},
-      confirmProps: {color: "red"},
+      labels: { confirm: t("Remove"), cancel: t("Cancel") },
+      confirmProps: { color: "red" },
       onConfirm: () => onRemove(memberId, type),
     });
 
@@ -99,8 +103,8 @@ export default function SpaceMembersList({
           <Table verticalSpacing={8}>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Member</Table.Th>
-                <Table.Th>Role</Table.Th>
+                <Table.Th>{t("Member")}</Table.Th>
+                <Table.Th>{t("Role")}</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -117,7 +121,7 @@ export default function SpaceMembersList({
                         />
                       )}
 
-                      {member.type === "group" && <IconGroupCircle/>}
+                      {member.type === "group" && <IconGroupCircle />}
 
                       <div>
                         <Text fz="sm" fw={500}>
@@ -127,7 +131,7 @@ export default function SpaceMembersList({
                           {member.type == "user" && member?.email}
 
                           {member.type == "group" &&
-                            `Group - ${formatMemberCount(member?.memberCount)}`}
+                            `${t("Group")} - ${formatMemberCount(member?.memberCount, t)}`}
                         </Text>
                       </div>
                     </Group>
@@ -161,7 +165,7 @@ export default function SpaceMembersList({
                       >
                         <Menu.Target>
                           <ActionIcon variant="subtle" c="gray">
-                            <IconDots size={20} stroke={2}/>
+                            <IconDots size={20} stroke={2} />
                           </ActionIcon>
                         </Menu.Target>
 
@@ -171,7 +175,7 @@ export default function SpaceMembersList({
                               openRemoveModal(member.id, member.type)
                             }
                           >
-                            Remove space member
+                            {t("Remove space member")}
                           </Menu.Item>
                         </Menu.Dropdown>
                       </Menu>

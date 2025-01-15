@@ -5,6 +5,7 @@ import { useForm, zodResolver } from "@mantine/form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().trim().min(2).max(50),
@@ -14,6 +15,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateGroupForm() {
+  const { t } = useTranslation();
   const createGroupMutation = useCreateGroupMutation();
   const [userIds, setUserIds] = useState<string[]>([]);
   const navigate = useNavigate();
@@ -52,16 +54,16 @@ export function CreateGroupForm() {
             <TextInput
               withAsterisk
               id="name"
-              label="Group name"
-              placeholder="e.g Developers"
+              label={t("Group name")}
+              placeholder={t("e.g Developers")}
               variant="filled"
               {...form.getInputProps("name")}
             />
 
             <Textarea
               id="description"
-              label="Group description"
-              placeholder="e.g Group for developers"
+              label={t("Group description")}
+              placeholder={t("e.g Group for developers")}
               variant="filled"
               autosize
               minRows={2}
@@ -70,13 +72,13 @@ export function CreateGroupForm() {
             />
 
             <MultiUserSelect
-              label={"Add group members"}
+              label={t("Add group members")}
               onChange={handleMultiSelectChange}
             />
           </Stack>
 
           <Group justify="flex-end" mt="md">
-            <Button type="submit">Create</Button>
+            <Button type="submit">{t("Create")}</Button>
           </Group>
         </form>
       </Box>

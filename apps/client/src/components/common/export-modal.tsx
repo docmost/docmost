@@ -12,6 +12,7 @@ import { useState } from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
 import { exportSpace } from "@/features/space/services/space-service";
+import { useTranslation } from "react-i18next";
 
 interface ExportModalProps {
   id: string;
@@ -29,6 +30,7 @@ export default function ExportModal({
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
   const [includeAttachments, setIncludeAttachments] = useState<boolean>(true);
+  const { t } = useTranslation();
 
   const handleExport = async () => {
     try {
@@ -73,7 +75,7 @@ export default function ExportModal({
         <Modal.Body>
           <Group justify="space-between" wrap="nowrap">
             <div>
-              <Text size="md">Format</Text>
+              <Text size="md">{t("Format")}</Text>
             </div>
             <ExportFormatSelection format={format} onChange={handleChange} />
           </Group>
@@ -84,7 +86,7 @@ export default function ExportModal({
 
               <Group justify="space-between" wrap="nowrap">
                 <div>
-                  <Text size="md">Include subpages</Text>
+                  <Text size="md">{t("Include subpages")}</Text>
                 </div>
                 <Switch
                   onChange={(event) =>
@@ -102,7 +104,7 @@ export default function ExportModal({
 
               <Group justify="space-between" wrap="nowrap">
                 <div>
-                  <Text size="md">Include attachments</Text>
+                  <Text size="md">{t("Include attachments")}</Text>
                 </div>
                 <Switch
                   onChange={(event) =>
@@ -116,9 +118,9 @@ export default function ExportModal({
 
           <Group justify="center" mt="md">
             <Button onClick={onClose} variant="default">
-              Cancel
+              {t("Cancel")}
             </Button>
-            <Button onClick={handleExport}>Export</Button>
+            <Button onClick={handleExport}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>
@@ -131,6 +133,8 @@ interface ExportFormatSelection {
   onChange: (value: string) => void;
 }
 function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
+  const { t } = useTranslation();
+
   return (
     <Select
       data={[
@@ -143,7 +147,7 @@ function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
       comboboxProps={{ width: "120" }}
       allowDeselect={false}
       withCheckIcon={false}
-      aria-label="Select export format"
+      aria-label={t("Select export format")}
     />
   );
 }

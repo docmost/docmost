@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   newPassword: z
@@ -24,6 +25,7 @@ interface PasswordResetFormProps {
 }
 
 export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
+  const { t } = useTranslation();
   const { passwordReset, isLoading } = useAuth();
   useRedirectIfAuthenticated();
 
@@ -37,28 +39,28 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
   async function onSubmit(data: IPasswordReset) {
     await passwordReset({
       token: resetToken,
-      newPassword: data.newPassword
-    })
+      newPassword: data.newPassword,
+    });
   }
 
   return (
     <Container size={420} my={40} className={classes.container}>
       <Box p="xl" mt={200}>
         <Title order={2} ta="center" fw={500} mb="md">
-          Password reset
+          {t("Password reset")}
         </Title>
 
         <form onSubmit={form.onSubmit(onSubmit)}>
           <PasswordInput
-            label="New password"
-            placeholder="Your new password"
+            label={t("New password")}
+            placeholder={t("Your new password")}
             variant="filled"
             mt="md"
             {...form.getInputProps("newPassword")}
           />
 
           <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-            Set password
+            {t("Set password")}
           </Button>
         </form>
       </Box>

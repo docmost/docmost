@@ -6,25 +6,34 @@ import * as React from "react";
 import { useForm, zodResolver } from "@mantine/form";
 import { changePassword } from "@/features/auth/services/auth-service.ts";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 
 export default function ChangePassword() {
+  const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">Password</Text>
+        <Text size="md">{t("Password")}</Text>
         <Text size="sm" c="dimmed">
-          You can change your password here.
+          {t("You can change your password here.")}
         </Text>
       </div>
 
       <Button onClick={open} variant="default">
-        Change password
+        {t("Change password")}
       </Button>
 
-      <Modal opened={opened} onClose={close} title="Change password" centered>
-        <Text mb="md">Your password must be a minimum of 8 characters.</Text>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Change password")}
+        centered
+      >
+        <Text mb="md">
+          {t("Your password must be a minimum of 8 characters.")}
+        </Text>
         <ChangePasswordForm onClose={close} />
       </Modal>
     </Group>
@@ -44,6 +53,7 @@ interface ChangePasswordFormProps {
   onClose?: () => void;
 }
 function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
@@ -62,7 +72,7 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
         newPassword: data.newPassword,
       });
       notifications.show({
-        message: "Password changed successfully",
+        message: t("Password changed successfully"),
       });
 
       onClose();
@@ -78,9 +88,9 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <PasswordInput
-        label="Current password"
+        label={t("Current password")}
         name="oldPassword"
-        placeholder="Enter your current password"
+        placeholder={t("Enter your current password")}
         variant="filled"
         mb="md"
         data-autofocus
@@ -88,8 +98,8 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
       />
 
       <PasswordInput
-        label="New password"
-        placeholder="Enter your new password"
+        label={t("New password")}
+        placeholder={t("Enter your new password")}
         variant="filled"
         mb="md"
         {...form.getInputProps("newPassword")}
@@ -97,7 +107,7 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
 
       <Group justify="flex-end" mt="md">
         <Button type="submit" disabled={isLoading} loading={isLoading}>
-          Change password
+          {t("Change password")}
         </Button>
       </Group>
     </form>

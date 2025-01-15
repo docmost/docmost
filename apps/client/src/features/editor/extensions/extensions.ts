@@ -35,7 +35,7 @@ import {
   CustomCodeBlock,
   Drawio,
   Excalidraw,
-  Embed
+  Embed,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -64,6 +64,8 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
+import i18n from "i18next";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -94,13 +96,13 @@ export const mainExtensions = [
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
-        return `Heading ${node.attrs.level}`;
+        return i18n.t("Heading {{level}}", { level: node.attrs.level });
       }
       if (node.type.name === "detailsSummary") {
-        return "Toggle title";
+        return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        return 'Write anything. Enter "/" for commands';
+        return i18n.t('Write anything. Enter "/" for commands');
       }
     },
     includeChildren: true,
@@ -131,7 +133,6 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-
   Table.configure({
     resizable: true,
     lastColumnResizable: false,
@@ -140,7 +141,6 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
-
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -184,7 +184,10 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
-  })
+  }),
+  MarkdownClipboard.configure({
+    transformPastedText: true,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
