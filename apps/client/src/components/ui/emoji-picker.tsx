@@ -5,7 +5,7 @@ import {
   Button,
   useMantineColorScheme,
 } from "@mantine/core";
-import { useClickOutside, useDisclosure } from "@mantine/hooks";
+import { useClickOutside, useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { Suspense } from "react";
 const Picker = React.lazy(() => import("@emoji-mart/react"));
 
@@ -33,6 +33,15 @@ function EmojiPicker({
     [dropdown, target],
   );
 
+  // We need this because the default Mantine popover closeOnEscape does not work
+  useWindowEvent("keydown", (event) => {
+    if (opened && event.key === "Escape") {
+      event.stopPropagation();
+      event.preventDefault();
+      handlers.close();
+    }
+  });
+
   const handleEmojiSelect = (emoji) => {
     onEmojiSelect(emoji);
     handlers.close();
@@ -50,6 +59,7 @@ function EmojiPicker({
       width={332}
       position="bottom"
       disabled={readOnly}
+      closeOnEscape={true}
     >
       <Popover.Target ref={setTarget}>
         <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle}>
