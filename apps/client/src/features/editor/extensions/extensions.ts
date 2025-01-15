@@ -64,7 +64,8 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
-import i18n from "@/i18n.ts";
+import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
+import i18n from "i18next";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -132,7 +133,6 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-
   Table.configure({
     resizable: true,
     lastColumnResizable: false,
@@ -141,7 +141,6 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
-
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -185,6 +184,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  MarkdownClipboard.configure({
+    transformPastedText: true,
   }),
 ] as any;
 

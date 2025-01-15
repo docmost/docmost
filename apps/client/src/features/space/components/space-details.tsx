@@ -33,7 +33,7 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
 
               <Group justify="space-between" wrap="nowrap" gap="xl">
                 <div>
-                  <Text size="md">Export space</Text>
+                  <Text size="md">{t("Export space")}</Text>
                   <Text size="sm" c="dimmed">
                     {t("Export all pages and attachments in this space.")}
                   </Text>
