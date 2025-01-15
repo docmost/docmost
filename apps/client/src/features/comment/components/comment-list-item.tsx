@@ -59,9 +59,8 @@ function CommentListItem({ comment }: CommentListItemProps) {
   function handleEditToggle() {
     setIsEditing(true);
   }
-  function cancelEdit(){
+  function cancelEdit() {
     setIsEditing(false);
-    setContent(comment.content);
   }
 
   return (

@@ -1,26 +1,30 @@
-import { Button, Group } from '@mantine/core';
+import { Button, Group } from "@mantine/core";
 
 type CommentActionsProps = {
   onSave: () => void;
   isLoading?: boolean;
-  onCancel?:()=> void;
-  isCommentEditor?:boolean;
-
+  onCancel?: () => void;
+  isCommentEditor?: boolean;
 };
 
-function CommentActions({ onSave, isLoading, onCancel,isCommentEditor }: CommentActionsProps) {
+function CommentActions({
+  onSave,
+  isLoading,
+  onCancel,
+  isCommentEditor,
+}: CommentActionsProps) {
   return (
-    <Group justify="space-between" pt={2} wrap="nowrap">
+    <Group justify="flex-end" pt="sm" wrap="nowrap">
+      {isCommentEditor && (
+        <Button size="compact-sm" variant="default" onClick={onCancel}>
+          Cancel
+        </Button>
+      )}
 
-   {isCommentEditor?<Button size="compact-sm" variant="default" onClick={onCancel}>
-      Cancel
-    </Button>:<></>
-}
-  
-    <Button size="compact-sm" loading={isLoading} onClick={onSave}>
-      Save
-    </Button>
-  </Group>
+      <Button size="compact-sm" loading={isLoading} onClick={onSave}>
+        Save
+      </Button>
+    </Group>
   );
 }
 
