@@ -8,6 +8,7 @@ import {
 import { useClickOutside, useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { Suspense } from "react";
 const Picker = React.lazy(() => import("@emoji-mart/react"));
+import { useTranslation } from "react-i18next";
 
 export interface EmojiPickerInterface {
   onEmojiSelect: (emoji: any) => void;
@@ -22,6 +23,7 @@ function EmojiPicker({
   removeEmojiAction,
   readOnly,
 }: EmojiPickerInterface) {
+  const { t } = useTranslation();
   const [opened, handlers] = useDisclosure(false);
   const { colorScheme } = useMantineColorScheme();
   const [target, setTarget] = useState<HTMLElement | null>(null);
@@ -88,7 +90,7 @@ function EmojiPicker({
           }}
           onClick={handleRemoveEmoji}
         >
-          Remove
+          {t("Remove")}
         </Button>
       </Popover.Dropdown>
     </Popover>
