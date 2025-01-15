@@ -124,6 +124,7 @@ export default function PageEditor({
     {
       extensions,
       editable,
+      immediatelyRender: true,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,

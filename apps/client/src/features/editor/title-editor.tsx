@@ -38,7 +38,7 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 700);
   const {
     data: updatedPageData,
     mutate: updatePageMutation,
@@ -81,6 +81,8 @@ export function TitleEditor({
     },
     editable: editable,
     content: title,
+    immediatelyRender: true,
+    shouldRerenderOnTransaction: false,
   });
 
   useEffect(() => {
