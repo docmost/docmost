@@ -15,7 +15,8 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconDotsVertical,
-  IconFileDescription, IconFileExport,
+  IconFileDescription,
+  IconFileExport,
   IconLink,
   IconPlus,
   IconPointFilled,
@@ -140,13 +141,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             flatTreeItems = [
               ...flatTreeItems,
               ...children.filter(
-                (child) => !flatTreeItems.some((item) => item.id === child.id)
+                (child) => !flatTreeItems.some((item) => item.id === child.id),
               ),
             ];
           };
 
           const fetchPromises = ancestors.map((ancestor) =>
-            fetchAndUpdateChildren(ancestor)
+            fetchAndUpdateChildren(ancestor),
           );
 
           // Wait for all fetch operations to complete
@@ -160,7 +161,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             const updatedTree = appendNodeChildren(
               data,
               rootChild.id,
-              rootChild.children
+              rootChild.children,
             );
             setData(updatedTree);
 
@@ -255,7 +256,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       const updatedTreeData = appendNodeChildren(
         treeData,
         node.data.id,
-        childrenTree
+        childrenTree,
       );
 
       setTreeData(updatedTreeData);
@@ -468,9 +469,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
 
               <Menu.Item
                 c="red"
-                leftSection={
-                  <IconTrash size={16} />
-                }
+                leftSection={<IconTrash size={16} />}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
