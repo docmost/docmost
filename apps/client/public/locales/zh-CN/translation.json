@@ -226,11 +226,11 @@
   "Select a group": "选择一个组",
   "Export all pages and attachments in this space.": "导出当前空间的所有页面和附件",
   "Delete space": "删除空间",
-  "Are you sure you want to delete this space?": "Are you sure you want to delete this space?",
+  "Are you sure you want to delete this space?": "您确定要删除这个空间吗？",
   "Delete this space with all its pages and data.": "删除空间及其所有页面和数据",
-  "All pages, comments, attachments and permissions in this space will be deleted irreversibly.": "All pages, comments, attachments and permissions in this space will be deleted irreversibly.",
-  "Confirm space name": "Confirm space name",
-  "Type the space name <b>{{spaceName}}</b> to confirm your action.": "Type the space name <b>{{spaceName}}</b> to confirm your action.",
+  "All pages, comments, attachments and permissions in this space will be deleted irreversibly.": "此空间中的所有页面、评论、附件和权限将被不可逆转地删除。",
+  "Confirm space name": "确认空间名称",
+  "Type the space name <b>{{spaceName}}</b> to confirm your action.": "输入空间名称<b>{{spaceName}}</b>以确认您的操作。",
   "Format": "格式",
   "Include subpages": "包括子页面",
   "Include attachments": "包括附件",
@@ -336,7 +336,7 @@
   "Heading {{level}}": "{{level}} 级标题",
   "Toggle title": "切换标题",
   "Write anything. Enter \"/\" for commands": "开始编写内容，输入 \"/\" 以使用指令",
-  "Names do not match": "Names do not match",
-  "Today, {{time}}": "Today, {{time}}",
-  "Yesterday, {{time}}": "Yesterday, {{time}}"
+  "Names do not match": "名称不匹配",
+  "Today, {{time}}": "今天，{{time}}",
+  "Yesterday, {{time}}": "昨天，{{time}}"
 }
