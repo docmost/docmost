@@ -226,7 +226,11 @@
   "Select a group": "Gruppe auswählen",
   "Export all pages and attachments in this space.": "Alle Seiten und Anhänge in diesem Bereich exportieren.",
   "Delete space": "Bereich löschen",
+  "Are you sure you want to delete this space?": "Are you sure you want to delete this space?",
   "Delete this space with all its pages and data.": "Diesen Bereich mit allen Seiten und Daten löschen.",
+  "All pages, comments, attachments and permissions in this space will be deleted irreversibly.": "All pages, comments, attachments and permissions in this space will be deleted irreversibly.",
+  "Confirm space name": "Confirm space name",
+  "Type the space name <b>{{spaceName}}</b> to confirm your action.": "Type the space name <b>{{spaceName}}</b> to confirm your action.",
   "Format": "Format",
   "Include subpages": "Unterseiten einbeziehen",
   "Include attachments": "Anhänge einbeziehen",
@@ -331,5 +335,8 @@
   "Multiple": "Mehrere",
   "Heading {{level}}": "Überschrift {{level}}",
   "Toggle title": "Titel umschalten",
-  "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein"
+  "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein",
+  "Names do not match": "Names do not match",
+  "Today, {{time}}": "Today, {{time}}",
+  "Yesterday, {{time}}": "Yesterday, {{time}}"
 }
