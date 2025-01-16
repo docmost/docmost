@@ -46,6 +46,7 @@ function LanguageSwitcher() {
         { value: "fr-FR", label: "Français (France)" },
         { value: "pt-BR", label: "Português (Brazilian)" },
         { value: "zh-CN", label: "中文 (简体)" },
+        { value: "ru-RU", label: "Русский (Россия)" },
       ]}
       value={language}
       onChange={handleChange}
