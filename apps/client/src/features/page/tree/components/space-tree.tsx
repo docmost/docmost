@@ -35,6 +35,7 @@ import {
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import {
   getPageBreadcrumbs,
+  getPageById,
   getSidebarPages,
 } from "@/features/page/services/page-service.ts";
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
@@ -232,6 +233,24 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
+  const timerRef = useRef(null);
+
+  const prefetchPage = () => {
+    timerRef.current = setTimeout(() => {
+      queryClient.prefetchQuery({
+        queryKey: ["pages", node.data.slugId],
+        queryFn: () => getPageById({ pageId: node.data.slugId }),
+        staleTime: 5 * 60 * 1000,
+      });
+    }, 150);
+  };
+
+  const cancelPagePrefetch = () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
@@ -330,6 +349,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         className={clsx(classes.node, node.state)}
         ref={dragHandle}
         onClick={handleClick}
+        onMouseEnter={prefetchPage}
+        onMouseLeave={cancelPagePrefetch}
       >
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
 

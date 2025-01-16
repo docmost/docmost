@@ -2,6 +2,10 @@
   img {
     max-width: 100%;
     height: auto;
+
+    @media print {
+      break-inside: avoid;
+    }
   }
 
   .node-image, .node-video, .node-excalidraw, .node-drawio {
