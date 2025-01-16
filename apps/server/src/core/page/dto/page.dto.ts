@@ -26,4 +26,8 @@ export class PageInfoDto extends PageIdDto {
   @IsOptional()
   @IsBoolean()
   includeSpace: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includeContent: boolean;
 }

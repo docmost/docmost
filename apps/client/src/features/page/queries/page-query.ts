@@ -25,17 +25,31 @@ import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
 import { queryClient } from "@/main.tsx";
 import { buildTree } from "@/features/page/tree/utils";
+import { useEffect } from "react";
+import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
 ): UseQueryResult<IPage, Error> {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
     queryFn: () => getPageById(pageInput),
     enabled: !!pageInput.pageId,
     staleTime: 5 * 60 * 1000,
   });
+
+  useEffect(() => {
+    if (query.data) {
+      if (isValidUuid(pageInput.pageId)) {
+        queryClient.setQueryData(["pages", query.data.slugId], query.data);
+      } else {
+        queryClient.setQueryData(["pages", query.data.id], query.data);
+      }
+    }
+  }, [query.data]);
+
+  return query;
 }
 
 export function useCreatePageMutation() {

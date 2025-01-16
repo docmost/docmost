@@ -13,6 +13,7 @@ export interface FullEditorProps {
   pageId: string;
   slugId: string;
   title: string;
+  content: string;
   spaceSlug: string;
   editable: boolean;
 }
@@ -21,6 +22,7 @@ export function FullEditor({
   pageId,
   title,
   slugId,
+  content,
   spaceSlug,
   editable,
 }: FullEditorProps) {
@@ -40,7 +42,7 @@ export function FullEditor({
         spaceSlug={spaceSlug}
         editable={editable}
       />
-      <MemoizedPageEditor pageId={pageId} editable={editable} />
+      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} />
     </Container>
   );
 }

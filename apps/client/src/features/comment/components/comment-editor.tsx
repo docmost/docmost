@@ -48,6 +48,8 @@ const CommentEditor = forwardRef(
       },
       content: defaultContent,
       editable,
+      immediatelyRender: true,
+      shouldRerenderOnTransaction: false,
       autofocus: (autofocus && "end") || false,
     });
 

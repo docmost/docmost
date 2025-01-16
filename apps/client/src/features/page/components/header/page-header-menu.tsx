@@ -1,17 +1,4 @@
-import ExportModal from "@/components/common/export-modal";
-import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
-import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { usePageQuery } from "@/features/page/queries/page-query.ts";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
-import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
-import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
-import useToggleAside from "@/hooks/use-toggle-aside.tsx";
-import { extractPageSlugId } from "@/lib";
-import { getAppUrl } from "@/lib/config.ts";
 import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
-import { useClipboard, useDisclosure } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
 import {
   IconAlignRight2,
   IconArrowsHorizontal,
@@ -21,20 +8,49 @@ import {
   IconLink,
   IconMessage,
   IconPrinter,
-  IconTrash
+  IconTrash,
+  IconWifiOff,
 } from "@tabler/icons-react";
+import React from "react";
+import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
-import { useTranslation } from "react-i18next";
+import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
+import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { useParams } from "react-router-dom";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { notifications } from "@mantine/notifications";
+import { getAppUrl } from "@/lib/config.ts";
+import { extractPageSlugId } from "@/lib";
+import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
+import { useTranslation } from "react-i18next";
+import ExportModal from "@/components/common/export-modal";
+import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
 }
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
+  const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
 
   return (
     <>
+      {yjsConnectionStatus === "disconnected" && (
+        <Tooltip
+          label="Real-time editor connection lost. Retrying..."
+          openDelay={250}
+          withArrow
+        >
+          <ActionIcon variant="default" c="red" style={{ border: "none" }}>
+            <IconWifiOff size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+
       <Tooltip label="Comments" openDelay={250} withArrow>
         <ActionIcon
           variant="default"
