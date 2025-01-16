@@ -1,6 +1,6 @@
 import { formatDistanceStrict } from "date-fns";
 import { format, isToday, isYesterday } from "date-fns";
-import i18n from "i18next";
+import i18n from "@/i18n.ts";
 
 export function timeAgo(date: Date) {
   return formatDistanceStrict(new Date(date), new Date(), { addSuffix: true });

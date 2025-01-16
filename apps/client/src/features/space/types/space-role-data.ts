@@ -1,5 +1,5 @@
 import { IRoleData, SpaceRole } from "@/lib/types.ts";
-import i18n from "i18next";
+import i18n from "@/i18n.ts";
 
 export const spaceRoleData: IRoleData[] = [
   {
