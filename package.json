@@ -87,6 +87,9 @@
   "pnpm": {
     "patchedDependencies": {
       "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
+    },
+    "overrides": {
+      "jsdom": "25.0.1"
     }
   }
 }
