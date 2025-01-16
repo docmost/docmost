@@ -43,6 +43,7 @@ function LanguageSwitcher() {
       data={[
         { value: "en-US", label: "English (United States)" },
         { value: "de-DE", label: "Deutsch (Germany)" },
+        { value: "fa-IR", label: "فارسی (Persian)" },
         { value: "fr-FR", label: "Français (France)" },
         { value: "pt-BR", label: "Português (Brazilian)" },
         { value: "zh-CN", label: "中文 (简体)" },
