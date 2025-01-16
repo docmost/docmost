@@ -15,6 +15,7 @@ import {
 import { IComment } from "@/features/comment/types/comment.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { getTextDirection } from "tiptap-text-direction";
 
 interface CommentListItemProps {
   comment: IComment;
@@ -99,7 +100,7 @@ function CommentListItem({ comment }: CommentListItemProps) {
 
       <div>
         {!comment.parentCommentId && comment?.selection && (
-          <Box className={classes.textSelection}>
+          <Box className={classes.textSelection} dir={getTextDirection(comment?.selection || '')}>
             <Text size="sm">{comment?.selection}</Text>
           </Box>
         )}

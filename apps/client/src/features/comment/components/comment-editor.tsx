@@ -8,6 +8,7 @@ import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
+import TextDirection from "tiptap-text-direction";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -40,6 +41,7 @@ const CommentEditor = forwardRef(
         Placeholder.configure({
           placeholder: placeholder || t("Reply..."),
         }),
+        TextDirection.configure({ types: ["paragraph"] }),
         Underline,
         Link,
       ],
