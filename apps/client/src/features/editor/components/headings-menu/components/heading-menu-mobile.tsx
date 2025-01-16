@@ -17,7 +17,6 @@ export const HeadingMenuMobile: FC<HeadingMenuMobileProps> = (props) => {
 	const ref = useRef<HTMLDivElement | null>(null);
 
 	const handleClickLink = (element: HTMLElement) => {
-		console.log(ref.current?.offsetHeight)
 		props.handleScrollToHeading(element, ref.current?.offsetHeight ?? 0);
 		setAccordionValue('');
 	}
