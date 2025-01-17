@@ -42,7 +42,7 @@ const getPreferencesOptions = (viewHeadings: boolean, fullPageWidth: boolean): P
 export function ViewHeadingsToggle({ size, label }: ViewHeadingsToggleProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
-  const [checked, setChecked] = useState(user.settings?.preferences?.viewHeadings);
+  const [checked, setChecked] = useState(user?.settings?.preferences?.viewHeadings);
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;

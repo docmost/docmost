@@ -205,7 +205,7 @@ export default function PageEditor({
           ref={menuContainerRef}
         >
           <EditorContent editor={editor} />
-          {currentUser.user.settings.preferences.viewHeadings && (
+          {currentUser?.user?.settings?.preferences?.viewHeadings && (
             <EditorHeadingsMenu editor={editor} />
           )}
 
