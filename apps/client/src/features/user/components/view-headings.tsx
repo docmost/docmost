@@ -47,7 +47,7 @@ export function ViewHeadingsToggle({ size, label }: ViewHeadingsToggleProps) {
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
     const updatedUser = await updateUser(
-      getPreferencesOptions(value, user.settings.preferences.fullPageWidth ?? false)
+      getPreferencesOptions(value, user?.settings?.preferences?.fullPageWidth ?? false)
     );
     setChecked(value);
     setUser(updatedUser);
