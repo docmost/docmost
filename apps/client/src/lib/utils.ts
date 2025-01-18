@@ -1,8 +1,10 @@
-export function formatMemberCount(memberCount: number): string {
+import { TFunction } from "i18next";
+
+export function formatMemberCount(memberCount: number, t: TFunction): string {
   if (memberCount === 1) {
-    return "1 member";
+    return `1 ${t("member")}`;
   } else {
-    return `${memberCount} members`;
+    return `${memberCount} ${t("members")}`;
   }
 }
 
@@ -26,14 +28,10 @@ export const computeSpaceSlug = (name: string) => {
   }
 };
 
-export const formatBytes = (
-  bytes: number,
-  decimalPlaces: number = 2,
-): string => {
+export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0.0 KB";
 
   const unitSize = 1024;
-  const precision = decimalPlaces < 0 ? 0 : decimalPlaces;
   const units = ["KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
   const kilobytes = bytes / unitSize;
@@ -41,6 +39,9 @@ export const formatBytes = (
   const unitIndex = Math.floor(Math.log(kilobytes) / Math.log(unitSize));
   const adjustedUnitIndex = Math.max(unitIndex, 0);
   const adjustedSize = kilobytes / Math.pow(unitSize, adjustedUnitIndex);
+
+  // Use one decimal for KB and no decimals for MB or higher
+  const precision = adjustedUnitIndex === 0 ? 1 : 0;
 
   return `${adjustedSize.toFixed(precision)} ${units[adjustedUnitIndex]}`;
 };

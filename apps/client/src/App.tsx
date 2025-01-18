@@ -30,8 +30,10 @@ import Billing from "@/ee/billing/pages/billing.tsx";
 import CloudLogin from "@/ee/pages/cloud-login.tsx";
 import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
 import { isCloud } from "@/lib/config.ts";
+import { useTranslation } from "react-i18next";
 
 export default function App() {
+  const { t } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   const authToken = useAtomValue(authTokensAtom);
 
@@ -93,7 +95,7 @@ export default function App() {
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={
               <ErrorBoundary
-                fallback={<>Failed to load page. An error occurred.</>}
+                fallback={<>{t("Failed to load page. An error occurred.")}</>}
               >
                 <Page />
               </ErrorBoundary>

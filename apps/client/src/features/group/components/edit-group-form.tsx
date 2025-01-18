@@ -7,6 +7,7 @@ import {
 import { useForm, zodResolver } from "@mantine/form";
 import * as z from "zod";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(2).max(50),
@@ -18,6 +19,7 @@ interface EditGroupFormProps {
   onClose?: () => void;
 }
 export function EditGroupForm({ onClose }: EditGroupFormProps) {
+  const { t } = useTranslation();
   const updateGroupMutation = useUpdateGroupMutation();
   const { isSuccess } = updateGroupMutation;
   const { groupId } = useParams();
@@ -60,16 +62,16 @@ export function EditGroupForm({ onClose }: EditGroupFormProps) {
             <TextInput
               withAsterisk
               id="name"
-              label="Group name"
-              placeholder="e.g Developers"
+              label={t("Group name")}
+              placeholder={t("e.g Developers")}
               variant="filled"
               {...form.getInputProps("name")}
             />
 
             <Textarea
               id="description"
-              label="Group description"
-              placeholder="e.g Group for developers"
+              label={t("Group description")}
+              placeholder={t("e.g Group for developers")}
               variant="filled"
               autosize
               minRows={2}
@@ -79,7 +81,7 @@ export function EditGroupForm({ onClose }: EditGroupFormProps) {
           </Stack>
 
           <Group justify="flex-end" mt="md">
-            <Button type="submit">Save</Button>
+            <Button type="submit">{t("Save")}</Button>
           </Group>
         </form>
       </Box>

@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -38,7 +38,6 @@
     "@tiptap/extension-link": "^2.10.3",
     "@tiptap/extension-list-item": "^2.10.3",
     "@tiptap/extension-list-keymap": "^2.10.3",
-    "@tiptap/extension-mention": "^2.10.3",
     "@tiptap/extension-placeholder": "^2.10.3",
     "@tiptap/extension-subscript": "^2.10.3",
     "@tiptap/extension-superscript": "^2.10.3",
@@ -65,6 +64,8 @@
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
+    "linkifyjs": "^4.2.0",
+    "marked": "^13.0.3",
     "uuid": "^11.0.3",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.20"
@@ -86,6 +87,9 @@
   "pnpm": {
     "patchedDependencies": {
       "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
+    },
+    "overrides": {
+      "jsdom": "25.0.1"
     }
   }
 }

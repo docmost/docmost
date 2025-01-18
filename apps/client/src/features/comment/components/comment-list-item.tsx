@@ -24,7 +24,6 @@ function CommentListItem({ comment }: CommentListItemProps) {
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const editor = useAtomValue(pageEditorAtom);
   const [content, setContent] = useState<string>(comment.content);
   const updateCommentMutation = useUpdateCommentMutation();
@@ -58,6 +57,9 @@ function CommentListItem({ comment }: CommentListItemProps) {
 
   function handleEditToggle() {
     setIsEditing(true);
+  }
+  function cancelEdit() {
+    setIsEditing(false);
   }
 
   return (
@@ -116,6 +118,8 @@ function CommentListItem({ comment }: CommentListItemProps) {
             <CommentActions
               onSave={handleUpdateComment}
               isLoading={isLoading}
+              onCancel={cancelEdit}
+              isCommentEditor={true}
             />
           </>
         )}

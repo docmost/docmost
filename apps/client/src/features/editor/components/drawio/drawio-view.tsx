@@ -1,25 +1,34 @@
-import { NodeViewProps, NodeViewWrapper } from '@tiptap/react';
-import { ActionIcon, Card, Image, Modal, Text, useComputedColorScheme } from '@mantine/core';
-import { useRef, useState } from 'react';
-import { uploadFile } from '@/features/page/services/page-service.ts';
-import { useDisclosure } from '@mantine/hooks';
-import { getDrawioUrl, getFileUrl } from '@/lib/config.ts';
+import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import {
+  ActionIcon,
+  Card,
+  Image,
+  Modal,
+  Text,
+  useComputedColorScheme,
+} from "@mantine/core";
+import { useRef, useState } from "react";
+import { uploadFile } from "@/features/page/services/page-service.ts";
+import { useDisclosure } from "@mantine/hooks";
+import { getDrawioUrl, getFileUrl } from "@/lib/config.ts";
 import {
   DrawIoEmbed,
   DrawIoEmbedRef,
   EventExit,
   EventSave,
-} from 'react-drawio';
-import { IAttachment } from '@/lib/types';
-import { decodeBase64ToSvgString, svgStringToFile } from '@/lib/utils';
-import clsx from 'clsx';
-import { IconEdit } from '@tabler/icons-react';
+} from "react-drawio";
+import { IAttachment } from "@/lib/types";
+import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
+import clsx from "clsx";
+import { IconEdit } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 export default function DrawioView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
   const { src, title, width, attachmentId } = node.attrs;
   const drawioRef = useRef<DrawIoEmbedRef>(null);
-  const [initialXML, setInitialXML] = useState<string>('');
+  const [initialXML, setInitialXML] = useState<string>("");
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
 
@@ -32,15 +41,15 @@ export default function DrawioView(props: NodeViewProps) {
       if (src) {
         const url = getFileUrl(src);
         const request = await fetch(url, {
-          credentials: 'include',
-          cache: 'no-store',
+          credentials: "include",
+          cache: "no-store",
         });
         const blob = await request.blob();
 
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          const base64data = (reader.result || '') as string;
+          const base64data = (reader.result || "") as string;
           setInitialXML(base64data);
         };
       }
@@ -54,7 +63,7 @@ export default function DrawioView(props: NodeViewProps) {
   const handleSave = async (data: EventSave) => {
     const svgString = decodeBase64ToSvgString(data.xml);
 
-    const fileName = 'diagram.drawio.svg';
+    const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
     const pageId = editor.storage?.pageId;
@@ -81,15 +90,15 @@ export default function DrawioView(props: NodeViewProps) {
     <NodeViewWrapper>
       <Modal.Root opened={opened} onClose={close} fullScreen>
         <Modal.Overlay />
-        <Modal.Content style={{ overflow: 'hidden' }}>
+        <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Body>
-            <div style={{ height: '100vh' }}>
+            <div style={{ height: "100vh" }}>
               <DrawIoEmbed
                 ref={drawioRef}
                 xml={initialXML}
                 baseUrl={getDrawioUrl()}
                 urlParameters={{
-                  ui: computedColorScheme === 'light' ? 'kennedy' : 'dark',
+                  ui: computedColorScheme === "light" ? "kennedy" : "dark",
                   spin: true,
                   libraries: true,
                   saveAndExit: true,
@@ -97,7 +106,7 @@ export default function DrawioView(props: NodeViewProps) {
                 }}
                 onSave={(data: EventSave) => {
                   // If the save is triggered by another event, then do nothing
-                  if (data.parentEvent !== 'save') {
+                  if (data.parentEvent !== "save") {
                     return;
                   }
                   handleSave(data);
@@ -116,7 +125,7 @@ export default function DrawioView(props: NodeViewProps) {
       </Modal.Root>
 
       {src ? (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: "relative" }}>
           <Image
             onClick={(e) => e.detail === 2 && handleOpen()}
             radius="md"
@@ -125,8 +134,8 @@ export default function DrawioView(props: NodeViewProps) {
             src={getFileUrl(src)}
             alt={title}
             className={clsx(
-              selected ? 'ProseMirror-selectednode' : '',
-              'alignCenter'
+              selected ? "ProseMirror-selectednode" : "",
+              "alignCenter",
             )}
           />
 
@@ -137,7 +146,7 @@ export default function DrawioView(props: NodeViewProps) {
               color="gray"
               mx="xs"
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: 8,
                 right: 8,
               }}
@@ -152,20 +161,20 @@ export default function DrawioView(props: NodeViewProps) {
           onClick={(e) => e.detail === 2 && handleOpen()}
           p="xs"
           style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
           withBorder
-          className={clsx(selected ? 'ProseMirror-selectednode' : '')}
+          className={clsx(selected ? "ProseMirror-selectednode" : "")}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
             <ActionIcon variant="transparent" color="gray">
               <IconEdit size={18} />
             </ActionIcon>
 
             <Text component="span" size="lg" c="dimmed">
-              Double-click to edit drawio diagram
+              {t("Double-click to edit Draw.io diagram")}
             </Text>
           </div>
         </Card>

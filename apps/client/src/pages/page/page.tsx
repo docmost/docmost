@@ -12,8 +12,10 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const {
     data: page,
@@ -23,7 +25,7 @@ export default function Page() {
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility =  useSpaceAbility(spaceRules);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;
@@ -31,7 +33,7 @@ export default function Page() {
 
   if (isError || !page) {
     // TODO: fix this
-    return <div>Error fetching page data.</div>;
+    return <div>{t("Error fetching page data.")}</div>;
   }
 
   if (!space) {
@@ -42,7 +44,7 @@ export default function Page() {
     page && (
       <div>
         <Helmet>
-          <title>{`${page?.icon || ""}  ${page?.title || "untitled"}`}</title>
+          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
         <PageHeader
@@ -53,8 +55,10 @@ export default function Page() {
         />
 
         <FullEditor
+          key={page.id}
           pageId={page.id}
           title={page.title}
+          content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={spaceAbility.can(

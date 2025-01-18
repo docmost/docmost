@@ -1,7 +1,6 @@
 import "@mantine/core/styles.css";
 import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
-import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import { theme } from "@/theme";
@@ -11,6 +10,7 @@ import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
+import "./i18n";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +24,7 @@ export const queryClient = new QueryClient({
 
 
 const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement,
+  document.getElementById("root") as HTMLElement
 );
 
 root.render(
@@ -39,5 +39,5 @@ root.render(
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>
-  </BrowserRouter>,
+  </BrowserRouter>
 );
