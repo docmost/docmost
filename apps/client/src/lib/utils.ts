@@ -64,9 +64,9 @@ function decodeBase64(base64: string): string {
 }
 
 export function decodeBase64ToSvgString(base64Data: string): string {
-  const base64Prefix = 'data:image/svg+xml;base64,';
+  const base64Prefix = "data:image/svg+xml;base64,";
   if (base64Data.startsWith(base64Prefix)) {
-      base64Data = base64Data.replace(base64Prefix, '');
+    base64Data = base64Data.replace(base64Prefix, "");
   }
 
   return decodeBase64(base64Data);

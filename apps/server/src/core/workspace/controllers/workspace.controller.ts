@@ -29,6 +29,7 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../../casl/interfaces/workspace-ability.type';
+import { CheckHostnameDto } from '../dto/check-hostname.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -97,8 +98,6 @@ export class WorkspaceController {
     ) {
       throw new ForbiddenException();
     }
-
-    return this.workspaceService.deactivateUser();
   }
 
   @HttpCode(HttpStatus.OK)
@@ -223,5 +222,16 @@ export class WorkspaceController {
       acceptInviteDto,
       req.raw.workspaceId,
     );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/check-hostname')
+  async checkHostname(@Body() checkHostnameDto: CheckHostnameDto) {
+    return {
+      found: await this.workspaceService.checkHostname(
+        checkHostnameDto.hostname,
+      ),
+    };
   }
 }

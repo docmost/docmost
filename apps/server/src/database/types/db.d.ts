@@ -42,6 +42,31 @@ export interface Attachments {
   workspaceId: string;
 }
 
+export interface Billing {
+  amount: Int8 | null;
+  cancelAt: Timestamp | null;
+  cancelAtPeriodEnd: boolean | null;
+  canceledAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+  currency: string | null;
+  deletedAt: Timestamp | null;
+  endedAt: Timestamp | null;
+  id: Generated<string>;
+  interval: string | null;
+  metadata: Json | null;
+  periodEndAt: Timestamp | null;
+  periodStartAt: Timestamp;
+  quantity: Int8 | null;
+  status: string;
+  stripeCustomerId: string | null;
+  stripeItemId: string | null;
+  stripePriceId: string | null;
+  stripeProductId: string | null;
+  stripeSubscriptionId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Comments {
   content: Json | null;
   createdAt: Generated<Timestamp>;
@@ -51,6 +76,7 @@ export interface Comments {
   id: Generated<string>;
   pageId: string;
   parentCommentId: string | null;
+  resolvedAt: Timestamp | null;
   selection: string | null;
   type: string | null;
   workspaceId: string;
@@ -59,6 +85,7 @@ export interface Comments {
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
+  deletedAt: Timestamp | null;
   description: string | null;
   id: Generated<string>;
   isDefault: boolean;
@@ -118,6 +145,7 @@ export interface Pages {
 export interface SpaceMembers {
   addedById: string | null;
   createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
   groupId: string | null;
   id: Generated<string>;
   role: string;
@@ -135,7 +163,7 @@ export interface Spaces {
   id: Generated<string>;
   logo: string | null;
   name: string | null;
-  slug: string | null;
+  slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
   workspaceId: string;
@@ -155,7 +183,7 @@ export interface Users {
   locale: string | null;
   name: string | null;
   password: string | null;
-  role: string;
+  role: string | null;
   settings: Json | null;
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
@@ -186,23 +214,28 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
-  allowedEmailDomains: Generated<string[] | null>;
+  billingEmail: string | null;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
   defaultRole: Generated<string>;
   defaultSpaceId: string | null;
   deletedAt: Timestamp | null;
   description: string | null;
+  emailDomains: Generated<string[] | null>;
   hostname: string | null;
   id: Generated<string>;
   logo: string | null;
   name: string | null;
   settings: Json | null;
+  status: string | null;
+  stripeCustomerId: string | null;
+  trialEndAt: Timestamp | null;
   updatedAt: Generated<Timestamp>;
 }
 
 export interface DB {
   attachments: Attachments;
+  billing: Billing;
   comments: Comments;
   groups: Groups;
   groupUsers: GroupUsers;

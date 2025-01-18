@@ -7,8 +7,10 @@ export interface IWorkspace {
   defaultSpaceId: string;
   customDomain: string;
   enableInvite: boolean;
-  inviteCode: string;
   settings: any;
+  status: string;
+  billingEmail: string;
+  trialEndAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }

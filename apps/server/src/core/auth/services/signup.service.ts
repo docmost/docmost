@@ -7,7 +7,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
-import { User } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { UserRole } from '../../../common/helpers/types/permission';
 
@@ -72,12 +72,25 @@ export class SignupService {
     createAdminUserDto: CreateAdminUserDto,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
+    let user: User,
+      workspace: Workspace = null;
+
+    await executeTx(
       this.db,
       async (trx) => {
-        // create user
+        // if cloud and billing enabled
+        // accept and use a stripe priceId
+        // create workspace
+        // create stripeCustomer
+        // update workspace stripeCustomerId
+        // create the subscription with trials
+        // the create adminUserDto should have an optional stripePriceId type
+        // this should be replicable to social sso signup
+        // so better to have it in it's on function that is easily callable
+        // probably in the billing service itself?
 
-        const user = await this.userRepo.insertUser(
+        // create user
+        user = await this.userRepo.insertUser(
           {
             ...createAdminUserDto,
             role: UserRole.OWNER,
@@ -91,7 +104,7 @@ export class SignupService {
           name: createAdminUserDto.workspaceName,
         };
 
-        const workspace = await this.workspaceService.create(
+        workspace = await this.workspaceService.create(
           user,
           workspaceData,
           trx,
@@ -102,5 +115,7 @@ export class SignupService {
       },
       trx,
     );
+
+    return { user, workspace };
   }
 }

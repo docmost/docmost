@@ -73,11 +73,14 @@ export class AuthService {
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    const user = await this.signupService.initialSetup(createAdminUserDto);
+    const { workspace, user } =
+      await this.signupService.initialSetup(createAdminUserDto);
 
     const tokens: TokensDto = await this.tokenService.generateTokens(user);
 
-    return { tokens };
+    // return workspace info
+
+    return { workspace, tokens };
   }
 
   async changePassword(
@@ -186,7 +189,7 @@ export class AuthService {
         trx,
       );
 
-      trx
+      await trx
         .deleteFrom('userTokens')
         .where('userId', '=', user.id)
         .where('type', '=', UserTokenType.FORGOT_PASSWORD)

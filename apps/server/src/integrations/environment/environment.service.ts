@@ -137,12 +137,12 @@ export class EnvironmentService {
     return !this.isCloud();
   }
 
-  getStripeKey(): string {
-    return this.configService.get<string>('STRIPE_KEY');
+  getStripePublishableKey(): string {
+    return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
   }
 
   getStripeSecretKey(): string {
-    return this.configService.get<string>('STRIPE_SECRET');
+    return this.configService.get<string>('STRIPE_SECRET_KEY');
   }
 
   getStripeWebhookSecret(): string {

@@ -21,6 +21,7 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -31,6 +32,7 @@ export class WorkspaceService {
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
     private userRepo: UserRepo,
+    private environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -68,11 +70,19 @@ export class WorkspaceService {
     return await executeTx(
       this.db,
       async (trx) => {
+        // generate unique hostname
+        let uniqueSubdomain = undefined;
+        if (this.environmentService.isCloud()) {
+          uniqueSubdomain = await this.generateHostname(
+            createWorkspaceDto.name,
+          );
+        }
+
         // create workspace
         const workspace = await this.workspaceRepo.insertWorkspace(
           {
             name: createWorkspaceDto.name,
-            hostname: createWorkspaceDto.hostname,
+            hostname: uniqueSubdomain,
             description: createWorkspaceDto.description,
           },
           trx,
@@ -91,6 +101,7 @@ export class WorkspaceService {
             workspaceId: workspace.id,
             role: UserRole.OWNER,
           })
+          .where('users.id', '=', user.id)
           .execute();
 
         // add user to default group created above
@@ -256,7 +267,42 @@ export class WorkspaceService {
     );
   }
 
-  async deactivateUser(): Promise<any> {
-    return 'todo';
+  async generateHostname(
+    workspaceName: string,
+    trx?: KyselyTransaction,
+  ): Promise<string> {
+    const generateRandomSuffix = (length: number) =>
+      Math.random()
+        .toFixed(length)
+        .substring(2, 2 + length);
+
+    const subdomain = workspaceName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 15);
+    // Ensure we leave room for a random suffix.
+    const maxSuffixLength = 5;
+
+    let uniqueHostname = subdomain;
+
+    while (true) {
+      const exists = await this.workspaceRepo.hostnameExists(
+        uniqueHostname,
+        trx,
+      );
+      if (!exists) {
+        break;
+      }
+
+      // Append a random suffix and retry.
+      const randomSuffix = generateRandomSuffix(maxSuffixLength);
+      uniqueHostname = `${subdomain}-${randomSuffix}`.substring(0, 20);
+    }
+
+    return uniqueHostname;
+  }
+
+  async checkHostname(hostname: string): Promise<boolean> {
+    return this.workspaceRepo.hostnameExists(hostname);
   }
 }

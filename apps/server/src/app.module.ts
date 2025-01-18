@@ -18,9 +18,9 @@ import { ImportModule } from './integrations/import/import.module';
 const enterpriseModules = [];
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  if (require('@docmost/ee/ee.module')?.EEModule) {
+  if (require('./ee/ee.module')?.EeModule) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    enterpriseModules.push(require('@docmost/ee/ee.module')?.EEModule);
+    enterpriseModules.push(require('./ee/ee.module')?.EeModule);
   }
 } catch (e) {
   /* empty */

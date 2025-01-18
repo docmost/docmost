@@ -3,7 +3,6 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Post,
   Req,
   UseGuards,
@@ -11,7 +10,6 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
 import { SetupGuard } from './guards/setup.guard';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -24,10 +22,7 @@ import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private environmentService: EnvironmentService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -49,7 +44,6 @@ export class AuthController {
     @Req() req,
     @Body() createAdminUserDto: CreateAdminUserDto,
   ) {
-    if (this.environmentService.isCloud()) throw new NotFoundException();
     return this.authService.setup(createAdminUserDto);
   }
 

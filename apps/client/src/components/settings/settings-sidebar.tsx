@@ -13,6 +13,7 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { isCloud } from "@/lib/config.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 interface DataItem {
   label: string;
@@ -53,6 +54,7 @@ const groupedData: DataGroup[] = [
         icon: IconCoin,
         path: "/settings/billing",
         isCloudOnly: true,
+        isAdmin: true,
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
@@ -64,6 +66,7 @@ export default function SettingsSidebar() {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     setActive(location.pathname);
@@ -75,7 +78,7 @@ export default function SettingsSidebar() {
         {group.heading}
       </Text>
       {group.items.map((item) => {
-        if (item.isCloudOnly && !isCloud()) {
+        if ((item.isCloudOnly && !isCloud()) || (item.isAdmin && !isAdmin)) {
           return null;
         }
 

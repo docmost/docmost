@@ -39,10 +39,17 @@ async function bootstrap() {
     .getHttpAdapter()
     .getInstance()
     .addHook('preHandler', function (req, reply, done) {
+      // don't require workspaceId for the following paths
+      const excludedPaths = [
+        '/api/auth/setup',
+        '/api/health',
+        '/api/billing/stripe/webhook',
+        '/api/workspace/check-hostname',
+      ];
+
       if (
         req.originalUrl.startsWith('/api') &&
-        !req.originalUrl.startsWith('/api/auth/setup') &&
-        !req.originalUrl.startsWith('/api/health')
+        !excludedPaths.some((path) => path.startsWith(req.originalUrl))
       ) {
         if (!req.raw?.['workspaceId']) {
           throw new NotFoundException('Workspace not found');
