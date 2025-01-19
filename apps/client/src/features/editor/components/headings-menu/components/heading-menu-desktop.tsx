@@ -1,6 +1,6 @@
 import { Box, Group, Text } from '@mantine/core';
 import clsx from 'clsx';
-import { FC } from 'react';
+import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeadingLink } from '../headings-menu';
 import classes from '../headings-menu.module.css';
@@ -11,11 +11,11 @@ type HeadingMenuDesktopProps = {
 	handleScrollToHeading: (element: HTMLElement) => void;
 }
 
-export const HeadingMenuDesktop: FC<HeadingMenuDesktopProps> = (props) => {
+export const HeadingMenuDesktop = forwardRef<HTMLDivElement, HeadingMenuDesktopProps>((props, ref) => {
 	const { t } = useTranslation();
 	return (
 		<div className={classes.container}>
-			<div className={classes.menu_desktop}>
+			<div ref={ref} className={classes.menu_desktop}>
 				<Group mb="sm">
 					<Text size="md" fw={500}>{t('On this page')}</Text>
 				</Group>
@@ -34,4 +34,4 @@ export const HeadingMenuDesktop: FC<HeadingMenuDesktopProps> = (props) => {
 			</div>
 		</div>
 	)
-}
+})
