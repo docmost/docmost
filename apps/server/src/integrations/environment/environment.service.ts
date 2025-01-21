@@ -10,10 +10,26 @@ export class EnvironmentService {
   }
 
   getAppUrl(): string {
-    return (
+    const rawUrl =
       this.configService.get<string>('APP_URL') ||
-      'http://localhost:' + this.getPort()
-    );
+      `http://localhost:${this.getPort()}`;
+
+    const { origin } = new URL(rawUrl);
+    return origin;
+  }
+
+  isHttps(): boolean {
+    const appUrl = this.configService.get<string>('APP_URL');
+    try {
+      const url = new URL(appUrl);
+      return url.protocol === 'https:';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  getCloudDomain(): string {
+    return this.configService.get<string>('CLOUD_DOMAIN');
   }
 
   getPort(): number {
@@ -44,7 +60,6 @@ export class EnvironmentService {
   }
 
   getFileUploadSizeLimit(): string {
-
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
   }
 

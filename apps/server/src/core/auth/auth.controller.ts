@@ -64,7 +64,7 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.authService.forgotPassword(forgotPasswordDto, workspace.id);
+    return this.authService.forgotPassword(forgotPasswordDto, workspace);
   }
 
   @HttpCode(HttpStatus.OK)

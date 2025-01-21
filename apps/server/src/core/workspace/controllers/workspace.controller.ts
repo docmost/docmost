@@ -166,7 +166,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.createInvitation(
       inviteUserDto,
-      workspace.id,
+      workspace,
       user,
     );
   }
@@ -187,7 +187,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.resendInvitation(
       revokeInviteDto.invitationId,
-      workspace.id,
+      workspace,
     );
   }
 
