@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import mermaid from "mermaid";
 import { v4 as uuidv4 } from "uuid";
 import classes from "./code-block.module.css";
-import { t } from "i18next";
+import { useTranslation } from "react-i18next";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -15,6 +15,7 @@ interface MermaidViewProps {
 }
 
 export default function MermaidView({ props }: MermaidViewProps) {
+  const { t } = useTranslation();
   const { node } = props;
   const [preview, setPreview] = useState<string>("");
 

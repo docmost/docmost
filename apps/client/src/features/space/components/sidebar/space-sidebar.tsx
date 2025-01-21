@@ -82,7 +82,7 @@ export function SpaceSidebar() {
                 classes.menu,
                 location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
                   ? classes.activeButton
-                  : ""
+                  : "",
               )}
             >
               <div className={classes.menuItemInner}>
@@ -119,7 +119,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page
+              SpaceCaslSubject.Page,
             ) && (
               <UnstyledButton
                 className={classes.menu}
@@ -146,7 +146,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page
+              SpaceCaslSubject.Page,
             ) && (
               <Group gap="xs">
                 <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
@@ -170,7 +170,7 @@ export function SpaceSidebar() {
               spaceId={space.id}
               readOnly={spaceAbility.cannot(
                 SpaceCaslAction.Manage,
-                SpaceCaslSubject.Page
+                SpaceCaslSubject.Page,
               )}
             />
           </div>
@@ -230,7 +230,7 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             onClick={openExportModal}
             leftSection={<IconFileExport size={16} />}
           >
-            Export space
+            {t("Export space")}
           </Menu.Item>
 
           <Menu.Divider />
