@@ -23,15 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     super({
       jwtFromRequest: (req: FastifyRequest) => {
-        let accessToken = null;
-
-        try {
-          accessToken = JSON.parse(req.cookies?.authTokens)?.accessToken;
-        } catch {
-          this.logger.debug('Failed to parse access token');
-        }
-
-        return accessToken || this.extractTokenFromHeader(req);
+        return req.cookies?.authToken || this.extractTokenFromHeader(req);
       },
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),

@@ -148,6 +148,9 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       dompurify:
         specifier: ^3.2.1
         version: 3.2.1
@@ -245,9 +248,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
       emoji-mart:
         specifier: ^5.6.0
         version: 5.6.0
@@ -269,9 +269,6 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
-      jwt-decode:
-        specifier: ^4.0.0
-        version: 4.0.0
       katex:
         specifier: 0.16.21
         version: 0.16.21
@@ -465,6 +462,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.1
+      cookie:
+        specifier: ^1.0.2
+        version: 1.0.2
       fix-esm:
         specifier: ^1.0.1
         version: 1.0.1
@@ -6351,10 +6351,6 @@ packages:
 
   jws@3.2.2:
     resolution: {integrity: sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==}
-
-  jwt-decode@4.0.0:
-    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
-    engines: {node: '>=18'}
 
   katex@0.16.21:
     resolution: {integrity: sha512-XvqR7FgOHtWupfMiigNzmh+MgUVmDGU2kXZm899ZkPfcuoPuFxyHmXsgATDpFZDAXCI8tvinaVcDo8PIIJSo4A==}
@@ -15854,8 +15850,6 @@ snapshots:
     dependencies:
       jwa: 1.4.1
       safe-buffer: 5.2.1
-
-  jwt-decode@4.0.0: {}
 
   katex@0.16.21:
     dependencies:

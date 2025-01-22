@@ -10,14 +10,6 @@ import Groups from "@/pages/settings/group/groups";
 import GroupInfo from "./pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import { useQuerySubscription } from "@/features/websocket/use-query-subscription.ts";
-import { useAtom, useAtomValue } from "jotai";
-import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
-import { useTreeSocket } from "@/features/websocket/use-tree-socket.ts";
-import { useEffect } from "react";
-import { io } from "socket.io-client";
-import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom.ts";
-import { SOCKET_URL } from "@/features/websocket/types";
 import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
 import SpaceHome from "@/pages/space/space-home.tsx";
 import PageRedirect from "@/pages/page/page-redirect.tsx";
@@ -30,35 +22,6 @@ import { useTranslation } from "react-i18next";
 
 export default function App() {
   const { t } = useTranslation();
-  const [, setSocket] = useAtom(socketAtom);
-  const authToken = useAtomValue(authTokensAtom);
-
-  useEffect(() => {
-    if (!authToken?.accessToken) {
-      return;
-    }
-    const newSocket = io(SOCKET_URL, {
-      transports: ["websocket"],
-      auth: {
-        token: authToken.accessToken,
-      },
-    });
-
-    // @ts-ignore
-    setSocket(newSocket);
-
-    newSocket.on("connect", () => {
-      console.log("ws connected");
-    });
-
-    return () => {
-      console.log("ws disconnected");
-      newSocket.disconnect();
-    };
-  }, [authToken?.accessToken]);
-
-  useQuerySubscription();
-  useTreeSocket();
 
   return (
     <>

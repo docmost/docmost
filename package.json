@@ -60,6 +60,7 @@
     "@tiptap/suggestion": "^2.10.3",
     "bytes": "^3.1.2",
     "cross-env": "^7.0.3",
+    "date-fns": "^4.1.0",
     "dompurify": "^3.2.1",
     "fractional-indexing-jittered": "^0.9.1",
     "ioredis": "^5.4.1",

@@ -1,14 +1,28 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { verifyUserToken } from "../services/auth-service";
-import { IVerifyUserToken } from "../types/auth.types";
+import { getCollabToken, verifyUserToken } from "../services/auth-service";
+import { ICollabToken, IVerifyUserToken } from "../types/auth.types";
 
 export function useVerifyUserTokenQuery(
-    verify: IVerifyUserToken,
-  ): UseQueryResult<any, Error> {
-    return useQuery({
-      queryKey: ["verify-token", verify],
-      queryFn: () => verifyUserToken(verify),
-      enabled: !!verify.token,
-      staleTime: 0,
-    });
-  }
+  verify: IVerifyUserToken,
+): UseQueryResult<any, Error> {
+  return useQuery({
+    queryKey: ["verify-token", verify],
+    queryFn: () => verifyUserToken(verify),
+    enabled: !!verify.token,
+    staleTime: 0,
+  });
+}
+
+export function useCollabToken(): UseQueryResult<ICollabToken, Error> {
+  return useQuery({
+    queryKey: ["collab-token"],
+    queryFn: () => getCollabToken(),
+    staleTime: 24 * 60 * 60 * 1000, //24hrs
+    refetchInterval: 20 * 60 * 60 * 1000, //20hrs
+    retry: 10,
+    retryDelay: (retryAttempt) => {
+      // Exponential backoff: 5s, 10s, 20s, etc.
+      return 5000 * Math.pow(2, retryAttempt - 1);
+    },
+  });
+}

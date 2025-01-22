@@ -1,33 +1,10 @@
 import axios, { AxiosInstance } from "axios";
-import Cookies from "js-cookie";
 import Routes from "@/lib/app-route.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
   withCredentials: true,
 });
-
-api.interceptors.request.use(
-  (config) => {
-    const tokenData = Cookies.get("authTokens");
-
-    let accessToken: string;
-    try {
-      accessToken = tokenData && JSON.parse(tokenData)?.accessToken;
-    } catch (err) {
-      console.log("invalid authTokens:", err.message);
-      Cookies.remove("authTokens");
-    }
-
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 api.interceptors.response.use(
   (response) => {
@@ -45,11 +22,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       switch (error.response.status) {
-        case 401:
+        case 401: {
+          const url = new URL(error.request.responseURL)?.pathname;
+          if (url === "/api/auth/collab-token") return;
+
           // Handle unauthorized error
-          Cookies.remove("authTokens");
           redirectToLogin();
           break;
+        }
         case 403:
           // Handle forbidden error
           break;
@@ -61,8 +41,6 @@ api.interceptors.response.use(
               .includes("workspace not found")
           ) {
             console.log("workspace not found");
-            Cookies.remove("authTokens");
-
             if (window.location.pathname != Routes.AUTH.SETUP) {
               window.location.href = Routes.AUTH.SETUP;
             }
@@ -76,7 +54,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 function redirectToLogin() {
