@@ -78,17 +78,6 @@ export class SignupService {
     await executeTx(
       this.db,
       async (trx) => {
-        // if cloud and billing enabled
-        // accept and use a stripe priceId
-        // create workspace
-        // create stripeCustomer
-        // update workspace stripeCustomerId
-        // create the subscription with trials
-        // the create adminUserDto should have an optional stripePriceId type
-        // this should be replicable to social sso signup
-        // so better to have it in it's on function that is easily callable
-        // probably in the billing service itself?
-
         // create user
         user = await this.userRepo.insertUser(
           {

@@ -42,6 +42,34 @@ export interface Attachments {
   workspaceId: string;
 }
 
+export interface AuthAccounts {
+  accessToken: string | null;
+  authProviderId: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  expiresAt: Timestamp | null;
+  id: Generated<string>;
+  providerName: string | null;
+  providerUserId: string;
+  refreshToken: string | null;
+  scopes: string[] | null;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface AuthProviders {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  enabled: Generated<boolean>;
+  icon: string | null;
+  id: Generated<string>;
+  name: string;
+  settings: Json | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Billing {
   amount: Int8 | null;
   cancelAt: Timestamp | null;
@@ -235,6 +263,8 @@ export interface Workspaces {
 
 export interface DB {
   attachments: Attachments;
+  authAccounts: AuthAccounts;
+  authProviders: AuthProviders;
   billing: Billing;
   comments: Comments;
   groups: Groups;
