@@ -24,7 +24,6 @@ import { TokenService } from '../../auth/services/token.service';
 import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { TokensDto } from '../../auth/dto/tokens.dto';
 import { DomainService } from 'src/integrations/environment/domain.service';
 
 @Injectable()
@@ -256,8 +255,7 @@ export class WorkspaceInvitationService {
       });
     }
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(newUser);
-    return { tokens };
+    return this.tokenService.generateAccessToken(newUser);
   }
 
   async resendInvitation(

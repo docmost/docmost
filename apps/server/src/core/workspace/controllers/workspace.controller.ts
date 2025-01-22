@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
@@ -29,6 +30,9 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../../casl/interfaces/workspace-ability.type';
+import { addDays } from 'date-fns';
+import { FastifyReply } from 'fastify';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -38,6 +42,7 @@ export class WorkspaceController {
     private readonly workspaceService: WorkspaceService,
     private readonly workspaceInvitationService: WorkspaceInvitationService,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private environmentService: EnvironmentService,
   ) {}
 
   @Public()
@@ -217,11 +222,19 @@ export class WorkspaceController {
   async acceptInvite(
     @Body() acceptInviteDto: AcceptInviteDto,
     @Req() req: any,
+    @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.workspaceInvitationService.acceptInvitation(
+    const authToken = await this.workspaceInvitationService.acceptInvitation(
       acceptInviteDto,
       req.raw.workspaceId,
     );
+
+    res.setCookie('authToken', authToken, {
+      httpOnly: true,
+      path: '/',
+      expires: addDays(new Date(), 30),
+      secure: this.environmentService.isHttps(),
+    });
   }
 
   @Public()
