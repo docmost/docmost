@@ -53,6 +53,7 @@
     "bullmq": "^5.29.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "cookie": "^1.0.2",
     "fix-esm": "^1.0.1",
     "fs-extra": "^11.2.0",
     "happy-dom": "^15.11.6",
