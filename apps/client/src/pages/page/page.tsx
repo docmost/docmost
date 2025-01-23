@@ -12,6 +12,7 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
 export default function Page() {
   const { t } = useTranslation();
@@ -47,6 +48,7 @@ export default function Page() {
         </Helmet>
 
         <PageHeader
+          isLocked={page.isLocked}
           readOnly={spaceAbility.cannot(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
@@ -63,7 +65,7 @@ export default function Page() {
           editable={spaceAbility.can(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
-          )}
+          ) && !page.isLocked}
         />
         <HistoryModal pageId={page.id} />
       </div>

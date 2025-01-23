@@ -5,18 +5,20 @@ import {
   IconFileExport,
   IconHistory,
   IconLink,
+  IconLock,
+  IconLockOpen2,
   IconMessage,
   IconPrinter,
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useEffect } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { useParams } from "react-router-dom";
-import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { usePageQuery, useUpdatePageMutation } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
@@ -27,13 +29,44 @@ import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx"
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 interface PageHeaderMenuProps {
+  isLocked?: boolean;
   readOnly?: boolean;
 }
-export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
+export default function PageHeaderMenu({ isLocked, readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const emit = useQueryEmit();
+  const { t } = useTranslation();
+  const { pageSlug, spaceSlug } = useParams();
+  const {
+    data: updatedPageData,
+    mutate: updatePageMutation,
+    status,
+  } = useUpdatePageMutation();
+
+  const handleToggleLockPage = () => {
+    updatePageMutation({ 
+      pageId: extractPageSlugId(pageSlug),
+      isLocked: !isLocked 
+    });
+  };
+
+  useEffect(() => {
+    if (status === "success" && updatedPageData) {
+      setTimeout(() => {
+        emit({
+          operation: "updateOne",
+          spaceId: updatedPageData.spaceId,
+          entity: ["pages"],
+          id: updatedPageData.id,
+          payload: { isLocked: updatedPageData.isLocked, slugId: updatedPageData.slugId }
+        });
+      }, 50);
+    }
+  }, [updatedPageData, status]);
 
   return (
     <>
@@ -45,6 +78,18 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         >
           <ActionIcon variant="default" c="red" style={{ border: "none" }}>
             <IconWifiOff size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+
+      {!readOnly && (
+        <Tooltip label={isLocked ? t("Unlock Page") : t("Lock Page")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="default"
+            style={{ border: "none" }}
+            onClick={handleToggleLockPage}
+          >
+            {isLocked ? <IconLockOpen2 size={16} /> : <IconLock size={16} />}
           </ActionIcon>
         </Tooltip>
       )}

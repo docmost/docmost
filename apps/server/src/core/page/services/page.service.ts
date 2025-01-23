@@ -120,6 +120,7 @@ export class PageService {
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
+        isLocked: updatePageDto.isLocked,
         lastUpdatedById: userId,
         updatedAt: new Date(),
       },

@@ -128,6 +128,10 @@ export function TitleEditor({
     }, 500);
   }, [titleEditor]);
 
+  useEffect(() => {
+    titleEditor.setEditable(editable);
+  }, [editable]);
+
   function handleTitleKeyDown(event) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;
 
