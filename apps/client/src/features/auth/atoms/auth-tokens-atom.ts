@@ -1,8 +1,7 @@
 import Cookies from "js-cookie";
 import { createJSONStorage, atomWithStorage } from "jotai/utils";
-import { ITokens } from "../types/auth.types";
 
-const cookieStorage = createJSONStorage<ITokens>(() => {
+const cookieStorage = createJSONStorage<any>(() => {
   return {
     getItem: () => Cookies.get("authTokens"),
     setItem: (key, value) => Cookies.set(key, value, { expires: 30 }),
@@ -10,7 +9,7 @@ const cookieStorage = createJSONStorage<ITokens>(() => {
   };
 });
 
-export const authTokensAtom = atomWithStorage<ITokens | null>(
+export const authTokensAtom = atomWithStorage<any | null>(
   "authTokens",
   null,
   cookieStorage,

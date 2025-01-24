@@ -1,17 +1,17 @@
+import { useParams } from "react-router-dom";
+import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
+import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
-import { usePageQuery } from "@/features/page/queries/page-query";
+import { extractPageSlugId } from "@/lib";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
-import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { extractPageSlugId } from "@/lib";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
 
 export default function Page() {
   const { t } = useTranslation();

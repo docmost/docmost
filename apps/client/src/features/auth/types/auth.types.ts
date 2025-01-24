@@ -16,15 +16,6 @@ export interface ISetupWorkspace {
   password: string;
 }
 
-export interface ITokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface ITokenResponse {
-  tokens: ITokens;
-}
-
 export interface IChangePassword {
   oldPassword: string;
   newPassword: string;
@@ -42,4 +33,8 @@ export interface IPasswordReset {
 export interface IVerifyUserToken {
   token: string;
   type: string;
+}
+
+export interface ICollabToken {
+  token: string;
 }
