@@ -134,7 +134,7 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
                 setIsOpen(false);
               }}
               >
-              Remove
+              {t("Remove")}
             </Button>
             <Button 
               variant="default"
@@ -151,7 +151,7 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
                 }
               }}
               >
-              Set
+              {t("Set")}
             </Button>
           </Flex>
         </ScrollArea.Autosize>
