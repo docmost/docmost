@@ -27,6 +27,7 @@ import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
+import { HighlightColorSelector } from "./highlight-color-selector";
 
 export interface BubbleMenuItem {
   name: string;
@@ -117,6 +118,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       moveTransition: "transform 0.15s ease-out",
       onHide: () => {
         setIsNodeSelectorOpen(false);
+        setIsHighlightColorSelectorOpen(false);
         setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
       },
@@ -125,6 +127,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
+  const [isHighlightColorSelectorOpen, setIsHighlightColorSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
   return (
@@ -162,6 +165,14 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isLinkSelectorOpen}
           setIsOpen={() => {
             setIsLinkSelectorOpen(!isLinkSelectorOpen);
+          }}
+        />
+
+        <HighlightColorSelector
+          editor={props.editor}
+          isOpen={isHighlightColorSelectorOpen}
+          setIsOpen={() => {
+            setIsHighlightColorSelectorOpen(!isHighlightColorSelectorOpen);
           }}
         />
 
