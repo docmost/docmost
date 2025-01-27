@@ -11,8 +11,6 @@ services:
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
       DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
       REDIS_URL: 'redis://redis:6379'
-    ports:
-      - "3000:3000"
     restart: unless-stopped
     volumes:
       - docmost:/app/data/storage
@@ -33,7 +31,24 @@ services:
     volumes:
       - redis_data:/data
 
+  reverse_proxy:
+    image: caddy:latest
+    restart: unless-stopped
+    container_name: caddy_proxy
+    environment:
+      DOMAIN: ${DOMAIN}
+      PORT: ${PORT}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   docmost:
   db_data:
   redis_data:
+  caddy_data:
+  caddy_config:

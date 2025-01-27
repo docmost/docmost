@@ -1,0 +1,4 @@
+{$DOMAIN}
+
+tls internal
+reverse_proxy docmost:{$PORT}
