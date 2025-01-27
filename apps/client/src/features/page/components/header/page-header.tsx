@@ -4,17 +4,18 @@ import { Group } from "@mantine/core";
 import Breadcrumb from "@/features/page/components/breadcrumbs/breadcrumb.tsx";
 
 interface Props {
-  isLocked?: boolean;
+  pageState: string;
+  setPageState: (state: string) => void;
   readOnly?: boolean;
 }
-export default function PageHeader({ isLocked, readOnly }: Props) {
+export default function PageHeader({ pageState, setPageState, readOnly }: Props) {
   return (
     <div className={classes.header}>
       <Group justify="space-between" h="100%" px="md" wrap="nowrap">
         <Breadcrumb />
 
         <Group justify="flex-end" h="100%" px="md" wrap="nowrap">
-          <PageHeaderMenu isLocked={isLocked} readOnly={readOnly} />
+          <PageHeaderMenu pageState={pageState} setPageState={setPageState} readOnly={readOnly} />
         </Group>
       </Group>
     </div>

@@ -12,7 +12,10 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
+import { useAtom } from "jotai";
+import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { PageState } from "@/features/user/types/user.types";
 
 export default function Page() {
   const { t } = useTranslation();
@@ -26,6 +29,12 @@ export default function Page() {
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
+
+  const [user] = useAtom(userAtom);
+  const [pageState,setPageState] = useState(user.settings?.preferences?.pageState ? user.settings?.preferences?.pageState : PageState.Edit)
+  const isEditorReadOnly = useMemo(() => {
+    return pageState === PageState.Reading ? true : false;
+  }, [pageState]);
 
   if (isLoading) {
     return <></>;
@@ -48,7 +57,8 @@ export default function Page() {
         </Helmet>
 
         <PageHeader
-          isLocked={page.isLocked}
+          pageState={pageState}
+          setPageState={setPageState}
           readOnly={spaceAbility.cannot(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
@@ -65,7 +75,7 @@ export default function Page() {
           editable={spaceAbility.can(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
-          ) && !page.isLocked}
+          ) && !isEditorReadOnly}
         />
         <HistoryModal pageId={page.id} />
       </div>

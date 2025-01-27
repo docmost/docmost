@@ -15,5 +15,9 @@ export class UpdateUserDto extends PartialType(
 
   @IsOptional()
   @IsString()
+  pageState: string;
+
+  @IsOptional()
+  @IsString()
   locale: string;
 }

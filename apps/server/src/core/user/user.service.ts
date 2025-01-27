@@ -33,6 +33,14 @@ export class UserService {
       );
     }
 
+    if (typeof updateUserDto.pageState !== 'undefined') {
+      return this.updateUserPageStatePreference(
+        userId,
+        updateUserDto.pageState,
+      );
+    }
+    // --
+
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
@@ -61,6 +69,14 @@ export class UserService {
       userId,
       'fullPageWidth',
       fullPageWidth,
+    );
+  }
+
+  async updateUserPageStatePreference(userId: string, pageState: string) {
+    return this.userRepo.updatePreference(
+      userId,
+      'pageState',
+      pageState,
     );
   }
 }
