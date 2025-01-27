@@ -139,7 +139,9 @@ export const mainExtensions = [
     allowTableNodeSelection: true,
   }),
   TableRow,
-  TableCell,
+  TableCell.extend({
+    content: 'block+',
+  }),
   TableHeader,
   MathInline.configure({
     view: MathInlineView,
