@@ -47,8 +47,6 @@ export function SpaceSidebar() {
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
-  const [openedRecycleBin, { open: openRecycleBin, close: closeRecycleBin }] =
-    useDisclosure(false);
   const { spaceSlug } = useParams();
   const { data: space, isLoading, isError } = useGetSpaceBySlugQuery(spaceSlug);
 
@@ -121,17 +119,6 @@ export function SpaceSidebar() {
               </div>
             </UnstyledButton>
 
-            <UnstyledButton className={classes.menu} onClick={openRecycleBin}>
-              <div className={classes.menuItemInner}>
-                <IconTrash
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>Recycle Bin</span>
-              </div>
-            </UnstyledButton>
-
             {spaceAbility.can(
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
@@ -198,12 +185,6 @@ export function SpaceSidebar() {
         spaceId={space?.slug}
       />
 
-      <RecycleBinModal
-        opened={openedRecycleBin}
-        onClose={closeRecycleBin}
-        spaceId={space?.slug}
-      />
-
       <SearchSpotlight spaceId={space.id} />
     </>
   );
@@ -218,6 +199,8 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
+    useDisclosure(false);
+  const [openedRecycleBin, { open: openRecycleBin, close: closeRecycleBin }] =
     useDisclosure(false);
 
   return (
@@ -262,6 +245,13 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
           >
             {t("Space settings")}
           </Menu.Item>
+
+          <Menu.Item
+            onClick={openRecycleBin}
+            leftSection={<IconTrash size={16} />}
+          >
+            {t("Recycle bin")}
+          </Menu.Item>
         </Menu.Dropdown>
       </Menu>
 
@@ -276,6 +266,12 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
         id={spaceId}
         open={exportOpened}
         onClose={closeExportModal}
+      />
+
+      <RecycleBinModal
+        opened={openedRecycleBin}
+        onClose={closeRecycleBin}
+        spaceId={spaceId}
       />
     </>
   );
