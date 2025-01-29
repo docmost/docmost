@@ -41,6 +41,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import PageFindDialog from "@/features/page-find/components/page-find-dialog";
 
 interface PageEditorProps {
   pageId: string;
@@ -194,6 +195,8 @@ export default function PageEditor({
 
   return isSynced ? (
     <div>
+      <PageFindDialog editor={editor} />
+      
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 

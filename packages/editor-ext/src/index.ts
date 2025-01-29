@@ -16,3 +16,4 @@ export * from "./lib/drawio";
 export * from "./lib/excalidraw";
 export * from "./lib/embed";
 export * from "./lib/markdown";
+export * from "./lib/search-and-replace";
