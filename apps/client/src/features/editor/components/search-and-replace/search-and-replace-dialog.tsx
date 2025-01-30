@@ -17,8 +17,8 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useEditor } from "@tiptap/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { pageFindStateAtom } from "../hooks/atoms/pageFindStateAtom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import "./style.css";
@@ -29,11 +29,11 @@ interface PageFindDialogDialogProps {
   editor: ReturnType<typeof useEditor>;
 }
 
-function PageFindDialog({ editor }: PageFindDialogDialogProps) {
+function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState("");
   const [replaceText, setReplaceText] = useState("");
-  const [pageFindState, setPageFindState] = useAtom(pageFindStateAtom);
+  const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
   const inputRef = useRef(null);
 
   const searchInputEvent = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,12 +94,11 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
     editor.commands.selectCurrentItem();
   }, [searchText]);
 
-
   const handleOpenEvent = (e) => {
     setPageFindState({ isOpen: true });
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
-      editor.state.selection.to
+      editor.state.selection.to,
     );
     if (selectedText !== "") {
       setSearchText(selectedText);
@@ -119,13 +118,10 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
     document.addEventListener("closeFindDialogFromEditor", handleCloseEvent);
 
     return () => {
-      document.removeEventListener(
-        "openFindDialogFromEditor",
-        handleOpenEvent
-      );
+      document.removeEventListener("openFindDialogFromEditor", handleOpenEvent);
       document.removeEventListener(
         "closeFindDialogFromEditor",
-        handleCloseEvent
+        handleCloseEvent,
       );
     };
   }, [pageFindState.isOpen]);
@@ -157,7 +153,7 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
     [
       editor?.storage?.searchAndReplace?.resultIndex,
       editor?.storage?.searchAndReplace?.results.length,
-    ]
+    ],
   );
 
   const location = useLocation();
@@ -195,10 +191,10 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
             value={searchText}
             autoFocus
             onKeyDown={getHotkeyHandler([
-              ['Enter', next],
-              ['shift+Enter', previous],
-              ['alt+C', caseSensitiveToggle],
-              ['alt+R', replaceButtonToggle],
+              ["Enter", next],
+              ["shift+Enter", previous],
+              ["alt+C", caseSensitiveToggle],
+              ["alt+R", replaceButtonToggle],
             ])}
           />
 
@@ -263,8 +259,8 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
               onChange={replaceInputEvent}
               value={replaceText}
               onKeyDown={getHotkeyHandler([
-                ['Enter', replace],
-                ['ctrl+alt+Enter', replaceAll],
+                ["Enter", replace],
+                ["ctrl+alt+Enter", replaceAll],
               ])}
             />
             <ActionIcon.Group>
@@ -294,4 +290,4 @@ function PageFindDialog({ editor }: PageFindDialogDialogProps) {
   );
 }
 
-export default PageFindDialog;
+export default SearchAndReplaceDialog;
