@@ -99,7 +99,8 @@ export class UserRepo {
     trx?: KyselyTransaction,
   ): Promise<User> {
     const user: InsertableUser = {
-      name: insertableUser.name || insertableUser.email.toLowerCase(),
+      name:
+        insertableUser.name || insertableUser.email.split('@')[1].toLowerCase(),
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
       locale: 'en-US',
@@ -110,7 +111,7 @@ export class UserRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .insertInto('users')
-      .values(user)
+      .values({ ...insertableUser, ...user })
       .returningAll()
       .executeTakeFirst();
   }

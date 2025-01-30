@@ -168,20 +168,18 @@ export class WorkspaceInvitationService {
 
     try {
       await executeTx(this.db, async (trx) => {
-        newUser = await trx
-          .insertInto('users')
-          .values({
+        newUser = await this.userRepo.insertUser(
+          {
             name: dto.name,
             email: invitation.email,
-            password: password,
-            workspaceId: workspaceId,
-            role: invitation.role,
-            lastLoginAt: new Date(),
-            invitedById: invitation.invitedById,
             emailVerifiedAt: new Date(),
-          })
-          .returningAll()
-          .executeTakeFirst();
+            password: password,
+            role: invitation.role,
+            invitedById: invitation.invitedById,
+            workspaceId: workspaceId,
+          },
+          trx,
+        );
 
         // add user to default group
         await this.groupUserRepo.addUserToDefaultGroup(
