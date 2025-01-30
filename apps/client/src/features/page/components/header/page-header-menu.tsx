@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, SegmentedControl, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
   IconArrowsHorizontal,
   IconDots,
@@ -15,7 +15,7 @@ import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
 import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { useParams } from "react-router-dom";
-import { usePageQuery, useUpdatePageMutation } from "@/features/page/queries/page-query.ts";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
@@ -26,14 +26,13 @@ import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx"
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
-import { PageState } from "@/features/user/types/user.types";
+import React from "react";
+import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 
 interface PageHeaderMenuProps {
-  pageState: string;
-  setPageState: (state: string) => void;
   readOnly?: boolean;
 }
-export default function PageHeaderMenu({ pageState, setPageState, readOnly }: PageHeaderMenuProps) {
+export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
   const { t } = useTranslation();
@@ -42,7 +41,7 @@ export default function PageHeaderMenu({ pageState, setPageState, readOnly }: Pa
     <>
       {yjsConnectionStatus === "disconnected" && (
         <Tooltip
-          label="Real-time editor connection lost. Retrying..."
+          label={t("Real-time editor connection was lost. Retrying...")}
           openDelay={250}
           withArrow
         >
@@ -52,17 +51,7 @@ export default function PageHeaderMenu({ pageState, setPageState, readOnly }: Pa
         </Tooltip>
       )}
 
-      {!readOnly && (
-        <SegmentedControl
-          size='xs'
-          value={pageState}
-          onChange={(value) => setPageState(value)}
-          data={[
-            { label: t('Edit'), value: PageState.Edit },
-            { label: t('Reading'), value: PageState.Reading },
-          ]}
-        />
-      )}
+      {!readOnly && <PageStateSegmentedControl />}
 
       <Tooltip label="Comments" openDelay={250} withArrow>
         <ActionIcon

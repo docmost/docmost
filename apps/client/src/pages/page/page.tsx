@@ -12,10 +12,11 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
-import { useMemo, useState } from "react";
-import { useAtom } from "jotai";
-import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
-import { PageState } from "@/features/user/types/user.types";
+import React from "react";
+
+const MemoizedFullEditor = React.memo(FullEditor);
+const MemoizedPageHeader = React.memo(PageHeader);
+const MemoizedHistoryModal = React.memo(HistoryModal);
 
 export default function Page() {
   const { t } = useTranslation();
@@ -29,12 +30,6 @@ export default function Page() {
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
-
-  const [user] = useAtom(userAtom);
-  const [pageState,setPageState] = useState(user.settings?.preferences?.pageState ? user.settings?.preferences?.pageState : PageState.Edit)
-  const isEditorReadOnly = useMemo(() => {
-    return pageState === PageState.Reading ? true : false;
-  }, [pageState]);
 
   if (isLoading) {
     return <></>;
@@ -56,16 +51,14 @@ export default function Page() {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
-        <PageHeader
-          pageState={pageState}
-          setPageState={setPageState}
+        <MemoizedPageHeader
           readOnly={spaceAbility.cannot(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
         />
 
-        <FullEditor
+        <MemoizedFullEditor
           key={page.id}
           pageId={page.id}
           title={page.title}
@@ -75,9 +68,9 @@ export default function Page() {
           editable={spaceAbility.can(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
-          ) && !isEditorReadOnly}
+          )}
         />
-        <HistoryModal pageId={page.id} />
+        <MemoizedHistoryModal pageId={page.id} />
       </div>
     )
   );

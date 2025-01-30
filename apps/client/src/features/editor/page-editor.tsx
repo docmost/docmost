@@ -41,6 +41,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -68,6 +69,8 @@ export default function PageEditor({
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data } = useCollabToken();
+  const userPageEditMode =
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -179,9 +182,26 @@ export default function PageEditor({
     setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
+  const isSynced = isLocalSynced && isRemoteSynced;
+
+  useEffect(() => {
+    // honor user default page edit mode preference
+    if (userPageEditMode && editor && editable && isSynced) {
+      if (userPageEditMode === PageEditMode.Edit) {
+        editor.setEditable(true);
+      } else if (userPageEditMode === PageEditMode.Read) {
+        editor.setEditable(false);
+      }
+    }
+  }, [userPageEditMode, editor, editable, isSynced]);
+
   useEffect(() => {
     if (editable) {
       if (yjsConnectionStatus === WebSocketStatus.Connected) {
+        // don't enable edit if user's default edit preference is set to read
+        if (userPageEditMode === PageEditMode.Read) {
+          return;
+        }
         editor.setEditable(true);
       } else {
         // disable edits if connection fails
@@ -189,8 +209,6 @@ export default function PageEditor({
       }
     }
   }, [yjsConnectionStatus]);
-
-  const isSynced = isLocalSynced && isRemoteSynced;
 
   return isSynced ? (
     <div>

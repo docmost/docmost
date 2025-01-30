@@ -27,19 +27,20 @@ export class UserService {
 
     // preference update
     if (typeof updateUserDto.fullPageWidth !== 'undefined') {
-      return this.updateUserPageWidthPreference(
+      return this.userRepo.updatePreference(
         userId,
+        'fullPageWidth',
         updateUserDto.fullPageWidth,
       );
     }
 
-    if (typeof updateUserDto.pageState !== 'undefined') {
-      return this.updateUserPageStatePreference(
+    if (typeof updateUserDto.pageEditMode !== 'undefined') {
+      return this.userRepo.updatePreference(
         userId,
-        updateUserDto.pageState,
+        'pageEditMode',
+        updateUserDto.pageEditMode.toLowerCase(),
       );
     }
-    // --
 
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
@@ -62,21 +63,5 @@ export class UserService {
 
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
-  }
-
-  async updateUserPageWidthPreference(userId: string, fullPageWidth: boolean) {
-    return this.userRepo.updatePreference(
-      userId,
-      'fullPageWidth',
-      fullPageWidth,
-    );
-  }
-
-  async updateUserPageStatePreference(userId: string, pageState: string) {
-    return this.userRepo.updatePreference(
-      userId,
-      'pageState',
-      pageState,
-    );
   }
 }

@@ -1,10 +1,5 @@
 import { IWorkspace } from "@/features/workspace/types/workspace.types";
 
-export enum PageState {
-  Edit = "edit",
-  Reading = "reading",
-}
-
 export interface IUser {
   id: string;
   name: string;
@@ -24,7 +19,7 @@ export interface IUser {
   deactivatedAt: Date;
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
-  pageState: string; // used for update
+  pageEditMode: string; // used for update
 }
 
 export interface ICurrentUser {
@@ -35,6 +30,11 @@ export interface ICurrentUser {
 export interface IUserSettings {
   preferences: {
     fullPageWidth: boolean;
-    pageState: string;
+    pageEditMode: string;
   };
+}
+
+export enum PageEditMode {
+  Read = "read",
+  Edit = "edit",
 }
