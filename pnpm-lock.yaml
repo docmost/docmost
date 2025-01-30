@@ -169,6 +169,9 @@ importers:
       marked:
         specifier: ^13.0.3
         version: 13.0.3
+      tiptap-text-direction:
+        specifier: ^0.3.1
+        version: 0.3.1(@tiptap/core@2.10.3(@tiptap/pm@2.10.3))(@tiptap/pm@2.10.3)
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -314,9 +317,6 @@ importers:
       tiptap-extension-global-drag-handle:
         specifier: ^0.1.16
         version: 0.1.18
-      tiptap-text-direction:
-        specifier: ^0.3.1
-        version: 0.3.1(@tiptap/core@2.10.3(@tiptap/pm@2.10.3))(@tiptap/pm@2.10.3)
       zod:
         specifier: ^3.23.8
         version: 3.24.2
