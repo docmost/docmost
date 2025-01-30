@@ -100,7 +100,7 @@ export class UserRepo {
   ): Promise<User> {
     const user: InsertableUser = {
       name:
-        insertableUser.name || insertableUser.email.split('@')[1].toLowerCase(),
+        insertableUser.name || insertableUser.email.split('@')[0].toLowerCase(),
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
       locale: 'en-US',
