@@ -1,3 +1,4 @@
+# TODO backup node image
 FROM node:21-alpine AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 

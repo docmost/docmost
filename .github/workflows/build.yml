@@ -1,0 +1,201 @@
+name: Build + Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  BASE_DEV_VERSION: 1.0.0
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Build Variables
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v* ]]; then
+            echo "Using TAG mode: $GITHUB_REF_NAME"
+            echo "REL_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
+            echo "REL_VERSION_STRICT=${GITHUB_REF_NAME#?}" >> $GITHUB_ENV
+          else
+            echo "Using BRANCH mode: v$BASE_DEV_VERSION-dev.$GITHUB_RUN_NUMBER"
+            echo "REL_VERSION=v$BASE_DEV_VERSION-dev.$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+            echo "REL_VERSION_STRICT=$BASE_DEV_VERSION-dev.$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+          fi
+
+      - name: Development setup
+        run: |
+          npm install -g pnpm
+          pnpm install
+          cp .env.example .env
+          pnpm nx run @docmost/editor-ext:build
+          pnpm build
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          # TODO change url
+          tags: |
+            ghcr.io/titanomyrma/docmost:amata
+            ghcr.io/titanomyrma/docmost:amata-${{ env.REL_VERSION_STRICT }}
+
+  arm:
+    name: ARM Build
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - platform: linux/arm64
+            docker: arm64
+          # - platform: linux/arm/v7
+          #   docker: armv7
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Version Variables
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v* ]]; then
+            echo "Using TAG mode: $GITHUB_REF_NAME"
+            echo "REL_VERSION_STRICT=${GITHUB_REF_NAME#?}" >> $GITHUB_ENV
+          else
+            echo "Using BRANCH mode: v$BASE_DEV_VERSION-dev.$GITHUB_RUN_NUMBER"
+            echo "REL_VERSION_STRICT=$BASE_DEV_VERSION-dev.$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+          fi
+
+      - name: Development setup
+        run: |
+          npm install -g pnpm
+          pnpm install
+          cp .env.example .env
+          pnpm nx run @docmost/editor-ext:build
+          pnpm build
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          push: true
+          # TODO change url
+          tags: |
+            ghcr.io/titanomyrma/docmost:amata-${{ matrix.docker }}-${{ env.REL_VERSION_STRICT }}
+
+  beta:
+    name: Publish Beta Images
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, arm]
+    permissions:
+      packages: write
+
+    steps:
+      - name: Set Version Variables
+        run: |
+          echo "Using TAG mode: $GITHUB_REF_NAME"
+          echo "REL_VERSION_STRICT=${GITHUB_REF_NAME#?}" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and Push Manifests
+        # TODO change url
+        run: |
+          echo "Creating the manifests..."
+          
+          docker manifest create ghcr.io/titanomyrma/docmost:beta-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-arm64-$REL_VERSION_STRICT
+          
+          echo "Pushing the manifests..."
+          
+          docker manifest push -p ghcr.io/titanomyrma/docmost:beta-$REL_VERSION_STRICT
+
+  release:
+    name: Publish Release Images
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: prod
+    needs: [beta]
+    permissions:
+      packages: write
+      contents: write
+
+    steps:
+      - name: Set Version Variables
+        run: |
+          echo "Using TAG mode: $GITHUB_REF_NAME"
+          echo "REL_VERSION_STRICT=${GITHUB_REF_NAME#?}" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and Push Manifests
+        # TODO change url and semver
+        run: |
+          echo "Fetching semver tool..."
+          curl -LJO https://static.requarks.io/semver
+          chmod +x semver
+          
+          MAJOR=`./semver get major $REL_VERSION_STRICT`
+          MINOR=`./semver get minor $REL_VERSION_STRICT`
+          MAJORMINOR="$MAJOR.$MINOR"
+          
+          echo "Using major $MAJOR and minor $MINOR..."
+          echo "Creating the manifests..."
+          
+          docker manifest create ghcr.io/titanomyrma/docmost:$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-arm64-$REL_VERSION_STRICT
+          docker manifest create ghcr.io/titanomyrma/docmost:$MAJOR ghcr.io/titanomyrma/docmost:amata-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-arm64-$REL_VERSION_STRICT
+          docker manifest create ghcr.io/titanomyrma/docmost:$MAJORMINOR ghcr.io/titanomyrma/docmost:amata-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-arm64-$REL_VERSION_STRICT
+          docker manifest create ghcr.io/titanomyrma/docmost:latest ghcr.io/titanomyrma/docmost:amata-$REL_VERSION_STRICT ghcr.io/titanomyrma/docmost:amata-arm64-$REL_VERSION_STRICT
+          
+          echo "Pushing the manifests..."
+          
+          docker manifest push -p ghcr.io/titanomyrma/docmost:$REL_VERSION_STRICT
+          docker manifest push -p ghcr.io/titanomyrma/docmost:$MAJOR
+          docker manifest push -p ghcr.io/titanomyrma/docmost:$MAJORMINOR
+          docker manifest push -p ghcr.io/titanomyrma/docmost:latest
