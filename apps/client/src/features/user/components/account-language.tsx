@@ -47,7 +47,7 @@ function LanguageSwitcher() {
         { value: "pt-BR", label: "Português (Brazilian)" },
         { value: "zh-CN", label: "中文 (简体)" },
       ]}
-      value={language}
+      value={language || 'en-US'}
       onChange={handleChange}
       allowDeselect={false}
       checkIconPosition="right"
