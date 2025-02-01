@@ -22,6 +22,7 @@ import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { DomainService } from '../../../integrations/environment/domain.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -33,6 +34,7 @@ export class WorkspaceService {
     private groupUserRepo: GroupUserRepo,
     private userRepo: UserRepo,
     private environmentService: EnvironmentService,
+    private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -302,7 +304,11 @@ export class WorkspaceService {
     return uniqueHostname;
   }
 
-  async checkHostname(hostname: string): Promise<boolean> {
-    return this.workspaceRepo.hostnameExists(hostname);
+  async checkHostname(hostname: string) {
+    const exists = await this.workspaceRepo.hostnameExists(hostname);
+    if (!exists) {
+      throw new NotFoundException('Hostname not found');
+    }
+    return { hostname: this.domainService.getUrl(hostname) };
   }
 }

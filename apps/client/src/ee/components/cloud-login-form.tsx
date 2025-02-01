@@ -4,6 +4,7 @@ import { Container, Title, TextInput, Button, Box, Text } from "@mantine/core";
 import classes from "../../features/auth/components/auth.module.css";
 import { getCheckHostname } from "@/features/workspace/services/workspace-service.ts";
 import { useState } from "react";
+import { getSubdomainHost } from "@/lib/config.ts";
 
 const formSchema = z.object({
   hostname: z.string().min(1, { message: "subdomain is required" }),
@@ -24,15 +25,13 @@ export function CloudLoginForm() {
 
     try {
       const checkHostname = await getCheckHostname(data.hostname);
-      if (checkHostname.found) {
-        // todo redirect to login page
-        //window.location.href = host;
-      } else {
-        form.setFieldError("hostname", "We could not find this workspace");
-      }
+      window.location.href = checkHostname.hostname;
     } catch (err) {
-      form.setFieldError("hostname", "An error occurred");
-      console.log(err);
+      if (err?.status === 404) {
+        form.setFieldError("hostname", "We could not find this workspace");
+      } else {
+        form.setFieldError("hostname", "An error occurred");
+      }
     }
 
     setIsLoading(false);
@@ -50,8 +49,8 @@ export function CloudLoginForm() {
             type="text"
             placeholder="e.g my-team"
             label="Workspace subdomain"
-            rightSection={<Text fw={500}>.docmost.com</Text>}
-            rightSectionWidth={120}
+            rightSection={<Text fw={500}>.{getSubdomainHost()}</Text>}
+            rightSectionWidth={150}
             withErrorStyles={false}
             {...form.getInputProps("hostname")}
           />

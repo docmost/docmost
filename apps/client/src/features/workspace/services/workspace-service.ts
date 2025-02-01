@@ -20,7 +20,7 @@ export async function getWorkspacePublicData(): Promise<IWorkspace> {
 
 export async function getCheckHostname(
   hostname: string,
-): Promise<{ found: boolean }> {
+): Promise<{ hostname: string }> {
   const req = await api.post("/workspace/check-hostname", { hostname });
   return req.data;
 }

@@ -55,7 +55,7 @@ export class WorkspaceRepo {
     hostname: string,
     trx?: KyselyTransaction,
   ): Promise<boolean> {
-    if (hostname.length < 1) return false;
+    if (hostname?.length < 1) return false;
 
     const db = dbOrTx(this.db, trx);
     let { count } = await db

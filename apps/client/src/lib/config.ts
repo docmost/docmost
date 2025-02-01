@@ -14,6 +14,10 @@ export function getAppUrl(): string {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
+export function getSubdomainHost(): string {
+  return getConfigValue("SUBDOMAIN_HOST");
+}
+
 export function getBackendUrl(): string {
   return getAppUrl() + "/api";
 }
@@ -21,7 +25,10 @@ export function getBackendUrl(): string {
 export function getCollaborationUrl(): string {
   const COLLAB_PATH = "/collab";
 
-  const url = getAppUrl();
+  let url = getAppUrl();
+  if (import.meta.env.DEV) {
+    url = process.env.APP_URL;
+  }
 
   const wsProtocol = url.startsWith("https") ? "wss" : "ws";
   return `${wsProtocol}://${url.split("://")[1]}${COLLAB_PATH}`;
@@ -60,6 +67,9 @@ export function getDrawioUrl() {
   return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
 }
 
-function getConfigValue(key: string, defaultValue: string = undefined) {
-  return window.CONFIG?.[key] || process?.env?.[key] || defaultValue;
+function getConfigValue(key: string, defaultValue: string = undefined): string {
+  const rawValue = import.meta.env.DEV
+    ? process?.env?.[key]
+    : window?.CONFIG?.[key];
+  return rawValue ?? defaultValue;
 }

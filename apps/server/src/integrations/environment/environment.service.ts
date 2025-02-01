@@ -28,8 +28,8 @@ export class EnvironmentService {
     }
   }
 
-  getCloudDomain(): string {
-    return this.configService.get<string>('CLOUD_DOMAIN');
+  getSubdomainHost(): string {
+    return this.configService.get<string>('SUBDOMAIN_HOST');
   }
 
   getPort(): number {

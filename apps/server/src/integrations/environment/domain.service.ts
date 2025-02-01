@@ -10,7 +10,7 @@ export class DomainService {
       return this.environmentService.getAppUrl();
     }
 
-    const domain = this.environmentService.getCloudDomain();
+    const domain = this.environmentService.getSubdomainHost();
     if (!hostname || !domain) {
       return this.environmentService.getAppUrl();
     }

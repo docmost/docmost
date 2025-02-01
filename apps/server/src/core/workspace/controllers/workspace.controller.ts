@@ -241,10 +241,6 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('/check-hostname')
   async checkHostname(@Body() checkHostnameDto: CheckHostnameDto) {
-    return {
-      found: await this.workspaceService.checkHostname(
-        checkHostnameDto.hostname,
-      ),
-    };
+    return this.workspaceService.checkHostname(checkHostnameDto.hostname);
   }
 }
