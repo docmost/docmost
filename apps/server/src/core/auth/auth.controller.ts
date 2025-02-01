@@ -34,7 +34,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
-    @Req() req,
+    @Req() req: any,
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() loginInput: LoginDto,
   ) {
@@ -54,6 +54,7 @@ export class AuthController {
   ) {
     const { workspace, authToken } =
       await this.authService.setup(createAdminUserDto);
+
     this.setAuthCookie(res, authToken);
     return workspace;
   }

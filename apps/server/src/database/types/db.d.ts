@@ -5,6 +5,8 @@
 
 import type { ColumnType } from "kysely";
 
+export type AuthProviderType = "google" | "oidc" | "saml";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -43,16 +45,11 @@ export interface Attachments {
 }
 
 export interface AuthAccounts {
-  accessToken: string | null;
   authProviderId: string | null;
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
-  expiresAt: Timestamp | null;
   id: Generated<string>;
-  providerName: string | null;
   providerUserId: string;
-  refreshToken: string | null;
-  scopes: string[] | null;
   updatedAt: Generated<Timestamp>;
   userId: string;
   workspaceId: string;
@@ -60,14 +57,37 @@ export interface AuthAccounts {
 
 export interface AuthProviders {
   createdAt: Generated<Timestamp>;
+  creatorId: string | null;
   deletedAt: Timestamp | null;
-  enabled: Generated<boolean>;
-  icon: string | null;
+  enableSignup: Generated<boolean>;
   id: Generated<string>;
+  isEnabled: Generated<boolean>;
   name: string;
-  settings: Json | null;
+  oidcClientId: string | null;
+  oidcClientSecret: string | null;
+  oidcIssuer: string | null;
+  samlCertificate: string | null;
+  samlUrl: string | null;
+  type: AuthProviderType;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
+}
+
+export interface AuthProvidersClone {
+  createdAt: Timestamp | null;
+  deletedAt: Timestamp | null;
+  enableSignup: boolean | null;
+  id: string | null;
+  isEnabled: boolean | null;
+  name: string | null;
+  oidcClientId: string | null;
+  oidcClientSecret: string | null;
+  oidcIssuer: string | null;
+  samlCertificate: string | null;
+  samlSsoUrl: string | null;
+  type: string | null;
+  updatedAt: Timestamp | null;
+  workspaceId: string | null;
 }
 
 export interface Billing {
@@ -250,6 +270,7 @@ export interface Workspaces {
   deletedAt: Timestamp | null;
   description: string | null;
   emailDomains: Generated<string[] | null>;
+  enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
   logo: string | null;
@@ -265,6 +286,7 @@ export interface DB {
   attachments: Attachments;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
+  authProvidersClone: AuthProvidersClone;
   billing: Billing;
   comments: Comments;
   groups: Groups;

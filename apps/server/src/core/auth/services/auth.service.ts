@@ -46,7 +46,9 @@ export class AuthService {
     const user = await this.userRepo.findByEmail(
       loginDto.email,
       workspaceId,
-      true,
+      {
+        includePassword: true
+      }
     );
 
     if (
