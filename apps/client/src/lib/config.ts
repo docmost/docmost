@@ -14,10 +14,6 @@ export function getAppUrl(): string {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
-export function getSubdomainHost(): string {
-  return getConfigValue("SUBDOMAIN_HOST");
-}
-
 export function getBackendUrl(): string {
   return getAppUrl() + "/api";
 }
@@ -34,18 +30,17 @@ export function getCollaborationUrl(): string {
   return `${wsProtocol}://${url.split("://")[1]}${COLLAB_PATH}`;
 }
 
+export function getSubdomainHost(): string {
+  return getConfigValue("SUBDOMAIN_HOST");
+}
+
 export function isCloud(): string {
   return getConfigValue("CLOUD");
 }
 
 export function getAvatarUrl(avatarUrl: string) {
-  if (!avatarUrl) {
-    return null;
-  }
-
-  if (avatarUrl?.startsWith("http")) {
-    return avatarUrl;
-  }
+  if (!avatarUrl) return null;
+  if (avatarUrl?.startsWith("http")) return avatarUrl;
 
   return getBackendUrl() + "/attachments/img/avatar/" + avatarUrl;
 }

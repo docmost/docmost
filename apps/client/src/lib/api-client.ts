@@ -42,7 +42,10 @@ api.interceptors.response.use(
               .includes("workspace not found")
           ) {
             console.log("workspace not found");
-            if (!isCloud() && window.location.pathname != APP_ROUTE.AUTH.SETUP) {
+            if (
+              !isCloud() &&
+              window.location.pathname != APP_ROUTE.AUTH.SETUP
+            ) {
               window.location.href = APP_ROUTE.AUTH.SETUP;
             }
           }
@@ -64,8 +67,9 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.SIGNUP,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
+    "/invites",
   ];
-  if (!exemptPaths.some((path) => window.location.pathname === path)) {
+  if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     window.location.href = APP_ROUTE.AUTH.LOGIN;
   }
 }
