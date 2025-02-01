@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {
   FastifyAdapter,
@@ -6,9 +6,9 @@ import {
 } from '@nestjs/platform-fastify';
 import { NotFoundException, ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
-import fastifyMultipart from '@fastify/multipart';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
 
 async function bootstrap() {
@@ -27,13 +27,14 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  const reflector = app.get(Reflector);
   const redisIoAdapter = new WsRedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
 
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.register(fastifyMultipart as any);
-  await app.register(fastifyCookie as any);
+  await app.register(fastifyMultipart);
+  await app.register(fastifyCookie);
 
   app
     .getHttpAdapter()
@@ -51,7 +52,7 @@ async function bootstrap() {
         '/api/health',
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',
-        '/api/sso/',
+        '/api/sso/google',
       ];
 
       if (
@@ -76,8 +77,7 @@ async function bootstrap() {
   );
 
   app.enableCors();
-
-  app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
+  app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
   app.enableShutdownHooks();
 
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
