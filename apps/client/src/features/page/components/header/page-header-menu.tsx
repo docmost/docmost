@@ -42,6 +42,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const [_, setViewHeadings] = useAtom(viewHeadingsAtom);
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
+  const viewHeadings = user.settings?.preferences?.viewHeadings;
 
   return (
     <>
@@ -67,7 +68,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
-      {fullPageWidth ? (
+      {(fullPageWidth && viewHeadings) ? (
         <Tooltip label="View headings" openDelay={250} withArrow>
           <ActionIcon
             variant="default"
