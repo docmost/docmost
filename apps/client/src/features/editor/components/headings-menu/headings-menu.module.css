@@ -7,6 +7,14 @@
 	);
 }
 
+.header_padding {
+	display: none;
+	top: calc(
+		var(--app-shell-header-offset, 0rem) +
+			var(--app-shell-header-height, 0rem)
+	);
+}
+
 .container {
 	position: absolute;
 	top: 0;
@@ -28,6 +36,8 @@
 			var(--app-shell-header-height, 0rem)
 	);
 	max-height: calc(100dvh - var(--headings-menu-offset));
+}
+.menu_desktop.in_editor_page {
 	overflow-y: auto;
 }
 .menu_mobile {

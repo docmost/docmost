@@ -6,6 +6,7 @@ import {
   IconFileExport,
   IconHistory,
   IconLink,
+  IconList,
   IconMessage,
   IconPrinter,
   IconTrash,
@@ -29,6 +30,8 @@ import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
+import { viewHeadingsAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -36,6 +39,9 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const [_, setViewHeadings] = useAtom(viewHeadingsAtom);
+  const [user] = useAtom(userAtom);
+  const fullPageWidth = user.settings?.preferences?.fullPageWidth;
 
   return (
     <>
@@ -61,6 +67,17 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
+      {fullPageWidth ? (
+        <Tooltip label="View headings" openDelay={250} withArrow>
+          <ActionIcon
+            variant="default"
+            style={{ border: "none" }}
+            onClick={() => setViewHeadings(true)}
+          >
+            <IconList size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      ) : null}
       <PageActionMenu readOnly={readOnly} />
     </>
   );

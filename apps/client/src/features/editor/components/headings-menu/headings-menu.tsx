@@ -2,9 +2,13 @@ import { NodePos, useEditor } from "@tiptap/react";
 import { FC, useEffect, useRef, useState } from "react";
 import { HeadingMenuDesktop } from "./components/heading-menu-desktop";
 import { HeadingMenuMobile } from "./components/heading-menu-mobile";
+import classes from './headings-menu.module.css';
 
 type HeadingsMenuProps = {
 	editor: ReturnType<typeof useEditor>;
+	isFullScreenEditor: boolean;
+	isOpenedViewHeadingsDrawer: boolean;
+	setIsOpenedViewHeadingsDrawer: (value: boolean) => void;
 };
 
 export type HeadingLink = {
@@ -35,13 +39,14 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 	const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
 	const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
 
-	const desktopMenuRef = useRef<HTMLDivElement | null>(null);
+	const headerPaddingRef = useRef<HTMLDivElement | null>(null);
 
 	const handleScrollToHeading = (element: HTMLElement, accordionHeight = 0) => {
 		const coords = element.getBoundingClientRect();
-		const headerOffset = parseInt(window.getComputedStyle(desktopMenuRef.current).getPropertyValue('top'));
+		const headerOffset = parseInt(window.getComputedStyle(headerPaddingRef.current).getPropertyValue('top'));
 		const y = coords.top + window.scrollY - element.offsetHeight - headerOffset - accordionHeight;
 		window.scrollTo({ top: y, behavior: 'smooth' });
+		props.setIsOpenedViewHeadingsDrawer(false);
 	}
 
 	const handleUpdate = () => {
@@ -72,8 +77,8 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 		};
 
 		let headerOffset = 0;
-		if (desktopMenuRef.current) {
-			headerOffset = parseInt(window.getComputedStyle(desktopMenuRef.current).getPropertyValue('top'))
+		if (headerPaddingRef.current) {
+			headerOffset = parseInt(window.getComputedStyle(headerPaddingRef.current).getPropertyValue('top'))
 		};
 		const observerOptions: IntersectionObserverInit = {
 			rootMargin: `-${headerOffset}px 0px -85% 0px`,
@@ -99,15 +104,18 @@ export const EditorHeadingsMenu: FC<HeadingsMenuProps> = (props) => {
 	return (
 		<>
 			<HeadingMenuDesktop
-				ref={desktopMenuRef}
 				links={links}
 				activeElement={activeElement}
+				isFullScreen={props.isFullScreenEditor}
 				handleScrollToHeading={handleScrollToHeading}
+				isOpenedFullScreenDrawer={props.isOpenedViewHeadingsDrawer}
+				onCloseFullPageWidthDrawer={() => props.setIsOpenedViewHeadingsDrawer(false)}
 			/>
 			<HeadingMenuMobile
 				links={links}
 				handleScrollToHeading={handleScrollToHeading}
 			/>
+			<div ref={headerPaddingRef} className={classes.header_padding} />
 		</>
 	);
 };

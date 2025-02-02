@@ -4,7 +4,6 @@ import { Group, MantineSize, Switch, Text } from "@mantine/core";
 import { useAtom } from "jotai/index";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IUser } from "../types/user.types";
 
 export default function ViewHeadingsPref() {
   const { t } = useTranslation();
@@ -28,17 +27,6 @@ interface ViewHeadingsToggleProps {
   label?: string;
 }
 
-const getPreferencesOptions = (viewHeadings: boolean, fullPageWidth: boolean): Partial<IUser> => {
-  const obj: Partial<IUser> = {
-    fullPageWidth
-  };
-  if (viewHeadings) {
-    obj.fullPageWidth = false;
-  }
-  obj.viewHeadings = viewHeadings;
-  return obj;
-}
-
 export function ViewHeadingsToggle({ size, label }: ViewHeadingsToggleProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
@@ -46,9 +34,7 @@ export function ViewHeadingsToggle({ size, label }: ViewHeadingsToggleProps) {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
-    const updatedUser = await updateUser(
-      getPreferencesOptions(value, user?.settings?.preferences?.fullPageWidth ?? false)
-    );
+    const updatedUser = await updateUser({ viewHeadings: value });
     setChecked(value);
     setUser(updatedUser);
   };

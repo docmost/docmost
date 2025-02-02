@@ -21,7 +21,7 @@ import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
+import { asideStateAtom, viewHeadingsAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
   showCommentPopupAtom,
@@ -68,6 +68,7 @@ export default function PageEditor({
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
   );
+  const [isOpenedViewHeadings, setIsOpenedViewHeadings] = useAtom(viewHeadingsAtom);
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data } = useCollabToken();
@@ -198,36 +199,41 @@ export default function PageEditor({
   return isSynced ? (
     <div>
       <Box
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-          ref={menuContainerRef}
-        >
-          <EditorContent editor={editor} />
-          {currentUser?.user?.settings?.preferences?.viewHeadings && (
-            <EditorHeadingsMenu editor={editor} />
-          )}
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        ref={menuContainerRef}
+      >
+        <EditorContent editor={editor} />
+        {currentUser?.user?.settings?.preferences?.viewHeadings && (
+          <EditorHeadingsMenu
+            editor={editor}
+            isFullScreenEditor={currentUser?.user?.settings?.preferences?.fullPageWidth}
+            isOpenedViewHeadingsDrawer={isOpenedViewHeadings}
+            setIsOpenedViewHeadingsDrawer={setIsOpenedViewHeadings}
+          />
+        )}
 
-          {editor && editor.isEditable && (
-            <div>
-              <EditorBubbleMenu editor={editor} />
-              <TableMenu editor={editor} />
-              <TableCellMenu editor={editor} appendTo={menuContainerRef} />
-              <ImageMenu editor={editor} />
-              <VideoMenu editor={editor} />
-              <CalloutMenu editor={editor} />
-              <ExcalidrawMenu editor={editor} />
-              <DrawioMenu editor={editor} />
-              <LinkMenu editor={editor} appendTo={menuContainerRef} />
-            </div>
-          )}
+        {editor && editor.isEditable && (
+          <div>
+            <EditorBubbleMenu editor={editor} />
+            <TableMenu editor={editor} />
+            <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+            <ImageMenu editor={editor} />
+            <VideoMenu editor={editor} />
+            <CalloutMenu editor={editor} />
+            <ExcalidrawMenu editor={editor} />
+            <DrawioMenu editor={editor} />
+            <LinkMenu editor={editor} appendTo={menuContainerRef} />
+          </div>
+        )}
 
-          {showCommentPopup && (
-            <CommentDialog editor={editor} pageId={pageId} />
-          )}
-        </Box>
+        {showCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} />
+        )}
+      </Box>
       <div
         onClick={() => editor.commands.focus("end")}
         style={{ paddingBottom: "20vh" }}

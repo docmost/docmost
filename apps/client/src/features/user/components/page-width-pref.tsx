@@ -4,7 +4,6 @@ import { Group, MantineSize, Switch, Text } from "@mantine/core";
 import { useAtom } from "jotai/index";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IUser } from "../types/user.types";
 
 export default function PageWidthPref() {
   const { t } = useTranslation();
@@ -28,18 +27,6 @@ interface PageWidthToggleProps {
   label?: string;
 }
 
-const getPreferencesOptions = (fullPageWidth: boolean, viewHeadings: boolean): Partial<IUser> => {
-  const obj: Partial<IUser> = {
-    viewHeadings
-  };
-  if (fullPageWidth) {
-    obj.viewHeadings = false;
-  }
-  obj.fullPageWidth = fullPageWidth;
-  return obj;
-}
-
-
 export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
@@ -49,10 +36,7 @@ export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
-    console.log(value)
-    const updatedUser = await updateUser(
-      getPreferencesOptions(value, user?.settings?.preferences?.fullPageWidth ?? false)
-    );
+    const updatedUser = await updateUser({ fullPageWidth: value });
     setChecked(value);
     setUser(updatedUser);
   };

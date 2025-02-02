@@ -26,15 +26,15 @@ export class UserService {
     }
 
     // preference update
-    if (
-      typeof updateUserDto.fullPageWidth !== 'undefined' &&
-      typeof updateUserDto.viewHeadings !== 'undefined'
-    ) {
-      this.userRepo.updatePreference(
+    if (typeof updateUserDto.fullPageWidth !== 'undefined') {
+      return this.userRepo.updatePreference(
         userId,
         'fullPageWidth',
         updateUserDto.fullPageWidth,
       );
+
+    }
+    if (typeof updateUserDto.viewHeadings !== 'undefined') {
       return this.userRepo.updatePreference(
         userId,
         'viewHeadings',
