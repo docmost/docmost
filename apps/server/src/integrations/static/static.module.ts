@@ -4,7 +4,6 @@ import { join } from 'path';
 import * as fs from 'node:fs';
 import fastifyStatic from '@fastify/static';
 import { EnvironmentService } from '../environment/environment.service';
-import { fileExistsSync } from 'tsconfig-paths/lib/filesystem';
 
 @Module({})
 export class StaticModule implements OnModuleInit {
@@ -28,7 +27,7 @@ export class StaticModule implements OnModuleInit {
 
     const indexFilePath = join(clientDistPath, 'index.html');
 
-    if (fs.existsSync(clientDistPath) && fileExistsSync(indexFilePath)) {
+    if (fs.existsSync(clientDistPath) && fs.existsSync(indexFilePath)) {
       const indexTemplateFilePath = join(clientDistPath, 'index-template.html');
       const windowVar = '<!--window-config-->';
 
