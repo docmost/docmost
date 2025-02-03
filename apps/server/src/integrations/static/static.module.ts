@@ -25,8 +25,10 @@ export class StaticModule implements OnModuleInit {
       'client/dist',
     );
 
-    if (fs.existsSync(clientDistPath)) {
-      const indexFilePath = join(clientDistPath, 'index.html');
+    const indexFilePath = join(clientDistPath, 'index.html');
+
+    if (fs.existsSync(clientDistPath) && fs.existsSync(indexFilePath)) {
+      const indexTemplateFilePath = join(clientDistPath, 'index-template.html');
       const windowVar = '<!--window-config-->';
 
       const configString = {
@@ -42,7 +44,12 @@ export class StaticModule implements OnModuleInit {
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;
-      const html = fs.readFileSync(indexFilePath, 'utf8');
+
+      if (!fs.existsSync(indexTemplateFilePath)) {
+        fs.copyFileSync(indexFilePath, indexTemplateFilePath);
+      }
+
+      const html = fs.readFileSync(indexTemplateFilePath, 'utf8');
       const transformedHtml = html.replace(windowVar, windowScriptContent);
 
       fs.writeFileSync(indexFilePath, transformedHtml);
