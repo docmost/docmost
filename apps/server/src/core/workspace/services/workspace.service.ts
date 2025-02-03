@@ -76,7 +76,7 @@ export class WorkspaceService {
         let uniqueSubdomain = undefined;
         if (this.environmentService.isCloud()) {
           uniqueSubdomain = await this.generateHostname(
-            createWorkspaceDto.name,
+            createWorkspaceDto.hostname ?? createWorkspaceDto.name,
           );
         }
 
@@ -270,7 +270,7 @@ export class WorkspaceService {
   }
 
   async generateHostname(
-    workspaceName: string,
+    name: string,
     trx?: KyselyTransaction,
   ): Promise<string> {
     const generateRandomSuffix = (length: number) =>
@@ -278,12 +278,12 @@ export class WorkspaceService {
         .toFixed(length)
         .substring(2, 2 + length);
 
-    const subdomain = workspaceName
+    const subdomain = name
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
-      .substring(0, 15);
+      .substring(0, 20);
     // Ensure we leave room for a random suffix.
-    const maxSuffixLength = 5;
+    const maxSuffixLength = 3;
 
     let uniqueHostname = subdomain;
 
@@ -295,10 +295,9 @@ export class WorkspaceService {
       if (!exists) {
         break;
       }
-
       // Append a random suffix and retry.
       const randomSuffix = generateRandomSuffix(maxSuffixLength);
-      uniqueHostname = `${subdomain}-${randomSuffix}`.substring(0, 20);
+      uniqueHostname = `${subdomain}-${randomSuffix}`.substring(0, 25);
     }
 
     return uniqueHostname;
