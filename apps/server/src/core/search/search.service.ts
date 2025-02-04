@@ -76,18 +76,13 @@ export class SearchService {
     let pages = [];
 
     const limit = suggestion?.limit || 10;
+    const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
       users = await this.db
         .selectFrom('users')
         .select(['id', 'name', 'avatarUrl'])
-        .where((eb) =>
-          eb(
-            sql`LOWER(users.name)`,
-            'like',
-            `%${suggestion.query.toLowerCase().trim()}%`,
-          ),
-        )
+        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -97,52 +92,31 @@ export class SearchService {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) =>
-          eb(
-            sql`LOWER(groups.name)`,
-            'like',
-            `%${suggestion.query.toLowerCase().trim()}%`,
-          ),
-        )
+        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
     }
 
     if (suggestion.includePages) {
-      const searchQuery = tsquery(suggestion.query.trim() + '*');
-      let hasSpaceId = true;
-
       let pageSearch = this.db
         .selectFrom('pages')
-        .select([
-          'id',
-          'slugId',
-          'title',
-          'icon',
-          'spaceId',
-          sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        ])
-        .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
-        .orderBy('rank', 'desc')
+        .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
+        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 
-      if (suggestion.spaceId) {
-        pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
-      } else {
-        // only search spaces the user has access to
-        const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+      // only search spaces the user has access to
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
-        // we need this check or the query will throw an error if the userSpaceIds array is empty
-        if (userSpaceIds.length > 0) {
-          // make sure users can only search pages they have access to
-          pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
-        } else {
-          hasSpaceId = false;
+      if (suggestion?.spaceId) {
+        if (userSpaceIds.includes(suggestion.spaceId)) {
+          pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
+          pages = await pageSearch.execute();
         }
-      }
-      if (hasSpaceId) {
+      } else if (userSpaceIds?.length > 0) {
+        // we need this check or the query will throw an error if the userSpaceIds array is empty
+        pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
         pages = await pageSearch.execute();
       }
     }
