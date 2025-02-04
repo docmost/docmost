@@ -1,6 +1,6 @@
 export enum JwtType {
   ACCESS = 'access',
-  REFRESH = 'refresh',
+  COLLAB = 'collab',
 }
 export type JwtPayload = {
   sub: string;
@@ -9,8 +9,8 @@ export type JwtPayload = {
   type: 'access';
 };
 
-export type JwtRefreshPayload = {
+export type JwtCollabPayload = {
   sub: string;
   workspaceId: string;
-  type: 'refresh';
+  type: 'collab';
 };

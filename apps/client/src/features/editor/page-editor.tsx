@@ -15,7 +15,6 @@ import {
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
 import { useAtom } from "jotai";
-import { authTokensAtom } from "@/features/auth/atoms/auth-tokens-atom";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
@@ -41,6 +40,7 @@ import {
 import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
+import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -53,7 +53,6 @@ export default function PageEditor({
   editable,
   content,
 }: PageEditorProps) {
-  const [token] = useAtom(authTokensAtom);
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
@@ -68,6 +67,7 @@ export default function PageEditor({
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
+  const { data } = useCollabToken();
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -77,14 +77,14 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [pageId, ydoc]);
+  }, [pageId, ydoc, data?.token]);
 
   const remoteProvider = useMemo(() => {
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
       document: ydoc,
-      token: token?.accessToken,
+      token: data?.token,
       connect: false,
       onStatus: (status) => {
         if (status.status === "connected") {
@@ -102,7 +102,7 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [ydoc, pageId, token?.accessToken]);
+  }, [ydoc, pageId, data?.token]);
 
   useLayoutEffect(() => {
     remoteProvider.connect();
