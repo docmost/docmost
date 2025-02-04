@@ -20,10 +20,17 @@ export const handlePaste = (
     const url = clipboardData.trim();
     const { from: pos, empty } = view.state.selection;
     const match = INTERNAL_LINK_REGEX.exec(url);
+    const currentPageMatch = INTERNAL_LINK_REGEX.exec(window.location.href);
 
     // pasted link must be from the same workspace/domain and must not be on a selection
     if (!empty || match[2] !== window.location.host) {
       // allow the default link extension to handle this
+      return false;
+    }
+
+    // for now, we only support internal links from the same space
+    // compare space name
+    if (currentPageMatch[4].toLowerCase() !== match[4].toLowerCase()) {
       return false;
     }
 
