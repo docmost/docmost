@@ -33,29 +33,29 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
 
   const items: BubbleMenuItem[] = [
     {
-        name: "Align Left",
-        isActive: () => editor.isActive({ textAlign: 'left' }),
-        command: () => editor.chain().focus().setTextAlign('left').run(),
-        icon: IconAlignLeft,
-      },
-      {
-        name: "Align Center",
-        isActive: () => editor.isActive({ textAlign: 'center' }),
-        command: () => editor.chain().focus().setTextAlign('center').run(),
-        icon: IconAlignCenter,
-      },
-      {
-        name: "Align Right",
-        isActive: () => editor.isActive({ textAlign: 'right' }),
-        command: () => editor.chain().focus().setTextAlign('right').run(),
-        icon: IconAlignRight,
-      },
-      {
-        name: "Justify",
-        isActive: () => editor.isActive({ textAlign: 'justify' }),
-        command: () => editor.chain().focus().setTextAlign('justify').run(),
-        icon: IconAlignJustified,
-      },
+      name: "Align left",
+      isActive: () => editor.isActive({ textAlign: "left" }),
+      command: () => editor.chain().focus().setTextAlign("left").run(),
+      icon: IconAlignLeft,
+    },
+    {
+      name: "Align center",
+      isActive: () => editor.isActive({ textAlign: "center" }),
+      command: () => editor.chain().focus().setTextAlign("center").run(),
+      icon: IconAlignCenter,
+    },
+    {
+      name: "Align right",
+      isActive: () => editor.isActive({ textAlign: "right" }),
+      command: () => editor.chain().focus().setTextAlign("right").run(),
+      icon: IconAlignRight,
+    },
+    {
+      name: "Justify",
+      isActive: () => editor.isActive({ textAlign: "justify" }),
+      command: () => editor.chain().focus().setTextAlign("justify").run(),
+      icon: IconAlignJustified,
+    },
   ];
 
   const activeItem = items.filter((item) => item.isActive()).pop() ?? {
