@@ -4,6 +4,7 @@ import {
   IsNotIn,
   IsOptional,
   IsUrl,
+  MinLength,
   validateSync,
 } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
@@ -36,6 +37,7 @@ export class EnvironmentVariables {
   APP_URL: string;
 
   @IsNotEmpty()
+  @MinLength(32)
   @IsNotIn(['REPLACE_WITH_LONG_SECRET'])
   APP_SECRET: string;
 
