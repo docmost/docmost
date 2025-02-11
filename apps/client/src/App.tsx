@@ -23,6 +23,7 @@ import CloudLogin from "@/ee/pages/cloud-login.tsx";
 import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
+import Security from '@/ee/security/pages/security.tsx';
 
 export default function App() {
   const { t } = useTranslation();
@@ -44,8 +45,8 @@ export default function App() {
 
         {isCloud() && (
           <>
-            <Route path={"/workspace/create"} element={<CreateWorkspace />} />
-            <Route path={"/workspace/login"} element={<CloudLogin />} />
+            <Route path={"/create"} element={<CreateWorkspace />} />
+            <Route path={"/select"} element={<CloudLogin />} />
           </>
         )}
 
@@ -76,7 +77,12 @@ export default function App() {
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
-            {isCloud() && <Route path={"billing"} element={<Billing />} />}
+            {isCloud() && (
+              <>
+                <Route path={"billing"} element={<Billing />} />
+                <Route path={"security"} element={<Security />} />
+              </>
+            )}
           </Route>
         </Route>
 

@@ -23,6 +23,9 @@ import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dt
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import { addDays } from 'date-fns';
+import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
 
 @Injectable()
 export class WorkspaceService {
@@ -54,7 +57,20 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id'])
+      .select(['id', 'name', 'logo', 'hostname', 'enforceSso'])
+      .select((eb) =>
+        jsonArrayFrom(
+          eb
+            .selectFrom('authProviders')
+            .select([
+              'authProviders.id',
+              'authProviders.name',
+              'authProviders.type',
+            ])
+            .where('authProviders.isEnabled', '=', true)
+            .where('workspaceId', '=', workspaceId),
+        ).as('authProviders'),
+      )
       .where('id', '=', workspaceId)
       .executeTakeFirst();
     if (!workspace) {
@@ -72,20 +88,26 @@ export class WorkspaceService {
     return await executeTx(
       this.db,
       async (trx) => {
-        // generate unique hostname
-        let uniqueSubdomain = undefined;
+        let hostname = undefined;
+        let trialEndAt = undefined;
+        let status = undefined;
         if (this.environmentService.isCloud()) {
-          uniqueSubdomain = await this.generateHostname(
+          // generate unique hostname
+          hostname = await this.generateHostname(
             createWorkspaceDto.hostname ?? createWorkspaceDto.name,
           );
+          trialEndAt = addDays(new Date(), 14);
+          status = WorkspaceStatus.Active;
         }
 
         // create workspace
         const workspace = await this.workspaceRepo.insertWorkspace(
           {
             name: createWorkspaceDto.name,
-            hostname: uniqueSubdomain,
             description: createWorkspaceDto.description,
+            hostname,
+            status,
+            trialEndAt,
           },
           trx,
         );
@@ -195,21 +217,43 @@ export class WorkspaceService {
   }
 
   async update(workspaceId: string, updateWorkspaceDto: UpdateWorkspaceDto) {
-    const workspace = await this.workspaceRepo.findById(workspaceId);
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
+    if (updateWorkspaceDto.enforceSso) {
+      const sso = await this.db
+        .selectFrom('authProviders')
+        .selectAll()
+        .where('isEnabled', '=', true)
+        .where('workspaceId', '=', workspaceId)
+        .execute();
+
+      if (sso && sso?.length === 0) {
+        throw new BadRequestException(
+          'There must be at least one active SSO provider to enforce SSO.',
+        );
+      }
     }
 
-    if (updateWorkspaceDto.name) {
-      workspace.name = updateWorkspaceDto.name;
+    if (updateWorkspaceDto.emailDomains) {
+      const regex =
+        /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
+
+      const emailDomains = updateWorkspaceDto.emailDomains || [];
+
+      updateWorkspaceDto.emailDomains = emailDomains
+        .map((domain) => regex.exec(domain)?.[0])
+        .filter(Boolean);
     }
 
-    if (updateWorkspaceDto.logo) {
-      workspace.logo = updateWorkspaceDto.logo;
+    if (updateWorkspaceDto.hostname) {
+      const hostname = updateWorkspaceDto.hostname;
+      if (DISALLOWED_HOSTNAMES.includes(hostname)) {
+        throw new BadRequestException('Hostname already exists.');
+      }
+      if (await this.workspaceRepo.hostnameExists(hostname)) {
+        throw new BadRequestException('Hostname already exists.');
+      }
     }
 
-    await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
-    return workspace;
+    return this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
   }
 
   async getWorkspaceUsers(
@@ -278,12 +322,20 @@ export class WorkspaceService {
         .toFixed(length)
         .substring(2, 2 + length);
 
-    const subdomain = name
+    let subdomain = name
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
       .substring(0, 20);
     // Ensure we leave room for a random suffix.
     const maxSuffixLength = 3;
+
+    if (subdomain.length < 4) {
+      subdomain = `${subdomain}-${generateRandomSuffix(maxSuffixLength)}`;
+    }
+
+    if (DISALLOWED_HOSTNAMES.includes(subdomain)) {
+      subdomain = `myworkspace-${generateRandomSuffix(maxSuffixLength)}`;
+    }
 
     let uniqueHostname = subdomain;
 

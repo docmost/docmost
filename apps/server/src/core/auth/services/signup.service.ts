@@ -32,7 +32,7 @@ export class SignupService {
 
     if (userCheck) {
       throw new BadRequestException(
-        'You already have an account on this workspace',
+        'An account with this email already exists in this workspace',
       );
     }
 
@@ -81,7 +81,9 @@ export class SignupService {
         // create user
         user = await this.userRepo.insertUser(
           {
-            ...createAdminUserDto,
+            name: createAdminUserDto.name,
+            email: createAdminUserDto.name,
+            password: createAdminUserDto.password,
             role: UserRole.OWNER,
             emailVerifiedAt: new Date(),
           },

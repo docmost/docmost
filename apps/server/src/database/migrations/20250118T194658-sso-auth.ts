@@ -23,7 +23,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('oidc_client_id', 'varchar', (col) => col)
     .addColumn('oidc_client_secret', 'varchar', (col) => col)
 
-    .addColumn('enable_signup', 'boolean', (col) =>
+    .addColumn('allow_signup', 'boolean', (col) =>
       col.defaultTo(false).notNull(),
     )
     .addColumn('is_enabled', 'boolean', (col) => col.defaultTo(false).notNull())
@@ -40,14 +40,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deleted_at', 'timestamptz', (col) => col)
-    .addCheckConstraint(
-      'oidc_fields_required_check',
-      sql`type <> 'oidc' OR (oidc_issuer IS NOT NULL AND oidc_client_id IS NOT NULL AND oidc_client_secret IS NOT NULL)`,
-    )
-    .addCheckConstraint(
-      'saml_fields_required_check',
-      sql`type <> 'saml' OR (saml_url IS NOT NULL AND saml_certificate IS NOT NULL)`,
-    )
     .execute();
 
   await db.schema

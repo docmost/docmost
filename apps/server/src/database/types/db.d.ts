@@ -56,10 +56,10 @@ export interface AuthAccounts {
 }
 
 export interface AuthProviders {
+  allowSignup: Generated<boolean>;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
-  enableSignup: Generated<boolean>;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
   name: string;

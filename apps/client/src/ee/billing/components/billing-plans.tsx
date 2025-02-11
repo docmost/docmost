@@ -79,8 +79,8 @@ export default function BillingPlans() {
                   </Text>
                 </>
               )}
-
-              <Text ta="center" size="md" fw={500} c="dimmed">
+              <br/>
+              <Text span ta="center" size="md" fw={500} c="dimmed">
                 billed {interval}
               </Text>
             </Text>

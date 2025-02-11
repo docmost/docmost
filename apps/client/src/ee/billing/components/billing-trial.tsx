@@ -1,4 +1,4 @@
-import { Alert, Text } from "@mantine/core";
+import { Alert } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useBillingQuery } from "@/ee/billing/queries/billing-query.ts";
@@ -16,19 +16,15 @@ export default function BillingTrial() {
     <>
       {getTrialDaysLeft(workspace?.trialEndAt) !== 0 && !billing && (
         <Alert title="Your Trial is Active 🎉" color="blue" radius="md">
-          <Text>
-            You have {getTrialDaysLeft(workspace?.trialEndAt)} days left in your
-            14-day trial. Please subscribe to a plan before your trial ends.
-          </Text>
+          You have {getTrialDaysLeft(workspace?.trialEndAt)} days left in your
+          14-day trial. Please subscribe to a plan before your trial ends.
         </Alert>
       )}
 
       {getTrialDaysLeft(workspace?.trialEndAt) === 0 && !billing && (
         <Alert title="Your Trial has ended" color="red" radius="md">
-          <Text>
-            Your 14-day trial has come to an end. Please subscribe to a plan to
-            continue using this service.
-          </Text>
+          Your 14-day trial has come to an end. Please subscribe to a plan to
+          continue using this service.
         </Alert>
       )}
     </>

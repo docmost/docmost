@@ -71,13 +71,14 @@ export class WorkspaceRepo {
     updatableWorkspace: UpdatableWorkspace,
     workspaceId: string,
     trx?: KyselyTransaction,
-  ) {
+  ): Promise<Workspace> {
     const db = dbOrTx(this.db, trx);
     return db
       .updateTable('workspaces')
       .set({ ...updatableWorkspace, updatedAt: new Date() })
       .where('id', '=', workspaceId)
-      .execute();
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async insertWorkspace(

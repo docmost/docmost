@@ -14,6 +14,10 @@ export function getAppUrl(): string {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
+export function getServerAppUrl(): string {
+  return getConfigValue("APP_URL");
+}
+
 export function getBackendUrl(): string {
   return getAppUrl() + "/api";
 }

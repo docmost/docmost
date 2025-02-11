@@ -61,7 +61,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
   }
 
   if (error) {
-    return <>An error occurred</>;
+    return <></>;
   }
 
   return <>{children}</>;

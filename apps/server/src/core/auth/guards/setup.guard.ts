@@ -11,7 +11,7 @@ export class SetupGuard implements CanActivate {
 
   async canActivate(): Promise<boolean> {
     if (this.environmentService.isCloud()) {
-      return false;
+      return true;
     }
 
     const workspaceCount = await this.workspaceRepo.count();

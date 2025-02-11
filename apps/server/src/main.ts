@@ -53,6 +53,7 @@ async function bootstrap() {
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',
         '/api/sso/google',
+        '/api/workspace/create'
       ];
 
       if (

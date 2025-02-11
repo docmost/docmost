@@ -8,8 +8,8 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
-  IconCoin,
-} from "@tabler/icons-react";
+  IconCoin, IconLock,
+} from '@tabler/icons-react';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
@@ -54,6 +54,13 @@ const groupedData: DataGroup[] = [
         label: "Billing",
         icon: IconCoin,
         path: "/settings/billing",
+        isCloudOnly: true,
+        isAdmin: true,
+      },
+      {
+        label: "Security & SSO",
+        icon: IconLock,
+        path: "/settings/security",
         isCloudOnly: true,
         isAdmin: true,
       },
