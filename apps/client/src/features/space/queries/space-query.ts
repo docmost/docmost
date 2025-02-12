@@ -141,6 +141,7 @@ export function useSpaceMembersQuery(
     queryKey: ["spaceMembers", spaceId, params],
     queryFn: () => getSpaceMembers(spaceId, params),
     enabled: !!spaceId,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -169,7 +170,7 @@ export function useRemoveSpaceMemberMutation() {
     mutationFn: (data) => removeSpaceMember(data),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Removed successfully" });
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: ["spaceMembers", variables.spaceId],
       });
     },

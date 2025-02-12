@@ -81,14 +81,7 @@ export function useDeleteGroupMutation() {
     mutationFn: (groupId: string) => deleteGroup({ groupId }),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Group deleted successfully" });
-
-      const groups = queryClient.getQueryData(["groups"]) as any;
-      if (groups) {
-        groups.items = groups.items?.filter(
-          (group: IGroup) => group.id !== variables,
-        );
-        queryClient.setQueryData(["groups"], groups);
-      }
+      queryClient.refetchQueries({ queryKey: ["groups"] });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;

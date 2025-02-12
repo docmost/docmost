@@ -21,7 +21,7 @@ export default function SpaceList() {
 
   return (
     <>
-      <Table.ScrollContainer minWidth={400}>
+      <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
             <Table.Tr>

@@ -58,7 +58,6 @@ export function useChangeMemberRoleMutation() {
   return useMutation<any, Error, any>({
     mutationFn: (data) => changeMemberRole(data),
     onSuccess: (data, variables) => {
-      // TODO: change in cache instead
       notifications.show({ message: "Member role updated successfully" });
       queryClient.refetchQueries({
         queryKey: ["workspaceMembers"],
@@ -88,7 +87,6 @@ export function useCreateInvitationMutation() {
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
       notifications.show({ message: "Invitation sent" });
-      // TODO: mutate cache
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });

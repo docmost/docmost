@@ -48,7 +48,7 @@ export default function GroupMembersList() {
   return (
     <>
       <Table.ScrollContainer minWidth={500}>
-        <Table verticalSpacing="sm" layout="fixed">
+        <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("User")}</Table.Th>
