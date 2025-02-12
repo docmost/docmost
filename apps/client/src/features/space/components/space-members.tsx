@@ -103,7 +103,7 @@ export default function SpaceMembersList({
   return (
     <>
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover verticalSpacing={8} layout="fixed">
+        <Table highlightOnHover verticalSpacing={8}>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("Member")}</Table.Th>
@@ -116,7 +116,7 @@ export default function SpaceMembersList({
             {data?.items.map((member, index) => (
               <Table.Tr key={index}>
                 <Table.Td>
-                  <Group gap="sm">
+                  <Group gap="sm" wrap="nowrap">
                     {member.type === "user" && (
                       <CustomAvatar
                         avatarUrl={member?.avatarUrl}
@@ -127,7 +127,7 @@ export default function SpaceMembersList({
                     {member.type === "group" && <IconGroupCircle />}
 
                     <div>
-                      <Text fz="sm" fw={500}>
+                      <Text fz="sm" fw={500} lineClamp={1}>
                         {member?.name}
                       </Text>
                       <Text fz="xs" c="dimmed">

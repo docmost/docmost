@@ -48,7 +48,7 @@ export default function GroupMembersList() {
   return (
     <>
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover verticalSpacing="sm" layout="fixed">
+        <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("User")}</Table.Th>
@@ -61,10 +61,10 @@ export default function GroupMembersList() {
             {data?.items.map((user: IUser, index: number) => (
               <Table.Tr key={index}>
                 <Table.Td>
-                  <Group gap="sm">
+                  <Group gap="sm" wrap="nowrap">
                     <CustomAvatar avatarUrl={user.avatarUrl} name={user.name} />
                     <div>
-                      <Text fz="sm" fw={500}>
+                      <Text fz="sm" fw={500} lineClamp={1}>
                         {user.name}
                       </Text>
                       <Text fz="xs" c="dimmed">

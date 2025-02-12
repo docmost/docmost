@@ -27,7 +27,7 @@ export default function WorkspaceInvitesTable() {
       </Alert>
 
       <Table.ScrollContainer minWidth={500}>
-        <Table highlightOnHover verticalSpacing="sm" layout="fixed">
+        <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>{t("Email")}</Table.Th>
@@ -40,7 +40,7 @@ export default function WorkspaceInvitesTable() {
             {data?.items.map((invitation, index) => (
               <Table.Tr key={index}>
                 <Table.Td>
-                  <Group gap="sm">
+                  <Group gap="sm" wrap="nowrap">
                     <Avatar name={invitation.email} color="initials" />
                     <div>
                       <Text fz="sm" fw={500}>
