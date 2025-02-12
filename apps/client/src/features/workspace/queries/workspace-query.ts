@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,7 @@ import {
   IInvitation,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -40,10 +42,13 @@ export function useWorkspacePublicDataQuery(): UseQueryResult<
   });
 }
 
-export function useWorkspaceMembersQuery(params?: QueryParams) {
+export function useWorkspaceMembersQuery(
+  params?: QueryParams,
+): UseQueryResult<IPagination<IUser>, Error> {
   return useQuery({
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -72,6 +77,7 @@ export function useWorkspaceInvitationsQuery(
   return useQuery({
     queryKey: ["invitations", params],
     queryFn: () => getPendingInvitations(params),
+    placeholderData: keepPreviousData,
   });
 }
 
