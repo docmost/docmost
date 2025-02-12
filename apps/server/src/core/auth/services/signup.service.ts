@@ -76,10 +76,11 @@ export class SignupService {
       this.db,
       async (trx) => {
         // create user
-
         const user = await this.userRepo.insertUser(
           {
-            ...createAdminUserDto,
+            name: createAdminUserDto.name,
+            email: createAdminUserDto.name,
+            password: createAdminUserDto.password,
             role: UserRole.OWNER,
             emailVerifiedAt: new Date(),
           },
