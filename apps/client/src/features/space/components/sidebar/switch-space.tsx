@@ -13,7 +13,7 @@ interface SwitchSpaceProps {
 
 export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
   const navigate = useNavigate();
-  const [opened, { close, open }] = useDisclosure(false);
+  const [opened, { close, open, toggle }] = useDisclosure(false);
 
   const handleSelect = (value: string) => {
     if (value) {
@@ -29,6 +29,7 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
       withArrow
       shadow="md"
       opened={opened}
+      onChange={toggle}
     >
       <Popover.Target>
         <Button
