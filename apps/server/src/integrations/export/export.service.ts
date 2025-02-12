@@ -263,12 +263,7 @@ export class ExportService {
         'id',
         'slugId',
         'title',
-        'icon',
-        'coverPhoto',
-        'position',
-        'parentPageId',
         'creatorId',
-        'lastUpdatedById',
         'spaceId',
         'workspaceId',
       ])
@@ -288,7 +283,7 @@ export class ExportService {
     let offset = 0;
 
     /**
-     * Helper function that replaces a mention node with a link text node.
+     * Helper function to replace a mention node with a link node.
      */
     const replaceMentionWithLink = (
       node: Node,
@@ -333,7 +328,7 @@ export class ExportService {
             page.space.slug,
           );
         } else {
-          // When the page is not found default to  the node label, slugId
+          // if page is not found, default to  the node label and slugId
           replaceMentionWithLink(node, pos, label, slugId, 'undefined');
         }
       }
