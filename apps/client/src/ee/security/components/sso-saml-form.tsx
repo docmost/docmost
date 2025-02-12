@@ -85,7 +85,7 @@ export function SsoSamlForm({ provider }: SsoFormProps) {
         <Stack>
           <TextInput
             label="Display name"
-            placeholder="e.g Okta SSO"
+            placeholder="e.g Azure Entra"
             {...form.getInputProps("name")}
           />
           <TextInput
