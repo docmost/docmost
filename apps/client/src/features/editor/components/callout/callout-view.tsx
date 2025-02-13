@@ -11,7 +11,7 @@ import { CalloutType } from "@docmost/editor-ext";
 
 export default function CalloutView(props: NodeViewProps) {
   const { node } = props;
-  const { type } = node.attrs;
+  const { type, dir } = node.attrs;
 
   return (
     <NodeViewWrapper>
@@ -25,6 +25,7 @@ export default function CalloutView(props: NodeViewProps) {
           message: classes.message,
           icon: classes.icon,
         }}
+        dir={dir}
       >
         <NodeViewContent />
       </Alert>

@@ -16,6 +16,7 @@ import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
+import { TextDirection } from "tiptap-text-direction";
 import {
   Comment,
   Details,
@@ -109,6 +110,12 @@ export const mainExtensions = [
     showOnlyWhenEditable: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  TextDirection.configure({
+    types: [
+      "heading", "paragraph", "bulletList", "orderedList", "taskList", "blockquote",
+      "callout", "tableCell", "tableHeader",
+    ]
+  }),
   TaskList,
   TaskItem.configure({
     nested: true,

@@ -39,6 +39,7 @@ import { generateHTML } from '../common/helpers/prosemirror/html';
 // see:https://github.com/ueberdosis/tiptap/issues/4089
 import { generateJSON } from '@tiptap/html';
 import { Node } from '@tiptap/pm/model';
+import TextDirection from "tiptap-text-direction";
 
 export const tiptapExtensions = [
   StarterKit.configure({
@@ -75,6 +76,19 @@ export const tiptapExtensions = [
   Drawio,
   Excalidraw,
   Embed,
+  TextDirection.configure({
+    types: [
+      'heading',
+      'paragraph',
+      'bulletList',
+      'orderedList',
+      'taskList',
+      'blockquote',
+      'callout',
+      'tableCell',
+      'tableHeader',
+    ],
+  }),
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

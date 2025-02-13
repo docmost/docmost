@@ -67,6 +67,7 @@
     "jszip": "^3.10.1",
     "linkifyjs": "^4.2.0",
     "marked": "^13.0.3",
+    "tiptap-text-direction": "^0.3.1",
     "uuid": "^11.0.3",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.20"

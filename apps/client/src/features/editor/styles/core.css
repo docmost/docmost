@@ -21,6 +21,7 @@
   }
 
   p {
+    text-align: start;
     margin-top: 0.65em;
     margin-bottom: 0.65em;
   }
@@ -71,6 +72,11 @@
       var(--mantine-color-dark-8)
     );
     margin: 0;
+
+    &[dir="rtl"] {
+      border-right: 2px solid var(--mantine-color-gray-6);
+      border-left: none;
+    }
   }
 
   hr {
