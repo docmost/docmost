@@ -1,10 +1,10 @@
-import {Group, Table, Text, Badge} from "@mantine/core";
+import { Group, Table, Text, Badge } from "@mantine/core";
 import {
   useChangeMemberRoleMutation,
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
-import {CustomAvatar} from "@/components/ui/custom-avatar.tsx";
-import React from "react";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import React, { useState } from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getUserRoleLabel,
@@ -13,12 +13,21 @@ import {
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { UserRole } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
+import Paginate from "@/components/common/paginate.tsx";
+import { SearchInput } from "@/components/common/search-input.tsx";
+import NoTableResults from "@/components/common/no-table-results.tsx";
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
-  const { data, isLoading } = useWorkspaceMembersQuery({ limit: 100 });
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(undefined);
+  const { data, isLoading } = useWorkspaceMembersQuery({
+    page,
+    limit: 100,
+    query: search,
+  });
   const changeMemberRoleMutation = useChangeMemberRoleMutation();
-  const {isAdmin, isOwner} = useUserRole();
+  const { isAdmin, isOwner } = useUserRole();
 
   const assignableUserRoles = isOwner
     ? userRoleData
@@ -43,25 +52,34 @@ export default function WorkspaceMembersTable() {
 
   return (
     <>
-      {data && (
-        <Table.ScrollContainer minWidth={500}>
-          <Table verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t("User")}</Table.Th>
-                <Table.Th>{t("Status")}</Table.Th>
-                <Table.Th>{t("Role")}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
+      <SearchInput
+        onSearch={(debouncedSearch) => {
+          setSearch(debouncedSearch);
+          setPage(1);
+        }}
+      />
+      <Table.ScrollContainer minWidth={500}>
+        <Table highlightOnHover verticalSpacing="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>{t("User")}</Table.Th>
+              <Table.Th>{t("Status")}</Table.Th>
+              <Table.Th>{t("Role")}</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
 
-            <Table.Tbody>
-              {data?.items.map((user, index) => (
+          <Table.Tbody>
+            {data?.items.length > 0 ? (
+              data?.items.map((user, index) => (
                 <Table.Tr key={index}>
                   <Table.Td>
-                    <Group gap="sm">
-                      <CustomAvatar avatarUrl={user.avatarUrl} name={user.name}/>
+                    <Group gap="sm" wrap="nowrap">
+                      <CustomAvatar
+                        avatarUrl={user.avatarUrl}
+                        name={user.name}
+                      />
                       <div>
-                        <Text fz="sm" fw={500}>
+                        <Text fz="sm" fw={500} lineClamp={1}>
                           {user.name}
                         </Text>
                         <Text fz="xs" c="dimmed">
@@ -84,10 +102,21 @@ export default function WorkspaceMembersTable() {
                     />
                   </Table.Td>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+              ))
+            ) : (
+              <NoTableResults colSpan={3} />
+            )}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+
+      {data?.items.length > 0 && (
+        <Paginate
+          currentPage={page}
+          hasPrevPage={data?.meta.hasPrevPage}
+          hasNextPage={data?.meta.hasNextPage}
+          onPageChange={setPage}
+        />
       )}
     </>
   );

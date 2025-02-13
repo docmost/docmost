@@ -5,13 +5,14 @@ import {
   IExportSpaceParams,
   IRemoveSpaceMember,
   ISpace,
+  ISpaceMember,
 } from "@/features/space/types/space.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
 import { saveAs } from "file-saver";
 
 export async function getSpaces(
-  params?: QueryParams
+  params?: QueryParams,
 ): Promise<IPagination<ISpace>> {
   const req = await api.post("/spaces", params);
   return req.data;
@@ -37,9 +38,10 @@ export async function deleteSpace(spaceId: string): Promise<void> {
 }
 
 export async function getSpaceMembers(
-  spaceId: string
-): Promise<IPagination<IUser>> {
-  const req = await api.post<any>("/spaces/members", { spaceId });
+  spaceId: string,
+  params?: QueryParams,
+): Promise<IPagination<ISpaceMember>> {
+  const req = await api.post<any>("/spaces/members", { spaceId, params });
   return req.data;
 }
 
@@ -48,13 +50,13 @@ export async function addSpaceMember(data: IAddSpaceMember): Promise<void> {
 }
 
 export async function removeSpaceMember(
-  data: IRemoveSpaceMember
+  data: IRemoveSpaceMember,
 ): Promise<void> {
   await api.post("/spaces/members/remove", data);
 }
 
 export async function changeMemberRole(
-  data: IChangeSpaceMemberRole
+  data: IChangeSpaceMemberRole,
 ): Promise<void> {
   await api.post("/spaces/members/change-role", data);
 }

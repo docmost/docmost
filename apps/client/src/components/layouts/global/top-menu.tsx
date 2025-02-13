@@ -38,7 +38,7 @@ export default function TopMenu() {
               variant="filled"
               size="sm"
             />
-            <Text fw={500} size="sm" lh={1} mr={3}>
+            <Text fw={500} size="sm" lh={1} mr={3} lineClamp={1}>
               {workspace.name}
             </Text>
             <IconChevronDown size={16} />
