@@ -12,9 +12,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('target_page_id', 'uuid', (col) =>
       col.references('pages.id').onDelete('cascade').notNull(),
     )
-   // .addColumn('user_id', 'uuid', (col) =>
-   //   col.references('users.id').onDelete('cascade').notNull(),
-   // )
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
@@ -28,18 +25,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       'source_page_id',
       'target_page_id',
     ])
-    .execute();
-
-  await db.schema
-    .createIndex('backlinks_source_page_id_idx')
-    .on('backlinks')
-    .column('source_page_id')
-    .execute();
-
-  await db.schema
-    .createIndex('backlinks_target_page_id_idx')
-    .on('backlinks')
-    .column('target_page_id')
     .execute();
 }
 

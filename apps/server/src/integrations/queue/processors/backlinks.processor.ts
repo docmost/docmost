@@ -30,7 +30,6 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
                 .selectFrom('backlinks')
                 .select('targetPageId')
                 .where('sourcePageId', '=', pageId)
-                .where('workspaceId', '=', workspaceId)
                 .execute();
 
               if (existingBacklinks.length === 0 && mentions.length === 0) {
