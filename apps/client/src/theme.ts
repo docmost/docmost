@@ -39,7 +39,7 @@ export const theme = createTheme({
 
 export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
   variables: {
-    "--input-error-size": theme.fontSizes.md,
+    "--input-error-size": theme.fontSizes.sm,
   },
   light: {},
   dark: {},

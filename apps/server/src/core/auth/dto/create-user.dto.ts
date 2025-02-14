@@ -6,7 +6,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import {Transform, TransformFnParams} from "class-transformer";
+import { Transform, TransformFnParams } from 'class-transformer';
 
 export class CreateUserDto {
   @IsOptional()
@@ -22,6 +22,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @MinLength(8)
+  @MaxLength(70)
   @IsString()
   password: string;
 }
