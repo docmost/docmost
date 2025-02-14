@@ -1,3 +1,7 @@
+import { validate as isValidUUID } from "uuid";
+import { ActionIcon } from "@mantine/core";
+import { IconFileDescription } from "@tabler/icons-react";
+import { ReactNode } from "react";
 import { TFunction } from "i18next";
 
 export function formatMemberCount(memberCount: number, t: TFunction): string {
@@ -8,12 +12,15 @@ export function formatMemberCount(memberCount: number, t: TFunction): string {
   }
 }
 
-export function extractPageSlugId(input: string): string {
-  if (!input) {
+export function extractPageSlugId(slug: string): string {
+  if (!slug) {
     return undefined;
   }
-  const parts = input.split("-");
-  return parts.length > 1 ? parts[parts.length - 1] : input;
+  if (isValidUUID(slug)) {
+    return slug;
+  }
+  const parts = slug.split("-");
+  return parts.length > 1 ? parts[parts.length - 1] : slug;
 }
 
 export const computeSpaceSlug = (name: string) => {
@@ -75,4 +82,14 @@ export function decodeBase64ToSvgString(base64Data: string): string {
 
 export function capitalizeFirstChar(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function getPageIcon(icon: string, size = 18): string | ReactNode {
+  return (
+    icon || (
+      <ActionIcon variant="transparent" color="gray" size={size}>
+        <IconFileDescription size={size} />
+      </ActionIcon>
+    )
+  );
 }
