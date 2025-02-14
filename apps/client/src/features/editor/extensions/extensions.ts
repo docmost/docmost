@@ -36,6 +36,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  SearchAndReplace,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -188,6 +189,22 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
+  SearchAndReplace.extend({
+    addKeyboardShortcuts() {
+      return {
+        'Control-f': () => {
+          const event = new CustomEvent("openFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+        'Escape': () => {
+          const event = new CustomEvent("closeFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+      }
+    },
+  }).configure(),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

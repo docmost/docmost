@@ -41,6 +41,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -196,6 +197,7 @@ export default function PageEditor({
     <div>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
+        <SearchAndReplaceDialog editor={editor} />
 
         {editor && editor.isEditable && (
           <div>
