@@ -17,10 +17,10 @@
   },
   "dependencies": {
     "@docmost/editor-ext": "workspace:*",
-    "@hocuspocus/extension-redis": "^2.14.0",
-    "@hocuspocus/provider": "^2.14.0",
-    "@hocuspocus/server": "^2.14.0",
-    "@hocuspocus/transformer": "^2.14.0",
+    "@hocuspocus/extension-redis": "^2.15.2",
+    "@hocuspocus/provider": "^2.15.2",
+    "@hocuspocus/server": "^2.15.2",
+    "@hocuspocus/transformer": "^2.15.2",
     "@joplin/turndown": "^4.0.74",
     "@joplin/turndown-plugin-gfm": "^1.0.56",
     "@sindresorhus/slugify": "1.1.0",
@@ -62,7 +62,7 @@
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
     "dompurify": "^3.2.1",
-    "fractional-indexing-jittered": "^0.9.1",
+    "fractional-indexing-jittered": "^1.0.0",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
     "linkifyjs": "^4.2.0",
@@ -91,6 +91,7 @@
     },
     "overrides": {
       "jsdom": "25.0.1"
-    }
+    },
+    "neverBuiltDependencies": []
   }
 }
