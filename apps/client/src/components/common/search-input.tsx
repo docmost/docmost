@@ -24,10 +24,11 @@ export function SearchInput({
   }, [debouncedValue, onSearch]);
 
   return (
-    <Group mb="md">
+    <Group mb="sm">
       <TextInput
+        size="sm"
         placeholder={placeholder || t("Search...")}
-        leftSection={<IconSearch size={14} />}
+        leftSection={<IconSearch size={16} />}
         value={value}
         onChange={(e) => setValue(e.currentTarget.value)}
       />

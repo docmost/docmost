@@ -41,7 +41,7 @@ export async function getSpaceMembers(
   spaceId: string,
   params?: QueryParams,
 ): Promise<IPagination<ISpaceMember>> {
-  const req = await api.post<any>("/spaces/members", { spaceId, params });
+  const req = await api.post<any>("/spaces/members", { spaceId, ...params });
   return req.data;
 }
 

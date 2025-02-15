@@ -97,7 +97,7 @@ export class SpaceMemberRepo {
     spaceId: string,
     pagination: PaginationOptions,
   ) {
-    const query = this.db
+    let query = this.db
       .selectFrom('spaceMembers')
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
@@ -115,6 +115,16 @@ export class SpaceMemberRepo {
       .select((eb) => this.groupRepo.withMemberCount(eb))
       .where('spaceId', '=', spaceId)
       .orderBy('spaceMembers.createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`).or(
+          'groups.name',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
+      );
+    }
 
     const result = await executeWithPagination(query, {
       page: pagination.page,

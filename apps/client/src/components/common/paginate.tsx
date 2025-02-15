@@ -16,6 +16,10 @@ export default function Paginate({
 }: PagePaginationProps) {
   const { t } = useTranslation();
 
+  if (!hasPrevPage && !hasNextPage) {
+    return null;
+  }
+
   return (
     <Group mt="md">
       <Button
