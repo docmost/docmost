@@ -36,7 +36,7 @@ export default function SpaceMembersList({
   const { search, page, setPage, handleSearch } = usePaginateAndSearch();
   const { data, isLoading } = useSpaceMembersQuery(spaceId, {
     page,
-    limit: 1,
+    limit: 100,
     query: search,
   });
   const removeSpaceMember = useRemoveSpaceMemberMutation();
