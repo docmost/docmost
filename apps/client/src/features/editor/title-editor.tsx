@@ -129,8 +129,12 @@ export function TitleEditor({
   }, [titleEditor]);
 
   function handleTitleKeyDown(event) {
-    if (!titleEditor || !pageEditor || event.shiftKey || event.nativeEvent.isComposing) return;
-
+    if (!titleEditor || !pageEditor || event.shiftKey) return;
+    
+    // Prevent focus shift when IME composition is active 
+    // `keyCode === 229` is added to support Safari where `isComposing` may not be reliable
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+    
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
