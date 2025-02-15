@@ -129,7 +129,7 @@ export function TitleEditor({
   }, [titleEditor]);
 
   function handleTitleKeyDown(event) {
-    if (!titleEditor || !pageEditor || event.shiftKey) return;
+    if (!titleEditor || !pageEditor || event.shiftKey || event.nativeEvent.isComposing) return;
 
     const { key } = event;
     const { $head } = titleEditor.state.selection;
