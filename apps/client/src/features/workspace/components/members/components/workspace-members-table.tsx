@@ -4,7 +4,7 @@ import {
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getUserRoleLabel,
@@ -16,11 +16,11 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import NoTableResults from "@/components/common/no-table-results.tsx";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState(undefined);
+  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
   const { data, isLoading } = useWorkspaceMembersQuery({
     page,
     limit: 100,
@@ -52,12 +52,7 @@ export default function WorkspaceMembersTable() {
 
   return (
     <>
-      <SearchInput
-        onSearch={(debouncedSearch) => {
-          setSearch(debouncedSearch);
-          setPage(1);
-        }}
-      />
+      <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
