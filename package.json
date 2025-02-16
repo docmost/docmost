@@ -6,13 +6,13 @@
   "scripts": {
     "build": "nx run-many -t build",
     "start": "pnpm --filter ./apps/server run start:prod",
+    "collab": "pnpm --filter ./apps/server run collab:prod",
     "server:build": "nx run server:build",
     "client:build": "nx run client:build",
     "editor-ext:build": "nx run @docmost/editor-ext:build",
     "client:dev": "nx run client:dev",
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
-    "collab:start": "nx run server:collab:prod",
     "email:dev": "nx run @docmost/transactional:dev",
     "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
   },

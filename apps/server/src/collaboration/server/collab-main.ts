@@ -4,7 +4,6 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
 import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 
@@ -21,20 +20,12 @@ async function bootstrap() {
     },
   );
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      stopAtFirstError: true,
-      transform: true,
-    }),
-  );
-
   app.enableCors();
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
 
-  await app.listen(3001, '0.0.0.0');
+  await app.listen(process.env.COLLAB_PORT || 3001, '0.0.0.0');
 }
 
 bootstrap();
