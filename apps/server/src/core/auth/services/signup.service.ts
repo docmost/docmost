@@ -79,7 +79,7 @@ export class SignupService {
         const user = await this.userRepo.insertUser(
           {
             name: createAdminUserDto.name,
-            email: createAdminUserDto.name,
+            email: createAdminUserDto.email,
             password: createAdminUserDto.password,
             role: UserRole.OWNER,
             emailVerifiedAt: new Date(),
