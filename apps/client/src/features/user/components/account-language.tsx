@@ -41,10 +41,15 @@ function LanguageSwitcher() {
     <Select
       label={t("Select language")}
       data={[
-        { value: "en-US", label: "English (United States)" },
-        { value: "de-DE", label: "Deutsch (Germany)" },
-        { value: "fr-FR", label: "Français (France)" },
-        { value: "pt-BR", label: "Português (Brazilian)" },
+        { value: "en-US", label: "English (US)" },
+        { value: "de-DE", label: "Deutsch (German)" },
+        { value: "fr-FR", label: "Français (French)" },
+        { value: "es-ES", label: "Español (Spanish)" },
+        { value: "pt-BR", label: "Português (Brasil)" },
+        { value: "it-IT", label: "Italiano (Italian)" },
+        { value: "ja-JP", label: "日本語 (Japanese)" },
+        { value: "ko-KR", label: "한국어 (Korean)" },
+        { value: "ru-RU", label: "Русский (Russian)" },
         { value: "zh-CN", label: "中文 (简体)" },
       ]}
       value={language || 'en-US'}

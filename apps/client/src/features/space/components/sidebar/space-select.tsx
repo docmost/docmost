@@ -12,10 +12,10 @@ interface SpaceSelectProps {
 }
 
 const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
-  <Group gap="sm">
+  <Group gap="sm" wrap="nowrap">
     <Avatar color="initials" variant="filled" name={option.label} size={20} />
     <div>
-      <Text size="sm">{option.label}</Text>
+      <Text size="sm" lineClamp={1}>{option.label}</Text>
     </div>
   </Group>
 );

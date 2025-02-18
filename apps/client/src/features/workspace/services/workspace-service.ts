@@ -27,7 +27,6 @@ export async function getCheckHostname(
   return req.data;
 }
 
-// Todo: fix all paginated types
 export async function getWorkspaceMembers(
   params?: QueryParams,
 ): Promise<IPagination<IUser>> {

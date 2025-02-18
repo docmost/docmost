@@ -33,9 +33,21 @@ export class SearchSuggestionDTO {
 
   @IsOptional()
   @IsBoolean()
-  includeUsers?: string;
+  includeUsers?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  includeGroups?: number;
+  includeGroups?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includePages?: boolean;
+
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
 }

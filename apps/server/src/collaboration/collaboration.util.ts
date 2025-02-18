@@ -31,6 +31,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  Mention
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -75,6 +76,7 @@ export const tiptapExtensions = [
   Drawio,
   Excalidraw,
   Embed,
+  Mention
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

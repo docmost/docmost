@@ -35,8 +35,8 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import {
   handleFileDrop,
-  handleFilePaste,
-} from "@/features/editor/components/common/file-upload-handler.tsx";
+  handlePaste,
+} from "@/features/editor/components/common/editor-paste-handler.tsx";
 import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
@@ -138,7 +138,8 @@ export default function PageEditor({
             }
           },
         },
-        handlePaste: (view, event) => handleFilePaste(view, event, pageId),
+        handlePaste: (view, event, slice) =>
+          handlePaste(view, event, pageId, currentUser?.user.id),
         handleDrop: (view, event, _slice, moved) =>
           handleFileDrop(view, event, moved, pageId),
       },

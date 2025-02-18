@@ -73,21 +73,13 @@ export interface AuthProviders {
   workspaceId: string;
 }
 
-export interface AuthProvidersClone {
-  createdAt: Timestamp | null;
-  deletedAt: Timestamp | null;
-  enableSignup: boolean | null;
-  id: string | null;
-  isEnabled: boolean | null;
-  name: string | null;
-  oidcClientId: string | null;
-  oidcClientSecret: string | null;
-  oidcIssuer: string | null;
-  samlCertificate: string | null;
-  samlSsoUrl: string | null;
-  type: string | null;
-  updatedAt: Timestamp | null;
-  workspaceId: string | null;
+export interface Backlinks {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  sourcePageId: string;
+  targetPageId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
 }
 
 export interface Billing {
@@ -286,7 +278,7 @@ export interface DB {
   attachments: Attachments;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
-  authProvidersClone: AuthProvidersClone;
+  backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
   groups: Groups;
