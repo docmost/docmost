@@ -26,6 +26,9 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - Search
 - File attachment
 
+## API
+There is a [postman collection](https://www.postman.com/docmost-api/workspace/docmost-api-workspace) describing most of Docmost API endpoints
+
 #### Screenshots
 <p align="center">
 <img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
