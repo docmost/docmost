@@ -339,5 +339,9 @@
   "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands",
   "Names do not match": "Names do not match",
   "Today, {{time}}": "Today, {{time}}",
-  "Yesterday, {{time}}": "Yesterday, {{time}}"
+  "Yesterday, {{time}}": "Yesterday, {{time}}",
+  "Real-time editor connection was lost. Retrying...": "Real-time editor connection was lost. Retrying...",
+  "Default page edit mode": "Default page edit mode",
+  "Choose your preferred page edit mode. Avoid accidental edits.": "Choose your preferred page edit mode. Avoid accidental edits.",
+  "Reading": "Reading"
 }

@@ -27,9 +27,18 @@ export class UserService {
 
     // preference update
     if (typeof updateUserDto.fullPageWidth !== 'undefined') {
-      return this.updateUserPageWidthPreference(
+      return this.userRepo.updatePreference(
         userId,
+        'fullPageWidth',
         updateUserDto.fullPageWidth,
+      );
+    }
+
+    if (typeof updateUserDto.pageEditMode !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'pageEditMode',
+        updateUserDto.pageEditMode.toLowerCase(),
       );
     }
 
@@ -54,13 +63,5 @@ export class UserService {
 
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
-  }
-
-  async updateUserPageWidthPreference(userId: string, fullPageWidth: boolean) {
-    return this.userRepo.updatePreference(
-      userId,
-      'fullPageWidth',
-      fullPageWidth,
-    );
   }
 }
