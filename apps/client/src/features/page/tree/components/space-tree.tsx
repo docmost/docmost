@@ -495,7 +495,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
               openMoveToAnotherSpaceModal();
             }}
           >
-            {t("Move page to another space")}
+            {t("Move the page to another space")}
           </Menu.Item>
 
           {!(treeApi.props.disableEdit as boolean) && (

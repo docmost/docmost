@@ -37,7 +37,7 @@ export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnother
         <Modal.Header>
           <Modal.Title>
             <Text size="md" fw={500}>
-              {t("Move page to another space")}
+              {t("Move the page to another space")}
             </Text>
           </Modal.Title>
           <Modal.CloseButton />

@@ -239,7 +239,7 @@
   "export error": "导出出错",
   "Export page": "导出页面",
   "Export space": "导出空间",
-  "Move page to another space": "将页面移动到另一个空间",
+  "Move the page to another space": "将页面移动到另一个空间",
   "Export {{type}}": "导出为 {{type}}",
   "File exceeds the {{limit}} attachment limit": "文件超出了 {{limit}} 类型附件限制",
   "Align left": "靠左对齐",
