@@ -194,7 +194,7 @@ export class PageService {
         .getPageAndDescendants(rootPage.id)
         .then(pages => Promise.all(pages
           .filter(page => page.id != rootPage.id)
-          .map(page => this.pageRepo.updatePage({ spaceId }, page.id, trx))))
+          .map(page => this.pageRepo.updatePage({ spaceId }, page.id, trx))));
     });
   }
 

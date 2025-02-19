@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { Avatar, ComboboxProps, Group, Select, SelectProps, Text } from "@mantine/core";
+import { Avatar, Group, Select, SelectProps, Text } from "@mantine/core";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import { ISpace } from "../../types/space.types";
 import { useTranslation } from "react-i18next";

@@ -11,7 +11,7 @@ import { queryClient } from "@/main";
 interface MoveToAnotherSpaceModalProps {
   open: boolean;
   onClose: () => void;
-  pageId: string
+  pageId: string;
 }
 
 export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnotherSpaceModalProps) {
@@ -22,7 +22,7 @@ export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnother
   async function doMove(space: ISpace) {
     onClose();
     await movePageToAnotherSpace({ pageId, spaceId: space.id });
-    queryClient.removeQueries({ predicate: item => item.queryKey[0] === 'pages' })
+    queryClient.removeQueries({ predicate: item => ['pages', 'sidebar-pages', 'root-sidebar-pages'].includes(item.queryKey[0] as string) });
     await navigate(getSpaceUrl(space.slug));
   }
 
