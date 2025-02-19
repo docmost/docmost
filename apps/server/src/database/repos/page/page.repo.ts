@@ -166,7 +166,16 @@ export class PageRepo {
       .withRecursive('page_hierarchy', (db) =>
         db
           .selectFrom('pages')
-          .select(['id', 'slugId', 'title', 'icon', 'content', 'parentPageId', 'spaceId'])
+          .select([
+            'id',
+            'slugId',
+            'title',
+            'icon',
+            'content',
+            'parentPageId',
+            'spaceId',
+            'workspaceId',
+          ])
           .where('id', '=', parentPageId)
           .unionAll((exp) =>
             exp
@@ -179,6 +188,7 @@ export class PageRepo {
                 'p.content',
                 'p.parentPageId',
                 'p.spaceId',
+                'p.workspaceId',
               ])
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
           ),

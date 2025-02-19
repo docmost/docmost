@@ -63,8 +63,9 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.SIGNUP,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
+    "/invites",
   ];
-  if (!exemptPaths.some((path) => window.location.pathname === path)) {
+  if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     window.location.href = APP_ROUTE.AUTH.LOGIN;
   }
 }

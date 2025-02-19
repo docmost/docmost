@@ -31,7 +31,7 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
   // extract db value if present
   if (pathname.length > 1) {
     const value = pathname.slice(1);
-    if (!isNaN(parseInt(value))){
+    if (!isNaN(parseInt(value))) {
       db = parseInt(value, 10);
     }
   }
@@ -43,4 +43,13 @@ export function createRetryStrategy() {
   return function (times: number): number {
     return Math.max(Math.min(Math.exp(times), 20000), 3000);
   };
+}
+
+export function extractDateFromUuid7(uuid7: string) {
+  //https://park.is/blog_posts/20240803_extracting_timestamp_from_uuid_v7/
+  const parts = uuid7.split('-');
+  const highBitsHex = parts[0] + parts[1].slice(0, 4);
+  const timestamp = parseInt(highBitsHex, 16);
+
+  return new Date(timestamp);
 }

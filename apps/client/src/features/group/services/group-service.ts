@@ -1,10 +1,12 @@
 import api from "@/lib/api-client";
 import { IGroup } from "@/features/group/types/group.types";
-import { QueryParams } from "@/lib/types.ts";
+import { IPagination, QueryParams } from "@/lib/types.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
 
-export async function getGroups(params?: QueryParams): Promise<any> {
-  // TODO: returns paginated. Fix type
-  const req = await api.post<any>("/groups", params);
+export async function getGroups(
+  params?: QueryParams,
+): Promise<IPagination<IGroup>> {
+  const req = await api.post("/groups", params);
   return req.data;
 }
 
@@ -27,8 +29,11 @@ export async function deleteGroup(data: { groupId: string }): Promise<void> {
   await api.post("/groups/delete", data);
 }
 
-export async function getGroupMembers(groupId: string) {
-  const req = await api.post("/groups/members", { groupId });
+export async function getGroupMembers(
+  groupId: string,
+  params?: QueryParams,
+): Promise<IPagination<IUser>> {
+  const req = await api.post("/groups/members", { groupId, params });
   return req.data;
 }
 

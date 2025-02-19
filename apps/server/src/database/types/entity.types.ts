@@ -12,6 +12,7 @@ import {
   SpaceMembers,
   WorkspaceInvitations,
   UserTokens,
+  Backlinks,
 } from './db';
 
 // Workspace
@@ -77,3 +78,8 @@ export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
 export type UserToken = Selectable<UserTokens>;
 export type InsertableUserToken = Insertable<UserTokens>;
 export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;
+
+// Backlink
+export type Backlink = Selectable<Backlinks>;
+export type InsertableBacklink = Insertable<Backlink>;
+export type UpdatableBacklink = Updateable<Omit<Backlink, 'id'>>;
