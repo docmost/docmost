@@ -238,6 +238,7 @@
   "Export failed:": "Échec de l'exportation :",
   "export error": "exporter l'erreur",
   "Export page": "Exporter la page",
+  "Move the page to another space": "Déplacer la page vers un autre espace",
   "Export space": "Exporter l'espace",
   "Export {{type}}": "Exporter {{type}}",
   "File exceeds the {{limit}} attachment limit": "Le fichier dépasse la limite de {{limit}} pièces jointes",

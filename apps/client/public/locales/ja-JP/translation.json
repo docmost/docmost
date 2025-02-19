@@ -238,6 +238,7 @@
   "Export failed:": "エクスポートに失敗しました:",
   "export error": "エクスポートエラー",
   "Export page": "エクスポートページ",
+  "Move the page to another space": "ページを別のスペースに移動する",
   "Export space": "エクスポートスペース",
   "Export {{type}}": "{{type}}をエクスポート",
   "File exceeds the {{limit}} attachment limit": "ファイルが{{limit}}の添付制限を超えています",
