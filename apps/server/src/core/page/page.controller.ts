@@ -212,7 +212,7 @@ export class PageController {
   async movePageToAnotherSpace(@Body() dto: MovePageToAnotherSpaceDto, @AuthUser() user: User) {
     const movedPage = await this.pageRepo.findById(dto.pageId);
     if (!movedPage) {
-      throw new NotFoundException('Moved page not found');
+      throw new NotFoundException('Page to move not found');
     }
     if (movedPage.spaceId === dto.spaceId) {
       throw new NotFoundException(`The page is already in space '${dto.spaceId}'`);
