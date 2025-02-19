@@ -19,6 +19,7 @@ import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
+import { executeTx } from '@docmost/db/utils';
 
 @Injectable()
 export class PageService {
@@ -60,12 +61,28 @@ export class PageService {
       parentPageId = parentPage.id;
     }
 
+    const createdPage = await this.pageRepo.insertPage({
+      slugId: generateSlugId(),
+      title: createPageDto.title,
+      position: await this.nextPagePosition(createPageDto.spaceId, parentPageId),
+      icon: createPageDto.icon,
+      parentPageId: parentPageId,
+      spaceId: createPageDto.spaceId,
+      creatorId: userId,
+      workspaceId: workspaceId,
+      lastUpdatedById: userId,
+    });
+
+    return createdPage;
+  }
+
+  async nextPagePosition(spaceId: string, parentPageId?: string) {
     let pagePosition: string;
 
     const lastPageQuery = this.db
       .selectFrom('pages')
       .select(['id', 'position'])
-      .where('spaceId', '=', createPageDto.spaceId)
+      .where('spaceId', '=', spaceId)
       .orderBy('position', 'desc')
       .limit(1);
 
@@ -96,19 +113,7 @@ export class PageService {
       }
     }
 
-    const createdPage = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: pagePosition,
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-    });
-
-    return createdPage;
+    return pagePosition;
   }
 
   async update(
@@ -179,6 +184,18 @@ export class PageService {
     });
 
     return result;
+  }
+
+  async movePageToAnotherSpace(rootPage: Page, spaceId: string) {
+    await executeTx(this.db, async (trx) => {
+      const nextPosition = await this.nextPagePosition(spaceId);
+      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position: nextPosition }, rootPage.id, trx);
+      await this.pageRepo
+        .getPageAndDescendants(rootPage.id)
+        .then(pages => Promise.all(pages
+          .filter(page => page.id != rootPage.id)
+          .map(page => this.pageRepo.updatePage({ spaceId }, page.id, trx))))
+    });
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {

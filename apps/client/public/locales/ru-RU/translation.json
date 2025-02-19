@@ -238,6 +238,7 @@
   "Export failed:": "Экспортирование не удалось:",
   "export error": "ошибка экспорта",
   "Export page": "Экспорт страницы",
+  "Move page to another space": "Переместить страницу в другое пространство",
   "Export space": "Экспорт пространства",
   "Export {{type}}": "Экспорт {{type}}",
   "File exceeds the {{limit}} attachment limit": "Файл превышает лимит вложений {{limit}}",

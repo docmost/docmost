@@ -30,6 +30,11 @@ export interface IMovePage {
   parentPageId?: string;
 }
 
+export interface IMovePageToAnotherSpace {
+  pageId: string;
+  spaceId: string;
+}
+
 export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;

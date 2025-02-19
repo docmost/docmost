@@ -55,6 +55,7 @@ import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
+import { MoveToAnotherSpaceModal } from "./move-to-another-space-modal";
 import ExportModal from "@/components/common/export-modal";
 
 interface SpaceTreeProps {
@@ -434,6 +435,8 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   const { openDeleteModal } = useDeletePageModal();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [moveToAnotherSpaceOpened, { open: openMoveToAnotherSpaceModal, close: closeMoveToAnotherSpaceModal }] =
+    useDisclosure(false);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -484,6 +487,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
             {t("Export page")}
           </Menu.Item>
 
+          <Menu.Item
+            leftSection={<IconFileExport size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openMoveToAnotherSpaceModal();
+            }}
+          >
+            {t("Move page to another space")}
+          </Menu.Item>
+
           {!(treeApi.props.disableEdit as boolean) && (
             <>
               <Menu.Divider />
@@ -503,6 +517,12 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <MoveToAnotherSpaceModal
+        pageId={node.id}
+        onClose={closeMoveToAnotherSpaceModal}
+        open={moveToAnotherSpaceOpened}
+      />
 
       <ExportModal
         type="page"
