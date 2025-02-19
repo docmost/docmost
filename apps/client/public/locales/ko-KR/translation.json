@@ -238,7 +238,6 @@
   "Export failed:": "내보내기 실패:",
   "export error": "내보내기 오류",
   "Export page": "페이지 내보내기",
-  "Move the page to another space": "페이지를 다른 공간으로 이동하기",
   "Export space": "Space 내보내기",
   "Export {{type}}": "{{type}} 내보내기",
   "File exceeds the {{limit}} attachment limit": "첨부 파일 크기 제한 {{limit}}을 초과했습니다",

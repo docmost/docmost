@@ -2,7 +2,7 @@ import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { Modal, Text } from "@mantine/core";
 import { useNavigate, useParams } from "react-router-dom";
-import { movePageToAnotherSpace } from "../../services/page-service";
+import { getPageById, movePageToAnotherSpace } from "../../services/page-service";
 import { getSpaceUrl } from "@/lib/config";
 import { t } from "i18next";
 import { ISpace } from "@/features/space/types/space.types";
@@ -37,7 +37,7 @@ export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnother
         <Modal.Header>
           <Modal.Title>
             <Text size="md" fw={500}>
-              {t("Move the page to another space")}
+              Move the page to another space
             </Text>
           </Modal.Title>
           <Modal.CloseButton />
