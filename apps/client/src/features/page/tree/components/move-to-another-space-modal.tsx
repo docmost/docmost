@@ -33,7 +33,7 @@ export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnother
       onClose={() => onClose()}
     >
       <Modal.Overlay />
-      <Modal.Content style={{ overflow: "hidden" }}>
+      <Modal.Content style={{ overflow: "visible" }}>
         <Modal.Header>
           <Modal.Title>
             <Text size="md" fw={500}>
@@ -46,7 +46,6 @@ export function MoveToAnotherSpaceModal({ open, onClose, pageId }: MoveToAnother
           <SpaceSelect
             label={space.name}
             value={space.slug}
-            сomboboxProps={{ width: 300, withinPortal: true }}
             onChange={doMove}
           />
         </Modal.Body>

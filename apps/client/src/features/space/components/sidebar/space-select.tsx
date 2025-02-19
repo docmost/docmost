@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 
 interface SpaceSelectProps {
   onChange: (value: ISpace) => void;
-  сomboboxProps: ComboboxProps;
   value?: string;
   label?: string;
 }
@@ -21,7 +20,7 @@ const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
   </Group>
 );
 
-export function SpaceSelect({ onChange, label, сomboboxProps, value }: SpaceSelectProps) {
+export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
@@ -68,7 +67,7 @@ export function SpaceSelect({ onChange, label, сomboboxProps, value }: SpaceSel
       nothingFoundMessage={t("No space found")}
       limit={50}
       checkIconPosition="right"
-      comboboxProps={сomboboxProps}
+      comboboxProps={{ width: 300, withinPortal: false }}
       dropdownOpened
     />
   );
