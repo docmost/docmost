@@ -55,6 +55,31 @@ export class AttachmentRepo {
       .execute();
   }
 
+  findByPageIds(
+    pageIds: string[],
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    return dbOrTx(this.db, opts?.trx)
+      .selectFrom('attachments')
+      .selectAll()
+      .where('pageId', 'in', pageIds)
+      .execute();
+  }
+
+  updateAttachments(
+    dataToUpdate: UpdatableAttachment,
+    attachmentIds: string[],
+    trx?: KyselyTransaction,
+  ) {
+    return dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set(dataToUpdate)
+      .where('id', 'in', attachmentIds)
+      .executeTakeFirst();
+  }
+
   async updateAttachment(
     updatableAttachment: UpdatableAttachment,
     attachmentId: string,

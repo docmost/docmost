@@ -20,11 +20,13 @@ import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 
 @Injectable()
 export class PageService {
   constructor(
     private pageRepo: PageRepo,
+    private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -189,10 +191,20 @@ export class PageService {
   async movePageToAnotherSpace(rootPage: Page, spaceId: string) {
     await executeTx(this.db, async (trx) => {
       // Update root page
-      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position: await this.nextPagePosition(spaceId) }, rootPage.id, trx);
-      // Update sub pages
-      await this.pageRepo.updatePages({ spaceId }, await this.pageRepo.getPageAndDescendants(rootPage.id)
-        .then(pages => pages.map(page => page.id)), trx)
+      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position:
+        await this.nextPagePosition(spaceId) }, rootPage.id, trx);
+      const pageIds = await this.pageRepo.getPageAndDescendants(rootPage.id)
+        .then(pages => pages.map(page => page.id));
+      // The first id is the root page id
+      if (pageIds.length > 1) {
+        // Update sub pages
+        await this.pageRepo.updatePages({ spaceId },
+          pageIds.filter(id => id !== rootPage.id), trx);
+      }
+      // Update attachments
+      await this.attachmentRepo.updateAttachments({ spaceId }, await this.attachmentRepo
+        .findByPageIds(pageIds, { trx })
+        .then(attachments => attachments.map(e => e.id)), trx);
     });
   }
 
