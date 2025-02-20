@@ -8,6 +8,7 @@ import {
 import {
   IAddSpaceMember,
   IChangeSpaceMemberRole,
+  IPublishSpace,
   IRemoveSpaceMember,
   ISpace,
   ISpaceMember,
@@ -228,6 +229,27 @@ export function useChangeSpaceMemberRoleMutation() {
       // due to pagination levels, change in cache instead
       queryClient.refetchQueries({
         queryKey: ["spaceMembers", variables.spaceId],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
+  });
+}
+
+export function usePublishMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ISpace, Error, IPublishSpace>({
+    mutationFn: ({ spaceId, publish }) => updateSpace({
+      spaceId,
+      isPublished: publish
+    }),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: "Published space successfully" });
+      queryClient.invalidateQueries({
+        queryKey: ["space", variables.spaceId],
       });
     },
     onError: (error) => {

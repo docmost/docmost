@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import {
   AbilityBuilder,
   createMongoAbility,
@@ -13,27 +13,39 @@ import {
   SpaceCaslSubject,
 } from '../interfaces/space-ability.type';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { anonymous } from 'src/common/helpers';
 
 @Injectable()
 export default class SpaceAbilityFactory {
-  constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
+  constructor(
+    private readonly spaceRepo: SpaceRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo
+  ) {}
+  
   async createForUser(user: User, spaceId: string) {
-    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
-      user.id,
-      spaceId,
-    );
-
-    const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
-
-    switch (userSpaceRole) {
-      case SpaceRole.ADMIN:
-        return buildSpaceAdminAbility();
-      case SpaceRole.WRITER:
-        return buildSpaceWriterAbility();
-      case SpaceRole.READER:
-        return buildSpaceReaderAbility();
-      default:
-        throw new NotFoundException('Space permissions not found');
+    if (user === anonymous) {
+      const space = await this.spaceRepo.findById(spaceId)
+      if (space.isPublished) return buildSpaceReaderAbility();
+      throw new UnauthorizedException();
+    } else {
+      const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+        user.id,
+        spaceId,
+      );
+      
+      const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+      
+      switch (userSpaceRole) {
+        case SpaceRole.ADMIN:
+          return buildSpaceAdminAbility();
+        case SpaceRole.WRITER:
+          return buildSpaceWriterAbility();
+        case SpaceRole.READER:
+          return buildSpaceReaderAbility();
+        default:
+          throw new NotFoundException('Space permissions not found');
+      }
     }
   }
 }

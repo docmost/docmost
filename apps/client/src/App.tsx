@@ -7,7 +7,7 @@ import AccountSettings from "@/pages/settings/account/account-settings";
 import WorkspaceMembers from "@/pages/settings/workspace/workspace-members";
 import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
 import Groups from "@/pages/settings/group/groups";
-import GroupInfo from "./pages/settings/group/group-info";
+import GroupInfo from "@/pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import AccountPreferences from "@/pages/settings/account/account-preferences.tsx";
@@ -17,7 +17,7 @@ import Layout from "@/components/layouts/global/layout.tsx";
 import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
-import PasswordReset from "./pages/auth/password-reset";
+import PasswordReset from "@/pages/auth/password-reset";
 import Billing from "@/ee/billing/pages/billing.tsx";
 import CloudLogin from "@/ee/pages/cloud-login.tsx";
 import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
@@ -26,6 +26,9 @@ import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
+import UserAgnosticLayout from "@/components/layouts/global/user-agnostic-layout";
+import SharedPage from "@/pages/page/shared-page";
+import SharedSpaceHome from "@/pages/space/shared-space-home";
 
 export default function App() {
   const { t } = useTranslation();
@@ -52,6 +55,21 @@ export default function App() {
         )}
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
+
+        <Route path={"/share"} element={<UserAgnosticLayout />}>
+          <Route path={"s/:spaceSlug"} element={<SharedSpaceHome />} />
+          <Route
+            path={"s/:spaceSlug/p/:pageSlug"}
+            element={
+              <ErrorBoundary
+                fallback={<>{t("Failed to load page. An error occurred.")}</>}
+              >
+                <SharedPage />
+              </ErrorBoundary>
+            }
+          />
+          <Route path={"p/:pageSlug"} element={<PageRedirect />} />
+        </Route>
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />

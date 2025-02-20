@@ -110,13 +110,14 @@ export class SpaceService {
         name: updateSpaceDto.name,
         description: updateSpaceDto.description,
         slug: updateSpaceDto.slug,
+        isPublished: updateSpaceDto.isPublished,
       },
       updateSpaceDto.spaceId,
       workspaceId,
     );
   }
 
-  async getSpaceInfo(spaceId: string, workspaceId: string): Promise<Space> {
+  async getSpaceInfo(spaceId: string, workspaceId?: string): Promise<Space> {
     const space = await this.spaceRepo.findById(spaceId, workspaceId, {
       includeMemberCount: true,
     });

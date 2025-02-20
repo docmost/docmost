@@ -24,6 +24,8 @@ export default class WorkspaceAbilityFactory {
         return buildWorkspaceAdminAbility();
       case UserRole.MEMBER:
         return buildWorkspaceMemberAbility();
+      case UserRole.GUEST:
+        return buildWorkspaceGuestAbility();
       default:
         throw new NotFoundException('Workspace permissions not found');
     }
@@ -69,5 +71,12 @@ function buildWorkspaceMemberAbility() {
   can(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group);
   can(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Attachment);
 
+  return build();
+}
+
+function buildWorkspaceGuestAbility() {
+  const { build } = new AbilityBuilder<MongoAbility<IWorkspaceAbility>>(
+    createMongoAbility,
+  );
   return build();
 }

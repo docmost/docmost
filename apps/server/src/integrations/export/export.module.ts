@@ -7,5 +7,6 @@ import { StorageModule } from '../storage/storage.module';
   imports: [StorageModule],
   providers: [ExportService],
   controllers: [ExportController],
+  exports: [ExportService],
 })
 export class ExportModule {}

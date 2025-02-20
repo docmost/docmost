@@ -94,3 +94,20 @@
     background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
 }
+
+.spaceName {
+    width: 100%;
+    color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-0));
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: var(--mantine-spacing-xs);
+    padding-bottom: var(--mantine-spacing-xs);
+    padding-right: var(--mantine-spacing-sm);
+    padding-left: var(--mantine-spacing-md);
+
+    & > *:not(:first-child) {
+        margin-left: var(--mantine-spacing-sm);
+    }
+}
+  

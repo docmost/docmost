@@ -31,6 +31,7 @@ import {
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -76,18 +77,20 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
   const clipboard = useClipboard({ timeout: 500 });
   const { pageSlug, spaceSlug } = useParams();
-  const { data: page, isLoading } = usePageQuery({
+  const { data: page } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const { openDeleteModal } = useDeletePageModal();
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = (copyLinkOption?: { share?: boolean }) => {
+    const share = copyLinkOption?.share;
     const pageUrl =
-      getAppUrl() + buildPageUrl(spaceSlug, page.slugId, page.title);
+      getAppUrl() + buildPageUrl(spaceSlug, page.slugId, page.title, share);
 
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
@@ -126,10 +129,18 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         <Menu.Dropdown>
           <Menu.Item
             leftSection={<IconLink size={16} />}
-            onClick={handleCopyLink}
+            onClick={() => handleCopyLink()}
           >
             {t("Copy link")}
           </Menu.Item>
+          {space.isPublished && (
+            <Menu.Item
+              leftSection={<IconLink size={16} />}
+              onClick={() => handleCopyLink({ share: true })}
+            >
+              {t("Copy shared link")}
+            </Menu.Item>
+          )}
           <Menu.Divider />
 
           <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
