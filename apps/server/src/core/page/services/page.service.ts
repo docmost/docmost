@@ -202,9 +202,7 @@ export class PageService {
           pageIds.filter(id => id !== rootPage.id), trx);
       }
       // Update attachments
-      await this.attachmentRepo.updateAttachments({ spaceId }, await this.attachmentRepo
-        .findByPageIds(pageIds, { trx })
-        .then(attachments => attachments.map(e => e.id)), trx);
+      await this.attachmentRepo.updateAttachmentsByPageId({ spaceId }, pageIds, trx);
     });
   }
 
