@@ -1,11 +1,9 @@
 name: Build + Publish
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+  pull_request:
+    types:
+      - closed
 
 env:
   BASE_DEV_VERSION: 1.0.0
@@ -13,6 +11,7 @@ env:
 jobs:
   build:
     name: Build
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       packages: write
