@@ -59,6 +59,7 @@ import { useTranslation } from "react-i18next";
 import { SpaceSelectionModal } from "../../components/space-selection-modal";
 import { ISpace } from "@/features/space/types/space.types";
 import ExportModal from "@/components/common/export-modal";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -439,6 +440,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
     useDisclosure(false);
   const [moveToAnotherSpaceOpened, { open: openMoveToAnotherSpaceModal, close: closeMoveToAnotherSpaceModal }] =
     useDisclosure(false);
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const navigate = useNavigate();
 
   const handleCopyLink = () => {
@@ -532,6 +534,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
       <SpaceSelectionModal
         onClose={closeMoveToAnotherSpaceModal}
         onSelect={handlePageMove}
+        currentSpace={space}
         open={moveToAnotherSpaceOpened}
         title="Move the page to another space"
       />

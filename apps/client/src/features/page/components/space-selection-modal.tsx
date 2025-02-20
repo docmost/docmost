@@ -1,20 +1,16 @@
 import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
-import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { Modal, Text } from "@mantine/core";
-import { useParams } from "react-router-dom";
 import { ISpace } from "@/features/space/types/space.types";
 
 interface SpaceSelectionModalProps {
   open: boolean;
   title: string;
+  currentSpace: ISpace;
   onClose: () => void;
   onSelect: (space: ISpace) => void;
 }
 
-export function SpaceSelectionModal({ open, title, onClose, onSelect }: SpaceSelectionModalProps) {
-  const { spaceSlug } = useParams();
-  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
-
+export function SpaceSelectionModal({ open, title, onClose, onSelect, currentSpace }: SpaceSelectionModalProps) {
   return (
     <Modal.Root
       size={350}
@@ -33,8 +29,8 @@ export function SpaceSelectionModal({ open, title, onClose, onSelect }: SpaceSel
         </Modal.Header>
         <Modal.Body>
           <SpaceSelect
-            label={space.name}
-            value={space.slug}
+            label={currentSpace.name}
+            value={currentSpace.slug}
             onChange={onSelect}
           />
         </Modal.Body>
