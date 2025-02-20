@@ -27,6 +27,7 @@ import {
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
+import { anonymous, emptyPaginationResult } from 'src/common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -141,6 +142,8 @@ export class PageController {
         pagination,
       );
     }
+
+    if (user === anonymous) return emptyPaginationResult;
 
     return this.pageService.getRecentPages(user.id, pagination);
   }

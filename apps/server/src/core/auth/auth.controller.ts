@@ -24,6 +24,7 @@ import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
 import { addDays } from 'date-fns';
+import { anonymous } from 'src/common/helpers';
 
 @Controller('auth')
 export class AuthController {
@@ -67,6 +68,7 @@ export class AuthController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    if (user === anonymous) return;
     return this.authService.changePassword(dto, user.id, workspace.id);
   }
 
@@ -109,6 +111,7 @@ export class AuthController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    if (user === anonymous) return null;
     return this.authService.getCollabToken(user.id, workspace.id);
   }
 

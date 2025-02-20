@@ -110,6 +110,7 @@ export class SpaceService {
         name: updateSpaceDto.name,
         description: updateSpaceDto.description,
         slug: updateSpaceDto.slug,
+        isPublished: updateSpaceDto.isPublished,
       },
       updateSpaceDto.spaceId,
       workspaceId,

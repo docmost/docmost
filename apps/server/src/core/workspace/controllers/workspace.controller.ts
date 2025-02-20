@@ -7,6 +7,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
@@ -33,6 +34,7 @@ import {
 import { addDays } from 'date-fns';
 import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { anonymous } from 'src/common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -53,7 +55,11 @@ export class WorkspaceController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getWorkspace(@AuthWorkspace() workspace: Workspace) {
+  async getWorkspace(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (user === anonymous) throw new UnauthorizedException();
     return this.workspaceService.getWorkspaceInfo(workspace.id);
   }
 
