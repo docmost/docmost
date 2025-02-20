@@ -161,7 +161,7 @@ export class PageService {
         'position',
         'parentPageId',
         'spaceId',
-        'creatorId',
+        'creatorId'
       ])
       .select((eb) => this.withHasChildren(eb))
       .orderBy('position', 'asc')
