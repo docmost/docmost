@@ -81,7 +81,7 @@ export class PageService {
 
     const lastPageQuery = this.db
       .selectFrom('pages')
-      .select(['id', 'position'])
+      .select(['position'])
       .where('spaceId', '=', spaceId)
       .orderBy('position', 'desc')
       .limit(1);
@@ -188,13 +188,11 @@ export class PageService {
 
   async movePageToAnotherSpace(rootPage: Page, spaceId: string) {
     await executeTx(this.db, async (trx) => {
-      const nextPosition = await this.nextPagePosition(spaceId);
-      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position: nextPosition }, rootPage.id, trx);
-      await this.pageRepo
-        .getPageAndDescendants(rootPage.id)
-        .then(pages => Promise.all(pages
-          .filter(page => page.id != rootPage.id)
-          .map(page => this.pageRepo.updatePage({ spaceId }, page.id, trx))));
+      // Update root page
+      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position: await this.nextPagePosition(spaceId) }, rootPage.id, trx);
+      // Update sub pages
+      await this.pageRepo.updatePages({ spaceId }, await this.pageRepo.getPageAndDescendants(rootPage.id)
+        .then(pages => pages.map(page => page.id)), trx)
     });
   }
 
