@@ -57,13 +57,13 @@ export class AttachmentRepo {
 
   updateAttachmentsByPageId(
     dataToUpdate: UpdatableAttachment,
-    attachmentIds: string[],
+    pageIds: string[],
     trx?: KyselyTransaction,
   ) {
     return dbOrTx(this.db, trx)
       .updateTable('attachments')
       .set(dataToUpdate)
-      .where('pageId', 'in', attachmentIds)
+      .where('pageId', 'in', pageIds)
       .executeTakeFirst();
   }
 
