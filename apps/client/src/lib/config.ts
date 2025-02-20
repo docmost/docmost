@@ -1,4 +1,5 @@
 import bytes from "bytes";
+import { castToBoolean } from "@/lib/utils.tsx";
 
 declare global {
   interface Window {
@@ -38,8 +39,12 @@ export function getSubdomainHost(): string {
   return getConfigValue("SUBDOMAIN_HOST");
 }
 
-export function isCloud(): string {
-  return getConfigValue("CLOUD");
+export function isCloud(): boolean {
+  return castToBoolean(getConfigValue("CLOUD"));
+}
+
+export function isEnterprise(): boolean {
+  return castToBoolean(getConfigValue("ENTERPRISE"));
 }
 
 export function getAvatarUrl(avatarUrl: string) {

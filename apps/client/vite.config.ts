@@ -5,8 +5,14 @@ import * as path from "path";
 export const envPath = path.resolve(process.cwd(), "..", "..");
 
 export default defineConfig(({ mode }) => {
-  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, DRAWIO_URL, CLOUD, SUBDOMAIN_HOST } =
-    loadEnv(mode, envPath, "");
+  const {
+    APP_URL,
+    FILE_UPLOAD_SIZE_LIMIT,
+    DRAWIO_URL,
+    CLOUD,
+    SUBDOMAIN_HOST,
+    ENTERPRISE,
+  } = loadEnv(mode, envPath, "");
 
   return {
     define: {
@@ -16,6 +22,7 @@ export default defineConfig(({ mode }) => {
         DRAWIO_URL,
         CLOUD,
         SUBDOMAIN_HOST,
+        ENTERPRISE,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

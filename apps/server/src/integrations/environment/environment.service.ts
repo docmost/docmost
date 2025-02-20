@@ -163,4 +163,8 @@ export class EnvironmentService {
   getStripeWebhookSecret(): string {
     return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
   }
+
+  getEnterpriseKey(): string {
+    return this.configService.get<string>('ENTERPRISE_KEY');
+  }
 }

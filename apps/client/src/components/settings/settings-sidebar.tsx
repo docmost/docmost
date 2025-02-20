@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Group, Text, ScrollArea, ActionIcon } from "@mantine/core";
 import {
   IconUser,
@@ -8,19 +8,21 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
-  IconCoin, IconLock,
+  IconCoin,
+  IconLock, IconLicense,
 } from '@tabler/icons-react';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
-import { isCloud } from "@/lib/config.ts";
+import { isCloud, isEnterprise } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 
 interface DataItem {
   label: string;
   icon: React.ElementType;
   path: string;
-  isCloudOnly?: boolean;
+  isCloud?: boolean;
+  isEnterprise?: boolean;
   isAdmin?: boolean;
 }
 
@@ -54,14 +56,22 @@ const groupedData: DataGroup[] = [
         label: "Billing",
         icon: IconCoin,
         path: "/settings/billing",
-        isCloudOnly: true,
+        isCloud: true,
+        isAdmin: true,
+      },
+      {
+        label: "License",
+        icon: IconLicense,
+        path: "/settings/license",
+        isEnterprise: true,
         isAdmin: true,
       },
       {
         label: "Security & SSO",
         icon: IconLock,
         path: "/settings/security",
-        isCloudOnly: true,
+        isCloud: true,
+        isEnterprise: true,
         isAdmin: true,
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
@@ -81,13 +91,34 @@ export default function SettingsSidebar() {
     setActive(location.pathname);
   }, [location.pathname]);
 
+  const canShowItem = (item: DataItem) => {
+    if (item.isCloud && item.isEnterprise) {
+      if (!(isCloud() || isEnterprise())) return false;
+      return item.isAdmin ? isAdmin : true;
+    }
+
+    if (item.isCloud) {
+      return isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
+    if (item.isEnterprise) {
+      return isEnterprise() ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
+    if (item.isAdmin) {
+      return isAdmin;
+    }
+
+    return true;
+  };
+
   const menuItems = groupedData.map((group) => (
     <div key={group.heading}>
       <Text c="dimmed" className={classes.linkHeader}>
         {t(group.heading)}
       </Text>
       {group.items.map((item) => {
-        if ((item.isCloudOnly && !isCloud()) || (item.isAdmin && !isAdmin)) {
+        if (!canShowItem(item)) {
           return null;
         }
 
