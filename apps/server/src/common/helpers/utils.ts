@@ -1,5 +1,9 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
+import { User } from '@docmost/db/types/entity.types';
+import { validate as isValidUUID } from 'uuid';
+import { UserRole } from './types/permission';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -61,4 +65,25 @@ export function extractDateFromUuid7(uuid7: string) {
   const timestamp = parseInt(highBitsHex, 16);
 
   return new Date(timestamp);
+}
+
+export const anonymous: User = {
+  id: 'anonymous',
+  name: 'Anonymous',
+  role: UserRole.GUEST,
+  avatarUrl: '',
+  email: '',
+  invitedById: '',
+  locale: '',
+  password: '',
+  settings: '',
+  timezone: '',
+  workspaceId: '',
+  createdAt: undefined,
+  deactivatedAt: undefined,
+  deletedAt: undefined,
+  emailVerifiedAt: undefined,
+  lastActiveAt: undefined,
+  lastLoginAt: undefined,
+  updatedAt: undefined
 }

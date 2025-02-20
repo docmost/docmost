@@ -95,6 +95,8 @@ export default function PageEditor({
   }, [pageId, ydoc, data?.token]);
 
   const remoteProvider = useMemo(() => {
+    if (!data?.token) return;
+
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
@@ -121,6 +123,8 @@ export default function PageEditor({
   }, [ydoc, pageId, data?.token]);
 
   useLayoutEffect(() => {
+    if (!remoteProvider) return;
+    
     remoteProvider.connect();
     return () => {
       setRemoteSynced(false);
