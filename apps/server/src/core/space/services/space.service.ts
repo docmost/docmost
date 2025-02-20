@@ -24,7 +24,7 @@ export class SpaceService {
     private spaceRepo: SpaceRepo,
     private spaceMemberService: SpaceMemberService,
     @InjectKysely() private readonly db: KyselyDB,
-    @InjectQueue(QueueName.ATTACHEMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async createSpace(

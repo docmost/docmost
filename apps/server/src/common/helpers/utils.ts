@@ -44,3 +44,12 @@ export function createRetryStrategy() {
     return Math.max(Math.min(Math.exp(times), 20000), 3000);
   };
 }
+
+export function extractDateFromUuid7(uuid7: string) {
+  //https://park.is/blog_posts/20240803_extracting_timestamp_from_uuid_v7/
+  const parts = uuid7.split('-');
+  const highBitsHex = parts[0] + parts[1].slice(0, 4);
+  const timestamp = parseInt(highBitsHex, 16);
+
+  return new Date(timestamp);
+}

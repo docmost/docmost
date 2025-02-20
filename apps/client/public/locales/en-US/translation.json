@@ -248,6 +248,7 @@
 	"Align left": "Align left",
 	"Align right": "Align right",
 	"Align center": "Align center",
+	"Justify": "Justify",
 	"Merge cells": "Merge cells",
 	"Split cell": "Split cell",
 	"Delete column": "Delete column",
@@ -343,4 +344,5 @@
 	"Names do not match": "Names do not match",
 	"Today, {{time}}": "Today, {{time}}",
 	"Yesterday, {{time}}": "Yesterday, {{time}}"
-}
+  }
+  

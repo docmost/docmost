@@ -10,6 +10,7 @@
     margin: 4px;
     font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
     border-radius: var(--mantine-radius-default);
+    tab-size: 4;
 
     @mixin light {
       background-color: var(--mantine-color-gray-0);

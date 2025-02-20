@@ -18,6 +18,7 @@ import classes from "./bubble-menu.module.css";
 import { ActionIcon, rem, Tooltip } from "@mantine/core";
 import { ColorSelector } from "./color-selector";
 import { NodeSelector } from "./node-selector";
+import { TextAlignmentSelector } from "./text-alignment-selector";
 import {
   draftCommentIdAtom,
   showCommentPopupAtom,
@@ -117,6 +118,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       moveTransition: "transform 0.15s ease-out",
       onHide: () => {
         setIsNodeSelectorOpen(false);
+        setIsTextAlignmentOpen(false);
         setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
       },
@@ -124,6 +126,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   };
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
+  const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
@@ -135,6 +138,20 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isNodeSelectorOpen}
           setIsOpen={() => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsLinkSelectorOpen(false);
+          }}
+        />
+
+        <TextAlignmentSelector
+          editor={props.editor}
+          isOpen={isTextAlignmentSelectorOpen}
+          setIsOpen={() => {
+            setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsLinkSelectorOpen(false);
           }}
         />
 
@@ -162,6 +179,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isLinkSelectorOpen}
           setIsOpen={() => {
             setIsLinkSelectorOpen(!isLinkSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 
@@ -170,6 +190,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isColorSelectorOpen}
           setIsOpen={() => {
             setIsColorSelectorOpen(!isColorSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsLinkSelectorOpen(false);
           }}
         />
 
