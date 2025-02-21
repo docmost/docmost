@@ -34,6 +34,8 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { anonymous, emptyPaginationResult } from 'src/common/helpers';
+import { SpaceRole } from 'src/common/helpers/types/permission';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -53,6 +55,7 @@ export class SpaceController {
     pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
+    if (user === anonymous) return emptyPaginationResult;
     return this.spaceMemberService.getUserSpaces(user.id, pagination);
   }
 
@@ -77,20 +80,31 @@ export class SpaceController {
       throw new ForbiddenException();
     }
 
-    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
-      user.id,
-      space.id,
-    );
-
-    const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
-
-    const membership = {
-      userId: user.id,
-      role: userSpaceRole,
-      permissions: ability.rules,
-    };
-
-    return { ...space, membership };
+    if (user === anonymous) {
+      return {
+        ...space,
+        membership: {
+          userId: user.id,
+          role: SpaceRole.READER,
+          permissions: ability.rules,
+        }
+      }
+    } else {
+      const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+        user.id,
+        space.id,
+      );
+  
+      const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+  
+      const membership = {
+        userId: user.id,
+        role: userSpaceRole,
+        permissions: ability.rules,
+      };
+  
+      return { ...space, membership };
+    }
   }
 
   @HttpCode(HttpStatus.OK)

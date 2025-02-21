@@ -23,7 +23,7 @@ export default function TopMenu() {
   const user = currentUser?.user;
   const workspace = currentUser?.workspace;
 
-  if (!user || !workspace) {
+  if (!user || user.isAnonymous || !workspace) {
     return <></>;
   }
 

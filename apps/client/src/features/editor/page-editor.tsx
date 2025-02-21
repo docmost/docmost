@@ -80,6 +80,8 @@ export default function PageEditor({
   }, [pageId, ydoc, data?.token]);
 
   const remoteProvider = useMemo(() => {
+    if (!data?.token) return;
+
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
@@ -105,6 +107,8 @@ export default function PageEditor({
   }, [ydoc, pageId, data?.token]);
 
   useLayoutEffect(() => {
+    if (!remoteProvider) return;
+    
     remoteProvider.connect();
 
     return () => {
@@ -117,7 +121,7 @@ export default function PageEditor({
 
   const extensions = [
     ...mainExtensions,
-    ...collabExtensions(remoteProvider, currentUser.user),
+    ...(remoteProvider ? collabExtensions(remoteProvider, currentUser.user) : []),
   ];
 
   const editor = useEditor(

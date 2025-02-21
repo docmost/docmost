@@ -27,6 +27,7 @@ import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx"
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -79,6 +80,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [user,] = useAtom(userAtom);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -127,11 +129,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           </Menu.Item>
           <Menu.Divider />
 
-          <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
-            <Group wrap="nowrap">
-              <PageWidthToggle label={t("Full width")} />
-            </Group>
-          </Menu.Item>
+          {!user.isAnonymous && (
+            <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
+              <Group wrap="nowrap">
+                <PageWidthToggle label={t("Full width")} />
+              </Group>
+            </Menu.Item>
+          )}
 
           <Menu.Item
             leftSection={<IconHistory size={16} />}
