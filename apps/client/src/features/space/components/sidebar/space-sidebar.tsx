@@ -15,10 +15,11 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconTrash,
 } from "@tabler/icons-react";
 
 import classes from "./space-sidebar.module.css";
-import React, { useMemo } from "react";
+import React from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
@@ -30,6 +31,8 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts"
 import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import RecycleBinModal from "@/features/space/components/recycle-bin-modal.tsx";
+
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
@@ -198,6 +201,8 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [openedRecycleBin, { open: openRecycleBin, close: closeRecycleBin }] =
+    useDisclosure(false);
 
   return (
     <>
@@ -241,6 +246,13 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
           >
             {t("Space settings")}
           </Menu.Item>
+
+          <Menu.Item
+            onClick={openRecycleBin}
+            leftSection={<IconTrash size={16} />}
+          >
+            {t("Recycle bin")}
+          </Menu.Item>
         </Menu.Dropdown>
       </Menu>
 
@@ -255,6 +267,12 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
         id={spaceId}
         open={exportOpened}
         onClose={closeExportModal}
+      />
+
+      <RecycleBinModal
+        opened={openedRecycleBin}
+        onClose={closeRecycleBin}
+        spaceId={spaceId}
       />
     </>
   );

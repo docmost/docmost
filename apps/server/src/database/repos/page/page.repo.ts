@@ -106,6 +106,35 @@ export class PageRepo {
       .executeTakeFirst();
   }
 
+  async removePage(pageId: string): Promise<void> {
+    const currentDate = new Date();
+
+    const descendants = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+          )
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = descendants.map((d) => d.id);
+
+    await this.db
+      .updateTable('pages')
+      .set({ deletedAt: currentDate })
+      .where('id', 'in', pageIds)
+      .execute();
+  }
+
   async deletePage(pageId: string): Promise<void> {
     let query = this.db.deleteFrom('pages');
 
@@ -118,12 +147,40 @@ export class PageRepo {
     await query.execute();
   }
 
+  async restorePage(pageId: string): Promise<void> {
+    const pages = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+          )
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = pages.map((p) => p.id);
+
+    await this.db
+      .updateTable('pages')
+      .set({ deletedAt: null })
+      .where('id', 'in', pageIds)
+      .execute();
+  }
+
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is not', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
@@ -142,6 +199,24 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', userSpaceIds)
+      .where('deletedAt', 'is not', null)
+      .orderBy('updatedAt', 'desc');
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
+  }
+
+  async getDeletedPagesInSpace(spaceId: string, pagination: PaginationOptions) {
+    const query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select((eb) => this.withSpace(eb))
+      .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is not', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
