@@ -28,8 +28,8 @@
     "test:e2e": "jest --config test/jest-e2e.json"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.750.0",
-    "@aws-sdk/s3-request-presigner": "^3.750.0",
+    "@aws-sdk/client-s3": "3.701.0",
+    "@aws-sdk/s3-request-presigner": "3.701.0",
     "@casl/ability": "^6.7.3",
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.0.3",
