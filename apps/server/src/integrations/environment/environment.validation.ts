@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsUrl,
   MinLength,
+  ValidateIf,
   validateSync,
 } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
@@ -48,6 +49,11 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsIn(['local', 's3'])
   STORAGE_DRIVER: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.COLLAB_URL != '' && obj.COLLAB_URL != null)
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  COLLAB_URL: string;
 }
 
 export function validate(config: Record<string, any>) {

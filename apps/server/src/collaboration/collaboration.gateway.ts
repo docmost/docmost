@@ -31,15 +31,19 @@ export class CollaborationGateway {
       extensions: [
         this.authenticationExtension,
         this.persistenceExtension,
-        new Redis({
-          host: this.redisConfig.host,
-          port: this.redisConfig.port,
-          options: {
-            password: this.redisConfig.password,
-            db: this.redisConfig.db,
-            retryStrategy: createRetryStrategy(),
-          },
-        }),
+        ...(this.environmentService.isCollabDisableRedis()
+          ? []
+          : [
+              new Redis({
+                host: this.redisConfig.host,
+                port: this.redisConfig.port,
+                options: {
+                  password: this.redisConfig.password,
+                  db: this.redisConfig.db,
+                  retryStrategy: createRetryStrategy(),
+                },
+              }),
+            ]),
       ],
     });
   }
