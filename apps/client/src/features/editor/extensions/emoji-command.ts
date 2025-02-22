@@ -4,7 +4,7 @@ import Suggestion, { SuggestionOptions } from "@tiptap/suggestion";
 import getEmojiItems from "../components/emoji-menu/emoji-items";
 import renderEmojiItems from "../components/emoji-menu/render-emoji-items";
 
-export const slashMenuPluginKey = new PluginKey("emoji-command");
+export const emojiMenuPluginKey = new PluginKey("emoji-command");
 
 // @ts-ignore
 const Command = Extension.create({
@@ -24,7 +24,7 @@ const Command = Extension.create({
   addProseMirrorPlugins() {
     return [
       Suggestion({
-        pluginKey: slashMenuPluginKey,
+        pluginKey: emojiMenuPluginKey,
         ...this.options.suggestion,
         editor: this.editor,
       }),

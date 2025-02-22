@@ -1,12 +1,21 @@
 import { ReactRenderer, useEditor } from "@tiptap/react";
 import EmojiList from "./emoji-list";
 import tippy from "tippy.js";
+import { init } from "emoji-mart";
 
 const renderEmojiItems = () => {
   let component: ReactRenderer | null = null;
   let popup: any | null = null;
 
   return {
+    onBeforeStart: (props: {
+      editor: ReturnType<typeof useEditor>;
+      clientRect: DOMRect;
+    }) => {
+      init({
+        data: async () => (await import("@emoji-mart/data")).default,
+      });
+    },
     onStart: (props: {
       editor: ReturnType<typeof useEditor>;
       clientRect: DOMRect;

@@ -1,9 +1,6 @@
 import { CommandProps, EmojiMenuItemType } from "./types";
-import data from "@emoji-mart/data";
-import { init, SearchIndex } from "emoji-mart";
+import { SearchIndex } from "emoji-mart";
 import { getFrequentlyUsedEmoji, sortFrequenltyUsedEmoji } from "./utils";
-
-init({ data });
 
 const searchEmoji = async (value: string): Promise<EmojiMenuItemType[]> => {
   if (value === "") {
