@@ -63,10 +63,14 @@ const Command = Extension.create({
               if (emoji) {
                 const start = pos + match.index + offset;
                 const end = start + match[0].length;
+                try {
+                  tr = tr.replaceWith(start, end, newState.schema.text(emoji));
 
-                tr = tr.replaceWith(start, end, newState.schema.text(emoji));
-                offset += emoji.length - match[0].length;
-                modified = true;
+                  offset += emoji.length - match[0].length;
+                  modified = true;
+                } catch (e) {
+                  console.error(e);
+                }
               }
             }
           });
