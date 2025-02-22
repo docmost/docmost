@@ -17,7 +17,6 @@ import {
 } from '@docmost/db/types/entity.types';
 import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
-import { hashPassword } from '../../../common/helpers';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { TokenService } from '../../auth/services/token.service';
@@ -167,7 +166,6 @@ export class WorkspaceInvitationService {
       throw new BadRequestException('Invalid invitation token');
     }
 
-    const password = await hashPassword(dto.password);
     let newUser: User;
 
     try {
@@ -177,7 +175,7 @@ export class WorkspaceInvitationService {
             name: dto.name,
             email: invitation.email,
             emailVerifiedAt: new Date(),
-            password: password,
+            password: dto.password,
             role: invitation.role,
             invitedById: invitation.invitedById,
             workspaceId: workspaceId,
