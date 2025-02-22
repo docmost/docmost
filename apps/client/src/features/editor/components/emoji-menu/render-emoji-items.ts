@@ -15,13 +15,9 @@ const renderEmojiItems = () => {
       init({
         data: async () => (await import("@emoji-mart/data")).default,
       });
-    },
-    onStart: (props: {
-      editor: ReturnType<typeof useEditor>;
-      clientRect: DOMRect;
-    }) => {
+
       component = new ReactRenderer(EmojiList, {
-        props,
+        props: { isLoading: true, items: [] },
         editor: props.editor,
       });
 
@@ -39,6 +35,21 @@ const renderEmojiItems = () => {
         trigger: "manual",
         placement: "bottom-start",
       });
+    },
+    onStart: (props: {
+      editor: ReturnType<typeof useEditor>;
+      clientRect: DOMRect;
+    }) => {
+      component?.updateProps({...props, isLoading: false});
+
+      if (!props.clientRect) {
+        return;
+      }
+
+      popup &&
+        popup[0].setProps({
+          getReferenceClientRect: props.clientRect,
+        });
     },
     onUpdate: (props: {
       editor: ReturnType<typeof useEditor>;

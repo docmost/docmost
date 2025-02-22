@@ -1,4 +1,11 @@
-import { ActionIcon, Paper, ScrollArea, SimpleGrid, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Loader,
+  Paper,
+  ScrollArea,
+  SimpleGrid,
+  Text,
+} from "@mantine/core";
 import { EmojiMenuItemType } from "./types";
 import clsx from "clsx";
 import classes from "./emoji-menu.module.css";
@@ -7,11 +14,13 @@ import { GRID_COLUMNS, incrementEmojiUsage } from "./utils";
 
 const EmojiList = ({
   items,
+  isLoading,
   command,
   editor,
   range,
 }: {
   items: EmojiMenuItemType[];
+  isLoading: boolean;
   command: any;
   editor: any;
   range: any;
@@ -97,30 +106,33 @@ const EmojiList = ({
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  return items.length > 0 ? (
+  return items.length > 0 || isLoading ? (
     <Paper id="emoji-command" p="0" shadow="md" withBorder>
-      <ScrollArea.Autosize
-        viewportRef={viewportRef}
-        mah={250}
-        scrollbarSize={8}
-        pr="5"
-      >
-        <SimpleGrid cols={GRID_COLUMNS} p="xs" spacing="xs">
-          {items.map((item, index: number) => (
-            <ActionIcon
-              data-item-index={index}
-              variant="transparent"
-              key={item.id}
-              className={clsx(classes.menuBtn, {
-                [classes.selectedItem]: index === selectedIndex,
-              })}
-              onClick={() => selectItem(index)}
-            >
-              <Text size="xl">{item.emoji}</Text>
-            </ActionIcon>
-          ))}
-        </SimpleGrid>
-      </ScrollArea.Autosize>
+      {isLoading && <Loader m="xs" color="blue" type="dots" />}
+      {items.length > 0 && (
+        <ScrollArea.Autosize
+          viewportRef={viewportRef}
+          mah={250}
+          scrollbarSize={8}
+          pr="5"
+        >
+          <SimpleGrid cols={GRID_COLUMNS} p="xs" spacing="xs">
+            {items.map((item, index: number) => (
+              <ActionIcon
+                data-item-index={index}
+                variant="transparent"
+                key={item.id}
+                className={clsx(classes.menuBtn, {
+                  [classes.selectedItem]: index === selectedIndex,
+                })}
+                onClick={() => selectItem(index)}
+              >
+                <Text size="xl">{item.emoji}</Text>
+              </ActionIcon>
+            ))}
+          </SimpleGrid>
+        </ScrollArea.Autosize>
+      )}
     </Paper>
   ) : null;
 };
