@@ -14,6 +14,9 @@ export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
 
+  // if is not cloud or enterprise return null
+  //{(isCloud() || isEnterprise()) && (
+
   if (!isAdmin) {
     return null;
   }

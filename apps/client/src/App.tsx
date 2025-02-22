@@ -21,10 +21,10 @@ import PasswordReset from "./pages/auth/password-reset";
 import Billing from "@/ee/billing/pages/billing.tsx";
 import CloudLogin from "@/ee/pages/cloud-login.tsx";
 import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
-import { isCloud, isEnterprise } from "@/lib/config.ts";
+import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
-import License from '@/ee/licence/pages/license.tsx';
+import License from "@/ee/licence/pages/license.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -76,11 +76,9 @@ export default function App() {
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
+            <Route path={"security"} element={<Security />} />
+            {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
-            {isEnterprise() && <Route path={"license"} element={<License />} />}
-            {(isCloud() || isEnterprise()) && (
-              <Route path={"security"} element={<Security />} />
-            )}
           </Route>
         </Route>
 

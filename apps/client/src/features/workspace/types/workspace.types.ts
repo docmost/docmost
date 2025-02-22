@@ -17,6 +17,8 @@ export interface IWorkspace {
   createdAt: Date;
   updatedAt: Date;
   emailDomains: string[];
+  memberCount?: number;
+  hasLicenseKey?: boolean;
 }
 
 export interface ICreateInvite {
@@ -48,4 +50,5 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
+  hasLicenseKey?: boolean;
 }

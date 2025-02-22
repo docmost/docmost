@@ -157,6 +157,8 @@ export class WorkspaceInvitationService {
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
 
+    // then you have to limit invitation signup here if workspace licensed User limit
+
     if (!invitation) {
       throw new BadRequestException('Invitation not found');
     }

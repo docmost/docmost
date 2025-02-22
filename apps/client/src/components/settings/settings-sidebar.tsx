@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Group, Text, ScrollArea, ActionIcon } from "@mantine/core";
 import {
   IconUser,
@@ -9,13 +9,16 @@ import {
   IconSpaces,
   IconBrush,
   IconCoin,
-  IconLock, IconLicense,
-} from '@tabler/icons-react';
+  IconLock,
+  IconKey,
+} from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
-import { isCloud, isEnterprise } from "@/lib/config.ts";
+import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { useAtom } from "jotai/index";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface DataItem {
   label: string;
@@ -24,6 +27,7 @@ interface DataItem {
   isCloud?: boolean;
   isEnterprise?: boolean;
   isAdmin?: boolean;
+  isSelfhosted?: boolean;
 }
 
 interface DataGroup {
@@ -60,13 +64,6 @@ const groupedData: DataGroup[] = [
         isAdmin: true,
       },
       {
-        label: "License",
-        icon: IconLicense,
-        path: "/settings/license",
-        isEnterprise: true,
-        isAdmin: true,
-      },
-      {
         label: "Security & SSO",
         icon: IconLock,
         path: "/settings/security",
@@ -76,6 +73,13 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      {
+        label: "License",
+        icon: IconKey,
+        path: "/settings/license",
+        isSelfhosted: true,
+        isAdmin: true,
+      },
     ],
   },
 ];
@@ -86,6 +90,7 @@ export default function SettingsSidebar() {
   const [active, setActive] = useState(location.pathname);
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
+  const [workspace] = useAtom(workspaceAtom);
 
   useEffect(() => {
     setActive(location.pathname);
@@ -93,7 +98,7 @@ export default function SettingsSidebar() {
 
   const canShowItem = (item: DataItem) => {
     if (item.isCloud && item.isEnterprise) {
-      if (!(isCloud() || isEnterprise())) return false;
+      if (!(isCloud() || workspace?.hasLicenseKey)) return false;
       return item.isAdmin ? isAdmin : true;
     }
 
@@ -101,8 +106,12 @@ export default function SettingsSidebar() {
       return isCloud() ? (item.isAdmin ? isAdmin : true) : false;
     }
 
+    if (item.isSelfhosted) {
+      return !isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
     if (item.isEnterprise) {
-      return isEnterprise() ? (item.isAdmin ? isAdmin : true) : false;
+      return workspace?.hasLicenseKey ? (item.isAdmin ? isAdmin : true) : false;
     }
 
     if (item.isAdmin) {

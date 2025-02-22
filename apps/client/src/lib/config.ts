@@ -43,10 +43,6 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
-export function isEnterprise(): boolean {
-  return castToBoolean(getConfigValue("ENTERPRISE"));
-}
-
 export function getAvatarUrl(avatarUrl: string) {
   if (!avatarUrl) return null;
   if (avatarUrl?.startsWith("http")) return avatarUrl;

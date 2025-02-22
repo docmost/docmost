@@ -5,6 +5,7 @@ import { IAuthProvider } from "@/ee/security/types/security.types.ts";
 import { buildSsoLoginUrl } from "@/ee/security/sso.utils.ts";
 import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 import { GoogleIcon } from "@/components/icons/google-icon.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 export default function SsoLogin() {
   const { data, isLoading } = useWorkspacePublicDataQuery();
@@ -23,28 +24,33 @@ export default function SsoLogin() {
 
   return (
     <>
-      <Stack align="stretch" justify="center" gap="sm">
-        {data.authProviders.map((provider) => (
-          <div key={provider.id}>
-            <Button
-              onClick={() => handleSsoLogin(provider)}
-              leftSection={
-                provider.type === SSO_PROVIDER.GOOGLE ? (
-                  <GoogleIcon size={16} />
-                ) : (
-                  <IconLock size={16} />
-                )
-              }
-              variant="default"
-              fullWidth
-            >
-              {provider.name}
-            </Button>
-          </div>
-        ))}
-      </Stack>
-      {!data.enforceSso && (
-        <Divider my="xs" label="OR" labelPosition="center" />
+      {(isCloud() || data.hasLicenseKey) && (
+        <>
+          <Stack align="stretch" justify="center" gap="sm">
+            {data.authProviders.map((provider) => (
+              <div key={provider.id}>
+                <Button
+                  onClick={() => handleSsoLogin(provider)}
+                  leftSection={
+                    provider.type === SSO_PROVIDER.GOOGLE ? (
+                      <GoogleIcon size={16} />
+                    ) : (
+                      <IconLock size={16} />
+                    )
+                  }
+                  variant="default"
+                  fullWidth
+                >
+                  {provider.name}
+                </Button>
+              </div>
+            ))}
+          </Stack>
+
+          {!data.enforceSso && (
+            <Divider my="xs" label="OR" labelPosition="center" />
+          )}
+        </>
       )}
     </>
   );

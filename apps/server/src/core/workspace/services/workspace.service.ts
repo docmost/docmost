@@ -57,7 +57,7 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso'])
+      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey'])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -73,11 +73,17 @@ export class WorkspaceService {
       )
       .where('id', '=', workspaceId)
       .executeTakeFirst();
+
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
 
-    return workspace;
+    const { licenseKey, ...rest } = workspace;
+
+    return {
+      ...rest,
+      hasLicenseKey: Boolean(licenseKey),
+    };
   }
 
   async create(
@@ -253,7 +259,18 @@ export class WorkspaceService {
       }
     }
 
-    return this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
+    await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
+
+    const workspace = await this.workspaceRepo.findById(workspaceId, {
+      withMemberCount: true,
+      withLicenseKey: true,
+    });
+
+    const { licenseKey, ...rest } = workspace;
+    return {
+      ...rest,
+      hasLicenseKey: Boolean(licenseKey),
+    };
   }
 
   async getWorkspaceUsers(

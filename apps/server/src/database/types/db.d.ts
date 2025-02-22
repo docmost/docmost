@@ -265,8 +265,10 @@ export interface Workspaces {
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
+  licenseKey: string | null;
   logo: string | null;
   name: string | null;
+  plan: string | null;
   settings: Json | null;
   status: string | null;
   stripeCustomerId: string | null;

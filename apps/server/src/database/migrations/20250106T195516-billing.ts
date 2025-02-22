@@ -51,6 +51,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .alterTable('workspaces')
     .addColumn('stripe_customer_id', 'varchar', (col) => col)
     .addColumn('status', 'varchar', (col) => col)
+    .addColumn('plan', 'varchar', (col) => col)
     .addColumn('billing_email', 'varchar', (col) => col)
     .addColumn('trial_end_at', 'timestamptz', (col) => col)
     .execute();

@@ -7,16 +7,40 @@ import {
   UpdatableWorkspace,
   Workspace,
 } from '@docmost/db/types/entity.types';
-import { sql } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
+import { DB, Workspaces } from '@docmost/db/types/db';
 
 @Injectable()
 export class WorkspaceRepo {
+  public baseFields: Array<keyof Workspaces> = [
+    'id',
+    'name',
+    'description',
+    'logo',
+    'hostname',
+    'customDomain',
+    'settings',
+    'defaultRole',
+    'emailDomains',
+    'defaultSpaceId',
+    'createdAt',
+    'updatedAt',
+    'deletedAt',
+    'stripeCustomerId',
+    'status',
+    'billingEmail',
+    'trialEndAt',
+    'enforceSso',
+    'plan',
+  ];
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
   async findById(
     workspaceId: string,
     opts?: {
       withLock?: boolean;
+      withMemberCount?: boolean;
+      withLicenseKey?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<Workspace> {
@@ -24,8 +48,16 @@ export class WorkspaceRepo {
 
     let query = db
       .selectFrom('workspaces')
-      .selectAll()
+      .select(this.baseFields)
       .where('id', '=', workspaceId);
+
+    if (opts?.withMemberCount) {
+      query = query.select(this.withMemberCount);
+    }
+
+    if (opts?.withLicenseKey) {
+      query = query.select('licenseKey');
+    }
 
     if (opts?.withLock && opts?.trx) {
       query = query.forUpdate();
@@ -77,7 +109,7 @@ export class WorkspaceRepo {
       .updateTable('workspaces')
       .set({ ...updatableWorkspace, updatedAt: new Date() })
       .where('id', '=', workspaceId)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -89,7 +121,7 @@ export class WorkspaceRepo {
     return db
       .insertInto('workspaces')
       .values(insertableWorkspace)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -99,6 +131,16 @@ export class WorkspaceRepo {
       .select((eb) => eb.fn.count('id').as('count'))
       .executeTakeFirst();
     return count as number;
+  }
+
+  withMemberCount(eb: ExpressionBuilder<DB, 'workspaces'>) {
+    return eb
+      .selectFrom('users')
+      .select((eb) => eb.fn.countAll().as('count'))
+      .where('users.deactivatedAt', 'is', null)
+      .where('users.deletedAt', 'is', null)
+      .whereRef('users.workspaceId', '=', 'workspaces.id')
+      .as('memberCount');
   }
 
   async getActiveUserCount(workspaceId: string): Promise<number> {
