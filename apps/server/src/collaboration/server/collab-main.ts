@@ -6,6 +6,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
 import { InternalLogFilter } from '../../common/logger/internal-log-filter';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -20,12 +21,19 @@ async function bootstrap() {
     },
   );
 
+  app.setGlobalPrefix('api', { exclude: ['/'] });
+
   app.enableCors();
 
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
 
-  await app.listen(process.env.COLLAB_PORT || 3001, '0.0.0.0');
+  const logger = new Logger('CollabServer');
+
+  const port = process.env.COLLAB_PORT || 3001;
+  await app.listen(port, '0.0.0.0', () => {
+    logger.log(`Listening on PORT ${port}`);
+  });
 }
 
 bootstrap();
