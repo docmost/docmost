@@ -1,5 +1,5 @@
 import { Group, Table, Text, Menu, ActionIcon } from "@mantine/core";
-import React, { useState } from "react";
+import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -18,6 +18,8 @@ import {
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
+import { SearchInput } from "@/components/common/search-input.tsx";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 
 type MemberType = "user" | "group";
 
@@ -31,10 +33,11 @@ export default function SpaceMembersList({
   readOnly,
 }: SpaceMembersProps) {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
+  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
   const { data, isLoading } = useSpaceMembersQuery(spaceId, {
     page,
     limit: 100,
+    query: search,
   });
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
@@ -102,6 +105,7 @@ export default function SpaceMembersList({
 
   return (
     <>
+      <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing={8}>
           <Table.Thead>
