@@ -32,7 +32,7 @@ async function bootstrap() {
 
   const port = process.env.COLLAB_PORT || 3001;
   await app.listen(port, '0.0.0.0', () => {
-    logger.log(`Listening on PORT ${port}`);
+    logger.log(`Listening on http://127.0.0.1:${port}`);
   });
 }
 
