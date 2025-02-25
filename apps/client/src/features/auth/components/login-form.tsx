@@ -19,6 +19,8 @@ import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
+import { Error404 } from "@/components/ui/error-404.tsx";
+import React from "react";
 
 const formSchema = z.object({
   email: z
@@ -32,7 +34,12 @@ export function LoginForm() {
   const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
   useRedirectIfAuthenticated();
-  const { data } = useWorkspacePublicDataQuery();
+  const {
+    data,
+    isLoading: isDataLoading,
+    isError,
+    error,
+  } = useWorkspacePublicDataQuery();
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -46,20 +53,24 @@ export function LoginForm() {
     await signIn(data);
   }
 
-  if (!data) {
-    return null;
+  if (isDataLoading) {
+   return null;
+  }
+
+  if (isError && error?.["response"]?.status === 404) {
+    return <Error404 />;
   }
 
   return (
-    <Container size={420} my={40} className={classes.container}>
-      <Box p="xl" mt={200}>
+    <Container size={420} className={classes.container}>
+      <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
           {t("Login")}
         </Title>
 
         <SsoLogin />
 
-        {!data.enforceSso && (
+        {!data?.enforceSso && (
           <>
             <form onSubmit={form.onSubmit(onSubmit)}>
               <TextInput

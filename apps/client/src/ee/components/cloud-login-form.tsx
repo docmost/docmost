@@ -15,12 +15,14 @@ import { useState } from "react";
 import { getSubdomainHost } from "@/lib/config.ts";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   hostname: z.string().min(1, { message: "subdomain is required" }),
 });
 
 export function CloudLoginForm() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const form = useForm<any>({
@@ -49,10 +51,10 @@ export function CloudLoginForm() {
 
   return (
     <div>
-      <Container size={420} my={40} className={classes.container}>
-        <Box p="xl" mt={200}>
+      <Container size={420} className={classes.container}>
+        <Box p="xl" className={classes.containerBox}>
           <Title order={2} ta="center" fw={500} mb="md">
-            Login
+            {t("Login")}
           </Title>
 
           <form onSubmit={form.onSubmit(onSubmit)}>
@@ -67,16 +69,16 @@ export function CloudLoginForm() {
               {...form.getInputProps("hostname")}
             />
             <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-              Continue
+              {t("Continue")}
             </Button>
           </form>
         </Box>
       </Container>
 
       <Text ta="center">
-        Don't have a workspace?{" "}
+        {t("Don't have a workspace?")}{" "}
         <Anchor component={Link} to={APP_ROUTE.AUTH.CREATE_WORKSPACE} fw={500}>
-          Create new workspace
+          {t("Create new workspace")}
         </Anchor>
       </Text>
     </div>

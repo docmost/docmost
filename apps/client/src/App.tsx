@@ -25,9 +25,11 @@ import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
+import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 
 export default function App() {
   const { t } = useTranslation();
+  useRedirectToCloudSelect();
 
   return (
     <>

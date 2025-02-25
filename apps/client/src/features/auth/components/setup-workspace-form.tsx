@@ -46,13 +46,13 @@ export function SetupWorkspaceForm() {
   });
 
   async function onSubmit(data: ISetupWorkspace) {
-     await setupWorkspace(data);
+    await setupWorkspace(data);
   }
 
   return (
     <div>
-      <Container size={420} my={40} className={classes.container}>
-        <Box p="xl" mt={200}>
+      <Container size={420} className={classes.container}>
+        <Box p="xl" className={classes.containerBox}>
           <Title order={2} ta="center" fw={500} mb="md">
             {t("Create workspace")}
           </Title>
@@ -104,9 +104,9 @@ export function SetupWorkspaceForm() {
         </Box>
       </Container>
       <Text ta="center">
-        Already part of an existing workspace?{" "}
+        {t("Already part of an existing workspace?")}{" "}
         <Anchor component={Link} to={APP_ROUTE.AUTH.SELECT_WORKSPACE} fw={500}>
-          Sign-in
+          {t("Sign-in")}
         </Anchor>
       </Text>
     </div>
