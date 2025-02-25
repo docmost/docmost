@@ -3,7 +3,11 @@ import { ICurrentUser, IUser } from "@/features/user/types/user.types";
 
 export async function getMyInfo(): Promise<ICurrentUser> {
   const req = await api.post<ICurrentUser>("/users/me");
-  return req.data as ICurrentUser;
+  const currentUser = req.data as ICurrentUser;
+  if (!currentUser) return currentUser
+  const user = currentUser.user
+  const isAnonymous = user.id === "anonymous"
+  return { ...currentUser, user: { ...user, isAnonymous } }
 }
 
 export async function updateUser(data: Partial<IUser>): Promise<IUser> {
