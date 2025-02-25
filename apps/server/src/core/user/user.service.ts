@@ -1,14 +1,14 @@
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepo: UserRepo) {}
+  constructor(private userRepo: UserRepo) { }
 
   async findById(userId: string, workspaceId: string) {
     return this.userRepo.findById(userId, workspaceId);
@@ -27,9 +27,18 @@ export class UserService {
 
     // preference update
     if (typeof updateUserDto.fullPageWidth !== 'undefined') {
-      return this.updateUserPageWidthPreference(
+      return this.userRepo.updatePreference(
         userId,
+        'fullPageWidth',
         updateUserDto.fullPageWidth,
+      );
+
+    }
+    if (typeof updateUserDto.viewHeadings !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'viewHeadings',
+        updateUserDto.viewHeadings,
       );
     }
 
@@ -54,13 +63,5 @@ export class UserService {
 
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
-  }
-
-  async updateUserPageWidthPreference(userId: string, fullPageWidth: boolean) {
-    return this.userRepo.updatePreference(
-      userId,
-      'fullPageWidth',
-      fullPageWidth,
-    );
   }
 }
