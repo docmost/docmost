@@ -43,6 +43,7 @@ export interface IPageInput {
   icon: string;
   coverPhoto: string;
   position: string;
+  isLocked: boolean;
 }
 
 export interface IExportPageParams {
