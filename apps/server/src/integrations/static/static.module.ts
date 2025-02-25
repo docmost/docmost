@@ -41,6 +41,7 @@ export class StaticModule implements OnModuleInit {
         SUBDOMAIN_HOST: this.environmentService.isCloud()
           ? this.environmentService.getSubdomainHost()
           : undefined,
+        COLLAB_URL: this.environmentService.getCollabUrl(),
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;

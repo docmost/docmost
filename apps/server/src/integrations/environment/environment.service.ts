@@ -167,4 +167,15 @@ export class EnvironmentService {
   getEnterpriseKey(): string {
     return this.configService.get<string>('ENTERPRISE_KEY');
   }
+
+  getCollabUrl(): string {
+    return this.configService.get<string>('COLLAB_URL');
+  }
+
+  isCollabDisableRedis(): boolean {
+    const isStandalone = this.configService
+      .get<string>('COLLAB_DISABLE_REDIS', 'false')
+      .toLowerCase();
+    return isStandalone === 'true';
+  }
 }
