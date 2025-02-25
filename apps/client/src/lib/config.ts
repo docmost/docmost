@@ -19,15 +19,13 @@ export function getBackendUrl(): string {
 }
 
 export function getCollaborationUrl(): string {
-  const COLLAB_PATH = "/collab";
+  const baseUrl =
+    getConfigValue("COLLAB_URL") ||
+    (import.meta.env.DEV ? process.env.APP_URL : getAppUrl());
 
-  let url = getAppUrl();
-  if (import.meta.env.DEV) {
-    url = process.env.APP_URL;
-  }
-
-  const wsProtocol = url.startsWith("https") ? "wss" : "ws";
-  return `${wsProtocol}://${url.split("://")[1]}${COLLAB_PATH}`;
+  const collabUrl = new URL("/collab", baseUrl);
+  collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
+  return collabUrl.toString();
 }
 
 export function getAvatarUrl(avatarUrl: string) {

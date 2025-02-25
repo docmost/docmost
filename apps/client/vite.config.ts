@@ -5,16 +5,21 @@ import * as path from "path";
 export const envPath = path.resolve(process.cwd(), "..", "..");
 
 export default defineConfig(({ mode }) => {
-  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, DRAWIO_URL } = loadEnv(mode, envPath, "");
+  const { APP_URL, FILE_UPLOAD_SIZE_LIMIT, DRAWIO_URL, COLLAB_URL } = loadEnv(
+    mode,
+    envPath,
+    "",
+  );
 
   return {
     define: {
       "process.env": {
         APP_URL,
         FILE_UPLOAD_SIZE_LIMIT,
-        DRAWIO_URL
+        DRAWIO_URL,
+        COLLAB_URL,
       },
-      'APP_VERSION': JSON.stringify(process.env.npm_package_version),
+      APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },
     plugins: [react()],
     resolve: {
