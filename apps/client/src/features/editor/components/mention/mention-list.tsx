@@ -12,6 +12,7 @@ import {
   Group,
   Paper,
   ScrollArea,
+  Stack,
   Text,
   UnstyledButton,
 } from "@mantine/core";
@@ -56,6 +57,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           suggestion.users.map((user) => ({
             id: uuid7(),
             label: user.name,
+            email: user.email,
             entityType: "user",
             entityId: user.id,
             avatarUrl: user.avatarUrl,
@@ -217,11 +219,14 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                     name={item.label}
                   />
 
-                  <div style={{ flex: 1 }}>
+                  <Stack gap="0">
                     <Text size="sm" fw={500}>
                       {item.label}
                     </Text>
-                  </div>
+                    <Text size="xs" c="dimmed">
+                      {item.email}
+                    </Text>
+                  </Stack>
                 </Group>
               </UnstyledButton>
             );
