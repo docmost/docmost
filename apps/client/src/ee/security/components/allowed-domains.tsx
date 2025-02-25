@@ -23,7 +23,7 @@ export default function AllowedDomains() {
   const form = useForm<FormValues>({
     validate: zodResolver(formSchema),
     initialValues: {
-      emailDomains: workspace.emailDomains || [],
+      emailDomains: workspace?.emailDomains || [],
     },
   });
 

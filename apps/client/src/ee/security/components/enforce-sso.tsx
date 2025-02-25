@@ -32,7 +32,7 @@ interface EnforceSsoToggleProps {
 export function EnforceSsoToggle({ size, label }: EnforceSsoToggleProps) {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
-  const [checked, setChecked] = useState(workspace.enforceSso);
+  const [checked, setChecked] = useState(workspace?.enforceSso);
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;

@@ -1,3 +1,7 @@
+export enum BillingPlan {
+  STANDARD = "standard",
+}
+
 export interface IBilling {
   id: string;
   stripeSubscriptionId: string;

@@ -9,10 +9,12 @@ import CreateSsoProvider from "@/ee/security/components/create-sso-provider.tsx"
 import EnforceSso from "@/ee/security/components/enforce-sso.tsx";
 import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
+import usePlan from "@/ee/hooks/use-plan.tsx";
 
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
+  const { isStandard } = usePlan();
 
   // if is not cloud or enterprise return null
   //{(isCloud() || isEnterprise()) && (
@@ -39,7 +41,8 @@ export default function Security() {
       <EnforceSso />
 
       <Divider my="lg" />
-      <CreateSsoProvider />
+
+      {!isStandard && <CreateSsoProvider />}
 
       <Divider size={0} my="lg" />
 

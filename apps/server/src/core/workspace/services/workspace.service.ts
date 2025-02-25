@@ -97,6 +97,8 @@ export class WorkspaceService {
         let hostname = undefined;
         let trialEndAt = undefined;
         let status = undefined;
+        let plan = undefined;
+
         if (this.environmentService.isCloud()) {
           // generate unique hostname
           hostname = await this.generateHostname(
@@ -104,6 +106,7 @@ export class WorkspaceService {
           );
           trialEndAt = addDays(new Date(), 14);
           status = WorkspaceStatus.Active;
+          plan = 'standard';
         }
 
         // create workspace
@@ -114,6 +117,7 @@ export class WorkspaceService {
             hostname,
             status,
             trialEndAt,
+            plan,
           },
           trx,
         );
