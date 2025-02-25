@@ -1,19 +1,21 @@
-import {Group, Text, Tooltip} from "@mantine/core";
+import { Badge, Group, Text, Tooltip } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
-import {useAtom} from "jotai/index";
+import { useAtom } from "jotai/index";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
-import {useToggleSidebar} from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
+import useTrial from "@/ee/hooks/use-trial.tsx";
+import { isCloud } from "@/lib/config.ts";
 
-const links = [{link: APP_ROUTE.HOME, label: "Home"}];
+const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -22,6 +24,7 @@ export function AppHeader() {
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
+  const { isTrial, trialsDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
 
@@ -38,7 +41,6 @@ export function AppHeader() {
           {!isHomeRoute && (
             <>
               <Tooltip label={t("Sidebar toggle")}>
-
                 <SidebarToggle
                   aria-label={t("Sidebar toggle")}
                   opened={mobileOpened}
@@ -63,7 +65,7 @@ export function AppHeader() {
           <Text
             size="lg"
             fw={600}
-            style={{cursor: "pointer", userSelect: "none"}}
+            style={{ cursor: "pointer", userSelect: "none" }}
             component={Link}
             to="/home"
           >
@@ -75,8 +77,19 @@ export function AppHeader() {
           </Group>
         </Group>
 
-        <Group px={"xl"}>
-          <TopMenu/>
+        <Group px={"xl"} wrap="nowrap">
+          {isCloud() && typeof trialsDaysLeft === "number" && (
+            <Badge
+              variant="light"
+              component={Link}
+              to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
+              visibleFrom="xs"
+              color={trialsDaysLeft > 0 ? "blue" : "red"}
+            >
+              {trialsDaysLeft > 0 ? "Trial" : "Trial Ended"}
+            </Badge>
+          )}
+          <TopMenu />
         </Group>
       </Group>
     </>

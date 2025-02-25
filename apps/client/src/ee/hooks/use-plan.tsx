@@ -6,6 +6,7 @@ export const usePlan = () => {
   const [workspace] = useAtom(workspaceAtom);
 
   const isStandard =
+    typeof workspace?.plan === "string" &&
     workspace?.plan.toLowerCase() === BillingPlan.STANDARD.toLowerCase();
 
   return { isStandard };
