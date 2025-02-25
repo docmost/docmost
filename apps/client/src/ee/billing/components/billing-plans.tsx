@@ -15,7 +15,7 @@ import { getCheckoutLink } from "@/ee/billing/services/billing-service.ts";
 
 export default function BillingPlans() {
   const { data: plans } = useBillingPlans();
-  const [interval, setInterval] = useState("monthly");
+  const [interval, setInterval] = useState("yearly");
 
   if (!plans) {
     return null;
