@@ -7,6 +7,7 @@ import { DatabaseModule } from '@docmost/db/database.module';
 import { QueueModule } from '../../integrations/queue/queue.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from '../../integrations/health/health.module';
+import { CollaborationController } from './collaboration.controller';
 
 @Module({
   imports: [
@@ -17,7 +18,12 @@ import { HealthModule } from '../../integrations/health/health.module';
     HealthModule,
     EventEmitterModule.forRoot(),
   ],
-  controllers: [AppController],
+  controllers: [
+    AppController,
+    ...(process.env.COLLAB_SHOW_STATS.toLowerCase() === 'true'
+      ? [CollaborationController]
+      : []),
+  ],
   providers: [AppService],
 })
-export class CollabAppAppModule {}
+export class CollabAppModule {}
