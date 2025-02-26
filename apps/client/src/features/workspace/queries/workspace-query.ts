@@ -83,6 +83,15 @@ export function useWorkspaceInvitationsQuery(
   });
 }
 
+export function useGetInviteLink(
+  invitationId: string
+): UseQueryResult<IInvitationLink,Error> {
+  return useQuery({
+    queryKey:["inviteLink",invitationId],
+    queryFn: () => getInviteLink({ invitationId }),
+  })
+}
+
 export function useCreateInvitationMutation() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
