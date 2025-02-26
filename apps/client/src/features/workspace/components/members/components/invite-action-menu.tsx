@@ -1,6 +1,6 @@
 import { Menu, ActionIcon, Text } from "@mantine/core";
 import React from "react";
-import { IconDots, IconTrash } from "@tabler/icons-react";
+import { IconCopy, IconDots, IconSend, IconTrash } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import {
   useResendInvitationMutation,
@@ -9,6 +9,9 @@ import {
 } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
+import { useClipboard } from "@mantine/hooks";
+import { getInviteLink } from "@/features/workspace/services/workspace-service.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 interface Props {
   invitationId: string;
@@ -17,17 +20,21 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const { t } = useTranslation();
   const resendInvitationMutation = useResendInvitationMutation();
   const revokeInvitationMutation = useRevokeInvitationMutation();
-  const { data: inviteLink, error, } = useGetInviteLink(invitationId);
+  const { isAdmin } = useUserRole();
+  const clipboard = useClipboard();
 
-  const onCopyLink = async () => {
-    if (error) {
-      notifications.show({ message: error.message, color: "red" })
-    } else {
-      navigator.clipboard.writeText(inviteLink.inviteLink)
-      notifications.show({ message: "Invite link copied to clipboard!"})
+  const handleCopyLink = async (invitationId: string) => {
+    try {
+      const link = await getInviteLink({ invitationId });
+      clipboard.copy(link.inviteLink);
+      notifications.show({ message: t("Link copied") });
+    } catch (err) {
+      notifications.show({
+        message: err["response"]?.data?.message,
+        color: "red",
+      });
     }
-  }
-
+  };
 
   const onResend = async () => {
     await resendInvitationMutation.mutateAsync({ invitationId });
@@ -70,14 +77,26 @@ export default function InviteActionMenu({ invitationId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item onClick={onResend}>{t("Resend invitation")}</Menu.Item>
-          <Menu.Item onClick={onCopyLink}>Copy invite link</Menu.Item>
-          <Menu.Item onClick={onResend}>Resend invitation</Menu.Item>
+          <Menu.Item
+            onClick={() => handleCopyLink(invitationId)}
+            leftSection={<IconCopy size={16} />}
+            disabled={!isAdmin}
+          >
+            {t("Copy link")}
+          </Menu.Item>
+          <Menu.Item
+            onClick={onResend}
+            leftSection={<IconSend size={16} />}
+            disabled={!isAdmin}
+          >
+            {t("Resend invitation")}
+          </Menu.Item>
           <Menu.Divider />
           <Menu.Item
             c="red"
             onClick={openRevokeModal}
-            leftSection={<IconTrash size={16} stroke={2} />}
+            leftSection={<IconTrash size={16} />}
+            disabled={!isAdmin}
           >
             {t("Revoke invitation")}
           </Menu.Item>
