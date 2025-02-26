@@ -10,7 +10,6 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -27,6 +26,8 @@ import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx"
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import React from "react";
+import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -34,12 +35,13 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const { t } = useTranslation();
 
   return (
     <>
       {yjsConnectionStatus === "disconnected" && (
         <Tooltip
-          label="Real-time editor connection lost. Retrying..."
+          label={t("Real-time editor connection was lost. Retrying...")}
           openDelay={250}
           withArrow
         >
@@ -48,6 +50,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
+
+      {!readOnly && <PageStateSegmentedControl />}
 
       <Tooltip label="Comments" openDelay={250} withArrow>
         <ActionIcon

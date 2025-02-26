@@ -20,6 +20,8 @@ import { History } from "@tiptap/extension-history";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -38,7 +40,7 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 700);
+  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 500);
   const {
     data: updatedPageData,
     mutate: updatePageMutation,
@@ -50,6 +52,9 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  const [currentUser] = useAtom(currentUserAtom);
+  const userPageEditMode =
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
   const titleEditor = useEditor({
     extensions: [
@@ -75,9 +80,12 @@ export function TitleEditor({
       }
     },
     onUpdate({ editor }) {
-      const currentTitle = editor.getText();
-      setDebouncedTitleState(currentTitle);
       setActivePageId(pageId);
+      const currentTitle = editor.getText();
+      if (currentTitle === debouncedTitle) {
+        return;
+      }
+      setDebouncedTitleState(currentTitle);
     },
     editable: editable,
     content: title,
@@ -91,6 +99,8 @@ export function TitleEditor({
   }, [title]);
 
   useEffect(() => {
+    if (debouncedTitle === title) return;
+
     if (debouncedTitle !== null && activePageId === pageId) {
       updatePageMutation({
         pageId: pageId,
@@ -128,7 +138,18 @@ export function TitleEditor({
     }, 500);
   }, [titleEditor]);
 
-  function handleTitleKeyDown(event) {
+  useEffect(() => {
+    // honor user default page edit mode preference
+    if (userPageEditMode && titleEditor && editable) {
+      if (userPageEditMode === PageEditMode.Edit) {
+        titleEditor.setEditable(true);
+      } else if (userPageEditMode === PageEditMode.Read) {
+        titleEditor.setEditable(false);
+      }
+    }
+  }, [userPageEditMode, titleEditor, editable]);
+
+  function handleTitleKeyDown(event: any) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;
 
     const { key } = event;
