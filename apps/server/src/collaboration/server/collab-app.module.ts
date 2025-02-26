@@ -8,9 +8,11 @@ import { QueueModule } from '../../integrations/queue/queue.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from '../../integrations/health/health.module';
 import { CollaborationController } from './collaboration.controller';
+import { SentryModule } from "@sentry/nestjs/setup";
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     DatabaseModule,
     EnvironmentModule,
     CollaborationModule,
