@@ -7,16 +7,18 @@ import {
   useRevokeInvitationMutation,
   useGetInviteLink,
 } from "@/features/workspace/queries/workspace-query.ts";
+import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
 
 interface Props {
   invitationId: string;
 }
 export default function InviteActionMenu({ invitationId }: Props) {
+  const { t } = useTranslation();
   const resendInvitationMutation = useResendInvitationMutation();
   const revokeInvitationMutation = useRevokeInvitationMutation();
   const { data: inviteLink, error, } = useGetInviteLink(invitationId);
-  
+
   const onCopyLink = async () => {
     if (error) {
       notifications.show({ message: error.message, color: "red" })
@@ -25,7 +27,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
       notifications.show({ message: "Invite link copied to clipboard!"})
     }
   }
-  
+
 
   const onResend = async () => {
     await resendInvitationMutation.mutateAsync({ invitationId });
@@ -37,15 +39,16 @@ export default function InviteActionMenu({ invitationId }: Props) {
 
   const openRevokeModal = () =>
     modals.openConfirmModal({
-      title: "Revoke invitation",
+      title: t("Revoke invitation"),
       children: (
         <Text size="sm">
-          Are you sure you want to revoke this invitation? The user will not be
-          able to join the workspace.
+          {t(
+            "Are you sure you want to revoke this invitation? The user will not be able to join the workspace.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: { confirm: "Revoke", cancel: "Don't" },
+      labels: { confirm: t("Revoke"), cancel: t("Don't") },
       confirmProps: { color: "red" },
       onConfirm: onRevoke,
     });
@@ -67,6 +70,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
+          <Menu.Item onClick={onResend}>{t("Resend invitation")}</Menu.Item>
           <Menu.Item onClick={onCopyLink}>Copy invite link</Menu.Item>
           <Menu.Item onClick={onResend}>Resend invitation</Menu.Item>
           <Menu.Divider />
@@ -75,7 +79,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
             onClick={openRevokeModal}
             leftSection={<IconTrash size={16} stroke={2} />}
           >
-            Revoke invitation
+            {t("Revoke invitation")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>

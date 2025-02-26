@@ -7,6 +7,8 @@ export interface CustomCodeBlockOptions extends CodeBlockLowlightOptions {
   view: any;
 }
 
+const TAB_CHAR = "\u00A0\u00A0";
+
 export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
   {
     selectable: true,
@@ -18,8 +20,26 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
       };
     },
 
+    addKeyboardShortcuts() {
+      return {
+        ...this.parent?.(),
+        Tab: () => {
+          if (this.editor.isActive("codeBlock")) {
+            this.editor
+              .chain()
+              .command(({ tr }) => {
+                tr.insertText(TAB_CHAR);
+                return true;
+              })
+              .run();
+            return true;
+          }
+        },
+      };
+    },
+
     addNodeView() {
       return ReactNodeViewRenderer(this.options.view);
     },
-  },
+  }
 );

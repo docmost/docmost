@@ -16,7 +16,6 @@ import {
 } from '@docmost/db/types/entity.types';
 import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
-import { hashPassword } from '../../../common/helpers';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
@@ -24,7 +23,6 @@ import { TokenService } from '../../auth/services/token.service';
 import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { TokensDto } from '../../auth/dto/tokens.dto';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -179,25 +177,22 @@ export class WorkspaceInvitationService {
       throw new BadRequestException('Invalid invitation token');
     }
 
-    const password = await hashPassword(dto.password);
     let newUser: User;
 
     try {
       await executeTx(this.db, async (trx) => {
-        newUser = await trx
-          .insertInto('users')
-          .values({
+        newUser = await this.userRepo.insertUser(
+          {
             name: dto.name,
             email: invitation.email,
-            password: password,
-            workspaceId: workspaceId,
-            role: invitation.role,
-            lastLoginAt: new Date(),
-            invitedById: invitation.invitedById,
             emailVerifiedAt: new Date(),
-          })
-          .returningAll()
-          .executeTakeFirst();
+            password: dto.password,
+            role: invitation.role,
+            invitedById: invitation.invitedById,
+            workspaceId: workspaceId,
+          },
+          trx,
+        );
 
         // add user to default group
         await this.groupUserRepo.addUserToDefaultGroup(
@@ -269,8 +264,7 @@ export class WorkspaceInvitationService {
       });
     }
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(newUser);
-    return { tokens };
+    return this.tokenService.generateAccessToken(newUser);
   }
 
   async resendInvitation(

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { TokensDto } from '../dto/tokens.dto';
-import { JwtPayload, JwtRefreshPayload, JwtType } from '../dto/jwt-payload';
+import { JwtCollabPayload, JwtPayload, JwtType } from '../dto/jwt-payload';
 import { User } from '@docmost/db/types/entity.types';
 
 @Injectable()
@@ -22,24 +21,17 @@ export class TokenService {
     return this.jwtService.sign(payload);
   }
 
-  async generateRefreshToken(
+  async generateCollabToken(
     userId: string,
     workspaceId: string,
   ): Promise<string> {
-    const payload: JwtRefreshPayload = {
+    const payload: JwtCollabPayload = {
       sub: userId,
       workspaceId,
-      type: JwtType.REFRESH,
+      type: JwtType.COLLAB,
     };
-    const expiresIn = this.environmentService.getJwtTokenExpiresIn();
+    const expiresIn = '24h';
     return this.jwtService.sign(payload, { expiresIn });
-  }
-
-  async generateTokens(user: User): Promise<TokensDto> {
-    return {
-      accessToken: await this.generateAccessToken(user),
-      refreshToken: await this.generateRefreshToken(user.id, user.workspaceId),
-    };
   }
 
   async verifyJwt(token: string) {

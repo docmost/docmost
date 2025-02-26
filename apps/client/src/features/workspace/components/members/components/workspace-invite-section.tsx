@@ -2,8 +2,10 @@ import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useEffect, useState } from "react";
 import { Button, CopyButton, Group, Text, TextInput } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceInviteSection() {
+  const { t } = useTranslation();
   const [currentUser] = useAtom(currentUserAtom);
   const [inviteLink, setInviteLink] = useState<string>("");
 
@@ -17,10 +19,10 @@ export default function WorkspaceInviteSection() {
     <>
       <div>
         <Text fw={500} mb="sm">
-          Invite link
+          {t("Invite link")}
         </Text>
         <Text c="dimmed" mb="sm">
-          Anyone with this link can join this workspace.
+          {t("Anyone with this link can join this workspace.")}
         </Text>
       </div>
 
@@ -31,7 +33,7 @@ export default function WorkspaceInviteSection() {
         <CopyButton value={inviteLink}>
           {({ copied, copy }) => (
             <Button color={copied ? "teal" : ""} onClick={copy}>
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("Copied") : t("Copy")}
             </Button>
           )}
         </CopyButton>

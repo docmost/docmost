@@ -6,32 +6,36 @@ import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { useMemo } from "react";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const {
     data: page,
     isLoading,
     isError,
+    error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;
   }
 
   if (isError || !page) {
-    // TODO: fix this
-    return <div>Error fetching page data.</div>;
+    if ([401, 403, 404].includes(error?.["status"])) {
+      return <div>{t("Page not found")}</div>;
+    }
+    return <div>{t("Error fetching page data.")}</div>;
   }
 
   if (!space) {
@@ -42,7 +46,7 @@ export default function Page() {
     page && (
       <div>
         <Helmet>
-          <title>{`${page?.icon || ""}  ${page?.title || "untitled"}`}</title>
+          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
         <PageHeader
@@ -53,8 +57,10 @@ export default function Page() {
         />
 
         <FullEditor
+          key={page.id}
           pageId={page.id}
           title={page.title}
+          content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={spaceAbility.can(

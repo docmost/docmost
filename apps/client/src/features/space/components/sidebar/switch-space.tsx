@@ -12,8 +12,8 @@ interface SwitchSpaceProps {
 }
 
 export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
-  const [opened, { close, open, toggle }] = useDisclosure(false);
   const navigate = useNavigate();
+  const [opened, { close, open, toggle }] = useDisclosure(false);
 
   const handleSelect = (value: string) => {
     if (value) {
@@ -29,6 +29,7 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
       withArrow
       shadow="md"
       opened={opened}
+      onChange={toggle}
     >
       <Popover.Target>
         <Button
@@ -37,7 +38,7 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
           justify="space-between"
           rightSection={<IconChevronDown size={18} />}
           color="gray"
-          onClick={toggle}
+          onClick={open}
         >
           <Avatar
             size={20}

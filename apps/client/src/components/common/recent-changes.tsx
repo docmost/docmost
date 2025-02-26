@@ -4,33 +4,35 @@ import {
   UnstyledButton,
   Badge,
   Table,
-  ScrollArea,
   ActionIcon,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import PageListSkeleton from '@/components/ui/page-list-skeleton.tsx';
 import { buildPageUrl } from '@/features/page/page.utils.ts';
 import { formattedDate } from '@/lib/time.ts';
 import { useRecentChangesQuery } from '@/features/page/queries/page-query.ts';
 import { IconFileDescription } from '@tabler/icons-react';
 import { getSpaceUrl } from '@/lib/config.ts';
+import { useTranslation } from "react-i18next";
 
 interface Props {
   spaceId?: string;
 }
-export default function RecentChanges({ spaceId }: Props) {
-  const { data: pages, isLoading, isError } = useRecentChangesQuery(spaceId);
+
+export default function RecentChanges({spaceId}: Props) {
+  const { t } = useTranslation();
+  const {data: pages, isLoading, isError} = useRecentChangesQuery(spaceId);
 
   if (isLoading) {
-    return <PageListSkeleton />;
+    return <PageListSkeleton/>;
   }
 
   if (isError) {
-    return <Text>Failed to fetch recent pages</Text>;
+    return <Text>{t("Failed to fetch recent pages")}</Text>;
   }
 
   return pages && pages.items.length > 0 ? (
-    <ScrollArea>
+    <Table.ScrollContainer minWidth={500}>
       <Table highlightOnHover verticalSpacing="sm">
         <Table.Tbody>
           {pages.items.map((page) => (
@@ -43,12 +45,12 @@ export default function RecentChanges({ spaceId }: Props) {
                   <Group wrap="nowrap">
                     {page.icon || (
                       <ActionIcon variant='transparent' color='gray' size={18}>
-                        <IconFileDescription size={18} />
+                        <IconFileDescription size={18}/>
                       </ActionIcon>
                     )}
 
                     <Text fw={500} size="md" lineClamp={1}>
-                      {page.title || 'Untitled'}
+                      {page.title || t("Untitled")}
                     </Text>
                   </Group>
                 </UnstyledButton>
@@ -60,14 +62,14 @@ export default function RecentChanges({ spaceId }: Props) {
                     variant="light"
                     component={Link}
                     to={getSpaceUrl(page?.space.slug)}
-                    style={{ cursor: 'pointer' }}
+                    style={{cursor: 'pointer'}}
                   >
                     {page?.space.name}
                   </Badge>
                 </Table.Td>
               )}
               <Table.Td>
-                <Text c="dimmed" size="xs" fw={500}>
+                <Text c="dimmed" style={{whiteSpace: 'nowrap'}} size="xs" fw={500}>
                   {formattedDate(page.updatedAt)}
                 </Text>
               </Table.Td>
@@ -75,10 +77,10 @@ export default function RecentChanges({ spaceId }: Props) {
           ))}
         </Table.Tbody>
       </Table>
-    </ScrollArea>
+    </Table.ScrollContainer>
   ) : (
     <Text size="md" ta="center">
-      No pages yet
+      {t("No pages yet")}
     </Text>
   );
 }

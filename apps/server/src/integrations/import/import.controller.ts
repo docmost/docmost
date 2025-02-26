@@ -21,7 +21,6 @@ import {
 import { FileInterceptor } from '../../common/interceptors/file.interceptor';
 import * as bytes from 'bytes';
 import * as path from 'path';
-import { MAX_FILE_SIZE } from '../../core/attachment/attachment.constants';
 import { ImportService } from './import.service';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 
@@ -45,7 +44,7 @@ export class ImportController {
   ) {
     const validFileExtensions = ['.md', '.html'];
 
-    const maxFileSize = bytes(MAX_FILE_SIZE);
+    const maxFileSize = bytes('100mb');
 
     let file = null;
     try {
@@ -56,7 +55,7 @@ export class ImportController {
       this.logger.error(err.message);
       if (err?.statusCode === 413) {
         throw new BadRequestException(
-          `File too large. Exceeds the ${MAX_FILE_SIZE} limit`,
+          `File too large. Exceeds the 100mb import limit`,
         );
       }
     }

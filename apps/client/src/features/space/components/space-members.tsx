@@ -16,17 +16,29 @@ import {
   spaceRoleData,
 } from "@/features/space/types/space-role-data.ts";
 import { formatMemberCount } from "@/lib";
+import { useTranslation } from "react-i18next";
+import Paginate from "@/components/common/paginate.tsx";
+import { SearchInput } from "@/components/common/search-input.tsx";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 
 type MemberType = "user" | "group";
+
 interface SpaceMembersProps {
   spaceId: string;
   readOnly?: boolean;
 }
+
 export default function SpaceMembersList({
   spaceId,
   readOnly,
 }: SpaceMembersProps) {
-  const { data, isLoading } = useSpaceMembersQuery(spaceId);
+  const { t } = useTranslation();
+  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { data, isLoading } = useSpaceMembersQuery(spaceId, {
+    page,
+    limit: 100,
+    query: search,
+  });
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
 
@@ -77,27 +89,29 @@ export default function SpaceMembersList({
 
   const openRemoveModal = (memberId: string, type: MemberType) =>
     modals.openConfirmModal({
-      title: "Remove space member",
+      title: t("Remove space member"),
       children: (
         <Text size="sm">
-          Are you sure you want to remove this user from the space? The user
-          will lose all access to this space.
+          {t(
+            "Are you sure you want to remove this user from the space? The user will lose all access to this space.",
+          )}
         </Text>
       ),
       centered: true,
-      labels: { confirm: "Remove", cancel: "Cancel" },
+      labels: { confirm: t("Remove"), cancel: t("Cancel") },
       confirmProps: { color: "red" },
       onConfirm: () => onRemove(memberId, type),
     });
 
   return (
     <>
-      {data && (
-        <Table verticalSpacing={8}>
+      <SearchInput onSearch={handleSearch} />
+      <Table.ScrollContainer minWidth={500}>
+        <Table highlightOnHover verticalSpacing={8}>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Member</Table.Th>
-              <Table.Th>Role</Table.Th>
+              <Table.Th>{t("Member")}</Table.Th>
+              <Table.Th>{t("Role")}</Table.Th>
               <Table.Th></Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -106,7 +120,7 @@ export default function SpaceMembersList({
             {data?.items.map((member, index) => (
               <Table.Tr key={index}>
                 <Table.Td>
-                  <Group gap="sm">
+                  <Group gap="sm" wrap="nowrap">
                     {member.type === "user" && (
                       <CustomAvatar
                         avatarUrl={member?.avatarUrl}
@@ -117,14 +131,14 @@ export default function SpaceMembersList({
                     {member.type === "group" && <IconGroupCircle />}
 
                     <div>
-                      <Text fz="sm" fw={500}>
+                      <Text fz="sm" fw={500} lineClamp={1}>
                         {member?.name}
                       </Text>
                       <Text fz="xs" c="dimmed">
                         {member.type == "user" && member?.email}
 
                         {member.type == "group" &&
-                          `Group - ${formatMemberCount(member?.memberCount)}`}
+                          `${t("Group")} - ${formatMemberCount(member?.memberCount, t)}`}
                       </Text>
                     </div>
                   </Group>
@@ -168,7 +182,7 @@ export default function SpaceMembersList({
                             openRemoveModal(member.id, member.type)
                           }
                         >
-                          Remove space member
+                          {t("Remove space member")}
                         </Menu.Item>
                       </Menu.Dropdown>
                     </Menu>
@@ -178,6 +192,15 @@ export default function SpaceMembersList({
             ))}
           </Table.Tbody>
         </Table>
+      </Table.ScrollContainer>
+
+      {data?.items.length > 0 && (
+        <Paginate
+          currentPage={page}
+          hasPrevPage={data?.meta.hasPrevPage}
+          hasNextPage={data?.meta.hasNextPage}
+          onPageChange={setPage}
+        />
       )}
     </>
   );

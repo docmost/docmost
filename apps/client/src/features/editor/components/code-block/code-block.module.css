@@ -16,3 +16,9 @@
     align-items: center;
     justify-content: center;
 }
+
+.menuGroup {
+    @media print {
+        display: none;
+    }
+}

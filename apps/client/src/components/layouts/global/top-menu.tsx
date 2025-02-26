@@ -13,8 +13,10 @@ import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import useAuth from "@/features/auth/hooks/use-auth.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function TopMenu() {
+  const { t } = useTranslation();
   const [currentUser] = useAtom(currentUserAtom);
   const { logout } = useAuth();
 
@@ -36,7 +38,7 @@ export default function TopMenu() {
               variant="filled"
               size="sm"
             />
-            <Text fw={500} size="sm" lh={1} mr={3}>
+            <Text fw={500} size="sm" lh={1} mr={3} lineClamp={1}>
               {workspace.name}
             </Text>
             <IconChevronDown size={16} />
@@ -44,14 +46,14 @@ export default function TopMenu() {
         </UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Label>Workspace</Menu.Label>
+        <Menu.Label>{t("Workspace")}</Menu.Label>
 
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.WORKSPACE.GENERAL}
           leftSection={<IconSettings size={16} />}
         >
-          Workspace settings
+          {t("Workspace settings")}
         </Menu.Item>
 
         <Menu.Item
@@ -59,12 +61,12 @@ export default function TopMenu() {
           to={APP_ROUTE.SETTINGS.WORKSPACE.MEMBERS}
           leftSection={<IconUsers size={16} />}
         >
-          Manage members
+          {t("Manage members")}
         </Menu.Item>
 
         <Menu.Divider />
 
-        <Menu.Label>Account</Menu.Label>
+        <Menu.Label>{t("Account")}</Menu.Label>
         <Menu.Item component={Link} to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}>
           <Group wrap={"nowrap"}>
             <CustomAvatar
@@ -73,11 +75,11 @@ export default function TopMenu() {
               name={user.name}
             />
 
-            <div>
+            <div style={{width: 190}}>
               <Text size="sm" fw={500} lineClamp={1}>
                 {user.name}
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="dimmed" truncate="end">
                 {user.email}
               </Text>
             </div>
@@ -88,7 +90,7 @@ export default function TopMenu() {
           to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}
           leftSection={<IconUserCircle size={16} />}
         >
-          My profile
+          {t("My profile")}
         </Menu.Item>
 
         <Menu.Item
@@ -96,13 +98,13 @@ export default function TopMenu() {
           to={APP_ROUTE.SETTINGS.ACCOUNT.PREFERENCES}
           leftSection={<IconBrush size={16} />}
         >
-          My preferences
+          {t("My preferences")}
         </Menu.Item>
 
         <Menu.Divider />
 
         <Menu.Item onClick={logout} leftSection={<IconLogout size={16} />}>
-          Logout
+          {t("Logout")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

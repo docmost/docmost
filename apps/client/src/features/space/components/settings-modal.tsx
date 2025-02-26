@@ -1,14 +1,15 @@
-import { Modal, Tabs, rem, Group, ScrollArea } from "@mantine/core";
+import {Modal, Tabs, rem, Group, ScrollArea, Text} from "@mantine/core";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
-import React, { useMemo } from "react";
+import React, {useMemo} from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
-import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {useSpaceQuery} from "@/features/space/queries/space-query.ts";
+import {useSpaceAbility} from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useTranslation } from "react-i18next";
 
 interface SpaceSettingsModalProps {
   spaceId: string;
@@ -21,10 +22,11 @@ export default function SpaceSettingsModal({
   opened,
   onClose,
 }: SpaceSettingsModalProps) {
+  const { t } = useTranslation();
   const { data: space, isLoading } = useSpaceQuery(spaceId);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useMemo(() => useSpaceAbility(spaceRules), [spaceRules]);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   return (
     <>
@@ -37,52 +39,52 @@ export default function SpaceSettingsModal({
         xOffset={0}
         mah={400}
       >
-        <Modal.Overlay />
-        <Modal.Content style={{ overflow: "hidden" }}>
+        <Modal.Overlay/>
+        <Modal.Content style={{overflow: "hidden"}}>
           <Modal.Header py={0}>
-            <Modal.Title fw={500}>{space?.name}</Modal.Title>
-            <Modal.CloseButton />
+            <Modal.Title>
+              <Text fw={500} lineClamp={1}>{space?.name}</Text>
+            </Modal.Title>
+            <Modal.CloseButton/>
           </Modal.Header>
           <Modal.Body>
-            <div style={{ height: rem("600px") }}>
+            <div style={{height: rem(600)}}>
               <Tabs defaultValue="members">
                 <Tabs.List>
                   <Tabs.Tab fw={500} value="general">
-                    Settings
+                    {t("Settings")}
                   </Tabs.Tab>
                   <Tabs.Tab fw={500} value="members">
-                    Members
+                    {t("Members")}
                   </Tabs.Tab>
                 </Tabs.List>
 
-                <ScrollArea h="600" w="100%" scrollbarSize={5}>
-                  <Tabs.Panel value="general">
-                    <SpaceDetails
-                      spaceId={space?.id}
-                      readOnly={spaceAbility.cannot(
-                        SpaceCaslAction.Manage,
-                        SpaceCaslSubject.Settings,
-                      )}
-                    />
-                  </Tabs.Panel>
+                <Tabs.Panel value="general">
+                  <SpaceDetails
+                    spaceId={space?.id}
+                    readOnly={spaceAbility.cannot(
+                      SpaceCaslAction.Manage,
+                      SpaceCaslSubject.Settings,
+                    )}
+                  />
+                </Tabs.Panel>
 
-                  <Tabs.Panel value="members">
-                    <Group my="md" justify="flex-end">
-                      {spaceAbility.can(
-                        SpaceCaslAction.Manage,
-                        SpaceCaslSubject.Member,
-                      ) && <AddSpaceMembersModal spaceId={space?.id} />}
-                    </Group>
+                <Tabs.Panel value="members">
+                  <Group my="md" justify="flex-end">
+                    {spaceAbility.can(
+                      SpaceCaslAction.Manage,
+                      SpaceCaslSubject.Member,
+                    ) && <AddSpaceMembersModal spaceId={space?.id}/>}
+                  </Group>
 
-                    <SpaceMembersList
-                      spaceId={space?.id}
-                      readOnly={spaceAbility.cannot(
-                        SpaceCaslAction.Manage,
-                        SpaceCaslSubject.Member,
-                      )}
-                    />
-                  </Tabs.Panel>
-                </ScrollArea>
+                  <SpaceMembersList
+                    spaceId={space?.id}
+                    readOnly={spaceAbility.cannot(
+                      SpaceCaslAction.Manage,
+                      SpaceCaslSubject.Member,
+                    )}
+                  />
+                </Tabs.Panel>
               </Tabs>
             </div>
           </Modal.Body>

@@ -9,6 +9,8 @@ import { Server, Socket } from 'socket.io';
 import { TokenService } from '../core/auth/services/token.service';
 import { JwtType } from '../core/auth/dto/jwt-payload';
 import { OnModuleDestroy } from '@nestjs/common';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import * as cookie from 'cookie';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -17,34 +19,58 @@ import { OnModuleDestroy } from '@nestjs/common';
 export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   @WebSocketServer()
   server: Server;
-  constructor(private tokenService: TokenService) {}
+  constructor(
+    private tokenService: TokenService,
+    private spaceMemberRepo: SpaceMemberRepo,
+  ) {}
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
     try {
-      const token = await this.tokenService.verifyJwt(
-        client.handshake.auth?.token,
-      );
+      const cookies = cookie.parse(client.handshake.headers.cookie);
+      const token = await this.tokenService.verifyJwt(cookies['authToken']);
+
       if (token.type !== JwtType.ACCESS) {
+        client.emit('Unauthorized');
         client.disconnect();
       }
+
+      const userId = token.sub;
+      const workspaceId = token.workspaceId;
+
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+
+      const workspaceRoom = `workspace-${workspaceId}`;
+      const spaceRooms = userSpaceIds.map((id) => this.getSpaceRoomName(id));
+
+      client.join([workspaceRoom, ...spaceRooms]);
     } catch (err) {
+      client.emit('Unauthorized');
       client.disconnect();
     }
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: Socket, data: string): void {
-    client.broadcast.emit('message', data);
-  }
+  handleMessage(client: Socket, data: any): void {
+    const spaceEvents = [
+      'updateOne',
+      'addTreeNode',
+      'moveTreeNode',
+      'deleteTreeNode',
+    ];
 
-  @SubscribeMessage('messageToRoom')
-  handleSendMessageToRoom(@MessageBody() message: any) {
-    this.server.to(message?.roomId).emit('messageToRoom', message);
+    if (spaceEvents.includes(data?.operation) && data?.spaceId) {
+      const room = this.getSpaceRoomName(data.spaceId);
+      client.broadcast.to(room).emit('message', data);
+      return;
+    }
+
+    client.broadcast.emit('message', data);
   }
 
   @SubscribeMessage('join-room')
   handleJoinRoom(client: Socket, @MessageBody() roomName: string): void {
-    client.join(roomName);
+    // if room is a space, check if user has permissions
+    //client.join(roomName);
   }
 
   @SubscribeMessage('leave-room')
@@ -56,5 +82,9 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
     if (this.server) {
       this.server.close();
     }
+  }
+
+  getSpaceRoomName(spaceId: string): string {
+    return `space-${spaceId}`;
   }
 }

@@ -4,16 +4,16 @@ import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import {
-  htmlToJson,
+  htmlToJson, jsonToText,
   tiptapExtensions,
 } from '../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateSlugId } from '../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { markdownToHtml } from './utils/marked.utils';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
+import { markdownToHtml } from "@docmost/editor-ext";
 
 @Injectable()
 export class ImportService {
@@ -72,6 +72,7 @@ export class ImportService {
           slugId: generateSlugId(),
           title: pageTitle,
           content: prosemirrorJson,
+          textContent: jsonToText(prosemirrorJson),
           ydoc: await this.createYdoc(prosemirrorJson),
           position: pagePosition,
           spaceId: spaceId,

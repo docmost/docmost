@@ -35,6 +35,8 @@ import {
   CustomCodeBlock,
   Drawio,
   Excalidraw,
+  Embed,
+  Mention,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -53,6 +55,7 @@ import AttachmentView from "@/features/editor/components/attachment/attachment-v
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
+import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import elixir from "highlight.js/lib/languages/elixir";
@@ -62,6 +65,11 @@ import clojure from "highlight.js/lib/languages/clojure";
 import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
+import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import MentionView from "@/features/editor/components/mention/mention-view.tsx";
+import i18n from "@/i18n.ts";
+import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -92,13 +100,13 @@ export const mainExtensions = [
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
-        return `Heading ${node.attrs.level}`;
+        return i18n.t("Heading {{level}}", { level: node.attrs.level });
       }
       if (node.type.name === "detailsSummary") {
-        return "Toggle title";
+        return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
-        return 'Write anything. Enter "/" for commands';
+        return i18n.t('Write anything. Enter "/" for commands');
       }
     },
     includeChildren: true,
@@ -129,7 +137,23 @@ export const mainExtensions = [
       class: "comment-mark",
     },
   }),
-
+  Mention.configure({
+    suggestion: {
+      allowSpaces: true,
+      items: () => {
+        return [];
+      },
+      // @ts-ignore
+      render: mentionRenderItems,
+    },
+    HTMLAttributes: {
+      class: "mention",
+    },
+  }).extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(MentionView);
+    },
+  }),
   Table.configure({
     resizable: true,
     lastColumnResizable: false,
@@ -138,7 +162,6 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
-
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -149,6 +172,7 @@ export const mainExtensions = [
   DetailsSummary,
   DetailsContent,
   Youtube.configure({
+    addPasteHandler: false,
     controls: true,
     nocookie: true,
   }),
@@ -178,6 +202,12 @@ export const mainExtensions = [
   }),
   Excalidraw.configure({
     view: ExcalidrawView,
+  }),
+  Embed.configure({
+    view: EmbedView,
+  }),
+  MarkdownClipboard.configure({
+    transformPastedText: true,
   }),
 ] as any;
 

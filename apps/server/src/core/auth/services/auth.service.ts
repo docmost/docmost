@@ -7,7 +7,6 @@ import {
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
-import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -60,24 +59,17 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
     const user = await this.signupService.signup(createUserDto, workspaceId);
-
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
     const user = await this.signupService.initialSetup(createAdminUserDto);
-
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async changePassword(
@@ -186,7 +178,7 @@ export class AuthService {
         trx,
       );
 
-      trx
+      await trx
         .deleteFrom('userTokens')
         .where('userId', '=', user.id)
         .where('type', '=', UserTokenType.FORGOT_PASSWORD)
@@ -200,9 +192,7 @@ export class AuthService {
       template: emailTemplate,
     });
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async verifyUserToken(
@@ -221,5 +211,13 @@ export class AuthService {
     ) {
       throw new BadRequestException('Invalid or expired token');
     }
+  }
+
+  async getCollabToken(userId: string, workspaceId: string) {
+    const token = await this.tokenService.generateCollabToken(
+      userId,
+      workspaceId,
+    );
+    return { token };
   }
 }

@@ -7,11 +7,13 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {Transform, TransformFnParams} from "class-transformer";
 
 export class CreateGroupDto {
   @MinLength(2)
   @MaxLength(50)
   @IsString()
+  @Transform(({ value }: TransformFnParams) => value?.trim())
   name: string;
 
   @IsOptional()

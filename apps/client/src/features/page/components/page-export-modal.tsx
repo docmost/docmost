@@ -1,9 +1,10 @@
-import { Modal, Button, Group, Text, Select } from "@mantine/core";
+import { Modal, Button, Group, Text, Select, Switch } from "@mantine/core";
 import { exportPage } from "@/features/page/services/page-service.ts";
 import { useState } from "react";
 import * as React from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 
 interface PageExportModalProps {
   pageId: string;
@@ -16,6 +17,7 @@ export default function PageExportModal({
   open,
   onClose,
 }: PageExportModalProps) {
+  const { t } = useTranslation();
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
 
   const handleExport = async () => {
@@ -24,7 +26,7 @@ export default function PageExportModal({
       onClose();
     } catch (err) {
       notifications.show({
-        message: "Export failed:" + err.response?.data.message,
+        message: t("Export failed:") + err.response?.data.message,
         color: "red",
       });
       console.error("export error", err);
@@ -48,22 +50,29 @@ export default function PageExportModal({
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>Export page</Modal.Title>
+          <Modal.Title fw={500}>{t("Export page")}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
           <Group justify="space-between" wrap="nowrap">
             <div>
-              <Text size="md">Format</Text>
+              <Text size="md">{t("Format")}</Text>
             </div>
             <ExportFormatSelection format={format} onChange={handleChange} />
           </Group>
 
+          <Group justify="space-between" wrap="nowrap" pt="md">
+            <div>
+              <Text size="md">{t("Include subpages")}</Text>
+            </div>
+            <Switch defaultChecked />
+          </Group>
+
           <Group justify="center" mt="md">
             <Button onClick={onClose} variant="default">
-              Cancel
+              {t("Cancel")}
             </Button>
-            <Button onClick={handleExport}>Export</Button>
+            <Button onClick={handleExport}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>
@@ -76,6 +85,8 @@ interface ExportFormatSelection {
   onChange: (value: string) => void;
 }
 function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
+  const { t } = useTranslation();
+
   return (
     <Select
       data={[
@@ -88,7 +99,7 @@ function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
       comboboxProps={{ width: "120" }}
       allowDeselect={false}
       withCheckIcon={false}
-      aria-label="Select export format"
+      aria-label={t("Select export format")}
     />
   );
 }

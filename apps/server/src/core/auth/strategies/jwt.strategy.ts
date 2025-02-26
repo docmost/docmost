@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
@@ -13,6 +14,8 @@ import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  private logger = new Logger('JwtStrategy');
+
   constructor(
     private userRepo: UserRepo,
     private workspaceRepo: WorkspaceRepo,
@@ -20,13 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     super({
       jwtFromRequest: (req: FastifyRequest) => {
-        let accessToken = null;
-
-        try {
-          accessToken = JSON.parse(req.cookies?.authTokens)?.accessToken;
-        } catch {}
-
-        return accessToken || this.extractTokenFromHeader(req);
+        return req.cookies?.authToken || this.extractTokenFromHeader(req);
       },
       ignoreExpiration: false,
       secretOrKey: environmentService.getAppSecret(),

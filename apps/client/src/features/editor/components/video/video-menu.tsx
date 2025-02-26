@@ -17,8 +17,10 @@ import {
   IconLayoutAlignRight,
 } from "@tabler/icons-react";
 import { NodeWidthResize } from "@/features/editor/components/common/node-width-resize.tsx";
+import { useTranslation } from "react-i18next";
 
 export function VideoMenu({ editor }: EditorMenuProps) {
+  const { t } = useTranslation();
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -96,11 +98,11 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
-        <Tooltip position="top" label="Align video left">
+        <Tooltip position="top" label={t("Align left")}>
           <ActionIcon
             onClick={alignVideoLeft}
             size="lg"
-            aria-label="Align video left"
+            aria-label={t("Align left")}
             variant={
               editor.isActive("video", { align: "left" }) ? "light" : "default"
             }
@@ -109,11 +111,11 @@ export function VideoMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Align video center">
+        <Tooltip position="top" label={t("Align center")}>
           <ActionIcon
             onClick={alignVideoCenter}
             size="lg"
-            aria-label="Align video center"
+            aria-label={t("Align center")}
             variant={
               editor.isActive("video", { align: "center" })
                 ? "light"
@@ -124,11 +126,11 @@ export function VideoMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label="Align video right">
+        <Tooltip position="top" label={t("Align right")}>
           <ActionIcon
             onClick={alignVideoRight}
             size="lg"
-            aria-label="Align video right"
+            aria-label={t("Align right")}
             variant={
               editor.isActive("video", { align: "right" }) ? "light" : "default"
             }
