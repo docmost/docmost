@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { CollabAppAppModule } from './collab-app.module';
+import { CollabAppModule } from './collab-app.module';
 import {
   FastifyAdapter,
   NestFastifyApplication,
@@ -10,7 +10,7 @@ import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
-    CollabAppAppModule,
+    CollabAppModule,
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
