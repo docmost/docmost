@@ -26,6 +26,7 @@ import {
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
+import { useTranslation } from "react-i18next";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -82,22 +83,14 @@ export function useWorkspaceInvitationsQuery(
   });
 }
 
-export function useGetInviteLink(
-  invitationId: string
-): UseQueryResult<IInvitationLink,Error> {
-  return useQuery({
-    queryKey:["inviteLink",invitationId],
-    queryFn: () => getInviteLink({ invitationId }),
-  })
-}
-
 export function useCreateInvitationMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
+      notifications.show({ message: t("Invitation sent") });
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });
