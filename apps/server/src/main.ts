@@ -1,10 +1,11 @@
+import './common/sentry/instrument';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { NotFoundException, ValidationPipe } from '@nestjs/common';
+import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
@@ -18,6 +19,7 @@ async function bootstrap() {
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
       maxParamLength: 1000,
+      trustProxy: true,
     }),
     {
       rawBody: true,
@@ -53,7 +55,7 @@ async function bootstrap() {
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',
         '/api/sso/google',
-        '/api/workspace/create'
+        '/api/workspace/create',
       ];
 
       if (
@@ -81,7 +83,14 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
   app.enableShutdownHooks();
 
-  await app.listen(process.env.PORT || 3000, '0.0.0.0');
+  const logger = new Logger('NestApplication');
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0', () => {
+    logger.log(
+      `Listening on http://127.0.0.1:${port} / ${process.env.APP_URL}`,
+    );
+  });
 }
 
 bootstrap();

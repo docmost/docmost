@@ -14,6 +14,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './integrations/health/health.module';
 import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
+import { SentryModule } from "@sentry/nestjs/setup";
 
 const enterpriseModules = [];
 try {
@@ -31,6 +32,7 @@ try {
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     CoreModule,
     DatabaseModule,
     EnvironmentModule,

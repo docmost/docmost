@@ -72,6 +72,21 @@ export class WorkspaceInvitationService {
     return invitation;
   }
 
+  async getInvitationTokenById(invitationId: string, workspaceId: string) {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['token'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    return invitation;
+  }
+
   async createInvitation(
     inviteUserDto: InviteUserDto,
     workspace: Workspace,
@@ -155,8 +170,6 @@ export class WorkspaceInvitationService {
       .where('id', '=', dto.invitationId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
-
-    // then you have to limit invitation signup here if workspace licensed User limit
 
     if (!invitation) {
       throw new BadRequestException('Invitation not found');
@@ -260,7 +273,6 @@ export class WorkspaceInvitationService {
     invitationId: string,
     workspace: Workspace,
   ): Promise<void> {
-    //
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()
@@ -297,6 +309,27 @@ export class WorkspaceInvitationService {
       .execute();
   }
 
+  async getInvitationLinkById(
+    invitationId: string,
+    workspace: Workspace,
+  ): Promise<string> {
+    const token = await this.getInvitationTokenById(invitationId, workspace.id);
+    return this.buildInviteLink({
+      invitationId,
+      inviteToken: token.token,
+      hostname: workspace.hostname,
+    });
+  }
+
+  async buildInviteLink(opts: {
+    invitationId: string;
+    inviteToken: string;
+    hostname?: string;
+  }): Promise<string> {
+    const { invitationId, inviteToken, hostname } = opts;
+    return `${this.domainService.getUrl(hostname)}/invites/${invitationId}?token=${inviteToken}`;
+  }
+
   async sendInvitationMail(
     invitationId: string,
     inviteeEmail: string,
@@ -304,7 +337,11 @@ export class WorkspaceInvitationService {
     invitedByName: string,
     hostname?: string,
   ): Promise<void> {
-    const inviteLink = `${this.domainService.getUrl(hostname)}/invites/${invitationId}?token=${inviteToken}`;
+    const inviteLink = await this.buildInviteLink({
+      invitationId,
+      inviteToken,
+      hostname,
+    });
 
     const emailTemplate = InvitationEmail({
       inviteLink,

@@ -6,6 +6,7 @@ import {
   IWorkspace,
   IAcceptInvite,
   IPublicWorkspace,
+  IInvitationLink,
 } from "../types/workspace.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { ISetupWorkspace } from "@/features/auth/types/auth.types.ts";
@@ -60,6 +61,13 @@ export async function createInvitation(data: ICreateInvite) {
 
 export async function acceptInvitation(data: IAcceptInvite): Promise<void> {
   await api.post<void>("/workspace/invites/accept", data);
+}
+
+export async function getInviteLink(data: {
+  invitationId: string;
+}): Promise<IInvitationLink> {
+  const req = await api.post("/workspace/invites/link", data);
+  return req.data;
 }
 
 export async function resendInvitation(data: {

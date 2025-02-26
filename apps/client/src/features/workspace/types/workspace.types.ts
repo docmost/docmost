@@ -37,6 +37,10 @@ export interface IInvitation {
   createdAt: Date;
 }
 
+export interface IInvitationLink {
+  inviteLink: string;
+}
+
 export interface IAcceptInvite {
   invitationId: string;
   name: string;
