@@ -271,7 +271,6 @@ export class WorkspaceInvitationService {
     invitationId: string,
     workspaceId: string,
   ): Promise<void> {
-    //
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()
@@ -307,6 +306,14 @@ export class WorkspaceInvitationService {
       .execute();
   }
 
+  async getInvitationLinkById(
+    invitationId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const token = await this.getInvitationTokenById(invitationId, workspaceId);
+    return this.buildInviteLink(invitationId, token.token);
+  }
+
   async buildInviteLink(
     invitationId: string,
     inviteToken: string,
@@ -320,7 +327,7 @@ export class WorkspaceInvitationService {
     inviteToken: string,
     invitedByName: string,
   ): Promise<void> {
-    const inviteLink = await this.buildInviteLink(invitationId,inviteToken);
+    const inviteLink = await this.buildInviteLink(invitationId, inviteToken);
 
     const emailTemplate = InvitationEmail({
       inviteLink,

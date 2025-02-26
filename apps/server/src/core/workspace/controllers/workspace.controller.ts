@@ -20,7 +20,6 @@ import { Public } from '../../../common/decorators/public.decorator';
 import {
   AcceptInviteDto,
   InvitationIdDto,
-  InvitationLinkDto,
   InviteUserDto,
   RevokeInviteDto,
 } from '../dto/invitation.dto';
@@ -179,31 +178,6 @@ export class WorkspaceController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('invites/link')
-  async getInviteLink(
-    @Body() inviteDto: InvitationIdDto,
-    @AuthUser() user: User,
-    @AuthWorkspace() workspace: Workspace,
-  ) {
-    const ability = this.workspaceAbility.createForUser(user, workspace);
-    if (
-      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
-    ) {
-      throw new ForbiddenException();
-    }
-    const inviteLink = new InvitationLinkDto();
-    
-    const token = await this.workspaceInvitationService.getInvitationTokenById(
-      inviteDto.invitationId,
-      workspace.id,
-    );
-
-    inviteLink.inviteLink = await this.workspaceInvitationService.buildInviteLink(inviteDto.invitationId, token.token);
-
-    return inviteLink
-  }
-
-  @HttpCode(HttpStatus.OK)
   @Post('invites/resend')
   async resendInvite(
     @Body() revokeInviteDto: RevokeInviteDto,
@@ -262,5 +236,31 @@ export class WorkspaceController {
       expires: addDays(new Date(), 30),
       secure: this.environmentService.isHttps(),
     });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('invites/link')
+  async getInviteLink(
+    @Body() inviteDto: InvitationIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (this.environmentService.isCloud()) {
+      throw new ForbiddenException();
+    }
+
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    const inviteLink =
+      await this.workspaceInvitationService.getInvitationLinkById(
+        inviteDto.invitationId,
+        workspace.id,
+      );
+
+    return { inviteLink };
   }
 }
