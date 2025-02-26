@@ -5,8 +5,10 @@ import { modals } from "@mantine/modals";
 import {
   useResendInvitationMutation,
   useRevokeInvitationMutation,
+  useGetInviteLink,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
+import { notifications } from "@mantine/notifications";
 
 interface Props {
   invitationId: string;
@@ -15,6 +17,17 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const { t } = useTranslation();
   const resendInvitationMutation = useResendInvitationMutation();
   const revokeInvitationMutation = useRevokeInvitationMutation();
+  const { data: inviteLink, error, } = useGetInviteLink(invitationId);
+
+  const onCopyLink = async () => {
+    if (error) {
+      notifications.show({ message: error.message, color: "red" })
+    } else {
+      navigator.clipboard.writeText(inviteLink.inviteLink)
+      notifications.show({ message: "Invite link copied to clipboard!"})
+    }
+  }
+
 
   const onResend = async () => {
     await resendInvitationMutation.mutateAsync({ invitationId });
@@ -58,6 +71,8 @@ export default function InviteActionMenu({ invitationId }: Props) {
 
         <Menu.Dropdown>
           <Menu.Item onClick={onResend}>{t("Resend invitation")}</Menu.Item>
+          <Menu.Item onClick={onCopyLink}>Copy invite link</Menu.Item>
+          <Menu.Item onClick={onResend}>Resend invitation</Menu.Item>
           <Menu.Divider />
           <Menu.Item
             c="red"
