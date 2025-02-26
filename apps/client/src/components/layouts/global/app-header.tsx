@@ -4,7 +4,7 @@ import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
@@ -24,7 +24,7 @@ export function AppHeader() {
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
-  const { isTrial, trialsDaysLeft } = useTrial();
+  const { isTrial } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
 
@@ -78,15 +78,15 @@ export function AppHeader() {
         </Group>
 
         <Group px={"xl"} wrap="nowrap">
-          {isCloud() && typeof trialsDaysLeft === "number" && (
+          {isCloud() && isTrial && (
             <Badge
               variant="light"
               component={Link}
               to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
               visibleFrom="xs"
-              color={trialsDaysLeft > 0 ? "blue" : "red"}
+              color={isTrial ? "blue" : "red"}
             >
-              {trialsDaysLeft > 0 ? "Trial" : "Trial Ended"}
+              {isTrial ? "Trial" : "Trial ended"}
             </Badge>
           )}
           <TopMenu />

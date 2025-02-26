@@ -1,13 +1,16 @@
 import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { getTrialDaysLeft } from "@/ee/billing/utils.ts";
+import { ICurrentUser } from "@/features/user/types/user.types.ts";
 
 export const useTrial = () => {
-  const [workspace] = useAtom(workspaceAtom);
-  const isTrial = !!workspace?.trialEndAt;
-  const trialsDaysLeft = getTrialDaysLeft(workspace?.trialEndAt);
+  const [currentUser] = useAtom<ICurrentUser>(currentUserAtom);
+  const workspace = currentUser?.workspace;
 
-  return { isTrial, trialsDaysLeft };
+  const trialDaysLeft = getTrialDaysLeft(workspace?.trialEndAt);
+  const isTrial = !!workspace?.trialEndAt && trialDaysLeft !== null;
+
+  return { isTrial: isTrial, trialDaysLeft: trialDaysLeft };
 };
 
 export default useTrial;

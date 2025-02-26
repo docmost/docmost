@@ -2,20 +2,18 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isCloud } from "@/lib/config.ts";
 import APP_ROUTE from "@/lib/app-route.ts";
-import { getTrialDaysLeft } from "@/ee/billing/utils.ts";
-import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { notifications } from "@mantine/notifications";
+import useTrial from "@/ee/hooks/use-trial.tsx";
 
-export const useTrialEnd = () => {
+export const useTrialEndAction = () => {
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
-  const [workspace] = useAtom(workspaceAtom);
   const { isAdmin } = useUserRole();
+  const { trialDaysLeft } = useTrial();
 
   useEffect(() => {
-    if (isCloud() && getTrialDaysLeft(workspace?.trialEndAt) === 0) {
+    if (isCloud() && trialDaysLeft === 0) {
       if (!pathname.startsWith("/settings")) {
         notifications.show({
           position: "top-right",

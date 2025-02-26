@@ -1,5 +1,5 @@
 import { AppShell, Container } from "@mantine/core";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SettingsSidebar from "@/components/settings/settings-sidebar.tsx";
 import { useAtom } from "jotai";
@@ -13,14 +13,14 @@ import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
-import { useTrialEnd } from "@/ee/hooks/use-trial-end.tsx";
+import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 
 export default function GlobalAppShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useTrialEnd();
+  useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const [{ isAsideOpen }] = useAtom(asideStateAtom);

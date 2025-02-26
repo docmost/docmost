@@ -261,11 +261,11 @@ importers:
         specifier: ^2.6.1
         version: 2.6.1
       jotai:
-        specifier: ^2.10.3
-        version: 2.10.3(@types/react@18.3.12)(react@18.3.1)
+        specifier: ^2.12.1
+        version: 2.12.1(@types/react@18.3.12)(react@18.3.1)
       jotai-optics:
         specifier: ^0.4.0
-        version: 0.4.0(jotai@2.10.3(@types/react@18.3.12)(react@18.3.1))(optics-ts@2.4.1)
+        version: 0.4.0(jotai@2.12.1(@types/react@18.3.12)(react@18.3.1))(optics-ts@2.4.1)
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -6474,8 +6474,8 @@ packages:
       jotai: '>=2.0.0'
       optics-ts: '>=2.0.0'
 
-  jotai@2.10.3:
-    resolution: {integrity: sha512-Nnf4IwrLhNfuz2JOQLI0V/AgwcpxvVy8Ec8PidIIDeRi4KCFpwTFIpHAAcU+yCgnw/oASYElq9UY0YdUUegsSA==}
+  jotai@2.12.1:
+    resolution: {integrity: sha512-VUW0nMPYIru5g89tdxwr9ftiVdc/nGV9jvHISN8Ucx+m1vI9dBeHemfqYzEuw5XSkmYjD/MEyApN9k6yrATsZQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=17.0.0'
@@ -16338,12 +16338,12 @@ snapshots:
 
   jose@4.15.9: {}
 
-  jotai-optics@0.4.0(jotai@2.10.3(@types/react@18.3.12)(react@18.3.1))(optics-ts@2.4.1):
+  jotai-optics@0.4.0(jotai@2.12.1(@types/react@18.3.12)(react@18.3.1))(optics-ts@2.4.1):
     dependencies:
-      jotai: 2.10.3(@types/react@18.3.12)(react@18.3.1)
+      jotai: 2.12.1(@types/react@18.3.12)(react@18.3.1)
       optics-ts: 2.4.1
 
-  jotai@2.10.3(@types/react@18.3.12)(react@18.3.1):
+  jotai@2.12.1(@types/react@18.3.12)(react@18.3.1):
     optionalDependencies:
       '@types/react': 18.3.12
       react: 18.3.1

@@ -30,7 +30,7 @@
     "file-saver": "^2.0.5",
     "i18next": "^23.14.0",
     "i18next-http-backend": "^2.6.1",
-    "jotai": "^2.10.3",
+    "jotai": "^2.12.1",
     "jotai-optics": "^0.4.0",
     "js-cookie": "^3.0.5",
     "katex": "0.16.21",
