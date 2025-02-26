@@ -1,10 +1,10 @@
-import classes from "@/features/editor/styles/editor.module.css";
-import React from "react";
-import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
+import classes from "@/features/editor/styles/editor.module.css";
+import { TitleEditor } from "@/features/editor/title-editor";
+import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { Container } from "@mantine/core";
 import { useAtom } from "jotai";
-import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import React from "react";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
