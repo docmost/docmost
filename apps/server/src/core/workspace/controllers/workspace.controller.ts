@@ -237,4 +237,30 @@ export class WorkspaceController {
       secure: this.environmentService.isHttps(),
     });
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('invites/link')
+  async getInviteLink(
+    @Body() inviteDto: InvitationIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (this.environmentService.isCloud()) {
+      throw new ForbiddenException();
+    }
+
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    const inviteLink =
+      await this.workspaceInvitationService.getInvitationLinkById(
+        inviteDto.invitationId,
+        workspace.id,
+      );
+
+    return { inviteLink };
+  }
 }
