@@ -4,7 +4,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { NotFoundException, ValidationPipe } from '@nestjs/common';
+import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import fastifyMultipart from '@fastify/multipart';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
@@ -65,7 +65,14 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
   app.enableShutdownHooks();
 
-  await app.listen(process.env.PORT || 3000, '0.0.0.0');
+  const logger = new Logger('NestApplication');
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0', () => {
+    logger.log(
+      `Listening on http://127.0.0.1:${port} / ${process.env.APP_URL}`,
+    );
+  });
 }
 
 bootstrap();
