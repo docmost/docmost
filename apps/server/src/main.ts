@@ -18,6 +18,7 @@ async function bootstrap() {
       ignoreTrailingSlash: true,
       ignoreDuplicateSlashes: true,
       maxParamLength: 500,
+      trustProxy: true,
     }),
     {
       logger: new InternalLogFilter(),
