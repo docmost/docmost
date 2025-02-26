@@ -44,6 +44,13 @@ export class EnvironmentService {
     return this.configService.get<string>('DATABASE_URL');
   }
 
+  getDatabaseMaxPool(): number {
+    return parseInt(
+      this.configService.get<string>('DATABASE_MAX_POOL', '10'),
+      10,
+    );
+  }
+
   getRedisUrl(): string {
     return this.configService.get<string>(
       'REDIS_URL',
