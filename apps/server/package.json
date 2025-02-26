@@ -49,6 +49,8 @@
     "@nestjs/websockets": "^11.0.10",
     "@react-email/components": "0.0.28",
     "@react-email/render": "1.0.2",
+    "@sentry/nestjs": "^9.2.0",
+    "@sentry/profiling-node": "^9.2.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.41.3",
