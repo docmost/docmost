@@ -7,6 +7,7 @@ import {
   useChangeSpaceMemberRoleMutation,
   useRemoveSpaceMemberMutation,
   useSpaceMembersQuery,
+  useSpaceQuery,
 } from "@/features/space/queries/space-query.ts";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
 import { IRemoveSpaceMember } from "@/features/space/types/space.types.ts";
@@ -20,25 +21,35 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
+import { SpaceRole } from "@/lib/types";
 
 type MemberType = "user" | "group";
 
-interface SpaceMembersProps {
+interface MemberRowProps {
+  memberId: string;
+  memberType: MemberType;
+  memberRole: SpaceRole;
+  memberName: string;
+  memberAvatarUrl?: string;
+  memberEmail?: string;
+  groupMemberCount?: number;
   spaceId: string;
   readOnly?: boolean;
 }
 
-export default function SpaceMembersList({
-  spaceId,
-  readOnly,
-}: SpaceMembersProps) {
+const MemberRow = (props: MemberRowProps) => {
+  const {
+    memberId,
+    memberType,
+    memberRole,
+    memberName,
+    memberAvatarUrl,
+    memberEmail,
+    groupMemberCount,
+    spaceId,
+    readOnly
+  } = props
   const { t } = useTranslation();
-  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
-  const { data, isLoading } = useSpaceMembersQuery(spaceId, {
-    page,
-    limit: 100,
-    query: search,
-  });
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
 
@@ -104,6 +115,99 @@ export default function SpaceMembersList({
     });
 
   return (
+    <Table.Tr>
+      <Table.Td>
+        <Group gap="sm" wrap="nowrap">
+          {memberType === "user" && (
+            <CustomAvatar
+              avatarUrl={memberAvatarUrl}
+              name={memberName}
+            />
+          )}
+
+          {memberType === "group" && <IconGroupCircle />}
+
+          <div>
+            <Text fz="sm" fw={500} lineClamp={1}>
+              {memberName}
+            </Text>
+            <Text fz="xs" c="dimmed">
+              {memberType == "user" && memberEmail}
+
+              {memberType == "group" && groupMemberCount !== undefined &&
+                `${t("Group")} - ${formatMemberCount(groupMemberCount, t)}`}
+            </Text>
+          </div>
+        </Group>
+      </Table.Td>
+
+      <Table.Td>
+        <RoleSelectMenu
+          roles={spaceRoleData}
+          roleName={getSpaceRoleLabel(memberRole)}
+          onChange={(newRole) =>
+            handleRoleChange(
+              memberId,
+              memberType,
+              newRole,
+              memberRole,
+            )
+          }
+          disabled={readOnly}
+        />
+      </Table.Td>
+
+      <Table.Td>
+        {!readOnly && (
+          <Menu
+            shadow="xl"
+            position="bottom-end"
+            offset={20}
+            width={200}
+            withArrow
+            arrowPosition="center"
+          >
+            <Menu.Target>
+              <ActionIcon variant="subtle" c="gray">
+                <IconDots size={20} stroke={2} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Item
+                onClick={() =>
+                  openRemoveModal(memberId, memberType)
+                }
+              >
+                {t("Remove space member")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        )}
+      </Table.Td>
+    </Table.Tr>
+  )
+}
+
+interface SpaceMembersProps {
+  spaceId: string;
+  readOnly?: boolean;
+}
+
+export default function SpaceMembersList({
+  spaceId,
+  readOnly,
+}: SpaceMembersProps) {
+  const { t } = useTranslation();
+  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { data: space } = useSpaceQuery(spaceId);
+  const { data: spaceMembers } = useSpaceMembersQuery(spaceId, {
+    page,
+    limit: 100,
+    query: search,
+  });
+
+  return (
     <>
       <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
@@ -117,88 +221,39 @@ export default function SpaceMembersList({
           </Table.Thead>
 
           <Table.Tbody>
-            {data?.items.map((member, index) => (
-              <Table.Tr key={index}>
-                <Table.Td>
-                  <Group gap="sm" wrap="nowrap">
-                    {member.type === "user" && (
-                      <CustomAvatar
-                        avatarUrl={member?.avatarUrl}
-                        name={member.name}
-                      />
-                    )}
-
-                    {member.type === "group" && <IconGroupCircle />}
-
-                    <div>
-                      <Text fz="sm" fw={500} lineClamp={1}>
-                        {member?.name}
-                      </Text>
-                      <Text fz="xs" c="dimmed">
-                        {member.type == "user" && member?.email}
-
-                        {member.type == "group" &&
-                          `${t("Group")} - ${formatMemberCount(member?.memberCount, t)}`}
-                      </Text>
-                    </div>
-                  </Group>
-                </Table.Td>
-
-                <Table.Td>
-                  <RoleSelectMenu
-                    roles={spaceRoleData}
-                    roleName={getSpaceRoleLabel(member.role)}
-                    onChange={(newRole) =>
-                      handleRoleChange(
-                        member.id,
-                        member.type,
-                        newRole,
-                        member.role,
-                      )
-                    }
-                    disabled={readOnly}
-                  />
-                </Table.Td>
-
-                <Table.Td>
-                  {!readOnly && (
-                    <Menu
-                      shadow="xl"
-                      position="bottom-end"
-                      offset={20}
-                      width={200}
-                      withArrow
-                      arrowPosition="center"
-                    >
-                      <Menu.Target>
-                        <ActionIcon variant="subtle" c="gray">
-                          <IconDots size={20} stroke={2} />
-                        </ActionIcon>
-                      </Menu.Target>
-
-                      <Menu.Dropdown>
-                        <Menu.Item
-                          onClick={() =>
-                            openRemoveModal(member.id, member.type)
-                          }
-                        >
-                          {t("Remove space member")}
-                        </Menu.Item>
-                      </Menu.Dropdown>
-                    </Menu>
-                  )}
-                </Table.Td>
-              </Table.Tr>
+            {spaceMembers?.items.map((member, index) => (
+              <MemberRow
+                key={index}
+                memberId={member.id}
+                memberType={member.type}
+                memberRole={member.role}
+                memberName={member.name}
+                memberAvatarUrl={member.type === "user" ? member.avatarUrl : undefined}
+                memberEmail={member.type === "user" ? member.email : undefined}
+                groupMemberCount={member.type === "group" ? member.memberCount : undefined}
+                spaceId={spaceId}
+                readOnly={readOnly}
+              />
             ))}
+            {space?.isPublished && (
+              <MemberRow
+                memberId={""}
+                memberType={"group"}
+                memberRole={SpaceRole.READER}
+                memberName={t("Anyone with link")}
+                spaceId={spaceId}
+                readOnly={true}
+              />
+            )}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
 
-      {data?.items.length > 0 && (
+      {spaceMembers?.items.length > 0 && (
         <Paginate
           currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
+          hasPrevPage={spaceMembers?.meta.hasPrevPage}
+          hasNextPage={spaceMembers?.meta.hasNextPage}
           onPageChange={setPage}
         />
       )}

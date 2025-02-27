@@ -19,6 +19,7 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
+import { anonymous } from 'src/common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
@@ -55,6 +56,7 @@ export class SearchController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    if (user === anonymous) return { users: [], groups: [], pages: [] };
     return this.searchService.searchSuggestions(dto, user.id, workspace.id);
   }
 }
