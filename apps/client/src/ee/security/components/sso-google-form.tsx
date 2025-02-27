@@ -17,8 +17,9 @@ type SSOFormValues = z.infer<typeof ssoSchema>;
 
 interface SsoFormProps {
   provider: IAuthProvider;
+  onClose?: () => void;
 }
-export function SsoGoogleForm({ provider }: SsoFormProps) {
+export function SsoGoogleForm({ provider, onClose }: SsoFormProps) {
   const { t } = useTranslation();
   const updateSsoProviderMutation = useUpdateSsoProviderMutation();
 
@@ -47,6 +48,7 @@ export function SsoGoogleForm({ provider }: SsoFormProps) {
 
     await updateSsoProviderMutation.mutateAsync(ssoData);
     form.resetDirty();
+    onClose();
   };
 
   return (

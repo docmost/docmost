@@ -28,15 +28,15 @@ export default function SsoProviderModal({
       onClose={onClose}
     >
       {provider.type === SSO_PROVIDER.SAML && (
-        <SsoSamlForm provider={provider} />
+        <SsoSamlForm provider={provider} onClose={onClose} />
       )}
 
       {provider.type === SSO_PROVIDER.OIDC && (
-        <SsoOIDCForm provider={provider} />
+        <SsoOIDCForm provider={provider} onClose={onClose} />
       )}
 
       {provider.type === SSO_PROVIDER.GOOGLE && (
-        <SsoGoogleForm provider={provider} />
+        <SsoGoogleForm provider={provider} onClose={onClose} />
       )}
     </Modal>
   );

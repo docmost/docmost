@@ -32,8 +32,9 @@ type SSOFormValues = z.infer<typeof ssoSchema>;
 
 interface SsoFormProps {
   provider: IAuthProvider;
+  onClose?: () => void;
 }
-export function SsoSamlForm({ provider }: SsoFormProps) {
+export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
   const { t } = useTranslation();
   const updateSsoProviderMutation = useUpdateSsoProviderMutation();
 
@@ -77,6 +78,7 @@ export function SsoSamlForm({ provider }: SsoFormProps) {
 
     await updateSsoProviderMutation.mutateAsync(ssoData);
     form.resetDirty();
+    onClose();
   };
 
   return (
@@ -86,6 +88,7 @@ export function SsoSamlForm({ provider }: SsoFormProps) {
           <TextInput
             label="Display name"
             placeholder="e.g Azure Entra"
+            data-autofocus
             {...form.getInputProps("name")}
           />
           <TextInput
@@ -93,12 +96,14 @@ export function SsoSamlForm({ provider }: SsoFormProps) {
             variant="filled"
             value={buildSamlEntityId(provider.id)}
             rightSection={<CopyTextButton text={samlEntityId} />}
+            pointer
             readOnly
           />
           <TextInput
             label="Callback URL (ACS)"
             variant="filled"
             value={callbackUrl}
+            pointer
             readOnly
             rightSection={<CopyTextButton text={callbackUrl} />}
           />

@@ -22,8 +22,9 @@ type SSOFormValues = z.infer<typeof ssoSchema>;
 
 interface SsoFormProps {
   provider: IAuthProvider;
+  onClose?: () => void;
 }
-export function SsoOIDCForm({ provider }: SsoFormProps) {
+export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
   const { t } = useTranslation();
   const updateSsoProviderMutation = useUpdateSsoProviderMutation();
 
@@ -69,6 +70,7 @@ export function SsoOIDCForm({ provider }: SsoFormProps) {
 
     await updateSsoProviderMutation.mutateAsync(ssoData);
     form.resetDirty();
+    onClose();
   };
 
   return (
@@ -77,13 +79,15 @@ export function SsoOIDCForm({ provider }: SsoFormProps) {
         <Stack>
           <TextInput
             label="Display name"
-            placeholder="e.g Okta SSO"
+            placeholder="e.g Google SSO"
+            data-autofocus
             {...form.getInputProps("name")}
           />
           <TextInput
             label="Callback URL"
             variant="filled"
             value={callbackUrl}
+            pointer
             readOnly
             rightSection={<CopyTextButton text={callbackUrl} />}
           />

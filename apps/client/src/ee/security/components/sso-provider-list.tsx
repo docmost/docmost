@@ -82,7 +82,11 @@ export default function SsoProviderList() {
             </Table.Thead>
             <Table.Tbody>
               {data
-                .sort((a, b) => Number(b.isEnabled) - Number(a.isEnabled))
+                .sort((a, b) => {
+                  const enabledDiff = Number(b.isEnabled) - Number(a.isEnabled);
+                  if (enabledDiff !== 0) return enabledDiff;
+                  return a.name.localeCompare(b.name);
+                })
                 .map((provider: IAuthProvider, index) => (
                   <Table.Tr key={index}>
                     <Table.Td>
