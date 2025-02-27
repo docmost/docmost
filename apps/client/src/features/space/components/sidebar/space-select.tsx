@@ -6,7 +6,7 @@ import { ISpace } from "../../types/space.types";
 import { useTranslation } from "react-i18next";
 
 interface SpaceSelectProps {
-  onChange: (value: string) => void;
+  onChange: (value: ISpace) => void;
   value?: string;
   label?: string;
 }
@@ -61,7 +61,9 @@ export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
       onSearchChange={setSearchValue}
       clearable
       variant="filled"
-      onChange={onChange}
+      onChange={slug => onChange(spaces.items?.find(item => item.slug === slug))}
+      // duct tape
+      onClick={e => e.stopPropagation()}
       nothingFoundMessage={t("No space found")}
       limit={50}
       checkIconPosition="right"
