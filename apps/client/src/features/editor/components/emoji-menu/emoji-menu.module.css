@@ -1,0 +1,23 @@
+.menuBtn {
+  border-radius: var(--mantine-radius-sm);
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-2);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-gray-light);
+    }
+  }
+}
+
+.selectedItem {
+  @mixin light {
+    background: var(--mantine-color-gray-2);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-gray-light);
+  }
+}
