@@ -20,7 +20,8 @@ import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
-  IInvitation, IPublicWorkspace,
+  IInvitation,
+  IPublicWorkspace,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";

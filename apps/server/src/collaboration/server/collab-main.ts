@@ -1,4 +1,3 @@
-import './common/sentry/instrument';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { CollabAppModule } from './collab-app.module';
 import {
