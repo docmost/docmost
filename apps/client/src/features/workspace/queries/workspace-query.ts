@@ -14,7 +14,6 @@ import {
   resendInvitation,
   revokeInvitation,
   getWorkspace,
-  getInviteLink,
   getWorkspacePublicData,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -22,7 +21,6 @@ import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
-  IInvitationLink,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
@@ -81,15 +79,6 @@ export function useWorkspaceInvitationsQuery(
     queryFn: () => getPendingInvitations(params),
     placeholderData: keepPreviousData,
   });
-}
-
-export function useGetInviteLink(
-  invitationId: string
-): UseQueryResult<IInvitationLink,Error> {
-  return useQuery({
-    queryKey:["inviteLink",invitationId],
-    queryFn: () => getInviteLink({ invitationId }),
-  })
 }
 
 export function useCreateInvitationMutation() {
