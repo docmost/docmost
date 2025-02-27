@@ -12,19 +12,35 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly workspaceRepo: WorkspaceRepo,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('me')
-  async getUserIno(
+  async getUserInfo(
     @AuthUser() authUser: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return { user: authUser, workspace };
+    const memberCount = await this.workspaceRepo.getActiveUserCount(
+      workspace.id,
+    );
+
+    const { licenseKey, ...rest } = workspace;
+
+    const workspaceInfo = {
+      ...rest,
+      memberCount,
+      hasLicenseKey: Boolean(licenseKey),
+    };
+
+    return { user: authUser, workspace: workspaceInfo };
   }
 
   @HttpCode(HttpStatus.OK)

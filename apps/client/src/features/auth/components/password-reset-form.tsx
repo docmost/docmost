@@ -37,8 +37,8 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
   }
 
   return (
-    <Container size={420} my={40} className={classes.container}>
-      <Box p="xl" mt={200}>
+    <Container size={420} className={classes.container}>
+      <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
           {t("Password reset")}
         </Title>

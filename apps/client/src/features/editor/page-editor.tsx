@@ -41,6 +41,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -181,6 +182,7 @@ export default function PageEditor({
   }, [pageId]);
 
   useEffect(() => {
+    if (isCloud()) return;
     if (editable) {
       if (yjsConnectionStatus === WebSocketStatus.Connected) {
         editor.setEditable(true);
