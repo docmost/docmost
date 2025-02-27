@@ -20,11 +20,13 @@ export type RedisConfig = {
   port: number;
   db: number;
   password?: string;
+  family?: number;
 };
 
 export function parseRedisUrl(redisUrl: string): RedisConfig {
-  // format - redis[s]://[[username][:password]@][host][:port][/db-number]
-  const { hostname, port, password, pathname } = new URL(redisUrl);
+  // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6]
+  const url = new URL(redisUrl);
+  const { hostname, port, password, pathname, searchParams } = url;
   const portInt = parseInt(port, 10);
 
   let db: number = 0;
@@ -36,7 +38,14 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
     }
   }
 
-  return { host: hostname, port: portInt, password, db };
+  // extract family from query parameters
+  let family: number | undefined;
+  const familyParam = searchParams.get('family');
+  if (familyParam && !isNaN(parseInt(familyParam))) {
+    family = parseInt(familyParam, 10);
+  }
+
+  return { host: hostname, port: portInt, password, db, family };
 }
 
 export function createRetryStrategy() {

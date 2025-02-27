@@ -2,13 +2,21 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis, { RedisOptions } from 'ioredis';
-import { createRetryStrategy } from '../../common/helpers';
+import {
+  createRetryStrategy,
+  parseRedisUrl,
+  RedisConfig,
+} from '../../common/helpers';
 
 export class WsRedisIoAdapter extends IoAdapter {
   private adapterConstructor: ReturnType<typeof createAdapter>;
+  private redisConfig: RedisConfig;
 
   async connectToRedis(): Promise<void> {
+    this.redisConfig = parseRedisUrl(process.env.REDIS_URL);
+
     const options: RedisOptions = {
+      family: this.redisConfig.family,
       retryStrategy: createRetryStrategy(),
     };
 
