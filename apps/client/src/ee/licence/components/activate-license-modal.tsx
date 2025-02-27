@@ -22,7 +22,6 @@ export default function ActivateLicense() {
 
       {workspace?.hasLicenseKey && <RemoveLicense />}
 
-
       <Modal
         size="550"
         opened={opened}
@@ -65,13 +64,14 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
       <Textarea
-        label={t("License Key")}
-        description="Enter a valid license key. Contact sales@docmost.com to purchase one."
+        label={t("License key")}
+        description="Enter a valid enterprise license key. Contact sales@docmost.com to purchase one."
         placeholder={t("e.g eyJhb.....")}
         variant="filled"
         autosize
         minRows={3}
         maxRows={5}
+        data-autofocus
         {...form.getInputProps("licenseKey")}
       />
 

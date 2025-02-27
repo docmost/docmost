@@ -1,4 +1,3 @@
 export default function LicenseMessage() {
-
-  return <>TODO</>;
+  return <>To unlock enterprise features, please contact sales@docmost.com to purchase a license.</>;
 }

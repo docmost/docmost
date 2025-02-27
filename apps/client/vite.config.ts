@@ -11,8 +11,7 @@ export default defineConfig(({ mode }) => {
     DRAWIO_URL,
     CLOUD,
     SUBDOMAIN_HOST,
-    ENTERPRISE,
-    COLLAB_URL
+    COLLAB_URL,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -23,7 +22,6 @@ export default defineConfig(({ mode }) => {
         DRAWIO_URL,
         CLOUD,
         SUBDOMAIN_HOST,
-        ENTERPRISE,
         COLLAB_URL,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),

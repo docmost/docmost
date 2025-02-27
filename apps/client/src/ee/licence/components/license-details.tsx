@@ -17,7 +17,7 @@ export default function LicenseDetails() {
   }
 
   return (
-    <Table.ScrollContainer minWidth={500}>
+    <Table.ScrollContainer minWidth={500} py="md">
       <Table
         variant="vertical"
         verticalSpacing="sm"
@@ -55,6 +55,10 @@ export default function LicenseDetails() {
           <Table.Tr>
             <Table.Th>Expires at</Table.Th>
             <Table.Td>{format(license.expiresAt, "dd MMMM, yyyy")}</Table.Td>
+          </Table.Tr>
+          <Table.Tr>
+            <Table.Th>License ID</Table.Th>
+            <Table.Td>{license.id}</Table.Td>
           </Table.Tr>
           <Table.Tr>
             <Table.Th>Status</Table.Th>
