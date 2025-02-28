@@ -70,6 +70,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
+import { TextDirection } from "./detect-direction";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -113,6 +114,12 @@ export const mainExtensions = [
     showOnlyWhenEditable: true,
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
+  TextDirection.configure({
+    types: [
+      "heading", "paragraph", "bulletList", "orderedList", "taskList", "blockquote",
+      "callout", "tableCell", "tableHeader",
+    ]
+  }),
   TaskList,
   TaskItem.configure({
     nested: true,

@@ -42,7 +42,7 @@
               var(--mantine-color-dark-5)
       );
       font-weight: bold;
-      text-align: left;
+      text-align: start;
     }
 
     .column-resize-handle {

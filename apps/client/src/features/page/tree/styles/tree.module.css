@@ -95,6 +95,8 @@
     text-overflow: ellipsis;
     font-size: rem(14px);
     font-weight: 500;
+    unicode-bidi: plaintext;
+    text-align: left;
 }
 
 .arrow {

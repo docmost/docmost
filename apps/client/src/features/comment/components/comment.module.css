@@ -11,6 +11,11 @@
     border-left: 2px solid var(--mantine-color-gray-6);
     padding: 8px;
     background: var(--mantine-color-gray-light);
+
+    &[dir="rtl"] {
+        border-right: 2px solid var(--mantine-color-gray-6);
+        border-left: none;
+    }
 }
 
 .commentEditor {

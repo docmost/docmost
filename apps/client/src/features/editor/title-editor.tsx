@@ -1,4 +1,5 @@
 import "@/features/editor/styles/index.css";
+import classes from "@/features/editor/styles/title-editor.module.css";
 import React, { useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
@@ -144,5 +145,9 @@ export function TitleEditor({
     }
   }
 
-  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
+  return <EditorContent 
+      className={classes.titleEditor}
+      editor={titleEditor}
+      onKeyDown={handleTitleKeyDown}
+    />;
 }

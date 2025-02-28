@@ -169,6 +169,9 @@ importers:
       marked:
         specifier: ^13.0.3
         version: 13.0.3
+      tiptap-text-direction:
+        specifier: ^0.3.1
+        version: 0.3.1(@tiptap/core@2.10.3(@tiptap/pm@2.10.3))(@tiptap/pm@2.10.3)
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -7789,6 +7792,12 @@ packages:
 
   tiptap-extension-global-drag-handle@0.1.18:
     resolution: {integrity: sha512-jwFuy1K8DP3a4bFy76Hpc63w1Sil0B7uZ3mvhQomVvUFCU787Lg2FowNhn7NFzeyok761qY2VG+PZ/FDthWUdg==}
+
+  tiptap-text-direction@0.3.1:
+    resolution: {integrity: sha512-h3WerSUqesMDVzKcMAinMz0FaBqUiNd0KoiU/LahJaeV+jT1jkw9EQ7ixCwM+pvcIJTHfmzry/4gA5P5p0Al1A==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
+      '@tiptap/pm': ^2.0.0
 
   tldts-core@6.1.78:
     resolution: {integrity: sha512-jS0svNsB99jR6AJBmfmEWuKIgz91Haya91Z43PATaeHJ24BkMoNRb/jlaD37VYjb0mYf6gRL/HOnvS1zEnYBiw==}
@@ -16941,6 +16950,11 @@ snapshots:
       '@popperjs/core': 2.11.8
 
   tiptap-extension-global-drag-handle@0.1.18: {}
+
+  tiptap-text-direction@0.3.1(@tiptap/core@2.10.3(@tiptap/pm@2.10.3))(@tiptap/pm@2.10.3):
+    dependencies:
+      '@tiptap/core': 2.10.3(@tiptap/pm@2.10.3)
+      '@tiptap/pm': 2.10.3
 
   tldts-core@6.1.78: {}
 
