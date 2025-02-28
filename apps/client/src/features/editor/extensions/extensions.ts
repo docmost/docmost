@@ -16,7 +16,6 @@ import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { TextDirection } from "tiptap-text-direction";
 import {
   Comment,
   Details,
@@ -71,6 +70,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
+import { TextDirection } from "./detect-direction";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);

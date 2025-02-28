@@ -40,7 +40,7 @@ import { generateHTML } from '../common/helpers/prosemirror/html';
 // see:https://github.com/ueberdosis/tiptap/issues/4089
 import { generateJSON } from '@tiptap/html';
 import { Node } from '@tiptap/pm/model';
-import TextDirection from "tiptap-text-direction";
+import { TextDirection } from './extensions/detect-direction';
 
 export const tiptapExtensions = [
   StarterKit.configure({
@@ -80,16 +80,9 @@ export const tiptapExtensions = [
   Mention,
   TextDirection.configure({
     types: [
-      'heading',
-      'paragraph',
-      'bulletList',
-      'orderedList',
-      'taskList',
-      'blockquote',
-      'callout',
-      'tableCell',
-      'tableHeader',
-    ],
+      "heading", "paragraph", "bulletList", "orderedList", "taskList", "blockquote",
+      "callout", "tableCell", "tableHeader",
+    ]
   }),
 ] as any;
 

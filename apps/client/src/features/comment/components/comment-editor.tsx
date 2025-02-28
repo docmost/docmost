@@ -8,7 +8,7 @@ import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
-import TextDirection from "tiptap-text-direction";
+import { TextDirection } from "@/features/editor/extensions/detect-direction";
 
 interface CommentEditorProps {
   defaultContent?: any;

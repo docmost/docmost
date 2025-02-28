@@ -15,7 +15,7 @@ import {
 import { IComment } from "@/features/comment/types/comment.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
-import { getTextDirection } from "tiptap-text-direction";
+import { getTextDirection } from "@/features/editor/extensions/detect-direction";
 
 interface CommentListItemProps {
   comment: IComment;
