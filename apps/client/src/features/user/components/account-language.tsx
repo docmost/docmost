@@ -47,6 +47,7 @@ function LanguageSwitcher() {
         { value: "es-ES", label: "Español (Spanish)" },
         { value: "pt-BR", label: "Português (Brasil)" },
         { value: "it-IT", label: "Italiano (Italian)" },
+        { value: "nl-NL", label: "Nederlands (Dutch)" },
         { value: "ja-JP", label: "日本語 (Japanese)" },
         { value: "ko-KR", label: "한국어 (Korean)" },
         { value: "ru-RU", label: "Русский (Russian)" },
