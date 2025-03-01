@@ -32,7 +32,8 @@ export class DomainMiddleware implements NestMiddleware {
       const workspace = await this.workspaceRepo.findByHostname(subdomain);
 
       if (!workspace) {
-        throw new NotFoundException('Workspace not found');
+        (req as any).workspaceId = null;
+        return next();
       }
 
       (req as any).workspaceId = workspace.id;

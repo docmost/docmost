@@ -18,10 +18,18 @@ import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
 import PasswordReset from "./pages/auth/password-reset";
+import Billing from "@/ee/billing/pages/billing.tsx";
+import CloudLogin from "@/ee/pages/cloud-login.tsx";
+import CreateWorkspace from "@/ee/pages/create-workspace.tsx";
+import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
+import Security from "@/ee/security/pages/security.tsx";
+import License from "@/ee/licence/pages/license.tsx";
+import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 
 export default function App() {
   const { t } = useTranslation();
+  useRedirectToCloudSelect();
 
   return (
     <>
@@ -29,15 +37,24 @@ export default function App() {
         <Route index element={<Navigate to="/home" />} />
         <Route path={"/login"} element={<LoginPage />} />
         <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
-        <Route path={"/setup/register"} element={<SetupWorkspace />} />
         <Route path={"/forgot-password"} element={<ForgotPassword />} />
         <Route path={"/password-reset"} element={<PasswordReset />} />
+
+        {!isCloud() && (
+          <Route path={"/setup/register"} element={<SetupWorkspace />} />
+        )}
+
+        {isCloud() && (
+          <>
+            <Route path={"/create"} element={<CreateWorkspace />} />
+            <Route path={"/select"} element={<CloudLogin />} />
+          </>
+        )}
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
-
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
@@ -61,6 +78,9 @@ export default function App() {
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
+            <Route path={"security"} element={<Security />} />
+            {!isCloud() && <Route path={"license"} element={<License />} />}
+            {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
         </Route>
 

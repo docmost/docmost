@@ -3,7 +3,8 @@ import { SetupWorkspaceForm } from "@/features/auth/components/setup-workspace-f
 import { Helmet } from "react-helmet-async";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {getAppName} from "@/lib/config.ts";
+import APP_ROUTE from "@/lib/app-route.ts";
+import { getAppName } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 
 export default function SetupWorkspace() {
@@ -18,10 +19,10 @@ export default function SetupWorkspace() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isError && workspace) {
-      navigate("/");
+    if (!isLoading && workspace) {
+      navigate(APP_ROUTE.AUTH.LOGIN);
     }
-  }, [isLoading, isError, workspace]);
+  }, [isLoading, workspace]);
 
   if (isLoading) {
     return <div></div>;
@@ -35,7 +36,9 @@ export default function SetupWorkspace() {
     return (
       <>
         <Helmet>
-          <title>{t("Setup Workspace")} - {getAppName()}</title>
+          <title>
+            {t("Setup Workspace")} - {getAppName()}
+          </title>
         </Helmet>
         <SetupWorkspaceForm />
       </>

@@ -1,0 +1,14 @@
+.item {
+  & + & {
+    padding-top: var(--mantine-spacing-sm);
+    margin-top: var(--mantine-spacing-sm);
+    border-top: 1px solid
+      light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  }
+}
+
+.switch {
+  & * {
+    cursor: pointer;
+  }
+}

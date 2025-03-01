@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Group, Text, ScrollArea, ActionIcon, rem } from "@mantine/core";
+import { Group, Text, ScrollArea, ActionIcon } from "@mantine/core";
 import {
   IconUser,
   IconSettings,
@@ -8,15 +8,26 @@ import {
   IconUsersGroup,
   IconSpaces,
   IconBrush,
+  IconCoin,
+  IconLock,
+  IconKey,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
+import { isCloud } from "@/lib/config.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
+import { useAtom } from "jotai/index";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface DataItem {
   label: string;
   icon: React.ElementType;
   path: string;
+  isCloud?: boolean;
+  isEnterprise?: boolean;
+  isAdmin?: boolean;
+  isSelfhosted?: boolean;
 }
 
 interface DataGroup {
@@ -45,8 +56,30 @@ const groupedData: DataGroup[] = [
         icon: IconUsers,
         path: "/settings/members",
       },
+      {
+        label: "Billing",
+        icon: IconCoin,
+        path: "/settings/billing",
+        isCloud: true,
+        isAdmin: true,
+      },
+      {
+        label: "Security & SSO",
+        icon: IconLock,
+        path: "/settings/security",
+        isCloud: true,
+        isEnterprise: true,
+        isAdmin: true,
+      },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      {
+        label: "License",
+        icon: IconKey,
+        path: "/settings/license",
+        isSelfhosted: true,
+        isAdmin: true,
+      },
     ],
   },
 ];
@@ -56,27 +89,60 @@ export default function SettingsSidebar() {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
+  const [workspace] = useAtom(workspaceAtom);
 
   useEffect(() => {
     setActive(location.pathname);
   }, [location.pathname]);
+
+  const canShowItem = (item: DataItem) => {
+    if (item.isCloud && item.isEnterprise) {
+      if (!(isCloud() || workspace?.hasLicenseKey)) return false;
+      return item.isAdmin ? isAdmin : true;
+    }
+
+    if (item.isCloud) {
+      return isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
+    if (item.isSelfhosted) {
+      return !isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
+    if (item.isEnterprise) {
+      return workspace?.hasLicenseKey ? (item.isAdmin ? isAdmin : true) : false;
+    }
+
+    if (item.isAdmin) {
+      return isAdmin;
+    }
+
+    return true;
+  };
 
   const menuItems = groupedData.map((group) => (
     <div key={group.heading}>
       <Text c="dimmed" className={classes.linkHeader}>
         {t(group.heading)}
       </Text>
-      {group.items.map((item) => (
-        <Link
-          className={classes.link}
-          data-active={active.startsWith(item.path) || undefined}
-          key={item.label}
-          to={item.path}
-        >
-          <item.icon className={classes.linkIcon} stroke={2} />
-          <span>{t(item.label)}</span>
-        </Link>
-      ))}
+      {group.items.map((item) => {
+        if (!canShowItem(item)) {
+          return null;
+        }
+
+        return (
+          <Link
+            className={classes.link}
+            data-active={active.startsWith(item.path) || undefined}
+            key={item.label}
+            to={item.path}
+          >
+            <item.icon className={classes.linkIcon} stroke={2} />
+            <span>{t(item.label)}</span>
+          </Link>
+        );
+      })}
     </div>
   ));
 
