@@ -39,7 +39,7 @@ export class WorkspaceService {
   }
 
   async getWorkspaceInfo(workspaceId: string) {
-    const workspace = this.workspaceRepo.findById(workspaceId);
+    const workspace = await this.workspaceRepo.findById(workspaceId);
     if (!workspace) {
       throw new NotFoundException('Workspace not found');
     }
