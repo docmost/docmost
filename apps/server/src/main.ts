@@ -61,7 +61,7 @@ async function bootstrap() {
         req.originalUrl.startsWith('/api') &&
         !excludedPaths.some((path) => req.originalUrl.startsWith(path))
       ) {
-        if (!req.raw?.['workspaceId']) {
+        if (!req.raw?.['workspaceId'] && req.originalUrl !== '/api') {
           throw new NotFoundException('Workspace not found');
         }
         done();
