@@ -11,8 +11,12 @@ import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { getHostnameUrl } from "@/ee/utils.ts";
 import { useAtom } from "jotai/index";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import {
+  currentUserAtom,
+  workspaceAtom,
+} from "@/features/user/atoms/current-user-atom.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { RESET } from "jotai/utils";
 
 export default function ManageHostname() {
   const { t } = useTranslation();
@@ -59,19 +63,19 @@ interface ChangeHostnameFormProps {
 function ChangeHostnameForm({ onClose }: ChangeHostnameFormProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [workspace] = useAtom(workspaceAtom);
+  const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
 
   const form = useForm<FormValues>({
     validate: zodResolver(formSchema),
     initialValues: {
-      hostname: workspace?.hostname,
+      hostname: currentUser?.workspace?.hostname,
     },
   });
 
   async function handleSubmit(data: Partial<IWorkspace>) {
     setIsLoading(true);
 
-    if (data.hostname === workspace?.hostname) {
+    if (data.hostname === currentUser?.workspace?.hostname) {
       onClose();
       return;
     }
@@ -80,6 +84,7 @@ function ChangeHostnameForm({ onClose }: ChangeHostnameFormProps) {
       await updateWorkspace({
         hostname: data.hostname,
       });
+      setCurrentUser(RESET);
       window.location.href = getHostnameUrl(data.hostname.toLowerCase());
     } catch (err) {
       notifications.show({
