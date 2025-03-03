@@ -21,4 +21,9 @@ export class HealthController {
       () => this.redis.pingCheck('redis'),
     ]);
   }
+
+  @Get('live')
+  async checkLive() {
+    return 'ok';
+  }
 }
