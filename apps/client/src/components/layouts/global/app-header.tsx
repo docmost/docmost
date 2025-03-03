@@ -24,7 +24,7 @@ export function AppHeader() {
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
-  const { isTrial } = useTrial();
+  const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
 
@@ -78,15 +78,17 @@ export function AppHeader() {
         </Group>
 
         <Group px={"xl"} wrap="nowrap">
-          {isCloud() && isTrial && (
+          {isCloud() && isTrial && trialDaysLeft !== 0 && (
             <Badge
               variant="light"
+              style={{ cursor: "pointer" }}
               component={Link}
               to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
               visibleFrom="xs"
-              color={isTrial ? "blue" : "red"}
             >
-              {isTrial ? "Trial" : "Trial ended"}
+              {trialDaysLeft === 1
+                ? "1 day left"
+                : `${trialDaysLeft} days left`}
             </Badge>
           )}
           <TopMenu />
