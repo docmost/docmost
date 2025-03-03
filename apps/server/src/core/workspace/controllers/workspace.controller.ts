@@ -61,7 +61,8 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
-    @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() dto: UpdateWorkspaceDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -72,7 +73,21 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.update(workspace.id, updateWorkspaceDto);
+    const updatedWorkspace = await this.workspaceService.update(
+      workspace.id,
+      dto,
+    );
+
+    if (
+      dto.hostname &&
+      dto.hostname === updatedWorkspace.hostname &&
+      workspace.hostname !== updatedWorkspace.hostname
+    ) {
+      // log user out of old hostname
+      res.clearCookie('authToken');
+    }
+
+    return updatedWorkspace;
   }
 
   @HttpCode(HttpStatus.OK)
