@@ -2,4 +2,17 @@
     box-shadow: rgba(0, 0, 0, 0.07) 0px 2px 45px 4px;
     border-radius: 4px;
     background: light-dark(var(--mantine-color-body), rgba(0, 0, 0, 0.1));
+    margin-top: 150px;
+    margin-bottom: 20px;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        margin-top: 50px;
+        margin-bottom: 20px;
+    }
 }
+
+.containerBox {
+    margin-top: 40px;
+}
+
+

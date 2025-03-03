@@ -1,4 +1,5 @@
 import bytes from "bytes";
+import { castToBoolean } from "@/lib/utils.tsx";
 
 declare global {
   interface Window {
@@ -14,6 +15,10 @@ export function getAppUrl(): string {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
+export function getServerAppUrl(): string {
+  return getConfigValue("APP_URL");
+}
+
 export function getBackendUrl(): string {
   return getAppUrl() + "/api";
 }
@@ -26,6 +31,14 @@ export function getCollaborationUrl(): string {
   const collabUrl = new URL("/collab", baseUrl);
   collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
   return collabUrl.toString();
+}
+
+export function getSubdomainHost(): string {
+  return getConfigValue("SUBDOMAIN_HOST");
+}
+
+export function isCloud(): boolean {
+  return castToBoolean(getConfigValue("CLOUD"));
 }
 
 export function getAvatarUrl(avatarUrl: string) {

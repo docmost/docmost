@@ -3,7 +3,7 @@ import {
   Logger,
   Module,
   OnApplicationBootstrap,
-  OnModuleDestroy,
+  BeforeApplicationShutdown,
 } from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
@@ -38,6 +38,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         dialect: new PostgresDialect({
           pool: new Pool({
             connectionString: environmentService.getDatabaseURL(),
+            max: environmentService.getDatabaseMaxPool(),
           }).on('error', (err) => {
             console.error('Database error:', err.message);
           }),
@@ -86,7 +87,9 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     BacklinkRepo,
   ],
 })
-export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
+export class DatabaseModule
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
+{
   private readonly logger = new Logger(DatabaseModule.name);
 
   constructor(
@@ -103,7 +106,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async beforeApplicationShutdown(): Promise<void> {
     if (this.db) {
       await this.db.destroy();
     }

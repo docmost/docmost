@@ -56,12 +56,16 @@ export class UserRepo {
   async findByEmail(
     email: string,
     workspaceId: string,
-    includePassword?: boolean,
+    opts?: {
+      includePassword?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<User> {
-    return this.db
+    const db = dbOrTx(this.db, opts?.trx);
+    return db
       .selectFrom('users')
       .select(this.baseFields)
-      .$if(includePassword, (qb) => qb.select('password'))
+      .$if(opts?.includePassword, (qb) => qb.select('password'))
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -112,7 +116,7 @@ export class UserRepo {
     return db
       .insertInto('users')
       .values({ ...insertableUser, ...user })
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -172,31 +176,4 @@ export class UserRepo {
       .returning(this.baseFields)
       .executeTakeFirst();
   }
-
-  /*
-  async getSpaceIds(
-    workspaceId: string,
-    pagination: PaginationOptions,
-  ): Promise<PaginationResult<Space>> {
-    const spaces = await this.spaceRepo.getSpacesInWorkspace(
-      workspaceId,
-      pagination,
-    );
-
-    return spaces;
-  }
-
-  async getUserSpaces(
-    workspaceId: string,
-    pagination: PaginationOptions,
-  ): Promise<PaginationResult<Space>> {
-    const spaces = await this.spaceRepo.getSpacesInWorkspace(
-      workspaceId,
-      pagination,
-    );
-
-    return spaces;
-  }
-
-   */
 }

@@ -93,3 +93,33 @@ export function getPageIcon(icon: string, size = 18): string | ReactNode {
     )
   );
 }
+
+export function castToBoolean(value: unknown): boolean {
+  if (value == null) {
+    return false;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+    const trueValues = ["true", "1"];
+    const falseValues = ["false", "0"];
+
+    if (trueValues.includes(trimmed)) {
+      return true;
+    }
+    if (falseValues.includes(trimmed)) {
+      return false;
+    }
+    return Boolean(trimmed);
+  }
+
+  return Boolean(value);
+}
