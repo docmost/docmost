@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands",
   "Names do not match": "Names do not match",
   "Today, {{time}}": "Today, {{time}}",
-  "Yesterday, {{time}}": "Yesterday, {{time}}"
+  "Yesterday, {{time}}": "Yesterday, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
