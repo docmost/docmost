@@ -3,7 +3,7 @@ import {
   Logger,
   Module,
   OnApplicationBootstrap,
-  OnModuleDestroy,
+  BeforeApplicationShutdown,
 } from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
@@ -87,7 +87,9 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     BacklinkRepo,
   ],
 })
-export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
+export class DatabaseModule
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
+{
   private readonly logger = new Logger(DatabaseModule.name);
 
   constructor(
@@ -104,7 +106,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async beforeApplicationShutdown(): Promise<void> {
     if (this.db) {
       await this.db.destroy();
     }
