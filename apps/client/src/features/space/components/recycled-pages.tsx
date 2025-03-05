@@ -22,10 +22,12 @@ export default function RecycledPagesList({
 
   const handleRestorePage = async (pageId: string) => {
     await restorePageMutation.mutateAsync(pageId);
+    window.location.reload();
   };
 
   const handleRemovePage = async (pageId: string) => {
     await removePageMutation.mutateAsync(pageId);
+    window.location.reload();
   };
 
   const openRemovePageModal = (pageId: string) =>
