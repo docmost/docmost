@@ -7,13 +7,14 @@ WORKDIR /app
 
 COPY . .
 
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
-RUN pnpm build
+RUN npm install -g pnpm && \
+    pnpm install --frozen-lockfile && \
+    pnpm build
 
 FROM base AS installer
 
-RUN apk add --no-cache curl bash
+RUN apk update && apk upgrade && \
+    apk add --no-cache curl bash
 
 WORKDIR /app
 
@@ -39,7 +40,10 @@ RUN chown -R node:node /app
 
 USER node
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod && \
+    pnpm cache clean --force && \
+    rm -rf /tmp/*
+
 
 RUN mkdir -p /app/data/storage
 
