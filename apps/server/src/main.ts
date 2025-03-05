@@ -55,6 +55,7 @@ async function bootstrap() {
         '/api/workspace/check-hostname',
         '/api/sso/google',
         '/api/workspace/create',
+        '/api/workspace/joined',
       ];
 
       if (
