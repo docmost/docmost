@@ -102,7 +102,7 @@ export const handleImageUpload =
         if (!attachment) return;
 
         const node = schema.nodes.image?.create({
-          src: `/files/${attachment.id}/${attachment.fileName}`,
+          src: `/api/files/${attachment.id}/${attachment.fileName}`,
           attachmentId: attachment.id,
           title: attachment.fileName,
           size: attachment.fileSize,
