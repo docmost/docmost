@@ -46,19 +46,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const res = ctx.switchToHttp().getResponse();
 
       const workspaceId = user?.workspace?.id;
-      let hosts = [];
+      let workspaceIds = [];
       try {
-        hosts = req.cookies.workspaces ? JSON.parse(req.cookies.hosts) : [];
+        workspaceIds = req.cookies.joinedWorkspaces
+          ? JSON.parse(req.cookies.joinedWorkspaces)
+          : [];
       } catch (err) {
         /* empty */
       }
 
-      if (!hosts.includes(workspaceId)) {
-        hosts.push(workspaceId);
+      if (!workspaceIds.includes(workspaceId)) {
+        workspaceIds.push(workspaceId);
       }
 
-      // todo: revisit
-      res.setCookie('joinedWorkspaces', JSON.stringify(hosts), {
+      res.setCookie('joinedWorkspaces', JSON.stringify(workspaceIds), {
         httpOnly: false,
         domain: '.' + this.environmentService.getSubdomainHost(),
         path: '/',
