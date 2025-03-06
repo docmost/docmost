@@ -25,7 +25,7 @@ export default function LicenseDetails() {
         withTableBorder
       >
         <Table.Caption>
-          Contact sales@docmost.com for any license enquiries.
+          Contact sales@docmost.com for support and enquiries.
         </Table.Caption>
         <Table.Tbody>
           <Table.Tr>

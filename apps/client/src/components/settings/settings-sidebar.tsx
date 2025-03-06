@@ -22,6 +22,7 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   prefetchBilling,
   prefetchGroups,
+  prefetchLicense,
   prefetchSpaces,
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
@@ -79,12 +80,15 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+    ],
+  },
+  {
+    heading: "System",
+    items: [
       {
-        label: "License",
+        label: "License & Edition",
         icon: IconKey,
         path: "/settings/license",
-        isSelfhosted: true,
-        isAdmin: true,
       },
     ],
   },
@@ -127,43 +131,60 @@ export default function SettingsSidebar() {
     return true;
   };
 
-  const menuItems = groupedData.map((group) => (
-    <div key={group.heading}>
-      <Text c="dimmed" className={classes.linkHeader}>
-        {t(group.heading)}
-      </Text>
-      {group.items.map((item) => {
-        if (!canShowItem(item)) {
-          return null;
-        }
+  const menuItems = groupedData.map((group) => {
+    if (group.heading === "System" && (!isAdmin || isCloud())) {
+      return null;
+    }
 
-        // Add prefetch on hover for specific items
-        let prefetchHandler: any;
-        if (item.label === "Members") {
-          prefetchHandler = prefetchWorkspaceMembers;
-        } else if (item.label === "Spaces") {
-          prefetchHandler = prefetchSpaces;
-        } else if (item.label === "Groups") {
-          prefetchHandler = prefetchGroups;
-        } else if (item.label === "Billing") {
-          prefetchHandler = prefetchBilling;
-        }
+    return (
+      <div key={group.heading}>
+        <Text c="dimmed" className={classes.linkHeader}>
+          {t(group.heading)}
+        </Text>
+        {group.items.map((item) => {
+          if (!canShowItem(item)) {
+            return null;
+          }
 
-        return (
-          <Link
-            onMouseEnter={prefetchHandler}
-            className={classes.link}
-            data-active={active.startsWith(item.path) || undefined}
-            key={item.label}
-            to={item.path}
-          >
-            <item.icon className={classes.linkIcon} stroke={2} />
-            <span>{t(item.label)}</span>
-          </Link>
-        );
-      })}
-    </div>
-  ));
+          let prefetchHandler: any;
+          switch (item.label) {
+            case "Members":
+              prefetchHandler = prefetchWorkspaceMembers;
+              break;
+            case "Spaces":
+              prefetchHandler = prefetchSpaces;
+              break;
+            case "Groups":
+              prefetchHandler = prefetchGroups;
+              break;
+            case "Billing":
+              prefetchHandler = prefetchBilling;
+              break;
+            case "License & Edition":
+              if (workspace?.hasLicenseKey) {
+                prefetchHandler = prefetchLicense;
+              }
+              break;
+            default:
+              break;
+          }
+
+          return (
+            <Link
+              onMouseEnter={prefetchHandler}
+              className={classes.link}
+              data-active={active.startsWith(item.path) || undefined}
+              key={item.label}
+              to={item.path}
+            >
+              <item.icon className={classes.linkIcon} stroke={2} />
+              <span>{t(item.label)}</span>
+            </Link>
+          );
+        })}
+      </div>
+    );
+  });
 
   return (
     <div className={classes.navbar}>
@@ -180,9 +201,8 @@ export default function SettingsSidebar() {
       </Group>
 
       <ScrollArea w="100%">{menuItems}</ScrollArea>
-      <div className={classes.version}>
+      <div className={classes.text}>
         <Text
-          className={classes.version}
           size="sm"
           c="dimmed"
           component="a"
@@ -192,6 +212,19 @@ export default function SettingsSidebar() {
           v{APP_VERSION}
         </Text>
       </div>
+
+      {isCloud() && (
+        <div className={classes.text}>
+          <Text
+            size="sm"
+            c="dimmed"
+            component="a"
+            href="mailto:help@docmost.com"
+          >
+            help@docmost.com
+          </Text>
+        </div>
+      )}
     </div>
   );
 }
