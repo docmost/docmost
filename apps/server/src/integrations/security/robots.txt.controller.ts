@@ -7,6 +7,6 @@ export class RobotsTxtController {
   @HttpCode(HttpStatus.OK)
   @Get()
   async robotsTxt() {
-    return 'Disallow: /login\nDisallow: /forgot-password';
+    return 'User-Agent: *\nDisallow: /login\nDisallow: /forgot-password';
   }
 }
