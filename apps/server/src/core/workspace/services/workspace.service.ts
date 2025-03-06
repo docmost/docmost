@@ -104,7 +104,10 @@ export class WorkspaceService {
           hostname = await this.generateHostname(
             createWorkspaceDto.hostname ?? createWorkspaceDto.name,
           );
-          trialEndAt = addDays(new Date(), 14);
+          trialEndAt = addDays(
+            new Date(),
+            this.environmentService.getBillingTrialDays(),
+          );
           status = WorkspaceStatus.Active;
           plan = 'standard';
         }

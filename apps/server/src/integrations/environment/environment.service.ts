@@ -45,10 +45,7 @@ export class EnvironmentService {
   }
 
   getDatabaseMaxPool(): number {
-    return parseInt(
-      this.configService.get<string>('DATABASE_MAX_POOL', '10'),
-      10,
-    );
+    return parseInt(this.configService.get<string>('DATABASE_MAX_POOL', '10'));
   }
 
   getRedisUrl(): string {
@@ -171,8 +168,8 @@ export class EnvironmentService {
     return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
   }
 
-  getEnterpriseKey(): string {
-    return this.configService.get<string>('ENTERPRISE_KEY');
+  getBillingTrialDays(): number {
+    return parseInt(this.configService.get<string>('BILLING_TRIAL_DAYS', '14'));
   }
 
   getCollabUrl(): string {

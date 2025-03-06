@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName } from "@/lib/config.ts";
+import { getAppName, isCloud } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import { Divider, Title } from "@mantine/core";
 import React from "react";
@@ -9,15 +9,12 @@ import CreateSsoProvider from "@/ee/security/components/create-sso-provider.tsx"
 import EnforceSso from "@/ee/security/components/enforce-sso.tsx";
 import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
-import usePlan from "@/ee/hooks/use-plan.tsx";
+import useLicense from "@/ee/hooks/use-license.tsx";
 
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const { isStandard } = usePlan();
-
-  // if is not cloud or enterprise return null
-  //{(isCloud() || isEnterprise()) && (
+  const { hasLicenseKey } = useLicense();
 
   if (!isAdmin) {
     return null;
@@ -42,7 +39,11 @@ export default function Security() {
 
       <Divider my="lg" />
 
-      {!isStandard && <CreateSsoProvider />}
+      {!isCloud() && hasLicenseKey ? <CreateSsoProvider /> : ""}
+
+      {/*TODO: revisit when we add a second plan
+         <CreateSsoProvider />
+      */}
 
       <Divider size={0} my="lg" />
 
