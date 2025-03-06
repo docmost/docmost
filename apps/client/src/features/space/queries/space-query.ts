@@ -59,17 +59,19 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   return query;
 }
 
-export const prefetchSpace = (spaceId: string) => {
+export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
   queryClient.prefetchQuery({
-    queryKey: ["space", spaceId],
-    queryFn: () => getSpaceById(spaceId),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ["space", spaceSlug],
+    queryFn: () => getSpaceById(spaceSlug),
   });
 
-  queryClient.prefetchQuery({
-    queryKey: ["recent-changes", spaceId],
-    queryFn: () => getRecentChanges(spaceId),
-  });
+  if (spaceId) {
+    // this endpoint only accepts uuid for now
+    queryClient.prefetchQuery({
+      queryKey: ["recent-changes", spaceId],
+      queryFn: () => getRecentChanges(spaceId),
+    });
+  }
 };
 
 export function useCreateSpaceMutation() {
