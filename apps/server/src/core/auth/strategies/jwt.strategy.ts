@@ -39,7 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     // CLOUD ENV
     if (this.environmentService.isCloud()) {
       if (req.raw.workspaceId && req.raw.workspaceId !== payload.workspaceId) {
-        throw new BadRequestException('Workspace does not match');
+        throw new UnauthorizedException('Workspace does not match');
       }
     }
 

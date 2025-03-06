@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { isCloud } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
@@ -41,7 +42,10 @@ api.interceptors.response.use(
               .includes("workspace not found")
           ) {
             console.log("workspace not found");
-            if (window.location.pathname != APP_ROUTE.AUTH.SETUP) {
+            if (
+              !isCloud() &&
+              window.location.pathname != APP_ROUTE.AUTH.SETUP
+            ) {
               window.location.href = APP_ROUTE.AUTH.SETUP;
             }
           }

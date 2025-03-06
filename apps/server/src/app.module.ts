@@ -14,6 +14,21 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './integrations/health/health.module';
 import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
+import { SecurityModule } from './integrations/security/security.module';
+
+const enterpriseModules = [];
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  if (require('./ee/ee.module')?.EeModule) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    enterpriseModules.push(require('./ee/ee.module')?.EeModule);
+  }
+} catch (err) {
+  if (process.env.CLOUD === 'true') {
+    console.warn('Failed to load enterprise modules. Exiting program.\n', err);
+    process.exit(1);
+  }
+}
 
 @Module({
   imports: [
@@ -34,6 +49,8 @@ import { ImportModule } from './integrations/import/import.module';
       imports: [EnvironmentModule],
     }),
     EventEmitterModule.forRoot(),
+    SecurityModule,
+    ...enterpriseModules,
   ],
   controllers: [AppController],
   providers: [AppService],
