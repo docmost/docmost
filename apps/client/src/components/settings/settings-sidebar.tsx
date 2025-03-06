@@ -19,6 +19,12 @@ import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai/index";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import {
+  prefetchBilling,
+  prefetchGroups,
+  prefetchSpaces,
+  prefetchWorkspaceMembers,
+} from "@/components/settings/settings-queries.tsx";
 
 interface DataItem {
   label: string;
@@ -131,8 +137,21 @@ export default function SettingsSidebar() {
           return null;
         }
 
+        // Add prefetch on hover for specific items
+        let prefetchHandler: any;
+        if (item.label === "Members") {
+          prefetchHandler = prefetchWorkspaceMembers;
+        } else if (item.label === "Spaces") {
+          prefetchHandler = prefetchSpaces;
+        } else if (item.label === "Groups") {
+          prefetchHandler = prefetchGroups;
+        } else if (item.label === "Billing") {
+          prefetchHandler = prefetchBilling;
+        }
+
         return (
           <Link
+            onMouseEnter={prefetchHandler}
             className={classes.link}
             data-active={active.startsWith(item.path) || undefined}
             key={item.label}

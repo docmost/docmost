@@ -25,6 +25,8 @@ import {
 } from "@/features/space/services/space-service.ts";
 import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
+import { queryClient } from "@/main.tsx";
+import { getRecentChanges } from "@/features/page/services/page-service.ts";
 
 export function useGetSpacesQuery(
   params?: QueryParams,
@@ -44,6 +46,19 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+export const prefetchSpace = (spaceId: string) => {
+  queryClient.prefetchQuery({
+    queryKey: ["space", spaceId],
+    queryFn: () => getSpaceById(spaceId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  queryClient.prefetchQuery({
+    queryKey: ["recent-changes", spaceId],
+    queryFn: () => getRecentChanges(spaceId),
+  });
+};
 
 export function useCreateSpaceMutation() {
   const queryClient = useQueryClient();
