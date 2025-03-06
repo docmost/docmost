@@ -33,7 +33,7 @@ COPY --from=builder /app/pnpm*.yaml /app/
 # Copy patches
 COPY --from=builder /app/patches /app/patches
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.4.0
 
 RUN chown -R node:node /app
 
