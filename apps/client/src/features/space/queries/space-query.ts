@@ -49,7 +49,7 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   useEffect(() => {
     if (query.data) {
       if (isValidUuid(spaceId)) {
-        queryClient.setQueryData(["space", query.data.name], query.data);
+        queryClient.setQueryData(["space", query.data.slug], query.data);
       } else {
         queryClient.setQueryData(["space", query.data.id], query.data);
       }

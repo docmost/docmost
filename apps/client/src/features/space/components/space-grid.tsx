@@ -19,7 +19,7 @@ export default function SpaceGrid() {
       radius="md"
       component={Link}
       to={getSpaceUrl(space.slug)}
-      onMouseEnter={() => prefetchSpace(space.id)}
+      onMouseEnter={() => prefetchSpace(space.slug)}
       className={classes.card}
       withBorder
     >
