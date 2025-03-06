@@ -201,17 +201,19 @@ export default function SettingsSidebar() {
       </Group>
 
       <ScrollArea w="100%">{menuItems}</ScrollArea>
-      <div className={classes.text}>
-        <Text
-          size="sm"
-          c="dimmed"
-          component="a"
-          href="https://github.com/docmost/docmost/releases"
-          target="_blank"
-        >
-          v{APP_VERSION}
-        </Text>
-      </div>
+      {!isCloud() && (
+        <div className={classes.text}>
+          <Text
+            size="sm"
+            c="dimmed"
+            component="a"
+            href="https://github.com/docmost/docmost/releases"
+            target="_blank"
+          >
+            v{APP_VERSION}
+          </Text>
+        </div>
+      )}
 
       {isCloud() && (
         <div className={classes.text}>
