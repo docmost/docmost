@@ -19,7 +19,7 @@ export default function JoinedWorkspaces() {
         <UnstyledButton
           key={index}
           component={Link}
-          to={getHostnameUrl(workspace?.hostname)}
+          to={getHostnameUrl(workspace?.hostname) + "/home"}
           className={classes.workspace}
         >
           <Group wrap="nowrap">
