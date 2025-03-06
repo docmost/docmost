@@ -26,7 +26,7 @@ async function bootstrap() {
     },
   );
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['robots.txt'] });
 
   const reflector = app.get(Reflector);
   const redisIoAdapter = new WsRedisIoAdapter(app);
