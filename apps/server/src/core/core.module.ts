@@ -37,6 +37,7 @@ export class CoreModule implements NestModule {
       .exclude(
         { path: 'auth/setup', method: RequestMethod.POST },
         { path: 'health', method: RequestMethod.GET },
+        { path: 'health/live', method: RequestMethod.GET },
       )
       .forRoutes('*');
   }
