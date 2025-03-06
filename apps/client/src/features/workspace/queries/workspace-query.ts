@@ -21,6 +21,7 @@ import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
+  IPublicWorkspace,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
@@ -34,7 +35,7 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
+  IPublicWorkspace,
   Error
 > {
   return useQuery({

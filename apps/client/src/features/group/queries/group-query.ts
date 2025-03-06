@@ -19,15 +19,30 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
+import { useEffect } from "react";
+import { validate as isValidUuid } from "uuid";
+import { queryClient } from "@/main.tsx";
 
 export function useGetGroupsQuery(
   params?: QueryParams,
 ): UseQueryResult<IPagination<IGroup>, Error> {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["groups", params],
     queryFn: () => getGroups(params),
     placeholderData: keepPreviousData,
   });
+
+  useEffect(() => {
+    if (query.data) {
+      if (query.data.items?.length > 0) {
+        query.data.items.forEach((group: IGroup) => {
+          queryClient.setQueryData(["group", group.id], group);
+        });
+      }
+    }
+  }, [query.data]);
+
+  return query;
 }
 
 export function useGroupQuery(groupId: string): UseQueryResult<IGroup, Error> {
