@@ -16,6 +16,16 @@ export class EnvironmentService {
     );
   }
 
+  isHttps(): boolean {
+    const appUrl = this.configService.get<string>('APP_URL');
+    try {
+      const url = new URL(appUrl);
+      return url.protocol === 'https:';
+    } catch (error) {
+      return false;
+    }
+  }
+
   getPort(): number {
     return parseInt(this.configService.get<string>('PORT', '3000'));
   }
@@ -44,7 +54,6 @@ export class EnvironmentService {
   }
 
   getFileUploadSizeLimit(): string {
-
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
   }
 
@@ -135,5 +144,16 @@ export class EnvironmentService {
 
   isSelfHosted(): boolean {
     return !this.isCloud();
+  }
+
+  getCollabUrl(): string {
+    return this.configService.get<string>('COLLAB_URL');
+  }
+
+  isCollabDisableRedis(): boolean {
+    const isStandalone = this.configService
+      .get<string>('COLLAB_DISABLE_REDIS', 'false')
+      .toLowerCase();
+    return isStandalone === 'true';
   }
 }

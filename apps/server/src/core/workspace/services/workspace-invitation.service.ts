@@ -16,7 +16,6 @@ import {
 } from '@docmost/db/types/entity.types';
 import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
-import { hashPassword } from '../../../common/helpers';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
@@ -24,7 +23,6 @@ import { TokenService } from '../../auth/services/token.service';
 import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { TokensDto } from '../../auth/dto/tokens.dto';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -62,6 +60,21 @@ export class WorkspaceInvitationService {
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .select(['id', 'email', 'createdAt'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    return invitation;
+  }
+
+  async getInvitationTokenById(invitationId: string, workspaceId: string) {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['token'])
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -164,25 +177,22 @@ export class WorkspaceInvitationService {
       throw new BadRequestException('Invalid invitation token');
     }
 
-    const password = await hashPassword(dto.password);
     let newUser: User;
 
     try {
       await executeTx(this.db, async (trx) => {
-        newUser = await trx
-          .insertInto('users')
-          .values({
+        newUser = await this.userRepo.insertUser(
+          {
             name: dto.name,
             email: invitation.email,
-            password: password,
-            workspaceId: workspaceId,
-            role: invitation.role,
-            lastLoginAt: new Date(),
-            invitedById: invitation.invitedById,
             emailVerifiedAt: new Date(),
-          })
-          .returningAll()
-          .executeTakeFirst();
+            password: dto.password,
+            role: invitation.role,
+            invitedById: invitation.invitedById,
+            workspaceId: workspaceId,
+          },
+          trx,
+        );
 
         // add user to default group
         await this.groupUserRepo.addUserToDefaultGroup(
@@ -254,15 +264,13 @@ export class WorkspaceInvitationService {
       });
     }
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(newUser);
-    return { tokens };
+    return this.tokenService.generateAccessToken(newUser);
   }
 
   async resendInvitation(
     invitationId: string,
     workspaceId: string,
   ): Promise<void> {
-    //
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()
@@ -298,13 +306,28 @@ export class WorkspaceInvitationService {
       .execute();
   }
 
+  async getInvitationLinkById(
+    invitationId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const token = await this.getInvitationTokenById(invitationId, workspaceId);
+    return this.buildInviteLink(invitationId, token.token);
+  }
+
+  async buildInviteLink(
+    invitationId: string,
+    inviteToken: string,
+  ): Promise<string> {
+    return `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
+  }
+
   async sendInvitationMail(
     invitationId: string,
     inviteeEmail: string,
     inviteToken: string,
     invitedByName: string,
   ): Promise<void> {
-    const inviteLink = `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
+    const inviteLink = await this.buildInviteLink(invitationId, inviteToken);
 
     const emailTemplate = InvitationEmail({
       inviteLink,

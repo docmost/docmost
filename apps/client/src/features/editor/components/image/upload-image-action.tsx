@@ -3,7 +3,7 @@ import { uploadFile } from "@/features/page/services/page-service.ts";
 import { notifications } from "@mantine/notifications";
 import { getFileUploadSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
-import i18n from "i18next";
+import i18n from "@/i18n.ts";
 
 export const uploadImageAction = handleImageUpload({
   onUpload: async (file: File, pageId: string): Promise<any> => {

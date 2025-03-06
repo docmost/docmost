@@ -24,7 +24,8 @@ export function useSearchSuggestionsQuery(
   params: SearchSuggestionParams,
 ): UseQueryResult<ISuggestionResult, Error> {
   return useQuery({
-    queryKey: ["search-suggestion", params],
+    queryKey: ["search-suggestion", params.query],
+    staleTime: 60 * 1000, // 1min
     queryFn: () => searchSuggestions(params),
     enabled: !!params.query,
   });

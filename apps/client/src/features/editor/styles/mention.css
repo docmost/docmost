@@ -1,0 +1,5 @@
+.node-mention {
+    &.ProseMirror-selectednode {
+        outline: none;
+    }
+}

@@ -76,7 +76,11 @@ export class ExportController {
       return;
     }
 
-    const rawContent = await this.exportService.exportPage(dto.format, page);
+    const rawContent = await this.exportService.exportPage(
+      dto.format,
+      page,
+      true,
+    );
 
     res.headers({
       'Content-Type': getMimeType(fileExt),

@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,8 @@ import {
   IInvitation,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
+import { useTranslation } from "react-i18next";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -40,10 +43,13 @@ export function useWorkspacePublicDataQuery(): UseQueryResult<
   });
 }
 
-export function useWorkspaceMembersQuery(params?: QueryParams) {
+export function useWorkspaceMembersQuery(
+  params?: QueryParams,
+): UseQueryResult<IPagination<IUser>, Error> {
   return useQuery({
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -53,7 +59,6 @@ export function useChangeMemberRoleMutation() {
   return useMutation<any, Error, any>({
     mutationFn: (data) => changeMemberRole(data),
     onSuccess: (data, variables) => {
-      // TODO: change in cache instead
       notifications.show({ message: "Member role updated successfully" });
       queryClient.refetchQueries({
         queryKey: ["workspaceMembers"],
@@ -72,17 +77,18 @@ export function useWorkspaceInvitationsQuery(
   return useQuery({
     queryKey: ["invitations", params],
     queryFn: () => getPendingInvitations(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useCreateInvitationMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
-      // TODO: mutate cache
+      notifications.show({ message: t("Invitation sent") });
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });

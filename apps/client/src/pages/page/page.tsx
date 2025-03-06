@@ -6,7 +6,6 @@ import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { useMemo } from "react";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
@@ -21,18 +20,21 @@ export default function Page() {
     data: page,
     isLoading,
     isError,
+    error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const spaceRules = space?.membership?.permissions;
-  const spaceAbility =  useSpaceAbility(spaceRules);
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   if (isLoading) {
     return <></>;
   }
 
   if (isError || !page) {
-    // TODO: fix this
+    if ([401, 403, 404].includes(error?.["status"])) {
+      return <div>{t("Page not found")}</div>;
+    }
     return <div>{t("Error fetching page data.")}</div>;
   }
 
@@ -55,8 +57,10 @@ export default function Page() {
         />
 
         <FullEditor
+          key={page.id}
           pageId={page.id}
           title={page.title}
+          content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={spaceAbility.can(

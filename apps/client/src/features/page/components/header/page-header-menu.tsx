@@ -8,6 +8,7 @@ import {
   IconMessage,
   IconPrinter,
   IconTrash,
+  IconWifiOff,
 } from "@tabler/icons-react";
 import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
@@ -23,18 +24,31 @@ import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
-import PageExportModal from "@/features/page/components/page-export-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
+import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
 }
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
+  const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
 
   return (
     <>
+      {yjsConnectionStatus === "disconnected" && (
+        <Tooltip
+          label="Real-time editor connection lost. Retrying..."
+          openDelay={250}
+          withArrow
+        >
+          <ActionIcon variant="default" c="red" style={{ border: "none" }}>
+            <IconWifiOff size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+
       <Tooltip label="Comments" openDelay={250} withArrow>
         <ActionIcon
           variant="default"

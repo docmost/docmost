@@ -1,3 +1,7 @@
+import { validate as isValidUUID } from "uuid";
+import { ActionIcon } from "@mantine/core";
+import { IconFileDescription } from "@tabler/icons-react";
+import { ReactNode } from "react";
 import { TFunction } from "i18next";
 
 export function formatMemberCount(memberCount: number, t: TFunction): string {
@@ -8,12 +12,15 @@ export function formatMemberCount(memberCount: number, t: TFunction): string {
   }
 }
 
-export function extractPageSlugId(input: string): string {
-  if (!input) {
+export function extractPageSlugId(slug: string): string {
+  if (!slug) {
     return undefined;
   }
-  const parts = input.split("-");
-  return parts.length > 1 ? parts[parts.length - 1] : input;
+  if (isValidUUID(slug)) {
+    return slug;
+  }
+  const parts = slug.split("-");
+  return parts.length > 1 ? parts[parts.length - 1] : slug;
 }
 
 export const computeSpaceSlug = (name: string) => {
@@ -28,14 +35,10 @@ export const computeSpaceSlug = (name: string) => {
   }
 };
 
-export const formatBytes = (
-  bytes: number,
-  decimalPlaces: number = 2,
-): string => {
+export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0.0 KB";
 
   const unitSize = 1024;
-  const precision = decimalPlaces < 0 ? 0 : decimalPlaces;
   const units = ["KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
   const kilobytes = bytes / unitSize;
@@ -43,6 +46,9 @@ export const formatBytes = (
   const unitIndex = Math.floor(Math.log(kilobytes) / Math.log(unitSize));
   const adjustedUnitIndex = Math.max(unitIndex, 0);
   const adjustedSize = kilobytes / Math.pow(unitSize, adjustedUnitIndex);
+
+  // Use one decimal for KB and no decimals for MB or higher
+  const precision = adjustedUnitIndex === 0 ? 1 : 0;
 
   return `${adjustedSize.toFixed(precision)} ${units[adjustedUnitIndex]}`;
 };
@@ -66,9 +72,9 @@ function decodeBase64(base64: string): string {
 }
 
 export function decodeBase64ToSvgString(base64Data: string): string {
-  const base64Prefix = 'data:image/svg+xml;base64,';
+  const base64Prefix = "data:image/svg+xml;base64,";
   if (base64Data.startsWith(base64Prefix)) {
-      base64Data = base64Data.replace(base64Prefix, '');
+    base64Data = base64Data.replace(base64Prefix, "");
   }
 
   return decodeBase64(base64Data);
@@ -76,4 +82,14 @@ export function decodeBase64ToSvgString(base64Data: string): string {
 
 export function capitalizeFirstChar(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function getPageIcon(icon: string, size = 18): string | ReactNode {
+  return (
+    icon || (
+      <ActionIcon variant="transparent" color="gray" size={size}>
+        <IconFileDescription size={size} />
+      </ActionIcon>
+    )
+  );
 }
