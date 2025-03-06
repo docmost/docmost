@@ -1,5 +1,8 @@
 import { queryClient } from "@/main.tsx";
-import { getBilling } from "@/ee/billing/services/billing-service.ts";
+import {
+  getBilling,
+  getBillingPlans,
+} from "@/ee/billing/services/billing-service.ts";
 import { getSpaces } from "@/features/space/services/space-service.ts";
 import { getGroups } from "@/features/group/services/group-service.ts";
 import { QueryParams } from "@/lib/types.ts";
@@ -31,5 +34,10 @@ export const prefetchBilling = () => {
   queryClient.prefetchQuery({
     queryKey: ["billing"],
     queryFn: () => getBilling(),
+  });
+
+  queryClient.prefetchQuery({
+    queryKey: ["billing-plans"],
+    queryFn: () => getBillingPlans(),
   });
 };
