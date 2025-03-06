@@ -169,7 +169,7 @@ export class PageRepo {
 
     await this.db
       .updateTable('pages')
-      .set({ deletedAt: null })
+      .set({ deletedAt: null, parentPageId: null })
       .where('id', 'in', pageIds)
       .execute();
   }
@@ -180,7 +180,7 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
-      .where('deletedAt', 'is not', null)
+      .where('deletedAt', '=', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
@@ -199,7 +199,7 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', userSpaceIds)
-      .where('deletedAt', 'is not', null)
+      .where('deletedAt', '=', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
