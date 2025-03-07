@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "아무거나 입력하세요. 명령어를 사용하려면 \"/\"를 입력하세요",
   "Names do not match": "이름이 일치하지 않습니다",
   "Today, {{time}}": "오늘, {{time}}",
-  "Yesterday, {{time}}": "어제, {{time}}"
+  "Yesterday, {{time}}": "어제, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
