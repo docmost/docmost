@@ -51,6 +51,12 @@
 	}
 }
 
+@media print {
+	.menu_mobile, .menu_desktop{
+	  display: none !important;
+	}
+}
+
 .link {
 	outline: none;
 	cursor: pointer;
