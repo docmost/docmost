@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "Sélectionner le rôle à attribuer à tous les membres invités",
   "Select theme": "Sélectionner le thème",
   "Send invitation": "Envoyer l'invitation",
+  "Invitation sent": "Invitation sent",
   "Settings": "Paramètres",
   "Setup workspace": "Configurer l'espace de travail",
   "Sign In": "Se connecter",
@@ -244,6 +245,7 @@
   "Align left": "Aligner à gauche",
   "Align right": "Aligner à droite",
   "Align center": "Aligner au centre",
+  "Justify": "Justify",
   "Merge cells": "Fusionner les cellules",
   "Split cell": "Diviser la cellule",
   "Delete column": "Supprimer la colonne",
@@ -338,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "Écrivez n'importe quoi. Entrez \"/\" pour les commandes",
   "Names do not match": "Les noms ne correspondent pas",
   "Today, {{time}}": "Aujourd'hui, {{time}}",
-  "Yesterday, {{time}}": "Hier, {{time}}"
+  "Yesterday, {{time}}": "Hier, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
