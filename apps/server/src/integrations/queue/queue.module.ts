@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EnvironmentService } from '../environment/environment.service';
 import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
-import { BacklinksProcessor } from "./processors/backlinks.processor";
+import { BacklinksProcessor } from './processors/backlinks.processor';
 
 @Global()
 @Module({
@@ -17,6 +17,7 @@ import { BacklinksProcessor } from "./processors/backlinks.processor";
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
+            family: redisConfig.family,
             retryStrategy: createRetryStrategy(),
           },
           defaultJobOptions: {
@@ -41,6 +42,6 @@ import { BacklinksProcessor } from "./processors/backlinks.processor";
     }),
   ],
   exports: [BullModule],
-  providers: [BacklinksProcessor]
+  providers: [BacklinksProcessor],
 })
 export class QueueModule {}
