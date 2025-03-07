@@ -137,6 +137,12 @@ export default function PageEditor({
                 return true;
               }
             }
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(event.key)) {
+              const emojiCommand = document.querySelector("#emoji-command");
+              if (emojiCommand) {
+                return true;
+              }
+            }
           },
         },
         handlePaste: (view, event, slice) =>
