@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "Escreva qualquer coisa. Digite \"/\" para comandos",
   "Names do not match": "Os nomes não coincidem",
   "Today, {{time}}": "Hoje, {{time}}",
-  "Yesterday, {{time}}": "Ontem, {{time}}"
+  "Yesterday, {{time}}": "Ontem, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
