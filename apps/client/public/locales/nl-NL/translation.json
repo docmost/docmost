@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "Schrijf iets. Voer \"/\" in voor commando's",
   "Names do not match": "Namen komen niet overeen",
   "Today, {{time}}": "Vandaag, {{time}}",
-  "Yesterday, {{time}}": "Gisteren, {{time}}"
+  "Yesterday, {{time}}": "Gisteren, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
