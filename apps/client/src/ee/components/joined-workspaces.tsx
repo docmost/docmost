@@ -15,35 +15,37 @@ export default function JoinedWorkspaces() {
 
   return (
     <>
-      {data.map((workspace: Partial<IWorkspace>, index) => (
-        <UnstyledButton
-          key={index}
-          component={Link}
-          to={getHostnameUrl(workspace?.hostname) + "/home"}
-          className={classes.workspace}
-        >
-          <Group wrap="nowrap">
-            <CustomAvatar
-              avatarUrl={workspace?.logo}
-              name={workspace?.name}
-              variant="filled"
-              size="md"
-            />
+      {data
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((workspace: Partial<IWorkspace>, index) => (
+          <UnstyledButton
+            key={index}
+            component={Link}
+            to={getHostnameUrl(workspace?.hostname) + "/home"}
+            className={classes.workspace}
+          >
+            <Group wrap="nowrap">
+              <CustomAvatar
+                avatarUrl={workspace?.logo}
+                name={workspace?.name}
+                variant="filled"
+                size="md"
+              />
 
-            <div style={{ flex: 1 }}>
-              <Text size="sm" fw={500} lineClamp={1}>
-                {workspace?.name}
-              </Text>
+              <div style={{ flex: 1 }}>
+                <Text size="sm" fw={500} lineClamp={1}>
+                  {workspace?.name}
+                </Text>
 
-              <Text c="dimmed" size="sm">
-                {getHostnameUrl(workspace?.hostname)?.split("//")[1]}
-              </Text>
-            </div>
+                <Text c="dimmed" size="sm">
+                  {getHostnameUrl(workspace?.hostname)?.split("//")[1]}
+                </Text>
+              </div>
 
-            <IconChevronRight size={16} />
-          </Group>
-        </UnstyledButton>
-      ))}
+              <IconChevronRight size={16} />
+            </Group>
+          </UnstyledButton>
+        ))}
     </>
   );
 }
