@@ -46,12 +46,15 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         plugins: [new CamelCasePlugin()],
         log: (event: LogEvent) => {
           if (environmentService.getNodeEnv() !== 'development') return;
+          const logger = new Logger(DatabaseModule.name);
           if (event.level === 'query') {
-            // console.log(event.query.sql);
-            //if (event.query.parameters.length > 0) {
-            //console.log('parameters: ' + event.query.parameters);
-            //}
-            // console.log('time: ' + event.queryDurationMillis);
+            if (process.env.DEBUG_DB?.toLowerCase() === 'true') {
+              logger.debug(event.query.sql);
+              logger.debug('query time: ' + event.queryDurationMillis + ' ms');
+              //if (event.query.parameters.length > 0) {
+              // logger.debug('parameters: ' + event.query.parameters);
+              //}
+            }
           }
         },
       }),
