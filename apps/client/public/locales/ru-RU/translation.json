@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "Пишите что угодно. Введите \"/\" для выбора команд",
   "Names do not match": "Названия не совпадают",
   "Today, {{time}}": "Сегодня, {{time}}",
-  "Yesterday, {{time}}": "Вчера, {{time}}"
+  "Yesterday, {{time}}": "Вчера, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
