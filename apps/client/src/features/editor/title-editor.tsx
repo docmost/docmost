@@ -20,6 +20,7 @@ import { History } from "@tiptap/extension-history";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import EmojiCommand from '@/features/editor/extensions/emoji-command.ts';
 
 export interface TitleEditorProps {
   pageId: string;
@@ -67,6 +68,7 @@ export function TitleEditor({
       History.configure({
         depth: 20,
       }),
+      EmojiCommand
     ],
     onCreate({ editor }) {
       if (editor) {
