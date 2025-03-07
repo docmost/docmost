@@ -31,7 +31,7 @@ export const incrementEmojiUsage = (emojiId: string) => {
   );
 };
 
-export const sortFrequenltyUsedEmoji = async (
+export const sortFrequentlyUsedEmoji = async (
   frequentlyUsedEmoji: EmojiMartFrequentlyType
 ): Promise<EmojiMenuItemType[]> => {
   const data = await Promise.all(

@@ -1,15 +1,15 @@
 import { CommandProps, EmojiMenuItemType } from "./types";
 import { SearchIndex } from "emoji-mart";
-import { getFrequentlyUsedEmoji, sortFrequenltyUsedEmoji } from "./utils";
+import { getFrequentlyUsedEmoji, sortFrequentlyUsedEmoji } from "./utils";
 
 const searchEmoji = async (value: string): Promise<EmojiMenuItemType[]> => {
   if (value === "") {
     const frequentlyUsedEmoji = getFrequentlyUsedEmoji();
-    return sortFrequenltyUsedEmoji(frequentlyUsedEmoji);
+    return sortFrequentlyUsedEmoji(frequentlyUsedEmoji);
   }
 
   const emojis = await SearchIndex.search(value);
-  const results = emojis.map((emoji) => {
+  const results = emojis.map((emoji: any) => {
     return {
       id: emoji.id,
       emoji: emoji.skins[0].native,

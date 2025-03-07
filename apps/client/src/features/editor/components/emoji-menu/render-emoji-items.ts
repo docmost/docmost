@@ -69,6 +69,7 @@ const renderEmojiItems = () => {
     onKeyDown: (props: { event: KeyboardEvent }) => {
       if (props.event.key === "Escape") {
         popup?.[0].hide();
+        component?.destroy()
 
         return true;
       }
@@ -77,12 +78,12 @@ const renderEmojiItems = () => {
       return component?.ref?.onKeyDown(props);
     },
     onExit: () => {
-      if (popup && !popup[0].state.isDestroyed) {
-        popup[0].destroy();
+      if (popup && !popup[0]?.state.isDestroyed) {
+        popup[0]?.destroy();
       }
 
       if (component) {
-        component.destroy();
+        component?.destroy();
       }
     },
   };
