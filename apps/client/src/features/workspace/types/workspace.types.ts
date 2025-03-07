@@ -1,3 +1,5 @@
+import { IAuthProvider } from "@/ee/security/types/security.types.ts";
+
 export interface IWorkspace {
   id: string;
   name: string;
@@ -7,10 +9,17 @@ export interface IWorkspace {
   defaultSpaceId: string;
   customDomain: string;
   enableInvite: boolean;
-  inviteCode: string;
   settings: any;
+  status: string;
+  enforceSso: boolean;
+  billingEmail: string;
+  trialEndAt: Date;
   createdAt: Date;
   updatedAt: Date;
+  emailDomains: string[];
+  memberCount?: number;
+  plan?: string;
+  hasLicenseKey?: boolean;
 }
 
 export interface ICreateInvite {
@@ -28,9 +37,23 @@ export interface IInvitation {
   createdAt: Date;
 }
 
+export interface IInvitationLink {
+  inviteLink: string;
+}
+
 export interface IAcceptInvite {
   invitationId: string;
   name: string;
   password: string;
   token: string;
+}
+
+export interface IPublicWorkspace {
+  id: string;
+  name: string;
+  logo: string;
+  hostname: string;
+  enforceSso: boolean;
+  authProviders: IAuthProvider[];
+  hasLicenseKey?: boolean;
 }

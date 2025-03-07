@@ -95,7 +95,7 @@ export const handleAttachmentUpload =
         if (!attachment) return;
 
         const node = schema.nodes.attachment?.create({
-          url: `/files/${attachment.id}/${attachment.fileName}`,
+          url: `/api/files/${attachment.id}/${attachment.fileName}`,
           name: attachment.fileName,
           mime: attachment.mimeType,
           size: attachment.fileSize,

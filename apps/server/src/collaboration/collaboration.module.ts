@@ -16,6 +16,7 @@ import { HistoryListener } from './listeners/history.listener';
     PersistenceExtension,
     HistoryListener,
   ],
+  exports: [CollaborationGateway],
   imports: [TokenModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {

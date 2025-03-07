@@ -77,7 +77,7 @@ export default function DrawioView(props: NodeViewProps) {
     }
 
     updateAttributes({
-      src: `/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
       title: attachment.fileName,
       size: attachment.fileSize,
       attachmentId: attachment.id,
