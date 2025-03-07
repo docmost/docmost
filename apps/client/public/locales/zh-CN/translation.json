@@ -340,5 +340,11 @@
   "Write anything. Enter \"/\" for commands": "开始编写内容，输入 \"/\" 以使用指令",
   "Names do not match": "名称不匹配",
   "Today, {{time}}": "今天，{{time}}",
-  "Yesterday, {{time}}": "昨天，{{time}}"
+  "Yesterday, {{time}}": "昨天，{{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully"
 }
