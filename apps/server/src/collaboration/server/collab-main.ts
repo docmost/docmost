@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { CollabAppModule } from './collab-app.module';
 import {
   FastifyAdapter,
@@ -25,7 +25,8 @@ async function bootstrap() {
 
   app.enableCors();
 
-  app.useGlobalInterceptors(new TransformHttpResponseInterceptor());
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new TransformHttpResponseInterceptor(reflector));
   app.enableShutdownHooks();
 
   const logger = new Logger('CollabServer');

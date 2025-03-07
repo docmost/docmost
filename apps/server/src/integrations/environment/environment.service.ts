@@ -10,10 +10,12 @@ export class EnvironmentService {
   }
 
   getAppUrl(): string {
-    return (
+    const rawUrl =
       this.configService.get<string>('APP_URL') ||
-      'http://localhost:' + this.getPort()
-    );
+      `http://localhost:${this.getPort()}`;
+
+    const { origin } = new URL(rawUrl);
+    return origin;
   }
 
   isHttps(): boolean {
@@ -26,6 +28,10 @@ export class EnvironmentService {
     }
   }
 
+  getSubdomainHost(): string {
+    return this.configService.get<string>('SUBDOMAIN_HOST');
+  }
+
   getPort(): number {
     return parseInt(this.configService.get<string>('PORT', '3000'));
   }
@@ -36,6 +42,10 @@ export class EnvironmentService {
 
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
+  }
+
+  getDatabaseMaxPool(): number {
+    return parseInt(this.configService.get<string>('DATABASE_MAX_POOL', '10'));
   }
 
   getRedisUrl(): string {
@@ -144,6 +154,22 @@ export class EnvironmentService {
 
   isSelfHosted(): boolean {
     return !this.isCloud();
+  }
+
+  getStripePublishableKey(): string {
+    return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
+  }
+
+  getStripeSecretKey(): string {
+    return this.configService.get<string>('STRIPE_SECRET_KEY');
+  }
+
+  getStripeWebhookSecret(): string {
+    return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+  }
+
+  getBillingTrialDays(): number {
+    return parseInt(this.configService.get<string>('BILLING_TRIAL_DAYS', '14'));
   }
 
   getCollabUrl(): string {

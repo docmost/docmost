@@ -26,6 +26,10 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
+import { queryClient } from "@/main.tsx";
+import { getRecentChanges } from "@/features/page/services/page-service.ts";
+import { useEffect } from "react";
+import { validate as isValidUuid } from "uuid";
 
 export function useGetSpacesQuery(
   params?: QueryParams,
@@ -38,13 +42,38 @@ export function useGetSpacesQuery(
 }
 
 export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["space", spaceId],
     queryFn: () => getSpaceById(spaceId),
     enabled: !!spaceId,
-    staleTime: 5 * 60 * 1000,
   });
+  useEffect(() => {
+    if (query.data) {
+      if (isValidUuid(spaceId)) {
+        queryClient.setQueryData(["space", query.data.slug], query.data);
+      } else {
+        queryClient.setQueryData(["space", query.data.id], query.data);
+      }
+    }
+  }, [query.data]);
+
+  return query;
 }
+
+export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
+  queryClient.prefetchQuery({
+    queryKey: ["space", spaceSlug],
+    queryFn: () => getSpaceById(spaceSlug),
+  });
+
+  if (spaceId) {
+    // this endpoint only accepts uuid for now
+    queryClient.prefetchQuery({
+      queryKey: ["recent-changes", spaceId],
+      queryFn: () => getRecentChanges(spaceId),
+    });
+  }
+};
 
 export function useCreateSpaceMutation() {
   const queryClient = useQueryClient();

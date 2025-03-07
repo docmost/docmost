@@ -33,6 +33,7 @@ import {
 import { addDays } from 'date-fns';
 import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { CheckHostnameDto } from '../dto/check-hostname.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -60,7 +61,8 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
-    @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() dto: UpdateWorkspaceDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -71,7 +73,21 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.update(workspace.id, updateWorkspaceDto);
+    const updatedWorkspace = await this.workspaceService.update(
+      workspace.id,
+      dto,
+    );
+
+    if (
+      dto.hostname &&
+      dto.hostname === updatedWorkspace.hostname &&
+      workspace.hostname !== updatedWorkspace.hostname
+    ) {
+      // log user out of old hostname
+      res.clearCookie('authToken');
+    }
+
+    return updatedWorkspace;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -102,8 +118,6 @@ export class WorkspaceController {
     ) {
       throw new ForbiddenException();
     }
-
-    return this.workspaceService.deactivateUser();
   }
 
   @HttpCode(HttpStatus.OK)
@@ -172,7 +186,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.createInvitation(
       inviteUserDto,
-      workspace.id,
+      workspace,
       user,
     );
   }
@@ -193,7 +207,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.resendInvitation(
       revokeInviteDto.invitationId,
-      workspace.id,
+      workspace,
     );
   }
 
@@ -238,6 +252,13 @@ export class WorkspaceController {
     });
   }
 
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/check-hostname')
+  async checkHostname(@Body() checkHostnameDto: CheckHostnameDto) {
+    return this.workspaceService.checkHostname(checkHostnameDto.hostname);
+  }
+
   @HttpCode(HttpStatus.OK)
   @Post('invites/link')
   async getInviteLink(
@@ -258,7 +279,7 @@ export class WorkspaceController {
     const inviteLink =
       await this.workspaceInvitationService.getInvitationLinkById(
         inviteDto.invitationId,
-        workspace.id,
+        workspace,
       );
 
     return { inviteLink };

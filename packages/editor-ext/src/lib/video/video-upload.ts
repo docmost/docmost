@@ -102,7 +102,7 @@ export const handleVideoUpload =
         if (!attachment) return;
 
         const node = schema.nodes.video?.create({
-          src: `/files/${attachment.id}/${attachment.fileName}`,
+          src: `/api/files/${attachment.id}/${attachment.fileName}`,
           attachmentId: attachment.id,
           title: attachment.fileName,
           size: attachment.fileSize,
