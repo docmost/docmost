@@ -1,0 +1,45 @@
+{
+  "background_color": "#000000",
+  "description": "Open-source collaborative wiki and documentation software.",
+  "display": "standalone",
+  "name": "Docmost",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "scope": "/",
+  "short_name": "Docmost",
+  "start_url": "/",
+  "theme_color": "#000000",
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-1920x1080.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Navigation between workspace and notes"
+    },
+    {
+      "src": "/screenshots/mobile-390x844.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Navigation between workspace and notes"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "type": "image/png",
+      "sizes": "16x16"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "type": "image/png",
+      "sizes": "32x32"
+    },
+    {
+      "src": "/favicon-160x160.png",
+      "type": "image/png",
+      "sizes": "160x160"
+    }
+  ]
+}
