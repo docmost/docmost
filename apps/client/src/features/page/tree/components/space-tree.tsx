@@ -7,7 +7,7 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Menu, rem } from "@mantine/core";
@@ -37,6 +37,7 @@ import {
   getPageBreadcrumbs,
   getPageById,
   getSidebarPages,
+  movePageToAnotherSpace,
 } from "@/features/page/services/page-service.ts";
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
@@ -51,11 +52,14 @@ import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
-import { getAppUrl } from "@/lib/config.ts";
+import { getAppUrl, getSpaceUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
+import { SpaceSelectionModal } from "../../components/space-selection-modal";
+import { ISpace } from "@/features/space/types/space.types";
 import ExportModal from "@/components/common/export-modal";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -434,6 +438,10 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   const { openDeleteModal } = useDeletePageModal();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [moveToAnotherSpaceOpened, { open: openMoveToAnotherSpaceModal, close: closeMoveToAnotherSpaceModal }] =
+    useDisclosure(false);
+  const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
+  const navigate = useNavigate();
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -441,6 +449,14 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
   };
+
+  const handlePageMove = async (space: ISpace) => {
+    await movePageToAnotherSpace({ pageId: node.id, spaceId: space.id });
+    closeMoveToAnotherSpaceModal();
+    queryClient.removeQueries({ predicate: item => ['pages', 'sidebar-pages', 'root-sidebar-pages']
+      .includes(item.queryKey[0] as string) });
+    await navigate(getSpaceUrl(space.slug));
+  }
 
   return (
     <>
@@ -484,6 +500,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
             {t("Export page")}
           </Menu.Item>
 
+          <Menu.Item
+            leftSection={<IconFileExport size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openMoveToAnotherSpaceModal();
+            }}
+          >
+            Move to another space
+          </Menu.Item>
+
           {!(treeApi.props.disableEdit as boolean) && (
             <>
               <Menu.Divider />
@@ -503,6 +530,14 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <SpaceSelectionModal
+        onClose={closeMoveToAnotherSpaceModal}
+        onSelect={handlePageMove}
+        currentSpace={space}
+        open={moveToAnotherSpaceOpened}
+        title="Move the page to another space"
+      />
 
       <ExportModal
         type="page"
