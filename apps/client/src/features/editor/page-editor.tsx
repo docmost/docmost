@@ -41,7 +41,8 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
-import { useDocumentVisibility, useIdle } from "@mantine/hooks";
+import { useDocumentVisibility } from "@mantine/hooks";
+import { useIdle } from "@/hooks/use-idle.ts";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 
 interface PageEditorProps {
@@ -70,7 +71,7 @@ export default function PageEditor({
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data } = useCollabToken();
-  const idle = useIdle(FIVE_MINUTES, { initialState: false });
+  const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
 
   const localProvider = useMemo(() => {
@@ -157,7 +158,7 @@ export default function PageEditor({
         }
       },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, remoteProvider?.status],
   );
 
   const handleActiveCommentEvent = (event) => {
@@ -196,10 +197,8 @@ export default function PageEditor({
   }, [remoteProvider?.status]);
 
   useEffect(() => {
-    // disconnect and reconnect real-time collaboration
-    // based on user idleness and availability
     if (
-      idle &&
+      isIdle &&
       documentState === "hidden" &&
       remoteProvider?.status === WebSocketStatus.Connected
     ) {
@@ -207,13 +206,13 @@ export default function PageEditor({
     }
 
     if (
-      !idle &&
       documentState === "visible" &&
       remoteProvider?.status === WebSocketStatus.Disconnected
     ) {
       remoteProvider.connect();
+      resetIdle();
     }
-  }, [idle, documentState, remoteProvider]);
+  }, [isIdle, documentState, remoteProvider?.status]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
