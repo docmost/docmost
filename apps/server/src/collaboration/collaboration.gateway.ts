@@ -28,7 +28,7 @@ export class CollaborationGateway {
 
     this.hocuspocus = HocuspocusServer.configure({
       debounce: 10000,
-      maxDebounce: 20000,
+      maxDebounce: 45000,
       unloadImmediately: false,
       extensions: [
         this.authenticationExtension,
