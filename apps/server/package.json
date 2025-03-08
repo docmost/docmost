@@ -13,6 +13,7 @@
     "start:debug": "cross-env NODE_ENV=development nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
     "collab:prod": "cross-env NODE_ENV=production node dist/collaboration/server/collab-main",
+    "collab:dev": "cross-env NODE_ENV=development node dist/collaboration/server/collab-main",
     "email:dev": "email dev -p 5019 -d ./src/integrations/transactional/emails",
     "migration:create": "tsx src/database/migrate.ts create",
     "migration:up": "tsx src/database/migrate.ts up",

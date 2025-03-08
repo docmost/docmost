@@ -7,6 +7,7 @@
     "build": "nx run-many -t build",
     "start": "pnpm --filter ./apps/server run start:prod",
     "collab": "pnpm --filter ./apps/server run collab:prod",
+    "collab:dev": "pnpm --filter ./apps/server run collab:dev",
     "server:build": "nx run server:build",
     "client:build": "nx run client:build",
     "editor-ext:build": "nx run @docmost/editor-ext:build",

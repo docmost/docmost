@@ -41,6 +41,8 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import { useDocumentVisibility, useIdle } from "@mantine/hooks";
+import { FIVE_MINUTES } from "@/lib/constants.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -68,6 +70,8 @@ export default function PageEditor({
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data } = useCollabToken();
+  const idle = useIdle(FIVE_MINUTES, { initialState: false });
+  const documentState = useDocumentVisibility();
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -86,6 +90,7 @@ export default function PageEditor({
       document: ydoc,
       token: data?.token,
       connect: false,
+      preserveConnection: false,
       onStatus: (status) => {
         if (status.status === "connected") {
           setYjsConnectionStatus(status.status);
@@ -125,6 +130,7 @@ export default function PageEditor({
       extensions,
       editable,
       immediatelyRender: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
@@ -181,15 +187,33 @@ export default function PageEditor({
   }, [pageId]);
 
   useEffect(() => {
-    if (editable) {
-      if (yjsConnectionStatus === WebSocketStatus.Connected) {
-        editor.setEditable(true);
-      } else {
-        // disable edits if connection fails
-        editor.setEditable(false);
-      }
+    if (remoteProvider?.status === WebSocketStatus.Connecting) {
+      const timeout = setTimeout(() => {
+        setYjsConnectionStatus(WebSocketStatus.Disconnected);
+      }, 5000);
+      return () => clearTimeout(timeout);
     }
-  }, [yjsConnectionStatus]);
+  }, [remoteProvider?.status]);
+
+  useEffect(() => {
+    // disconnect and reconnect real-time collaboration
+    // based on user idleness and availability
+    if (
+      idle &&
+      documentState === "hidden" &&
+      remoteProvider?.status === WebSocketStatus.Connected
+    ) {
+      remoteProvider.disconnect();
+    }
+
+    if (
+      !idle &&
+      documentState === "visible" &&
+      remoteProvider?.status === WebSocketStatus.Disconnected
+    ) {
+      remoteProvider.connect();
+    }
+  }, [idle, documentState, remoteProvider]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 

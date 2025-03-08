@@ -11,6 +11,7 @@ import {
   parseRedisUrl,
   RedisConfig,
 } from '../common/helpers';
+import { LoggerExtension } from './extensions/logger.extension';
 
 @Injectable()
 export class CollaborationGateway {
@@ -20,6 +21,7 @@ export class CollaborationGateway {
   constructor(
     private authenticationExtension: AuthenticationExtension,
     private persistenceExtension: PersistenceExtension,
+    private loggerExtension: LoggerExtension,
     private environmentService: EnvironmentService,
   ) {
     this.redisConfig = parseRedisUrl(this.environmentService.getRedisUrl());
@@ -31,19 +33,20 @@ export class CollaborationGateway {
       extensions: [
         this.authenticationExtension,
         this.persistenceExtension,
+        this.loggerExtension,
         ...(this.environmentService.isCollabDisableRedis()
           ? []
           : [
-              new Redis({
-                host: this.redisConfig.host,
-                port: this.redisConfig.port,
-                options: {
-                  password: this.redisConfig.password,
-                  db: this.redisConfig.db,
-                  retryStrategy: createRetryStrategy(),
-                },
-              }),
-            ]),
+            new Redis({
+              host: this.redisConfig.host,
+              port: this.redisConfig.port,
+              options: {
+                password: this.redisConfig.password,
+                db: this.redisConfig.db,
+                retryStrategy: createRetryStrategy(),
+              },
+            }),
+          ]),
       ],
     });
   }

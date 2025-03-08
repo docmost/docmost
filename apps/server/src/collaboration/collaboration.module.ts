@@ -8,12 +8,14 @@ import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { TokenModule } from '../core/auth/token.module';
 import { HistoryListener } from './listeners/history.listener';
+import { LoggerExtension } from './extensions/logger.extension';
 
 @Module({
   providers: [
     CollaborationGateway,
     AuthenticationExtension,
     PersistenceExtension,
+    LoggerExtension,
     HistoryListener,
   ],
   exports: [CollaborationGateway],
