@@ -41,7 +41,9 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
-import { isCloud } from "@/lib/config.ts";
+import { useDocumentVisibility } from "@mantine/hooks";
+import { useIdle } from "@/hooks/use-idle.ts";
+import { FIVE_MINUTES } from "@/lib/constants.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -69,6 +71,8 @@ export default function PageEditor({
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data } = useCollabToken();
+  const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
+  const documentState = useDocumentVisibility();
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -87,6 +91,7 @@ export default function PageEditor({
       document: ydoc,
       token: data?.token,
       connect: false,
+      preserveConnection: false,
       onStatus: (status) => {
         if (status.status === "connected") {
           setYjsConnectionStatus(status.status);
@@ -126,6 +131,7 @@ export default function PageEditor({
       extensions,
       editable,
       immediatelyRender: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
@@ -158,7 +164,7 @@ export default function PageEditor({
         }
       },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, remoteProvider?.status],
   );
 
   const handleActiveCommentEvent = (event) => {
@@ -188,16 +194,31 @@ export default function PageEditor({
   }, [pageId]);
 
   useEffect(() => {
-    if (isCloud()) return;
-    if (editable) {
-      if (yjsConnectionStatus === WebSocketStatus.Connected) {
-        editor.setEditable(true);
-      } else {
-        // disable edits if connection fails
-        editor.setEditable(false);
-      }
+    if (remoteProvider?.status === WebSocketStatus.Connecting) {
+      const timeout = setTimeout(() => {
+        setYjsConnectionStatus(WebSocketStatus.Disconnected);
+      }, 5000);
+      return () => clearTimeout(timeout);
     }
-  }, [yjsConnectionStatus]);
+  }, [remoteProvider?.status]);
+
+  useEffect(() => {
+    if (
+      isIdle &&
+      documentState === "hidden" &&
+      remoteProvider?.status === WebSocketStatus.Connected
+    ) {
+      remoteProvider.disconnect();
+    }
+
+    if (
+      documentState === "visible" &&
+      remoteProvider?.status === WebSocketStatus.Disconnected
+    ) {
+      remoteProvider.connect();
+      resetIdle();
+    }
+  }, [isIdle, documentState, remoteProvider?.status]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
