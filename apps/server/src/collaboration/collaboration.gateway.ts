@@ -37,16 +37,17 @@ export class CollaborationGateway {
         ...(this.environmentService.isCollabDisableRedis()
           ? []
           : [
-            new Redis({
-              host: this.redisConfig.host,
-              port: this.redisConfig.port,
-              options: {
-                password: this.redisConfig.password,
-                db: this.redisConfig.db,
-                retryStrategy: createRetryStrategy(),
-              },
-            }),
-          ]),
+              new Redis({
+                host: this.redisConfig.host,
+                port: this.redisConfig.port,
+                options: {
+                  password: this.redisConfig.password,
+                  db: this.redisConfig.db,
+                  family: this.redisConfig.family,
+                  retryStrategy: createRetryStrategy(),
+                },
+              }),
+            ]),
       ],
     });
   }
