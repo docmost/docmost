@@ -35,17 +35,15 @@ export default function Security() {
         Single sign-on (SSO)
       </Title>
 
-      <EnforceSso />
-
-      <Divider my="lg" />
-
-      {!isCloud() && hasLicenseKey ? <CreateSsoProvider /> : ""}
-
-      {/*TODO: revisit when we add a second plan
-         <CreateSsoProvider />
-      */}
-
-      <Divider size={0} my="lg" />
+      {/*TODO: revisit when we add a second plan */}
+      {!isCloud() && hasLicenseKey ? (
+        <>
+          <EnforceSso />
+          <Divider my="lg" />
+          <CreateSsoProvider />
+          <Divider size={0} my="lg" />
+        </>
+      ) : null}
 
       <SsoProviderList />
     </>

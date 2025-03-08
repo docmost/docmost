@@ -8,6 +8,7 @@ import { getGroups } from "@/features/group/services/group-service.ts";
 import { QueryParams } from "@/lib/types.ts";
 import { getWorkspaceMembers } from "@/features/workspace/services/workspace-service.ts";
 import { getLicenseInfo } from "@/ee/licence/services/license-service.ts";
+import { getSsoProviders } from '@/ee/security/services/security-service.ts';
 
 export const prefetchWorkspaceMembers = () => {
   const params = { limit: 100, page: 1, query: "" } as QueryParams;
@@ -47,5 +48,12 @@ export const prefetchLicense = () => {
   queryClient.prefetchQuery({
     queryKey: ["license"],
     queryFn: () => getLicenseInfo(),
+  });
+};
+
+export const prefetchSsoProviders = () => {
+  queryClient.prefetchQuery({
+    queryKey: ["sso-providers"],
+    queryFn: () => getSsoProviders(),
   });
 };

@@ -24,6 +24,7 @@ import {
   prefetchGroups,
   prefetchLicense,
   prefetchSpaces,
+  prefetchSsoProviders,
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
 
@@ -164,6 +165,9 @@ export default function SettingsSidebar() {
               if (workspace?.hasLicenseKey) {
                 prefetchHandler = prefetchLicense;
               }
+              break;
+            case "Security & SSO":
+              prefetchHandler = prefetchSsoProviders;
               break;
             default:
               break;
