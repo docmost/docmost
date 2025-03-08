@@ -11,6 +11,7 @@ import {
   parseRedisUrl,
   RedisConfig,
 } from '../common/helpers';
+import { LoggerExtension } from './extensions/logger.extension';
 
 @Injectable()
 export class CollaborationGateway {
@@ -20,17 +21,19 @@ export class CollaborationGateway {
   constructor(
     private authenticationExtension: AuthenticationExtension,
     private persistenceExtension: PersistenceExtension,
+    private loggerExtension: LoggerExtension,
     private environmentService: EnvironmentService,
   ) {
     this.redisConfig = parseRedisUrl(this.environmentService.getRedisUrl());
 
     this.hocuspocus = HocuspocusServer.configure({
       debounce: 10000,
-      maxDebounce: 20000,
+      maxDebounce: 45000,
       unloadImmediately: false,
       extensions: [
         this.authenticationExtension,
         this.persistenceExtension,
+        this.loggerExtension,
         ...(this.environmentService.isCollabDisableRedis()
           ? []
           : [
