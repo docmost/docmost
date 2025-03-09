@@ -45,6 +45,7 @@
   "Are you sure you want to delete this page? This will delete its children and page history. This action is irreversible.": "このページを削除してもよろしいですか？この操作により、子ページおよびページ履歴が削除されます。この操作は元に戻せません。",
   "Description": "説明",
   "Details": "詳細",
+  "Drag and drop an image to use" : "画像をドラッグ＆ドロップ",
   "e.g ACME": "例: 山田太郎",
   "e.g ACME Inc": "例: 株式会社サンプル",
   "e.g Developers": "例: エンジニア",

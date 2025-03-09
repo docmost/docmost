@@ -32,3 +32,19 @@ export async function saveImageAsAttachment(pageId: string, spaceId: string, img
     const attachment = await api.post<IAttachment>(`/attachments/upload-remote-image`, body);
     return attachment.data;
 }
+
+export async function uploadLocalImage(pageId: string, spaceId: string, file: File): Promise<IAttachment> {
+    const formData = new FormData();
+    formData.append('type', 'cover-photo');
+    formData.append('pageId', pageId);
+    formData.append('spaceId', spaceId);
+    formData.append('file', file);
+
+    const attachment = await api.post<IAttachment>(`/files/upload`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+
+    return attachment as unknown as IAttachment;;
+}

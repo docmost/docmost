@@ -7,7 +7,7 @@ export enum AttachmentType {
 }
 
 export const validImageExtensions = ['.jpg', '.png', '.jpeg', '.webp'];
-export const MAX_AVATAR_SIZE = '5MB';
+export const MAX_IMAGE_SIZE = '100MB';
 
 export const inlineFileExtensions = [
   '.jpg',

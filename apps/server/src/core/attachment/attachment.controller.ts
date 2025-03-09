@@ -31,7 +31,7 @@ import {getMimeType} from '../../common/helpers';
 import {
     AttachmentType,
     inlineFileExtensions,
-    MAX_AVATAR_SIZE,
+    MAX_IMAGE_SIZE,
 } from './attachment.constants';
 import {
     SpaceCaslAction,
@@ -78,7 +78,7 @@ export class AttachmentController {
         let file = null;
         try {
             file = await req.file({
-                limits: {fileSize: maxFileSize, fields: 3, files: 1},
+                limits: {fileSize: maxFileSize, fields: 99, files: 1},
             });
         } catch (err: any) {
             this.logger.error(err.message);
@@ -93,6 +93,7 @@ export class AttachmentController {
             throw new BadRequestException('Failed to upload file');
         }
 
+        const attachmentType = file.fields?.type?.value;
         const pageId = file.fields?.pageId?.value;
 
         if (!pageId) {
@@ -126,6 +127,7 @@ export class AttachmentController {
                 pageId: pageId,
                 spaceId: spaceId,
                 userId: user.id,
+                type: attachmentType,
                 workspaceId: workspace.id,
                 attachmentId: attachmentId,
             });
@@ -205,17 +207,17 @@ export class AttachmentController {
         @AuthUser() user: User,
         @AuthWorkspace() workspace: Workspace,
     ) {
-        const maxFileSize = bytes(MAX_AVATAR_SIZE);
+        const maxFileSize = bytes(this.environmentService.getFileUploadSizeLimit());
 
         let file = null;
         try {
             file = await req.file({
-                limits: {fileSize: maxFileSize, fields: 3, files: 1},
+                limits: {fileSize: maxFileSize, fields: 99, files: 1},
             });
         } catch (err: any) {
             if (err?.statusCode === 413) {
                 throw new BadRequestException(
-                    `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+                    `File too large. Exceeds the ${maxFileSize} limit`,
                 );
             }
         }
@@ -226,6 +228,7 @@ export class AttachmentController {
 
         const attachmentType = file.fields?.type?.value;
         const spaceId = file.fields?.spaceId?.value;
+        const pageId = file.fields?.pageId?.value;
 
         if (!attachmentType) {
             throw new BadRequestException('attachment type is required');
@@ -270,6 +273,7 @@ export class AttachmentController {
                 user.id,
                 workspace.id,
                 spaceId,
+                pageId,
             );
 
             return res.send(fileResponse);

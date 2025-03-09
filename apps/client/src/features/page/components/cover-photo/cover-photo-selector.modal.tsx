@@ -1,27 +1,43 @@
 import {
   Modal,
   Button,
+  Container,
   Group,
+  Tabs,
   Text,
 } from "@mantine/core";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { searchUnsplashImages, IImage } from "./cover-photo.service.ts";
+import { searchUnsplashImages, IImage, uploadLocalImage, saveImageAsAttachment } from "./cover-photo.service.ts";
 import classes from "./cover-photo.module.css";
+import { IAttachment } from "@/lib/types.ts";
 
 interface CoverPhotoSelectorModalProps {
   open: boolean;
-  onClose: (img: IImage | null) => void;
+  pageId: string;
+  spaceId: string;
+  onClose: (attachment: IAttachment | null) => void;
 }
 
 export default function CoverPhotoSelectorModal({
   open,
+  pageId,
+  spaceId,
   onClose,
 }: CoverPhotoSelectorModalProps) {
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sourceSystem, setSourceSystem] = useState<string>("unsplash");
   const [images, setImages] = useState<IImage[]>([]);
+  const [droppedFile, setDroppedFile] = useState<File|null>(null);
+  // const [droppedImage, setDroppedImage] = useState<any|null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const imageRef = useRef<HTMLImageElement>(null);
   const { t } = useTranslation();
+
+
+  useEffect(() => {
+    setSourceSystem("unsplash");
+  }, [open]);
 
   const handleSearchTermChange = async (query: string) => {
     setSearchTerm(query);
@@ -35,14 +51,16 @@ export default function CoverPhotoSelectorModal({
     return images[index];
   }
 
-  const handleClose = () => {
-    if(selectedIndex > -1) {
+  const handleClose = async () => {
+    let attachment: IAttachment | null = null;
+    if(sourceSystem === "unsplash" && selectedIndex > -1) {
       const img = images[selectedIndex];
       img.sourceSystem = "unsplash";
-      onClose(img);
-    } else {
-      onClose(null);
+      attachment = await saveImageAsAttachment(pageId, spaceId, img);
+    } else if(sourceSystem === "upload" && droppedFile) {
+      attachment = await uploadLocalImage(pageId, spaceId, droppedFile);
     }
+    onClose(attachment);
     setSelectedIndex(-1);
     setImages([]);
   }
@@ -53,7 +71,7 @@ export default function CoverPhotoSelectorModal({
       onClose={handleClose}
       size={500}
       padding="xl"
-      yOffset="10vh"
+      yOffset="24px"
       xOffset={0}
       mah={400}
     >
@@ -64,6 +82,24 @@ export default function CoverPhotoSelectorModal({
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body> {/* Display a tab header, attachments, unsplash, upload */}
+        <Container size="md">
+        <Tabs
+          defaultValue="unsplash"
+          variant="default"
+          visibleFrom="sm"
+          classNames={{
+            root: classes.tabs,
+            list: classes.tabsList,
+            tab: classes.tab,
+          }}
+          onChange={(value : string) => {setSourceSystem(value)}}
+        >
+          <Tabs.List>
+            <Tabs.Tab value="unsplash" key="unsplash">Unsplash</Tabs.Tab>
+            <Tabs.Tab value="attachments" key="attachments">Attachments</Tabs.Tab>
+            <Tabs.Tab value="upload" key="upload">Upload</Tabs.Tab>
+          </Tabs.List>
+            <Tabs.Panel value="unsplash">
               <Text>{t("Search for a cover photo")}</Text>
               <input
                 type="text"
@@ -71,7 +107,7 @@ export default function CoverPhotoSelectorModal({
                 onChange={(event) => {handleSearchTermChange(event.target.value)}}
                 className={classes.searchInput}
               />
-            <div className={classes.imageGrid}>
+              <div className={classes.imageGrid}>
                 {Array.from({ length: 12 }).map((_, index) => (
                     <div
                         key={index}
@@ -80,7 +116,52 @@ export default function CoverPhotoSelectorModal({
                     >{images[index]?.thumbnailUrl ? <img className={selectedIndex === index ? classes.selected : ""} height={98} src={images[index]?.thumbnailUrl} alt={images[index]?.altText} title={`${images[index]?.title} by ${images[index]?.attribution}`} /> : index + 1}
                     </div>
                 ))}
-            </div>
+              </div>
+            </Tabs.Panel>
+            <Tabs.Panel value="attachments">
+              <Text>{t("Search for a cover photo")}</Text>
+              <input
+                type="text"
+                placeholder={t("Search...")}
+                onChange={(event) => {handleSearchTermChange(event.target.value)}}
+                className={classes.searchInput}
+              />
+              </Tabs.Panel>
+            <Tabs.Panel value="upload">
+              <Text>{t("Drag and drop an image to use")}</Text>
+                <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  width: "100%",
+                  height: "400px",
+                  overflowY: "auto",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  marginTop: "10px",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const files = event.dataTransfer.files;
+                  if (files.length > 0) {
+                    setDroppedFile(files[0]);
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      imageRef.current.src = e.target?.result as string;
+                    };
+                    reader.readAsDataURL(files[0]);
+                  }
+                }
+              }
+                onDragOver={(event) => event.preventDefault()}> 
+                <img ref={imageRef} src="/default-upload-file.png" title={t("Drag and drop an image to use")}></img>
+              </div>
+            </Tabs.Panel>
+          </Tabs>
+        </Container>
+
           <Group justify="center" mt="md">
             <Button onClick={handleClose} variant="default">
               {t("Cancel")}

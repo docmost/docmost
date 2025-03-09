@@ -47,8 +47,9 @@ export class AttachmentService {
     spaceId: string;
     workspaceId: string;
     attachmentId?: string;
+    type?: AttachmentType;
   }) {
-    const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
+    const { filePromise, pageId, spaceId, userId, workspaceId, type } = opts;
     const preparedFile: PreparedFile = await prepareFile(filePromise);
 
     let isUpdate = false;
@@ -85,25 +86,32 @@ export class AttachmentService {
 
     let attachment: Attachment = null;
     try {
-      if (isUpdate) {
-        attachment = await this.attachmentRepo.updateAttachment(
-          {
-            updatedAt: new Date(),
-          },
-          attachmentId,
-        );
-      } else {
-        attachment = await this.saveAttachment({
-          attachmentId,
-          preparedFile,
-          filePath,
-          type: AttachmentType.File,
-          userId,
-          spaceId,
-          workspaceId,
-          pageId,
-        });
-      }
+      await executeTx(this.db, async (trx) => {
+        if (isUpdate) {
+          attachment = await this.attachmentRepo.updateAttachment(
+            {
+              updatedAt: new Date(),
+            },
+            attachmentId,
+          );
+        } else {
+          attachment = await this.saveAttachment({
+            attachmentId,
+            preparedFile,
+            filePath,
+            type: type || AttachmentType.File,
+            userId,
+            spaceId,
+            workspaceId,
+            pageId,
+          });
+        }
+
+        if (type === AttachmentType.CoverPhoto) {
+          const page = await this.pageRepo.findById(pageId, {trx});
+          await this.pageRepo.updatePage({...page, coverPhoto: attachment.id}, pageId, trx);
+        }
+      });
     } catch (err) {
       // delete uploaded file on error
       this.logger.error(err);
@@ -122,6 +130,7 @@ export class AttachmentService {
     userId: string,
     workspaceId: string,
     spaceId?: string,
+    pageId?: string,
   ) {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
@@ -143,6 +152,8 @@ export class AttachmentService {
           type,
           userId,
           workspaceId,
+          pageId,
+          spaceId,
           trx,
         });
 
@@ -160,9 +171,8 @@ export class AttachmentService {
             trx,
           );
         } else if (type === AttachmentType.CoverPhoto) {
-          const page = await this.pageRepo.findById(userId, {trx});
-
-          await this.pageRepo.updatePage({...page, coverPhoto: attachment.id}, page.id, trx);
+          const page = await this.pageRepo.findById(pageId, {trx});
+          await this.pageRepo.updatePage({...page, coverPhoto: attachment.id}, pageId, trx);
         } else if (type === AttachmentType.WorkspaceLogo) {
           const workspace = await this.workspaceRepo.findById(workspaceId, {
             trx,

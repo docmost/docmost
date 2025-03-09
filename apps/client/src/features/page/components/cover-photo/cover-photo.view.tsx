@@ -3,7 +3,6 @@ import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import classes from "./cover-photo.module.css";
 import CoverPhotoSelectorModal from "./cover-photo-selector.modal";
 import React, { useEffect, useRef } from "react";
-import { IImage, saveImageAsAttachment } from "./cover-photo.service";
 import { IAttachment } from "@/lib/types";
 import { IPage} from "@/features/page/types/page.types";
 import { getAttachment } from "@/features/page/services/page-service";
@@ -16,7 +15,6 @@ export interface CoverPhotoProps {
 export default function CoverPhoto({page}: CoverPhotoProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
-  const [sourceSystem, setSourceSystem] = React.useState<string>("unsplash");
   const [isCoverMenuOpen, setIsCoverMenuOpen] = React.useState(false);
   const [currentAttachment, setCurrentAttachment] = React.useState<IAttachment | null>(null);
   const coverMenuRef = useRef<HTMLDivElement>(null);
@@ -30,14 +28,10 @@ export default function CoverPhoto({page}: CoverPhotoProps) {
         setCurrentAttachment(attachment);
       })();
     }
-    
   }, [page]);
 
-  const handleAddEditCoverPhoto = async (pageId: string, spaceId: string, image : IImage | null) => {
-    if(image) {
-      const attachment = await saveImageAsAttachment(pageId, spaceId, image);
-      setCurrentAttachment(attachment);      
-    }
+  const handleAddEditCoverPhoto = async (attachment : IAttachment | null) => {
+    setCurrentAttachment(attachment);      
     setIsCoverMenuOpen(false);
   }
 
@@ -54,7 +48,7 @@ export default function CoverPhoto({page}: CoverPhotoProps) {
           coverMenuRef.current.classList.add(classes.hidden);
         } 
       }}>
-      <CoverPhotoSelectorModal open={isCoverMenuOpen} onClose={(img) => {handleAddEditCoverPhoto(page.id,page.spaceId, img)}} />
+      <CoverPhotoSelectorModal pageId={page.id} spaceId={page.spaceId} open={isCoverMenuOpen} onClose={(attachment) => {handleAddEditCoverPhoto(attachment)}} />
       {currentAttachment ? 
         <>
           <img src={`/api/files/${currentAttachment.id}/${currentAttachment.fileName}`} alt={currentAttachment.description || ""} className={classes.coverPhoto} />
