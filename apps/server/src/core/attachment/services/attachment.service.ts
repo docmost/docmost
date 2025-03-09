@@ -22,6 +22,10 @@ import { executeTx } from '@docmost/db/utils';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
+
+import axios from "axios";
+import {fileTypeFromBuffer} from 'file-type';
 
 @Injectable()
 export class AttachmentService {
@@ -32,6 +36,7 @@ export class AttachmentService {
     private readonly userRepo: UserRepo,
     private readonly workspaceRepo: WorkspaceRepo,
     private readonly spaceRepo: SpaceRepo,
+    private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -112,6 +117,7 @@ export class AttachmentService {
     type:
       | AttachmentType.Avatar
       | AttachmentType.WorkspaceLogo
+      | AttachmentType.CoverPhoto
       | AttachmentType.SpaceLogo,
     userId: string,
     workspaceId: string,
@@ -153,6 +159,10 @@ export class AttachmentService {
             workspaceId,
             trx,
           );
+        } else if (type === AttachmentType.CoverPhoto) {
+          const page = await this.pageRepo.findById(userId, {trx});
+
+          await this.pageRepo.updatePage({...page, coverPhoto: attachment.id}, page.id, trx);
         } else if (type === AttachmentType.WorkspaceLogo) {
           const workspace = await this.workspaceRepo.findById(workspaceId, {
             trx,
@@ -199,6 +209,120 @@ export class AttachmentService {
     return attachment;
   }
 
+  async uploadRemoteImage(
+    url: string,
+    type:
+      | AttachmentType.Avatar
+      | AttachmentType.WorkspaceLogo
+      | AttachmentType.CoverPhoto
+      | AttachmentType.SpaceLogo,
+    userId: string,
+    workspaceId: string,
+    spaceId?: string,
+    pageId?: string,
+    description?: string, 
+    descriptionUrl?: string,
+  ) {
+    const buffer = await this.loadImage(url);
+
+    const { mime, ext } = await fileTypeFromBuffer(buffer);
+    if (!mime || !ext) {
+      throw new BadRequestException('Invalid file type');
+    }
+    const mimeType = mime;
+    const fileExtension = `.${ext}`;
+    
+    const fileName = uuid4() + fileExtension;
+
+    const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${fileName}`;
+    console.log("filePath", filePath, "size", buffer.length);
+    await this.uploadToDrive(filePath, buffer);
+
+    let attachment: Attachment = null;
+    let oldFileName: string = null;
+
+    try {
+      await executeTx(this.db, async (trx) => {
+        attachment = await this.saveRemoteAttachment({
+          filePath,
+          fileName,
+          fileSize: buffer.length,
+          mimeType,
+          fileExtension,
+          type,
+          userId,
+          workspaceId,
+          spaceId,
+          pageId,
+          orginalPath: url,
+          description, 
+          descriptionUrl,
+          trx,
+        });
+
+        if (type === AttachmentType.Avatar) {
+          const user = await this.userRepo.findById(userId, workspaceId, {
+            trx,
+          });
+
+          oldFileName = user.avatarUrl;
+
+          await this.userRepo.updateUser(
+            { avatarUrl: fileName },
+            userId,
+            workspaceId,
+            trx,
+          );
+        } else if (type === AttachmentType.CoverPhoto) {
+          const page = await this.pageRepo.findById(pageId, {trx});
+
+          await this.pageRepo.updatePage({...page, coverPhoto: attachment.id}, page.id, trx);
+        } else if (type === AttachmentType.WorkspaceLogo) {
+          const workspace = await this.workspaceRepo.findById(workspaceId, {
+            trx,
+          });
+
+          oldFileName = workspace.logo;
+
+          await this.workspaceRepo.updateWorkspace(
+            { logo: fileName },
+            workspaceId,
+            trx,
+          );
+        } else if (type === AttachmentType.SpaceLogo && spaceId) {
+          const space = await this.spaceRepo.findById(spaceId, workspaceId, {
+            trx,
+          });
+
+          oldFileName = space.logo;
+
+          await this.spaceRepo.updateSpace(
+            { logo: fileName },
+            spaceId,
+            workspaceId,
+            trx,
+          );
+        } else {
+          throw new BadRequestException(`Image upload aborted.`);
+        }
+      });
+    } catch (err) {
+      // delete uploaded file on db update failure
+      this.logger.error('Image upload error:', err);
+      await this.deleteRedundantFile(filePath);
+      throw new BadRequestException('Failed to upload image');
+    }
+
+    if (oldFileName && !oldFileName.toLowerCase().startsWith('http')) {
+      // delete old avatar or logo
+      const oldFilePath =
+        getAttachmentFolderPath(type, workspaceId) + '/' + oldFileName;
+      await this.deleteRedundantFile(oldFilePath);
+    }
+
+    return attachment;
+  }
+
   async deleteRedundantFile(filePath: string) {
     try {
       await this.storageService.delete(filePath);
@@ -217,6 +341,16 @@ export class AttachmentService {
     }
   }
 
+  async loadImage(imageUrl: string): Promise<Buffer<ArrayBuffer>> {
+    try {
+      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      return Buffer.from(response.data, 'binary');
+    } catch (error) {
+      this.logger.error(`Failed to load and save image: ${error}`);
+      throw new BadRequestException('Failed to load and save image');
+    }
+  }
+
   async saveAttachment(opts: {
     attachmentId?: string;
     preparedFile: PreparedFile;
@@ -226,6 +360,9 @@ export class AttachmentService {
     workspaceId: string;
     pageId?: string;
     spaceId?: string;
+    orginalPath?: string;
+    description?: string;
+    descriptionUrl?: string;
     trx?: KyselyTransaction;
   }): Promise<Attachment> {
     const {
@@ -237,6 +374,9 @@ export class AttachmentService {
       workspaceId,
       pageId,
       spaceId,
+      orginalPath,
+      description,
+      descriptionUrl,
       trx,
     } = opts;
     return this.attachmentRepo.insertAttachment(
@@ -252,6 +392,64 @@ export class AttachmentService {
         workspaceId: workspaceId,
         pageId: pageId,
         spaceId: spaceId,
+        orginalPath,
+        description,
+        descriptionUrl: descriptionUrl,
+      },
+      trx,
+    );
+  }
+
+  async saveRemoteAttachment(opts: {
+    attachmentId?: string;
+    filePath: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    fileExtension: string;
+    type: AttachmentType;
+    userId: string;
+    workspaceId: string;
+    pageId?: string;
+    spaceId?: string;
+    orginalPath?: string;
+    description?: string;
+    descriptionUrl?: string;
+    trx?: KyselyTransaction;
+  }): Promise<Attachment> {
+    const {
+      attachmentId,
+      filePath,
+      fileName,
+      fileSize,
+      mimeType,
+      fileExtension,
+      type,
+      userId,
+      workspaceId,
+      pageId,
+      spaceId,
+      orginalPath,
+      description,
+      descriptionUrl,
+      trx,
+    } = opts;
+    return this.attachmentRepo.insertAttachment(
+      {
+        id: attachmentId,
+        type,
+        filePath,
+        fileName,
+        fileSize,
+        mimeType,
+        fileExt: fileExtension,
+        creatorId: userId,
+        workspaceId: workspaceId,
+        pageId: pageId,
+        spaceId: spaceId,
+        orginalPath,
+        description,
+        descriptionUrl,
       },
       trx,
     );

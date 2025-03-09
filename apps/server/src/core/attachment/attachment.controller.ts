@@ -279,6 +279,70 @@ export class AttachmentController {
         }
     }
 
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Post('attachments/upload-remote-image')
+    async uploadRemoteImages(
+        @Req() req: any,
+        @AuthUser() user: User,
+        @AuthWorkspace() workspace: Workspace,
+    ) {
+        const {type, url, description, descriptionUrl, spaceId, pageId} = req.body;
+
+        if (!type) {
+            throw new BadRequestException('attachment type is required');
+        }
+
+        if (
+            !validAttachmentTypes.includes(type) ||
+            type === AttachmentType.File
+        ) {
+            throw new BadRequestException('Invalid image attachment type');
+        }
+
+        if (type === AttachmentType.WorkspaceLogo) {
+            const ability = this.workspaceAbility.createForUser(user, workspace);
+            if (
+                ability.cannot(
+                    WorkspaceCaslAction.Manage,
+                    WorkspaceCaslSubject.Settings,
+                )
+            ) {
+                throw new ForbiddenException();
+            }
+        }
+
+        if (type === AttachmentType.SpaceLogo) {
+            if (!spaceId) {
+                throw new BadRequestException('spaceId is required');
+            }
+
+            const spaceAbility = await this.spaceAbility.createForUser(user, spaceId);
+            if (
+                spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)
+            ) {
+                throw new ForbiddenException();
+            }
+        }
+
+        try {
+            const attachment = await this.attachmentService.uploadRemoteImage(
+                url,
+                type,
+                user.id,
+                workspace.id,
+                spaceId,
+                pageId,
+                description,
+                descriptionUrl,
+            );
+            return attachment;
+        } catch (err: any) {
+            this.logger.error(err);
+            throw new BadRequestException('Error processing stream upload.');
+        }
+    }
+
     @Get('attachments/img/:attachmentType/:fileName')
     async getLogoOrAvatar(
         @Res() res: FastifyReply,
@@ -306,5 +370,20 @@ export class AttachmentController {
             this.logger.error(err);
             throw new NotFoundException('File not found');
         }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('attachments/:attachmentId')
+    async getAttachment(@Param('attachmentId') attachmentId: string) {
+        if (!isValidUUID(attachmentId)) {
+            throw new NotFoundException('Invalid file id');
+        }
+
+        const attachment = await this.attachmentRepo.findById(attachmentId);
+        if (!attachment) {
+            throw new NotFoundException();
+        }
+
+        return attachment;
     }
 }

@@ -52,4 +52,7 @@ export interface IAttachment {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  originalPath: string | null;
+  description: string | null;
+  descriptionUrl: string | null;
 }

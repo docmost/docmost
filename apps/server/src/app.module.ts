@@ -14,6 +14,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from './integrations/health/health.module';
 import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
+import { ImagesModule } from './integrations/images/images.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ImportModule } from './integrations/import/import.module';
     StaticModule,
     HealthModule,
     ImportModule,
+    ImagesModule,
     ExportModule,
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],

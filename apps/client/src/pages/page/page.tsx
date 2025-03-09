@@ -4,6 +4,7 @@ import { FullEditor } from "@/features/editor/full-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
 import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
+import CoverPhoto from "@/features/page/components/cover-photo/cover-photo.view.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
@@ -56,13 +57,15 @@ export default function Page() {
           )}
         />
 
+        <CoverPhoto page={page} />
+
         <FullEditor
           key={page.id}
           pageId={page.id}
           title={page.title}
           content={page.content}
           slugId={page.slugId}
-          spaceSlug={page?.space?.slug}
+          spaceSlug={page.space?.slug}
           editable={spaceAbility.can(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,

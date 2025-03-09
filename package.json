@@ -70,7 +70,8 @@
     "marked": "^13.0.3",
     "uuid": "^11.1.0",
     "y-indexeddb": "^9.0.12",
-    "yjs": "^13.6.20"
+    "yjs": "^13.6.20",
+    "file-type": "^20.4.0"
   },
   "devDependencies": {
     "@nx/js": "20.4.5",
