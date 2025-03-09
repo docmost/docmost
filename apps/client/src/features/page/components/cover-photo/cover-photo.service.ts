@@ -16,7 +16,7 @@ export interface IImage {
 export async function searchUnsplashImages(
     query: string,
   ): Promise<IImage[]> {
-    const req = await api.get<IImage[]>(`/images/search?type=unsplash&query=${query}&orientation=landscape`);
+    const req = await api.get<IImage[]>(`/images/search?type=unsplash&query=${query}&orientation=landscape&limit=12`);
     return req.data;
 }
 

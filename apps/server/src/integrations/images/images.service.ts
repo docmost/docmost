@@ -18,21 +18,20 @@ export class ImagesService {
     searchTerm: string,
     orientation: string,
     type: string,
+    limit: number,
     spaceId: string,
     workspaceId: string,
   ): Promise<Array<ImageDto>> {
-    const images = Array<ImageDto>();
-
     if (type === 'attachment') {
       // Handle attachment search logic here
       throw new BadRequestException('Attachment search not implemented');
     } else if (type === 'unsplash') {
       // Handle Unsplash search logic here
-      return await this.searchUnsplash(searchTerm, orientation);
+      return await this.searchUnsplash(searchTerm, orientation, limit);
     }
     return [];
   }
-  async searchUnsplash(searchTerm: string, orientation: string): Promise<Array<ImageDto>> {
+  async searchUnsplash(searchTerm: string, orientation: string, limit: number): Promise<Array<ImageDto>> {
     const images = Array<ImageDto>();
 
     try {
@@ -40,6 +39,7 @@ export class ImagesService {
         params: {
           query: searchTerm,
           orientation,
+          per_page: limit,
         },
         headers: {
           'Accept-Version': 'v1',

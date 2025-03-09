@@ -25,6 +25,7 @@ export class ImagesController {
     const searchTerm = query.query || '';
     const orientation = query.orientation || 'any';
     const type = query.type || 'unsplash';
-    return this.imagesService.search(searchTerm, orientation, type, '', '');
+    const limit= query.limit || 12;
+    return this.imagesService.search(searchTerm, orientation, type, limit, '', '');
   }
 }

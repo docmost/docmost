@@ -6,7 +6,7 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { searchUnsplashImages, IImage } from "./cover-photo.service.tsx";
+import { searchUnsplashImages, IImage } from "./cover-photo.service.ts";
 import classes from "./cover-photo.module.css";
 
 interface CoverPhotoSelectorModalProps {

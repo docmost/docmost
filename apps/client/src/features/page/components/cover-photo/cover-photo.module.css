@@ -79,6 +79,11 @@
     justify-content: center;
 }
 
+.imageFrame > img {
+    max-width: 140px;
+    object-fit: cover;
+}
+
 .imageGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
