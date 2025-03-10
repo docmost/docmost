@@ -7,7 +7,7 @@ import { markdownToHtml } from "@docmost/editor-ext";
 
 export const MarkdownClipboard = Extension.create({
   name: "markdownClipboard",
-  priority: 50,
+  priority: 101,
 
   addOptions() {
     return {
@@ -19,6 +19,40 @@ export const MarkdownClipboard = Extension.create({
       new Plugin({
         key: new PluginKey("markdownClipboard"),
         props: {
+          handlePaste: (view, event, slice) => {
+            if (!event.clipboardData) {
+              return false;
+            }
+
+            if (this.editor.isActive("codeBlock")) {
+              return false;
+            }
+
+            const text = event.clipboardData.getData("text/plain");
+            const vscode = event.clipboardData.getData("vscode-editor-data");
+            const vscodeData = vscode ? JSON.parse(vscode) : undefined;
+            const language = vscodeData?.mode;
+
+            if (language !== "markdown") {
+              return false;
+            }
+
+            const { tr } = view.state;
+            const { from, to } = view.state.selection;
+
+            const html = markdownToHtml(text);
+
+            const contentNodes = DOMParser.fromSchema(
+              this.editor.schema,
+            ).parseSlice(elementFromString(html), {
+              preserveWhitespace: true,
+            });
+
+            tr.replaceRange(from, to, contentNodes);
+            tr.setMeta('paste', true)
+            view.dispatch(tr);
+            return true;
+          },
           clipboardTextParser: (text, context, plainText) => {
             const link = find(text, {
               defaultProtocol: "http",
