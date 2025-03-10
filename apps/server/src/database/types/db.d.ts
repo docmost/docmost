@@ -209,6 +209,14 @@ export interface Spaces {
   workspaceId: string;
 }
 
+export interface UserPasskeys {
+  createdAt: Generated<Timestamp>;
+  credentialId: string;
+  id: Generated<string>;
+  publicKey: string;
+  userId: string;
+}
+
 export interface Users {
   avatarUrl: string | null;
   createdAt: Generated<Timestamp>;
@@ -289,6 +297,7 @@ export interface DB {
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  userPasskeys: UserPasskeys;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;
