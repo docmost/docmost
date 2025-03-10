@@ -55,7 +55,7 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
         <SpaceSelect
           label={spaceName}
           value={spaceSlug}
-          onChange={handleSelect}
+          onChange={space => handleSelect(space.slug)}
         />
       </Popover.Dropdown>
     </Popover>
