@@ -12,6 +12,18 @@
   font-weight: 400;
   width: 100%;
 
+  padding-left: 3rem;
+  padding-right: 3rem;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media print {
+    padding: 0;
+  }
+
   > * + * {
     margin-top: 0.75em;
   }
