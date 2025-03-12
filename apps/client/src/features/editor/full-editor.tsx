@@ -32,7 +32,7 @@ export function FullEditor({
   return (
     <Container
       fluid={fullPageWidth}
-      size={!fullPageWidth && 850}
+      size={!fullPageWidth && 900}
       className={classes.editor}
     >
       <MemoizedTitleEditor
