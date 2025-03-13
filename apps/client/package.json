@@ -24,6 +24,7 @@
     "@mantine/spotlight": "^7.17.0",
     "@tabler/icons-react": "^3.22.0",
     "@tanstack/react-query": "^5.61.4",
+    "@tiptap/extension-character-count": "^2.11.5",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "emoji-mart": "^5.6.0",
