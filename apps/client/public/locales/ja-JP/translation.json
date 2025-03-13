@@ -341,10 +341,15 @@
   "Names do not match": "名前が一致しません",
   "Today, {{time}}": "今日、{{time}}",
   "Yesterday, {{time}}": "昨日、{{time}}",
-  "Space created successfully": "Space created successfully",
-  "Space updated successfully": "Space updated successfully",
-  "Space deleted successfully": "Space deleted successfully",
-  "Members added successfully": "Members added successfully",
-  "Member removed successfully": "Member removed successfully",
-  "Member role updated successfully": "Member role updated successfully"
+  "Space created successfully": "スペースを作成しました",
+  "Space updated successfully": "スペースを更新しました",
+  "Space deleted successfully": "スペースが削除されました",
+  "Members added successfully": "メンバーを追加しました",
+  "Member removed successfully": "メンバーが削除されました",
+  "Member role updated successfully": "メンバーのロールを更新しました",
+  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Created at: {{time}}",
+  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
 }
