@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "Rolle für alle eingeladenen Mitglieder auswählen",
   "Select theme": "Design auswählen",
   "Send invitation": "Einladung senden",
+  "Invitation sent": "Einladung gesendet",
   "Settings": "Einstellungen",
   "Setup workspace": "Arbeitsbereich einrichten",
   "Sign In": "Anmelden",
@@ -244,6 +245,7 @@
   "Align left": "Links ausrichten",
   "Align right": "Rechts ausrichten",
   "Align center": "Zentrieren",
+  "Justify": "Blocksatz",
   "Merge cells": "Zellen zusammenführen",
   "Split cell": "Zelle teilen",
   "Delete column": "Spalte löschen",
@@ -338,5 +340,16 @@
   "Write anything. Enter \"/\" for commands": "Schreiben Sie irgendetwas. Geben Sie \"/\" für Befehle ein",
   "Names do not match": "Namen stimmen nicht überein",
   "Today, {{time}}": "Heute, {{time}}",
-  "Yesterday, {{time}}": "Gestern, {{time}}"
+  "Yesterday, {{time}}": "Gestern, {{time}}",
+  "Space created successfully": "Der Bereich wurde erfolgreich erstellt",
+  "Space updated successfully": "Der Bereich wurde erfolgreich aktualisiert",
+  "Space deleted successfully": "Der Bereich wurde erfolgreich gelöscht",
+  "Members added successfully": "Mitglieder erfolgreich hinzugefügt",
+  "Member removed successfully": "Mitglied erfolgreich entfernt",
+  "Member role updated successfully": "Mitgliederrolle erfolgreich aktualisiert",
+  "Created by: <b>{{creatorName}}</b>": "Erstellt von: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Erstellt am: {{time}}",
+  "Edited by {{name}} {{time}}": "Bearbeitet von {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Wortanzahl: {{wordCount}}",
+  "Character count: {{characterCount}}": "Zeichenzahl: {{characterCount}}"
 }
