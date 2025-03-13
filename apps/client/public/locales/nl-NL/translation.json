@@ -345,6 +345,11 @@
   "Space updated successfully": "Space updated successfully",
   "Space deleted successfully": "Space deleted successfully",
   "Members added successfully": "Members added successfully",
-  "Member removed successfully": "Member removed successfully",
-  "Member role updated successfully": "Member role updated successfully"
+  "Member removed successfully": "Lid succesvol verwijderd",
+  "Member role updated successfully": "Lidrol succesvol bijgewerkt",
+  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Created at: {{time}}",
+  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
 }
