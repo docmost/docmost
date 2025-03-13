@@ -43,6 +43,7 @@ function LanguageSwitcher() {
       data={[
         { value: "en-US", label: "English (US)" },
         { value: "de-DE", label: "Deutsch (German)" },
+        { value: "nl-NL", label: "Dutch (Netherlands)" },
         { value: "fr-FR", label: "Français (French)" },
         { value: "es-ES", label: "Español (Spanish)" },
         { value: "pt-BR", label: "Português (Brasil)" },
@@ -52,7 +53,7 @@ function LanguageSwitcher() {
         { value: "ru-RU", label: "Русский (Russian)" },
         { value: "zh-CN", label: "中文 (简体)" },
       ]}
-      value={language || 'en-US'}
+      value={language || "en-US"}
       onChange={handleChange}
       allowDeselect={false}
       checkIconPosition="right"
