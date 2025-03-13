@@ -44,6 +44,8 @@ export class PageController {
     const page = await this.pageRepo.findById(dto.pageId, {
       includeSpace: true,
       includeContent: true,
+      includeCreator: true,
+      includeLastUpdatedBy: true,
     });
 
     if (!page) {
