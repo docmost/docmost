@@ -41,9 +41,16 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
-import { useDocumentVisibility } from "@mantine/hooks";
+import {
+  useDebouncedCallback,
+  useDocumentVisibility,
+} from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { queryClient } from "@/main.tsx";
+import { IPage } from "@/features/page/types/page.types.ts";
+import { useParams } from "react-router-dom";
+import { extractPageSlugId } from "@/lib";
 
 interface PageEditorProps {
   pageId: string;
@@ -73,6 +80,9 @@ export default function PageEditor({
   const { data } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
+  const [isCollabReady, setIsCollabReady] = useState(false);
+  const { pageSlug } = useParams();
+  const slugId = extractPageSlugId(pageSlug);
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -112,7 +122,6 @@ export default function PageEditor({
 
   useLayoutEffect(() => {
     remoteProvider.connect();
-
     return () => {
       setRemoteSynced(false);
       setLocalSynced(false);
@@ -121,10 +130,12 @@ export default function PageEditor({
     };
   }, [remoteProvider, localProvider]);
 
-  const extensions = [
-    ...mainExtensions,
-    ...collabExtensions(remoteProvider, currentUser.user),
-  ];
+  const extensions = useMemo(() => {
+    return [
+      ...mainExtensions,
+      ...collabExtensions(remoteProvider, currentUser?.user),
+    ];
+  }, [ydoc, pageId, remoteProvider, currentUser?.user]);
 
   const editor = useEditor(
     {
@@ -143,7 +154,15 @@ export default function PageEditor({
                 return true;
               }
             }
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(event.key)) {
+            if (
+              [
+                "ArrowUp",
+                "ArrowDown",
+                "ArrowLeft",
+                "ArrowRight",
+                "Enter",
+              ].includes(event.key)
+            ) {
               const emojiCommand = document.querySelector("#emoji-command");
               if (emojiCommand) {
                 return true;
@@ -163,9 +182,26 @@ export default function PageEditor({
           editor.storage.pageId = pageId;
         }
       },
+      onUpdate({ editor }) {
+        if (editor.isEmpty) return;
+        const editorJson = editor.getJSON();
+        //update local page cache to reduce flickers
+        debouncedUpdateContent(editorJson);
+      },
     },
     [pageId, editable, remoteProvider?.status],
   );
+
+  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+
+    if (pageData) {
+      queryClient.setQueryData(["pages", slugId], {
+        ...pageData,
+        content: newContent,
+      });
+    }
+  }, 3000);
 
   const handleActiveCommentEvent = (event) => {
     const { commentId } = event.detail;
@@ -209,6 +245,8 @@ export default function PageEditor({
       remoteProvider?.status === WebSocketStatus.Connected
     ) {
       remoteProvider.disconnect();
+      setIsCollabReady(false);
+      return;
     }
 
     if (
@@ -217,12 +255,23 @@ export default function PageEditor({
     ) {
       remoteProvider.connect();
       resetIdle();
+      setTimeout(() => {
+        setIsCollabReady(true);
+      }, 600);
     }
   }, [isIdle, documentState, remoteProvider?.status]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
-  return isSynced ? (
+  useEffect(() => {
+    setTimeout(() => {
+      if (isSynced) {
+        setIsCollabReady(true);
+      }
+    }, 500);
+  }, [isRemoteSynced, isLocalSynced]);
+
+  return isCollabReady ? (
     <div>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
@@ -252,6 +301,7 @@ export default function PageEditor({
   ) : (
     <EditorProvider
       editable={false}
+      immediatelyRender={true}
       extensions={mainExtensions}
       content={content}
     ></EditorProvider>
