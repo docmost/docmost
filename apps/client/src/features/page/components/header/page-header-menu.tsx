@@ -185,7 +185,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
                 })}
                 position="left-start"
               >
-                <div>
+                <div style={{ width: 210 }}>
                   <Text size="xs" c="dimmed" truncate="end">
                     {t("Word count: {{wordCount}}", {
                       wordCount: pageEditor?.storage?.characterCount?.words(),
