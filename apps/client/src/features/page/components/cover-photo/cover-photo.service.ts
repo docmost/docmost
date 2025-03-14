@@ -20,6 +20,13 @@ export async function searchUnsplashImages(
     return req.data;
 }
 
+export async function searchAttachmentsWithThumbnail(
+    query: string,
+  ): Promise<IAttachment[]> {
+    const req = await api.get<IAttachment[]>(`/attachments/search?query=${query}&limit=12`);
+    return req.data;
+}
+
 export async function saveImageAsAttachment(pageId: string, spaceId: string, img: IImage): Promise<IAttachment> {
     const body = {
         type: "cover-photo",

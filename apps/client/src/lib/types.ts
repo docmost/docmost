@@ -55,4 +55,5 @@ export interface IAttachment {
   originalPath: string | null;
   description: string | null;
   descriptionUrl: string | null;
+  thumbnailPath: string | null;
 }

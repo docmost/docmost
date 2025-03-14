@@ -8,9 +8,33 @@ import {
 } from "@mantine/core";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { searchUnsplashImages, IImage, uploadLocalImage, saveImageAsAttachment } from "./cover-photo.service.ts";
+import { searchUnsplashImages, IImage, uploadLocalImage, saveImageAsAttachment, searchAttachmentsWithThumbnail } from "./cover-photo.service.ts";
 import classes from "./cover-photo.module.css";
 import { IAttachment } from "@/lib/types.ts";
+
+function ThumbnailImage({image, attachment, selected}: {image?: IImage, attachment?: IAttachment, selected: boolean}) {
+  let thumbnailUrl, description, title: string;
+  if (image) {
+    thumbnailUrl = image.thumbnailUrl;
+    description = image.altText;
+    title = `${image.title} by ${image.attribution}`;
+  } else if (attachment) {
+    thumbnailUrl = `/api/${attachment.thumbnailPath}`;
+    description = attachment.description || "";
+    title = attachment.description || "";
+  }
+  
+  return (
+    thumbnailUrl ? 
+      <img 
+        className={selected ? classes.selected : ""} 
+        height={98} 
+        src={thumbnailUrl} 
+        alt={description} 
+        title={title} /> 
+        : <img src="/default-thumbnail.png" />);
+}
+
 
 interface CoverPhotoSelectorModalProps {
   open: boolean;
@@ -29,7 +53,7 @@ export default function CoverPhotoSelectorModal({
   const [sourceSystem, setSourceSystem] = useState<string>("unsplash");
   const [images, setImages] = useState<IImage[]>([]);
   const [droppedFile, setDroppedFile] = useState<File|null>(null);
-  // const [droppedImage, setDroppedImage] = useState<any|null>(null);
+  const [attachments, setAttachments] = useState<IAttachment[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const imageRef = useRef<HTMLImageElement>(null);
   const { t } = useTranslation();
@@ -37,12 +61,30 @@ export default function CoverPhotoSelectorModal({
 
   useEffect(() => {
     setSourceSystem("unsplash");
+    setSearchTerm("");
+    setImages([]);
+    setAttachments([]);
+    setDroppedFile(null);
+    setSelectedIndex(-1);
   }, [open]);
+
+  useEffect(() => {
+    setSearchTerm("");
+    setImages([]);
+    setAttachments([]);
+    setDroppedFile(null);
+    setSelectedIndex(-1);
+  }, [sourceSystem]);
 
   const handleSearchTermChange = async (query: string) => {
     setSearchTerm(query);
     if(query.length > 2) {
-      setImages(await searchUnsplashImages(query));
+      console.log("Searching for images with query: ", query);
+      if(sourceSystem === "unsplash") {
+        setImages(await searchUnsplashImages(query));
+      } else if(sourceSystem === "attachments") {
+        setAttachments(await searchAttachmentsWithThumbnail(query));
+      }
     }
   };
 
@@ -51,7 +93,7 @@ export default function CoverPhotoSelectorModal({
     return images[index];
   }
 
-  const handleClose = async () => {
+  const handleSave = async () => {
     let attachment: IAttachment | null = null;
     if(sourceSystem === "unsplash" && selectedIndex > -1) {
       const img = images[selectedIndex];
@@ -59,8 +101,17 @@ export default function CoverPhotoSelectorModal({
       attachment = await saveImageAsAttachment(pageId, spaceId, img);
     } else if(sourceSystem === "upload" && droppedFile) {
       attachment = await uploadLocalImage(pageId, spaceId, droppedFile);
+    } else if(sourceSystem === "attachments" && selectedIndex > -1) {
+      attachment = attachments[selectedIndex];
     }
+
     onClose(attachment);
+    setSelectedIndex(-1);
+    setImages([]);
+  }
+
+  const handleCancel = async () => {
+    onClose(null);
     setSelectedIndex(-1);
     setImages([]);
   }
@@ -68,7 +119,7 @@ export default function CoverPhotoSelectorModal({
   return (
     <Modal.Root
       opened={open}
-      onClose={handleClose}
+      onClose={handleCancel}
       size={500}
       padding="xl"
       yOffset="24px"
@@ -106,14 +157,15 @@ export default function CoverPhotoSelectorModal({
                 placeholder={t("Search...")}
                 onChange={(event) => {handleSearchTermChange(event.target.value)}}
                 className={classes.searchInput}
+                value={searchTerm}
               />
               <div className={classes.imageGrid}>
                 {Array.from({ length: 12 }).map((_, index) => (
                     <div
                         key={index}
                         onClick={() => {handleSelected(index)}}
-                        className={classes.imageFrame}
-                    >{images[index]?.thumbnailUrl ? <img className={selectedIndex === index ? classes.selected : ""} height={98} src={images[index]?.thumbnailUrl} alt={images[index]?.altText} title={`${images[index]?.title} by ${images[index]?.attribution}`} /> : index + 1}
+                        className={classes.imageFrame}>
+                          <ThumbnailImage image={images[index]} selected={selectedIndex === index} />
                     </div>
                 ))}
               </div>
@@ -125,7 +177,18 @@ export default function CoverPhotoSelectorModal({
                 placeholder={t("Search...")}
                 onChange={(event) => {handleSearchTermChange(event.target.value)}}
                 className={classes.searchInput}
+                value={searchTerm}
               />
+                <div className={classes.imageGrid}>
+                {Array.from({ length: 12 }).map((_, index) => (
+                    <div
+                        key={index}
+                        onClick={() => {handleSelected(index)}}
+                        className={classes.imageFrame}>
+                          <ThumbnailImage attachment={attachments[index]} selected={selectedIndex === index} />
+                    </div>
+                ))}
+              </div>
               </Tabs.Panel>
             <Tabs.Panel value="upload">
               <Text>{t("Drag and drop an image to use")}</Text>
@@ -163,10 +226,8 @@ export default function CoverPhotoSelectorModal({
         </Container>
 
           <Group justify="center" mt="md">
-            <Button onClick={handleClose} variant="default">
-              {t("Cancel")}
-            </Button>
-            <Button onClick={handleClose}>{t("Save")}</Button>
+            <Button onClick={handleCancel} variant="default">{t("Cancel")}</Button>
+            <Button onClick={handleSave}>{t("Save")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>

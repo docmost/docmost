@@ -31,7 +31,7 @@ export default function CoverPhoto({page}: CoverPhotoProps) {
   }, [page]);
 
   const handleAddEditCoverPhoto = async (attachment : IAttachment | null) => {
-    setCurrentAttachment(attachment);      
+    if(attachment) setCurrentAttachment(attachment);      
     setIsCoverMenuOpen(false);
   }
 

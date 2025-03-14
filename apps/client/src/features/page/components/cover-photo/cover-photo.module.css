@@ -1,15 +1,16 @@
 .container {
+    margin-top: 28px;
     position: relative;
     text-align: center;
     width: 100%;
-    height: 200px;
+    height: 220px;
 }
 .overlay {
     position: absolute;
-    top: 28px;
+    top: 0px;
     left: 0;
     width: 100%;
-    height: 188px;
+    height: 220px;
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(2px);
 }
@@ -28,7 +29,7 @@
 
 .coverMenu {
     position: absolute;  
-    bottom: 0px;
+    bottom: 8px;
     left: 50%;
     transform: translateX(-50%);
     background-color: rgba(255, 255, 255, 0.75);
@@ -52,7 +53,7 @@
 
 .coverPhotoAttribution {
     position: absolute;  
-    bottom: 0px;
+    bottom: 8px;
     right: 4px;
     mix-blend-mode: difference;
     color: white;
@@ -81,6 +82,7 @@
 
 .imageFrame > img {
     max-width: 140px;
+    max-height: 98px;
     object-fit: cover;
 }
 

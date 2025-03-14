@@ -497,4 +497,33 @@ export class AttachmentService {
       throw err;
     }
   }
+
+  async findAndAttachThumbnails(attachments: Attachment[]) {
+    const thumbnailPromises = attachments.map(async (attachment) => {
+      if (attachment.fileExt === '.svg') {
+        attachment.thumbnailPath = attachment.filePath;
+        return;
+      }
+      if (attachment.thumbnailPath) {
+        return;
+      }
+      const splitPath = attachment.filePath.split('/');
+      const thumbnailPath = `/files/${splitPath[2]}/${splitPath[3]}`;
+      // TODO: implement thumbnail generation code
+      // await this.storageService.findOrCreateThumbnail(attachment.filePath);
+      if (thumbnailPath) {
+        attachment.thumbnailPath = thumbnailPath;
+      }
+      return;
+    });
+    await Promise.all(thumbnailPromises);
+  }
+
+  async searchAttachments(workspaceId: string, query: string, limit: number, page: number) {
+    console.log(`searchAttachments "${query}"`);
+    const attachments = await this.attachmentRepo.search(workspaceId, query); //, limit, page);
+    console.log("Found ",attachments.length);
+    this.findAndAttachThumbnails(attachments);
+    return attachments;
+  }
 }

@@ -43,6 +43,7 @@ export interface Attachments {
   orginalPath: string | null;
   description: string | null;
   descriptionUrl: string | null;
+  thumbnailPath: string | null;
 }
 
 export interface Backlinks {

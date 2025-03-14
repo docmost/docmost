@@ -390,4 +390,22 @@ export class AttachmentController {
 
         return attachment;
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('attachments/search')
+    async searchAttachments(
+        @AuthUser() user: User,
+        @Req() req: any,
+    ) {
+        const {query, limit, page} = req.query;
+
+        const attachments = await this.attachmentService.searchAttachments(
+            user.workspaceId,
+            query,
+            limit,
+            page,
+        );
+
+        return attachments;
+    }
 }

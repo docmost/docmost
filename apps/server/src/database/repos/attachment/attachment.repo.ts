@@ -80,4 +80,26 @@ export class AttachmentRepo {
       .where('filePath', '=', attachmentFilePath)
       .executeTakeFirst();
   }
+
+  async search(
+    spaceId: string,
+    query: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .selectAll()
+      // .where('spaceId', '=', spaceId)
+      .where((eb) => 
+        eb('fileName', 'ilike', `%${query}%`).or(
+          'description',
+          'ilike',
+          `%${query}%`,
+        ))
+      .execute();
+  }
 }
