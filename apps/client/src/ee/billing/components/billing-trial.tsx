@@ -20,13 +20,12 @@ export default function BillingTrial() {
         </Alert>
       )}
 
-      {trialDaysLeft === 0 ||
-        (trialDaysLeft === null && !billing && (
-          <Alert title="Your Trial has ended" color="red" radius="md">
-            Your 7-day trial has come to an end. Please subscribe to a plan to
-            continue using this service.
-          </Alert>
-        ))}
+      {trialDaysLeft === 0 && (
+        <Alert title="Your Trial has ended" color="red" radius="md">
+          Your 7-day trial has come to an end. Please subscribe to a plan to
+          continue using this service.
+        </Alert>
+      )}
     </>
   );
 }

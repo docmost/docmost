@@ -18,7 +18,7 @@ export const useTrialEndAction = () => {
         notifications.show({
           position: "top-right",
           color: "red",
-          title: "Your 14-day trial has ended",
+          title: "Your 7-day trial has ended",
           message:
             "Please upgrade to a paid plan or contact your workspace admin.",
           autoClose: false,
