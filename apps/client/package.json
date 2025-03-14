@@ -37,6 +37,7 @@
     "katex": "0.16.21",
     "lowlight": "^3.2.0",
     "mermaid": "^11.4.1",
+    "mitt": "^3.0.1",
     "react": "^18.3.1",
     "react-arborist": "3.4.0",
     "react-clear-modal": "^2.0.11",
