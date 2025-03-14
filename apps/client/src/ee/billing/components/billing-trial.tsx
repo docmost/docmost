@@ -15,7 +15,7 @@ export default function BillingTrial() {
       {trialDaysLeft > 0 && !billing && (
         <Alert title="Your Trial is Active 🎉" color="blue" radius="md">
           You have {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left
-          in your 14-day trial. Please subscribe to a plan before your trial
+          in your 7-day trial. Please subscribe to a plan before your trial
           ends.
         </Alert>
       )}
@@ -23,7 +23,7 @@ export default function BillingTrial() {
       {trialDaysLeft === 0 ||
         (trialDaysLeft === null && !billing && (
           <Alert title="Your Trial has ended" color="red" radius="md">
-            Your 14-day trial has come to an end. Please subscribe to a plan to
+            Your 7-day trial has come to an end. Please subscribe to a plan to
             continue using this service.
           </Alert>
         ))}
