@@ -85,14 +85,18 @@ export function TitleEditor({
   }, [title]);
 
   const saveTitle = useCallback(() => {
-    if (!titleEditor) return;
-    if (titleEditor.getText() === title) return;
-    // may no longer be needed
-    if (activePageId !== pageId) return;
+    if (!titleEditor || activePageId !== pageId) return;
+
+    if (
+      titleEditor.getText() === title ||
+      (titleEditor.getText() === "" && title === null)
+    ) {
+      return;
+    }
 
     updatePageMutationAsync({
       pageId: pageId,
-      title: titleEditor.getText() ?? "",
+      title: titleEditor.getText(),
     }).then((page) => {
       const event: UpdateEvent = {
         operation: "updateOne",
