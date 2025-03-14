@@ -23,14 +23,14 @@ export const useTreeSocket = () => {
       const initialData = initialTreeData.current;
       const treeApi = new SimpleTree<SpaceTreeNode>(initialData);
 
-      if (treeApi.find(event.id)) {
-        if (event.payload?.title) {
+      if (treeApi.find(event?.id)) {
+        if (event.payload?.title !== undefined) {
           treeApi.update({
             id: event.id,
             changes: { name: event.payload.title },
           });
+          setTreeData(treeApi.data);
         }
-        setTreeData(treeApi.data);
       }
     };
 
@@ -49,13 +49,13 @@ export const useTreeSocket = () => {
         case "updateOne":
           if (event.entity[0] === "pages") {
             if (treeApi.find(event.id)) {
-              if (event.payload?.title) {
+              if (event.payload?.title !== undefined) {
                 treeApi.update({
                   id: event.id,
                   changes: { name: event.payload.title },
                 });
               }
-              if (event.payload?.icon) {
+              if (event.payload?.icon !== undefined) {
                 treeApi.update({
                   id: event.id,
                   changes: { icon: event.payload.icon },

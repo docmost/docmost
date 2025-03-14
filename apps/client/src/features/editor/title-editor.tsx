@@ -67,11 +67,11 @@ export function TitleEditor({
       if (editor) {
         // @ts-ignore
         setTitleEditor(editor);
+        setActivePageId(pageId);
       }
     },
     onUpdate({ editor }) {
       debounceUpdate();
-      setActivePageId(pageId);
     },
     editable: editable,
     content: title,
