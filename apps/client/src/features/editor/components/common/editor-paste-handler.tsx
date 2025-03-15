@@ -40,10 +40,8 @@ export const handlePaste = (
 
   if (event.clipboardData?.files.length) {
     event.preventDefault();
-    const [file] = Array.from(event.clipboardData.files);
-    const pos = view.state.selection.from;
-
-    if (file) {
+    for (const file of event.clipboardData.files) {
+      const pos = view.state.selection.from;
       uploadImageAction(file, view, pos, pageId);
       uploadVideoAction(file, view, pos, pageId);
       uploadAttachmentAction(file, view, pos, pageId);
@@ -61,13 +59,13 @@ export const handleFileDrop = (
 ) => {
   if (!moved && event.dataTransfer?.files.length) {
     event.preventDefault();
-    const [file] = Array.from(event.dataTransfer.files);
-    const coordinates = view.posAtCoords({
-      left: event.clientX,
-      top: event.clientY,
-    });
-    // here we deduct 1 from the pos or else the image will create an extra node
-    if (file) {
+
+    for (const file of event.dataTransfer.files) {
+      const coordinates = view.posAtCoords({
+        left: event.clientX,
+        top: event.clientY,
+      });
+
       uploadImageAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
       uploadVideoAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
       uploadAttachmentAction(file, view, coordinates?.pos ?? 0 - 1, pageId);
