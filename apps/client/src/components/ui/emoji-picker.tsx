@@ -72,6 +72,7 @@ function EmojiPicker({
         <Suspense fallback={null}>
           <Picker
             data={async () => (await import("@emoji-mart/data")).default}
+            autoFocus={true}
             onEmojiSelect={handleEmojiSelect}
             perLine={8}
             skinTonePosition="search"
