@@ -24,7 +24,13 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 10000,
+              delay: 20000,
+            },
+            removeOnComplete: {
+              count: 500,
+            },
+            removeOnFail: {
+              count: 500,
             },
           },
         };
