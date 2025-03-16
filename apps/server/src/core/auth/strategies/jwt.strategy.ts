@@ -36,11 +36,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException();
     }
 
-    // CLOUD ENV
-    if (this.environmentService.isCloud()) {
-      if (req.raw.workspaceId && req.raw.workspaceId !== payload.workspaceId) {
-        throw new BadRequestException('Workspace does not match');
-      }
+    if (req.raw.workspaceId && req.raw.workspaceId !== payload.workspaceId) {
+      throw new UnauthorizedException('Workspace does not match');
     }
 
     const workspace = await this.workspaceRepo.findById(payload.workspaceId);

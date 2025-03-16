@@ -11,6 +11,7 @@ import { notifications } from "@mantine/notifications";
 import { useClipboard } from "@mantine/hooks";
 import { getInviteLink } from "@/features/workspace/services/workspace-service.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 interface Props {
   invitationId: string;
@@ -76,13 +77,16 @@ export default function InviteActionMenu({ invitationId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item
-            onClick={() => handleCopyLink(invitationId)}
-            leftSection={<IconCopy size={16} />}
-            disabled={!isAdmin}
-          >
-            {t("Copy link")}
-          </Menu.Item>
+          {!isCloud() && (
+            <Menu.Item
+              onClick={() => handleCopyLink(invitationId)}
+              leftSection={<IconCopy size={16} />}
+              disabled={!isAdmin}
+            >
+              {t("Copy link")}
+            </Menu.Item>
+          )}
+
           <Menu.Item
             onClick={onResend}
             leftSection={<IconSend size={16} />}

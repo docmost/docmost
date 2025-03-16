@@ -1,6 +1,6 @@
-import { marked } from 'marked';
-import { calloutExtension } from './callout.marked';
-import { mathBlockExtension } from './math-block.marked';
+import { marked } from "marked";
+import { calloutExtension } from "./callout.marked";
+import { mathBlockExtension } from "./math-block.marked";
 import { mathInlineExtension } from "./math-inline.marked";
 
 marked.use({
@@ -8,11 +8,11 @@ marked.use({
     // @ts-ignore
     list(body: string, isOrdered: boolean, start: number) {
       if (isOrdered) {
-        const startAttr = start !== 1 ? ` start="${start}"` : '';
+        const startAttr = start !== 1 ? ` start="${start}"` : "";
         return `<ol ${startAttr}>\n${body}</ol>\n`;
       }
 
-      const dataType = body.includes(`<input`) ? ' data-type="taskList"' : '';
+      const dataType = body.includes(`<input`) ? ' data-type="taskList"' : "";
       return `<ul${dataType}>\n${body}</ul>\n`;
     },
     // @ts-ignore
@@ -28,14 +28,22 @@ marked.use({
   },
 });
 
-marked.use({ extensions: [calloutExtension, mathBlockExtension, mathInlineExtension] });
+marked.use({
+  extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
+});
 
-export function markdownToHtml(markdownInput: string): string | Promise<string> {
+export function markdownToHtml(
+  markdownInput: string,
+): string | Promise<string> {
   const YAML_FONT_MATTER_REGEX = /^\s*---[\s\S]*?---\s*/;
 
   const markdown = markdownInput
-    .replace(YAML_FONT_MATTER_REGEX, '')
+    .replace(YAML_FONT_MATTER_REGEX, "")
     .trimStart();
 
-  return marked.parse(markdown);
+  return marked
+    .options({ breaks: true })
+    .parse(markdown)
+    .toString()
+    .replace(/\n/g, "");
 }
