@@ -120,6 +120,7 @@ export class PageService {
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
+        coverPhoto: updatePageDto.coverPhoto,
         lastUpdatedById: userId,
         updatedAt: new Date(),
       },

@@ -1,29 +1,17 @@
 import api from "@/lib/api-client";
-import { IAttachment } from "@/lib/types";
-
-export interface IImage {
-    url: string;
-    thumbnailUrl: string;
-    sourceSystem: string;
-    width: number;
-    height: number;
-    altText: string;
-    title: string;
-    attribution: string;
-    attributionUrl: string;    
-}
+import { IAttachment, IImage } from "@/lib/types";
 
 export async function searchUnsplashImages(
     query: string,
   ): Promise<IImage[]> {
-    const req = await api.get<IImage[]>(`/images/search?type=unsplash&query=${query}&orientation=landscape&limit=12`);
+    const req = await api.get<IImage[]>(`/images/search?type=unsplash&query=${query}&orientation=landscape&pageSize=12`);
     return req.data;
 }
 
 export async function searchAttachmentsWithThumbnail(
     query: string,
   ): Promise<IAttachment[]> {
-    const req = await api.get<IAttachment[]>(`/attachments/search?query=${query}&limit=12`);
+    const req = await api.get<IAttachment[]>(`/attachments/search?query=${query}&pageSize=12`);
     return req.data;
 }
 

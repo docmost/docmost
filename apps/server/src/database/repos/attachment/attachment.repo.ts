@@ -82,24 +82,39 @@ export class AttachmentRepo {
   }
 
   async search(
-    spaceId: string,
     query: string,
     opts?: {
+      spaceId?: string,
+      workspaceId?: string,
+      fileExts?: string[],
+      limit?: number,
+      offset?: number,
       trx?: KyselyTransaction;
     },
   ): Promise<Attachment[]> {
     const db = dbOrTx(this.db, opts?.trx);
 
-    return db
+    let statement = db
       .selectFrom('attachments')
       .selectAll()
-      // .where('spaceId', '=', spaceId)
       .where((eb) => 
         eb('fileName', 'ilike', `%${query}%`).or(
-          'description',
-          'ilike',
-          `%${query}%`,
-        ))
-      .execute();
+          'description', 'ilike', `%${query}%`)
+      );
+
+      if(opts?.spaceId) {
+        statement = statement.where('spaceId', '=', opts.spaceId);
+      }
+      if(opts?.workspaceId) {
+        statement = statement.where('workspaceId', '=', opts.workspaceId);
+      }
+      if(opts?.fileExts) {
+        statement = statement.where('fileExt', 'in', opts.fileExts);
+      }
+      statement = statement
+        .limit(opts?.limit || 100)
+        .offset(opts?.offset || 0)
+        .orderBy('createdAt', 'desc');
+      return statement.execute();
   }
 }

@@ -32,6 +32,7 @@ import {
     AttachmentType,
     inlineFileExtensions,
     MAX_IMAGE_SIZE,
+    validImageExtensions,
 } from './attachment.constants';
 import {
     SpaceCaslAction,
@@ -397,14 +398,16 @@ export class AttachmentController {
         @AuthUser() user: User,
         @Req() req: any,
     ) {
-        const {query, limit, page} = req.query;
+        const {query, pageSize, page} = req.query;
+        const limit = pageSize ? parseInt(pageSize) : 10;
+        const offset = page ? (parseInt(page) - 1) * limit : 0;
 
         const attachments = await this.attachmentService.searchAttachments(
-            user.workspaceId,
+            user.workspaceId, 
             query,
-            limit,
-            page,
-        );
+            validImageExtensions,
+            limit, 
+            offset);
 
         return attachments;
     }

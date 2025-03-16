@@ -507,8 +507,7 @@ export class AttachmentService {
       if (attachment.thumbnailPath) {
         return;
       }
-      const splitPath = attachment.filePath.split('/');
-      const thumbnailPath = `/files/${splitPath[2]}/${splitPath[3]}`;
+      const thumbnailPath = `/files/${attachment.id}/${attachment.fileName}`;
       // TODO: implement thumbnail generation code
       // await this.storageService.findOrCreateThumbnail(attachment.filePath);
       if (thumbnailPath) {
@@ -519,10 +518,8 @@ export class AttachmentService {
     await Promise.all(thumbnailPromises);
   }
 
-  async searchAttachments(workspaceId: string, query: string, limit: number, page: number) {
-    console.log(`searchAttachments "${query}"`);
-    const attachments = await this.attachmentRepo.search(workspaceId, query); //, limit, page);
-    console.log("Found ",attachments.length);
+  async searchAttachments(workspaceId: string, query: string, fileExts: string[], limit: number, offset: number) {
+    const attachments = await this.attachmentRepo.search(query, {workspaceId, limit, offset, fileExts});
     this.findAndAttachThumbnails(attachments);
     return attachments;
   }

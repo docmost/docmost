@@ -5,7 +5,7 @@ import CoverPhotoSelectorModal from "./cover-photo-selector.modal";
 import React, { useEffect, useRef } from "react";
 import { IAttachment } from "@/lib/types";
 import { IPage} from "@/features/page/types/page.types";
-import { getAttachment } from "@/features/page/services/page-service";
+import { getAttachment, updatePage } from "@/features/page/services/page-service";
 import { useTranslation } from "react-i18next";
 
 export interface CoverPhotoProps {
@@ -35,6 +35,19 @@ export default function CoverPhoto({page}: CoverPhotoProps) {
     setIsCoverMenuOpen(false);
   }
 
+  const removeCurrentAttachment = async () => {
+    setCurrentAttachment(null);
+    page.coverPhoto = null;
+    await updatePage(  
+      { pageId: page.id,
+        title: page.title,
+        parentPageId: page.parentPageId,
+        icon: page.icon,
+        coverPhoto: null,
+        position: page.position
+      });
+  }
+
   const containerClass = currentAttachment ? classes.container : classes.empty;
   return (
     <div className={containerClass}
@@ -53,7 +66,11 @@ export default function CoverPhoto({page}: CoverPhotoProps) {
         <>
           <img src={`/api/files/${currentAttachment.id}/${currentAttachment.fileName}`} alt={currentAttachment.description || ""} className={classes.coverPhoto} />
           <div ref={coverMenuRef} className={`${classes.overlay} ${classes.hidden}`}>
-          <div className={classes.coverMenu} onClick={() => {setIsCoverMenuOpen(true)}}>{t("Edit Cover Image")}</div>
+          <div className={classes.coverMenu}>
+            <span onClick={() => {setIsCoverMenuOpen(true)}}>{t("Edit Cover Image")}</span>
+            <span> | </span>
+            <span onClick={removeCurrentAttachment}>{t("Remove Cover Image")}</span>
+          </div>
           {currentAttachment.descriptionUrl ? <a target="_blank" rel="noopener noreferrer" href={currentAttachment.descriptionUrl} className={classes.coverPhotoAttribution}>{currentAttachment.description}</a> :
             <span className={classes.coverPhotoAttribution}>{currentAttachment.description}</span>}
             </div>

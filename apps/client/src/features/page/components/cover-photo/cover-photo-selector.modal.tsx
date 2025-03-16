@@ -8,33 +8,10 @@ import {
 } from "@mantine/core";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { searchUnsplashImages, IImage, uploadLocalImage, saveImageAsAttachment, searchAttachmentsWithThumbnail } from "./cover-photo.service.ts";
+import { ThumbnailImage } from "./thumbnail-image";
+import { searchUnsplashImages, uploadLocalImage, saveImageAsAttachment, searchAttachmentsWithThumbnail } from "./cover-photo.service.ts";
+import { IAttachment, IImage } from "@/lib/types.ts";
 import classes from "./cover-photo.module.css";
-import { IAttachment } from "@/lib/types.ts";
-
-function ThumbnailImage({image, attachment, selected}: {image?: IImage, attachment?: IAttachment, selected: boolean}) {
-  let thumbnailUrl, description, title: string;
-  if (image) {
-    thumbnailUrl = image.thumbnailUrl;
-    description = image.altText;
-    title = `${image.title} by ${image.attribution}`;
-  } else if (attachment) {
-    thumbnailUrl = `/api/${attachment.thumbnailPath}`;
-    description = attachment.description || "";
-    title = attachment.description || "";
-  }
-  
-  return (
-    thumbnailUrl ? 
-      <img 
-        className={selected ? classes.selected : ""} 
-        height={98} 
-        src={thumbnailUrl} 
-        alt={description} 
-        title={title} /> 
-        : <img src="/default-thumbnail.png" />);
-}
-
 
 interface CoverPhotoSelectorModalProps {
   open: boolean;
@@ -57,7 +34,7 @@ export default function CoverPhotoSelectorModal({
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const imageRef = useRef<HTMLImageElement>(null);
   const { t } = useTranslation();
-
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setSourceSystem("unsplash");
@@ -78,14 +55,18 @@ export default function CoverPhotoSelectorModal({
 
   const handleSearchTermChange = async (query: string) => {
     setSearchTerm(query);
-    if(query.length > 2) {
-      console.log("Searching for images with query: ", query);
-      if(sourceSystem === "unsplash") {
+    clearTimeout(typingTimeoutRef.current!);
+    typingTimeoutRef.current = setTimeout(async () => {
+      if (query.length < 1) {
+        return;
+      }
+      console.log("Searching for images with query:", query, sourceSystem);
+      if (sourceSystem === "unsplash") {
         setImages(await searchUnsplashImages(query));
-      } else if(sourceSystem === "attachments") {
+      } else if (sourceSystem === "attachments") {
         setAttachments(await searchAttachmentsWithThumbnail(query));
       }
-    }
+    }, 500);
   };
 
   const handleSelected = (index : number) => {

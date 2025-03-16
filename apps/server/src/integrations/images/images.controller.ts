@@ -21,11 +21,12 @@ export class ImagesController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Get('/images/search')
-  async imagesSearch(@Query() query: { type?: string, page?: number; limit?: number; query?: string, orientation?: string }) {
+  async imagesSearch(@Query() query: { type?: string, page?: number; pageSize?: number; query?: string, orientation?: string }) {
     const searchTerm = query.query || '';
     const orientation = query.orientation || 'any';
     const type = query.type || 'unsplash';
-    const limit= query.limit || 12;
-    return this.imagesService.search(searchTerm, orientation, type, limit, '', '');
+    const pageSize = query.pageSize ? query.pageSize : 10;
+    const page = query.page ? (query.page - 1) * pageSize : 0;
+    return this.imagesService.search(searchTerm, orientation, type, page, pageSize, '', '');
   }
 }
