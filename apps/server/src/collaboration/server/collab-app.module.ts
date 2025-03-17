@@ -20,7 +20,7 @@ import { CollaborationController } from './collaboration.controller';
   ],
   controllers: [
     AppController,
-    ...(process.env.COLLAB_SHOW_STATS.toLowerCase() === 'true'
+    ...(process.env.COLLAB_SHOW_STATS?.toLowerCase() === 'true'
       ? [CollaborationController]
       : []),
   ],
