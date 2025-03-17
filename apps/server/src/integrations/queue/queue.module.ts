@@ -24,13 +24,13 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 20000,
+              delay: 20 * 1000,
             },
             removeOnComplete: {
-              count: 500,
+              count: 200,
             },
             removeOnFail: {
-              count: 500,
+              count: 100,
             },
           },
         };
@@ -45,6 +45,9 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
     }),
     BullModule.registerQueue({
       name: QueueName.GENERAL_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: QueueName.BILLING_QUEUE,
     }),
   ],
   exports: [BullModule],

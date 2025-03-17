@@ -48,7 +48,7 @@
     "@nestjs/platform-socket.io": "^11.0.10",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/websockets": "^11.0.10",
-    "@node-saml/passport-saml": "^5.0.0",
+    "@node-saml/passport-saml": "^5.0.1",
     "@react-email/components": "0.0.28",
     "@react-email/render": "1.0.2",
     "@socket.io/redis-adapter": "^8.3.0",
