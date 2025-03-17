@@ -38,6 +38,7 @@ export function useGetSpacesQuery(
     queryKey: ["spaces", params],
     queryFn: () => getSpaces(params),
     placeholderData: keepPreviousData,
+    refetchOnMount: true,
   });
 }
 
