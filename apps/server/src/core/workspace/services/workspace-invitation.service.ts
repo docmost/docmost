@@ -299,8 +299,9 @@ export class WorkspaceInvitationService {
     invitedByName: string,
   ): Promise<void> {
     const inviteLink = `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
-
+    const appName = this.environmentService.getAppName();
     const emailTemplate = InvitationEmail({
+      appName,
       inviteLink,
     });
 
