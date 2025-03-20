@@ -27,6 +27,7 @@ import {
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
+import AppVersion from "@/components/settings/app-version.tsx";
 
 interface DataItem {
   label: string;
@@ -205,19 +206,8 @@ export default function SettingsSidebar() {
       </Group>
 
       <ScrollArea w="100%">{menuItems}</ScrollArea>
-      {!isCloud() && (
-        <div className={classes.text}>
-          <Text
-            size="sm"
-            c="dimmed"
-            component="a"
-            href="https://github.com/docmost/docmost/releases"
-            target="_blank"
-          >
-            v{APP_VERSION}
-          </Text>
-        </div>
-      )}
+
+      {!isCloud() && <AppVersion />}
 
       {isCloud() && (
         <div className={classes.text}>
