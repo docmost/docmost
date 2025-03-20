@@ -14,6 +14,7 @@ import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
 import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
+import { useToggleSidebar } from "./hooks/hooks/use-toggle-sidebar";
 
 export default function GlobalAppShell({
   children,
@@ -22,11 +23,28 @@ export default function GlobalAppShell({
 }) {
   useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobile = useToggleSidebar(mobileSidebarAtom);
+
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const [{ isAsideOpen }] = useAtom(asideStateAtom);
   const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef(null);
+
+  const handleOutSideClick = (event: MouseEvent) => {
+    if (mobileOpened && !sidebarRef.current.contains(event.target)) {
+      event.stopPropagation();
+      toggleMobile();
+    }
+  }
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleOutSideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutSideClick);
+    };
+  }, [mobileOpened]);
 
   const startResizing = React.useCallback((mouseDownEvent) => {
     mouseDownEvent.preventDefault();
