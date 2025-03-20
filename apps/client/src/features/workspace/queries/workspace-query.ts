@@ -164,5 +164,6 @@ export function useAppVersion(
     queryFn: () => getAppVersion(),
     staleTime: 60 * 60 * 1000, // 1 hr
     enabled: isEnabled,
+    refetchOnMount: true,
   });
 }
