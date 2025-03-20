@@ -13,9 +13,11 @@
 > Docmost is currently in **beta**. We value your feedback as we progress towards a stable release.
 
 ## Getting started
+
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs).
 
 ## Features
+
 - Real-time collaboration
 - Diagrams (Draw.io, Excalidraw and Mermaid)
 - Spaces
@@ -24,13 +26,26 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - Comments
 - Page history
 - Search
-- File attachment
+- File attachments
+- Embeds (Airtable, Loom, Miro and more)
+- Translations (10+ languages)
 
-#### Screenshots
+### Screenshots
+
 <p align="center">
 <img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
 <img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%">
 </p>
 
-### Contributing 
+### License
+Docmost core is licensed under the open-source AGPL 3.0 license.  
+Enterprise features are available under an enterprise license (Enterprise Edition).  
+
+All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
+  - apps/server/src/ee
+  - apps/client/src/ee
+  - packages/ee
+
+### Contributing
+
 See the [development documentation](https://docmost.com/docs/self-hosting/development)

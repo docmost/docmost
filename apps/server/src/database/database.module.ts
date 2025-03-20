@@ -3,7 +3,7 @@ import {
   Logger,
   Module,
   OnApplicationBootstrap,
-  OnModuleDestroy,
+  BeforeApplicationShutdown,
 } from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
@@ -38,6 +38,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         dialect: new PostgresDialect({
           pool: new Pool({
             connectionString: environmentService.getDatabaseURL(),
+            max: environmentService.getDatabaseMaxPool(),
           }).on('error', (err) => {
             console.error('Database error:', err.message);
           }),
@@ -45,12 +46,15 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         plugins: [new CamelCasePlugin()],
         log: (event: LogEvent) => {
           if (environmentService.getNodeEnv() !== 'development') return;
+          const logger = new Logger(DatabaseModule.name);
           if (event.level === 'query') {
-            // console.log(event.query.sql);
-            //if (event.query.parameters.length > 0) {
-            //console.log('parameters: ' + event.query.parameters);
-            //}
-            // console.log('time: ' + event.queryDurationMillis);
+            if (process.env.DEBUG_DB?.toLowerCase() === 'true') {
+              logger.debug(event.query.sql);
+              logger.debug('query time: ' + event.queryDurationMillis + ' ms');
+              //if (event.query.parameters.length > 0) {
+              // logger.debug('parameters: ' + event.query.parameters);
+              //}
+            }
           }
         },
       }),
@@ -86,7 +90,9 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     BacklinkRepo,
   ],
 })
-export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
+export class DatabaseModule
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
+{
   private readonly logger = new Logger(DatabaseModule.name);
 
   constructor(
@@ -103,7 +109,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async beforeApplicationShutdown(): Promise<void> {
     if (this.db) {
       await this.db.destroy();
     }

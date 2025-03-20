@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
@@ -11,15 +11,16 @@ import {
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { useUpdatePageMutation } from "@/features/page/queries/page-query";
-import { useDebouncedValue } from "@mantine/hooks";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { useAtom } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { updateTreeNodeName } from "@/features/page/tree/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import EmojiCommand from "@/features/editor/extensions/emoji-command.ts";
+import { UpdateEvent } from "@/features/websocket/types";
+import localEmitter from "@/lib/local-emitter.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -37,16 +38,9 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const { t } = useTranslation();
-  const [debouncedTitleState, setDebouncedTitleState] = useState(null);
-  const [debouncedTitle] = useDebouncedValue(debouncedTitleState, 700);
-  const {
-    data: updatedPageData,
-    mutate: updatePageMutation,
-    status,
-  } = useUpdatePageMutation();
+  const { mutateAsync: updatePageMutationAsync } = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
@@ -67,17 +61,17 @@ export function TitleEditor({
       History.configure({
         depth: 20,
       }),
+      EmojiCommand,
     ],
     onCreate({ editor }) {
       if (editor) {
         // @ts-ignore
         setTitleEditor(editor);
+        setActivePageId(pageId);
       }
     },
     onUpdate({ editor }) {
-      const currentTitle = editor.getText();
-      setDebouncedTitleState(currentTitle);
-      setActivePageId(pageId);
+      debounceUpdate();
     },
     editable: editable,
     content: title,
@@ -90,31 +84,34 @@ export function TitleEditor({
     navigate(pageSlug, { replace: true });
   }, [title]);
 
-  useEffect(() => {
-    if (debouncedTitle !== null && activePageId === pageId) {
-      updatePageMutation({
-        pageId: pageId,
-        title: debouncedTitle,
-      });
-    }
-  }, [debouncedTitle]);
+  const saveTitle = useCallback(() => {
+    if (!titleEditor || activePageId !== pageId) return;
 
-  useEffect(() => {
-    if (status === "success" && updatedPageData) {
-      const newTreeData = updateTreeNodeName(treeData, pageId, debouncedTitle);
-      setTreeData(newTreeData);
-
-      setTimeout(() => {
-        emit({
-          operation: "updateOne",
-          spaceId: updatedPageData.spaceId,
-          entity: ["pages"],
-          id: pageId,
-          payload: { title: debouncedTitle, slugId: slugId },
-        });
-      }, 50);
+    if (
+      titleEditor.getText() === title ||
+      (titleEditor.getText() === "" && title === null)
+    ) {
+      return;
     }
-  }, [updatedPageData, status]);
+
+    updatePageMutationAsync({
+      pageId: pageId,
+      title: titleEditor.getText(),
+    }).then((page) => {
+      const event: UpdateEvent = {
+        operation: "updateOne",
+        spaceId: page.spaceId,
+        entity: ["pages"],
+        id: page.id,
+        payload: { title: page.title, slugId: page.slugId },
+      };
+
+      localEmitter.emit("message", event);
+      emit(event);
+    });
+  }, [pageId, title, titleEditor]);
+
+  const debounceUpdate = useDebouncedCallback(saveTitle, 500);
 
   useEffect(() => {
     if (titleEditor && title !== titleEditor.getText()) {
@@ -127,6 +124,13 @@ export function TitleEditor({
       titleEditor?.commands.focus("end");
     }, 500);
   }, [titleEditor]);
+
+  useEffect(() => {
+    return () => {
+      // force-save title on navigation
+      saveTitle();
+    };
+  }, [pageId]);
 
   function handleTitleKeyDown(event) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;

@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "选择要分配给所有被邀请成员的角色",
   "Select theme": "选择主题",
   "Send invitation": "发送邀请",
+  "Invitation sent": "Invitation sent",
   "Settings": "设置",
   "Setup workspace": "设置工作空间",
   "Sign In": "登录",
@@ -244,6 +245,7 @@
   "Align left": "靠左对齐",
   "Align right": "靠右对齐",
   "Align center": "居中对齐",
+  "Justify": "Justify",
   "Merge cells": "合并单元格",
   "Split cell": "分割单元格",
   "Delete column": "删除整列",
@@ -338,5 +340,16 @@
   "Write anything. Enter \"/\" for commands": "开始编写内容，输入 \"/\" 以使用指令",
   "Names do not match": "名称不匹配",
   "Today, {{time}}": "今天，{{time}}",
-  "Yesterday, {{time}}": "昨天，{{time}}"
+  "Yesterday, {{time}}": "昨天，{{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully",
+  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Created at: {{time}}",
+  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
 }

@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "Select role to assign to all invited members",
   "Select theme": "Select theme",
   "Send invitation": "Send invitation",
+  "Invitation sent": "Invitation sent",
   "Settings": "Settings",
   "Setup workspace": "Setup workspace",
   "Sign In": "Sign In",
@@ -339,5 +340,16 @@
   "Write anything. Enter \"/\" for commands": "Write anything. Enter \"/\" for commands",
   "Names do not match": "Names do not match",
   "Today, {{time}}": "Today, {{time}}",
-  "Yesterday, {{time}}": "Yesterday, {{time}}"
+  "Yesterday, {{time}}": "Yesterday, {{time}}",
+  "Space created successfully": "Space created successfully",
+  "Space updated successfully": "Space updated successfully",
+  "Space deleted successfully": "Space deleted successfully",
+  "Members added successfully": "Members added successfully",
+  "Member removed successfully": "Member removed successfully",
+  "Member role updated successfully": "Member role updated successfully",
+  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Created at: {{time}}",
+  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
 }

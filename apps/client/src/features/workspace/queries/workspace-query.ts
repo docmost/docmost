@@ -21,9 +21,11 @@ import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
+  IPublicWorkspace,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
+import { useTranslation } from "react-i18next";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -33,7 +35,7 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
+  IPublicWorkspace,
   Error
 > {
   return useQuery({
@@ -81,12 +83,13 @@ export function useWorkspaceInvitationsQuery(
 }
 
 export function useCreateInvitationMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
+      notifications.show({ message: t("Invitation sent") });
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });

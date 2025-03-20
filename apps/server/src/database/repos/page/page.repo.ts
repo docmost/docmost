@@ -46,6 +46,8 @@ export class PageRepo {
       includeContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
+      includeCreator?: boolean;
+      includeLastUpdatedBy?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -57,6 +59,14 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+
+    if (opts?.includeCreator) {
+      query = query.select((eb) => this.withCreator(eb));
+    }
+
+    if (opts?.includeLastUpdatedBy) {
+      query = query.select((eb) => this.withLastUpdatedBy(eb));
+    }
 
     if (opts?.includeSpace) {
       query = query.select((eb) => this.withSpace(eb));
@@ -159,6 +169,24 @@ export class PageRepo {
         .select(['spaces.id', 'spaces.name', 'spaces.slug'])
         .whereRef('spaces.id', '=', 'pages.spaceId'),
     ).as('space');
+  }
+
+  withCreator(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.creatorId'),
+    ).as('creator');
+  }
+
+  withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.lastUpdatedById'),
+    ).as('lastUpdatedBy');
   }
 
   async getPageAndDescendants(parentPageId: string) {

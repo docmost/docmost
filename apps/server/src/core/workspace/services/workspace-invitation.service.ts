@@ -12,17 +12,22 @@ import { executeTx } from '@docmost/db/utils';
 import {
   Group,
   User,
+  Workspace,
   WorkspaceInvitation,
 } from '@docmost/db/types/entity.types';
 import { MailService } from '../../../integrations/mail/mail.service';
 import InvitationEmail from '@docmost/transactional/emails/invitation-email';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { TokenService } from '../../auth/services/token.service';
 import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { DomainService } from 'src/integrations/environment/domain.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { Queue } from 'bullmq';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -31,9 +36,11 @@ export class WorkspaceInvitationService {
     private userRepo: UserRepo,
     private groupUserRepo: GroupUserRepo,
     private mailService: MailService,
-    private environmentService: EnvironmentService,
+    private domainService: DomainService,
     private tokenService: TokenService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
@@ -71,9 +78,24 @@ export class WorkspaceInvitationService {
     return invitation;
   }
 
+  async getInvitationTokenById(invitationId: string, workspaceId: string) {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['token'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    return invitation;
+  }
+
   async createInvitation(
     inviteUserDto: InviteUserDto,
-    workspaceId: string,
+    workspace: Workspace,
     authUser: User,
   ): Promise<void> {
     const { emails, role, groupIds } = inviteUserDto;
@@ -87,7 +109,7 @@ export class WorkspaceInvitationService {
           .selectFrom('users')
           .select(['email'])
           .where('users.email', 'in', emails)
-          .where('users.workspaceId', '=', workspaceId)
+          .where('users.workspaceId', '=', workspace.id)
           .execute();
 
         let existingUserEmails = [];
@@ -106,7 +128,7 @@ export class WorkspaceInvitationService {
             .selectFrom('groups')
             .select(['id', 'name'])
             .where('groups.id', 'in', groupIds)
-            .where('groups.workspaceId', '=', workspaceId)
+            .where('groups.workspaceId', '=', workspace.id)
             .execute();
         }
 
@@ -114,7 +136,7 @@ export class WorkspaceInvitationService {
           email: email,
           role: role,
           token: nanoIdGen(16),
-          workspaceId: workspaceId,
+          workspaceId: workspace.id,
           invitedById: authUser.id,
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
@@ -141,6 +163,7 @@ export class WorkspaceInvitationService {
           invitation.email,
           invitation.token,
           authUser.name,
+          workspace.hostname,
         );
       });
     }
@@ -249,19 +272,22 @@ export class WorkspaceInvitationService {
       });
     }
 
+    if (this.environmentService.isCloud()) {
+      await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, { workspaceId });
+    }
+
     return this.tokenService.generateAccessToken(newUser);
   }
 
   async resendInvitation(
     invitationId: string,
-    workspaceId: string,
+    workspace: Workspace,
   ): Promise<void> {
-    //
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()
       .where('id', '=', invitationId)
-      .where('workspaceId', '=', workspaceId)
+      .where('workspaceId', '=', workspace.id)
       .executeTakeFirst();
 
     if (!invitation) {
@@ -270,7 +296,7 @@ export class WorkspaceInvitationService {
 
     const invitedByUser = await this.userRepo.findById(
       invitation.invitedById,
-      workspaceId,
+      workspace.id,
     );
 
     await this.sendInvitationMail(
@@ -278,6 +304,7 @@ export class WorkspaceInvitationService {
       invitation.email,
       invitation.token,
       invitedByUser.name,
+      workspace.hostname,
     );
   }
 
@@ -292,13 +319,39 @@ export class WorkspaceInvitationService {
       .execute();
   }
 
+  async getInvitationLinkById(
+    invitationId: string,
+    workspace: Workspace,
+  ): Promise<string> {
+    const token = await this.getInvitationTokenById(invitationId, workspace.id);
+    return this.buildInviteLink({
+      invitationId,
+      inviteToken: token.token,
+      hostname: workspace.hostname,
+    });
+  }
+
+  async buildInviteLink(opts: {
+    invitationId: string;
+    inviteToken: string;
+    hostname?: string;
+  }): Promise<string> {
+    const { invitationId, inviteToken, hostname } = opts;
+    return `${this.domainService.getUrl(hostname)}/invites/${invitationId}?token=${inviteToken}`;
+  }
+
   async sendInvitationMail(
     invitationId: string,
     inviteeEmail: string,
     inviteToken: string,
     invitedByName: string,
+    hostname?: string,
   ): Promise<void> {
-    const inviteLink = `${this.environmentService.getAppUrl()}/invites/${invitationId}?token=${inviteToken}`;
+    const inviteLink = await this.buildInviteLink({
+      invitationId,
+      inviteToken,
+      hostname,
+    });
     const appName = this.environmentService.getAppName();
     const emailTemplate = InvitationEmail({
       appName,
