@@ -31,7 +31,8 @@ import {getMimeType} from '../../common/helpers';
 import {
     AttachmentType,
     inlineFileExtensions,
-    MAX_AVATAR_SIZE,
+    MAX_IMAGE_SIZE,
+    validImageExtensions,
 } from './attachment.constants';
 import {
     SpaceCaslAction,
@@ -78,7 +79,7 @@ export class AttachmentController {
         let file = null;
         try {
             file = await req.file({
-                limits: {fileSize: maxFileSize, fields: 3, files: 1},
+                limits: {fileSize: maxFileSize, fields: 99, files: 1},
             });
         } catch (err: any) {
             this.logger.error(err.message);
@@ -93,6 +94,7 @@ export class AttachmentController {
             throw new BadRequestException('Failed to upload file');
         }
 
+        const attachmentType = file.fields?.type?.value;
         const pageId = file.fields?.pageId?.value;
 
         if (!pageId) {
@@ -126,6 +128,7 @@ export class AttachmentController {
                 pageId: pageId,
                 spaceId: spaceId,
                 userId: user.id,
+                type: attachmentType,
                 workspaceId: workspace.id,
                 attachmentId: attachmentId,
             });
@@ -205,17 +208,17 @@ export class AttachmentController {
         @AuthUser() user: User,
         @AuthWorkspace() workspace: Workspace,
     ) {
-        const maxFileSize = bytes(MAX_AVATAR_SIZE);
+        const maxFileSize = bytes(this.environmentService.getFileUploadSizeLimit());
 
         let file = null;
         try {
             file = await req.file({
-                limits: {fileSize: maxFileSize, fields: 3, files: 1},
+                limits: {fileSize: maxFileSize, fields: 99, files: 1},
             });
         } catch (err: any) {
             if (err?.statusCode === 413) {
                 throw new BadRequestException(
-                    `File too large. Exceeds the ${MAX_AVATAR_SIZE} limit`,
+                    `File too large. Exceeds the ${maxFileSize} limit`,
                 );
             }
         }
@@ -226,6 +229,7 @@ export class AttachmentController {
 
         const attachmentType = file.fields?.type?.value;
         const spaceId = file.fields?.spaceId?.value;
+        const pageId = file.fields?.pageId?.value;
 
         if (!attachmentType) {
             throw new BadRequestException('attachment type is required');
@@ -270,12 +274,77 @@ export class AttachmentController {
                 user.id,
                 workspace.id,
                 spaceId,
+                pageId,
             );
 
             return res.send(fileResponse);
         } catch (err: any) {
             this.logger.error(err);
             throw new BadRequestException('Error processing file upload.');
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Post('attachments/upload-remote-image')
+    async uploadRemoteImages(
+        @Req() req: any,
+        @AuthUser() user: User,
+        @AuthWorkspace() workspace: Workspace,
+    ) {
+        const {type, url, description, descriptionUrl, spaceId, pageId} = req.body;
+
+        if (!type) {
+            throw new BadRequestException('attachment type is required');
+        }
+
+        if (
+            !validAttachmentTypes.includes(type) ||
+            type === AttachmentType.File
+        ) {
+            throw new BadRequestException('Invalid image attachment type');
+        }
+
+        if (type === AttachmentType.WorkspaceLogo) {
+            const ability = this.workspaceAbility.createForUser(user, workspace);
+            if (
+                ability.cannot(
+                    WorkspaceCaslAction.Manage,
+                    WorkspaceCaslSubject.Settings,
+                )
+            ) {
+                throw new ForbiddenException();
+            }
+        }
+
+        if (type === AttachmentType.SpaceLogo) {
+            if (!spaceId) {
+                throw new BadRequestException('spaceId is required');
+            }
+
+            const spaceAbility = await this.spaceAbility.createForUser(user, spaceId);
+            if (
+                spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)
+            ) {
+                throw new ForbiddenException();
+            }
+        }
+
+        try {
+            const attachment = await this.attachmentService.uploadRemoteImage(
+                url,
+                type,
+                user.id,
+                workspace.id,
+                spaceId,
+                pageId,
+                description,
+                descriptionUrl,
+            );
+            return attachment;
+        } catch (err: any) {
+            this.logger.error(err);
+            throw new BadRequestException('Error processing stream upload.');
         }
     }
 
@@ -306,5 +375,40 @@ export class AttachmentController {
             this.logger.error(err);
             throw new NotFoundException('File not found');
         }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('attachments/:attachmentId')
+    async getAttachment(@Param('attachmentId') attachmentId: string) {
+        if (!isValidUUID(attachmentId)) {
+            throw new NotFoundException('Invalid file id');
+        }
+
+        const attachment = await this.attachmentRepo.findById(attachmentId);
+        if (!attachment) {
+            throw new NotFoundException();
+        }
+
+        return attachment;
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('attachments/search')
+    async searchAttachments(
+        @AuthUser() user: User,
+        @Req() req: any,
+    ) {
+        const {query, pageSize, page} = req.query;
+        const limit = pageSize ? parseInt(pageSize) : 10;
+        const offset = page ? (parseInt(page) - 1) * limit : 0;
+
+        const attachments = await this.attachmentService.searchAttachments(
+            user.workspaceId, 
+            query,
+            validImageExtensions,
+            limit, 
+            offset);
+
+        return attachments;
     }
 }

@@ -3,10 +3,11 @@ export enum AttachmentType {
   WorkspaceLogo = 'workspace-logo',
   SpaceLogo = 'space-logo',
   File = 'file',
+  CoverPhoto = 'cover-photo',
 }
 
-export const validImageExtensions = ['.jpg', '.png', '.jpeg'];
-export const MAX_AVATAR_SIZE = '5MB';
+export const validImageExtensions = ['.jpg', '.png', '.jpeg', '.webp'];
+export const MAX_IMAGE_SIZE = '100MB';
 
 export const inlineFileExtensions = [
   '.jpg',
