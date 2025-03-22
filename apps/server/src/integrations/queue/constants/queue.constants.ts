@@ -2,6 +2,7 @@ export enum QueueName {
   EMAIL_QUEUE = '{email-queue}',
   ATTACHMENT_QUEUE = '{attachment-queue}',
   GENERAL_QUEUE = '{general-queue}',
+  BILLING_QUEUE = '{billing-queue}',
 }
 
 export enum QueueJob {
@@ -11,6 +12,6 @@ export enum QueueJob {
   PAGE_CONTENT_UPDATE = 'page-content-update',
 
   PAGE_BACKLINKS = 'page-backlinks',
+
+  STRIPE_SEATS_SYNC = 'sync-stripe-seats',
 }
-
-

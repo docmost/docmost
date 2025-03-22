@@ -106,19 +106,25 @@ export class BacklinksProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('active')
   onActive(job: Job) {
-    this.logger.debug(`Processing ${job.name} job`);
+    if (job.name === QueueJob.PAGE_BACKLINKS) {
+      this.logger.debug(`Processing ${job.name} job`);
+    }
   }
 
   @OnWorkerEvent('failed')
   onError(job: Job) {
-    this.logger.error(
-      `Error processing ${job.name} job. Reason: ${job.failedReason}`,
-    );
+    if (job.name === QueueJob.PAGE_BACKLINKS) {
+      this.logger.error(
+        `Error processing ${job.name} job. Reason: ${job.failedReason}`,
+      );
+    }
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    this.logger.debug(`Completed ${job.name} job`);
+    if (job.name === QueueJob.PAGE_BACKLINKS) {
+      this.logger.debug(`Completed ${job.name} job`);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

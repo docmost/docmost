@@ -68,32 +68,31 @@ function EmojiPicker({
           {icon}
         </ActionIcon>
       </Popover.Target>
-      <Popover.Dropdown bg="000" style={{ border: "none" }} ref={setDropdown}>
-        <Suspense fallback={null}>
+      <Suspense fallback={null}>
+        <Popover.Dropdown bg="000" style={{ border: "none" }} ref={setDropdown}>
           <Picker
             data={async () => (await import("@emoji-mart/data")).default}
-            autoFocus={true}
             onEmojiSelect={handleEmojiSelect}
             perLine={8}
             skinTonePosition="search"
             theme={colorScheme}
           />
-        </Suspense>
-        <Button
-          variant="default"
-          c="gray"
-          size="xs"
-          style={{
-            position: "absolute",
-            zIndex: 2,
-            bottom: "1rem",
-            right: "1rem",
-          }}
-          onClick={handleRemoveEmoji}
-        >
-          {t("Remove")}
-        </Button>
-      </Popover.Dropdown>
+          <Button
+            variant="default"
+            c="gray"
+            size="xs"
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              bottom: "1rem",
+              right: "1rem",
+            }}
+            onClick={handleRemoveEmoji}
+          >
+            {t("Remove")}
+          </Button>
+        </Popover.Dropdown>
+      </Suspense>
     </Popover>
   );
 }

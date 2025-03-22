@@ -1,5 +1,5 @@
 import { Text, Avatar, SimpleGrid, Card, rem } from "@mantine/core";
-import React from "react";
+import React, { useEffect } from 'react';
 import {
   prefetchSpace,
   useGetSpacesQuery,
@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 
 export default function SpaceGrid() {
   const { t } = useTranslation();
-  const { data, isLoading } = useGetSpacesQuery();
+  const { data, isLoading } = useGetSpacesQuery({ page: 1 });
 
   const cards = data?.items.map((space, index) => (
     <Card

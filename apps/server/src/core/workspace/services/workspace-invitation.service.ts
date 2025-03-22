@@ -24,6 +24,10 @@ import { nanoIdGen } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { DomainService } from 'src/integrations/environment/domain.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { Queue } from 'bullmq';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -35,6 +39,8 @@ export class WorkspaceInvitationService {
     private domainService: DomainService,
     private tokenService: TokenService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
@@ -264,6 +270,10 @@ export class WorkspaceInvitationService {
         subject: `${newUser.name} has accepted your Docmost invite`,
         template: emailTemplate,
       });
+    }
+
+    if (this.environmentService.isCloud()) {
+      await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, { workspaceId });
     }
 
     return this.tokenService.generateAccessToken(newUser);
