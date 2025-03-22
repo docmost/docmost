@@ -47,6 +47,7 @@
     "react-helmet-async": "^2.0.5",
     "react-i18next": "^15.0.1",
     "react-router-dom": "^7.0.1",
+    "semver": "^7.7.1",
     "socket.io-client": "^4.8.1",
     "tippy.js": "^6.3.7",
     "tiptap-extension-global-drag-handle": "^0.1.18",
