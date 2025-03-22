@@ -4,6 +4,7 @@ import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { getAppName } from '@/lib/config';
 import { useAtom } from "jotai";
 import {
   desktopSidebarAtom,
@@ -18,22 +19,23 @@ import { isCloud } from "@/lib/config.ts";
 const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
 export function AppHeader() {
-  const { t } = useTranslation();
-  const [mobileOpened] = useAtom(mobileSidebarAtom);
-  const toggleMobile = useToggleSidebar(mobileSidebarAtom);
+	const { t } = useTranslation();
+	const [mobileOpened] = useAtom(mobileSidebarAtom);
+	const toggleMobile = useToggleSidebar(mobileSidebarAtom);
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
   const { isTrial, trialDaysLeft } = useTrial();
 
-  const isHomeRoute = location.pathname.startsWith("/home");
+	const isHomeRoute = location.pathname.startsWith('/home');
 
-  const items = links.map((link) => (
-    <Link key={link.label} to={link.link} className={classes.link}>
-      {t(link.label)}
-    </Link>
-  ));
+	const items = links.map((link) => (
+		<Link key={link.label} to={link.link} className={classes.link}>
+			{t(link.label)}
+		</Link>
+	));
 
+  const app_name = getAppName();
   return (
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
@@ -50,17 +52,11 @@ export function AppHeader() {
                 />
               </Tooltip>
 
-              <Tooltip label={t("Sidebar toggle")}>
-                <SidebarToggle
-                  aria-label={t("Sidebar toggle")}
-                  opened={desktopOpened}
-                  onClick={toggleDesktop}
-                  visibleFrom="sm"
-                  size="sm"
-                />
-              </Tooltip>
-            </>
-          )}
+							<Tooltip label={t('Sidebar toggle')}>
+								<SidebarToggle aria-label={t('Sidebar toggle')} opened={desktopOpened} onClick={toggleDesktop} visibleFrom="sm" size="sm" />
+							</Tooltip>
+						</>
+					)}
 
           <Text
             size="lg"
@@ -69,14 +65,13 @@ export function AppHeader() {
             component={Link}
             to="/home"
           >
-            Docmost
+            {app_name}
           </Text>
 
-          <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
-            {items}
-          </Group>
-        </Group>
-
+					<Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
+						{items}
+					</Group>
+				</Group>
         <Group px={"xl"} wrap="nowrap">
           {isCloud() && isTrial && trialDaysLeft !== 0 && (
             <Badge
