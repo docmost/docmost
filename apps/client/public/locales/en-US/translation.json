@@ -351,5 +351,7 @@
   "Created at: {{time}}": "Created at: {{time}}",
   "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
   "Word count: {{wordCount}}": "Word count: {{wordCount}}",
-  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}",
+  "New update": "New update",
+  "{{latestVersion}} is available": "{{latestVersion}} is available"
 }
