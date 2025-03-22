@@ -8,7 +8,11 @@ import React, {
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import { HocuspocusProvider, WebSocketStatus } from "@hocuspocus/provider";
+import {
+  HocuspocusProvider,
+  onAuthenticationFailedParameters,
+  WebSocketStatus,
+} from "@hocuspocus/provider";
 import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
 import {
   collabExtensions,
@@ -41,16 +45,13 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
-import {
-  useDebouncedCallback,
-  useDocumentVisibility,
-} from "@mantine/hooks";
+import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
-import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
+import { FIVE_MINUTES } from "@/lib/constants.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -77,11 +78,12 @@ export default function PageEditor({
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
-  const { data } = useCollabToken();
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
+  const collabRetryCount = useRef(0);
   const slugId = extractPageSlugId(pageSlug);
 
   const localProvider = useMemo(() => {
@@ -92,16 +94,26 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [pageId, ydoc, data?.token]);
+  }, [pageId, ydoc]);
 
   const remoteProvider = useMemo(() => {
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
       document: ydoc,
-      token: data?.token,
+      token: collabQuery?.token,
       connect: false,
       preserveConnection: false,
+      onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
+        collabRetryCount.current = collabRetryCount.current + 1;
+        refetchCollabToken().then(() => {
+          collabRetryCount.current = 0;
+        });
+
+        if (collabRetryCount.current > 20) {
+          window.location.reload();
+        }
+      },
       onStatus: (status) => {
         if (status.status === "connected") {
           setYjsConnectionStatus(status.status);
@@ -118,7 +130,7 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [ydoc, pageId, data?.token]);
+  }, [ydoc, pageId, collabQuery?.token]);
 
   useLayoutEffect(() => {
     remoteProvider.connect();
@@ -253,23 +265,32 @@ export default function PageEditor({
       documentState === "visible" &&
       remoteProvider?.status === WebSocketStatus.Disconnected
     ) {
-      remoteProvider.connect();
-      resetIdle();
-      setTimeout(() => {
-        setIsCollabReady(true);
-      }, 600);
+      const reconnectTimeout = setTimeout(
+        () => {
+          remoteProvider.connect();
+          resetIdle();
+        },
+        collabRetryCount.current > 2 ? 3000 : 0,
+      );
+
+      return () => clearTimeout(reconnectTimeout);
     }
   }, [isIdle, documentState, remoteProvider?.status]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
-    setTimeout(() => {
-      if (isSynced) {
+    const collabReadyTimeout = setTimeout(() => {
+      if (
+        !isCollabReady &&
+        isSynced &&
+        remoteProvider.status === WebSocketStatus.Connected
+      ) {
         setIsCollabReady(true);
       }
     }, 500);
-  }, [isRemoteSynced, isLocalSynced]);
+    return () => clearTimeout(collabReadyTimeout);
+  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
 
   return isCollabReady ? (
     <div>
