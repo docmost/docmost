@@ -74,6 +74,8 @@ export async function down(db: Kysely<any>): Promise<void> {
 
   await db.schema.alterTable('workspaces').dropColumn('status').execute();
 
+  await db.schema.alterTable('workspaces').dropColumn('plan').execute();
+
   await db.schema
     .alterTable('workspaces')
     .dropColumn('billing_email')
