@@ -10,6 +10,8 @@ const packageJson = require('./../../../package.json');
 
 @Injectable()
 export class TelemetryService {
+  private readonly ENDPOINT_URL = 'https://tel.docmost.com/api/event';
+
   constructor(
     private readonly environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
@@ -21,16 +23,16 @@ export class TelemetryService {
     name: 'telemetry',
   })
   async sendTelemetry() {
-    if (
-      this.environmentService.isDisableTelemetry() ||
-      this.environmentService.isCloud() ||
-      this.environmentService.getNodeEnv() !== 'production'
-    ) {
-      this.schedulerRegistry.deleteCronJob('telemetry');
-      return;
-    }
-
     try {
+      if (
+        this.environmentService.isDisableTelemetry() ||
+        this.environmentService.isCloud() ||
+        this.environmentService.getNodeEnv() !== 'production'
+      ) {
+        this.schedulerRegistry.deleteCronJob('telemetry');
+        return;
+      }
+
       const workspace = await this.workspaceRepo.findFirst();
       if (!workspace) {
         return;
@@ -72,9 +74,7 @@ export class TelemetryService {
         workspaceCount,
       };
 
-      const telemetryUrl = 'https://event.docmost.com/api/event';
-
-      const response = await fetch(telemetryUrl, {
+      await fetch(this.ENDPOINT_URL, {
         method: 'POST',
         headers: {
           'User-Agent': 'docmost:' + data.version,
@@ -82,7 +82,6 @@ export class TelemetryService {
         },
         body: JSON.stringify(data),
       });
-      console.log(response.json());
     } catch (err) {
       /* empty */
     }
