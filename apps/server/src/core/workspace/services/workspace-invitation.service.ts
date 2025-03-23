@@ -41,7 +41,7 @@ export class WorkspaceInvitationService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
-  ) {}
+  ) { }
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
     let query = this.db
@@ -140,6 +140,9 @@ export class WorkspaceInvitationService {
           invitedById: authUser.id,
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
+
+        // When there is nobody to invite
+        if (invitesToInsert.length < 1) return;
 
         invites = await trx
           .insertInto('workspaceInvitations')
