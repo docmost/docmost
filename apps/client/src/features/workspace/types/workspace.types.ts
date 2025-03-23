@@ -57,3 +57,9 @@ export interface IPublicWorkspace {
   authProviders: IAuthProvider[];
   hasLicenseKey?: boolean;
 }
+
+export interface IVersion {
+  currentVersion: string;
+  latestVersion: string;
+  releaseUrl: string;
+}
