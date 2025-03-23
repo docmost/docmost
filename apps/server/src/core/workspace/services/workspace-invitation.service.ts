@@ -41,7 +41,7 @@ export class WorkspaceInvitationService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
-  ) { }
+  ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
     let query = this.db
@@ -141,10 +141,9 @@ export class WorkspaceInvitationService {
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
 
-        // When there is nobody to invite
         if (invitesToInsert.length < 1) {
           throw new BadRequestException(
-            'No members to invite',
+            'There are no members available to invite.',
           );
         }
 
