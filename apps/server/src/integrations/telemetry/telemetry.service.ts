@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
+import { Interval, SchedulerRegistry } from '@nestjs/schedule';
 import { EnvironmentService } from '../environment/environment.service';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
@@ -19,9 +19,7 @@ export class TelemetryService {
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
-    name: 'telemetry',
-  })
+  @Interval('telemetry', 24 * 60 * 60 * 1000)
   async sendTelemetry() {
     try {
       if (
@@ -29,7 +27,7 @@ export class TelemetryService {
         this.environmentService.isCloud() ||
         this.environmentService.getNodeEnv() !== 'production'
       ) {
-        this.schedulerRegistry.deleteCronJob('telemetry');
+        this.schedulerRegistry.deleteInterval('telemetry');
         return;
       }
 
