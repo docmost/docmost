@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EnvironmentService } from '../environment/environment.service';
 import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
+import { BacklinksProcessor } from './processors/backlinks.processor';
 
 @Global()
 @Module({
@@ -16,13 +17,20 @@ import { QueueName } from './constants';
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
+            family: redisConfig.family,
             retryStrategy: createRetryStrategy(),
           },
           defaultJobOptions: {
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 10000,
+              delay: 20 * 1000,
+            },
+            removeOnComplete: {
+              count: 200,
+            },
+            removeOnFail: {
+              count: 100,
             },
           },
         };
@@ -33,9 +41,16 @@ import { QueueName } from './constants';
       name: QueueName.EMAIL_QUEUE,
     }),
     BullModule.registerQueue({
-      name: QueueName.ATTACHEMENT_QUEUE,
+      name: QueueName.ATTACHMENT_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: QueueName.GENERAL_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: QueueName.BILLING_QUEUE,
     }),
   ],
   exports: [BullModule],
+  providers: [BacklinksProcessor],
 })
 export class QueueModule {}

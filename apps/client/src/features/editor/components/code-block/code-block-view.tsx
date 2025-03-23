@@ -1,14 +1,14 @@
-import { NodeViewContent, NodeViewProps, NodeViewWrapper } from '@tiptap/react';
-import { ActionIcon, CopyButton, Group, Select, Tooltip } from '@mantine/core';
-import { useEffect, useState } from 'react';
-import { IconCheck, IconCopy } from '@tabler/icons-react';
-import classes from './code-block.module.css';
-import React from 'react';
-import { Suspense } from 'react';
+import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { ActionIcon, CopyButton, Group, Select, Tooltip } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { IconCheck, IconCopy } from "@tabler/icons-react";
+import classes from "./code-block.module.css";
+import React from "react";
+import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 
 const MermaidView = React.lazy(
-  () => import('@/features/editor/components/code-block/mermaid-view.tsx')
+  () => import("@/features/editor/components/code-block/mermaid-view.tsx"),
 );
 
 export default function CodeBlockView(props: NodeViewProps) {
@@ -16,7 +16,7 @@ export default function CodeBlockView(props: NodeViewProps) {
   const { node, updateAttributes, extension, editor, getPos } = props;
   const { language } = node.attrs;
   const [languageValue, setLanguageValue] = useState<string | null>(
-    language || null
+    language || null,
   );
   const [isSelected, setIsSelected] = useState(false);
 
@@ -31,9 +31,9 @@ export default function CodeBlockView(props: NodeViewProps) {
       setIsSelected(isNodeSelected);
     };
 
-    editor.on('selectionUpdate', updateSelection);
+    editor.on("selectionUpdate", updateSelection);
     return () => {
-      editor.off('selectionUpdate', updateSelection);
+      editor.off("selectionUpdate", updateSelection);
     };
   }, [editor, getPos(), node.nodeSize]);
 
@@ -46,7 +46,11 @@ export default function CodeBlockView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper className="codeBlock">
-      <Group justify="flex-end" contentEditable={false}>
+      <Group
+        justify="flex-end"
+        contentEditable={false}
+        className={classes.menuGroup}
+      >
         <Select
           placeholder="auto"
           checkIconPosition="right"
@@ -54,7 +58,7 @@ export default function CodeBlockView(props: NodeViewProps) {
           value={languageValue}
           onChange={changeLanguage}
           searchable
-          style={{ maxWidth: '130px' }}
+          style={{ maxWidth: "130px" }}
           classNames={{ input: classes.selectInput }}
           disabled={!editor.isEditable}
         />
@@ -62,12 +66,12 @@ export default function CodeBlockView(props: NodeViewProps) {
         <CopyButton value={node?.textContent} timeout={2000}>
           {({ copied, copy }) => (
             <Tooltip
-              label={copied ? t('Copied') : t('Copy')}
+              label={copied ? t("Copied") : t("Copy")}
               withArrow
               position="right"
             >
               <ActionIcon
-                color={copied ? 'teal' : 'gray'}
+                color={copied ? "teal" : "gray"}
                 variant="subtle"
                 onClick={copy}
               >
@@ -81,15 +85,15 @@ export default function CodeBlockView(props: NodeViewProps) {
       <pre
         spellCheck="false"
         hidden={
-          ((language === 'mermaid' && !editor.isEditable) ||
-            (language === 'mermaid' && !isSelected)) &&
+          ((language === "mermaid" && !editor.isEditable) ||
+            (language === "mermaid" && !isSelected)) &&
           node.textContent.length > 0
         }
       >
         <NodeViewContent as="code" className={`language-${language}`} />
       </pre>
 
-      {language === 'mermaid' && (
+      {language === "mermaid" && (
         <Suspense fallback={null}>
           <MermaidView props={props} />
         </Suspense>

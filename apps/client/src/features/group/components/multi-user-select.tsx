@@ -14,14 +14,14 @@ interface MultiUserSelectProps {
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   option,
 }) => (
-  <Group gap="sm">
+  <Group gap="sm" wrap="nowrap">
     <CustomAvatar
       avatarUrl={option?.["avatarUrl"]}
       name={option.label}
       size={36}
     />
     <div>
-      <Text size="sm">{option.label}</Text>
+      <Text size="sm" lineClamp={1}>{option.label}</Text>
       <Text size="xs" opacity={0.5}>
         {option?.["email"]}
       </Text>

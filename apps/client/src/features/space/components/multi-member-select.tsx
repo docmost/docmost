@@ -15,7 +15,7 @@ interface MultiMemberSelectProps {
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   option,
 }) => (
-  <Group gap="sm">
+  <Group gap="sm" wrap="nowrap">
     {option["type"] === "user" && (
       <CustomAvatar
         avatarUrl={option["avatarUrl"]}
@@ -25,7 +25,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     )}
     {option["type"] === "group" && <IconGroupCircle />}
     <div>
-      <Text size="sm">{option.label}</Text>
+      <Text size="sm" lineClamp={1}>{option.label}</Text>
     </div>
   </Group>
 );

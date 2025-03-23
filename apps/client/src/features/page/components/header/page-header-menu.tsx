@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowsHorizontal,
   IconDots,
@@ -10,6 +10,7 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
+import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -23,10 +24,13 @@ import { extractPageSlugId } from "@/lib";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { PageWidthToggle } from "@/features/user/components/page-width-pref.tsx";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
-import { yjsConnectionStatusAtom } from "@/features/editor/atoms/editor-atoms.ts";
-import React from "react";
+import {
+  pageEditorAtom,
+  yjsConnectionStatusAtom,
+} from "@/features/editor/atoms/editor-atoms.ts";
+import { formattedDate, timeAgo } from "@/lib/time.ts";
 import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 
 interface PageHeaderMenuProps {
@@ -83,6 +87,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [pageEditor] = useAtom(pageEditorAtom);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -112,7 +117,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         shadow="xl"
         position="bottom-end"
         offset={20}
-        width={200}
+        width={230}
         withArrow
         arrowPosition="center"
       >
@@ -172,6 +177,41 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               </Menu.Item>
             </>
           )}
+
+          <Menu.Divider />
+
+          <>
+            <Group px="sm" wrap="nowrap" style={{ cursor: "pointer" }}>
+              <Tooltip
+                label={t("Edited by {{name}} {{time}}", {
+                  name: page.lastUpdatedBy.name,
+                  time: timeAgo(page.updatedAt),
+                })}
+                position="left-start"
+              >
+                <div style={{ width: 210 }}>
+                  <Text size="xs" c="dimmed" truncate="end">
+                    {t("Word count: {{wordCount}}", {
+                      wordCount: pageEditor?.storage?.characterCount?.words(),
+                    })}
+                  </Text>
+
+                  <Text size="xs" c="dimmed" lineClamp={1}>
+                    <Trans
+                      defaults="Created by: <b>{{creatorName}}</b>"
+                      values={{ creatorName: page?.creator?.name }}
+                      components={{ b: <Text span fw={500} /> }}
+                    />
+                  </Text>
+                  <Text size="xs" c="dimmed" truncate="end">
+                    {t("Created at: {{time}}", {
+                      time: formattedDate(page.createdAt),
+                    })}
+                  </Text>
+                </div>
+              </Tooltip>
+            </Group>
+          </>
         </Menu.Dropdown>
       </Menu>
 

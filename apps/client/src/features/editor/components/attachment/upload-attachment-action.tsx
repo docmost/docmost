@@ -17,8 +17,11 @@ export const uploadAttachmentAction = handleAttachmentUpload({
       throw err;
     }
   },
-  validateFn: (file) => {
-    if (file.type.includes("image/") || file.type.includes("video/")) {
+  validateFn: (file, allowMedia: boolean) => {
+    if (
+      (file.type.includes("image/") || file.type.includes("video/")) &&
+      !allowMedia
+    ) {
       return false;
     }
     if (file.size > getFileUploadSizeLimit()) {

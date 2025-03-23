@@ -46,6 +46,8 @@ export class PageRepo {
       includeContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
+      includeCreator?: boolean;
+      includeLastUpdatedBy?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -57,6 +59,14 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+
+    if (opts?.includeCreator) {
+      query = query.select((eb) => this.withCreator(eb));
+    }
+
+    if (opts?.includeLastUpdatedBy) {
+      query = query.select((eb) => this.withLastUpdatedBy(eb));
+    }
 
     if (opts?.includeSpace) {
       query = query.select((eb) => this.withSpace(eb));
@@ -161,12 +171,39 @@ export class PageRepo {
     ).as('space');
   }
 
+  withCreator(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.creatorId'),
+    ).as('creator');
+  }
+
+  withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.lastUpdatedById'),
+    ).as('lastUpdatedBy');
+  }
+
   async getPageAndDescendants(parentPageId: string) {
     return this.db
       .withRecursive('page_hierarchy', (db) =>
         db
           .selectFrom('pages')
-          .select(['id', 'slugId', 'title', 'icon', 'content', 'parentPageId', 'spaceId'])
+          .select([
+            'id',
+            'slugId',
+            'title',
+            'icon',
+            'content',
+            'parentPageId',
+            'spaceId',
+            'workspaceId',
+          ])
           .where('id', '=', parentPageId)
           .unionAll((exp) =>
             exp
@@ -179,6 +216,7 @@ export class PageRepo {
                 'p.content',
                 'p.parentPageId',
                 'p.spaceId',
+                'p.workspaceId',
               ])
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
           ),

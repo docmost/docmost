@@ -58,7 +58,7 @@
     align-items: center;
 }
 
-.version {
+.text {
     padding-left: var(--mantine-spacing-xs) ;
     padding-top: 10px;
 }

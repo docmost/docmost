@@ -157,7 +157,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 }
                 onClick={() => {
                   editor.commands.unsetColor();
-                  name !== t("Default") &&
+                  name !== "Default" &&
                     editor
                       .chain()
                       .focus()

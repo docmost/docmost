@@ -20,7 +20,7 @@ export class CommentService {
   ) {}
 
   async findById(commentId: string) {
-    const comment = this.commentRepo.findById(commentId, {
+    const comment = await this.commentRepo.findById(commentId, {
       includeCreator: true,
     });
     if (!comment) {

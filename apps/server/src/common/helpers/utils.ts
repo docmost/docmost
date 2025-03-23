@@ -20,27 +20,45 @@ export type RedisConfig = {
   port: number;
   db: number;
   password?: string;
+  family?: number;
 };
 
 export function parseRedisUrl(redisUrl: string): RedisConfig {
-  // format - redis[s]://[[username][:password]@][host][:port][/db-number]
-  const { hostname, port, password, pathname } = new URL(redisUrl);
+  // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6]
+  const url = new URL(redisUrl);
+  const { hostname, port, password, pathname, searchParams } = url;
   const portInt = parseInt(port, 10);
 
   let db: number = 0;
   // extract db value if present
   if (pathname.length > 1) {
     const value = pathname.slice(1);
-    if (!isNaN(parseInt(value))){
+    if (!isNaN(parseInt(value))) {
       db = parseInt(value, 10);
     }
   }
 
-  return { host: hostname, port: portInt, password, db };
+  // extract family from query parameters
+  let family: number | undefined;
+  const familyParam = searchParams.get('family');
+  if (familyParam && !isNaN(parseInt(familyParam))) {
+    family = parseInt(familyParam, 10);
+  }
+
+  return { host: hostname, port: portInt, password, db, family };
 }
 
 export function createRetryStrategy() {
   return function (times: number): number {
     return Math.max(Math.min(Math.exp(times), 20000), 3000);
   };
+}
+
+export function extractDateFromUuid7(uuid7: string) {
+  //https://park.is/blog_posts/20240803_extracting_timestamp_from_uuid_v7/
+  const parts = uuid7.split('-');
+  const highBitsHex = parts[0] + parts[1].slice(0, 4);
+  const timestamp = parseInt(highBitsHex, 16);
+
+  return new Date(timestamp);
 }
