@@ -46,6 +46,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.0.10",
     "@nestjs/platform-socket.io": "^11.0.10",
+    "@nestjs/schedule": "^5.0.1",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/websockets": "^11.0.10",
     "@node-saml/passport-saml": "^5.0.1",
