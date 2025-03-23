@@ -142,7 +142,11 @@ export class WorkspaceInvitationService {
         }));
 
         // When there is nobody to invite
-        if (invitesToInsert.length < 1) return;
+        if (invitesToInsert.length < 1) {
+          throw new BadRequestException(
+            'No members to invite',
+          );
+        }
 
         invites = await trx
           .insertInto('workspaceInvitations')
@@ -153,6 +157,9 @@ export class WorkspaceInvitationService {
       });
     } catch (err) {
       this.logger.error(`createInvitation - ${err}`);
+      if (err instanceof BadRequestException) {
+        throw new BadRequestException('There are no members available to invite. Please exclude yourself and those already invited.');
+      }
       throw new BadRequestException(
         'An error occurred while processing the invitations.',
       );
