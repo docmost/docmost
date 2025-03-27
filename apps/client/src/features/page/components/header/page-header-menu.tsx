@@ -31,6 +31,7 @@ import {
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
+import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -38,12 +39,13 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const { t } = useTranslation();
 
   return (
     <>
       {yjsConnectionStatus === "disconnected" && (
         <Tooltip
-          label="Real-time editor connection lost. Retrying..."
+          label={t("Real-time editor connection was lost. Retrying...")}
           openDelay={250}
           withArrow
         >
@@ -52,6 +54,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
+
+      {!readOnly && <PageStateSegmentedControl />}
 
       <Tooltip label="Comments" openDelay={250} withArrow>
         <ActionIcon
