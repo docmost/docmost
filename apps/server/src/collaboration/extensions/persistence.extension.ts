@@ -1,5 +1,6 @@
 import {
   Extension,
+  onChangePayload,
   onLoadDocumentPayload,
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
@@ -151,5 +152,9 @@ export class PersistenceExtension implements Extension {
         mentions: pageMentions,
       } as IPageBacklinkJob);
     }
+  }
+
+  async onChange(data: onChangePayload) {
+    console.log('new change', data);
   }
 }
