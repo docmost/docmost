@@ -106,16 +106,21 @@ export function SpaceSidebar() {
               </div>
             </UnstyledButton>
 
-            <UnstyledButton className={classes.menu} onClick={openSettings}>
-              <div className={classes.menuItemInner}>
-                <IconSettings
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>{t("Space settings")}</span>
-              </div>
-            </UnstyledButton>
+            {spaceAbility.can(
+              SpaceCaslAction.Manage,
+              SpaceCaslSubject.Settings,
+            ) && (
+              <UnstyledButton className={classes.menu} onClick={openSettings}>
+                <div className={classes.menuItemInner}>
+                  <IconSettings
+                    size={18}
+                    className={classes.menuItemIcon}
+                    stroke={2}
+                  />
+                  <span>{t("Space settings")}</span>
+                </div>
+              </UnstyledButton>
+            )}
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,

@@ -49,7 +49,9 @@ export function getAvatarUrl(avatarUrl: string) {
 }
 
 export function getSpaceUrl(spaceSlug: string) {
-  return "/s/" + spaceSlug;
+  const isSharedPrefixed = window.location.pathname.startsWith("/share")
+  const sharedPrefix = isSharedPrefixed ? "/share" : ""
+  return sharedPrefix + "/s/" + spaceSlug;
 }
 
 export function getFileUrl(src: string) {
