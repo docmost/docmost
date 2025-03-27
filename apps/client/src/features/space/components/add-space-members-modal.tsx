@@ -19,14 +19,6 @@ export default function AddSpaceMembersModal({
   const [role, setRole] = useState<string>(SpaceRole.WRITER);
   const addSpaceMemberMutation = useAddSpaceMemberMutation();
 
-  const handleMultiSelectChange = (value: string[]) => {
-    setMemberIds(value);
-  };
-
-  const handleRoleSelection = (role: string) => {
-    setRole(role);
-  };
-
   const handleSubmit = async () => {
     // member can be a users or groups
     const userIds = memberIds
@@ -55,9 +47,9 @@ export default function AddSpaceMembersModal({
         <Divider size="xs" mb="xs" />
 
         <Stack>
-          <MultiMemberSelect onChange={handleMultiSelectChange} />
+          <MultiMemberSelect onChange={setMemberIds} />
           <SpaceMemberRole
-            onSelect={handleRoleSelection}
+            onSelect={setRole}
             defaultRole={role}
             label={t("Select role")}
           />
