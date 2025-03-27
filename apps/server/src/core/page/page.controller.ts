@@ -11,7 +11,7 @@ import {
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
-import { MovePageDto } from './dto/move-page.dto';
+import { MovePageDto, MovePageToAnotherSpaceDto } from './dto/move-page.dto';
 import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -207,6 +207,35 @@ export class PageController {
     }
 
     return this.pageService.getSidebarPages(dto.spaceId, pagination, pageId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('move-to-another-space')
+  async movePageToAnotherSpace(@Body() dto: MovePageToAnotherSpaceDto, @AuthUser() user: User) {
+    const movedPage = await this.pageRepo.findById(dto.pageId);
+    if (!movedPage) {
+      throw new NotFoundException('Page to move not found');
+    }
+    if (movedPage.spaceId === dto.spaceId) {
+      throw new NotFoundException(`The page is already in space '${dto.spaceId}'`);
+    }
+
+    const abilities = await Promise.all([
+      this.spaceAbility.createForUser(
+        user,
+        movedPage.spaceId,
+      ),
+      this.spaceAbility.createForUser(
+        user,
+        dto.spaceId,
+      )
+    ]);
+
+    if (abilities.some(ability => ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page))) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.movePageToAnotherSpace(movedPage, dto.spaceId);
   }
 
   @HttpCode(HttpStatus.OK)

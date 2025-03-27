@@ -2,6 +2,7 @@ import api from "@/lib/api-client";
 import {
   IExportPageParams,
   IMovePage,
+  IMovePageToAnotherSpace,
   IPage,
   IPageInput,
   SidebarPagesParams,
@@ -32,6 +33,10 @@ export async function deletePage(pageId: string): Promise<void> {
 
 export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
+}
+
+export async function movePageToAnotherSpace(data: IMovePageToAnotherSpace): Promise<void> {
+  await api.post<void>("/pages/move-to-another-space", data);
 }
 
 export async function getSidebarPages(
