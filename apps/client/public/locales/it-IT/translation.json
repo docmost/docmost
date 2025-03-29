@@ -347,9 +347,9 @@
   "Members added successfully": "Membri aggiunti con successo",
   "Member removed successfully": "Membro rimosso con successo",
   "Member role updated successfully": "Ruolo del membro aggiornato con successo",
-  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
-  "Created at: {{time}}": "Created at: {{time}}",
-  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
-  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
-  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
+  "Created by: <b>{{creatorName}}</b>": "Creato da: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Creato il: {{time}}",
+  "Edited by {{name}} {{time}}": "Modificato da {{name}} il {{time}}",
+  "Word count: {{wordCount}}": "Conteggio parole: {{wordCount}}",
+  "Character count: {{characterCount}}": "Conteggio caratteri: {{characterCount}}"
 }
