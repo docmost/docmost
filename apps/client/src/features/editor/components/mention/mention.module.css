@@ -1,0 +1,58 @@
+.pageMentionLink {
+  color: light-dark(
+    var(--mantine-color-dark-4),
+    var(--mantine-color-dark-1)
+  ) !important;
+}
+.pageMentionText {
+  @mixin light {
+    border-bottom: 0.05em solid var(--mantine-color-dark-0);
+  }
+  @mixin dark {
+    border-bottom: 0.05em solid var(--mantine-color-dark-2);
+  }
+}
+
+.userMention {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-1));
+  font-weight: 500;
+  border-radius: 0.4rem;
+  box-decoration-break: clone;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+  &::after {
+    content: "\200B";
+  }
+}
+
+.menuBtn {
+  width: 100%;
+  padding: 4px;
+  margin-bottom: 2px;
+  color: var(--mantine-color-text);
+  border-radius: var(--mantine-radius-sm);
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-2);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-gray-light);
+    }
+  }
+}
+
+.selectedItem {
+  @mixin light {
+    background: var(--mantine-color-gray-2);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-gray-light);
+  }
+}

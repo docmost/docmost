@@ -5,6 +5,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { sql } from 'kysely';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tsquery = require('pg-tsquery')();
@@ -14,6 +15,7 @@ export class SearchService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private pageRepo: PageRepo,
+    private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
   async searchPage(
@@ -29,15 +31,15 @@ export class SearchService {
       .selectFrom('pages')
       .select([
         'id',
+        'slugId',
         'title',
         'icon',
         'parentPageId',
-        'slugId',
         'creatorId',
         'createdAt',
         'updatedAt',
         sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}), 'MinWords=9, MaxWords=10, MaxFragments=10')`.as(
+        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
         ),
       ])
@@ -66,35 +68,59 @@ export class SearchService {
 
   async searchSuggestions(
     suggestion: SearchSuggestionDTO,
+    userId: string,
     workspaceId: string,
   ) {
-    const limit = 25;
-
-    const userSearch = this.db
-      .selectFrom('users')
-      .select(['id', 'name', 'avatarUrl'])
-      .where((eb) => eb('users.name', 'ilike', `%${suggestion.query}%`))
-      .where('workspaceId', '=', workspaceId)
-      .limit(limit);
-
-    const groupSearch = this.db
-      .selectFrom('groups')
-      .select(['id', 'name', 'description'])
-      .where((eb) => eb('groups.name', 'ilike', `%${suggestion.query}%`))
-      .where('workspaceId', '=', workspaceId)
-      .limit(limit);
-
     let users = [];
     let groups = [];
+    let pages = [];
+
+    const limit = suggestion?.limit || 10;
+    const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
-      users = await userSearch.execute();
+      users = await this.db
+        .selectFrom('users')
+        .select(['id', 'name', 'avatarUrl'])
+        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
+        .where('workspaceId', '=', workspaceId)
+        .limit(limit)
+        .execute();
     }
 
     if (suggestion.includeGroups) {
-      groups = await groupSearch.execute();
+      groups = await this.db
+        .selectFrom('groups')
+        .select(['id', 'name', 'description'])
+        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
+        .where('workspaceId', '=', workspaceId)
+        .limit(limit)
+        .execute();
     }
 
-    return { users, groups };
+    if (suggestion.includePages) {
+      let pageSearch = this.db
+        .selectFrom('pages')
+        .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
+        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
+        .where('workspaceId', '=', workspaceId)
+        .limit(limit);
+
+      // only search spaces the user has access to
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+
+      if (suggestion?.spaceId) {
+        if (userSpaceIds.includes(suggestion.spaceId)) {
+          pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
+          pages = await pageSearch.execute();
+        }
+      } else if (userSpaceIds?.length > 0) {
+        // we need this check or the query will throw an error if the userSpaceIds array is empty
+        pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
+        pages = await pageSearch.execute();
+      }
+    }
+
+    return { users, groups, pages };
   }
 }

@@ -9,16 +9,21 @@ import { SOCKET_URL } from "@/features/websocket/types";
 import { useQuerySubscription } from "@/features/websocket/use-query-subscription.ts";
 import { useTreeSocket } from "@/features/websocket/use-tree-socket.ts";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import { Error404 } from "@/components/ui/error-404.tsx";
 
 export function UserProvider({ children }: React.PropsWithChildren) {
   const [, setCurrentUser] = useAtom(currentUserAtom);
-  const { data, isLoading, error } = useCurrentUser();
+  const { data, isLoading, error, isError } = useCurrentUser();
   const { i18n } = useTranslation();
   const [, setSocket] = useAtom(socketAtom);
   // fetch collab token on load
   const { data: collab } = useCollabToken();
 
   useEffect(() => {
+    if (isLoading || isError) {
+      return;
+    }
+
     const newSocket = io(SOCKET_URL, {
       transports: ["websocket"],
       withCredentials: true,
@@ -35,7 +40,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
       console.log("ws disconnected");
       newSocket.disconnect();
     };
-  }, []);
+  }, [isError, isLoading]);
 
   useQuerySubscription();
   useTreeSocket();
@@ -51,10 +56,12 @@ export function UserProvider({ children }: React.PropsWithChildren) {
 
   if (isLoading) return <></>;
 
-  if (!data?.user && !data?.workspace) return <></>;
+  if (isError && error?.["response"]?.status === 404) {
+    return <Error404 />;
+  }
 
   if (error) {
-    return <>an error occurred</>;
+    return <></>;
   }
 
   return <>{children}</>;

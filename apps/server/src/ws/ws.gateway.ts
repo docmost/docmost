@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { TokenService } from '../core/auth/services/token.service';
-import { JwtType } from '../core/auth/dto/jwt-payload';
+import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
 import { OnModuleDestroy } from '@nestjs/common';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import * as cookie from 'cookie';
@@ -27,12 +27,10 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
     try {
       const cookies = cookie.parse(client.handshake.headers.cookie);
-      const token = await this.tokenService.verifyJwt(cookies['authToken']);
-
-      if (token.type !== JwtType.ACCESS) {
-        client.emit('Unauthorized');
-        client.disconnect();
-      }
+      const token: JwtPayload = await this.tokenService.verifyJwt(
+        cookies['authToken'],
+        JwtType.ACCESS,
+      );
 
       const userId = token.sub;
       const workspaceId = token.workspaceId;

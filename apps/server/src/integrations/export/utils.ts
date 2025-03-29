@@ -7,6 +7,9 @@ import { Page } from '@docmost/db/types/entity.types';
 
 export type PageExportTree = Record<string, Page[]>;
 
+export const INTERNAL_LINK_REGEX =
+  /^(https?:\/\/)?([^\/]+)?(\/s\/([^\/]+)\/)?p\/([a-zA-Z0-9-]+)\/?$/;
+
 export function getExportExtension(format: string) {
   if (format === ExportFormat.HTML) {
     return '.html';
@@ -83,13 +86,11 @@ export function replaceInternalLinks(
   currentPagePath: string,
 ) {
   const doc = jsonToNode(prosemirrorJson);
-  const internalLinkRegex =
-    /^(https?:\/\/)?([^\/]+)?(\/s\/([^\/]+)\/)?p\/([a-zA-Z0-9-]+)\/?$/;
 
   doc.descendants((node: Node) => {
     for (const mark of node.marks) {
       if (mark.type.name === 'link' && mark.attrs.href) {
-        const match = mark.attrs.href.match(internalLinkRegex);
+        const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
         if (match) {
           const markLink = mark.attrs.href;
 

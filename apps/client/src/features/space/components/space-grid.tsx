@@ -1,6 +1,9 @@
 import { Text, Avatar, SimpleGrid, Card, rem } from "@mantine/core";
-import React from "react";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
+import React, { useEffect } from 'react';
+import {
+  prefetchSpace,
+  useGetSpacesQuery,
+} from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { Link } from "react-router-dom";
 import classes from "./space-grid.module.css";
@@ -9,7 +12,7 @@ import { useTranslation } from "react-i18next";
 
 export default function SpaceGrid() {
   const { t } = useTranslation();
-  const { data, isLoading } = useGetSpacesQuery();
+  const { data, isLoading } = useGetSpacesQuery({ page: 1 });
 
   const cards = data?.items.map((space, index) => (
     <Card
@@ -18,6 +21,7 @@ export default function SpaceGrid() {
       radius="md"
       component={Link}
       to={getSpaceUrl(space.slug)}
+      onMouseEnter={() => prefetchSpace(space.slug, space.id)}
       className={classes.card}
       withBorder
     >
