@@ -160,8 +160,8 @@ export interface PageHistory {
 }
 
 export interface Pages {
-  collaborators: string[] | null;
   content: Json | null;
+  contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
