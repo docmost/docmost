@@ -182,4 +182,11 @@ export class EnvironmentService {
       .toLowerCase();
     return isStandalone === 'true';
   }
+
+  isDisableTelemetry(): boolean {
+    const disable = this.configService
+      .get<string>('DISABLE_TELEMETRY', 'false')
+      .toLowerCase();
+    return disable === 'true';
+  }
 }

@@ -16,6 +16,7 @@ import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
 import { ImagesModule } from './integrations/images/images.module';
 import { SecurityModule } from './integrations/security/security.module';
+import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 
 const enterpriseModules = [];
 try {
@@ -52,6 +53,7 @@ try {
     }),
     EventEmitterModule.forRoot(),
     SecurityModule,
+    TelemetryModule,
     ...enterpriseModules,
   ],
   controllers: [AppController],
