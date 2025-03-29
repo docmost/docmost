@@ -46,6 +46,7 @@ export class PageController {
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
+      includeContributors: true,
     });
 
     if (!page) {
@@ -93,7 +94,7 @@ export class PageController {
     }
 
     return this.pageService.update(
-      updatePageDto.pageId,
+      page,
       updatePageDto,
       user.id,
     );

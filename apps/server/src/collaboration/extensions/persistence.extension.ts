@@ -1,5 +1,7 @@
 import {
+  afterUnloadDocumentPayload,
   Extension,
+  onChangePayload,
   onLoadDocumentPayload,
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
@@ -26,6 +28,7 @@ import { Page } from '@docmost/db/types/entity.types';
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
+  private contributors: Map<string, Set<string>> = new Map();
 
   constructor(
     private readonly pageRepo: PageRepo,
@@ -116,12 +119,27 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
+        let contributorIds = undefined;
+        try {
+          const existingContributors = page.contributorIds || [];
+          const contributorSet = this.contributors.get(documentName);
+          contributorSet.add(page.creatorId);
+          const newContributors = [...contributorSet];
+          contributorIds = Array.from(
+            new Set([...existingContributors, ...newContributors]),
+          );
+          this.contributors.delete(documentName);
+        } catch (err) {
+          this.logger.log('Contributors error:' + err?.['message']);
+        }
+
         await this.pageRepo.updatePage(
           {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
             lastUpdatedById: context.user.id,
+            contributorIds: contributorIds,
           },
           pageId,
           trx,
@@ -151,5 +169,22 @@ export class PersistenceExtension implements Extension {
         mentions: pageMentions,
       } as IPageBacklinkJob);
     }
+  }
+
+  async onChange(data: onChangePayload) {
+    const documentName = data.documentName;
+    const userId = data.context?.user.id;
+    if (!userId) return;
+
+    if (!this.contributors.has(documentName)) {
+      this.contributors.set(documentName, new Set());
+    }
+
+    this.contributors.get(documentName).add(userId);
+  }
+
+  async afterUnloadDocument(data: afterUnloadDocumentPayload) {
+    const documentName = data.documentName;
+    this.contributors.delete(documentName);
   }
 }
