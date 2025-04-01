@@ -2,27 +2,22 @@ version: '3'
 
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
     depends_on:
       - db
       - redis
-    environment:
-      APP_URL: 'http://localhost:3000'
-      APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
-      REDIS_URL: 'redis://redis:6379'
     ports:
-      - "3000:3000"
+      - "3002:3002"
     restart: unless-stopped
     volumes:
       - docmost:/app/data/storage
 
   db:
     image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: docmost
-      POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+    env_file: .env
     restart: unless-stopped
     volumes:
       - db_data:/var/lib/postgresql/data
