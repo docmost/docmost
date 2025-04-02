@@ -16,7 +16,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd ${{ secrets.VPS_DEPLOY_PATH }}
             docker-compose down
