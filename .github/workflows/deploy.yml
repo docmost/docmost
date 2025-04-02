@@ -13,9 +13,6 @@ jobs:
     name: deploy to vps
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        name: Checkout code
-
       - name: Install SSH key
         uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -23,5 +20,5 @@ jobs:
             
       - name: Run docker-compose on VPS
         run: |
-          ssh ${{ secrets.VPS_USER }}@{{ secrets.VPS_HOST }} \
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
           "cd ${{ secrets.VPS_DEPLOY_PATH }} && docker-compose down && git pull && docker-compose up -d"
