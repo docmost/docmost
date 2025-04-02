@@ -3,10 +3,10 @@ name: Deploy to VPS
 on:
   push:
     branches:
-    - main
+    - dev
   pull_request:
     branches:
-    - main
+    - dev
 
 jobs:
   my_job:
