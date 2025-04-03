@@ -43,18 +43,16 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
-    const user = await this.userRepo.findByEmail(
-      loginDto.email,
-      workspaceId,
-      {
-        includePassword: true
-      }
+    const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
+      includePassword: true,
+    });
+
+    const isPasswordMatch = await comparePasswordHash(
+      loginDto.password,
+      user.password,
     );
 
-    if (
-      !user ||
-      !(await comparePasswordHash(loginDto.password, user.password))
-    ) {
+    if (!user || !isPasswordMatch || user.deletedAt) {
       throw new UnauthorizedException('email or password does not match');
     }
 
