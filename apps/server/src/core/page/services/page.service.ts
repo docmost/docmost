@@ -162,9 +162,11 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'deletedAt',
       ])
       .select((eb) => this.withHasChildren(eb))
       .orderBy('position', 'asc')
+      .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 
     if (pageId) {
@@ -228,6 +230,7 @@ export class PageService {
           ])
           .select((eb) => this.withHasChildren(eb))
           .where('id', '=', childPageId)
+          .where('deletedAt', 'is not', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -281,8 +284,23 @@ export class PageService {
     return await this.pageRepo.getRecentPages(userId, pagination);
   }
 
+  async getDeletedSpacePages(
+    spaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Page>> {
+    return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
+  }
+
   async forceDelete(pageId: string): Promise<void> {
     await this.pageRepo.deletePage(pageId);
+  }
+
+  async remove(pageId: string): Promise<void> {
+    await this.pageRepo.removePage(pageId);
+  }
+
+  async restore(pageId: string): Promise<void> {
+    await this.pageRepo.restorePage(pageId);
   }
 }
 
