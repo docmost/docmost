@@ -34,6 +34,7 @@
     "jotai": "^2.12.1",
     "jotai-optics": "^0.4.0",
     "js-cookie": "^3.0.5",
+    "jwt-decode": "^4.0.0",
     "katex": "0.16.21",
     "lowlight": "^3.2.0",
     "mermaid": "^11.4.1",
