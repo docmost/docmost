@@ -63,13 +63,16 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    // if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-    //   throw new ForbiddenException();
-    // }
-
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+    );
     const pageAbility = await this.pageAbility.createForUser(user, page.id);
-    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
+
+    if (
+      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
+      pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)
+    ) {
       throw new ForbiddenException();
     }
 
