@@ -19,11 +19,15 @@ import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
+import { executeTx } from '@docmost/db/utils';
+import { PageMemberRepo } from '@docmost/db/repos/page/page-memeber.repo';
+import { SpaceRole } from 'src/common/helpers/types/permission';
 
 @Injectable()
 export class PageService {
   constructor(
     private pageRepo: PageRepo,
+    private pageMemberRepo: PageMemberRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -96,18 +100,33 @@ export class PageService {
       }
     }
 
-    const createdPage = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: pagePosition,
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-    });
+    let createdPage: Page;
+    await executeTx(this.db, async (trx) => {
+      const createdPage = await this.pageRepo.insertPage(
+        {
+          slugId: generateSlugId(),
+          title: createPageDto.title,
+          position: pagePosition,
+          icon: createPageDto.icon,
+          parentPageId: parentPageId,
+          spaceId: createPageDto.spaceId,
+          creatorId: userId,
+          workspaceId: workspaceId,
+          lastUpdatedById: userId,
+        },
+        trx,
+      );
 
+      await this.pageMemberRepo.insertPageMember(
+        {
+          userId: userId,
+          pageId: createdPage.id,
+          role: SpaceRole.ADMIN,
+          addedById: userId,
+        },
+        trx,
+      );
+    });
     return createdPage;
   }
 

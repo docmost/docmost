@@ -7,6 +7,8 @@ import {
   UseGuards,
   ForbiddenException,
   NotFoundException,
+  Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
@@ -27,15 +29,24 @@ import {
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
+import PageAbilityFactory from '../casl/abilities/page-ability.factory';
+import {
+  PageCaslAction,
+  PageCaslSubject,
+} from '../casl/interfaces/page-ability.type';
+import { AddPageMembersDto } from './dto/add-page-member.dto';
+import { PageMemberService } from './services/page-member.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
 export class PageController {
   constructor(
     private readonly pageService: PageService,
+    private readonly pageMemberService: PageMemberService,
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageAbility: PageAbilityFactory,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -52,8 +63,13 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+    // const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    // if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+    //   throw new ForbiddenException();
+    // }
+
+    const pageAbility = await this.pageAbility.createForUser(user, page.id);
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -119,6 +135,32 @@ export class PageController {
   @Post('restore')
   async restore(@Body() pageIdDto: PageIdDto) {
     //  await this.pageService.restore(deletePageDto.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('members/add')
+  async addPageMember(
+    @Body() dto: AddPageMembersDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (
+      (!dto.userIds || dto.userIds.length === 0) &&
+      (!dto.groupIds || dto.groupIds.length === 0)
+    ) {
+      throw new BadRequestException('userIds or groupIds is required');
+    }
+
+    const ability = await this.pageAbility.createForUser(user, dto.pageId);
+    if (ability.cannot(PageCaslAction.Manage, PageCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageMemberService.addMembersToPageBatch(
+      dto,
+      user,
+      workspace.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
