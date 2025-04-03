@@ -25,7 +25,7 @@ import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
+import { asideStateAtom, viewHeadingsAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
   activeCommentIdAtom,
   showCommentPopupAtom,
@@ -52,6 +52,8 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { Box } from "@mantine/core";
+import { EditorHeadingsMenu } from "./components/headings-menu/headings-menu";
 
 interface PageEditorProps {
   pageId: string;
@@ -76,6 +78,7 @@ export default function PageEditor({
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
   );
+  const [isOpenedViewHeadings, setIsOpenedViewHeadings] = useAtom(viewHeadingsAtom);
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
@@ -296,8 +299,23 @@ export default function PageEditor({
 
   return isCollabReady ? (
     <div>
-      <div ref={menuContainerRef}>
+      <Box
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        ref={menuContainerRef}
+      >
         <EditorContent editor={editor} />
+        {currentUser?.user?.settings?.preferences?.viewHeadings && (
+          <EditorHeadingsMenu
+            editor={editor}
+            isFullScreenEditor={currentUser?.user?.settings?.preferences?.fullPageWidth}
+            isOpenedViewHeadingsDrawer={isOpenedViewHeadings}
+            setIsOpenedViewHeadingsDrawer={setIsOpenedViewHeadings}
+          />
+        )}
 
         {editor && editor.isEditable && (
           <div>
@@ -314,7 +332,7 @@ export default function PageEditor({
         )}
 
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
-      </div>
+      </Box>
 
       <div
         onClick={() => editor.commands.focus("end")}

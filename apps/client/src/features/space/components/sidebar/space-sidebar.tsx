@@ -17,27 +17,26 @@ import {
   IconSettings,
 } from "@tabler/icons-react";
 
-import classes from "./space-sidebar.module.css";
-import React, { useMemo } from "react";
-import { useAtom } from "jotai";
-import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
+import ExportModal from "@/components/common/export-modal";
+import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
-import { Link, useLocation, useParams } from "react-router-dom";
-import clsx from "clsx";
-import { useDisclosure } from "@mantine/hooks";
-import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
-import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
+import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
-import PageImportModal from "@/features/page/components/page-import-modal.tsx";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { getSpaceUrl } from "@/lib/config.ts";
+import { useDisclosure } from "@mantine/hooks";
+import clsx from "clsx";
+import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { Link, useLocation, useParams } from "react-router-dom";
+import classes from "./space-sidebar.module.css";
 import { SwitchSpace } from "./switch-space";
-import ExportModal from "@/components/common/export-modal";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -121,20 +120,20 @@ export function SpaceSidebar() {
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
             ) && (
-              <UnstyledButton
-                className={classes.menu}
-                onClick={handleCreatePage}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconPlus
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("New page")}</span>
-                </div>
-              </UnstyledButton>
-            )}
+                <UnstyledButton
+                  className={classes.menu}
+                  onClick={handleCreatePage}
+                >
+                  <div className={classes.menuItemInner}>
+                    <IconPlus
+                      size={18}
+                      className={classes.menuItemIcon}
+                      stroke={2}
+                    />
+                    <span>{t("New page")}</span>
+                  </div>
+                </UnstyledButton>
+              )}
           </div>
         </div>
 
@@ -148,21 +147,21 @@ export function SpaceSidebar() {
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
             ) && (
-              <Group gap="xs">
-                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
+                <Group gap="xs">
+                  <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
 
-                <Tooltip label={t("Create page")} withArrow position="right">
-                  <ActionIcon
-                    variant="default"
-                    size={18}
-                    onClick={handleCreatePage}
-                    aria-label={t("Create page")}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            )}
+                  <Tooltip label={t("Create page")} withArrow position="right">
+                    <ActionIcon
+                      variant="default"
+                      size={18}
+                      onClick={handleCreatePage}
+                      aria-label={t("Create page")}
+                    >
+                      <IconPlus />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              )}
           </Group>
 
           <div className={classes.pages}>
