@@ -4,6 +4,7 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertablePageMember,
+  InsertableSpaceMember,
   SpaceMember,
   UpdatableSpaceMember,
 } from '@docmost/db/types/entity.types';
@@ -21,7 +22,7 @@ export class PageMemberRepo {
     private readonly pageRepo: PageRepo,
   ) {}
 
-  async insertSpaceMember(
+  async insertPageMember(
     insertablePageMember: InsertablePageMember,
     trx?: KyselyTransaction,
   ): Promise<void> {

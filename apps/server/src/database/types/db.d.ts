@@ -159,6 +159,18 @@ export interface PageHistory {
   workspaceId: string;
 }
 
+export interface PageMembers {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  groupId: string | null;
+  id: Generated<string>;
+  pageId: string;
+  role: string;
+  updatedAt: Generated<Timestamp>;
+  userId: string | null;
+}
+
 export interface Pages {
   content: Json | null;
   coverPhoto: string | null;
@@ -286,6 +298,7 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
+  pageMembers: PageMembers;
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
