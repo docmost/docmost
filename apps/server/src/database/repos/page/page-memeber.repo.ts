@@ -1,0 +1,247 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { dbOrTx } from '@docmost/db/utils';
+import {
+  InsertablePageMember,
+  SpaceMember,
+  UpdatableSpaceMember,
+} from '@docmost/db/types/entity.types';
+import { PaginationOptions } from '../../pagination/pagination-options';
+import { MemberInfo, UserPageRole } from './types';
+import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { PageRepo } from './page.repo';
+
+@Injectable()
+export class PageMemberRepo {
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly groupRepo: GroupRepo,
+    private readonly pageRepo: PageRepo,
+  ) {}
+
+  async insertSpaceMember(
+    insertablePageMember: InsertablePageMember,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .insertInto('pageMembers')
+      .values(insertablePageMember)
+      .returningAll()
+      .execute();
+  }
+
+  // async updateSpaceMember(
+  //   updatableSpaceMember: UpdatableSpaceMember,
+  //   spaceMemberId: string,
+  //   spaceId: string,
+  // ): Promise<void> {
+  //   await this.db
+  //     .updateTable('spaceMembers')
+  //     .set(updatableSpaceMember)
+  //     .where('id', '=', spaceMemberId)
+  //     .where('spaceId', '=', spaceId)
+  //     .execute();
+  // }
+
+  // async getSpaceMemberByTypeId(
+  //   spaceId: string,
+  //   opts: {
+  //     userId?: string;
+  //     groupId?: string;
+  //   },
+  //   trx?: KyselyTransaction,
+  // ): Promise<SpaceMember> {
+  //   const db = dbOrTx(this.db, trx);
+  //   let query = db
+  //     .selectFrom('spaceMembers')
+  //     .selectAll()
+  //     .where('spaceId', '=', spaceId);
+  //   if (opts.userId) {
+  //     query = query.where('userId', '=', opts.userId);
+  //   } else if (opts.groupId) {
+  //     query = query.where('groupId', '=', opts.groupId);
+  //   } else {
+  //     throw new BadRequestException('Please provide a userId or groupId');
+  //   }
+  //   return query.executeTakeFirst();
+  // }
+
+  // async removeSpaceMemberById(
+  //   memberId: string,
+  //   spaceId: string,
+  //   trx?: KyselyTransaction,
+  // ): Promise<void> {
+  //   const db = dbOrTx(this.db, trx);
+  //   await db
+  //     .deleteFrom('spaceMembers')
+  //     .where('id', '=', memberId)
+  //     .where('spaceId', '=', spaceId)
+  //     .execute();
+  // }
+
+  // async roleCountBySpaceId(role: string, spaceId: string): Promise<number> {
+  //   const { count } = await this.db
+  //     .selectFrom('spaceMembers')
+  //     .select((eb) => eb.fn.count('role').as('count'))
+  //     .where('role', '=', role)
+  //     .where('spaceId', '=', spaceId)
+  //     .executeTakeFirst();
+
+  //   return count as number;
+  // }
+
+  // async getSpaceMembersPaginated(
+  //   spaceId: string,
+  //   pagination: PaginationOptions,
+  // ) {
+  //   let query = this.db
+  //     .selectFrom('spaceMembers')
+  //     .leftJoin('users', 'users.id', 'spaceMembers.userId')
+  //     .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
+  //     .select([
+  //       'users.id as userId',
+  //       'users.name as userName',
+  //       'users.avatarUrl as userAvatarUrl',
+  //       'users.email as userEmail',
+  //       'groups.id as groupId',
+  //       'groups.name as groupName',
+  //       'groups.isDefault as groupIsDefault',
+  //       'spaceMembers.role',
+  //       'spaceMembers.createdAt',
+  //     ])
+  //     .select((eb) => this.groupRepo.withMemberCount(eb))
+  //     .where('spaceId', '=', spaceId)
+  //     .orderBy('spaceMembers.createdAt', 'asc');
+
+  //   if (pagination.query) {
+  //     query = query.where((eb) =>
+  //       eb('users.name', 'ilike', `%${pagination.query}%`).or(
+  //         'groups.name',
+  //         'ilike',
+  //         `%${pagination.query}%`,
+  //       ),
+  //     );
+  //   }
+
+  //   const result = await executeWithPagination(query, {
+  //     page: pagination.page,
+  //     perPage: pagination.limit,
+  //   });
+
+  //   let memberInfo: MemberInfo;
+
+  //   const members = result.items.map((member) => {
+  //     if (member.userId) {
+  //       memberInfo = {
+  //         id: member.userId,
+  //         name: member.userName,
+  //         email: member.userEmail,
+  //         avatarUrl: member.userAvatarUrl,
+  //         type: 'user',
+  //       };
+  //     } else if (member.groupId) {
+  //       memberInfo = {
+  //         id: member.groupId,
+  //         name: member.groupName,
+  //         memberCount: member.memberCount as number,
+  //         isDefault: member.groupIsDefault,
+  //         type: 'group',
+  //       };
+  //     }
+
+  //     return {
+  //       ...memberInfo,
+  //       role: member.role,
+  //       createdAt: member.createdAt,
+  //     };
+  //   });
+
+  //   result.items = members as any;
+
+  //   return result;
+  // }
+
+  /*
+   * we want to get a user's role in a space.
+   * they user can be a member either directly or via a group
+   * we will pass the user id and space id to return the user's roles
+   * if the user is a member of the space via multiple groups
+   * if the user has no space permission it should return an empty array,
+   * maybe we should throw an exception?
+   */
+  async getUserPageRoles(
+    userId: string,
+    pageId: string,
+  ): Promise<UserPageRole[]> {
+    const roles = await this.db
+      .selectFrom('pageMembers')
+      .select(['userId', 'role'])
+      .where('userId', '=', userId)
+      .where('pageId', '=', pageId)
+      .unionAll(
+        this.db
+          .selectFrom('pageMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'pageMembers.groupId')
+          .select(['groupUsers.userId', 'pageMembers.role'])
+          .where('groupUsers.userId', '=', userId)
+          .where('pageMembers.pageId', '=', pageId),
+      )
+      .execute();
+
+    if (!roles || roles.length === 0) {
+      return undefined;
+    }
+    return roles;
+  }
+
+  // async getUserSpaceIds(userId: string): Promise<string[]> {
+  //   const membership = await this.db
+  //     .selectFrom('spaceMembers')
+  //     .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
+  //     .select(['spaces.id'])
+  //     .where('userId', '=', userId)
+  //     .union(
+  //       this.db
+  //         .selectFrom('spaceMembers')
+  //         .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+  //         .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
+  //         .select(['spaces.id'])
+  //         .where('groupUsers.userId', '=', userId),
+  //     )
+  //     .execute();
+
+  //   return membership.map((space) => space.id);
+  // }
+
+  // async getUserSpaces(userId: string, pagination: PaginationOptions) {
+  //   const userSpaceIds = await this.getUserSpaceIds(userId);
+
+  //   let query = this.db
+  //     .selectFrom('spaces')
+  //     .selectAll('spaces')
+  //     .select((eb) => [this.pageRepo.withMemberCount(eb)])
+  //     //.where('workspaceId', '=', workspaceId)
+  //     .where('id', 'in', userSpaceIds)
+  //     .orderBy('createdAt', 'asc');
+
+  //   if (pagination.query) {
+  //     query = query.where((eb) =>
+  //       eb('name', 'ilike', `%${pagination.query}%`).or(
+  //         'description',
+  //         'ilike',
+  //         `%${pagination.query}%`,
+  //       ),
+  //     );
+  //   }
+
+  //   const result = executeWithPagination(query, {
+  //     page: pagination.page,
+  //     perPage: pagination.limit,
+  //   });
+
+  //   return result;
+  // }
+}
