@@ -100,9 +100,8 @@ export class PageService {
       }
     }
 
-    let createdPage: Page;
-    await executeTx(this.db, async (trx) => {
-      const createdPage = await this.pageRepo.insertPage(
+    const createdPage = await executeTx<Page>(this.db, async (trx) => {
+      const createdpage = await this.pageRepo.insertPage(
         {
           slugId: generateSlugId(),
           title: createPageDto.title,
@@ -120,13 +119,16 @@ export class PageService {
       await this.pageMemberRepo.insertPageMember(
         {
           userId: userId,
-          pageId: createdPage.id,
+          pageId: createdpage.id,
           role: SpaceRole.ADMIN,
           addedById: userId,
         },
         trx,
       );
+
+      return createdpage;
     });
+
     return createdPage;
   }
 
