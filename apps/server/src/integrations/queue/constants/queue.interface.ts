@@ -6,3 +6,7 @@ export interface IPageBacklinkJob {
   workspaceId: string;
   mentions: MentionNode[];
 }
+
+export interface IStripeSeatsSyncJob {
+  workspaceId: string;
+}

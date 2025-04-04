@@ -44,6 +44,9 @@ export class PageController {
     const page = await this.pageRepo.findById(dto.pageId, {
       includeSpace: true,
       includeContent: true,
+      includeCreator: true,
+      includeLastUpdatedBy: true,
+      includeContributors: true,
     });
 
     if (!page) {
@@ -91,7 +94,7 @@ export class PageController {
     }
 
     return this.pageService.update(
-      updatePageDto.pageId,
+      page,
       updatePageDto,
       user.id,
     );

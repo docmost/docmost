@@ -15,15 +15,19 @@ import {
   revokeInvitation,
   getWorkspace,
   getWorkspacePublicData,
+  getAppVersion,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
+  IPublicWorkspace,
+  IVersion,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
+import { useTranslation } from "react-i18next";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -33,7 +37,7 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
+  IPublicWorkspace,
   Error
 > {
   return useQuery({
@@ -81,12 +85,13 @@ export function useWorkspaceInvitationsQuery(
 }
 
 export function useCreateInvitationMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
+      notifications.show({ message: t("Invitation sent") });
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });
@@ -148,5 +153,17 @@ export function useGetInvitationQuery(
     queryKey: ["invitations", invitationId],
     queryFn: () => getInvitationById({ invitationId }),
     enabled: !!invitationId,
+  });
+}
+
+export function useAppVersion(
+  isEnabled: boolean,
+): UseQueryResult<IVersion, Error> {
+  return useQuery({
+    queryKey: ["version"],
+    queryFn: () => getAppVersion(),
+    staleTime: 60 * 60 * 1000, // 1 hr
+    enabled: isEnabled,
+    refetchOnMount: true,
   });
 }
