@@ -106,8 +106,11 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    const pageAbility = await this.pageAbility.createForUser(
+      user,
+      updatePageDto.pageId,
+    );
+    if (pageAbility.cannot(PageCaslAction.Edit, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -173,23 +176,27 @@ export class PageController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
-    if (recentPageDto.spaceId) {
-      const ability = await this.spaceAbility.createForUser(
-        user,
-        recentPageDto.spaceId,
-      );
+    const recentPages: { items: Array<any>; meta: any } =
+      await this.pageService.getRecentPages(user.id, pagination);
 
-      if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-        throw new ForbiddenException();
-      }
-
-      return this.pageService.getRecentSpacePages(
-        recentPageDto.spaceId,
-        pagination,
-      );
-    }
-
-    return this.pageService.getRecentPages(user.id, pagination);
+    return {
+      items: await Promise.all(
+        recentPages.items.map(async (page) => {
+          try {
+            const pageAbility = await this.pageAbility.createForUser(
+              user,
+              page.id,
+            );
+            return pageAbility.can(PageCaslAction.Read, PageCaslSubject.Page)
+              ? page
+              : null;
+          } catch (err) {
+            return null;
+          }
+        }),
+      ).then((items) => items.filter(Boolean)),
+      meta: recentPages.meta,
+    };
   }
 
   // TODO: scope to workspaces
@@ -264,20 +271,24 @@ export class PageController {
       return;
     }
 
-    for (const page of pagesInSpace.items) {
-      try {
-        const pageAbility = await this.pageAbility.createForUser(user, page.id);
-        if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
-          pagesInSpace.items = pagesInSpace.items.filter(
-            (p) => p.id !== page.id,
-          );
-        }
-      } catch (err) {
-        pagesInSpace.items = pagesInSpace.items.filter((p) => p.id !== page.id);
-      }
-    }
-
-    return pagesInSpace;
+    return {
+      items: await Promise.all(
+        pagesInSpace.items.map(async (page) => {
+          try {
+            const pageAbility = await this.pageAbility.createForUser(
+              user,
+              page.id,
+            );
+            return pageAbility.can(PageCaslAction.Read, PageCaslSubject.Page)
+              ? page
+              : null;
+          } catch (err) {
+            return null;
+          }
+        }),
+      ).then((items) => items.filter(Boolean)),
+      meta: pagesInSpace.meta,
+    };
   }
 
   @HttpCode(HttpStatus.OK)
