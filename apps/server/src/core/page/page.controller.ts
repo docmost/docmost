@@ -106,11 +106,19 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      updatePageDto.spaceId,
+    );
     const pageAbility = await this.pageAbility.createForUser(
       user,
       updatePageDto.pageId,
     );
-    if (pageAbility.cannot(PageCaslAction.Edit, PageCaslSubject.Page)) {
+
+    if (
+      spaceAbility.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page) &&
+      pageAbility.cannot(PageCaslAction.Edit, PageCaslSubject.Page)
+    ) {
       throw new ForbiddenException();
     }
 
@@ -130,8 +138,16 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+    );
+    const pageAbility = await this.pageAbility.createForUser(user, page.id);
+
+    if (
+      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
+      pageAbility.cannot(PageCaslAction.Delete, PageCaslSubject.Page)
+    ) {
       throw new ForbiddenException();
     }
     await this.pageService.forceDelete(pageIdDto.pageId);
