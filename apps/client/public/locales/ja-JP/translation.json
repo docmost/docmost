@@ -347,9 +347,9 @@
   "Members added successfully": "メンバーを追加しました",
   "Member removed successfully": "メンバーが削除されました",
   "Member role updated successfully": "メンバーのロールを更新しました",
-  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
-  "Created at: {{time}}": "Created at: {{time}}",
-  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
-  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
-  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
+  "Created by: <b>{{creatorName}}</b>": "作成者： <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "が作成しました：{{time}}",
+  "Edited by {{name}} {{time}}": "最終編集: {{name}} {{time}}",
+  "Word count: {{wordCount}}": "ワード数: {{wordCount}}",
+  "Character count: {{characterCount}}": "文字数: {{characterCount}}"
 }
