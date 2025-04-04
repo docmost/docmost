@@ -2,6 +2,7 @@ export enum PageCaslAction {
   Manage = 'manage',
   Read = 'read',
   Edit = 'edit',
+  Move = 'move',
   Delete = 'delete',
 }
 export enum PageCaslSubject {
