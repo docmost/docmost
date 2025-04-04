@@ -112,7 +112,7 @@ export function useGetSidebarPagesQuery(
   data: SidebarPagesParams,
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
-    queryKey: ["sidebar-pages", data],
+    queryKey: ["sidebar-pages", data.spaceId],
     queryFn: () => getSidebarPages(data),
   });
 }
@@ -144,7 +144,7 @@ export function usePageBreadcrumbsQuery(
 export async function fetchAncestorChildren(params: SidebarPagesParams) {
   // not using a hook here, so we can call it inside a useEffect hook
   const response = await queryClient.fetchQuery({
-    queryKey: ["sidebar-pages", params],
+    queryKey: ["sidebar-pages", params.spaceId],
     queryFn: () => getSidebarPages(params),
     staleTime: 30 * 60 * 1000,
   });

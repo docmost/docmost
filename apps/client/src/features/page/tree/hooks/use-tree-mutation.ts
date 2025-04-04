@@ -57,7 +57,7 @@ export function useTreeMutation<T>(spaceId: string) {
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
-      children: [],
+      children: []
     } as any;
 
     let lastIndex: number;
