@@ -20,7 +20,7 @@ import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
-import { PageMemberRepo } from '@docmost/db/repos/page/page-memeber.repo';
+import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { SpaceRole } from 'src/common/helpers/types/permission';
 
 @Injectable()

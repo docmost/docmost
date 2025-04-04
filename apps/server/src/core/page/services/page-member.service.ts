@@ -1,4 +1,4 @@
-import { PageMemberRepo } from '@docmost/db/repos/page/page-memeber.repo';
+import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Injectable, NotFoundException } from '@nestjs/common';
