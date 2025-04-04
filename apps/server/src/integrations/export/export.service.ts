@@ -76,8 +76,9 @@ export class ExportService {
       </html>`;
     }
 
-    if (format === ExportFormat.Markdown) {
-      return turndown(pageHtml);
+    if (format === ExportFormat.Markdown) { 
+      const newPageHtml = pageHtml.replace(/<colgroup[^>]*>[\s\S]*?<\/colgroup>/gmi, '');
+      return turndown(newPageHtml);
     }
 
     return;

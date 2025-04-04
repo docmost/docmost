@@ -132,6 +132,9 @@ export const Details = Node.create<DetailsOptions>({
           }
 
           const slice = state.doc.slice(range.start, range.end);
+          
+          if(slice.content.firstChild.type.name === "detailsSummary") return false;
+          
           if (
             !state.schema.nodes.detailsContent.contentMatch.matchFragment(
               slice.content,

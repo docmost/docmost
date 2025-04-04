@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "招待されたすべてのメンバーに割り当てるロールを選択してください",
   "Select theme": "テーマを選択",
   "Send invitation": "招待を送る",
+  "Invitation sent": "招待が送信されました",
   "Settings": "設定",
   "Setup workspace": "ワークスペースを設定する",
   "Sign In": "サインイン",
@@ -244,6 +245,7 @@
   "Align left": "左揃え",
   "Align right": "右揃え",
   "Align center": "中央揃え",
+  "Justify": "両端揃え",
   "Merge cells": "セルを結合",
   "Split cell": "セルを分割",
   "Delete column": "列を削除",
@@ -338,5 +340,16 @@
   "Write anything. Enter \"/\" for commands": "文字を入力するか、「/」でコマンドを呼び出します",
   "Names do not match": "名前が一致しません",
   "Today, {{time}}": "今日、{{time}}",
-  "Yesterday, {{time}}": "昨日、{{time}}"
+  "Yesterday, {{time}}": "昨日、{{time}}",
+  "Space created successfully": "スペースを作成しました",
+  "Space updated successfully": "スペースを更新しました",
+  "Space deleted successfully": "スペースが削除されました",
+  "Members added successfully": "メンバーを追加しました",
+  "Member removed successfully": "メンバーが削除されました",
+  "Member role updated successfully": "メンバーのロールを更新しました",
+  "Created by: <b>{{creatorName}}</b>": "Created by: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Created at: {{time}}",
+  "Edited by {{name}} {{time}}": "Edited by {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Word count: {{wordCount}}",
+  "Character count: {{characterCount}}": "Character count: {{characterCount}}"
 }

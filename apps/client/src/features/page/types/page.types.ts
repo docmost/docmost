@@ -12,14 +12,26 @@ export interface IPage {
   spaceId: string;
   workspaceId: string;
   isLocked: boolean;
-  isPublic: boolean;
-  lastModifiedById: Date;
+  lastUpdatedById: Date;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;
   position: string;
   hasChildren: boolean;
+  creator: ICreator;
+  lastUpdatedBy: ILastUpdatedBy;
   space: Partial<ISpace>;
+}
+
+interface ICreator {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+interface ILastUpdatedBy {
+  id: string;
+  name: string;
+  avatarUrl: string;
 }
 
 export interface IMovePage {

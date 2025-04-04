@@ -6,6 +6,7 @@ import { WebSocketEvent } from "@/features/websocket/types";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { SimpleTree } from "react-arborist";
+import localEmitter from "@/lib/local-emitter.ts";
 
 export const useTreeSocket = () => {
   const [socket] = useAtom(socketAtom);
@@ -18,8 +19,29 @@ export const useTreeSocket = () => {
   }, [treeData]);
 
   useEffect(() => {
-    socket?.on("message", (event: WebSocketEvent) => {
+    const updateNodeName = (event) => {
+      const initialData = initialTreeData.current;
+      const treeApi = new SimpleTree<SpaceTreeNode>(initialData);
 
+      if (treeApi.find(event?.id)) {
+        if (event.payload?.title !== undefined) {
+          treeApi.update({
+            id: event.id,
+            changes: { name: event.payload.title },
+          });
+          setTreeData(treeApi.data);
+        }
+      }
+    };
+
+    localEmitter.on("message", updateNodeName);
+    return () => {
+      localEmitter.off("message", updateNodeName);
+    };
+  }, []);
+
+  useEffect(() => {
+    socket?.on("message", (event: WebSocketEvent) => {
       const initialData = initialTreeData.current;
       const treeApi = new SimpleTree<SpaceTreeNode>(initialData);
 
@@ -27,30 +49,40 @@ export const useTreeSocket = () => {
         case "updateOne":
           if (event.entity[0] === "pages") {
             if (treeApi.find(event.id)) {
-              if (event.payload?.title) {
-                treeApi.update({ id: event.id, changes: { name: event.payload.title } });
+              if (event.payload?.title !== undefined) {
+                treeApi.update({
+                  id: event.id,
+                  changes: { name: event.payload.title },
+                });
               }
-              if (event.payload?.icon) {
-                treeApi.update({ id: event.id, changes: { icon: event.payload.icon } });
+              if (event.payload?.icon !== undefined) {
+                treeApi.update({
+                  id: event.id,
+                  changes: { icon: event.payload.icon },
+                });
               }
               setTreeData(treeApi.data);
             }
           }
           break;
-        case 'addTreeNode':
+        case "addTreeNode":
           if (treeApi.find(event.payload.data.id)) return;
 
-          treeApi.create({ parentId: event.payload.parentId, index: event.payload.index, data: event.payload.data });
+          treeApi.create({
+            parentId: event.payload.parentId,
+            index: event.payload.index,
+            data: event.payload.data,
+          });
           setTreeData(treeApi.data);
 
           break;
-        case 'moveTreeNode':
+        case "moveTreeNode":
           // move node
           if (treeApi.find(event.payload.id)) {
             treeApi.move({
               id: event.payload.id,
               parentId: event.payload.parentId,
-              index: event.payload.index
+              index: event.payload.index,
             });
 
             // update node position
@@ -58,7 +90,7 @@ export const useTreeSocket = () => {
               id: event.payload.id,
               changes: {
                 position: event.payload.position,
-              }
+              },
             });
 
             setTreeData(treeApi.data);
@@ -66,12 +98,12 @@ export const useTreeSocket = () => {
 
           break;
         case "deleteTreeNode":
-          if (treeApi.find(event.payload.node.id)){
+          if (treeApi.find(event.payload.node.id)) {
             treeApi.drop({ id: event.payload.node.id });
             setTreeData(treeApi.data);
 
             queryClient.invalidateQueries({
-              queryKey: ['pages', event.payload.node.slugId].filter(Boolean),
+              queryKey: ["pages", event.payload.node.slugId].filter(Boolean),
             });
           }
           break;

@@ -148,6 +148,7 @@
   "Select role to assign to all invited members": "Seleccionar rol para asignar a todos los miembros invitados",
   "Select theme": "Seleccionar tema",
   "Send invitation": "Enviar invitación",
+  "Invitation sent": "Invitación enviada",
   "Settings": "Ajustes",
   "Setup workspace": "Configurar espacio de trabajo",
   "Sign In": "Iniciar sesión",
@@ -244,6 +245,7 @@
   "Align left": "Alinear a la izquierda",
   "Align right": "Alinear a la derecha",
   "Align center": "Alinear al centro",
+  "Justify": "Justificar",
   "Merge cells": "Combinar celdas",
   "Split cell": "Dividir celda",
   "Delete column": "Eliminar columna",
@@ -338,5 +340,16 @@
   "Write anything. Enter \"/\" for commands": "Escribe cualquier cosa. Ingresa \"/\" para comandos",
   "Names do not match": "Los nombres no coinciden",
   "Today, {{time}}": "Hoy, {{time}}",
-  "Yesterday, {{time}}": "Ayer, {{time}}"
+  "Yesterday, {{time}}": "Ayer, {{time}}",
+  "Space created successfully": "Espacio creado con éxito",
+  "Space updated successfully": "Espacio actualizado con éxito",
+  "Space deleted successfully": "Espacio eliminado con éxito",
+  "Members added successfully": "Miembros añadidos con éxito",
+  "Member removed successfully": "Miembro eliminado con éxito",
+  "Member role updated successfully": "Rol de miembro actualizado con éxito",
+  "Created by: <b>{{creatorName}}</b>": "Creado por: <b>{{creatorName}}</b>",
+  "Created at: {{time}}": "Creado a: {{time}}",
+  "Edited by {{name}} {{time}}": "Editado por {{name}} {{time}}",
+  "Word count: {{wordCount}}": "Conteo de palabras: {{wordCount}}",
+  "Character count: {{characterCount}}": "Recuento de caracteres: {{characterCount}}"
 }

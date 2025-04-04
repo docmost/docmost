@@ -1,4 +1,5 @@
 import bytes from "bytes";
+import { castToBoolean } from "@/lib/utils.tsx";
 
 declare global {
   interface Window {
@@ -14,20 +15,30 @@ export function getAppUrl(): string {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
+export function getServerAppUrl(): string {
+  return getConfigValue("APP_URL");
+}
+
 export function getBackendUrl(): string {
   return getAppUrl() + "/api";
 }
 
 export function getCollaborationUrl(): string {
-  const COLLAB_PATH = "/collab";
+  const baseUrl =
+    getConfigValue("COLLAB_URL") ||
+    (import.meta.env.DEV ? process.env.APP_URL : getAppUrl());
 
-  let url = getAppUrl();
-  if (import.meta.env.DEV) {
-    url = process.env.APP_URL;
-  }
+  const collabUrl = new URL("/collab", baseUrl);
+  collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
+  return collabUrl.toString();
+}
 
-  const wsProtocol = url.startsWith("https") ? "wss" : "ws";
-  return `${wsProtocol}://${url.split("://")[1]}${COLLAB_PATH}`;
+export function getSubdomainHost(): string {
+  return getConfigValue("SUBDOMAIN_HOST");
+}
+
+export function isCloud(): boolean {
+  return castToBoolean(getConfigValue("CLOUD"));
 }
 
 export function getAvatarUrl(avatarUrl: string) {
@@ -42,7 +53,16 @@ export function getSpaceUrl(spaceSlug: string) {
 }
 
 export function getFileUrl(src: string) {
-  return src?.startsWith("/files/") ? getBackendUrl() + src : src;
+  if (!src) return src;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/api/")) {
+    // Remove the '/api' prefix
+    return getBackendUrl() + src.substring(4);
+  }
+  if (src.startsWith("/files/")) {
+    return getBackendUrl() + src;
+  }
+  return src;
 }
 
 export function getFileUploadSizeLimit() {

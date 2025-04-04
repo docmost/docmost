@@ -1,6 +1,10 @@
 import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { MediaUploadOptions, UploadFn } from "../media-utils";
+import {
+  insertTrailingNode,
+  MediaUploadOptions,
+  UploadFn,
+} from "../media-utils";
 import { IAttachment } from "../types";
 
 const uploadKey = new PluginKey("video-upload");
@@ -70,12 +74,13 @@ export const handleVideoUpload =
     const id = {};
 
     // Replace the selection with a placeholder
-    const tr = view.state.tr;
-    if (!tr.selection.empty) tr.deleteSelection();
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
+      const tr = view.state.tr;
+      if (!tr.selection.empty) tr.deleteSelection();
+
       tr.setMeta(uploadKey, {
         add: {
           id,
@@ -83,6 +88,8 @@ export const handleVideoUpload =
           src: reader.result,
         },
       });
+
+      insertTrailingNode(tr, pos, view);
       view.dispatch(tr);
     };
 
@@ -102,7 +109,7 @@ export const handleVideoUpload =
         if (!attachment) return;
 
         const node = schema.nodes.video?.create({
-          src: `/files/${attachment.id}/${attachment.fileName}`,
+          src: `/api/files/${attachment.id}/${attachment.fileName}`,
           attachmentId: attachment.id,
           title: attachment.fileName,
           size: attachment.fileSize,
