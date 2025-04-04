@@ -65,11 +65,12 @@ export default function ExportModal({
       yOffset="10vh"
       xOffset={0}
       mah={400}
+      onClick={(e) => e.stopPropagation()}
     >
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>Export {type}</Modal.Title>
+          <Modal.Title fw={500}>{t(`Export ${type}`)}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>

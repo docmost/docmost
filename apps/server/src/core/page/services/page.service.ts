@@ -66,7 +66,10 @@ export class PageService {
     const createdPage = await this.pageRepo.insertPage({
       slugId: generateSlugId(),
       title: createPageDto.title,
-      position: await this.nextPagePosition(createPageDto.spaceId, parentPageId),
+      position: await this.nextPagePosition(
+        createPageDto.spaceId,
+        parentPageId,
+      ),
       icon: createPageDto.icon,
       parentPageId: parentPageId,
       spaceId: createPageDto.spaceId,
@@ -199,21 +202,33 @@ export class PageService {
     return result;
   }
 
-  async movePageToAnotherSpace(rootPage: Page, spaceId: string) {
+  async movePageToSpace(rootPage: Page, spaceId: string) {
     await executeTx(this.db, async (trx) => {
       // Update root page
-      await this.pageRepo.updatePage({ spaceId, parentPageId: null, position:
-        await this.nextPagePosition(spaceId) }, rootPage.id, trx);
-      const pageIds = await this.pageRepo.getPageAndDescendants(rootPage.id)
-        .then(pages => pages.map(page => page.id));
+      const nextPosition = await this.nextPagePosition(spaceId);
+      await this.pageRepo.updatePage(
+        { spaceId, parentPageId: null, position: nextPosition },
+        rootPage.id,
+        trx,
+      );
+      const pageIds = await this.pageRepo
+        .getPageAndDescendants(rootPage.id)
+        .then((pages) => pages.map((page) => page.id));
       // The first id is the root page id
       if (pageIds.length > 1) {
         // Update sub pages
-        await this.pageRepo.updatePages({ spaceId },
-          pageIds.filter(id => id !== rootPage.id), trx);
+        await this.pageRepo.updatePages(
+          { spaceId },
+          pageIds.filter((id) => id !== rootPage.id),
+          trx,
+        );
       }
       // Update attachments
-      await this.attachmentRepo.updateAttachmentsByPageId({ spaceId }, pageIds, trx);
+      await this.attachmentRepo.updateAttachmentsByPageId(
+        { spaceId },
+        pageIds,
+        trx,
+      );
     });
   }
 

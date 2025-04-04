@@ -42,7 +42,7 @@ export interface IMovePage {
   parentPageId?: string;
 }
 
-export interface IMovePageToAnotherSpace {
+export interface IMovePageToSpace {
   pageId: string;
   spaceId: string;
 }

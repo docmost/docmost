@@ -14,7 +14,7 @@ export class MovePageDto {
   parentPageId?: string | null;
 }
 
-export class MovePageToAnotherSpaceDto {
+export class MovePageToSpaceDto {
   @IsString()
   pageId: string;
 
