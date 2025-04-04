@@ -237,8 +237,11 @@ export class PageController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
-    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+    const spaceAbility = await this.spaceAbility.createForUser(
+      user,
+      dto.spaceId,
+    );
+    if (spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -251,7 +254,30 @@ export class PageController {
       pageId = page.id;
     }
 
-    return this.pageService.getSidebarPages(dto.spaceId, pagination, pageId);
+    const pagesInSpace = await this.pageService.getSidebarPages(
+      dto.spaceId,
+      pagination,
+      pageId,
+    );
+
+    if (!pagesInSpace) {
+      return;
+    }
+
+    for (const page of pagesInSpace.items) {
+      try {
+        const pageAbility = await this.pageAbility.createForUser(user, page.id);
+        if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
+          pagesInSpace.items = pagesInSpace.items.filter(
+            (p) => p.id !== page.id,
+          );
+        }
+      } catch (err) {
+        pagesInSpace.items = pagesInSpace.items.filter((p) => p.id !== page.id);
+      }
+    }
+
+    return pagesInSpace;
   }
 
   @HttpCode(HttpStatus.OK)
