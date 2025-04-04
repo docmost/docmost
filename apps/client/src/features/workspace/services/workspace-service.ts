@@ -36,6 +36,12 @@ export async function getWorkspaceMembers(
   return req.data;
 }
 
+export async function deleteWorkspaceMember(data: {
+  userId: string;
+}): Promise<void> {
+  await api.post("/workspace/members/delete", data);
+}
+
 export async function updateWorkspace(data: Partial<IWorkspace>) {
   const req = await api.post<IWorkspace>("/workspace/update", data);
   return req.data;

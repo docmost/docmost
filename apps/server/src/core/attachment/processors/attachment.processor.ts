@@ -17,6 +17,9 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
       if (job.name === QueueJob.DELETE_SPACE_ATTACHMENTS) {
         await this.attachmentService.handleDeleteSpaceAttachments(job.data.id);
       }
+      if (job.name === QueueJob.DELETE_USER_AVATARS) {
+        await this.attachmentService.handleDeleteUserAvatars(job.data.id);
+      }
     } catch (err) {
       throw err;
     }

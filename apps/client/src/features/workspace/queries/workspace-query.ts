@@ -16,6 +16,7 @@ import {
   getWorkspace,
   getWorkspacePublicData,
   getAppVersion,
+  deleteWorkspaceMember,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
@@ -53,6 +54,30 @@ export function useWorkspaceMembersQuery(
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useDeleteWorkspaceMemberMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    {
+      userId: string;
+    }
+  >({
+    mutationFn: (data) => deleteWorkspaceMember(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: "Member deleted successfully" });
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceMembers"],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }
 
