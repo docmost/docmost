@@ -1,7 +1,7 @@
-import { Group, Text, Switch, MantineSize } from "@mantine/core";
-import { useAtom } from "jotai/index";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
+import { Group, MantineSize, Switch, Text } from "@mantine/core";
+import { useAtom } from "jotai/index";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,6 +26,7 @@ interface PageWidthToggleProps {
   size?: MantineSize;
   label?: string;
 }
+
 export function PageWidthToggle({ size, label }: PageWidthToggleProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);

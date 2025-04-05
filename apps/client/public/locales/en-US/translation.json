@@ -357,5 +357,7 @@
   "Move": "Move",
   "Move page": "Move page",
   "Move page to a different space.": "Move page to a different space.",
-  "Real-time editor connection lost. Retrying...": "Real-time editor connection lost. Retrying..."
+  "Real-time editor connection lost. Retrying...": "Real-time editor connection lost. Retrying...",
+  "Table of contents": "Table of contents",
+  "Add headings (H1, H2, H3) to generate a table of contents.": "Add headings (H1, H2, H3) to generate a table of contents."
 }
