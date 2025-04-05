@@ -8,7 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepo: UserRepo) { }
+  constructor(private userRepo: UserRepo) {}
 
   async findById(userId: string, workspaceId: string) {
     return this.userRepo.findById(userId, workspaceId);
@@ -31,14 +31,6 @@ export class UserService {
         userId,
         'fullPageWidth',
         updateUserDto.fullPageWidth,
-      );
-
-    }
-    if (typeof updateUserDto.viewHeadings !== 'undefined') {
-      return this.userRepo.updatePreference(
-        userId,
-        'viewHeadings',
-        updateUserDto.viewHeadings,
       );
     }
 

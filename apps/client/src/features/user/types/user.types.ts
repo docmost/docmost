@@ -19,7 +19,6 @@ export interface IUser {
   deactivatedAt: Date;
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
-  viewHeadings: boolean; // used for update
 }
 
 export interface ICurrentUser {
@@ -30,6 +29,5 @@ export interface ICurrentUser {
 export interface IUserSettings {
   preferences: {
     fullPageWidth: boolean;
-    viewHeadings: boolean;
   };
 }

@@ -1,7 +1,6 @@
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
-  IconAlignRight2,
   IconArrowsHorizontal,
   IconDots,
   IconFileExport,
@@ -35,9 +34,6 @@ import {
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
-import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
-import { viewHeadingsAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
-import { userAtom } from "@/features/user/atoms/current-user-atom";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -46,10 +42,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
-  const [_, setViewHeadings] = useAtom(viewHeadingsAtom);
-  const [user] = useAtom(userAtom);
-  const fullPageWidth = user.settings?.preferences?.fullPageWidth;
-  const viewHeadings = user.settings?.preferences?.viewHeadings;
 
   return (
     <>
@@ -75,17 +67,16 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
-      {(fullPageWidth && viewHeadings) ? (
-        <Tooltip label="View headings" openDelay={250} withArrow>
-          <ActionIcon
-            variant="default"
-            style={{ border: "none" }}
-            onClick={() => setViewHeadings(true)}
-          >
-            <IconList size={20} stroke={2} />
-          </ActionIcon>
-        </Tooltip>
-      ) : null}
+      <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
+        <ActionIcon
+          variant="default"
+          style={{ border: "none" }}
+          onClick={() => toggleAside("toc")}
+        >
+          <IconList size={20} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
+
       <PageActionMenu readOnly={readOnly} />
     </>
   );
@@ -162,12 +153,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
             <Group wrap="nowrap">
               <PageWidthToggle label={t("Full width")} />
-            </Group>
-          </Menu.Item>
-
-          <Menu.Item leftSection={<IconAlignRight2 size={16} />}>
-            <Group wrap="nowrap">
-              <ViewHeadingsToggle label={t("View headings")} />
             </Group>
           </Menu.Item>
 

@@ -14,10 +14,6 @@ export class UpdateUserDto extends PartialType(
   fullPageWidth: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  viewHeadings: boolean;
-
-  @IsOptional()
   @IsString()
   locale: string;
 }
