@@ -1,5 +1,6 @@
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
+  IconArrowRight,
   IconAlignRight2,
   IconArrowsHorizontal,
   IconDots,
@@ -33,6 +34,7 @@ import {
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
+import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { ViewHeadingsToggle } from "@/features/user/components/view-headings";
 import { viewHeadingsAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
@@ -41,6 +43,7 @@ interface PageHeaderMenuProps {
   readOnly?: boolean;
 }
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
+  const { t } = useTranslation();
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
   const [_, setViewHeadings] = useAtom(viewHeadingsAtom);
@@ -52,7 +55,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     <>
       {yjsConnectionStatus === "disconnected" && (
         <Tooltip
-          label="Real-time editor connection lost. Retrying..."
+          label={t("Real-time editor connection lost. Retrying...")}
           openDelay={250}
           withArrow
         >
@@ -62,7 +65,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </Tooltip>
       )}
 
-      <Tooltip label="Comments" openDelay={250} withArrow>
+      <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
           variant="default"
           style={{ border: "none" }}
@@ -103,6 +106,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [
+    movePageModalOpened,
+    { open: openMovePageModal, close: closeMoveSpaceModal },
+  ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
 
   const handleCopyLink = () => {
@@ -173,6 +180,15 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
 
           <Menu.Divider />
 
+          {!readOnly && (
+            <Menu.Item
+              leftSection={<IconArrowRight size={16} />}
+              onClick={openMovePageModal}
+            >
+              {t("Move")}
+            </Menu.Item>
+          )}
+
           <Menu.Item
             leftSection={<IconFileExport size={16} />}
             onClick={openExportModal}
@@ -242,6 +258,14 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         id={page.id}
         open={exportOpened}
         onClose={closeExportModal}
+      />
+
+      <MovePageModal
+        pageId={page.id}
+        slugId={page.slugId}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeMoveSpaceModal}
+        open={movePageModalOpened}
       />
     </>
   );

@@ -55,6 +55,18 @@ export class AttachmentRepo {
       .execute();
   }
 
+  updateAttachmentsByPageId(
+    updatableAttachment: UpdatableAttachment,
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ) {
+    return dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set(updatableAttachment)
+      .where('pageId', 'in', pageIds)
+      .executeTakeFirst();
+  }
+
   async updateAttachment(
     updatableAttachment: UpdatableAttachment,
     attachmentId: string,

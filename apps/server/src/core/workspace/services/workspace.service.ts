@@ -26,6 +26,9 @@ import { DomainService } from '../../../integrations/environment/domain.service'
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class WorkspaceService {
@@ -39,6 +42,7 @@ export class WorkspaceService {
     private environmentService: EnvironmentService,
     private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
   ) {}
 
   async findById(workspaceId: string) {
@@ -91,13 +95,15 @@ export class WorkspaceService {
     createWorkspaceDto: CreateWorkspaceDto,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
+    let trialEndAt = undefined;
+
+    const createdWorkspace = await executeTx(
       this.db,
       async (trx) => {
         let hostname = undefined;
-        let trialEndAt = undefined;
         let status = undefined;
         let plan = undefined;
+        let billingEmail = undefined;
 
         if (this.environmentService.isCloud()) {
           // generate unique hostname
@@ -110,6 +116,7 @@ export class WorkspaceService {
           );
           status = WorkspaceStatus.Active;
           plan = 'standard';
+          billingEmail = user.email;
         }
 
         // create workspace
@@ -121,6 +128,7 @@ export class WorkspaceService {
             status,
             trialEndAt,
             plan,
+            billingEmail,
           },
           trx,
         );
@@ -195,6 +203,18 @@ export class WorkspaceService {
       },
       trx,
     );
+
+    if (this.environmentService.isCloud() && trialEndAt) {
+      const delay = trialEndAt.getTime() - Date.now();
+
+      await this.billingQueue.add(
+        QueueJob.TRIAL_ENDED,
+        { workspaceId: createdWorkspace.id },
+        { delay },
+      );
+    }
+
+    return createdWorkspace;
   }
 
   async addUserToWorkspace(
