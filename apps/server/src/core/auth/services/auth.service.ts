@@ -22,13 +22,28 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
 import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
 import { PasswordResetDto } from '../dto/password-reset.dto';
-import { UserToken, Workspace } from '@docmost/db/types/entity.types';
+import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
 import { UserTokenType } from '../auth.constants';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import {
+  type AuthenticationResponseJSON,
+    generateAuthenticationOptions,
+    GenerateAuthenticationOptionsOpts,
+    generateRegistrationOptions,
+    GenerateRegistrationOptionsOpts,
+    type RegistrationResponseJSON,
+    verifyAuthenticationResponse,
+    verifyRegistrationResponse,
+  } from '@simplewebauthn/server';
+
+import { isoUint8Array } from '@simplewebauthn/server/helpers';
+import { UserPasskeyRepo } from '@docmost/db/repos/user-passkey/user-passkey.repo';
+import { PasskeyLoginDto } from '../dto/passkey-login.dto';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class AuthService {
@@ -37,8 +52,10 @@ export class AuthService {
     private tokenService: TokenService,
     private userRepo: UserRepo,
     private userTokenRepo: UserTokenRepo,
+    private userPasskeyRepo: UserPasskeyRepo,
     private mailService: MailService,
     private domainService: DomainService,
+    private environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -226,4 +243,127 @@ export class AuthService {
     );
     return { token };
   }
+
+  async registerChallenge(user: User, workspace: Workspace) {
+    const passkeyList = await this.userPasskeyRepo.findByUserId(user.id);
+
+    if (passkeyList.length) {
+      throw new BadRequestException('Passkey already exists');
+    }
+
+    const opts: GenerateRegistrationOptionsOpts = {
+      rpName: 'docmost',
+      rpID: this.environmentService.getClientHost(),
+      userID: isoUint8Array.fromUTF8String(user.id),
+      userName: user.email,
+      userDisplayName: user.email,
+      timeout: 60000,
+    };
+
+    return await generateRegistrationOptions(opts);
+  }
+
+  async verifyPasskeyChallenge(
+    challenge: string,
+    dto: RegistrationResponseJSON,
+    user: User,
+    workspace: Workspace,
+  ) {
+    const verification = await verifyRegistrationResponse({
+      expectedChallenge: challenge,
+      response: dto,
+      expectedOrigin: this.environmentService.getClientURL(),
+      expectedRPID: this.environmentService.getClientHost(),
+      requireUserVerification: false,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      throw new BadRequestException(
+        'Passkey registration failed because the verification response is invalid',
+      );
+    }
+
+    const registrationInfo = verification.registrationInfo;
+    const publicKey = Buffer.from(
+      registrationInfo.credential.publicKey,
+    ).toString('base64url');
+    const credentialId = registrationInfo.credential.id;
+
+    await this.userPasskeyRepo.insertPasskey({
+      userId: user.id,
+      credentialId,
+      publicKey
+    });
+
+    return {
+      verified: true,
+      message: 'Successfully registered passkey',
+    };
+  }
+
+  async initiatePasskeyAuthentication(
+    loginDto: PasskeyLoginDto,
+    workspaceId: string,
+  ) {
+    const user = await this.userRepo.findByEmail(
+      loginDto.email,
+      workspaceId
+    );
+
+    if (!user) {
+      throw new UnauthorizedException('email or passkey does not match');
+    }
+
+    const opts: GenerateAuthenticationOptionsOpts = {
+      rpID: this.environmentService.getClientHost(),
+      userVerification: 'preferred',
+      timeout: 60000,
+    };
+
+    return await generateAuthenticationOptions(opts);
+  }
+
+  async authenticateWithPasskey(
+    loginDto: AuthenticationResponseJSON,
+    email: string,
+    workspaceId: string,
+    expectedChallenge: string,
+  ) {
+    const user = await this.userRepo.findByEmail(email, workspaceId);
+
+    const passkeyList = await this.userPasskeyRepo.findByUserId(user.id);
+
+    if (!passkeyList || passkeyList.length == 0 || passkeyList.length > 1) {
+      throw new UnauthorizedException('email or passkey does not match');
+    }
+
+    const passkey = passkeyList[0];
+
+    const authVerify = await verifyAuthenticationResponse({
+      response: loginDto,
+      expectedChallenge: expectedChallenge,
+      expectedOrigin: this.environmentService.getClientURL(),
+      expectedRPID: this.environmentService.getClientHost(),
+      credential: {
+        id: passkey.credentialId,
+        publicKey: new Uint8Array(Buffer.from(passkey.publicKey, 'base64')),
+        counter: 0
+      },
+      requireUserVerification: false,
+    });
+
+    if (!authVerify.verified) {
+      throw new UnauthorizedException('email or passkey does not match');
+    }
+
+    user.lastLoginAt = new Date();
+    await this.userRepo.updateLastLogin(user.id, workspaceId);
+
+    return this.tokenService.generateAccessToken(user);
+  }
+
+  async removePasskey(user: User) {
+    return this.userPasskeyRepo.removePasskey(user);
+  }
+
 }

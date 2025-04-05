@@ -16,6 +16,7 @@ import {
   Billing as BillingSubscription,
   AuthProviders,
   AuthAccounts,
+  UserPasskeys,
 } from './db';
 
 // Workspace
@@ -101,3 +102,7 @@ export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
 export type AuthAccount = Selectable<AuthAccounts>;
 export type InsertableAuthAccount = Insertable<AuthAccounts>;
 export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;
+
+//User Passkey
+export type UserPasskey = Selectable<UserPasskeys>;
+export type InsertablePasskey = Insertable<UserPasskeys>;

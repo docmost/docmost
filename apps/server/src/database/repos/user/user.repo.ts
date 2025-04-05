@@ -46,7 +46,22 @@ export class UserRepo {
     const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('users')
-      .select(this.baseFields)
+      .select((eb) => [
+        ...this.baseFields,
+        eb
+          .selectFrom('userPasskeys')
+          .select((eb) => [
+            eb
+              .case(eb.fn.count('userId'))
+              .when(0)
+              .then(false)
+              .else(true)
+              .end()
+              .as('hasPasskey'),
+          ])
+          .whereRef('userPasskeys.userId', '=', 'users.id')
+          .as('hasPasskey'),
+      ])
       .$if(opts?.includePassword, (qb) => qb.select('password'))
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
@@ -64,7 +79,22 @@ export class UserRepo {
     const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('users')
-      .select(this.baseFields)
+      .select((eb) => [
+        ...this.baseFields,
+        eb
+          .selectFrom('userPasskeys')
+          .select((eb) => [
+            eb
+              .case(eb.fn.count('userId'))
+              .when(0)
+              .then(false)
+              .else(true)
+              .end()
+              .as('hasPasskey'),
+          ])
+          .whereRef('userPasskeys.userId', '=', 'users.id')
+          .as('hasPasskey'),
+      ])
       .$if(opts?.includePassword, (qb) => qb.select('password'))
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)

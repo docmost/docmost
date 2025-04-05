@@ -7,6 +7,7 @@ import SettingsTitle from "@/components/settings/settings-title.tsx";
 import {getAppName} from "@/lib/config.ts";
 import {Helmet} from "react-helmet-async";
 import { useTranslation } from "react-i18next";
+import AddOrRemovePasskey from "@/features/user/components/add-remove-passkey.tsx";
 
 export default function AccountSettings() {
   const { t } = useTranslation();
@@ -29,6 +30,10 @@ export default function AccountSettings() {
       <Divider my="lg" />
 
       <ChangePassword />
+
+      <Divider my="lg" />
+
+      <AddOrRemovePasskey />
     </>
   );
 }
