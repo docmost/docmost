@@ -4,7 +4,7 @@ import useAuth from "@/features/auth/hooks/use-auth";
 import { IPasswordReset } from "@/features/auth/types/auth.types";
 import { Box, Button, Container, PasswordInput, Title } from "@mantine/core";
 import classes from "./auth.module.css";
-import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
+/*import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";*/
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
@@ -20,7 +20,7 @@ interface PasswordResetFormProps {
 export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
   const { t } = useTranslation();
   const { passwordReset, isLoading } = useAuth();
-  useRedirectIfAuthenticated();
+  /*useRedirectIfAuthenticated();*/
 
   const form = useForm<IPasswordReset>({
     validate: zodResolver(formSchema),
