@@ -8,6 +8,7 @@ import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
 import { SignupService } from './signup.service';
+import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
@@ -34,6 +35,7 @@ import { DomainService } from '../../../integrations/environment/domain.service'
 export class AuthService {
   constructor(
     private signupService: SignupService,
+    private workspaceService: WorkspaceService,
     private tokenService: TokenService,
     private userRepo: UserRepo,
     private userTokenRepo: UserTokenRepo,
@@ -66,6 +68,12 @@ export class AuthService {
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
     const user = await this.signupService.signup(createUserDto, workspaceId);
+    return this.tokenService.generateAccessToken(user);
+  }
+
+  async signup(createUserDto: CreateUserDto) {
+    const workspace = await this.workspaceService.findFirst();
+    const user = await this.signupService.signup(createUserDto, workspace.id);
     return this.tokenService.generateAccessToken(user);
   }
 

@@ -5,6 +5,7 @@ import {
   logout,
   passwordReset,
   setupWorkspace,
+  signupUser,
   verifyUserToken,
 } from "@/features/auth/services/auth-service";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   IForgotPassword,
   ILogin,
+  ISignup,
   IPasswordReset,
   ISetupWorkspace,
   IVerifyUserToken,
@@ -96,6 +98,22 @@ export default function useAuth() {
     }
   };
 
+  const handleUserSignup = async (data: ISignup) => {
+    setIsLoading(true);
+
+    try {
+        const res = await signupUser(data);
+        setIsLoading(false);
+        navigate(APP_ROUTE.HOME);
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
   const handlePasswordReset = async (data: IPasswordReset) => {
     setIsLoading(true);
 
@@ -161,6 +179,7 @@ export default function useAuth() {
     signIn: handleSignIn,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
+    signupUser: handleUserSignup,
     forgotPassword: handleForgotPassword,
     passwordReset: handlePasswordReset,
     verifyUserToken: handleVerifyUserToken,

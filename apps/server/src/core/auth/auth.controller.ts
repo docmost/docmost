@@ -15,6 +15,7 @@ import { SetupGuard } from './guards/setup.guard';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -43,6 +44,16 @@ export class AuthController {
     validateSsoEnforcement(workspace);
 
     const authToken = await this.authService.login(loginInput, workspace.id);
+    this.setAuthCookie(res, authToken);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('signup')
+  async signup(
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    const authToken = await this.authService.signup(createUserDto);
     this.setAuthCookie(res, authToken);
   }
 

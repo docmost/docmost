@@ -66,6 +66,37 @@ export class WorkspaceRepo {
     return query.executeTakeFirst();
   }
 
+  async findByName(
+    workspaceName: string,
+    opts?: {
+      withLock?: boolean;
+      withMemberCount?: boolean;
+      withLicenseKey?: boolean;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Workspace> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('workspaces')
+      .select(this.baseFields)
+      .where('name', '=', workspaceName);
+
+    if (opts?.withMemberCount) {
+      query = query.select(this.withMemberCount);
+    }
+
+    if (opts?.withLicenseKey) {
+      query = query.select('licenseKey');
+    }
+
+    if (opts?.withLock && opts?.trx) {
+      query = query.forUpdate();
+    }
+
+    return query.executeTakeFirst();
+  }
+
   async findFirst(): Promise<Workspace> {
     return await this.db
       .selectFrom('workspaces')

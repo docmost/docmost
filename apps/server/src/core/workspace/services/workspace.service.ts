@@ -49,6 +49,14 @@ export class WorkspaceService {
     return this.workspaceRepo.findById(workspaceId);
   }
 
+  async findByName(workspaceName: string) {
+    return this.workspaceRepo.findByName(workspaceName);
+  }
+
+  async findFirst() {
+    return this.workspaceRepo.findFirst();
+  }
+
   async getWorkspaceInfo(workspaceId: string) {
     const workspace = await this.workspaceRepo.findById(workspaceId);
     if (!workspace) {

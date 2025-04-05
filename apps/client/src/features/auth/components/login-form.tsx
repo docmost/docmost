@@ -105,6 +105,18 @@ export function LoginForm() {
                 {t("Sign In")}
               </Button>
             </form>
+            <Group justify="flex-end" mt="sm">
+                <Anchor
+                  to={APP_ROUTE.AUTH.SIGNUP}
+                  component={Link}
+                  underline="never"
+                  size="sm"
+                >
+                  {t("Sign Up")}
+                </Anchor>
+              </Group>
+
+
           </>
         )}
       </Box>
