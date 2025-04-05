@@ -6,6 +6,7 @@ import {
   ILogin,
   IPasswordReset,
   ISetupWorkspace,
+  ISignup,
   IVerifyUserToken,
 } from "@/features/auth/types/auth.types";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
@@ -29,6 +30,13 @@ export async function setupWorkspace(
   data: ISetupWorkspace,
 ): Promise<IWorkspace> {
   const req = await api.post<IWorkspace>("/auth/setup", data);
+  return req.data;
+}
+
+export async function signupUser(
+  data: ISignup,
+): Promise<ISignup> {
+  const req = await api.post<ISignup>("/auth/signup", data);
   return req.data;
 }
 
