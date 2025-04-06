@@ -1,4 +1,4 @@
-import {Modal, Tabs, rem, Group, ScrollArea, Text} from "@mantine/core";
+import {Modal, Tabs, rem, Group, Text, Box} from "@mantine/core";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React, {useMemo} from "react";
@@ -48,7 +48,6 @@ export default function SpaceSettingsModal({
             <Modal.CloseButton/>
           </Modal.Header>
           <Modal.Body>
-            <div style={{height: rem(600)}}>
               <Tabs defaultValue="members">
                 <Tabs.List>
                   <Tabs.Tab fw={500} value="general">
@@ -59,7 +58,7 @@ export default function SpaceSettingsModal({
                   </Tabs.Tab>
                 </Tabs.List>
 
-                <Tabs.Panel value="general">
+                <Tabs.Panel value="general" h={rem(500)}>
                   <SpaceDetails
                     spaceId={space?.id}
                     readOnly={spaceAbility.cannot(
@@ -70,23 +69,24 @@ export default function SpaceSettingsModal({
                 </Tabs.Panel>
 
                 <Tabs.Panel value="members">
-                  <Group my="md" justify="flex-end">
-                    {spaceAbility.can(
-                      SpaceCaslAction.Manage,
-                      SpaceCaslSubject.Member,
-                    ) && <AddSpaceMembersModal spaceId={space?.id}/>}
-                  </Group>
+                 <Box h={rem(500)} display="grid" style={{ alignContent: 'baseline' }}>
+                    <Group my="md" justify="flex-end">
+                        {spaceAbility.can(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Member,
+                        ) && <AddSpaceMembersModal spaceId={space?.id}/>}
+                      </Group>
 
-                  <SpaceMembersList
-                    spaceId={space?.id}
-                    readOnly={spaceAbility.cannot(
-                      SpaceCaslAction.Manage,
-                      SpaceCaslSubject.Member,
-                    )}
-                  />
+                    <SpaceMembersList
+                        spaceId={space?.id}
+                        readOnly={spaceAbility.cannot(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Member,
+                        )}
+                      />
+                 </Box>
                 </Tabs.Panel>
               </Tabs>
-            </div>
           </Modal.Body>
         </Modal.Content>
       </Modal.Root>
