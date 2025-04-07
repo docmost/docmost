@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
@@ -34,6 +35,8 @@ import { Queue } from 'bullmq';
 
 @Injectable()
 export class WorkspaceService {
+  private readonly logger = new Logger(WorkspaceService.name);
+
   constructor(
     private workspaceRepo: WorkspaceRepo,
     private spaceService: SpaceService,
@@ -45,6 +48,7 @@ export class WorkspaceService {
     private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
   ) {}
 
   async findById(workspaceId: string) {
@@ -97,13 +101,15 @@ export class WorkspaceService {
     createWorkspaceDto: CreateWorkspaceDto,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
+    let trialEndAt = undefined;
+
+    const createdWorkspace = await executeTx(
       this.db,
       async (trx) => {
         let hostname = undefined;
-        let trialEndAt = undefined;
         let status = undefined;
         let plan = undefined;
+        let billingEmail = undefined;
 
         if (this.environmentService.isCloud()) {
           // generate unique hostname
@@ -116,6 +122,7 @@ export class WorkspaceService {
           );
           status = WorkspaceStatus.Active;
           plan = 'standard';
+          billingEmail = user.email;
         }
 
         // create workspace
@@ -127,6 +134,7 @@ export class WorkspaceService {
             status,
             trialEndAt,
             plan,
+            billingEmail,
           },
           trx,
         );
@@ -201,6 +209,28 @@ export class WorkspaceService {
       },
       trx,
     );
+
+    if (this.environmentService.isCloud() && trialEndAt) {
+      try {
+        const delay = trialEndAt.getTime() - Date.now();
+
+        await this.billingQueue.add(
+          QueueJob.TRIAL_ENDED,
+          { workspaceId: createdWorkspace.id },
+          { delay },
+        );
+
+        await this.billingQueue.add(
+          QueueJob.WELCOME_EMAIL,
+          { userId: user.id },
+          { delay: 60 * 1000 }, // 1m
+        );
+      } catch (err) {
+        this.logger.error(err);
+      }
+    }
+
+    return createdWorkspace;
   }
 
   async addUserToWorkspace(

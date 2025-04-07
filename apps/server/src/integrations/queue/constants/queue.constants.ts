@@ -16,4 +16,7 @@ export enum QueueJob {
   PAGE_BACKLINKS = 'page-backlinks',
 
   STRIPE_SEATS_SYNC = 'sync-stripe-seats',
+  TRIAL_ENDED = 'trial-ended',
+  WELCOME_EMAIL = 'welcome-email',
+  FIRST_PAYMENT_EMAIL = 'first-payment-email',
 }

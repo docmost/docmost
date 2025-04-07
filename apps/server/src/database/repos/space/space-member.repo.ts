@@ -221,7 +221,7 @@ export class SpaceMemberRepo {
 
     let query = this.db
       .selectFrom('spaces')
-      .selectAll('spaces')
+      .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       //.where('workspaceId', '=', workspaceId)
       .where('id', 'in', userSpaceIds)
@@ -237,9 +237,12 @@ export class SpaceMemberRepo {
       );
     }
 
+    const hasEmptyIds = userSpaceIds.length === 0;
+
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;

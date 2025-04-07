@@ -14,7 +14,7 @@
     "client:dev": "nx run client:dev",
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
-    "email:dev": "nx run @docmost/transactional:dev",
+    "email:dev": "nx run server:email:dev",
     "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
   },
   "dependencies": {

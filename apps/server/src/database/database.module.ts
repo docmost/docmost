@@ -47,7 +47,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         log: (event: LogEvent) => {
           if (environmentService.getNodeEnv() !== 'development') return;
           const logger = new Logger(DatabaseModule.name);
-          if (event.level === 'query') {
+          if (event.level) {
             if (process.env.DEBUG_DB?.toLowerCase() === 'true') {
               logger.debug(event.query.sql);
               logger.debug('query time: ' + event.queryDurationMillis + ' ms');
