@@ -1,4 +1,9 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { SpaceRole } from "@/lib/types";
+import {
+  PageCaslAction,
+  PageCaslSubject,
+} from "../permissions/permissions.type";
 
 export interface IPage {
   id: string;
@@ -21,7 +26,20 @@ export interface IPage {
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
   space: Partial<ISpace>;
+  membership?: IMembership;
 }
+
+interface IMembership {
+  userId: string;
+  role: SpaceRole;
+  permissions?: Permissions;
+}
+interface Permission {
+  action: PageCaslAction;
+  subject: PageCaslSubject;
+}
+
+type Permissions = Permission[];
 
 interface ICreator {
   id: string;
