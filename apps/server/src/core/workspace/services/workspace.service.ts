@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
@@ -32,6 +33,8 @@ import { Queue } from 'bullmq';
 
 @Injectable()
 export class WorkspaceService {
+  private readonly logger = new Logger(WorkspaceService.name);
+
   constructor(
     private workspaceRepo: WorkspaceRepo,
     private spaceService: SpaceService,
@@ -205,13 +208,23 @@ export class WorkspaceService {
     );
 
     if (this.environmentService.isCloud() && trialEndAt) {
-      const delay = trialEndAt.getTime() - Date.now();
+      try {
+        const delay = trialEndAt.getTime() - Date.now();
 
-      await this.billingQueue.add(
-        QueueJob.TRIAL_ENDED,
-        { workspaceId: createdWorkspace.id },
-        { delay },
-      );
+        await this.billingQueue.add(
+          QueueJob.TRIAL_ENDED,
+          { workspaceId: createdWorkspace.id },
+          { delay },
+        );
+
+        await this.billingQueue.add(
+          QueueJob.WELCOME_EMAIL,
+          { userId: user.id },
+          { delay: 60 * 1000 }, // 1m
+        );
+      } catch (err) {
+        this.logger.error(err);
+      }
     }
 
     return createdWorkspace;
