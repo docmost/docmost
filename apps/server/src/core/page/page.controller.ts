@@ -36,6 +36,8 @@ import {
 } from '../casl/interfaces/page-ability.type';
 import { AddPageMembersDto } from './dto/add-page-member.dto';
 import { PageMemberService } from './services/page-member.service';
+import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -43,6 +45,7 @@ export class PageController {
   constructor(
     private readonly pageService: PageService,
     private readonly pageMemberService: PageMemberService,
+    private readonly pageMemberRepo: PageMemberRepo,
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
@@ -76,7 +79,20 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return page;
+    const userPageRoles = await this.pageMemberRepo.getUserPageRoles(
+      user.id,
+      page.id,
+    );
+
+    const userPageRole = findHighestUserSpaceRole(userPageRoles);
+
+    const membership = {
+      userId: user.id,
+      role: userPageRole,
+      permissions: pageAbility.rules,
+    };
+
+    return { ...page, membership };
   }
 
   @HttpCode(HttpStatus.OK)
