@@ -107,7 +107,11 @@ export class PageRepo {
     return dbOrTx(this.db, trx)
       .updateTable('pages')
       .set({ ...updatePageData, updatedAt: new Date() })
-      .where(pageIds.some(pageId => !isValidUUID(pageId)) ? "slugId" : "id", "in", pageIds)
+      .where(
+        pageIds.some((pageId) => !isValidUUID(pageId)) ? 'slugId' : 'id',
+        'in',
+        pageIds,
+      )
       .executeTakeFirst();
   }
 
@@ -161,9 +165,11 @@ export class PageRepo {
       .where('spaceId', 'in', userSpaceIds)
       .orderBy('updatedAt', 'desc');
 
+    const hasEmptyIds = userSpaceIds.length === 0;
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;
