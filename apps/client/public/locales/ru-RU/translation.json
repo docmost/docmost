@@ -351,5 +351,16 @@
   "Created at: {{time}}": "Дата создания: {{time}}",
   "Edited by {{name}} {{time}}": "Изменено {{name}} {{time}}",
   "Word count: {{wordCount}}": "Количество слов: {{wordCount}}",
-  "Character count: {{characterCount}}": "Количество символов: {{characterCount}}"
+  "Character count: {{characterCount}}": "Количество символов: {{characterCount}}",
+  "New update": "Новое обновление",
+  "{{latestVersion}} is available": "Доступна новая версия {{latestVersion}}",
+  "Delete member": "Удалить участника",
+  "Member deleted successfully": "Участник успешно удален",
+  "Are you sure you want to delete this workspace member? This action is irreversible.": "Вы уверены, что хотите удалить этого участника рабочей области? Это действие необратимо.",
+  "Move": "Переместить",
+  "Move page": "Переместить страницу",
+  "Move page to a different space.": "Переместите страницу в другое пространство.",
+  "Real-time editor connection lost. Retrying...": "Соединение с редактором в реальном времени потеряно. Повторная попытка...",
+  "Table of contents": "Содержание",
+  "Add headings (H1, H2, H3) to generate a table of contents.": "Добавьте заголовки (H1, H2, H3), чтобы создать оглавление."
 }

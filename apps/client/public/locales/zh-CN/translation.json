@@ -351,5 +351,16 @@
   "Created at: {{time}}": "创建于：{{time}}",
   "Edited by {{name}} {{time}}": "由{{name}} 编辑于 {{time}}",
   "Word count: {{wordCount}}": "字数：{{wordCount}}",
-  "Character count: {{characterCount}}": "字符数：{{characterCount}}"
+  "Character count: {{characterCount}}": "字符数：{{characterCount}}",
+  "New update": "新更新",
+  "{{latestVersion}} is available": "{{latestVersion}} 已经可以使用",
+  "Delete member": "删除成员",
+  "Member deleted successfully": "成员删除成功",
+  "Are you sure you want to delete this workspace member? This action is irreversible.": "您确定要删除此工作区成员吗？此操作不可逆。",
+  "Move": "移动",
+  "Move page": "移动页面",
+  "Move page to a different space.": "将页面移动到不同的空间。",
+  "Real-time editor connection lost. Retrying...": "实时编辑器连接丢失。重试中……",
+  "Table of contents": "目录",
+  "Add headings (H1, H2, H3) to generate a table of contents.": "添加标题（H1，H2，H3）以生成目录。"
 }

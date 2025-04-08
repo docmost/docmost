@@ -351,5 +351,16 @@
   "Created at: {{time}}": "が作成しました：{{time}}",
   "Edited by {{name}} {{time}}": "最終編集: {{name}} {{time}}",
   "Word count: {{wordCount}}": "ワード数: {{wordCount}}",
-  "Character count: {{characterCount}}": "文字数: {{characterCount}}"
+  "Character count: {{characterCount}}": "文字数: {{characterCount}}",
+  "New update": "新規更新",
+  "{{latestVersion}} is available": "{{latestVersion}}は利用可能です",
+  "Delete member": "メンバーを削除する",
+  "Member deleted successfully": "メンバーが削除されました",
+  "Are you sure you want to delete this workspace member? This action is irreversible.": "ワークスペースメンバーを削除してもよろしいですか？この操作は元に戻せません。",
+  "Move": "移動",
+  "Move page": "ページを移動",
+  "Move page to a different space.": "ページを別のスペースに移動します。",
+  "Real-time editor connection lost. Retrying...": "リアルタイムエディターの接続が失われました。再試行しています…",
+  "Table of contents": "目次",
+  "Add headings (H1, H2, H3) to generate a table of contents.": "見出し（H1、H2、H3）を追加して目次を生成します。"
 }
