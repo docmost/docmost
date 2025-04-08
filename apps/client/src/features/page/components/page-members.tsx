@@ -104,7 +104,7 @@ export default function PageMembersList({
 
   return (
     <>
-      {/* <SearchInput onSearch={handleSearch} /> */}
+      <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing={8}>
           <Table.Thead>
