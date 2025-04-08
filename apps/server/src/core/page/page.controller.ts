@@ -176,6 +176,26 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('members')
+  async getPageMembers(
+    @Body() pageIdDto: PageIdDto,
+    @Body()
+    pagination: PaginationOptions,
+    @AuthUser() user: User,
+  ) {
+    const ability = await this.pageAbility.createForUser(
+      user,
+      pageIdDto.pageId,
+    );
+
+    if (ability.cannot(PageCaslAction.Read, PageCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageMemberService.getPageMembers(pageIdDto.pageId, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('members/add')
   async addPageMember(
     @Body() dto: AddPageMembersDto,

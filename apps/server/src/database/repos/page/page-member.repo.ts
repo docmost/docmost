@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -65,5 +65,73 @@ export class PageMemberRepo {
       return undefined;
     }
     return roles;
+  }
+
+  async getPageMembersPaginated(pageId: string, pagination: PaginationOptions) {
+    let query = this.db
+      .selectFrom('pageMembers')
+      .leftJoin('users', 'users.id', 'pageMembers.userId')
+      .leftJoin('groups', 'groups.id', 'pageMembers.groupId')
+      .select([
+        'users.id as userId',
+        'users.name as userName',
+        'users.avatarUrl as userAvatarUrl',
+        'users.email as userEmail',
+        'groups.id as groupId',
+        'groups.name as groupName',
+        'groups.isDefault as groupIsDefault',
+        'pageMembers.role',
+        'pageMembers.createdAt',
+      ])
+      .select((eb) => this.groupRepo.withMemberCount(eb))
+      .where('pageMembers.pageId', '=', pageId)
+      .orderBy('pageMembers.createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`).or(
+          'groups.name',
+          'ilike',
+          `%${pagination.query}%`,
+        ),
+      );
+    }
+
+    const result = await executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    let memberInfo: MemberInfo;
+
+    const members = result.items.map((member) => {
+      if (member.userId) {
+        memberInfo = {
+          id: member.userId,
+          name: member.userName,
+          email: member.userEmail,
+          avatarUrl: member.userAvatarUrl,
+          type: 'user',
+        };
+      } else if (member.groupId) {
+        memberInfo = {
+          id: member.groupId,
+          name: member.groupName,
+          memberCount: member.memberCount as number,
+          isDefault: member.groupIsDefault,
+          type: 'group',
+        };
+      }
+
+      return {
+        ...memberInfo,
+        role: member.role,
+        createdAt: member.createdAt,
+      };
+    });
+
+    result.items = members as any;
+
+    return result;
   }
 }

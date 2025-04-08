@@ -5,6 +5,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AddPageMembersDto } from '../dto/add-page-member.dto';
 import { User } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class PageMemberService {
@@ -13,6 +14,20 @@ export class PageMemberService {
     private readonly pageMemberRepo: PageMemberRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
+
+  async getPageMembers(pageId: string, pagination: PaginationOptions) {
+    const page = await this.pageRepo.findById(pageId);
+    if (!page) {
+      throw new NotFoundException('Space not found');
+    }
+
+    const members = await this.pageMemberRepo.getPageMembersPaginated(
+      pageId,
+      pagination,
+    );
+
+    return members;
+  }
 
   async addUserToPage(
     userId: string,

@@ -5,8 +5,10 @@ import {
   IPage,
   IPageInput,
   SidebarPagesParams,
+  IAddPageMember,
+  IPageMember,
 } from "@/features/page/types/page.types";
-import { IAttachment, IPagination } from "@/lib/types.ts";
+import { IAttachment, IPagination, QueryParams } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
@@ -100,4 +102,16 @@ export async function uploadFile(
   });
 
   return req as unknown as IAttachment;
+}
+
+export async function addPageMember(data: IAddPageMember): Promise<void> {
+  await api.post("/pages/members/add", data);
+}
+
+export async function getPageMembers(
+  pageId: string,
+  params?: QueryParams,
+): Promise<IPagination<IPageMember>> {
+  const req = await api.post<any>("/pages/members", { pageId, ...params });
+  return req.data;
 }
