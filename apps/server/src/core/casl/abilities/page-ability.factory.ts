@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   AbilityBuilder,
   createMongoAbility,
@@ -13,17 +13,32 @@ import {
   PageCaslAction,
   PageCaslSubject,
 } from '../interfaces/page-ability.type';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 
 @Injectable()
 export default class PageAbilityFactory {
-  constructor(private readonly pageMemberRepo: PageMemberRepo) {}
+  constructor(
+    private readonly pageRepo: PageRepo,
+    private readonly pageMemberRepo: PageMemberRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+  ) {}
   async createForUser(user: User, pageId: string) {
+    const spaceId = (await this.pageRepo.findById(pageId)).spaceId;
+    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+      user.id,
+      spaceId,
+    );
+
     const userPageRoles = await this.pageMemberRepo.getUserPageRoles(
       user.id,
       pageId,
     );
 
-    const userPageRole = findHighestUserPageRole(userPageRoles);
+    const userPageRole = findHighestUserPageRole([
+      ...userPageRoles,
+      ...userSpaceRoles,
+    ]);
 
     switch (userPageRole) {
       case SpaceRole.ADMIN:

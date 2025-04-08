@@ -69,16 +69,9 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(user, page.id);
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -125,19 +118,12 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      updatePageDto.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(
       user,
       updatePageDto.pageId,
     );
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Edit, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Edit, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -157,16 +143,9 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(user, page.id);
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Delete, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Delete, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
     await this.pageService.forceDelete(pageIdDto.pageId);
@@ -264,16 +243,9 @@ export class PageController {
   ) {
     const page = await this.pageRepo.findById(dto.pageId);
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(user, page.id);
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -291,19 +263,12 @@ export class PageController {
       throw new NotFoundException('Page history not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      history.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(
       user,
       history.pageId,
     );
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
     return history;
@@ -375,15 +340,8 @@ export class PageController {
       user,
       movedPage.spaceId,
     );
-    const pageAbility = await this.pageAbility.createForUser(
-      user,
-      movedPage.id,
-    );
 
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Move, PageCaslSubject.Page)
-    ) {
+    if (spaceAbility.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -398,15 +356,8 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
     const pageAbility = await this.pageAbility.createForUser(user, page.id);
-    if (
-      spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page) &&
-      pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)
-    ) {
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
     return this.pageService.getPageBreadCrumbs(page.id);
