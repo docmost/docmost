@@ -4,6 +4,7 @@ import {
   PageCaslAction,
   PageCaslSubject,
 } from "../permissions/permissions.type";
+import { usePageBreadcrumbsQuery } from "../queries/page-query";
 
 export interface IPage {
   id: string;
@@ -40,6 +41,42 @@ interface Permission {
 }
 
 type Permissions = Permission[];
+
+export interface PageUserInfo {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  type: "user";
+}
+
+export interface PageGroupInfo {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  memberCount: number;
+  type: "group";
+}
+
+export type IPageMember = { role: string } & (PageUserInfo | PageGroupInfo);
+
+export interface IAddPageMember {
+  pageId: string;
+  userIds?: string[];
+  groupIds?: string[];
+}
+
+export interface IRemovePageMember {
+  pageId: string;
+  userId?: string;
+  groupId?: string;
+}
+
+export interface IChangePageMemberRole {
+  pageId: string;
+  userId?: string;
+  groupId?: string;
+}
 
 interface ICreator {
   id: string;
