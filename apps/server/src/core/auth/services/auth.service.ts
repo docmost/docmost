@@ -49,7 +49,7 @@ export class AuthService {
 
     const isPasswordMatch = await comparePasswordHash(
       loginDto.password,
-      user.password,
+      user?.password,
     );
 
     if (!user || !isPasswordMatch || user.deletedAt) {
