@@ -1,11 +1,18 @@
 import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AddPageMembersDto } from '../dto/add-page-member.dto';
-import { User } from '@docmost/db/types/entity.types';
+import { PageMember, SpaceMember, User } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { RemovePageMemberDto } from '../dto/remove-page-member.dto';
+import { SpaceRole } from 'src/common/helpers/types/permission';
+import { UpdatePageMemberRoleDto } from '../dto/update-page-member-role.dto';
 
 @Injectable()
 export class PageMemberService {
@@ -124,6 +131,92 @@ export class PageMemberService {
       await this.pageMemberRepo.insertPageMember(membersToAdd);
     } else {
       // either they are already members or do not exist on the workspace
+    }
+  }
+
+  async removeMemberFromPage(dto: RemovePageMemberDto): Promise<void> {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    let pageMember: PageMember = null;
+
+    if (dto.userId) {
+      pageMember = await this.pageMemberRepo.getPageMemberByTypeId(dto.pageId, {
+        userId: dto.userId,
+      });
+    } else if (dto.groupId) {
+      pageMember = await this.pageMemberRepo.getPageMemberByTypeId(dto.pageId, {
+        groupId: dto.groupId,
+      });
+    } else {
+      throw new BadRequestException(
+        'Please provide a valid userId or groupId to remove',
+      );
+    }
+
+    if (!pageMember) {
+      throw new NotFoundException('Page membership not found');
+    }
+
+    if (pageMember.role === SpaceRole.ADMIN) {
+      await this.validateLastAdmin(dto.pageId);
+    }
+
+    await this.pageMemberRepo.removePageMemberById(pageMember.id, dto.pageId);
+  }
+
+  async updateSpaceMemberRole(dto: UpdatePageMemberRoleDto): Promise<void> {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    let pageMember: PageMember = null;
+
+    if (dto.userId) {
+      pageMember = await this.pageMemberRepo.getPageMemberByTypeId(dto.pageId, {
+        userId: dto.userId,
+      });
+    } else if (dto.groupId) {
+      pageMember = await this.pageMemberRepo.getPageMemberByTypeId(dto.pageId, {
+        groupId: dto.groupId,
+      });
+    } else {
+      throw new BadRequestException(
+        'Please provide a valid userId or groupId to remove',
+      );
+    }
+
+    if (!pageMember) {
+      throw new NotFoundException('Page membership not found');
+    }
+
+    if (pageMember.role === dto.role) {
+      return;
+    }
+
+    if (pageMember.role === SpaceRole.ADMIN) {
+      await this.validateLastAdmin(dto.pageId);
+    }
+
+    await this.pageMemberRepo.updatePageMember(
+      { role: dto.role },
+      pageMember.id,
+      dto.pageId,
+    );
+  }
+
+  async validateLastAdmin(pageId: string): Promise<void> {
+    const spaceOwnerCount = await this.pageMemberRepo.roleCountByPageId(
+      SpaceRole.ADMIN,
+      pageId,
+    );
+    if (spaceOwnerCount === 1) {
+      throw new BadRequestException(
+        'There must be at least one page admin with full access',
+      );
     }
   }
 }

@@ -5,7 +5,9 @@ import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertablePageMember,
   InsertableSpaceMember,
+  PageMember,
   SpaceMember,
+  UpdatablePageMember,
   UpdatableSpaceMember,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
@@ -133,5 +135,65 @@ export class PageMemberRepo {
     result.items = members as any;
 
     return result;
+  }
+
+  async roleCountByPageId(role: string, pageId: string): Promise<number> {
+    const { count } = await this.db
+      .selectFrom('pageMembers')
+      .select((eb) => eb.fn.count('role').as('count'))
+      .where('role', '=', role)
+      .where('pageId', '=', pageId)
+      .executeTakeFirst();
+
+    return count as number;
+  }
+
+  async updatePageMember(
+    updatablePageMember: UpdatablePageMember,
+    pageMemberId: string,
+    pageId: string,
+  ): Promise<void> {
+    await this.db
+      .updateTable('pageMembers')
+      .set(updatablePageMember)
+      .where('id', '=', pageMemberId)
+      .where('pageId', '=', pageId)
+      .execute();
+  }
+
+  async getPageMemberByTypeId(
+    pageId: string,
+    opts: {
+      userId?: string;
+      groupId?: string;
+    },
+    trx?: KyselyTransaction,
+  ): Promise<PageMember> {
+    const db = dbOrTx(this.db, trx);
+    let query = db
+      .selectFrom('pageMembers')
+      .selectAll()
+      .where('pageId', '=', pageId);
+    if (opts.userId) {
+      query = query.where('userId', '=', opts.userId);
+    } else if (opts.groupId) {
+      query = query.where('groupId', '=', opts.groupId);
+    } else {
+      throw new BadRequestException('Please provide a userId or groupId');
+    }
+    return query.executeTakeFirst();
+  }
+
+  async removePageMemberById(
+    memberId: string,
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('pageMembers')
+      .where('id', '=', memberId)
+      .where('pageId', '=', pageId)
+      .execute();
   }
 }

@@ -20,7 +20,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { SpaceMember, User, Workspace } from '@docmost/db/types/entity.types';
 import { SidebarPageDto } from './dto/sidebar-page.dto';
 import {
   SpaceCaslAction,
@@ -38,6 +38,9 @@ import { AddPageMembersDto } from './dto/add-page-member.dto';
 import { PageMemberService } from './services/page-member.service';
 import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { RemovePageMemberDto } from './dto/remove-page-member.dto';
+import { UpdatePageMemberRoleDto } from './dto/update-page-member-role.dto';
+import { SpaceRole } from 'src/common/helpers/types/permission';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -407,5 +410,49 @@ export class PageController {
       throw new ForbiddenException();
     }
     return this.pageService.getPageBreadCrumbs(page.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('members/remove')
+  async removeSpaceMember(
+    @Body() dto: RemovePageMemberDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    this.validateIds(dto);
+
+    const ability = await this.pageAbility.createForUser(user, dto.pageId);
+    if (ability.cannot(PageCaslAction.Manage, PageCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageMemberService.removeMemberFromPage(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('members/change-role')
+  async updateSpaceMemberRole(
+    @Body() dto: UpdatePageMemberRoleDto,
+    @AuthUser() user: User,
+  ) {
+    this.validateIds(dto);
+
+    const ability = await this.pageAbility.createForUser(user, dto.pageId);
+    if (ability.cannot(PageCaslAction.Manage, PageCaslSubject.Member)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageMemberService.updateSpaceMemberRole(dto);
+  }
+
+  validateIds(dto: RemovePageMemberDto | UpdatePageMemberRoleDto) {
+    if (!dto.userId && !dto.groupId) {
+      throw new BadRequestException('userId or groupId is required');
+    }
+    if (dto.userId && dto.groupId) {
+      throw new BadRequestException(
+        'please provide either a userId or groupId and both',
+      );
+    }
   }
 }
