@@ -1,11 +1,11 @@
 import { MultipartFile } from '@fastify/multipart';
-import { randomBytes } from 'crypto';
 import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import { AttachmentType } from './attachment.constants';
+import { Readable } from 'stream';
 
 export interface PreparedFile {
-  buffer: Buffer;
+  stream: Readable;
   fileName: string;
   fileSize: number;
   fileExtension: string;
@@ -22,16 +22,14 @@ export async function prepareFile(
   }
 
   try {
-    const rand = randomBytes(8).toString('hex');
-
-    const buffer = await file.toBuffer();
+    const stream = file.file;
     const sanitizedFilename = sanitize(file.filename).replace(/ /g, '_');
     const fileName = sanitizedFilename.slice(0, 255);
-    const fileSize = buffer.length;
+    const fileSize = 300; //buffer.length;
     const fileExtension = path.extname(file.filename).toLowerCase();
 
     return {
-      buffer,
+      stream,
       fileName,
       fileSize,
       fileExtension,

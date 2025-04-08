@@ -76,7 +76,7 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.buffer);
+    await this.uploadToDrive(filePath, preparedFile.stream);
 
     let attachment: Attachment = null;
     try {
@@ -124,7 +124,7 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.buffer);
+    await this.uploadToDrive(filePath, preparedFile.stream);
 
     let attachment: Attachment = null;
     let oldFileName: string = null;

@@ -3,8 +3,11 @@ import {
   LocalStorageConfig,
   StorageOption,
 } from '../interfaces';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import * as fs from 'fs-extra';
+import { pipeline } from 'stream/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { Readable } from 'stream';
 
 export class LocalDriver implements StorageDriver {
   private readonly config: LocalStorageConfig;
@@ -17,17 +20,19 @@ export class LocalDriver implements StorageDriver {
     return join(this.config.storagePath, filePath);
   }
 
-  async upload(filePath: string, file: Buffer): Promise<void> {
+  async upload(filePath: string, file: Readable): Promise<void> {
     try {
-      await fs.outputFile(this._fullPath(filePath), file);
+      const fullPath = this._fullPath(filePath);
+      await fs.mkdir(dirname(fullPath), { recursive: true });
+      await pipeline(file, createWriteStream(fullPath));
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
 
-  async read(filePath: string): Promise<Buffer> {
+  async read(filePath: string): Promise<Readable> {
     try {
-      return await fs.readFile(this._fullPath(filePath));
+      return createReadStream(this._fullPath(filePath));
     } catch (err) {
       throw new Error(`Failed to read file: ${(err as Error).message}`);
     }
