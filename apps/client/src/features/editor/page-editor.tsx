@@ -52,6 +52,7 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { jwtDecode } from "jwt-decode";
 
 interface PageEditorProps {
   pageId: string;
@@ -83,7 +84,6 @@ export default function PageEditor({
   const documentState = useDocumentVisibility();
   const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
-  const collabRetryCount = useRef(0);
   const slugId = extractPageSlugId(pageSlug);
 
   const localProvider = useMemo(() => {
@@ -105,13 +105,11 @@ export default function PageEditor({
       connect: false,
       preserveConnection: false,
       onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
-        collabRetryCount.current = collabRetryCount.current + 1;
-        refetchCollabToken().then(() => {
-          collabRetryCount.current = 0;
-        });
-
-        if (collabRetryCount.current > 20) {
-          window.location.reload();
+        const payload = jwtDecode(collabQuery?.token);
+        const now = Date.now().valueOf() / 1000;
+        const isTokenExpired = now >= payload.exp;
+        if (isTokenExpired) {
+          refetchCollabToken();
         }
       },
       onStatus: (status) => {
@@ -265,19 +263,13 @@ export default function PageEditor({
       documentState === "visible" &&
       remoteProvider?.status === WebSocketStatus.Disconnected
     ) {
-      const reconnectTimeout = setTimeout(
-        () => {
-          remoteProvider.connect();
-          resetIdle();
-        },
-        collabRetryCount.current > 2 ? 3000 : 0,
-      );
-
-      setIsCollabReady(true);
-
-      return () => clearTimeout(reconnectTimeout);
+      resetIdle();
+      remoteProvider.connect();
+      setTimeout(() => {
+        setIsCollabReady(true);
+      }, 600);
     }
-  }, [isIdle, documentState, remoteProvider?.status]);
+  }, [isIdle, documentState, remoteProvider]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
@@ -286,7 +278,7 @@ export default function PageEditor({
       if (
         !isCollabReady &&
         isSynced &&
-        remoteProvider.status === WebSocketStatus.Connected
+        remoteProvider?.status === WebSocketStatus.Connected
       ) {
         setIsCollabReady(true);
       }

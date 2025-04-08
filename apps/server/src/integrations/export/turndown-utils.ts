@@ -79,16 +79,18 @@ function preserveDetail(turndownService: TurndownService) {
       return node.nodeName === 'DETAILS';
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      // TODO: preserve summary of nested details
       const summary = node.querySelector(':scope > summary');
       let detailSummary = '';
 
       if (summary) {
         detailSummary = `<summary>${turndownService.turndown(summary.innerHTML)}</summary>`;
-        summary.remove();
       }
 
-      const detailsContent = turndownService.turndown(node.innerHTML);
+      const detailsContent = Array.from(node.childNodes)
+        .filter(child => child.nodeName !== 'SUMMARY')
+        .map(child => (child.nodeType === 1 ? turndownService.turndown((child as HTMLElement).outerHTML) : child.textContent))
+        .join('');
+
       return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });

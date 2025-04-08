@@ -247,7 +247,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["collapsible", "block", "toggle", "details", "expand"],
       icon: IconCaretRightFilled,
       command: ({ editor, range }: CommandProps) =>
-        editor.chain().focus().deleteRange(range).toggleDetails().run(),
+        editor.chain().focus().deleteRange(range).setDetails().run(),
     },
     {
       title: "Callout",
