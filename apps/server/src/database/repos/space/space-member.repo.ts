@@ -114,6 +114,7 @@ export class SpaceMemberRepo {
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
       .where('spaceId', '=', spaceId)
+      .orderBy((eb) => eb('groups.id', 'is not', null), 'desc')
       .orderBy('spaceMembers.createdAt', 'asc');
 
     if (pagination.query) {
