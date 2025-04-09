@@ -78,10 +78,13 @@ export const Details = Node.create<DetailsOptions>({
       dom.setAttribute("data-type", this.name);
       btn.setAttribute("data-type", `${this.name}Button`);
       div.setAttribute("data-type", `${this.name}Container`);
-      if (node.attrs.open) {
-        dom.setAttribute("open", "true");
-      } else {
-        dom.removeAttribute("open");
+
+      if (editor.isEditable) {
+        if (node.attrs.open) {
+          dom.setAttribute("open", "true");
+        } else {
+          dom.removeAttribute("open");
+        }
       }
 
       ico.innerHTML = icon("right-line");
