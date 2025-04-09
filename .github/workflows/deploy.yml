@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-    - dev
+      - dev
 
 jobs:
   my_job:
@@ -17,5 +17,5 @@ jobs:
           script: |
             cd ${{ secrets.VPS_DEPLOY_PATH }}
             docker-compose down
-            git pull
-            docker-compose up -d
+            git pull --rebase
+            docker-compose up -d --force-recreate --build docmost
