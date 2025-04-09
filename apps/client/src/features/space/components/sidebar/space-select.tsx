@@ -6,21 +6,33 @@ import { ISpace } from "../../types/space.types";
 import { useTranslation } from "react-i18next";
 
 interface SpaceSelectProps {
-  onChange: (value: string) => void;
+  onChange: (value: ISpace) => void;
   value?: string;
   label?: string;
+  width?: number;
+  opened?: boolean;
+  clearable?: boolean;
 }
 
 const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
   <Group gap="sm" wrap="nowrap">
     <Avatar color="initials" variant="filled" name={option.label} size={20} />
     <div>
-      <Text size="sm" lineClamp={1}>{option.label}</Text>
+      <Text size="sm" lineClamp={1}>
+        {option.label}
+      </Text>
     </div>
   </Group>
 );
 
-export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
+export function SpaceSelect({
+  onChange,
+  label,
+  value,
+  width,
+  opened,
+  clearable,
+}: SpaceSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
@@ -42,8 +54,8 @@ export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
         });
 
       const filteredSpaceData = spaceData.filter(
-        (user) =>
-          !data.find((existingUser) => existingUser.value === user.value),
+        (space) =>
+          !data.find((existingSpace) => existingSpace.value === space.value),
       );
       setData((prevData) => [...prevData, ...filteredSpaceData]);
     }
@@ -59,14 +71,18 @@ export function SpaceSelect({ onChange, label, value }: SpaceSelectProps) {
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
-      clearable
+      clearable={clearable}
       variant="filled"
-      onChange={onChange}
+      onChange={(slug) =>
+        onChange(spaces.items?.find((item) => item.slug === slug))
+      }
+      // duct tape
+      onClick={(e) => e.stopPropagation()}
       nothingFoundMessage={t("No space found")}
       limit={50}
       checkIconPosition="right"
-      comboboxProps={{ width: 300, withinPortal: false }}
-      dropdownOpened
+      comboboxProps={{ width, withinPortal: false }}
+      dropdownOpened={opened}
     />
   );
 }

@@ -7,11 +7,12 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Menu, rem } from "@mantine/core";
 import {
+  IconArrowRight,
   IconChevronDown,
   IconChevronRight,
   IconDotsVertical,
@@ -58,6 +59,7 @@ import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import PageShareModal from "../../components/share-modal";
+import MovePageModal from "../../components/move-page-modal.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -236,6 +238,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
   const timerRef = useRef(null);
+  const { t } = useTranslation();
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(() => {
@@ -371,7 +374,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
           />
         </div>
 
-        <span className={classes.text}>{node.data.name || "untitled"}</span>
+        <span className={classes.text}>{node.data.name || t("untitled")}</span>
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} />
@@ -439,6 +442,10 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
     useDisclosure(false);
   const [shareOpened, { open: openShareModal, close: closeShareModal }] =
     useDisclosure(false);
+  const [
+    movePageModalOpened,
+    { open: openMovePageModal, close: closeMoveSpaceModal },
+  ] = useDisclosure(false);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -502,8 +509,18 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
 
           {!(treeApi.props.disableEdit as boolean) && (
             <>
-              <Menu.Divider />
+              <Menu.Item
+                leftSection={<IconArrowRight size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openMovePageModal();
+                }}
+              >
+                {t("Move")}
+              </Menu.Item>
 
+              <Menu.Divider />
               <Menu.Item
                 c="red"
                 leftSection={<IconTrash size={16} />}
@@ -519,6 +536,14 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <MovePageModal
+        pageId={node.id}
+        slugId={node.data.slugId}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeMoveSpaceModal}
+        open={movePageModalOpened}
+      />
 
       <ExportModal
         type="page"

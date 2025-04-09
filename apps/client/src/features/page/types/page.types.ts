@@ -97,6 +97,11 @@ export interface IMovePage {
   parentPageId?: string;
 }
 
+export interface IMovePageToSpace {
+  pageId: string;
+  spaceId: string;
+}
+
 export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;
