@@ -183,6 +183,18 @@ export interface Pages {
   ydoc: Buffer | null;
 }
 
+export interface Shares {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  includeSubPages: string | null;
+  pageId: string;
+  slugId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface SpaceMembers {
   addedById: string | null;
   createdAt: Generated<Timestamp>;
@@ -288,6 +300,7 @@ export interface DB {
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
   pages: Pages;
+  shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
   users: Users;
