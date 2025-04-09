@@ -15,6 +15,7 @@ import {
 } from '../interfaces/page-ability.type';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { UserPageRole } from '@docmost/db/repos/page/types';
 
 @Injectable()
 export default class PageAbilityFactory {
@@ -30,15 +31,20 @@ export default class PageAbilityFactory {
       spaceId,
     );
 
-    const userPageRoles = await this.pageMemberRepo.getUserPageRoles(
-      user.id,
-      pageId,
+    const userSpaceRole = findHighestUserPageRole(
+      userSpaceRoles ? userSpaceRoles : [],
     );
 
-    const userPageRole = findHighestUserPageRole([
-      ...userPageRoles,
-      ...userSpaceRoles,
-    ]);
+    if (userSpaceRole == SpaceRole.ADMIN) {
+      return buildPageAdminAbility();
+    }
+
+    const userPageRoles: UserPageRole[] =
+      await this.pageMemberRepo.getUserPageRoles(user.id, pageId);
+
+    const userPageRole = findHighestUserPageRole(
+      userPageRoles ? userPageRoles : [],
+    );
 
     switch (userPageRole) {
       case SpaceRole.ADMIN:
