@@ -219,7 +219,7 @@
   "Don't": "Нет",
   "Are you sure you want to revoke this invitation? The user will not be able to join the workspace.": "Вы уверены, что хотите отозвать это приглашение? Пользователь не сможет присоединиться к рабочей области.",
   "Resend invitation": "Отправить приглашение повторно",
-  "Anyone with this link can join this workspace.": "Любой, у кого есть эта ссылка, может присоединиться к этому рабочей области.",
+  "Anyone with this link can join this workspace.": "Любой, у кого есть данная ссылка, может присоединиться к этой рабочей области.",
   "Invite link": "Ссылка для приглашения",
   "Copy": "Копировать",
   "Copied": "Скопировано",
