@@ -7,15 +7,14 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('slug_id', 'varchar', (col) => col.notNull())
-    .addColumn('page_id', 'varchar', (col) => col.notNull())
-    .addColumn('include_sub_pages', 'varchar', (col) => col)
+    .addColumn('page_id', 'uuid', (col) =>
+      col.references('pages.id').onDelete('cascade'),
+    )
+    .addColumn('include_sub_pages', 'boolean', (col) => col.defaultTo(false))
     .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
-
-    // pageSlug
-
-    //.addColumn('space_id', 'uuid', (col) =>
-    //  col.references('spaces.id').onDelete('cascade').notNull(),
-    // )
+    .addColumn('space_id', 'uuid', (col) =>
+      col.references('spaces.id').onDelete('cascade').notNull(),
+    )
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )

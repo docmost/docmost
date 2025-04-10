@@ -37,20 +37,18 @@ export default function SharedPage() {
   }
 
   return (
-    page && (
-      <div>
-        <Helmet>
-          <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
-        </Helmet>
+    <div>
+      <Helmet>
+        <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
+      </Helmet>
 
-        <Container size={900} pt={50}>
-          <ReadonlyPageEditor
-            key={page.id}
-            title={page.title}
-            content={page.content}
-          />
-        </Container>
-      </div>
-    )
+      <Container size={900} pt={50}>
+        <ReadonlyPageEditor
+          key={page.id}
+          title={page.title}
+          content={page.content}
+        />
+      </Container>
+    </div>
   );
 }

@@ -188,9 +188,10 @@ export interface Shares {
   creatorId: string | null;
   deletedAt: Timestamp | null;
   id: Generated<string>;
-  includeSubPages: string | null;
-  pageId: string;
+  includeSubPages: Generated<boolean | null>;
+  pageId: string | null;
   slugId: string;
+  spaceId: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

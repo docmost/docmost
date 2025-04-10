@@ -1,5 +1,6 @@
 import { Node } from '@tiptap/pm/model';
 import { jsonToNode } from '../../../collaboration/collaboration.util';
+import { validate as isValidUUID } from 'uuid';
 
 export interface MentionNode {
   id: string;
@@ -55,4 +56,42 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
     }
   }
   return pageMentionList as MentionNode[];
+}
+
+
+export function getProsemirrorContent(content: any) {
+  return (
+    content ?? {
+      type: 'doc',
+      content: [{ type: 'paragraph', attrs: { textAlign: 'left' } }],
+    }
+  );
+}
+
+export function isAttachmentNode(nodeType: string) {
+  const attachmentNodeTypes = [
+    'attachment',
+    'image',
+    'video',
+    'excalidraw',
+    'drawio',
+  ];
+  return attachmentNodeTypes.includes(nodeType);
+}
+
+export function getAttachmentIds(prosemirrorJson: any) {
+  const doc = jsonToNode(prosemirrorJson);
+  const attachmentIds = [];
+
+  doc?.descendants((node: Node) => {
+    if (isAttachmentNode(node.type.name)) {
+      if (node.attrs.attachmentId && isValidUUID(node.attrs.attachmentId)) {
+        if (!attachmentIds.includes(node.attrs.attachmentId)) {
+          attachmentIds.push(node.attrs.attachmentId);
+        }
+      }
+    }
+  });
+
+  return attachmentIds;
 }
