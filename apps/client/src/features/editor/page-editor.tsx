@@ -209,6 +209,7 @@ export default function PageEditor({
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
         content: newContent,
+        updatedAt: new Date(),
       });
     }
   }, 3000);

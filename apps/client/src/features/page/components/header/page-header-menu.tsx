@@ -12,7 +12,7 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useEffect } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -34,6 +34,7 @@ import {
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
+import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -102,6 +103,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     { open: openMovePageModal, close: closeMoveSpaceModal },
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
+  const pageUpdatedAt = useTimeAgo(page.updatedAt);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -208,7 +210,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               <Tooltip
                 label={t("Edited by {{name}} {{time}}", {
                   name: page.lastUpdatedBy.name,
-                  time: timeAgo(page.updatedAt),
+                  time: pageUpdatedAt,
                 })}
                 position="left-start"
               >
