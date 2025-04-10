@@ -1,12 +1,10 @@
-
 export interface ICreateShare {
-  slugId: string;
+  slugId: string; // share slugId
+  pageId: string;
+  includeSubPages?: boolean;
+}
+
+export interface IShareInfoInput {
+  shareId: string;
   pageId: string;
 }
-
-
-export interface IShareInput {
-  shareId: string;
-  pageId?: string;
-}
-

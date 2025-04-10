@@ -52,7 +52,7 @@ export default function App() {
           </>
         )}
 
-        <Route path={"/share/:shareId/:pageId"} element={<SharedPage />} />
+        <Route path={"/share/:shareId/:pageSlug"} element={<SharedPage />} />
 
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
 

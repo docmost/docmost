@@ -8,22 +8,22 @@ import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 import {
   ICreateShare,
-  IShareInput,
+  IShareInfoInput,
 } from "@/features/share/types/share.types.ts";
 import {
   createShare,
   deleteShare,
-  getShare,
+  getShareInfo,
   updateShare,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 
 export function useShareQuery(
-  shareInput: Partial<IShareInput>,
+  shareInput: Partial<IShareInfoInput>,
 ): UseQueryResult<IPage, Error> {
   const query = useQuery({
     queryKey: ["shares", shareInput],
-    queryFn: () => getShare(shareInput),
+    queryFn: () => getShareInfo(shareInput),
     enabled: !!shareInput.shareId,
     staleTime: 5 * 60 * 1000,
   });
@@ -43,7 +43,7 @@ export function useCreateShareMutation() {
 }
 
 export function useUpdateShareMutation() {
-  return useMutation<any, Error, Partial<IShareInput>>({
+  return useMutation<any, Error, Partial<IShareInfoInput>>({
     mutationFn: (data) => updateShare(data),
   });
 }

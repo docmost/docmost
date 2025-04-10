@@ -1,6 +1,9 @@
 import slugify from "@sindresorhus/slugify";
 
-export const buildPageSlug = (pageSlugId: string, pageTitle?: string): string => {
+export const buildPageSlug = (
+  pageSlugId: string,
+  pageTitle?: string,
+): string => {
   const titleSlug = slugify(pageTitle?.substring(0, 70) || "untitled", {
     customReplacements: [
       ["♥", ""],
@@ -20,4 +23,13 @@ export const buildPageUrl = (
     return `/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
   return `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+};
+
+export const buildSharedPageUrl = (opts: {
+  shareId: string;
+  pageSlugId: string;
+  pageTitle?: string;
+}): string => {
+  const { shareId, pageSlugId, pageTitle } = opts;
+  return `/share/${shareId}/${buildPageSlug(pageSlugId, pageTitle)}`;
 };

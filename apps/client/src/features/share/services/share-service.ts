@@ -1,17 +1,9 @@
 import api from "@/lib/api-client";
-import {
-  IExportPageParams,
-  IMovePage,
-  IMovePageToSpace,
-  IPage,
-  IPageInput,
-  SidebarPagesParams,
-} from "@/features/page/types/page.types";
-import { IAttachment, IPagination } from "@/lib/types.ts";
-import { saveAs } from "file-saver";
+import { IPage } from "@/features/page/types/page.types";
+
 import {
   ICreateShare,
-  IShareInput,
+  IShareInfoInput,
 } from "@/features/share/types/share.types.ts";
 
 export async function createShare(data: ICreateShare): Promise<any> {
@@ -19,14 +11,16 @@ export async function createShare(data: ICreateShare): Promise<any> {
   return req.data;
 }
 
-export async function getShare(
-  shareInput: Partial<IShareInput>,
+export async function getShareInfo(
+  shareInput: Partial<IShareInfoInput>,
 ): Promise<IPage> {
   const req = await api.post<IPage>("/shares/info", shareInput);
   return req.data;
 }
 
-export async function updateShare(data: Partial<IShareInput>): Promise<any> {
+export async function updateShare(
+  data: Partial<IShareInfoInput>,
+): Promise<any> {
   const req = await api.post<IPage>("/shares/update", data);
   return req.data;
 }

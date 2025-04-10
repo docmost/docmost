@@ -1,6 +1,9 @@
-import { IsString } from 'class-validator';
+import { IsBoolean, IsString } from 'class-validator';
 
 export class CreateShareDto {
   @IsString()
   pageId: string;
+
+  @IsBoolean()
+  includeSubPages: boolean;
 }
