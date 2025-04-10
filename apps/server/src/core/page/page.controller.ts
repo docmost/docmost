@@ -7,13 +7,12 @@ import {
   UseGuards,
   ForbiddenException,
   NotFoundException,
-  Logger,
   BadRequestException,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
-import { MovePageDto } from './dto/move-page.dto';
+import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
 import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -63,6 +62,7 @@ export class PageController {
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
+      includeContributors: true,
     });
 
     if (!page) {
@@ -127,11 +127,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.update(
-      updatePageDto.pageId,
-      updatePageDto,
-      user.id,
-    );
+    return this.pageService.update(page, updatePageDto, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -326,6 +322,36 @@ export class PageController {
       ).then((items) => items.filter(Boolean)),
       meta: pagesInSpace.meta,
     };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('move-to-space')
+  async movePageToSpace(
+    @Body() dto: MovePageToSpaceDto,
+    @AuthUser() user: User,
+  ) {
+    const movedPage = await this.pageRepo.findById(dto.pageId);
+    if (!movedPage) {
+      throw new NotFoundException('Page to move not found');
+    }
+    if (movedPage.spaceId === dto.spaceId) {
+      throw new BadRequestException('Page is already in this space');
+    }
+
+    const abilities = await Promise.all([
+      this.spaceAbility.createForUser(user, movedPage.spaceId),
+      this.spaceAbility.createForUser(user, dto.spaceId),
+    ]);
+
+    if (
+      abilities.some((ability) =>
+        ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+      )
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.movePageToSpace(movedPage, dto.spaceId);
   }
 
   @HttpCode(HttpStatus.OK)

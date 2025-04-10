@@ -351,5 +351,16 @@
   "Created at: {{time}}": "Erstellt am: {{time}}",
   "Edited by {{name}} {{time}}": "Bearbeitet von {{name}} {{time}}",
   "Word count: {{wordCount}}": "Wortanzahl: {{wordCount}}",
-  "Character count: {{characterCount}}": "Zeichenzahl: {{characterCount}}"
+  "Character count: {{characterCount}}": "Zeichenzahl: {{characterCount}}",
+  "New update": "Neues Update",
+  "{{latestVersion}} is available": "{{latestVersion}} ist verfügbar",
+  "Delete member": "Mitglied löschen",
+  "Member deleted successfully": "Mitglied erfolgreich gelöscht",
+  "Are you sure you want to delete this workspace member? This action is irreversible.": "Sind Sie sicher, dass Sie dieses Arbeitsbereichsmitglied löschen möchten? Diese Aktion ist unwiderruflich.",
+  "Move": "Verschieben",
+  "Move page": "Seite verschieben",
+  "Move page to a different space.": "Seite in einen anderen Bereich verschieben.",
+  "Real-time editor connection lost. Retrying...": "Echtzeit-Editor-Verbindung verloren. Wiederholen...",
+  "Table of contents": "Inhaltsverzeichnis",
+  "Add headings (H1, H2, H3) to generate a table of contents.": "Fügen Sie Überschriften (H1, H2, H3) hinzu, um ein Inhaltsverzeichnis zu erstellen."
 }
