@@ -26,6 +26,7 @@ api.interceptors.response.use(
         case 401: {
           const url = new URL(error.request.responseURL)?.pathname;
           if (url === "/api/auth/collab-token") return;
+          if (window.location.pathname.startsWith("/share/")) return;
 
           // Handle unauthorized error
           redirectToLogin();

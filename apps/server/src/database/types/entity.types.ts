@@ -16,6 +16,7 @@ import {
   Billing as BillingSubscription,
   AuthProviders,
   AuthAccounts,
+  Shares,
 } from './db';
 
 // Workspace
@@ -101,3 +102,8 @@ export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
 export type AuthAccount = Selectable<AuthAccounts>;
 export type InsertableAuthAccount = Insertable<AuthAccounts>;
 export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;
+
+// Share
+export type Share = Selectable<Shares>;
+export type InsertableShare = Insertable<Shares>;
+export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;

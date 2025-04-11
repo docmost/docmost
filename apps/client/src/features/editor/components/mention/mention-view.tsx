@@ -3,18 +3,28 @@ import { ActionIcon, Anchor, Text } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import {
+  buildPageUrl,
+  buildSharedPageUrl,
+} from "@/features/page/page.utils.ts";
 import classes from "./mention.module.css";
 
 export default function MentionView(props: NodeViewProps) {
   const { node } = props;
   const { label, entityType, entityId, slugId } = node.attrs;
   const { spaceSlug } = useParams();
+  const { shareId } = useParams();
   const {
     data: page,
     isLoading,
     isError,
   } = usePageQuery({ pageId: entityType === "page" ? slugId : null });
+
+  const shareSlugUrl = buildSharedPageUrl({
+    shareId,
+    pageSlugId: slugId,
+    pageTitle: label,
+  });
 
   return (
     <NodeViewWrapper style={{ display: "inline" }}>
@@ -28,7 +38,7 @@ export default function MentionView(props: NodeViewProps) {
         <Anchor
           component={Link}
           fw={500}
-          to={buildPageUrl(spaceSlug, slugId, label)}
+          to={shareId ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label)}
           underline="never"
           className={classes.pageMentionLink}
         >
