@@ -189,4 +189,12 @@ export class EnvironmentService {
       .toLowerCase();
     return disable === 'true';
   }
+
+  getClientHost(): string {
+    return this.configService.get<string>('CLIENT_HOST');
+  }
+
+  getClientURL(): string {
+    return this.configService.get<string>('CLIENT_URL');
+  }
 }
