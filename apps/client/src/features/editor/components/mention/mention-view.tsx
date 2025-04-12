@@ -1,7 +1,7 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { ActionIcon, Anchor, Text } from "@mantine/core";
 import { IconFileDescription } from "@tabler/icons-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import {
   buildPageUrl,
@@ -19,6 +19,9 @@ export default function MentionView(props: NodeViewProps) {
     isLoading,
     isError,
   } = usePageQuery({ pageId: entityType === "page" ? slugId : null });
+
+  const location = useLocation();
+  const isShareRoute = location.pathname.startsWith("/share");
 
   const shareSlugUrl = buildSharedPageUrl({
     shareId,
@@ -38,7 +41,9 @@ export default function MentionView(props: NodeViewProps) {
         <Anchor
           component={Link}
           fw={500}
-          to={shareId ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label)}
+          to={
+            isShareRoute ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label)
+          }
           underline="never"
           className={classes.pageMentionLink}
         >

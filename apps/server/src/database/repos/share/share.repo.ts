@@ -24,7 +24,7 @@ export class ShareRepo {
 
   private baseFields: Array<keyof Share> = [
     'id',
-    'slugId',
+    'key',
     'pageId',
     'includeSubPages',
     'creatorId',
@@ -58,9 +58,34 @@ export class ShareRepo {
     if (isValidUUID(shareId)) {
       query = query.where('id', '=', shareId);
     } else {
-      query = query.where('slugId', '=', shareId);
+      query = query.where('key', '=', shareId);
     }
 
+    return query.executeTakeFirst();
+  }
+
+  async findByPageId(
+    pageId: string,
+    opts?: {
+      includeCreator?: boolean;
+      withLock?: boolean;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Share> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('shares')
+      .select(this.baseFields)
+      .where('pageId', '=', pageId);
+
+    if (opts?.includeCreator) {
+      query = query.select((eb) => this.withCreator(eb));
+    }
+
+    if (opts?.withLock && opts?.trx) {
+      query = query.forUpdate();
+    }
     return query.executeTakeFirst();
   }
 
@@ -72,7 +97,7 @@ export class ShareRepo {
     return dbOrTx(this.db, trx)
       .updateTable('shares')
       .set({ ...updatableShare, updatedAt: new Date() })
-      .where(!isValidUUID(shareId) ? 'slugId' : 'id', '=', shareId)
+      .where(!isValidUUID(shareId) ? 'key' : 'id', '=', shareId)
       .executeTakeFirst();
   }
 
@@ -94,7 +119,7 @@ export class ShareRepo {
     if (isValidUUID(shareId)) {
       query = query.where('id', '=', shareId);
     } else {
-      query = query.where('slugId', '=', shareId);
+      query = query.where('key', '=', shareId);
     }
 
     await query.execute();

@@ -6,8 +6,18 @@ import {
   IShareInfoInput,
 } from "@/features/share/types/share.types.ts";
 
+export async function getShares(data: ICreateShare): Promise<any> {
+  const req = await api.post<any>("/shares", data);
+  return req.data;
+}
+
 export async function createShare(data: ICreateShare): Promise<any> {
   const req = await api.post<any>("/shares/create", data);
+  return req.data;
+}
+
+export async function getShareStatus(pageId: string): Promise<any> {
+  const req = await api.post<IPage>("/shares/status", { pageId });
   return req.data;
 }
 

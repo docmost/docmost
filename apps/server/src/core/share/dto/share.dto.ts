@@ -17,12 +17,18 @@ export class SpaceIdDto {
   spaceId: string;
 }
 
-export class ShareInfoDto extends ShareIdDto {
+export class ShareInfoDto {
+  @IsString()
+  @IsOptional()
+  shareId: string;
+
   @IsString()
   @IsOptional()
   pageId: string;
+}
 
-  // @IsOptional()
-  // @IsBoolean()
-  // includeContent: boolean;
+export class SharePageIdDto {
+  @IsString()
+  @IsNotEmpty()
+  pageId: string;
 }

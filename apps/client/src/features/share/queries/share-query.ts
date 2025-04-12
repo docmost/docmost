@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  UseQueryResult,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, UseQueryResult } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
@@ -14,6 +10,7 @@ import {
   createShare,
   deleteShare,
   getShareInfo,
+  getShareStatus,
   updateShare,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
@@ -24,7 +21,20 @@ export function useShareQuery(
   const query = useQuery({
     queryKey: ["shares", shareInput],
     queryFn: () => getShareInfo(shareInput),
-    enabled: !!shareInput.shareId,
+    enabled: !!shareInput.pageId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return query;
+}
+
+export function useShareStatusQuery(
+  pageId: string,
+): UseQueryResult<IPage, Error> {
+  const query = useQuery({
+    queryKey: ["share-status", pageId],
+    queryFn: () => getShareStatus(pageId),
+    enabled: !!pageId,
     staleTime: 5 * 60 * 1000,
   });
 

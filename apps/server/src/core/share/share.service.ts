@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ShareInfoDto } from './dto/share.dto';
@@ -20,9 +21,12 @@ import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
+import { sql } from 'kysely';
 
 @Injectable()
 export class ShareService {
+  private readonly logger = new Logger(ShareService.name);
+
   constructor(
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
@@ -33,49 +37,39 @@ export class ShareService {
   async createShare(opts: {
     authUserId: string;
     workspaceId: string;
-    pageId: string;
-    spaceId: string;
+    page: Page;
+    includeSubPages: boolean;
   }) {
-    const { authUserId, workspaceId, pageId, spaceId } = opts;
-    let share = null;
+    const { authUserId, workspaceId, page, includeSubPages } = opts;
+
     try {
-      const slugId = generateSlugId();
-      share = await this.shareRepo.insertShare({
-        slugId,
-        pageId,
-        workspaceId,
+      const shares = await this.shareRepo.findByPageId(page.id);
+      if (shares) {
+        return shares;
+      }
+
+      return await this.shareRepo.insertShare({
+        key: generateSlugId(),
+        pageId: page.id,
+        includeSubPages: includeSubPages,
         creatorId: authUserId,
-        spaceId: spaceId,
+        spaceId: page.spaceId,
+        workspaceId,
       });
     } catch (err) {
-      throw new BadRequestException('Failed to share page');
+      this.logger.error(err);
+      throw new BadRequestException('Failed to create page');
     }
-
-    return share;
   }
 
-  async getShare(dto: ShareInfoDto, workspaceId: string) {
-    const share = await this.shareRepo.findById(dto.shareId);
+  async getSharedPage(dto: ShareInfoDto, workspaceId: string) {
+    const share = await this.getShareStatus(dto.pageId, workspaceId);
 
-    if (!share || share.workspaceId !== workspaceId) {
-      throw new NotFoundException('Share not found');
+    if (!share) {
+      throw new NotFoundException('Shared page not found');
     }
 
-    let targetPageId = share.pageId;
-    if (dto.pageId && dto.pageId !== share.pageId) {
-      // Check if dto.pageId is a descendant of the shared page.
-      const isDescendant = await this.getShareAncestorPage(
-        share.pageId,
-        dto.pageId,
-      );
-      if (isDescendant) {
-        targetPageId = dto.pageId;
-      } else {
-        throw new NotFoundException(`Shared page not found`);
-      }
-    }
-
-    const page = await this.pageRepo.findById(targetPageId, {
+    const page = await this.pageRepo.findById(dto.pageId, {
       includeContent: true,
       includeCreator: true,
     });
@@ -87,6 +81,56 @@ export class ShareService {
     }
 
     return page;
+  }
+
+  async getShareStatus(pageId: string, workspaceId: string) {
+    // here we try to check if a page was shared directly or if it inherits the share from its closest shared ancestor
+    const share = await this.db
+      .withRecursive('page_hierarchy', (cte) =>
+        cte
+          .selectFrom('pages')
+          .select(['id', 'parentPageId', sql`0`.as('level')])
+          .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
+          .unionAll((union) =>
+            union
+              .selectFrom('pages as p')
+              .select([
+                'p.id',
+                'p.parentPageId',
+                // Increase the level by 1 for each ancestor.
+                sql`ph.level + 1`.as('level'),
+              ])
+              .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id'),
+          ),
+      )
+      .selectFrom('page_hierarchy')
+      .leftJoin('shares', 'shares.pageId', 'page_hierarchy.id')
+      .select([
+        'page_hierarchy.id as sharedPageId',
+        'page_hierarchy.level as level',
+        'shares.id as shareId',
+        'shares.key as shareKey',
+        'shares.includeSubPages as includeSubPages',
+        'shares.creatorId',
+        'shares.spaceId',
+        'shares.workspaceId',
+        'shares.createdAt',
+        'shares.updatedAt',
+      ])
+      .where('shares.id', 'is not', null)
+      .orderBy('page_hierarchy.level', 'asc')
+      .executeTakeFirst();
+
+    if (!share || share.workspaceId != workspaceId) {
+      throw new NotFoundException('Shared page not found');
+    }
+
+    if (share.level === 1 && !share.includeSubPages) {
+      // we can only show a page if its shared ancestor permits it
+      throw new NotFoundException('Shared page not found');
+    }
+
+    return share;
   }
 
   async getShareAncestorPage(

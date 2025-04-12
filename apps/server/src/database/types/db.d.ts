@@ -189,8 +189,9 @@ export interface Shares {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   includeSubPages: Generated<boolean | null>;
+  key: string;
   pageId: string | null;
-  slugId: string;
+  searchIndexing: Generated<boolean>;
   spaceId: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;

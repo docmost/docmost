@@ -6,11 +6,12 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
-    .addColumn('slug_id', 'varchar', (col) => col.notNull())
+    .addColumn('key', 'varchar', (col) => col.notNull())
     .addColumn('page_id', 'uuid', (col) =>
       col.references('pages.id').onDelete('cascade'),
     )
     .addColumn('include_sub_pages', 'boolean', (col) => col.defaultTo(false))
+    .addColumn('search_indexing', 'boolean', (col) => col.defaultTo(true))
     .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
     .addColumn('space_id', 'uuid', (col) =>
       col.references('spaces.id').onDelete('cascade').notNull(),
@@ -25,13 +26,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deleted_at', 'timestamptz', (col) => col)
-    .addUniqueConstraint('shares_slug_id_unique', ['slug_id'])
-    .execute();
-
-  await db.schema
-    .createIndex('shares_slug_id_idx')
-    .on('shares')
-    .column('slug_id')
+    .addUniqueConstraint('shares_key_unique', ['key'])
     .execute();
 }
 

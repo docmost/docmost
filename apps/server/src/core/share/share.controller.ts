@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -19,7 +20,7 @@ import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { ShareService } from './share.service';
 import { UpdateShareDto } from './dto/update-page.dto';
 import { CreateShareDto } from './dto/create-share.dto';
-import { ShareIdDto, ShareInfoDto } from './dto/share.dto';
+import { ShareIdDto, ShareInfoDto, SharePageIdDto } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -52,7 +53,32 @@ export class ShareController {
     @Body() dto: ShareInfoDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.shareService.getShare(dto, workspace.id);
+    if (!dto.pageId && !dto.shareId) {
+      throw new BadRequestException();
+    }
+
+    return this.shareService.getSharedPage(dto, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/status')
+  async getShareStatus(
+    @Body() dto: SharePageIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+
+    if (!page || workspace.id !== page.workspaceId) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Share)) {
+      throw new ForbiddenException();
+    }
+
+    return this.shareService.getShareStatus(page.id, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -74,10 +100,10 @@ export class ShareController {
     }
 
     return this.shareService.createShare({
-      pageId: page.id,
+      page,
       authUserId: user.id,
       workspaceId: workspace.id,
-      spaceId: page.spaceId,
+      includeSubPages: createShareDto.includeSubPages,
     });
   }
 

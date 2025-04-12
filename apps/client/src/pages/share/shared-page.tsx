@@ -2,14 +2,14 @@ import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useShareQuery } from "@/features/share/queries/share-query.ts";
-import { Container } from "@mantine/core";
+import { Affix, Button, Container } from "@mantine/core";
 import React from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
+import { Error404 } from "@/components/ui/error-404.tsx";
 
-export default function SharedPage() {
+export default function SingleSharedPage() {
   const { t } = useTranslation();
-  const { shareId } = useParams();
   const { pageSlug } = useParams();
 
   const {
@@ -17,7 +17,7 @@ export default function SharedPage() {
     isLoading,
     isError,
     error,
-  } = useShareQuery({ shareId: shareId, pageId: extractPageSlugId(pageSlug) });
+  } = useShareQuery({ pageId: extractPageSlugId(pageSlug) });
 
   if (isLoading) {
     return <></>;
@@ -25,7 +25,7 @@ export default function SharedPage() {
 
   if (isError || !page) {
     if ([401, 403, 404].includes(error?.["status"])) {
-      return <div>{t("Page not found")}</div>;
+      return <Error404 />;
     }
     return <div>{t("Error fetching page data.")}</div>;
   }
@@ -43,6 +43,10 @@ export default function SharedPage() {
           content={page.content}
         />
       </Container>
+
+      <Affix position={{ bottom: 20, right: 20 }}>
+        <Button variant="default">Powered by Docmost</Button>
+      </Affix>
     </div>
   );
 }
