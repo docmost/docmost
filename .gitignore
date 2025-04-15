@@ -41,3 +41,11 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+
+# dev local volumes
+/data
+/backups/*tar.gz
+/db_data
+/redis_data
+/docmost_data:
+

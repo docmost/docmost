@@ -1,0 +1,45 @@
+services:
+  docmost:
+    image: docmost/docmost:latest
+    depends_on:
+      - db
+      - redis
+    environment:
+      APP_URL: 'http://localhost:3000'
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public'
+      REDIS_URL: 'redis://redis:6379'
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/docmost_data:/app/data/storage
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - ./data/pg_data:/var/lib/postgresql/data
+      - ./backups:/backups
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    ports:
+      - "63790:6379"
+    volumes:
+      - ./data/redis_data:/data
+
+  backup:
+    image: alpine:3.21.3
+    container_name: data-backup
+    volumes:
+      - ./data:/data
+      - ./backups:/backups
+    entrypoint: /bin/sh -c "echo starting backup... && for i in 1 2; do sh /backups/backup.sh; sleep 60; done"  # запускаем 86400 бесконечный цукуеми! или 2 раза
+    depends_on:
+      - docmost
