@@ -10,8 +10,8 @@ import {
   IconBrush,
   IconCoin,
   IconLock,
-  IconKey,
-} from "@tabler/icons-react";
+  IconKey, IconWorld,
+} from '@tabler/icons-react';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
@@ -22,11 +22,11 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   prefetchBilling,
   prefetchGroups,
-  prefetchLicense,
+  prefetchLicense, prefetchShares,
   prefetchSpaces,
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
-} from "@/components/settings/settings-queries.tsx";
+} from '@/components/settings/settings-queries.tsx';
 import AppVersion from "@/components/settings/app-version.tsx";
 
 interface DataItem {
@@ -82,6 +82,8 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      { label: "Sharing", icon: IconWorld, path: "/settings/shares" },
+
     ],
   },
   {
@@ -169,6 +171,9 @@ export default function SettingsSidebar() {
               break;
             case "Security & SSO":
               prefetchHandler = prefetchSsoProviders;
+              break;
+            case "Sharing":
+              prefetchHandler = prefetchShares;
               break;
             default:
               break;

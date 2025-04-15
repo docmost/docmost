@@ -27,7 +27,10 @@ import { EditorState } from '@tiptap/pm/state';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import slugify = require('@sindresorhus/slugify');
 import { EnvironmentService } from '../environment/environment.service';
-import { getAttachmentIds, getProsemirrorContent } from '../../common/helpers/prosemirror/utils';
+import {
+  getAttachmentIds,
+  getProsemirrorContent,
+} from '../../common/helpers/prosemirror/utils';
 
 @Injectable()
 export class ExportService {
@@ -87,7 +90,9 @@ export class ExportService {
   }
 
   async exportPageWithChildren(pageId: string, format: string) {
-    const pages = await this.pageRepo.getPageAndDescendants(pageId);
+    const pages = await this.pageRepo.getPageAndDescendants(pageId, {
+      includeContent: true,
+    });
 
     if (!pages || pages.length === 0) {
       throw new BadRequestException('No pages to export');

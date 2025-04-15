@@ -131,6 +131,7 @@ export class ShareRepo {
     const query = this.db
       .selectFrom('shares')
       .select(this.baseFields)
+      .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb))
       .select((eb) => this.withCreator(eb))
       .where('spaceId', 'in', userSpaceIds)
@@ -144,6 +145,15 @@ export class ShareRepo {
     });
 
     return result;
+  }
+
+  withPage(eb: ExpressionBuilder<DB, 'shares'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('pages')
+        .select(['pages.id', 'pages.title', 'pages.slugId', 'pages.icon'])
+        .whereRef('pages.id', '=', 'shares.pageId'),
+    ).as('page');
   }
 
   withSpace(eb: ExpressionBuilder<DB, 'shares'>) {

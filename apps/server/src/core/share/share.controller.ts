@@ -140,4 +140,14 @@ export class ShareController {
 
     await this.shareRepo.deleteShare(share.id);
   }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/tree')
+  async getSharePageTree(
+    @Body() dto: ShareIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.shareService.getShareTree(dto.shareId, workspace.id);
+  }
 }

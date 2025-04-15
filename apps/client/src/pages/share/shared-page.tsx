@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useShareQuery } from "@/features/share/queries/share-query.ts";
-import { Affix, Button, Container } from "@mantine/core";
+import { Container } from "@mantine/core";
 import React from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
@@ -36,17 +36,13 @@ export default function SingleSharedPage() {
         <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
       </Helmet>
 
-      <Container size={900} pt={50}>
+      <Container size={900}>
         <ReadonlyPageEditor
           key={page.id}
           title={page.title}
           content={page.content}
         />
       </Container>
-
-      <Affix position={{ bottom: 20, right: 20 }}>
-        <Button variant="default">Powered by Docmost</Button>
-      </Affix>
     </div>
   );
 }

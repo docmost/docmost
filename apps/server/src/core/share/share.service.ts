@@ -34,6 +34,23 @@ export class ShareService {
     private readonly tokenService: TokenService,
   ) {}
 
+  async getShareTree(shareId: string, workspaceId: string) {
+    const share = await this.shareRepo.findById(shareId);
+    if (!share || share.workspaceId !== workspaceId) {
+      throw new NotFoundException('Share not found');
+    }
+
+    if (share.includeSubPages) {
+      const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
+        includeContent: false,
+      });
+
+      return { share, pageTree: pageList };
+    } else {
+      return { share, pageTree: [] };
+    }
+  }
+
   async createShare(opts: {
     authUserId: string;
     workspaceId: string;

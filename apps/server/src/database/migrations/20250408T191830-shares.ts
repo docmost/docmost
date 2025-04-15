@@ -26,7 +26,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('deleted_at', 'timestamptz', (col) => col)
-    .addUniqueConstraint('shares_key_unique', ['key'])
+    .addUniqueConstraint('shares_key_workspace_id_unique', [
+      'key',
+      'workspace_id',
+    ])
     .execute();
 }
 

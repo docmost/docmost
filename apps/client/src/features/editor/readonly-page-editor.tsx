@@ -6,6 +6,12 @@ import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
+import { useAtom } from "jotai/index";
+import {
+  pageEditorAtom,
+  readOnlyEditorAtom,
+} from "@/features/editor/atoms/editor-atoms.ts";
+import { Editor } from "@tiptap/core";
 
 interface PageEditorProps {
   title: string;
@@ -16,6 +22,8 @@ export default function ReadonlyPageEditor({
   title,
   content,
 }: PageEditorProps) {
+  const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
+
   const extensions = useMemo(() => {
     return [...mainExtensions];
   }, []);
@@ -46,6 +54,12 @@ export default function ReadonlyPageEditor({
         immediatelyRender={true}
         extensions={extensions}
         content={content}
+        onCreate={({ editor }) => {
+          if (editor) {
+            // @ts-ignore
+            setReadOnlyEditor(editor);
+          }
+        }}
       ></EditorProvider>
     </>
   );

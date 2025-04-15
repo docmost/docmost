@@ -1,19 +1,38 @@
-import { useMutation, useQuery, UseQueryResult } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
-import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 import {
   ICreateShare,
+  ISharedItem,
+  ISharedPageTree,
   IShareInfoInput,
 } from "@/features/share/types/share.types.ts";
 import {
   createShare,
   deleteShare,
+  getSharedPageTree,
   getShareInfo,
+  getShares,
   getShareStatus,
   updateShare,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
+import { IPagination, QueryParams } from "@/lib/types.ts";
+
+export function useGetSharesQuery(
+  params?: QueryParams,
+): UseQueryResult<IPagination<ISharedItem>, Error> {
+  return useQuery({
+    queryKey: ["share-list"],
+    queryFn: () => getShares(params),
+    placeholderData: keepPreviousData,
+  });
+}
 
 export function useShareQuery(
   shareInput: Partial<IShareInfoInput>,
@@ -22,7 +41,6 @@ export function useShareQuery(
     queryKey: ["shares", shareInput],
     queryFn: () => getShareInfo(shareInput),
     enabled: !!shareInput.pageId,
-    staleTime: 5 * 60 * 1000,
   });
 
   return query;
@@ -71,5 +89,17 @@ export function useDeleteShareMutation() {
         color: "red",
       });
     },
+  });
+}
+
+export function useGetSharedPageTreeQuery(
+  shareId: string,
+): UseQueryResult<ISharedPageTree, Error> {
+  return useQuery({
+    queryKey: ["shared-page-tree", shareId],
+    queryFn: () => getSharedPageTree(shareId),
+    enabled: !!shareId,
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 60 * 1000,
   });
 }
