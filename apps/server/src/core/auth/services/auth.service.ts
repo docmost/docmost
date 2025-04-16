@@ -43,6 +43,8 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
+    console.log("[loginDto]")
+    console.log(loginDto)
     const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
       includePassword: true,
     });

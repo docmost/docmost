@@ -4,6 +4,7 @@ start:
 stop:
 	@echo ~#~#~#~ CHECK THAT BACKAP CONTAINER NOT RUNNING TASK [or yoy gona need kill it with own hands] ~#~#~#~
 	docker compose down --volumes --remove-orphans
+	docker rmi -f docmost-docmost:latest
 
 restart:
 	-docker compose down --volumes

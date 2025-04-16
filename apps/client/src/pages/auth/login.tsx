@@ -13,6 +13,7 @@ export default function LoginPage() {
           {t("Login")} - {getAppName()}
         </title>
       </Helmet>
+      LOGIN TEST
       <LoginForm />
     </>
   );
