@@ -149,6 +149,11 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
 
   return (
     <>
+      {props.isShare && (
+        <Text mb="md" fw={500}>
+          {t("Table of contents")}
+        </Text>
+      )}
       <div className={props.isShare ? classes.leftBorder : ""}>
         {links.map((item, idx) => (
           <Box<"button">

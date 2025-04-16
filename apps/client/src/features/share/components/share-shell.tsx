@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActionIcon,
   Affix,
   AppShell,
   Button,
@@ -27,6 +28,8 @@ import {
   mobileTableOfContentAsideAtom,
   tableOfContentAsideAtom,
 } from "@/features/share/atoms/sidebar-atom.ts";
+import { IconList } from "@tabler/icons-react";
+import { useToggleToc } from "@/features/share/hooks/use-toggle-toc.ts";
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -43,6 +46,8 @@ export default function ShareShell({
 
   const [tocOpened] = useAtom(tableOfContentAsideAtom);
   const [mobileTocOpened] = useAtom(mobileTableOfContentAsideAtom);
+  const toggleTocMobile = useToggleToc(mobileTableOfContentAsideAtom);
+  const toggleToc = useToggleToc(tableOfContentAsideAtom);
 
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
@@ -61,16 +66,16 @@ export default function ShareShell({
       }}
       aside={{
         width: 300,
-        breakpoint: "md",
+        breakpoint: "sm",
         collapsed: {
-          mobile: mobileTocOpened,
-          desktop: tocOpened,
+          mobile: !mobileTocOpened,
+          desktop: !tocOpened,
         },
       }}
       padding="md"
     >
       <AppShell.Header>
-        <Group wrap="nowrap" justify="space-between" p="sm">
+        <Group wrap="nowrap" justify="space-between" py="sm" px="xl">
           <Group>
             {data?.pageTree?.length > 0 && (
               <>
@@ -97,6 +102,32 @@ export default function ShareShell({
             )}
           </Group>
           <Group>
+            <>
+              <Tooltip label={t("Table of contents")} withArrow>
+                <ActionIcon
+                  variant="default"
+                  style={{ border: "none" }}
+                  onClick={toggleTocMobile}
+                  hiddenFrom="sm"
+                  size="sm"
+                >
+                  <IconList size={20} stroke={2} />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label={t("Table of contents")} withArrow>
+                <ActionIcon
+                  variant="default"
+                  style={{ border: "none" }}
+                  onClick={toggleToc}
+                  visibleFrom="sm"
+                  size="sm"
+                >
+                  <IconList size={20} stroke={2} />
+                </ActionIcon>
+              </Tooltip>
+            </>
+
             <ThemeToggle />
           </Group>
         </Group>
@@ -124,10 +155,6 @@ export default function ShareShell({
       </AppShell.Main>
 
       <AppShell.Aside p="md" withBorder={false}>
-        <Text mb="md" fw={500}>
-          Table of contents
-        </Text>
-
         <ScrollArea style={{ height: "80vh" }} scrollbarSize={5} type="scroll">
           <div style={{ paddingBottom: "50px" }}>
             {readOnlyEditor && (

@@ -1,5 +1,5 @@
 import { atomWithWebStorage } from "@/lib/jotai-helper.ts";
-import { atom } from 'jotai/index';
+import { atom } from 'jotai';
 
 export const tableOfContentAsideAtom = atomWithWebStorage<boolean>(
   "showTOC",
@@ -7,7 +7,3 @@ export const tableOfContentAsideAtom = atomWithWebStorage<boolean>(
 );
 
 export const mobileTableOfContentAsideAtom = atom<boolean>(false);
-
-
-
-const sidebarWidthAtom = atomWithWebStorage<number>('sidebarWidth', 300);

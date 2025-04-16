@@ -61,6 +61,7 @@ export default function ReadonlyPageEditor({
           }
         }}
       ></EditorProvider>
+      <div style={{ paddingBottom: "20vh" }}></div>
     </>
   );
 }
