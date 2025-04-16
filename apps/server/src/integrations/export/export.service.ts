@@ -19,7 +19,7 @@ import {
   getPageTitle,
   PageExportTree,
   replaceInternalLinks,
-  updateAttachmentUrls,
+  updateAttachmentUrlsToLocalPaths,
 } from './utils';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Node } from '@tiptap/pm/model';
@@ -200,7 +200,7 @@ export class ExportService {
 
         if (includeAttachments) {
           await this.zipAttachments(updatedJsonContent, page.spaceId, folder);
-          updatedJsonContent = updateAttachmentUrls(updatedJsonContent);
+          updatedJsonContent = updateAttachmentUrlsToLocalPaths(updatedJsonContent);
         }
 
         const pageTitle = getPageTitle(page.title);
