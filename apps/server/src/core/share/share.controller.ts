@@ -18,9 +18,13 @@ import {
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { ShareService } from './share.service';
-import { UpdateShareDto } from './dto/update-page.dto';
-import { CreateShareDto } from './dto/create-share.dto';
-import { ShareIdDto, ShareInfoDto, SharePageIdDto } from './dto/share.dto';
+import {
+  CreateShareDto,
+  ShareIdDto,
+  ShareInfoDto,
+  SharePageIdDto,
+  UpdateShareDto,
+} from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -48,8 +52,8 @@ export class ShareController {
 
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Post('/info')
-  async getShare(
+  @Post('/page-info')
+  async getSharedPageInfo(
     @Body() dto: ShareInfoDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -61,24 +65,40 @@ export class ShareController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('/status')
-  async getShareStatus(
+  @Post('/info')
+  async getShare(@Body() dto: ShareIdDto, @AuthUser() user: User) {
+    const share = await this.shareRepo.findById(dto.shareId);
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
+      throw new ForbiddenException();
+    }
+
+    return share;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/for-page')
+  async getShareForPage(
     @Body() dto: SharePageIdDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
     const page = await this.pageRepo.findById(dto.pageId);
-
-    if (!page || workspace.id !== page.workspaceId) {
-      throw new NotFoundException('Page not found');
+    if (!page) {
+      throw new NotFoundException('Shared page not found');
     }
 
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Share)) {
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
       throw new ForbiddenException();
     }
 
-    return this.shareService.getShareStatus(page.id, workspace.id);
+    return this.shareService.getShareForPage(page.id, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -103,7 +123,7 @@ export class ShareController {
       page,
       authUserId: user.id,
       workspaceId: workspace.id,
-      includeSubPages: createShareDto.includeSubPages,
+      createShareDto,
     });
   }
 
@@ -121,7 +141,7 @@ export class ShareController {
       throw new ForbiddenException();
     }
 
-    //return this.shareService.update(page, updatePageDto, user.id);
+    return this.shareService.updateShare(share.id, updateShareDto);
   }
 
   @HttpCode(HttpStatus.OK)

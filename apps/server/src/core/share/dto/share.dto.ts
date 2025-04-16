@@ -6,6 +6,30 @@ import {
   IsUUID,
 } from 'class-validator';
 
+export class CreateShareDto {
+  @IsString()
+  @IsNotEmpty()
+  pageId: string;
+
+  @IsBoolean()
+  @IsOptional()
+  includeSubPages: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  searchIndexing: boolean;
+}
+
+export class UpdateShareDto extends CreateShareDto {
+  @IsString()
+  @IsNotEmpty()
+  shareId: string;
+
+  @IsString()
+  @IsOptional()
+  pageId: string;
+}
+
 export class ShareIdDto {
   @IsString()
   @IsNotEmpty()

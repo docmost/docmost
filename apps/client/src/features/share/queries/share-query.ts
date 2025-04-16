@@ -2,23 +2,26 @@ import {
   keepPreviousData,
   useMutation,
   useQuery,
+  useQueryClient,
   UseQueryResult,
 } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import {
   ICreateShare,
-  ISharedItem,
+  ISharedItem, ISharedPage,
   ISharedPageTree,
+  IShareForPage,
   IShareInfoInput,
-} from "@/features/share/types/share.types.ts";
+  IUpdateShare,
+} from '@/features/share/types/share.types.ts';
 import {
   createShare,
   deleteShare,
   getSharedPageTree,
+  getShareForPage,
   getShareInfo,
   getShares,
-  getShareStatus,
   updateShare,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
@@ -36,7 +39,7 @@ export function useGetSharesQuery(
 
 export function useShareQuery(
   shareInput: Partial<IShareInfoInput>,
-): UseQueryResult<IPage, Error> {
+): UseQueryResult<ISharedPage, Error> {
   const query = useQuery({
     queryKey: ["shares", shareInput],
     queryFn: () => getShareInfo(shareInput),
@@ -46,12 +49,12 @@ export function useShareQuery(
   return query;
 }
 
-export function useShareStatusQuery(
+export function useShareForPageQuery(
   pageId: string,
-): UseQueryResult<IPage, Error> {
+): UseQueryResult<IShareForPage, Error> {
   const query = useQuery({
-    queryKey: ["share-status", pageId],
-    queryFn: () => getShareStatus(pageId),
+    queryKey: ["share-for-page", pageId],
+    queryFn: () => getShareForPage(pageId),
     enabled: !!pageId,
     staleTime: 5 * 60 * 1000,
   });
@@ -63,7 +66,6 @@ export function useCreateShareMutation() {
   const { t } = useTranslation();
   return useMutation<any, Error, ICreateShare>({
     mutationFn: (data) => createShare(data),
-    onSuccess: (data) => {},
     onError: (error) => {
       notifications.show({ message: t("Failed to share page"), color: "red" });
     },
@@ -71,8 +73,15 @@ export function useCreateShareMutation() {
 }
 
 export function useUpdateShareMutation() {
-  return useMutation<any, Error, Partial<IShareInfoInput>>({
+  const queryClient = useQueryClient();
+  return useMutation<any, Error, IUpdateShare>({
     mutationFn: (data) => updateShare(data),
+    onSuccess: (data) => {
+      queryClient.refetchQueries({
+        predicate: (item) =>
+          ["share-for-page"].includes(item.queryKey[0] as string),
+      });
+    },
   });
 }
 

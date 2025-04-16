@@ -5,6 +5,7 @@ export interface IShare {
   key: string;
   pageId: string;
   includeSubPages: boolean;
+  searchIndexing: boolean;
   creatorId: string;
   spaceId: string;
   workspaceId: string;
@@ -32,10 +33,35 @@ export interface ISharedItem extends IShare {
   };
 }
 
-export interface ICreateShare {
-  pageId: string;
-  includeSubPages?: boolean;
+export interface ISharedPage extends IShare {
+  page: IPage;
+  share: IShare & {
+    level: number;
+    sharedPage: { id: string; slugId: string; title: string };
+  };
 }
+
+export interface IShareForPage extends IShare {
+  level: number;
+  page: {
+    id: string;
+    title: string;
+    slugId: string;
+  };
+  sharedPage: {
+    id: string;
+    slugId: string;
+    title: string;
+  };
+}
+
+export interface ICreateShare {
+  pageId?: string;
+  includeSubPages?: boolean;
+  searchIndexing?: boolean;
+}
+
+export type IUpdateShare = ICreateShare & { shareId: string; pageId?: string };
 
 export interface IShareInfoInput {
   pageId: string;

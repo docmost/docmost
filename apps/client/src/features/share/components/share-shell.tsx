@@ -2,13 +2,12 @@ import React from "react";
 import {
   Affix,
   AppShell,
-  Burger,
   Button,
   Group,
   ScrollArea,
   Text,
+  Tooltip,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useGetSharedPageTreeQuery } from "@/features/share/queries/share-query.ts";
 import { useParams } from "react-router-dom";
 import SharedTree from "@/features/share/components/shared-tree.tsx";
@@ -16,6 +15,18 @@ import { TableOfContents } from "@/features/editor/components/table-of-contents/
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { useAtomValue } from "jotai";
+import { useAtom } from "jotai";
+import {
+  desktopSidebarAtom,
+  mobileSidebarAtom,
+} from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
+import { useTranslation } from "react-i18next";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import {
+  mobileTableOfContentAsideAtom,
+  tableOfContentAsideAtom,
+} from "@/features/share/atoms/sidebar-atom.ts";
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -24,7 +35,15 @@ export default function ShareShell({
 }: {
   children: React.ReactNode;
 }) {
-  const [opened, { toggle }] = useDisclosure();
+  const { t } = useTranslation();
+  const [mobileOpened] = useAtom(mobileSidebarAtom);
+  const [desktopOpened] = useAtom(desktopSidebarAtom);
+  const toggleMobile = useToggleSidebar(mobileSidebarAtom);
+  const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
+
+  const [tocOpened] = useAtom(tableOfContentAsideAtom);
+  const [mobileTocOpened] = useAtom(mobileTableOfContentAsideAtom);
+
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
@@ -35,19 +54,51 @@ export default function ShareShell({
       navbar={{
         width: 300,
         breakpoint: "sm",
-        collapsed: { mobile: !opened, desktop: false },
+        collapsed: {
+          mobile: !mobileOpened,
+          desktop: !desktopOpened,
+        },
       }}
       aside={{
         width: 300,
-        breakpoint: "sm",
-        collapsed: { mobile: true, desktop: false },
+        breakpoint: "md",
+        collapsed: {
+          mobile: mobileTocOpened,
+          desktop: tocOpened,
+        },
       }}
       padding="md"
     >
       <AppShell.Header>
         <Group wrap="nowrap" justify="space-between" p="sm">
-          <Burger opened={opened} onClick={toggle} size="sm" />
-          <ThemeToggle />
+          <Group>
+            {data?.pageTree?.length > 0 && (
+              <>
+                <Tooltip label={t("Sidebar toggle")}>
+                  <SidebarToggle
+                    aria-label={t("Sidebar toggle")}
+                    opened={mobileOpened}
+                    onClick={toggleMobile}
+                    hiddenFrom="sm"
+                    size="sm"
+                  />
+                </Tooltip>
+
+                <Tooltip label={t("Sidebar toggle")}>
+                  <SidebarToggle
+                    aria-label={t("Sidebar toggle")}
+                    opened={desktopOpened}
+                    onClick={toggleDesktop}
+                    visibleFrom="sm"
+                    size="sm"
+                  />
+                </Tooltip>
+              </>
+            )}
+          </Group>
+          <Group>
+            <ThemeToggle />
+          </Group>
         </Group>
       </AppShell.Header>
 

@@ -98,6 +98,7 @@ export class ShareRepo {
       .updateTable('shares')
       .set({ ...updatableShare, updatedAt: new Date() })
       .where(!isValidUUID(shareId) ? 'key' : 'id', '=', shareId)
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 

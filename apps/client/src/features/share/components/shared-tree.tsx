@@ -22,6 +22,8 @@ import { extractPageSlugId } from "@/lib";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import styles from "./share.module.css";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 
 interface SharedTree {
   sharedPageTree: ISharedPageTree;
@@ -40,6 +42,7 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(
     openSharedTreeNodesAtom,
   );
+
   const currentNodeId = extractPageSlugId(pageSlug);
 
   const treeData: SharedPageTreeNode[] = useMemo(() => {
@@ -99,6 +102,11 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
             setOpenTreeNodes(tree?.openState);
           }}
           initialOpenState={openTreeNodes}
+          onClick={(e) => {
+            if (tree && tree.focusedNode) {
+              tree.select(tree.focusedNode);
+            }
+          }}
         >
           {Node}
         </Tree>
@@ -108,9 +116,9 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
 }
 
 function Node({ node, style, tree }: NodeRendererProps<any>) {
-  const navigate = useNavigate();
   const { shareId } = useParams();
   const { t } = useTranslation();
+  const [, setMobileSidebarState] = useAtom(mobileSidebarAtom);
 
   const pageUrl = buildSharedPageUrl({
     shareId: shareId,
@@ -125,6 +133,9 @@ function Node({ node, style, tree }: NodeRendererProps<any>) {
         className={clsx(classes.node, node.state, styles.treeNode)}
         component={Link}
         to={pageUrl}
+        onClick={() => {
+          setMobileSidebarState(false);
+        }}
       >
         <PageArrow node={node} />
         <span className={classes.text}>{node.data.name || t("untitled")}</span>

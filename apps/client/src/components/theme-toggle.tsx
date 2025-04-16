@@ -9,17 +9,15 @@ import classes from "./theme-toggle.module.css";
 
 export function ThemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
-  const computedColorScheme = useComputedColorScheme("light", {
-    getInitialValueInEffect: true,
-  });
+  const computedColorScheme = useComputedColorScheme();
 
   return (
     <Tooltip label="Toggle Color Scheme">
       <ActionIcon
         variant="default"
-        onClick={() =>
-          setColorScheme(computedColorScheme === "light" ? "dark" : "light")
-        }
+        onClick={() => {
+          setColorScheme(computedColorScheme === "light" ? "dark" : "light");
+        }}
         aria-label="Toggle color scheme"
       >
         <IconSun className={classes.light} size={18} stroke={1.5} />
