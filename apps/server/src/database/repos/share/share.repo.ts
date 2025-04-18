@@ -10,7 +10,7 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { validate as isValidUUID } from 'uuid';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
@@ -27,6 +27,7 @@ export class ShareRepo {
     'key',
     'pageId',
     'includeSubPages',
+    'searchIndexing',
     'creatorId',
     'spaceId',
     'workspaceId',
@@ -133,7 +134,7 @@ export class ShareRepo {
       .selectFrom('shares')
       .select(this.baseFields)
       .select((eb) => this.withPage(eb))
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => this.withSpace(eb, userId))
       .select((eb) => this.withCreator(eb))
       .where('spaceId', 'in', userSpaceIds)
       .orderBy('updatedAt', 'desc');
@@ -157,13 +158,53 @@ export class ShareRepo {
     ).as('page');
   }
 
-  withSpace(eb: ExpressionBuilder<DB, 'shares'>) {
+  withSpace(eb: ExpressionBuilder<DB, 'shares'>, userId?: string) {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
         .select(['spaces.id', 'spaces.name', 'spaces.slug'])
+        .$if(Boolean(userId), (qb) =>
+          qb.select((eb) => this.withUserSpaceRole(eb, userId)),
+        )
         .whereRef('spaces.id', '=', 'shares.spaceId'),
     ).as('space');
+  }
+
+  withUserSpaceRole(eb: ExpressionBuilder<DB, 'spaces'>, userId: string) {
+    return eb
+      .selectFrom(
+        eb
+          .selectFrom('spaceMembers')
+          .select(['spaceMembers.role'])
+          .whereRef('spaceMembers.spaceId', '=', 'spaces.id')
+          .where('spaceMembers.userId', '=', userId)
+          .unionAll(
+            eb
+              .selectFrom('spaceMembers')
+              .innerJoin(
+                'groupUsers',
+                'groupUsers.groupId',
+                'spaceMembers.groupId',
+              )
+              .select(['spaceMembers.role'])
+              .whereRef('spaceMembers.spaceId', '=', 'spaces.id')
+              .where('groupUsers.userId', '=', userId),
+          )
+          .as('roles_union'),
+      )
+      .select('roles_union.role')
+      .orderBy(
+        sql`CASE roles_union.role
+            WHEN 'admin' THEN 3
+            WHEN 'writer' THEN 2
+            WHEN 'reader' THEN 1
+            ELSE 0
+           END`,
+
+        'desc',
+      )
+      .limit(1)
+      .as('userRole');
   }
 
   withCreator(eb: ExpressionBuilder<DB, 'shares'>) {
