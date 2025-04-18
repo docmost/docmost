@@ -69,7 +69,7 @@ export class ShareService {
         key: generateSlugId(),
         pageId: page.id,
         includeSubPages: createShareDto.includeSubPages,
-        searchIndexing: true,
+        searchIndexing: createShareDto.searchIndexing,
         creatorId: authUserId,
         spaceId: page.spaceId,
         workspaceId,
@@ -126,6 +126,7 @@ export class ShareService {
             'id',
             'slugId',
             'pages.title',
+            'pages.icon',
             'parentPageId',
             sql`0`.as('level'),
           ])
@@ -137,6 +138,7 @@ export class ShareService {
                 'p.id',
                 'p.slugId',
                 'p.title',
+                'p.icon',
                 'p.parentPageId',
                 // Increase the level by 1 for each ancestor.
                 sql`ph.level + 1`.as('level'),
@@ -150,11 +152,13 @@ export class ShareService {
         'page_hierarchy.id as sharedPageId',
         'page_hierarchy.slugId as sharedPageSlugId',
         'page_hierarchy.title as sharedPageTitle',
+        'page_hierarchy.icon as sharedPageIcon',
         'page_hierarchy.level as level',
         'shares.id',
         'shares.key',
         'shares.pageId',
         'shares.includeSubPages',
+        'shares.searchIndexing',
         'shares.creatorId',
         'shares.spaceId',
         'shares.workspaceId',
@@ -166,18 +170,19 @@ export class ShareService {
       .executeTakeFirst();
 
     if (!share || share.workspaceId != workspaceId) {
-      throw new NotFoundException('Shared page not found');
+      return undefined;
     }
 
     if (share.level === 1 && !share.includeSubPages) {
       // we can only show a page if its shared ancestor permits it
-      throw new NotFoundException('Shared page not found');
+      return undefined;
     }
 
     return {
       id: share.id,
       key: share.key,
       includeSubPages: share.includeSubPages,
+      searchIndexing: share.searchIndexing,
       pageId: share.pageId,
       creatorId: share.creatorId,
       spaceId: share.spaceId,
@@ -188,6 +193,7 @@ export class ShareService {
         id: share.sharedPageId,
         slugId: share.sharedPageSlugId,
         title: share.sharedPageTitle,
+        icon: share.sharedPageIcon,
       },
     };
   }

@@ -82,7 +82,7 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
-      { label: "Sharing", icon: IconWorld, path: "/settings/shares" },
+      { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
 
     ],
   },
@@ -172,7 +172,7 @@ export default function SettingsSidebar() {
             case "Security & SSO":
               prefetchHandler = prefetchSsoProviders;
               break;
-            case "Sharing":
+            case "Public sharing":
               prefetchHandler = prefetchShares;
               break;
             default:

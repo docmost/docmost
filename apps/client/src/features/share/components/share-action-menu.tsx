@@ -8,7 +8,6 @@ import {
 } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
-import useUserRole from "@/hooks/use-user-role.tsx";
 import { ISharedItem } from "@/features/share/types/share.types.ts";
 import {
   buildPageUrl,
@@ -17,15 +16,16 @@ import {
 import { useClipboard } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
+import { useDeleteShareMutation } from "@/features/share/queries/share-query.ts";
 
 interface Props {
   share: ISharedItem;
 }
 export default function ShareActionMenu({ share }: Props) {
   const { t } = useTranslation();
-  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const clipboard = useClipboard();
+  const deleteShareMutation = useDeleteShareMutation();
 
   const openPage = () => {
     const pageLink = buildPageUrl(
@@ -38,7 +38,7 @@ export default function ShareActionMenu({ share }: Props) {
 
   const copyLink = () => {
     const shareLink = buildSharedPageUrl({
-      shareId: share.includeSubPages ? share.key : undefined,
+      shareId: share.key,
       pageTitle: share.page.title,
       pageSlugId: share.page.slugId,
     });
@@ -47,19 +47,19 @@ export default function ShareActionMenu({ share }: Props) {
     notifications.show({ message: t("Link copied") });
   };
   const onRevoke = async () => {
-    //
+    deleteShareMutation.mutateAsync(share.key);
   };
 
   const openRevokeModal = () =>
     modals.openConfirmModal({
-      title: t("Unshare page"),
+      title: t("Revoke public link"),
       children: (
         <Text size="sm">
-          {t("Are you sure you want to unshare this page?")}
+          {t("Are you sure you want to revoke this public link?")}
         </Text>
       ),
       centered: true,
-      labels: { confirm: t("Unshare"), cancel: t("Don't") },
+      labels: { confirm: t("Revoke"), cancel: t("Don't") },
       confirmProps: { color: "red" },
       onConfirm: onRevoke,
     });
@@ -95,9 +95,9 @@ export default function ShareActionMenu({ share }: Props) {
             c="red"
             onClick={openRevokeModal}
             leftSection={<IconTrash size={16} />}
-            disabled={!isAdmin}
+            disabled={share.space?.userRole === "reader"}
           >
-            {t("Unshare")}
+            {t("Revoke")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>

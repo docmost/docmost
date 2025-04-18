@@ -25,6 +25,7 @@ export interface ISharedItem extends IShare {
     id: string;
     name: string;
     slug: string;
+    userRole: string;
   };
   creator: {
     id: string;
@@ -37,21 +38,17 @@ export interface ISharedPage extends IShare {
   page: IPage;
   share: IShare & {
     level: number;
-    sharedPage: { id: string; slugId: string; title: string };
+    sharedPage: { id: string; slugId: string; title: string; icon: string };
   };
 }
 
 export interface IShareForPage extends IShare {
   level: number;
-  page: {
-    id: string;
-    title: string;
-    slugId: string;
-  };
   sharedPage: {
     id: string;
     slugId: string;
     title: string;
+    icon: string;
   };
 }
 

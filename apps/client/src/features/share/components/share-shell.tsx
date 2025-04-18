@@ -6,7 +6,6 @@ import {
   Button,
   Group,
   ScrollArea,
-  Text,
   Tooltip,
 } from "@mantine/core";
 import { useGetSharedPageTreeQuery } from "@/features/share/queries/share-query.ts";
@@ -56,14 +55,16 @@ export default function ShareShell({
   return (
     <AppShell
       header={{ height: 48 }}
-      navbar={{
-        width: 300,
-        breakpoint: "sm",
-        collapsed: {
-          mobile: !mobileOpened,
-          desktop: !desktopOpened,
+      {...(data?.pageTree?.length > 1 && {
+        navbar: {
+          width: 300,
+          breakpoint: "sm",
+          collapsed: {
+            mobile: !mobileOpened,
+            desktop: !desktopOpened,
+          },
         },
-      }}
+      })}
       aside={{
         width: 300,
         breakpoint: "sm",
@@ -77,7 +78,7 @@ export default function ShareShell({
       <AppShell.Header>
         <Group wrap="nowrap" justify="space-between" py="sm" px="xl">
           <Group>
-            {data?.pageTree?.length > 0 && (
+            {data?.pageTree?.length > 1 && (
               <>
                 <Tooltip label={t("Sidebar toggle")}>
                   <SidebarToggle
@@ -133,7 +134,7 @@ export default function ShareShell({
         </Group>
       </AppShell.Header>
 
-      {data?.pageTree?.length > 0 && (
+      {data?.pageTree?.length > 1 && (
         <AppShell.Navbar p="md">
           <MemoizedSharedTree sharedPageTree={data} />
         </AppShell.Navbar>

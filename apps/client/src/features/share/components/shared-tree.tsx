@@ -7,7 +7,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useElementSize, useMergedRef } from "@mantine/hooks";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { atom, useAtom } from "jotai/index";
 import { useTranslation } from "react-i18next";
 import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
@@ -22,7 +22,6 @@ import { extractPageSlugId } from "@/lib";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import styles from "./share.module.css";
-import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 
 interface SharedTree {
@@ -54,12 +53,16 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
     const parentNodeId = treeData?.[0]?.slugId;
 
     if (parentNodeId && tree) {
+      const parentNode = tree.get(parentNodeId);
+
       setTimeout(() => {
-        tree.openSiblings(tree.get(parentNodeId));
+        if (parentNode) {
+          tree.openSiblings(parentNode);
+        }
       });
 
       // open direct children of parent node
-      tree.get(parentNodeId).children.forEach((node) => {
+      parentNode?.children.forEach((node) => {
         tree.openSiblings(node);
       });
     }
@@ -84,7 +87,7 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
         <Tree
-          initialData={treeData}
+          data={treeData}
           disableDrag={true}
           disableDrop={true}
           disableEdit={true}

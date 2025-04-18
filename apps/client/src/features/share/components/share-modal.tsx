@@ -1,31 +1,42 @@
 import {
-  Button,
+  ActionIcon,
+  Anchor,
   Group,
+  Indicator,
   Popover,
   Switch,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import { IconWorld } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import {
   useCreateShareMutation,
+  useDeleteShareMutation,
   useShareForPageQuery,
   useUpdateShareMutation,
 } from "@/features/share/queries/share-query.ts";
-import { useParams } from "react-router-dom";
-import { extractPageSlugId } from "@/lib";
+import { Link, useParams } from "react-router-dom";
+import { extractPageSlugId, getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
 import CopyTextButton from "@/components/common/copy.tsx";
 import { getAppUrl } from "@/lib/config.ts";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import classes from "@/features/share/components/share.module.css";
 
-export default function ShareModal() {
+interface ShareModalProps {
+  readOnly: boolean;
+}
+export default function ShareModal({ readOnly }: ShareModalProps) {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const pageId = extractPageSlugId(pageSlug);
   const { data: share } = useShareForPageQuery(pageId);
+  const { spaceSlug } = useParams();
   const createShareMutation = useCreateShareMutation();
   const updateShareMutation = useUpdateShareMutation();
+  const deleteShareMutation = useDeleteShareMutation();
   // pageIsShared means that the share exists and its level equals zero.
   const pageIsShared = share && share.level === 0;
   // if level is greater than zero, then it is a descendant page from a shared page
@@ -33,16 +44,6 @@ export default function ShareModal() {
 
   const publicLink = `${getAppUrl()}/share/${share?.key}/${pageSlug}`;
 
-
-  // TODO: think of permissions
-  // controls should be read only for non space editors.
-
-
-  // we could use the same shared content but have it have a share status
-  // when you unshare, we hide the rest menu
-
-  // todo, is public only if this is the shared page
-  // if this is not the shared page and include chdilren == false, then set it to false
   const [isPagePublic, setIsPagePublic] = useState<boolean>(false);
   useEffect(() => {
     if (share) {
@@ -54,9 +55,20 @@ export default function ShareModal() {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
-    createShareMutation.mutateAsync({ pageId: pageId });
-    setIsPagePublic(value);
-    // on create refetch share
+
+    if (value) {
+      createShareMutation.mutateAsync({
+        pageId: pageId,
+        includeSubPages: true,
+        searchIndexing: true,
+      });
+      setIsPagePublic(value);
+    } else {
+      if (share && share.id) {
+        deleteShareMutation.mutateAsync(share.id);
+        setIsPagePublic(value);
+      }
+    }
   };
 
   const handleSubPagesChange = async (
@@ -82,32 +94,74 @@ export default function ShareModal() {
   return (
     <Popover width={350} position="bottom" withArrow shadow="md">
       <Popover.Target>
-        <Button
-          variant="default"
-          style={{ border: "none" }}
-          leftSection={<IconWorld size={20} stroke={1.5} />}
-        >
-          Share
-        </Button>
+        <Tooltip label={t("Share")} openDelay={250} withArrow>
+          <Indicator
+            color="green"
+            offset={7}
+            disabled={!isPagePublic}
+            withBorder
+          >
+            <ActionIcon variant="default" style={{ border: "none" }}>
+              <IconWorld size={20} stroke={1.5} />
+            </ActionIcon>
+          </Indicator>
+        </Tooltip>
       </Popover.Target>
       <Popover.Dropdown>
         {isDescendantShared ? (
-          <Text>
-            {t("This page was shared via")} {share.sharedPage.title}
-          </Text>
+          <>
+            <Text size="sm">{t("Inherits public sharing from")}</Text>
+            <Anchor
+              size="sm"
+              underline="never"
+              style={{
+                cursor: "pointer",
+                color: "var(--mantine-color-text)",
+              }}
+              component={Link}
+              to={buildPageUrl(
+                spaceSlug,
+                share.sharedPage.slugId,
+                share.sharedPage.title,
+              )}
+            >
+              <Group gap="4" wrap="nowrap" my="sm">
+                {getPageIcon(share.sharedPage.icon)}
+                <div className={classes.shareLinkText}>
+                  <Text fz="sm" fw={500} lineClamp={1}>
+                    {share.sharedPage.title || t("untitled")}
+                  </Text>
+                </div>
+              </Group>
+            </Anchor>
+
+            <Group my="sm" grow>
+              <TextInput
+                variant="filled"
+                value={publicLink}
+                readOnly
+                rightSection={<CopyTextButton text={publicLink} />}
+              />
+            </Group>
+          </>
         ) : (
           <>
             <Group justify="space-between" wrap="nowrap" gap="xl">
               <div>
-                <Text>Share page</Text>
+                <Text size="sm">
+                  {isPagePublic ? t("Publicly shared") : t("Share to web")}
+                </Text>
                 <Text size="xs" c="dimmed">
-                  Make it public to the internet
+                  {isPagePublic
+                    ? t("Anyone with the link can view this page")
+                    : t("Make this page publicly accessible")}
                 </Text>
               </div>
               <Switch
                 onChange={handleChange}
                 defaultChecked={isPagePublic}
-                size="sm"
+                disabled={readOnly}
+                size="xs"
               />
             </Group>
 
@@ -124,29 +178,32 @@ export default function ShareModal() {
 
                 <Group justify="space-between" wrap="nowrap" gap="xl">
                   <div>
-                    <Text>{t("Include sub pages")}</Text>
+                    <Text size="sm">{t("Include sub-pages")}</Text>
                     <Text size="xs" c="dimmed">
-                      Include children of this page
+                      {t("Make sub-pages public too")}
                     </Text>
                   </div>
+
                   <Switch
                     onChange={handleSubPagesChange}
                     checked={share.includeSubPages}
                     size="xs"
+                    disabled={readOnly}
                   />
                 </Group>
 
                 <Group justify="space-between" wrap="nowrap" gap="xl" mt="sm">
                   <div>
-                    <Text>{t("Enable search indexing")}</Text>
+                    <Text size="sm">{t("Search engine indexing")}</Text>
                     <Text size="xs" c="dimmed">
-                      Allow search engine indexing
+                      {t("Allow search engines to index page")}
                     </Text>
                   </div>
                   <Switch
                     onChange={handleIndexSearchChange}
                     checked={share.searchIndexing}
                     size="xs"
+                    disabled={readOnly}
                   />
                 </Group>
               </>

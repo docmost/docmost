@@ -43,7 +43,7 @@ export default function ShareList() {
                     component={Link}
                     target="_blank"
                     to={buildSharedPageUrl({
-                      shareId: share.includeSubPages ? share.key : undefined,
+                      shareId: share.key,
                       pageTitle: share.page.title,
                       pageSlugId: share.page.slugId,
                     })}
@@ -52,7 +52,7 @@ export default function ShareList() {
                       {getPageIcon(share.page.icon)}
                       <div className={classes.shareLinkText}>
                         <Text fz="sm" fw={500} lineClamp={1}>
-                          {share.page.title}
+                          {share.page.title || t("untitled")}
                         </Text>
                       </div>
                     </Group>

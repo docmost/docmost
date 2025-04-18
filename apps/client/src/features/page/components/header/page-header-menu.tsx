@@ -59,7 +59,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </Tooltip>
       )}
 
-      <ShareModal/>
+      <ShareModal readOnly={readOnly}/>
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
