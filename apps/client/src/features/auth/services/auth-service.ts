@@ -8,6 +8,12 @@ import {
   ISetupWorkspace,
   IVerifyUserToken,
 } from "@/features/auth/types/auth.types";
+import {
+  type PublicKeyCredentialCreationOptionsJSON,
+  type RegistrationResponseJSON,
+  type AuthenticationResponseJSON,
+  type PublicKeyCredentialRequestOptionsJSON
+} from "@simplewebauthn/browser";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 
 export async function login(data: ILogin): Promise<void> {
@@ -47,4 +53,39 @@ export async function verifyUserToken(data: IVerifyUserToken): Promise<any> {
 export async function getCollabToken(): Promise<ICollabToken> {
   const req = await api.post<ICollabToken>("/auth/collab-token");
   return req.data;
+}
+
+export async function registerChallenge(): Promise<PublicKeyCredentialCreationOptionsJSON> {
+  const req = await api.post<PublicKeyCredentialCreationOptionsJSON>(
+    "/auth/register-challenge",
+  );
+  return req.data;
+}
+
+export async function verifyChallenge(
+  data: RegistrationResponseJSON,
+): Promise<any> {
+  const req = await api.post<any>("/auth/verify-challenge", data);
+  return req.data;
+}
+
+export async function initiatePasskeyAuthentication(
+  data: ILogin,
+): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  const req = await api.post<PublicKeyCredentialRequestOptionsJSON>(
+    "/auth/initiate-passkey-authentication",
+    data,
+  );
+
+  return req.data;
+}
+
+export async function authenticateWithPasskey(
+  data: AuthenticationResponseJSON,
+): Promise<void> {
+  await api.post<void>("/auth/passkey-authentication", data);
+}
+
+export async function removePasskey(): Promise<void> {
+  await api.post<void>("/auth/remove-passkey");
 }

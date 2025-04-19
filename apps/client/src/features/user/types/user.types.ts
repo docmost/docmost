@@ -4,6 +4,7 @@ export interface IUser {
   id: string;
   name: string;
   email: string;
+  hasPasskey: boolean;
   emailVerifiedAt: Date;
   avatarUrl: string;
   timezone: string;

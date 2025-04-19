@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
+  authenticateWithPasskey,
   forgotPassword,
+  initiatePasskeyAuthentication,
   login,
   logout,
   passwordReset,
@@ -26,6 +28,10 @@ import {
 import APP_ROUTE from "@/lib/app-route.ts";
 import { RESET } from "jotai/utils";
 import { useTranslation } from "react-i18next";
+import {
+ type PublicKeyCredentialRequestOptionsJSON,
+    startAuthentication,
+  } from "@simplewebauthn/browser";
 import { isCloud } from "@/lib/config.ts";
 import { exchangeTokenRedirectUrl, getHostnameUrl } from "@/ee/utils.ts";
 
@@ -40,6 +46,27 @@ export default function useAuth() {
 
     try {
       await login(data);
+      setIsLoading(false);
+      navigate(APP_ROUTE.HOME);
+    } catch (err) {
+      setIsLoading(false);
+      console.log(err);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
+  const handleSignInUsingPasskey = async (data: ILogin) => {
+    setIsLoading(true);
+
+    try {
+      const optionsJSON: PublicKeyCredentialRequestOptionsJSON =
+        await initiatePasskeyAuthentication(data);
+      const response = await startAuthentication({ optionsJSON: optionsJSON });
+      await authenticateWithPasskey(response);
+
       setIsLoading(false);
       navigate(APP_ROUTE.HOME);
     } catch (err) {
@@ -159,6 +186,7 @@ export default function useAuth() {
 
   return {
     signIn: handleSignIn,
+    handleSignInUsingPasskey: handleSignInUsingPasskey,
     invitationSignup: handleInvitationSignUp,
     setupWorkspace: handleSetupWorkspace,
     forgotPassword: handleForgotPassword,

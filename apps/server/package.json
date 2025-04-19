@@ -52,6 +52,7 @@
     "@node-saml/passport-saml": "^5.0.1",
     "@react-email/components": "0.0.28",
     "@react-email/render": "1.0.2",
+    "@simplewebauthn/server": "^13.1.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.41.3",
