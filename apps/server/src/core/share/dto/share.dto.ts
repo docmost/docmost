@@ -44,7 +44,7 @@ export class SpaceIdDto {
 export class ShareInfoDto {
   @IsString()
   @IsOptional()
-  shareId: string;
+  shareId?: string;
 
   @IsString()
   @IsOptional()
