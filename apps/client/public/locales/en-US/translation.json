@@ -362,5 +362,22 @@
   "Move page to a different space.": "Move page to a different space.",
   "Real-time editor connection lost. Retrying...": "Real-time editor connection lost. Retrying...",
   "Table of contents": "Table of contents",
-  "Add headings (H1, H2, H3) to generate a table of contents.": "Add headings (H1, H2, H3) to generate a table of contents."
+  "Add headings (H1, H2, H3) to generate a table of contents.": "Add headings (H1, H2, H3) to generate a table of contents.",
+  "Share": "Share",
+  "Public sharing": "Public sharing",
+  "Shared by": "Shared by",
+  "Shared at": "Shared at",
+  "Inherits public sharing from": "Inherits public sharing from",
+  "Publicly shared": "Publicly shared",
+  "Share to web": "Share to web",
+  "Anyone with the link can view this page": "Anyone with the link can view this page",
+  "Make this page publicly accessible": "Make this page publicly accessible",
+  "Include sub-pages": "Include sub-pages",
+  "Make sub-pages public too": "Make sub-pages public too",
+  "Allow search engines to index page": "Allow search engines to index page",
+  "Open page": "Open page",
+  "Page": "Page",
+  "Revoke public link": "Revoke public link",
+  "Are you sure you want to revoke this public link?": "Are you sure you want to revoke this public link?",
+  "Publicly shared pages from spaces you are a member of will appear here": "Publicly shared pages from spaces you are a member of will appear here"
 }

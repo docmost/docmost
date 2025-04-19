@@ -212,7 +212,7 @@ export class PageService {
         trx,
       );
       const pageIds = await this.pageRepo
-        .getPageAndDescendants(rootPage.id)
+        .getPageAndDescendants(rootPage.id, { includeContent: false })
         .then((pages) => pages.map((page) => page.id));
       // The first id is the root page id
       if (pageIds.length > 1) {
