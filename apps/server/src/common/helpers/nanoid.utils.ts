@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { customAlphabet } = require('fix-esm').require('nanoid');
+import { customAlphabet } from 'nanoid';
 
 const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
 export const nanoIdGen = customAlphabet(alphabet, 10);
