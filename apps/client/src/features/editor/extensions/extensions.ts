@@ -37,6 +37,8 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -72,6 +74,8 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
+import ColumnView from "@/features/editor/components/column-layout/column-view";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -212,7 +216,13 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  CharacterCount
+  CharacterCount,
+  ColumnContainer.configure({
+    view: ColumnContainerView,
+  }),
+  Column.configure({
+    view: ColumnView,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
