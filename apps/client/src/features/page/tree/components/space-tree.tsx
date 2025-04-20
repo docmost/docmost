@@ -7,7 +7,7 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Menu, rem } from "@mantine/core";
@@ -84,7 +84,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const rootElement = useRef<HTMLDivElement>();
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef(rootElement, sizeRef);
-  const isDataLoaded = useRef(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
@@ -108,7 +108,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         // and append root pages instead of resetting the entire tree
         // which looses async loaded children too
         setData(treeData);
-        isDataLoaded.current = true;
+        setIsDataLoaded(true);
         setOpenTreeNodes({});
       }
     }
@@ -116,7 +116,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (isDataLoaded.current && currentPage) {
+      if (isDataLoaded && currentPage) {
         // check if pageId node is present in the tree
         const node = dfs(treeApiRef.current?.root, currentPage.id);
         if (node) {
@@ -178,7 +178,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
 
     fetchData();
-  }, [isDataLoaded.current, currentPage?.id]);
+  }, [isDataLoaded, currentPage?.id]);
 
   useEffect(() => {
     if (currentPage?.id) {
