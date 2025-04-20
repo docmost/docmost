@@ -107,7 +107,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
           </Indicator>
         </Tooltip>
       </Popover.Target>
-      <Popover.Dropdown>
+      <Popover.Dropdown style={{ userSelect: "none" }}>
         {isDescendantShared ? (
           <>
             <Text size="sm">{t("Inherits public sharing from")}</Text>
