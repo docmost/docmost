@@ -74,7 +74,7 @@ export default function EmbedView(props: NodeViewProps) {
             <iframe
               src={embedUrl}
               allow="encrypted-media"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
               allowFullScreen
               frameBorder="0"
             ></iframe>

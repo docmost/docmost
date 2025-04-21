@@ -4,6 +4,7 @@
   "version": "0.10.0",
   "scripts": {
     "dev": "vite",
+    "dev-local": "vite --host 0.0.0.0",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -41,6 +41,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { N8nIcon } from "@/components/icons/n8n-icon";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -494,6 +495,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setEmbed({ provider: "gsheets" })
+          .run();
+      },
+    },
+    {
+      title: "n8n",
+      description: "Embed n8n scheme",
+      searchTerms: ["n8n", "n", "8"],
+      icon: N8nIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setEmbed({ provider: "n8n" })
           .run();
       },
     },

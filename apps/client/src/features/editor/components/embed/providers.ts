@@ -99,6 +99,19 @@ export const embedProviders: IEmbedProvider[] = [
       return url
     }
   },
+  {
+    id: 'n8n',
+    name: 'n8n',
+    // regex: /^((?:https?:)?\/\/)?((?:www\.)?)?(n8n\.io)(\/.+)?$/,
+    regex: /^((?:https?:)?\/\/)?((?:www\.|localhost:5678\/)?)(n8n\.io|localhost:5678\/workflow\/)([\w-]+)$/,
+    getEmbedUrl: (match, url) => {
+      // if (url.includes("/embed/")){
+      //   return url;
+      // }
+      // return `${match[1] || 'https://'}${match[2]}embed/${match[4]}`;
+      return url;
+    }
+  },
 ];
 
 export function getEmbedProviderById(id: string) {

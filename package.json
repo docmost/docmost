@@ -12,6 +12,7 @@
     "client:build": "nx run client:build",
     "editor-ext:build": "nx run @docmost/editor-ext:build",
     "client:dev": "nx run client:dev",
+    "client:dev-local": "nx run client:dev-local",
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
     "email:dev": "nx run server:email:dev",

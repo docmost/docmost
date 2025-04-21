@@ -1,6 +1,36 @@
 services:
+  # docmost:
+  #   image: node:20-alpine
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   environment:
+  #     APP_URL: 'http://localhost:3000'
+  #     APP_SECRET: ${APP_SECRET}
+  #     DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public'
+  #     REDIS_URL: 'redis://redis:6379'
+  #   ports:
+  #     - "3000:3000"
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./data/docmost_data:/app/data/storage
+  #     - .:/app
+  #   working_dir: /app
+  #   command: >
+  #     sh -c '
+  #       npm install -g pnpm &&
+  #       sleep 1 &&
+  #       pnpm -v &&
+  #       sleep 1 &&
+  #       pnpm install --frozen-lockfile &&
+  #       sleep 1 &&
+  #       pnpm run "/^(client:dev-local|server:dev)$/"
+  #     '
+
   docmost:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       - db
       - redis
