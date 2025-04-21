@@ -21,8 +21,7 @@ export default function SingleSharedPage() {
   useEffect(() => {
     if (shareId && data) {
       if (data.share.key !== shareId) {
-        // affects parent share, what to do?
-        navigate(`/share/${data.share.key}/${pageSlug}`);
+        navigate(`/share/${data.share.key}/${pageSlug}`, { replace: true });
       }
     }
   }, [shareId, data]);
@@ -42,7 +41,9 @@ export default function SingleSharedPage() {
     <div>
       <Helmet>
         <title>{`${data?.page?.title || t("untitled")}`}</title>
-        {!data?.share.searchIndexing && <meta name="robots" content="noindex" />}
+        {!data?.share.searchIndexing && (
+          <meta name="robots" content="noindex" />
+        )}
       </Helmet>
 
       <Container size={900} p={0}>
