@@ -5,7 +5,7 @@ data
 # compiled output
 /dist
 /node_modules
-
+/.pnpm-store
 # Logs
 logs
 *.log
@@ -48,4 +48,1124 @@ lerna-debug.log*
 /db_data
 /redis_data
 /docmost_data:
+{
+  "result": {
+    "dataset": {
+      "always_filter_main_dttm": false,
+      "cache_timeout": null,
+      "catalog": null,
+      "column_formats": {},
+      "columns": [
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "order_date",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 531,
+          "is_certified": false,
+          "is_dttm": true,
+          "python_date_format": null,
+          "type": "TIMESTAMP WITHOUT TIME ZONE",
+          "type_generic": 2,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "price_each",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 532,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "DOUBLE PRECISION",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "sales",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 533,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "DOUBLE PRECISION",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "address_line1",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 534,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "address_line2",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 535,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "contact_last_name",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 536,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "contact_first_name",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 537,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "quantity_ordered",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 538,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "year",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 539,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "postal_code",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 540,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "customer_name",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 541,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "deal_size",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 542,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "state",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 543,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "status",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 544,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "order_line_number",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 545,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "order_number",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 546,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "month",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 547,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "quarter",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 548,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "msrp",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 549,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "BIGINT",
+          "type_generic": 0,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "product_code",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 550,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "product_line",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 551,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "city",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 552,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "country",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 553,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "phone",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 554,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        },
+        {
+          "advanced_data_type": null,
+          "certification_details": null,
+          "certified_by": null,
+          "column_name": "territory",
+          "description": null,
+          "expression": null,
+          "filterable": true,
+          "groupby": true,
+          "id": 555,
+          "is_certified": false,
+          "is_dttm": false,
+          "python_date_format": null,
+          "type": "TEXT",
+          "type_generic": 1,
+          "verbose_name": null,
+          "warning_markdown": null
+        }
+      ],
+      "currency_formats": {},
+      "database": {
+        "allow_multi_catalog": false,
+        "allows_cost_estimate": null,
+        "allows_subquery": true,
+        "allows_virtual_table_explore": true,
+        "backend": "postgresql",
+        "configuration_method": "sqlalchemy_form",
+        "disable_data_preview": false,
+        "disable_drill_to_detail": false,
+        "engine_information": {
+          "disable_ssh_tunneling": false,
+          "supports_dynamic_catalog": true,
+          "supports_file_upload": true
+        },
+        "explore_database_id": 1,
+        "id": 1,
+        "name": "examples",
+        "parameters": {},
+        "parameters_schema": {
+          "properties": {
+            "database": {
+              "description": "Database name",
+              "type": "string"
+            },
+            "encryption": {
+              "description": "Use an encrypted connection to the database",
+              "type": "boolean"
+            },
+            "host": {
+              "description": "Hostname or IP address",
+              "type": "string"
+            },
+            "password": {
+              "description": "\u041f\u0430\u0440\u043e\u043b\u044c",
+              "nullable": true,
+              "type": "string"
+            },
+            "port": {
+              "description": "Database port",
+              "maximum": 65536,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "query": {
+              "additionalProperties": {},
+              "description": "Additional parameters",
+              "type": "object"
+            },
+            "ssh": {
+              "description": "Use an ssh tunnel connection to the database",
+              "type": "boolean"
+            },
+            "username": {
+              "description": "\u0418\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f",
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          "required": [
+            "database",
+            "host",
+            "port",
+            "username"
+          ],
+          "type": "object"
+        },
+        "schema_options": {}
+      },
+      "datasource_name": "cleaned_sales_data",
+      "default_endpoint": null,
+      "description": null,
+      "edit_url": "/tablemodelview/edit/15",
+      "extra": null,
+      "fetch_values_predicate": null,
+      "filter_select": true,
+      "filter_select_enabled": true,
+      "granularity_sqla": [
+        [
+          "order_date",
+          "order_date"
+        ]
+      ],
+      "health_check_message": null,
+      "id": 15,
+      "is_sqllab_view": false,
+      "main_dttm_col": "order_date",
+      "metrics": [
+        {
+          "certification_details": null,
+          "certified_by": null,
+          "currency": null,
+          "d3format": null,
+          "description": null,
+          "expression": "COUNT(*)",
+          "id": 22,
+          "is_certified": false,
+          "metric_name": "count",
+          "verbose_name": "COUNT(*)",
+          "warning_markdown": null,
+          "warning_text": null
+        }
+      ],
+      "name": "public.cleaned_sales_data",
+      "normalize_columns": false,
+      "offset": 0,
+      "order_by_choices": [
+        [
+          "[\"address_line1\", true]",
+          "address_line1 [asc]"
+        ],
+        [
+          "[\"address_line1\", false]",
+          "address_line1 [desc]"
+        ],
+        [
+          "[\"address_line2\", true]",
+          "address_line2 [asc]"
+        ],
+        [
+          "[\"address_line2\", false]",
+          "address_line2 [desc]"
+        ],
+        [
+          "[\"city\", true]",
+          "city [asc]"
+        ],
+        [
+          "[\"city\", false]",
+          "city [desc]"
+        ],
+        [
+          "[\"contact_first_name\", true]",
+          "contact_first_name [asc]"
+        ],
+        [
+          "[\"contact_first_name\", false]",
+          "contact_first_name [desc]"
+        ],
+        [
+          "[\"contact_last_name\", true]",
+          "contact_last_name [asc]"
+        ],
+        [
+          "[\"contact_last_name\", false]",
+          "contact_last_name [desc]"
+        ],
+        [
+          "[\"country\", true]",
+          "country [asc]"
+        ],
+        [
+          "[\"country\", false]",
+          "country [desc]"
+        ],
+        [
+          "[\"customer_name\", true]",
+          "customer_name [asc]"
+        ],
+        [
+          "[\"customer_name\", false]",
+          "customer_name [desc]"
+        ],
+        [
+          "[\"deal_size\", true]",
+          "deal_size [asc]"
+        ],
+        [
+          "[\"deal_size\", false]",
+          "deal_size [desc]"
+        ],
+        [
+          "[\"month\", true]",
+          "month [asc]"
+        ],
+        [
+          "[\"month\", false]",
+          "month [desc]"
+        ],
+        [
+          "[\"msrp\", true]",
+          "msrp [asc]"
+        ],
+        [
+          "[\"msrp\", false]",
+          "msrp [desc]"
+        ],
+        [
+          "[\"order_date\", true]",
+          "order_date [asc]"
+        ],
+        [
+          "[\"order_date\", false]",
+          "order_date [desc]"
+        ],
+        [
+          "[\"order_line_number\", true]",
+          "order_line_number [asc]"
+        ],
+        [
+          "[\"order_line_number\", false]",
+          "order_line_number [desc]"
+        ],
+        [
+          "[\"order_number\", true]",
+          "order_number [asc]"
+        ],
+        [
+          "[\"order_number\", false]",
+          "order_number [desc]"
+        ],
+        [
+          "[\"phone\", true]",
+          "phone [asc]"
+        ],
+        [
+          "[\"phone\", false]",
+          "phone [desc]"
+        ],
+        [
+          "[\"postal_code\", true]",
+          "postal_code [asc]"
+        ],
+        [
+          "[\"postal_code\", false]",
+          "postal_code [desc]"
+        ],
+        [
+          "[\"price_each\", true]",
+          "price_each [asc]"
+        ],
+        [
+          "[\"price_each\", false]",
+          "price_each [desc]"
+        ],
+        [
+          "[\"product_code\", true]",
+          "product_code [asc]"
+        ],
+        [
+          "[\"product_code\", false]",
+          "product_code [desc]"
+        ],
+        [
+          "[\"product_line\", true]",
+          "product_line [asc]"
+        ],
+        [
+          "[\"product_line\", false]",
+          "product_line [desc]"
+        ],
+        [
+          "[\"quantity_ordered\", true]",
+          "quantity_ordered [asc]"
+        ],
+        [
+          "[\"quantity_ordered\", false]",
+          "quantity_ordered [desc]"
+        ],
+        [
+          "[\"quarter\", true]",
+          "quarter [asc]"
+        ],
+        [
+          "[\"quarter\", false]",
+          "quarter [desc]"
+        ],
+        [
+          "[\"sales\", true]",
+          "sales [asc]"
+        ],
+        [
+          "[\"sales\", false]",
+          "sales [desc]"
+        ],
+        [
+          "[\"state\", true]",
+          "state [asc]"
+        ],
+        [
+          "[\"state\", false]",
+          "state [desc]"
+        ],
+        [
+          "[\"status\", true]",
+          "status [asc]"
+        ],
+        [
+          "[\"status\", false]",
+          "status [desc]"
+        ],
+        [
+          "[\"territory\", true]",
+          "territory [asc]"
+        ],
+        [
+          "[\"territory\", false]",
+          "territory [desc]"
+        ],
+        [
+          "[\"year\", true]",
+          "year [asc]"
+        ],
+        [
+          "[\"year\", false]",
+          "year [desc]"
+        ]
+      ],
+      "owners": [],
+      "params": null,
+      "perm": "[examples].[cleaned_sales_data](id:15)",
+      "schema": "public",
+      "select_star": "SELECT\n  *\nFROM public.cleaned_sales_data\nLIMIT 100",
+      "sql": null,
+      "table_name": "cleaned_sales_data",
+      "template_params": null,
+      "time_grain_sqla": [
+        [
+          "PT1S",
+          "Second"
+        ],
+        [
+          "PT1M",
+          "Minute"
+        ],
+        [
+          "PT1H",
+          "Hour"
+        ],
+        [
+          "P1D",
+          "Day"
+        ],
+        [
+          "P1W",
+          "Week"
+        ],
+        [
+          "P1M",
+          "Month"
+        ],
+        [
+          "P3M",
+          "Quarter"
+        ],
+        [
+          "P1Y",
+          "Year"
+        ]
+      ],
+      "type": "table",
+      "uid": "15__table",
+      "verbose_map": {
+        "__timestamp": "Time",
+        "address_line1": "address_line1",
+        "address_line2": "address_line2",
+        "city": "city",
+        "contact_first_name": "contact_first_name",
+        "contact_last_name": "contact_last_name",
+        "count": "COUNT(*)",
+        "country": "country",
+        "customer_name": "customer_name",
+        "deal_size": "deal_size",
+        "month": "month",
+        "msrp": "msrp",
+        "order_date": "order_date",
+        "order_line_number": "order_line_number",
+        "order_number": "order_number",
+        "phone": "phone",
+        "postal_code": "postal_code",
+        "price_each": "price_each",
+        "product_code": "product_code",
+        "product_line": "product_line",
+        "quantity_ordered": "quantity_ordered",
+        "quarter": "quarter",
+        "sales": "sales",
+        "state": "state",
+        "status": "status",
+        "territory": "territory",
+        "year": "year"
+      }
+    },
+    "form_data": {
+      "adhoc_filters": [
+        {
+          "clause": "WHERE",
+          "comparator": "No filter",
+          "expressionType": "SIMPLE",
+          "operator": "TEMPORAL_RANGE",
+          "subject": "order_date"
+        }
+      ],
+      "annotation_layers": [
+        {
+          "annotationType": "FORMULA",
+          "color": null,
+          "descriptionColumns": [],
+          "hideLine": false,
+          "intervalEndColumn": "",
+          "name": "layuer name anotation",
+          "opacity": "",
+          "overrides": {},
+          "show": true,
+          "showLabel": true,
+          "showMarkers": false,
+          "sourceType": "",
+          "style": "solid",
+          "timeColumn": "",
+          "titleColumn": "",
+          "value": "100",
+          "width": 1
+        }
+      ],
+      "applied_time_extras": {},
+      "color_scheme": "supersetColors",
+      "comparison_type": "values",
+      "contributionMode": null,
+      "currency_format": {
+        "symbol": "RUB",
+        "symbolPosition": "prefix"
+      },
+      "dashboards": [
+        12
+      ],
+      "datasource": "15__table",
+      "forecastInterval": 0.8,
+      "forecastPeriods": 10,
+      "groupby": [],
+      "legendMargin": 0,
+      "legendOrientation": "top",
+      "legendType": "plain",
+      "limit": 100,
+      "metrics": [
+        {
+          "aggregate": "COUNT",
+          "column": {
+            "advanced_data_type": null,
+            "certification_details": null,
+            "certified_by": null,
+            "column_name": "sales",
+            "description": null,
+            "expression": null,
+            "filterable": true,
+            "groupby": true,
+            "id": 533,
+            "is_certified": false,
+            "is_dttm": false,
+            "python_date_format": null,
+            "type": "DOUBLE PRECISION",
+            "type_generic": 0,
+            "verbose_name": null,
+            "warning_markdown": null
+          },
+          "datasourceWarning": false,
+          "expressionType": "SIMPLE",
+          "hasCustomLabel": false,
+          "label": "COUNT(sales)",
+          "optionName": "metric_9tbsevjmppo_minxa80k9zn",
+          "sqlExpression": null
+        }
+      ],
+      "minorTicks": true,
+      "only_total": true,
+      "order_desc": true,
+      "orientation": "vertical",
+      "rich_tooltip": true,
+      "row_limit": 10000,
+      "showTooltipPercentage": true,
+      "showTooltipTotal": true,
+      "show_empty_columns": true,
+      "show_legend": true,
+      "show_value": true,
+      "slice_id": 168,
+      "sort_series_type": "avg",
+      "switch_table_spoiler": true,
+      "time_grain_sqla": "P1M",
+      "tooltipTimeFormat": "%d/%m/%Y",
+      "truncateXAxis": true,
+      "truncateYAxis": true,
+      "truncate_metric": true,
+      "url_params": {
+        "slice_id": "168"
+      },
+      "viz_type": "echarts_timeseries_bar",
+      "xAxisBounds": [
+        0,
+        999999
+      ],
+      "xAxisLabelRotation": 90,
+      "x_axis": "order_date",
+      "x_axis_sort_asc": true,
+      "x_axis_sort_series": "name",
+      "x_axis_sort_series_ascending": true,
+      "x_axis_time_format": "%b %y",
+      "x_axis_title_margin": 15,
+      "y_axis_bounds": [
+        0,
+        350
+      ],
+      "y_axis_format": "SMART_NUMBER",
+      "y_axis_title_margin": "5",
+      "y_axis_title_position": "Top",
+      "zoomable": true
+    },
+    "message": null,
+    "metadata": {
+      "changed_by": "Superset Admin",
+      "changed_on_humanized": "2 days ago",
+      "created_by": "Superset Admin",
+      "created_on_humanized": "2 days ago",
+      "dashboards": [
+        {
+          "dashboard_title": "my-dashboard",
+          "id": 12
+        }
+      ],
+      "owners": [
+        "Superset Admin"
+      ]
+    },
+    "slice": {
+      "cache_timeout": null,
+      "certification_details": null,
+      "certified_by": null,
+      "changed_on": "2025-04-18T15:48:27.468799",
+      "changed_on_humanized": "2 days ago",
+      "datasource": "public.cleaned_sales_data",
+      "description": null,
+      "description_markeddown": "",
+      "edit_url": "/chart/edit/168",
+      "form_data": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "order_date"
+          }
+        ],
+        "annotation_layers": [
+          {
+            "annotationType": "FORMULA",
+            "color": null,
+            "descriptionColumns": [],
+            "hideLine": false,
+            "intervalEndColumn": "",
+            "name": "layuer name anotation",
+            "opacity": "",
+            "overrides": {},
+            "show": true,
+            "showLabel": true,
+            "showMarkers": false,
+            "sourceType": "",
+            "style": "solid",
+            "timeColumn": "",
+            "titleColumn": "",
+            "value": "100",
+            "width": 1
+          }
+        ],
+        "color_scheme": "supersetColors",
+        "comparison_type": "values",
+        "contributionMode": null,
+        "currency_format": {
+          "symbol": "RUB",
+          "symbolPosition": "prefix"
+        },
+        "dashboards": [
+          12
+        ],
+        "datasource": "15__table",
+        "extra_form_data": {},
+        "forecastInterval": 0.8,
+        "forecastPeriods": 10,
+        "groupby": [],
+        "legendMargin": 0,
+        "legendOrientation": "top",
+        "legendType": "plain",
+        "limit": 100,
+        "metrics": [
+          {
+            "aggregate": "COUNT",
+            "column": {
+              "advanced_data_type": null,
+              "certification_details": null,
+              "certified_by": null,
+              "column_name": "sales",
+              "description": null,
+              "expression": null,
+              "filterable": true,
+              "groupby": true,
+              "id": 533,
+              "is_certified": false,
+              "is_dttm": false,
+              "python_date_format": null,
+              "type": "DOUBLE PRECISION",
+              "type_generic": 0,
+              "verbose_name": null,
+              "warning_markdown": null
+            },
+            "datasourceWarning": false,
+            "expressionType": "SIMPLE",
+            "hasCustomLabel": false,
+            "label": "COUNT(sales)",
+            "optionName": "metric_9tbsevjmppo_minxa80k9zn",
+            "sqlExpression": null
+          }
+        ],
+        "minorTicks": true,
+        "only_total": true,
+        "order_desc": true,
+        "orientation": "vertical",
+        "rich_tooltip": true,
+        "row_limit": 10000,
+        "showTooltipPercentage": true,
+        "showTooltipTotal": true,
+        "show_empty_columns": true,
+        "show_legend": true,
+        "show_value": true,
+        "slice_id": 168,
+        "sort_series_type": "avg",
+        "switch_table_spoiler": true,
+        "time_grain_sqla": "P1M",
+        "tooltipTimeFormat": "%d/%m/%Y",
+        "truncateXAxis": true,
+        "truncateYAxis": true,
+        "truncate_metric": true,
+        "viz_type": "echarts_timeseries_bar",
+        "xAxisBounds": [
+          0,
+          999999
+        ],
+        "xAxisLabelRotation": 90,
+        "x_axis": "order_date",
+        "x_axis_sort_asc": true,
+        "x_axis_sort_series": "name",
+        "x_axis_sort_series_ascending": true,
+        "x_axis_time_format": "%b %y",
+        "x_axis_title_margin": 15,
+        "y_axis_bounds": [
+          0,
+          350
+        ],
+        "y_axis_format": "SMART_NUMBER",
+        "y_axis_title_margin": "5",
+        "y_axis_title_position": "Top",
+        "zoomable": true
+      },
+      "is_managed_externally": false,
+      "modified": "<span class=\"no-wrap\">2 days ago</span>",
+      "owners": [
+        1
+      ],
+      "query_context": "{\"datasource\":{\"id\":15,\"type\":\"table\"},\"force\":false,\"queries\":[{\"filters\":[{\"col\":\"order_date\",\"op\":\"TEMPORAL_RANGE\",\"val\":\"No filter\"}],\"extras\":{\"time_grain_sqla\":\"P1M\",\"having\":\"\",\"where\":\"\"},\"applied_time_extras\":{},\"columns\":[{\"timeGrain\":\"P1M\",\"columnType\":\"BASE_AXIS\",\"sqlExpression\":\"order_date\",\"label\":\"order_date\",\"expressionType\":\"SQL\"}],\"metrics\":[{\"aggregate\":\"COUNT\",\"column\":{\"advanced_data_type\":null,\"certification_details\":null,\"certified_by\":null,\"column_name\":\"sales\",\"description\":null,\"expression\":null,\"filterable\":true,\"groupby\":true,\"id\":533,\"is_certified\":false,\"is_dttm\":false,\"python_date_format\":null,\"type\":\"DOUBLE PRECISION\",\"type_generic\":0,\"verbose_name\":null,\"warning_markdown\":null},\"datasourceWarning\":false,\"expressionType\":\"SIMPLE\",\"hasCustomLabel\":false,\"label\":\"COUNT(sales)\",\"optionName\":\"metric_9tbsevjmppo_minxa80k9zn\",\"sqlExpression\":null}],\"orderby\":[[{\"aggregate\":\"COUNT\",\"column\":{\"advanced_data_type\":null,\"certification_details\":null,\"certified_by\":null,\"column_name\":\"sales\",\"description\":null,\"expression\":null,\"filterable\":true,\"groupby\":true,\"id\":533,\"is_certified\":false,\"is_dttm\":false,\"python_date_format\":null,\"type\":\"DOUBLE PRECISION\",\"type_generic\":0,\"verbose_name\":null,\"warning_markdown\":null},\"datasourceWarning\":false,\"expressionType\":\"SIMPLE\",\"hasCustomLabel\":false,\"label\":\"COUNT(sales)\",\"optionName\":\"metric_9tbsevjmppo_minxa80k9zn\",\"sqlExpression\":null},false]],\"annotation_layers\":[{\"annotationType\":\"FORMULA\",\"color\":null,\"descriptionColumns\":[],\"hideLine\":false,\"intervalEndColumn\":\"\",\"name\":\"layuer name anotation\",\"opacity\":\"\",\"overrides\":{},\"show\":true,\"showLabel\":true,\"showMarkers\":false,\"sourceType\":\"\",\"style\":\"solid\",\"timeColumn\":\"\",\"titleColumn\":\"\",\"value\":\"100\",\"width\":1}],\"row_limit\":10000,\"series_columns\":[],\"series_limit\":100,\"order_desc\":true,\"url_params\":{},\"custom_params\":{},\"custom_form_data\":{},\"time_offsets\":[],\"post_processing\":[{\"operation\":\"pivot\",\"options\":{\"index\":[\"order_date\"],\"columns\":[],\"aggregates\":{\"COUNT(sales)\":{\"operator\":\"mean\"}},\"drop_missing_columns\":false}},{\"operation\":\"flatten\"}]}],\"form_data\":{\"datasource\":\"15__table\",\"viz_type\":\"echarts_timeseries_bar\",\"slice_id\":168,\"x_axis\":\"order_date\",\"time_grain_sqla\":\"P1M\",\"x_axis_sort_asc\":true,\"x_axis_sort_series\":\"name\",\"x_axis_sort_series_ascending\":true,\"metrics\":[{\"aggregate\":\"COUNT\",\"column\":{\"advanced_data_type\":null,\"certification_details\":null,\"certified_by\":null,\"column_name\":\"sales\",\"description\":null,\"expression\":null,\"filterable\":true,\"groupby\":true,\"id\":533,\"is_certified\":false,\"is_dttm\":false,\"python_date_format\":null,\"type\":\"DOUBLE PRECISION\",\"type_generic\":0,\"verbose_name\":null,\"warning_markdown\":null},\"datasourceWarning\":false,\"expressionType\":\"SIMPLE\",\"hasCustomLabel\":false,\"label\":\"COUNT(sales)\",\"optionName\":\"metric_9tbsevjmppo_minxa80k9zn\",\"sqlExpression\":null}],\"groupby\":[],\"contributionMode\":null,\"adhoc_filters\":[{\"clause\":\"WHERE\",\"comparator\":\"No filter\",\"expressionType\":\"SIMPLE\",\"operator\":\"TEMPORAL_RANGE\",\"subject\":\"order_date\"}],\"limit\":100,\"order_desc\":true,\"row_limit\":10000,\"truncate_metric\":true,\"show_empty_columns\":true,\"comparison_type\":\"values\",\"annotation_layers\":[{\"annotationType\":\"FORMULA\",\"color\":null,\"descriptionColumns\":[],\"hideLine\":false,\"intervalEndColumn\":\"\",\"name\":\"layuer name anotation\",\"opacity\":\"\",\"overrides\":{},\"show\":true,\"showLabel\":true,\"showMarkers\":false,\"sourceType\":\"\",\"style\":\"solid\",\"timeColumn\":\"\",\"titleColumn\":\"\",\"value\":\"100\",\"width\":1}],\"forecastPeriods\":10,\"forecastInterval\":0.8,\"switch_table_spoiler\":true,\"orientation\":\"vertical\",\"x_axis_title_margin\":15,\"y_axis_title_margin\":\"5\",\"y_axis_title_position\":\"Top\",\"sort_series_type\":\"avg\",\"color_scheme\":\"supersetColors\",\"show_value\":true,\"only_total\":true,\"minorTicks\":true,\"zoomable\":true,\"show_legend\":true,\"legendType\":\"plain\",\"legendOrientation\":\"top\",\"legendMargin\":0,\"x_axis_time_format\":\"%b %y\",\"xAxisLabelRotation\":90,\"y_axis_format\":\"SMART_NUMBER\",\"currency_format\":{\"symbol\":\"RUB\",\"symbolPosition\":\"prefix\"},\"truncateXAxis\":true,\"xAxisBounds\":[0,999999],\"truncateYAxis\":true,\"y_axis_bounds\":[0,350],\"rich_tooltip\":true,\"showTooltipTotal\":true,\"showTooltipPercentage\":true,\"tooltipTimeFormat\":\"%d/%m/%Y\",\"extra_form_data\":{},\"dashboards\":[12],\"force\":false,\"result_format\":\"json\",\"result_type\":\"full\"},\"result_format\":\"json\",\"result_type\":\"full\"}",
+      "slice_id": 168,
+      "slice_name": "my-month-chart",
+      "slice_url": "/explore/?slice_id=168&form_data=%7B%22slice_id%22%3A%20168%7D"
+    }
+  }
+}
 
