@@ -45,7 +45,7 @@ export default function SingleSharedPage() {
         {!data?.share.searchIndexing && <meta name="robots" content="noindex" />}
       </Helmet>
 
-      <Container size={900}>
+      <Container size={900} p={0}>
         <ReadonlyPageEditor
           key={data.page.id}
           title={data.page.title}
