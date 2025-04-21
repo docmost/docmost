@@ -11,7 +11,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.references('pages.id').onDelete('cascade'),
     )
     .addColumn('include_sub_pages', 'boolean', (col) => col.defaultTo(false))
-    .addColumn('search_indexing', 'boolean', (col) => col.defaultTo(true))
+    .addColumn('search_indexing', 'boolean', (col) => col.defaultTo(false))
     .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
     .addColumn('space_id', 'uuid', (col) =>
       col.references('spaces.id').onDelete('cascade').notNull(),

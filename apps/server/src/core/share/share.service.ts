@@ -68,8 +68,8 @@ export class ShareService {
       return await this.shareRepo.insertShare({
         key: generateSlugId(),
         pageId: page.id,
-        includeSubPages: createShareDto.includeSubPages,
-        searchIndexing: createShareDto.searchIndexing,
+        includeSubPages: createShareDto.includeSubPages || true,
+        searchIndexing: createShareDto.searchIndexing || true,
         creatorId: authUserId,
         spaceId: page.spaceId,
         workspaceId,
