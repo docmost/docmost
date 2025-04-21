@@ -22,9 +22,11 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
-import { FastifyReply } from 'fastify';
-import { addDays } from 'date-fns';
 import { validateSsoEnforcement } from './auth.util';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { addDays, addMinutes } from 'date-fns';
+import {type RegistrationResponseJSON, type AuthenticationResponseJSON} from '@simplewebauthn/server';
+import { PasskeyLoginDto } from './dto/passkey-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -119,6 +121,109 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: FastifyReply) {
     res.clearCookie('authToken');
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('initiate-passkey-authentication')
+  async initiatePassKeyLogin(
+    @Req() req,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() loginInput: PasskeyLoginDto,
+  ) {
+    const options = await this.authService.initiatePasskeyAuthentication(
+      loginInput,
+      req.raw.workspaceId,
+    );
+
+    res.setCookie('webauthnChallenge', options.challenge, {
+      httpOnly: true,
+      path: '/',
+      expires: addMinutes(new Date(), 5),
+      secure: this.environmentService.isHttps(),
+    });
+
+    res.setCookie('webauthnEmail', loginInput.email, {
+      httpOnly: true,
+      path: '/',
+      expires: addMinutes(new Date(), 5),
+      secure: this.environmentService.isHttps(),
+    });
+
+    return options;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('passkey-authentication')
+  async authenticateWithPasskey(
+    @Req() req,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() loginInput: AuthenticationResponseJSON,
+  ) {
+    const challenge = req.cookies['webauthnChallenge'];
+    const email = req.cookies['webauthnEmail'];
+    const token = await this.authService.authenticateWithPasskey(
+      loginInput,
+      email,
+      req.raw.workspaceId,
+      challenge,
+    );
+
+    //removing cookies
+    res.setCookie('webauthnChallenge', '', {
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      secure: this.environmentService.isHttps(),
+    });
+
+    res.setCookie('webauthnEmail', '', {
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      secure: this.environmentService.isHttps(),
+    });
+
+    this.setAuthCookie(res, token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('register-challenge')
+  async initiatePassKeyRegistration(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const options = await this.authService.registerChallenge(user, workspace);
+
+    res.setCookie('webauthnChallenge', options.challenge, {
+      httpOnly: true,
+      path: '/',
+      expires: addMinutes(new Date(), 5),
+      secure: this.environmentService.isHttps(),
+    });
+    return options;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-challenge')
+  async verifyPasskeyChallenge(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Req() req: FastifyRequest,
+    @Body() dto: RegistrationResponseJSON,
+  ) {
+    const challenge = req.cookies['webauthnChallenge'];
+
+    return this.authService.verifyPasskeyChallenge(challenge, dto, user, workspace);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('remove-passkey')
+  async removePasskey(@AuthUser() user: User) {
+    return this.authService.removePasskey(user);
   }
 
   setAuthCookie(res: FastifyReply, token: string) {

@@ -22,17 +22,21 @@ import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/worksp
 import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
 
-const formSchema = z.object({
+const formSchemaLoginWithPassword = z.object({
+  email: z.string().min(1, { message: "email is required" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+const formSchemaLoginWithPasskey = z.object({
   email: z
     .string()
     .min(1, { message: "email is required" })
     .email({ message: "Invalid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
 });
 
 export function LoginForm() {
   const { t } = useTranslation();
-  const { signIn, isLoading } = useAuth();
+  const { signIn, isLoading, handleSignInUsingPasskey } = useAuth();
   useRedirectIfAuthenticated();
   const {
     data,
@@ -42,15 +46,43 @@ export function LoginForm() {
   } = useWorkspacePublicDataQuery();
 
   const form = useForm<ILogin>({
-    validate: zodResolver(formSchema),
     initialValues: {
       email: "",
       password: "",
     },
   });
 
-  async function onSubmit(data: ILogin) {
-    await signIn(data);
+  async function onSubmit(data: ILogin, event?: React.BaseSyntheticEvent) {
+    // @ts-ignore
+    const buttonClicked = event?.nativeEvent.submitter as HTMLButtonElement;
+    const action = buttonClicked?.value;
+
+    let validationResult: any;
+
+    if (action === "signin") {
+      validationResult = formSchemaLoginWithPassword.safeParse(data);
+    } else if (action === "signin_with_passkey") {
+      validationResult = formSchemaLoginWithPasskey.safeParse(data);
+    }
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.format();
+
+      Object.keys(errors).forEach((field) => {
+        const fieldErrors = (errors as any)[field]?._errors;
+        if (fieldErrors?.length) {
+          form.setFieldError(field as keyof ILogin, fieldErrors[0]);
+        }
+      });
+
+      return;
+    }
+
+    if (action === "signin") {
+      await signIn(data);
+    } else {
+      await handleSignInUsingPasskey(data);
+    }
   }
 
   if (isDataLoading) {
@@ -101,8 +133,11 @@ export function LoginForm() {
                 </Anchor>
               </Group>
 
-              <Button type="submit" fullWidth mt="md" loading={isLoading}>
+              <Button type="submit" fullWidth mt="md" value="signin" loading={isLoading}>
                 {t("Sign In")}
+              </Button>
+              <Button type="submit" fullWidth mt="xl" variant="default" value="signin_with_passkey" loading={isLoading}>
+                {t("Sign In With Passkey")}
               </Button>
             </form>
           </>
