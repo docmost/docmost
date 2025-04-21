@@ -223,6 +223,16 @@ export class PageService {
           trx,
         );
       }
+
+      // update spaceId in shares
+      if (pageIds.length > 0) {
+        await trx
+          .updateTable('shares')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+      }
+
       // Update attachments
       await this.attachmentRepo.updateAttachmentsByPageId(
         { spaceId },
