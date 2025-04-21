@@ -10,8 +10,9 @@ import {
   IconBrush,
   IconCoin,
   IconLock,
-  IconKey, IconWorld,
-} from '@tabler/icons-react';
+  IconKey,
+  IconWorld,
+} from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
@@ -22,12 +23,15 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   prefetchBilling,
   prefetchGroups,
-  prefetchLicense, prefetchShares,
+  prefetchLicense,
+  prefetchShares,
   prefetchSpaces,
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
-} from '@/components/settings/settings-queries.tsx';
+} from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
 interface DataItem {
   label: string;
@@ -83,7 +87,6 @@ const groupedData: DataGroup[] = [
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
-
     ],
   },
   {
@@ -105,6 +108,8 @@ export default function SettingsSidebar() {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
+  const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   useEffect(() => {
     setActive(location.pathname);
@@ -186,6 +191,11 @@ export default function SettingsSidebar() {
               data-active={active.startsWith(item.path) || undefined}
               key={item.label}
               to={item.path}
+              onClick={() => {
+                if (mobileSidebarOpened) {
+                  toggleMobileSidebar();
+                }
+              }}
             >
               <item.icon className={classes.linkIcon} stroke={2} />
               <span>{t(item.label)}</span>
