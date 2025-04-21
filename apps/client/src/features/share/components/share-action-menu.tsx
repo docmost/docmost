@@ -46,22 +46,22 @@ export default function ShareActionMenu({ share }: Props) {
     clipboard.copy(shareLink);
     notifications.show({ message: t("Link copied") });
   };
-  const onRevoke = async () => {
+  const onDelete = async () => {
     deleteShareMutation.mutateAsync(share.key);
   };
 
-  const openRevokeModal = () =>
+  const openDeleteModal = () =>
     modals.openConfirmModal({
-      title: t("Revoke public link"),
+      title: t("Delete public share link"),
       children: (
         <Text size="sm">
-          {t("Are you sure you want to revoke this public link?")}
+          {t("Are you sure you want to delete this shared link?")}
         </Text>
       ),
       centered: true,
-      labels: { confirm: t("Revoke"), cancel: t("Don't") },
+      labels: { confirm: t("Delete"), cancel: t("Don't") },
       confirmProps: { color: "red" },
-      onConfirm: onRevoke,
+      onConfirm: onDelete,
     });
 
   return (
@@ -93,11 +93,11 @@ export default function ShareActionMenu({ share }: Props) {
           </Menu.Item>
           <Menu.Item
             c="red"
-            onClick={openRevokeModal}
+            onClick={openDeleteModal}
             leftSection={<IconTrash size={16} />}
             disabled={share.space?.userRole === "reader"}
           >
-            {t("Revoke")}
+            {t("Delete share")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
