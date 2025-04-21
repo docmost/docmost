@@ -24,6 +24,8 @@ services:
   #       sleep 1 &&
   #       pnpm install --frozen-lockfile &&
   #       sleep 1 &&
+  #       pnpm nx run server:migration:latest &&
+  #       sleep 1 &&
   #       pnpm run "/^(client:dev-local|server:dev)$/"
   #     '
 
