@@ -143,6 +143,12 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
             {t("Add headings (H1, H2, H3) to generate a table of contents.")}
           </Text>
         )}
+
+        {props.isShare && (
+          <Text size="sm" c="dimmed">
+            {t("No table of contents.")}
+          </Text>
+        )}
       </>
     );
   }
