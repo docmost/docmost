@@ -119,11 +119,9 @@ export class SpaceMemberRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`).or(
-          'groups.name',
-          'ilike',
-          `%${pagination.query}%`,
-        ),
+        eb('users.name', 'ilike', `%${pagination.query}%`)
+          .or('users.email', 'ilike', `%${pagination.query}%`)
+          .or('groups.name', 'ilike', `%${pagination.query}%`),
       );
     }
 
