@@ -28,6 +28,7 @@ export interface IPage {
   lastUpdatedBy: ILastUpdatedBy;
   space: Partial<ISpace>;
   membership?: IMembership;
+  isSynced?: boolean;
 }
 
 interface IMembership {
@@ -102,9 +103,20 @@ export interface IMovePageToSpace {
   spaceId: string;
 }
 
+export interface ICreateSynchronizedPage {
+  spaceId: string;
+  originPageId: string;
+  parentPageId?: string;
+}
+
 export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;
+  page?: number; // pagination
+}
+
+export interface PagesInSpaceParams {
+  spaceId: string;
   page?: number; // pagination
 }
 

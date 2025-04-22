@@ -182,6 +182,7 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
+  isSynced: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
@@ -220,6 +221,12 @@ export interface Spaces {
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
   workspaceId: string;
+}
+
+export interface SynchronizedPages {
+  id: Generated<string>;
+  originPageId: string;
+  referencePageId: string;
 }
 
 export interface Users {
@@ -303,6 +310,7 @@ export interface DB {
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  synchronizedPages: SynchronizedPages;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;

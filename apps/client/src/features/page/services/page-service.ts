@@ -10,6 +10,8 @@ import {
   IPageMember,
   IRemovePageMember,
   IChangePageMemberRole,
+  ICreateSynchronizedPage,
+  PagesInSpaceParams,
 } from "@/features/page/types/page.types";
 import { IAttachment, IPagination, QueryParams } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
@@ -22,7 +24,7 @@ export async function createPage(data: Partial<IPage>): Promise<IPage> {
 
 export async function getPageById(
   pageInput: Partial<IPageInput>,
-): Promise<IPage> {
+): Promise<IPage & { originPageId?: string; isSyncedPage?: boolean }> {
   const req = await api.post<IPage>("/pages/info", pageInput);
   return req.data;
 }
@@ -44,10 +46,24 @@ export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }
 
+export async function createSynchronizedPage(
+  data: ICreateSynchronizedPage,
+): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/sync-page", data);
+  return req.data;
+}
+
 export async function getSidebarPages(
   params: SidebarPagesParams,
 ): Promise<IPagination<IPage>> {
   const req = await api.post("/pages/sidebar-pages", params);
+  return req.data;
+}
+
+export async function getPagesInSpace(
+  params: PagesInSpaceParams,
+): Promise<IPagination<IPage>> {
+  const req = await api.get("/pages", { params: params });
   return req.data;
 }
 

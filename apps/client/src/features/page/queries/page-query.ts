@@ -19,15 +19,19 @@ import {
   getPageMembers,
   removePageMember,
   changeMemberRole,
+  createSynchronizedPage,
+  getPagesInSpace,
 } from "@/features/page/services/page-service";
 import {
   IAddPageMember,
   IChangePageMemberRole,
+  ICreateSynchronizedPage,
   IMovePage,
   IPage,
   IPageInput,
   IPageMember,
   IRemovePageMember,
+  PagesInSpaceParams,
   SidebarPagesParams,
 } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
@@ -40,7 +44,10 @@ import { useTranslation } from "react-i18next";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
-): UseQueryResult<IPage, Error> {
+): UseQueryResult<
+  IPage & { originPageId?: string; isSyncedPage?: boolean },
+  Error
+> {
   const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
     queryFn: () => getPageById(pageInput),
@@ -117,12 +124,27 @@ export function useMovePageMutation() {
   });
 }
 
+export function useCreateSynchronizedPageMutation() {
+  return useMutation<IPage, Error, ICreateSynchronizedPage>({
+    mutationFn: (data) => createSynchronizedPage(data),
+  });
+}
+
 export function useGetSidebarPagesQuery(
   data: SidebarPagesParams,
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
     queryKey: ["sidebar-pages", data],
     queryFn: () => getSidebarPages(data),
+  });
+}
+
+export function useGetPagesInSpace(
+  data: PagesInSpaceParams,
+): UseQueryResult<IPagination<IPage>, Error> {
+  return useQuery({
+    queryKey: ["pages-in-space", data],
+    queryFn: () => getPagesInSpace(data),
   });
 }
 

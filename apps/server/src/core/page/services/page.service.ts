@@ -13,7 +13,7 @@ import {
   PaginationResult,
 } from '@docmost/db/pagination/pagination';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
@@ -23,6 +23,8 @@ import { executeTx } from '@docmost/db/utils';
 import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { SpaceRole } from 'src/common/helpers/types/permission';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { SidebarPageDto, SidebarPageResultDto } from '../dto/sidebar-page.dto';
+import { SynchronizedPageRepo } from '@docmost/db/repos/page/synchronized_page.repo';
 
 @Injectable()
 export class PageService {
@@ -30,6 +32,7 @@ export class PageService {
     private pageRepo: PageRepo,
     private pageMemberRepo: PageMemberRepo,
     private attachmentRepo: AttachmentRepo,
+    private readonly syncPageRepo: SynchronizedPageRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -186,11 +189,40 @@ export class PageService {
       .as('hasChildren');
   }
 
+  async getPagesInSpace(
+    spaceId: string,
+    pagination?: PaginationOptions,
+    trx?: KyselyTransaction,
+  ): Promise<PaginationResult<SidebarPageResultDto>> {
+    const query = this.db
+      .selectFrom('pages')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'creatorId',
+        'isSynced',
+      ])
+      .orderBy('position', 'asc')
+      .where('spaceId', '=', spaceId);
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: 250,
+    });
+
+    return result;
+  }
+
   async getSidebarPages(
     spaceId: string,
     pagination: PaginationOptions,
     pageId?: string,
-  ): Promise<any> {
+  ): Promise<PaginationResult<SidebarPageResultDto>> {
     let query = this.db
       .selectFrom('pages')
       .select([
@@ -202,6 +234,7 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'isSynced',
       ])
       .select((eb) => this.withHasChildren(eb))
       .orderBy('position', 'asc')
@@ -352,7 +385,17 @@ export class PageService {
   }
 
   async forceDelete(pageId: string): Promise<void> {
-    await this.pageRepo.deletePage(pageId);
+    const refPages = await this.syncPageRepo.findAllRefsByOriginId(pageId);
+
+    await executeTx(this.db, async (trx) => {
+      if (refPages.length > 0) {
+        for (const refPage of refPages) {
+          await this.pageRepo.deletePage(refPage.referencePageId, trx);
+        }
+      }
+
+      await this.pageRepo.deletePage(pageId, trx);
+    });
   }
 }
 

@@ -17,6 +17,7 @@ import {
   AuthProviders,
   AuthAccounts,
   PageMembers,
+  SynchronizedPages,
 } from './db';
 
 // Workspace
@@ -67,6 +68,13 @@ export type UpdatablePage = Updateable<Omit<Pages, 'id'>>;
 export type PageHistory = Selectable<History>;
 export type InsertablePageHistory = Insertable<History>;
 export type UpdatablePageHistory = Updateable<Omit<History, 'id'>>;
+
+// SynchronizedPage
+export type SynchronizedPage = Selectable<SynchronizedPages>;
+export type InsertableSynchronizedPage = Insertable<SynchronizedPages>;
+export type UpdatableSynchronizedPage = Updateable<
+  Omit<SynchronizedPages, 'id'>
+>;
 
 // PageMember
 export type PageMember = Selectable<PageMembers>;
