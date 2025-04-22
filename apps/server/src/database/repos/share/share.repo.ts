@@ -59,7 +59,7 @@ export class ShareRepo {
     if (isValidUUID(shareId)) {
       query = query.where('id', '=', shareId);
     } else {
-      query = query.where('key', '=', shareId);
+      query = query.where(sql`LOWER(key)`, '=', shareId.toLowerCase());
     }
 
     return query.executeTakeFirst();
@@ -98,7 +98,7 @@ export class ShareRepo {
     return dbOrTx(this.db, trx)
       .updateTable('shares')
       .set({ ...updatableShare, updatedAt: new Date() })
-      .where(!isValidUUID(shareId) ? 'key' : 'id', '=', shareId)
+      .where(isValidUUID(shareId) ? 'id' : sql`LOWER(key)`, '=', shareId.toLowerCase())
       .returning(this.baseFields)
       .executeTakeFirst();
   }

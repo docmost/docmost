@@ -7,7 +7,7 @@ import {
 import { CreateShareDto, ShareInfoDto, UpdateShareDto } from './dto/share.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { generateSlugId } from '../../common/helpers';
+import { nanoIdGen } from '../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
 import { jsonToNode } from '../../collaboration/collaboration.util';
@@ -66,7 +66,7 @@ export class ShareService {
       }
 
       return await this.shareRepo.insertShare({
-        key: generateSlugId(),
+        key: nanoIdGen().toLowerCase(),
         pageId: page.id,
         includeSubPages: createShareDto.includeSubPages || true,
         searchIndexing: createShareDto.searchIndexing || true,
@@ -224,7 +224,7 @@ export class ShareService {
                   .as('found'),
             ])
             .where(
-              !isValidUUID(childPageId) ? 'slugId' : 'id',
+              isValidUUID(childPageId) ? 'id' : 'slugId',
               '=',
               childPageId,
             )
