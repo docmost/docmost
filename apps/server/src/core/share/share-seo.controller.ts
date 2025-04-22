@@ -73,12 +73,14 @@ export class ShareSeoController {
         rawTitle.length > 80 ? `${rawTitle.slice(0, 77)}…` : rawTitle;
 
       const metaTagVar = '<!--meta-tags-->';
-      let metaTags = '';
 
-      metaTags = `<meta property="og:title" content="${metaTitle}" />\n`;
-      if (!share.searchIndexing) {
-        metaTags += '<meta name="robots" content="noindex" />\n';
-      }
+      const metaTags = [
+        `<meta property="og:title" content="${metaTitle}" />`,
+        `<meta property="twitter:title" content="${metaTitle}" />`,
+        !share.searchIndexing ? `<meta name="robots" content="noindex" />` : '',
+      ]
+        .filter(Boolean)
+        .join('\n    ');
 
       const html = fs.readFileSync(indexFilePath, 'utf8');
       const transformedHtml = html
