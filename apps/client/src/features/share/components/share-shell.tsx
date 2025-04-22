@@ -55,19 +55,15 @@ export default function ShareShell({
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
 
   const [navbarOutside, setNavbarOutside] = useState<HTMLElement | null>(null);
-  const [asideOutside, setAsideOutside] = useState<HTMLElement | null>(null);
 
   useClickOutside(
     () => {
       if (mobileOpened) {
         toggleMobile();
       }
-      if (mobileTocOpened) {
-        toggleTocMobile();
-      }
     },
     null,
-    [navbarOutside, asideOutside],
+    [navbarOutside],
   );
 
   return (
@@ -181,7 +177,6 @@ export default function ShareShell({
         p="md"
         withBorder={mobileTocOpened}
         className={classes.aside}
-        ref={setAsideOutside}
       >
         <ScrollArea style={{ height: "80vh" }} scrollbarSize={5} type="scroll">
           <div style={{ paddingBottom: "50px" }}>
