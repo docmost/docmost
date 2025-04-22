@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconExternalLink, IconWorld } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   useCreateShareMutation,
   useDeleteShareMutation,
@@ -43,7 +43,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
   // if level is greater than zero, then it is a descendant page from a shared page
   const isDescendantShared = share && share.level > 0;
 
-  const publicLink = `${getAppUrl()}/share/${share?.key}/${pageSlug}`;
+  const publicLink = `${getAppUrl()}/share/${share?.key}/p/${pageSlug}`;
 
   const [isPagePublic, setIsPagePublic] = useState<boolean>(false);
   useEffect(() => {
@@ -92,6 +92,27 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     });
   };
 
+  const shareLink = useMemo(() => (
+    <Group my="sm" gap={4} wrap="nowrap">
+      <TextInput
+        variant="filled"
+        value={publicLink}
+        readOnly
+        rightSection={<CopyTextButton text={publicLink} />}
+        style={{ width: "100%" }}
+      />
+      <ActionIcon
+        component="a"
+        variant="default"
+        target="_blank"
+        href={publicLink}
+        size="sm"
+      >
+        <IconExternalLink size={16} />
+      </ActionIcon>
+    </Group>
+  ), [publicLink]);
+
   return (
     <Popover width={350} position="bottom" withArrow shadow="md">
       <Popover.Target>
@@ -110,7 +131,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
           }
           variant="default"
         >
-          Share
+          {t("Share")}
         </Button>
       </Popover.Target>
       <Popover.Dropdown style={{ userSelect: "none" }}>
@@ -141,14 +162,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
               </Group>
             </Anchor>
 
-            <Group my="sm" grow>
-              <TextInput
-                variant="filled"
-                value={publicLink}
-                readOnly
-                rightSection={<CopyTextButton text={publicLink} />}
-              />
-            </Group>
+            {shareLink}
           </>
         ) : (
           <>
@@ -173,25 +187,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
 
             {pageIsShared && (
               <>
-                <Group my="sm" gap={4} wrap="nowrap">
-                  <TextInput
-                    variant="filled"
-                    value={publicLink}
-                    readOnly
-                    rightSection={<CopyTextButton text={publicLink} />}
-                    style={{ width: "100%" }}
-                  />
-                  <ActionIcon
-                    component="a"
-                    variant="default"
-                    target="_blank"
-                    href={publicLink}
-                    size="sm"
-                  >
-                    <IconExternalLink size={16} />
-                  </ActionIcon>
-                </Group>
-
+                {shareLink}
                 <Group justify="space-between" wrap="nowrap" gap="xl">
                   <div>
                     <Text size="sm">{t("Include sub-pages")}</Text>
@@ -207,7 +203,6 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
                     disabled={readOnly}
                   />
                 </Group>
-
                 <Group justify="space-between" wrap="nowrap" gap="xl" mt="sm">
                   <div>
                     <Text size="sm">{t("Search engine indexing")}</Text>

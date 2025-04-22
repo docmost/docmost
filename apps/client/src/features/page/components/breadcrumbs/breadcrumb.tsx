@@ -81,7 +81,7 @@ export default function Breadcrumb() {
 
   const renderAnchor = useCallback(
     (node: SpaceTreeNode) => (
-      <Tooltip label={node.name}>
+      <Tooltip label={node.name} key={node.id}>
         <Anchor
           component={Link}
           to={buildPageUrl(spaceSlug, node.slugId, node.name)}
@@ -141,7 +141,7 @@ export default function Breadcrumb() {
           position="bottom"
           withArrow
           shadow="xl"
-          key="hidden-nodes"
+          key="mobile-hidden-nodes"
         >
           <Popover.Target>
             <Tooltip label="Breadcrumbs">

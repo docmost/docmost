@@ -32,5 +32,5 @@ export const buildSharedPageUrl = (opts: {
     return `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
 
-  return `/share/${shareId}/${buildPageSlug(pageSlugId, pageTitle)}`;
+  return `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
 };

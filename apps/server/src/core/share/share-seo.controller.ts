@@ -19,7 +19,7 @@ export class ShareSeoController {
   /*
    * add meta tags to publicly shared pages
    */
-  @Get([':shareId/:pageSlug', 'p/:pageSlug'])
+  @Get([':shareId/p/:pageSlug', 'p/:pageSlug'])
   async getShare(
     @Res({ passthrough: false }) res: FastifyReply,
     @Req() req: FastifyRequest,

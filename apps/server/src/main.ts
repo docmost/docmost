@@ -32,7 +32,7 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api', {
-    exclude: ['robots.txt', 'share/:shareId/:pageSlug'],
+    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
   });
 
   const reflector = app.get(Reflector);

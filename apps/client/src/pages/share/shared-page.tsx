@@ -21,7 +21,7 @@ export default function SingleSharedPage() {
   useEffect(() => {
     if (shareId && data) {
       if (data.share.key !== shareId) {
-        navigate(`/share/${data.share.key}/${pageSlug}`, { replace: true });
+        navigate(`/share/${data.share.key}/p/${pageSlug}`, { replace: true });
       }
     }
   }, [shareId, data]);
