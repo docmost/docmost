@@ -64,20 +64,16 @@ export class ShareController {
     return this.shareService.getSharedPage(dto, workspace.id);
   }
 
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getShare(@Body() dto: ShareIdDto, @AuthUser() user: User) {
+  async getShare(@Body() dto: ShareIdDto) {
     const share = await this.shareRepo.findById(dto.shareId, {
       includeSharedPage: true,
     });
 
     if (!share) {
       throw new NotFoundException('Share not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
     }
 
     return share;
