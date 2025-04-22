@@ -130,7 +130,7 @@ export class ShareRepo {
     if (isValidUUID(shareId)) {
       query = query.where('id', '=', shareId);
     } else {
-      query = query.where('key', '=', shareId);
+      query = query.where(sql`LOWER(key)`, '=', shareId.toLowerCase());
     }
 
     await query.execute();
