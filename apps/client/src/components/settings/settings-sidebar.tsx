@@ -13,7 +13,7 @@ import {
   IconKey,
   IconWorld,
 } from "@tabler/icons-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
@@ -32,6 +32,7 @@ import {
 import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import { useSettingsNavigation } from "@/hooks/use-settings-navigation";
 
 interface DataItem {
   label: string;
@@ -105,7 +106,7 @@ export default function SettingsSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
-  const navigate = useNavigate();
+  const { goBack } = useSettingsNavigation();
   const { isAdmin } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
@@ -210,7 +211,12 @@ export default function SettingsSidebar() {
     <div className={classes.navbar}>
       <Group className={classes.title} justify="flex-start">
         <ActionIcon
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            goBack();
+            if (mobileSidebarOpened) {
+              toggleMobileSidebar();
+            }
+          }}
           variant="transparent"
           c="gray"
           aria-label="Back"
