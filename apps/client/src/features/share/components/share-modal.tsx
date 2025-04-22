@@ -155,7 +155,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
             <Group justify="space-between" wrap="nowrap" gap="xl">
               <div>
                 <Text size="sm">
-                  {isPagePublic ? t("Publicly shared") : t("Share to web")}
+                  {isPagePublic ? t("Shared to web") : t("Share to web")}
                 </Text>
                 <Text size="xs" c="dimmed">
                   {isPagePublic
