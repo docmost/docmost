@@ -11,7 +11,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconCornerLeftDownDouble, IconDots } from "@tabler/icons-react";
+import { IconCornerDownRightDouble, IconDots } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./breadcrumb.module.css";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
@@ -146,7 +146,7 @@ export default function Breadcrumb() {
           <Popover.Target>
             <Tooltip label="Breadcrumbs">
               <ActionIcon color="gray" variant="transparent">
-                <IconCornerLeftDownDouble size={20} stroke={2} />
+                <IconCornerDownRightDouble size={20} stroke={2} />
               </ActionIcon>
             </Tooltip>
           </Popover.Target>
