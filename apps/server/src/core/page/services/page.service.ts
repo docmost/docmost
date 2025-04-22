@@ -212,7 +212,7 @@ export class PageService {
         trx,
       );
       const pageIds = await this.pageRepo
-        .getPageAndDescendants(rootPage.id)
+        .getPageAndDescendants(rootPage.id, { includeContent: false })
         .then((pages) => pages.map((page) => page.id));
       // The first id is the root page id
       if (pageIds.length > 1) {
@@ -223,6 +223,16 @@ export class PageService {
           trx,
         );
       }
+
+      // update spaceId in shares
+      if (pageIds.length > 0) {
+        await trx
+          .updateTable('shares')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+      }
+
       // Update attachments
       await this.attachmentRepo.updateAttachmentsByPageId(
         { spaceId },

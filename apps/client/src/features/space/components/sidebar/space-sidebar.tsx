@@ -38,6 +38,8 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 import { SwitchSpace } from "./switch-space";
 import ExportModal from "@/components/common/export-modal";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -45,6 +47,9 @@ export function SpaceSidebar() {
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
+  const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+
   const { spaceSlug } = useParams();
   const { data: space, isLoading, isError } = useGetSpaceBySlugQuery(spaceSlug);
 
@@ -123,7 +128,12 @@ export function SpaceSidebar() {
             ) && (
               <UnstyledButton
                 className={classes.menu}
-                onClick={handleCreatePage}
+                onClick={() => {
+                  handleCreatePage();
+                  if (mobileSidebarOpened) {
+                    toggleMobileSidebar();
+                  }
+                }}
               >
                 <div className={classes.menuItemInner}>
                   <IconPlus

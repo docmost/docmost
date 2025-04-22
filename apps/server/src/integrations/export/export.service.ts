@@ -15,10 +15,8 @@ import { StorageService } from '../storage/storage.service';
 import {
   buildTree,
   computeLocalPath,
-  getAttachmentIds,
   getExportExtension,
   getPageTitle,
-  getProsemirrorContent,
   PageExportTree,
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
@@ -29,6 +27,10 @@ import { EditorState } from '@tiptap/pm/state';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import slugify = require('@sindresorhus/slugify');
 import { EnvironmentService } from '../environment/environment.service';
+import {
+  getAttachmentIds,
+  getProsemirrorContent,
+} from '../../common/helpers/prosemirror/utils';
 
 @Injectable()
 export class ExportService {
@@ -76,8 +78,11 @@ export class ExportService {
       </html>`;
     }
 
-    if (format === ExportFormat.Markdown) { 
-      const newPageHtml = pageHtml.replace(/<colgroup[^>]*>[\s\S]*?<\/colgroup>/gmi, '');
+    if (format === ExportFormat.Markdown) {
+      const newPageHtml = pageHtml.replace(
+        /<colgroup[^>]*>[\s\S]*?<\/colgroup>/gim,
+        '',
+      );
       return turndown(newPageHtml);
     }
 
@@ -85,7 +90,9 @@ export class ExportService {
   }
 
   async exportPageWithChildren(pageId: string, format: string) {
-    const pages = await this.pageRepo.getPageAndDescendants(pageId);
+    const pages = await this.pageRepo.getPageAndDescendants(pageId, {
+      includeContent: true,
+    });
 
     if (!pages || pages.length === 0) {
       throw new BadRequestException('No pages to export');
@@ -260,14 +267,7 @@ export class ExportService {
 
     const pages = await this.db
       .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'creatorId',
-        'spaceId',
-        'workspaceId',
-      ])
+      .select(['id', 'slugId', 'title', 'creatorId', 'spaceId', 'workspaceId'])
       .select((eb) => this.pageRepo.withSpace(eb))
       .where('id', 'in', pageMentionIds)
       .where('workspaceId', '=', workspaceId)
