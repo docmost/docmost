@@ -17,5 +17,5 @@ jobs:
           script: |
             cd ${{ secrets.VPS_DEPLOY_PATH }}
             docker-compose down
-            git pull --rebase
+            git pull
             docker-compose up -d --force-recreate --build docmost
