@@ -12,6 +12,7 @@ export interface IShare {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  sharedPage?: ISharePage;
 }
 
 export interface ISharedItem extends IShare {
@@ -44,12 +45,14 @@ export interface ISharedPage extends IShare {
 
 export interface IShareForPage extends IShare {
   level: number;
-  sharedPage: {
-    id: string;
-    slugId: string;
-    title: string;
-    icon: string;
-  };
+  sharedPage: ISharePage;
+}
+
+interface ISharePage {
+  id: string;
+  slugId: string;
+  title: string;
+  icon: string;
 }
 
 export interface ICreateShare {

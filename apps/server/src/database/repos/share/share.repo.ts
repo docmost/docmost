@@ -39,6 +39,7 @@ export class ShareRepo {
   async findById(
     shareId: string,
     opts?: {
+      includeSharedPage?: boolean;
       includeCreator?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
@@ -47,6 +48,10 @@ export class ShareRepo {
     const db = dbOrTx(this.db, opts?.trx);
 
     let query = db.selectFrom('shares').select(this.baseFields);
+
+    if (opts?.includeSharedPage) {
+      query = query.select((eb) => this.withSharedPage(eb));
+    }
 
     if (opts?.includeCreator) {
       query = query.select((eb) => this.withCreator(eb));
@@ -98,7 +103,11 @@ export class ShareRepo {
     return dbOrTx(this.db, trx)
       .updateTable('shares')
       .set({ ...updatableShare, updatedAt: new Date() })
-      .where(isValidUUID(shareId) ? 'id' : sql`LOWER(key)`, '=', shareId.toLowerCase())
+      .where(
+        isValidUUID(shareId) ? 'id' : sql`LOWER(key)`,
+        '=',
+        shareId.toLowerCase(),
+      )
       .returning(this.baseFields)
       .executeTakeFirst();
   }
@@ -214,5 +223,20 @@ export class ShareRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'shares.creatorId'),
     ).as('creator');
+  }
+
+  withSharedPage(eb: ExpressionBuilder<DB, 'shares'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('pages')
+        .select([
+          'pages.id',
+          'pages.slugId',
+          'pages.title',
+          'pages.icon',
+          'pages.parentPageId',
+        ])
+        .whereRef('pages.id', '=', 'shares.pageId'),
+    ).as('sharedPage');
   }
 }

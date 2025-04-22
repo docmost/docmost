@@ -9,6 +9,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import {
   ICreateShare,
+  IShare,
   ISharedItem,
   ISharedPage,
   ISharedPageTree,
@@ -22,6 +23,7 @@ import {
   getSharedPageTree,
   getShareForPage,
   getShareInfo,
+  getSharePageInfo,
   getShares,
   updateShare,
 } from "@/features/share/services/share-service.ts";
@@ -39,12 +41,24 @@ export function useGetSharesQuery(
   });
 }
 
-export function useShareQuery(
+export function useGetShareByIdQuery(
+  shareId: string,
+): UseQueryResult<IShare, Error> {
+  const query = useQuery({
+    queryKey: ["share-by-id", shareId],
+    queryFn: () => getShareInfo(shareId),
+    enabled: !!shareId,
+  });
+
+  return query;
+}
+
+export function useSharePageQuery(
   shareInput: Partial<IShareInfoInput>,
 ): UseQueryResult<ISharedPage, Error> {
   const query = useQuery({
     queryKey: ["shares", shareInput],
-    queryFn: () => getShareInfo(shareInput),
+    queryFn: () => getSharePageInfo(shareInput),
     enabled: !!shareInput.pageId,
   });
 
@@ -84,7 +98,9 @@ export function useCreateShareMutation() {
 }
 
 export function useUpdateShareMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
+
   return useMutation<any, Error, IUpdateShare>({
     mutationFn: (data) => updateShare(data),
     onSuccess: (data) => {
@@ -99,10 +115,16 @@ export function useUpdateShareMutation() {
           predicate: (item) =>
             ["share-for-page"].includes(item.queryKey[0] as string),
         });
+
+        notifications.show({
+          message: t("Share not found"),
+          color: "red",
+        });
+        return;
       }
 
       notifications.show({
-        message: error?.["response"]?.data?.message || "Share share not found",
+        message: error?.["response"]?.data?.message || "Share not found",
         color: "red",
       });
     },

@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { useShareQuery } from "@/features/share/queries/share-query.ts";
+import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
 import { Container } from "@mantine/core";
 import React, { useEffect } from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
@@ -14,7 +14,7 @@ export default function SingleSharedPage() {
   const { shareId } = useParams();
   const navigate = useNavigate();
 
-  const { data, isLoading, isError, error } = useShareQuery({
+  const { data, isLoading, isError, error } = useSharePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
 

@@ -67,7 +67,9 @@ export class ShareController {
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   async getShare(@Body() dto: ShareIdDto, @AuthUser() user: User) {
-    const share = await this.shareRepo.findById(dto.shareId);
+    const share = await this.shareRepo.findById(dto.shareId, {
+      includeSharedPage: true,
+    });
 
     if (!share) {
       throw new NotFoundException('Share not found');
