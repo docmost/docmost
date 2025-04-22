@@ -73,15 +73,17 @@ export class ShareSeoController {
         rawTitle.length > 80 ? `${rawTitle.slice(0, 77)}…` : rawTitle;
 
       const metaTagVar = '<!--meta-tags-->';
-      let metaTag = '';
+      let metaTags = '';
+
+      metaTags = `<meta property="og:title" content="${metaTitle}" />\n`;
       if (!share.searchIndexing) {
-        metaTag = '<meta name="robots" content="noindex" />';
+        metaTags += '<meta name="robots" content="noindex" />\n';
       }
 
       const html = fs.readFileSync(indexFilePath, 'utf8');
       const transformedHtml = html
         .replace(/<title>[\s\S]*?<\/title>/i, `<title>${metaTitle}</title>`)
-        .replace(metaTagVar, metaTag);
+        .replace(metaTagVar, metaTags);
 
       res.type('text/html').send(transformedHtml);
     }
