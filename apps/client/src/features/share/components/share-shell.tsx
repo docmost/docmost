@@ -170,7 +170,7 @@ export default function ShareShell({
             variant="default"
             component="a"
             target="_blank"
-            href="https://docmost.com"
+            href="https://docmost.com?ref=public-share"
           >
             Powered by Docmost
           </Button>
