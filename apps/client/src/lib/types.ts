@@ -52,4 +52,20 @@ export interface IAttachment {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  originalPath: string | null;
+  description: string | null;
+  descriptionUrl: string | null;
+  thumbnailPath: string | null;
+}
+
+export interface IImage {
+  url: string;
+  thumbnailUrl: string;
+  sourceSystem: string;
+  width: number;
+  height: number;
+  altText: string;
+  title: string;
+  attribution: string;
+  attributionUrl: string;    
 }

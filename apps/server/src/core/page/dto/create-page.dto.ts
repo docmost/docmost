@@ -11,6 +11,10 @@ export class CreatePageDto {
 
   @IsOptional()
   @IsString()
+  coverPhoto?: string;
+
+  @IsOptional()
+  @IsString()
   parentPageId?: string;
 
   @IsUUID()

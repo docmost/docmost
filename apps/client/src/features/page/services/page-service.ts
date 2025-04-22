@@ -106,3 +106,11 @@ export async function uploadFile(
 
   return req as unknown as IAttachment;
 }
+
+export async function getAttachment(
+  attachmentId: string,
+): Promise<IAttachment> {
+  const req = await api.get<IAttachment>(`/attachments/${attachmentId}`);
+  return req.data;
+}
+ 

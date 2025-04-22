@@ -42,6 +42,10 @@ export interface Attachments {
   type: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
+  orginalPath: string | null;
+  description: string | null;
+  descriptionUrl: string | null;
+  thumbnailPath: string | null;
 }
 
 export interface AuthAccounts {
