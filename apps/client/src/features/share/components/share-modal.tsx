@@ -10,7 +10,7 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { IconWorld } from "@tabler/icons-react";
+import { IconExternalLink, IconWorld } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import {
   useCreateShareMutation,
@@ -173,13 +173,23 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
 
             {pageIsShared && (
               <>
-                <Group my="sm" grow>
+                <Group my="sm" gap={4} wrap="nowrap">
                   <TextInput
                     variant="filled"
                     value={publicLink}
                     readOnly
                     rightSection={<CopyTextButton text={publicLink} />}
+                    style={{ width: "100%" }}
                   />
+                  <ActionIcon
+                    component="a"
+                    variant="default"
+                    target="_blank"
+                    href={publicLink}
+                    size="sm"
+                  >
+                    <IconExternalLink size={16} />
+                  </ActionIcon>
                 </Group>
 
                 <Group justify="space-between" wrap="nowrap" gap="xl">
