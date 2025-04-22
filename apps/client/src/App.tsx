@@ -26,10 +26,12 @@ import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
+import { useTrackOrigin } from "@/hooks/use-track-origin";
 
 export default function App() {
   const { t } = useTranslation();
   useRedirectToCloudSelect();
+  useTrackOrigin();
 
   return (
     <>

@@ -28,6 +28,7 @@ import {
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
+import { useSettingsNavigation } from "@/hooks/use-settings-navigation";
 
 interface DataItem {
   label: string;
@@ -100,7 +101,7 @@ export default function SettingsSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
-  const navigate = useNavigate();
+  const { goBack } = useSettingsNavigation();
   const { isAdmin } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
 
@@ -195,7 +196,7 @@ export default function SettingsSidebar() {
     <div className={classes.navbar}>
       <Group className={classes.title} justify="flex-start">
         <ActionIcon
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           variant="transparent"
           c="gray"
           aria-label="Back"
