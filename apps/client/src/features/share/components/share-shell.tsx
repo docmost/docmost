@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ActionIcon,
   Affix,
@@ -30,7 +30,6 @@ import {
 import { IconList } from "@tabler/icons-react";
 import { useToggleToc } from "@/features/share/hooks/use-toggle-toc.ts";
 import classes from "./share.module.css";
-import { useClickOutside } from "@mantine/hooks";
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -53,18 +52,6 @@ export default function ShareShell({
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
-
-  const [navbarOutside, setNavbarOutside] = useState<HTMLElement | null>(null);
-
-  useClickOutside(
-    () => {
-      if (mobileOpened) {
-        toggleMobile();
-      }
-    },
-    null,
-    [navbarOutside],
-  );
 
   return (
     <AppShell
@@ -149,11 +136,7 @@ export default function ShareShell({
       </AppShell.Header>
 
       {data?.pageTree?.length > 1 && (
-        <AppShell.Navbar
-          p="md"
-          className={classes.navbar}
-          ref={setNavbarOutside}
-        >
+        <AppShell.Navbar p="md" className={classes.navbar}>
           <MemoizedSharedTree sharedPageTree={data} />
         </AppShell.Navbar>
       )}
