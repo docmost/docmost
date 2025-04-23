@@ -1,6 +1,7 @@
 import { Node } from '@tiptap/pm/model';
 import { jsonToNode } from '../../../collaboration/collaboration.util';
 import { validate as isValidUUID } from 'uuid';
+import { Transform } from '@tiptap/pm/transform';
 
 export interface MentionNode {
   id: string;
@@ -94,4 +95,16 @@ export function getAttachmentIds(prosemirrorJson: any) {
   });
 
   return attachmentIds;
+}
+
+export function removeMarkTypeFromDoc(doc: Node, markName: string): Node {
+  const { schema } = doc.type;
+  const markType = schema.marks[markName];
+
+  if (!markType) {
+    return doc;
+  }
+
+  const tr = new Transform(doc).removeMark(0, doc.content.size, markType);
+  return tr.doc;
 }

@@ -15,6 +15,7 @@ import {
   getAttachmentIds,
   getProsemirrorContent,
   isAttachmentNode,
+  removeMarkTypeFromDoc,
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
@@ -223,11 +224,7 @@ export class ShareService {
                   .end()
                   .as('found'),
             ])
-            .where(
-              isValidUUID(childPageId) ? 'id' : 'slugId',
-              '=',
-              childPageId,
-            )
+            .where(isValidUUID(childPageId) ? 'id' : 'slugId', '=', childPageId)
             .unionAll((exp) =>
               exp
                 .selectFrom('pages as p')
@@ -292,6 +289,7 @@ export class ShareService {
       updateAttachmentAttr(node, 'url', token);
     });
 
-    return doc.toJSON();
+    const removeCommentMarks = removeMarkTypeFromDoc(doc, 'comment');
+    return removeCommentMarks.toJSON();
   }
 }
