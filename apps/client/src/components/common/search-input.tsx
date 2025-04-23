@@ -30,7 +30,11 @@ export function SearchInput({
         placeholder={placeholder || t("Search...")}
         leftSection={<IconSearch size={16} />}
         value={value}
-        onChange={(e) => setValue(e.currentTarget.value)}
+        onChange={(e) => {
+          e.stopPropagation();
+          setValue(e.currentTarget.value);
+        }}
+        onClick={(e) => e.stopPropagation()}
       />
     </Group>
   );

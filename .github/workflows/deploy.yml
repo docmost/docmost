@@ -1,0 +1,21 @@
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  my_job:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            docker-compose down
+            git pull
+            docker-compose up -d --force-recreate --build docmost

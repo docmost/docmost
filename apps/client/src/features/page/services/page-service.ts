@@ -6,9 +6,16 @@ import {
   IPage,
   IPageInput,
   SidebarPagesParams,
+  IAddPageMember,
+  IPageMember,
+  IRemovePageMember,
+  IChangePageMemberRole,
+  ICreateSynchronizedPage,
+  PagesInSpaceParams,
 } from "@/features/page/types/page.types";
-import { IAttachment, IPagination } from "@/lib/types.ts";
+import { IAttachment, IPagination, QueryParams } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
+import { IChangePassword } from "@/features/auth/types/auth.types";
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
@@ -17,7 +24,7 @@ export async function createPage(data: Partial<IPage>): Promise<IPage> {
 
 export async function getPageById(
   pageInput: Partial<IPageInput>,
-): Promise<IPage> {
+): Promise<IPage & { originPageId?: string; isSyncedPage?: boolean }> {
   const req = await api.post<IPage>("/pages/info", pageInput);
   return req.data;
 }
@@ -39,10 +46,24 @@ export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }
 
+export async function createSynchronizedPage(
+  data: ICreateSynchronizedPage,
+): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/sync-page", data);
+  return req.data;
+}
+
 export async function getSidebarPages(
   params: SidebarPagesParams,
 ): Promise<IPagination<IPage>> {
   const req = await api.post("/pages/sidebar-pages", params);
+  return req.data;
+}
+
+export async function getPagesInSpace(
+  params: PagesInSpaceParams,
+): Promise<IPagination<IPage>> {
+  const req = await api.get("/pages", { params: params });
   return req.data;
 }
 
@@ -105,4 +126,26 @@ export async function uploadFile(
   });
 
   return req as unknown as IAttachment;
+}
+
+export async function addPageMember(data: IAddPageMember): Promise<void> {
+  await api.post("/pages/members/add", data);
+}
+
+export async function getPageMembers(
+  pageId: string,
+  params?: QueryParams,
+): Promise<IPagination<IPageMember>> {
+  const req = await api.post<any>("/pages/members", { pageId, ...params });
+  return req.data;
+}
+
+export async function removePageMember(data: IRemovePageMember): Promise<void> {
+  await api.post("/pages/members/remove", data);
+}
+
+export async function changeMemberRole(
+  data: IChangePageMemberRole,
+): Promise<void> {
+  await api.post("/pages/members/change-role", data);
 }

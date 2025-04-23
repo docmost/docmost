@@ -15,13 +15,16 @@ import {
   IconArrowRight,
   IconChevronDown,
   IconChevronRight,
+  IconCopy,
   IconDotsVertical,
   IconFileDescription,
   IconFileExport,
+  IconFileSymlink,
   IconLink,
   IconPlus,
   IconPointFilled,
   IconTrash,
+  IconUsers,
 } from "@tabler/icons-react";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
@@ -57,7 +60,9 @@ import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
+import PageShareModal from "../../components/share-modal";
 import MovePageModal from "../../components/move-page-modal.tsx";
+import CreateSyncPageModal from "../../components/create-sync-page-modal.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -356,7 +361,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         onMouseLeave={cancelPagePrefetch}
       >
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
-
         <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
@@ -373,6 +377,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         </div>
 
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
+
+        {node.data.isSynced ? <IconLink size="18" /> : null}
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} />
@@ -435,11 +441,20 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
+
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [shareOpened, { open: openShareModal, close: closeShareModal }] =
+    useDisclosure(false);
+
   const [
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
+  ] = useDisclosure(false);
+
+  const [
+    createSyncedPageModelOpened,
+    { open: openCreateSyncedPageModal, close: closeCreateSyncedPageModal },
   ] = useDisclosure(false);
 
   const handleCopyLink = () => {
@@ -491,6 +506,30 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
             {t("Export page")}
           </Menu.Item>
 
+          <Menu.Item
+            leftSection={<IconUsers size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openShareModal();
+            }}
+          >
+            {t("Share")}
+          </Menu.Item>
+
+          {!node.data.isSynced ? (
+            <Menu.Item
+              leftSection={<IconFileSymlink size={16} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openCreateSyncedPageModal();
+              }}
+            >
+              {t("New Synced Page")}
+            </Menu.Item>
+          ) : null}
+
           {!(treeApi.props.disableEdit as boolean) && (
             <>
               <Menu.Item
@@ -529,11 +568,24 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
         open={movePageModalOpened}
       />
 
+      <CreateSyncPageModal
+        originPageId={node.id}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeCreateSyncedPageModal}
+        open={createSyncedPageModelOpened}
+      />
+
       <ExportModal
         type="page"
         id={node.id}
         open={exportOpened}
         onClose={closeExportModal}
+      />
+
+      <PageShareModal
+        pageId={node.id}
+        opened={shareOpened}
+        onClose={closeShareModal}
       />
     </>
   );

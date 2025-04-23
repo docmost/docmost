@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -14,15 +15,27 @@ import {
   movePage,
   getPageBreadcrumbs,
   getRecentChanges,
+  addPageMember,
+  getPageMembers,
+  removePageMember,
+  changeMemberRole,
+  createSynchronizedPage,
+  getPagesInSpace,
 } from "@/features/page/services/page-service";
 import {
+  IAddPageMember,
+  IChangePageMemberRole,
+  ICreateSynchronizedPage,
   IMovePage,
   IPage,
   IPageInput,
+  IPageMember,
+  IRemovePageMember,
+  PagesInSpaceParams,
   SidebarPagesParams,
 } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
-import { IPagination } from "@/lib/types.ts";
+import { IPagination, QueryParams } from "@/lib/types.ts";
 import { queryClient } from "@/main.tsx";
 import { buildTree } from "@/features/page/tree/utils";
 import { useEffect } from "react";
@@ -31,7 +44,10 @@ import { useTranslation } from "react-i18next";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
-): UseQueryResult<IPage, Error> {
+): UseQueryResult<
+  IPage & { originPageId?: string; isSyncedPage?: boolean },
+  Error
+> {
   const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
     queryFn: () => getPageById(pageInput),
@@ -108,12 +124,27 @@ export function useMovePageMutation() {
   });
 }
 
+export function useCreateSynchronizedPageMutation() {
+  return useMutation<IPage, Error, ICreateSynchronizedPage>({
+    mutationFn: (data) => createSynchronizedPage(data),
+  });
+}
+
 export function useGetSidebarPagesQuery(
   data: SidebarPagesParams,
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
     queryKey: ["sidebar-pages", data],
     queryFn: () => getSidebarPages(data),
+  });
+}
+
+export function useGetPagesInSpace(
+  data: PagesInSpaceParams,
+): UseQueryResult<IPagination<IPage>, Error> {
+  return useQuery({
+    queryKey: ["pages-in-space", data],
+    queryFn: () => getPagesInSpace(data),
   });
 }
 
@@ -158,5 +189,75 @@ export function useRecentChangesQuery(
     queryKey: ["recent-changes", spaceId],
     queryFn: () => getRecentChanges(spaceId),
     refetchOnMount: true,
+  });
+}
+
+export function useAddPageMemberMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<void, Error, IAddPageMember>({
+    mutationFn: (data) => addPageMember(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: t("Page added successfully") });
+      queryClient.invalidateQueries({
+        queryKey: ["pageMembers", variables.pageId],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
+  });
+}
+
+export function usePageMembersQuery(
+  pageId: string,
+  params?: QueryParams,
+): UseQueryResult<IPagination<IPageMember>, Error> {
+  return useQuery({
+    queryKey: ["pageMembers", pageId, params],
+    queryFn: () => getPageMembers(pageId, params),
+    enabled: !!pageId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useRemovePageMemberMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<void, Error, IRemovePageMember>({
+    mutationFn: (data) => removePageMember(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: t("Member removed successfully") });
+      queryClient.invalidateQueries({
+        queryKey: ["pageMembers", variables.pageId],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
+  });
+}
+
+export function useChangePageMemberRoleMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<void, Error, IChangePageMemberRole>({
+    mutationFn: (data) => changeMemberRole(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: t("Member role updated successfully") });
+      // due to pagination levels, change in cache instead
+      queryClient.refetchQueries({
+        queryKey: ["pageMembers", variables.pageId],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }

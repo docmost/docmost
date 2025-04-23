@@ -159,6 +159,18 @@ export interface PageHistory {
   workspaceId: string;
 }
 
+export interface PageMembers {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  groupId: string | null;
+  id: Generated<string>;
+  pageId: string;
+  role: string;
+  updatedAt: Generated<Timestamp>;
+  userId: string | null;
+}
+
 export interface Blocks {
   id: Generated<string>;
   content: Json | null;
@@ -176,6 +188,7 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
+  isSynced: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
@@ -214,6 +227,12 @@ export interface Spaces {
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
   workspaceId: string;
+}
+
+export interface SynchronizedPages {
+  id: Generated<string>;
+  originPageId: string;
+  referencePageId: string;
 }
 
 export interface Users {
@@ -293,10 +312,12 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
+  pageMembers: PageMembers;
   blocks: Blocks;
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  synchronizedPages: SynchronizedPages;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;

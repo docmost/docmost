@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { Group, MultiSelect, MultiSelectProps, Text } from "@mantine/core";
+import {
+  Group,
+  MultiSelect,
+  MultiSelectProps,
+  Select,
+  Text,
+} from "@mantine/core";
 import { IGroup } from "@/features/group/types/group.types.ts";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -25,7 +31,9 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     )}
     {option["type"] === "group" && <IconGroupCircle />}
     <div>
-      <Text size="sm" lineClamp={1}>{option.label}</Text>
+      <Text size="sm" lineClamp={1}>
+        {option.label}
+      </Text>
     </div>
   </Group>
 );
@@ -40,6 +48,15 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
     includeGroups: true,
   });
   const [data, setData] = useState([]);
+
+  const selectRef = useRef(null);
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (selectRef.current) {
+      selectRef.current.focus();
+    }
+  };
 
   useEffect(() => {
     if (suggestion) {
@@ -100,20 +117,24 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
   }, [suggestion, data]);
 
   return (
-    <MultiSelect
-      data={data}
-      renderOption={renderMultiSelectOption}
-      hidePickedOptions
-      maxDropdownHeight={300}
-      label={t("Add members")}
-      placeholder={t("Search for users and groups")}
-      searchable
-      searchValue={searchValue}
-      onSearchChange={setSearchValue}
-      clearable
-      variant="filled"
-      onChange={onChange}
-      maxValues={50}
-    />
+    <div onClick={handleClick}>
+      <MultiSelect
+        ref={selectRef}
+        data={data}
+        renderOption={renderMultiSelectOption}
+        hidePickedOptions
+        maxDropdownHeight={300}
+        label={t("Add members")}
+        placeholder={t("Search for users and groups")}
+        searchable
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        clearable
+        variant="filled"
+        onChange={onChange}
+        maxValues={50}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
   );
 }

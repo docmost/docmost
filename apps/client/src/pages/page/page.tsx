@@ -12,10 +12,16 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
+import { usePageAbility } from "@/features/page/permissions/use-page-ability";
+import {
+  PageCaslAction,
+  PageCaslSubject,
+} from "@/features/page/permissions/permissions.type";
 
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+
   const {
     data: page,
     isLoading,
@@ -24,8 +30,7 @@ export default function Page() {
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useSpaceAbility(spaceRules);
+  const pageAbility = usePageAbility(page?.membership?.permissions);
 
   if (isLoading) {
     return <></>;
@@ -50,9 +55,9 @@ export default function Page() {
         </Helmet>
 
         <PageHeader
-          readOnly={spaceAbility.cannot(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
+          readOnly={pageAbility.cannot(
+            PageCaslAction.Manage,
+            PageCaslSubject.Page,
           )}
         />
 
@@ -63,10 +68,7 @@ export default function Page() {
           content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
-          editable={spaceAbility.can(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
-          )}
+          editable={pageAbility.can(PageCaslAction.Edit, PageCaslSubject.Page)}
         />
         <HistoryModal pageId={page.id} />
       </div>

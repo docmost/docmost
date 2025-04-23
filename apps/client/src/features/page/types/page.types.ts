@@ -1,4 +1,10 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { SpaceRole } from "@/lib/types";
+import {
+  PageCaslAction,
+  PageCaslSubject,
+} from "../permissions/permissions.type";
+import { usePageBreadcrumbsQuery } from "../queries/page-query";
 
 export interface IPage {
   id: string;
@@ -21,6 +27,56 @@ export interface IPage {
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
   space: Partial<ISpace>;
+  membership?: IMembership;
+  isSynced?: boolean;
+}
+
+interface IMembership {
+  userId: string;
+  role: SpaceRole;
+  permissions?: Permissions;
+}
+interface Permission {
+  action: PageCaslAction;
+  subject: PageCaslSubject;
+}
+
+type Permissions = Permission[];
+
+export interface PageUserInfo {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  type: "user";
+}
+
+export interface PageGroupInfo {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  memberCount: number;
+  type: "group";
+}
+
+export type IPageMember = { role: string } & (PageUserInfo | PageGroupInfo);
+
+export interface IAddPageMember {
+  pageId: string;
+  userIds?: string[];
+  groupIds?: string[];
+}
+
+export interface IRemovePageMember {
+  pageId: string;
+  userId?: string;
+  groupId?: string;
+}
+
+export interface IChangePageMemberRole {
+  pageId: string;
+  userId?: string;
+  groupId?: string;
 }
 
 interface ICreator {
@@ -47,9 +103,20 @@ export interface IMovePageToSpace {
   spaceId: string;
 }
 
+export interface ICreateSynchronizedPage {
+  spaceId: string;
+  originPageId: string;
+  parentPageId?: string;
+}
+
 export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;
+  page?: number; // pagination
+}
+
+export interface PagesInSpaceParams {
+  spaceId: string;
   page?: number; // pagination
 }
 

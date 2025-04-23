@@ -1,3 +1,6 @@
+prod:
+	docker compose -f docker-compose.yml up
+
 start:
 	docker compose -f docker-compose.dev.yaml up -d
 

@@ -24,10 +24,12 @@ services:
         sleep 1 &&
         pnpm install --frozen-lockfile -f &&
         sleep 1 &&
+        echo migrations skiped &&
         sleep 1 &&
         pnpm run "/^(client:dev-local|server:dev)$/"
       '
-  # pnpm nx run server:migration:latest &&
+  # if you need to migrate replace 27 string
+  # pnpm nx run server:migration:latest && // echo migrations skiped &&
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
