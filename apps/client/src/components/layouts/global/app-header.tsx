@@ -1,4 +1,4 @@
-import { Badge, Group, Text, Tooltip } from "@mantine/core";
+import { Badge, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
@@ -14,8 +14,11 @@ import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
+import { SearchSpotlight } from "@/features/search/search-spotlight";
+import { IconSearch } from "@tabler/icons-react";
+import { spotlight } from "@mantine/spotlight";
 
-const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
+const links = [{ link: APP_ROUTE.HOME, label: "Adas" }];
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -27,12 +30,6 @@ export function AppHeader() {
   const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
-
-  const items = links.map((link) => (
-    <Link key={link.label} to={link.link} className={classes.link}>
-      {t(link.label)}
-    </Link>
-  ));
 
   return (
     <>
@@ -73,7 +70,19 @@ export function AppHeader() {
           </Text>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
-            {items}
+            <UnstyledButton className={classes.menu} onClick={spotlight.open}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
+                <IconSearch
+                  size={18}
+                  className={classes.menuItemIcon}
+                  stroke={2}
+                />
+                <span>{t("Search")}</span>
+              </div>
+            </UnstyledButton>
+            <SearchSpotlight />
           </Group>
         </Group>
 
