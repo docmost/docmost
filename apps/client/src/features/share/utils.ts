@@ -11,11 +11,13 @@ export type SharedPageTreeNode = {
   parentPageId: string;
   hasChildren: boolean;
   children: SharedPageTreeNode[];
-  label: string,
-  value: string,
+  label: string;
+  value: string;
 };
 
-export function buildSharedPageTree(pages: Partial<IPage[]>): SharedPageTreeNode[] {
+export function buildSharedPageTree(
+  pages: Partial<IPage[]>,
+): SharedPageTreeNode[] {
   const pageMap: Record<string, SharedPageTreeNode> = {};
 
   // Initialize each page as a tree node and store it in a map.
@@ -30,7 +32,7 @@ export function buildSharedPageTree(pages: Partial<IPage[]>): SharedPageTreeNode
       hasChildren: false,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
-      label: page.title || 'untitled',
+      label: page.title || "untitled",
       value: page.id,
       children: [],
     };
@@ -55,6 +57,12 @@ export function buildSharedPageTree(pages: Partial<IPage[]>): SharedPageTreeNode
     }
   });
 
-  // Return the sorted tree.
-  return sortPositionKeys(tree);
+  function sortTree(nodes: SharedPageTreeNode[]): SharedPageTreeNode[] {
+    return sortPositionKeys(nodes).map((node: SharedPageTreeNode) => ({
+      ...node,
+      children: sortTree(node.children),
+    }));
+  }
+
+  return sortTree(tree);
 }
