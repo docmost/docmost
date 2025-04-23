@@ -29,7 +29,7 @@ services:
         pnpm run "/^(client:dev-local|server:dev)$/"
       '
   # if you need to migrate replace 27 string
-  # pnpm nx run server:migration:latest && // echo migrations skiped &&
+  # pnpm nx run server:migration:latest && // echo migrations skiped! &&
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
