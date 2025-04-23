@@ -159,6 +159,12 @@ export interface PageHistory {
   workspaceId: string;
 }
 
+export interface Blocks {
+  id: Generated<string>;
+  content: Json | null;
+  pageId: string;
+}
+
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
@@ -287,6 +293,7 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
+  blocks: Blocks;
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;

@@ -3,6 +3,7 @@ import {
   Attachments,
   Comments,
   Groups,
+  Blocks,
   Pages,
   Spaces,
   Users,
@@ -56,6 +57,11 @@ export type UpdatableGroup = Updateable<Omit<Groups, 'id'>>;
 export type GroupUser = Selectable<GroupUsers>;
 export type InsertableGroupUser = Insertable<GroupUsers>;
 export type UpdatableGroupUser = Updateable<Omit<GroupUsers, 'id'>>;
+
+// Block
+export type Block = Selectable<Blocks>;
+export type InsertableBlock = Insertable<Blocks>;
+export type UpdatableBlock = Updateable<Omit<Blocks, 'id'>>;
 
 // Page
 export type Page = Selectable<Pages>;

@@ -77,6 +77,7 @@ export default function EmbedView(props: NodeViewProps) {
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
               allowFullScreen
               frameBorder="0"
+              height={provider === 'n8n' ? 600 : undefined}
             ></iframe>
           </AspectRatio>
         </>

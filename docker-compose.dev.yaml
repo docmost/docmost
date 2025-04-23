@@ -1,38 +1,6 @@
 services:
-  # docmost:
-  #   image: node:20-alpine
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   environment:
-  #     APP_URL: 'http://localhost:3000'
-  #     APP_SECRET: ${APP_SECRET}
-  #     DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public'
-  #     REDIS_URL: 'redis://redis:6379'
-  #   ports:
-  #     - "3000:3000"
-  #     - "5173:5173"
-  #   volumes:
-  #     - ./data/docmost_data:/app/data/storage
-  #     - .:/app
-  #   working_dir: /app
-  #   command: >
-  #     sh -c '
-  #       npm install -g pnpm &&
-  #       sleep 1 &&
-  #       pnpm -v &&
-  #       sleep 1 &&
-  #       pnpm install --frozen-lockfile &&
-  #       sleep 1 &&
-  #       pnpm nx run server:migration:latest &&
-  #       sleep 1 &&
-  #       pnpm run "/^(client:dev-local|server:dev)$/"
-  #     '
-
   docmost:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:20-alpine
     depends_on:
       - db
       - redis
@@ -50,14 +18,20 @@ services:
     working_dir: /app
     command: >
       sh -c '
-        npm install -g pnpm &&
+        npm install -g pnpm -f &&
         sleep 1 &&
         pnpm -v &&
         sleep 1 &&
-        pnpm install --frozen-lockfile &&
+        pnpm install --frozen-lockfile -f &&
+        sleep 1 &&
         sleep 1 &&
         pnpm run "/^(client:dev-local|server:dev)$/"
       '
+  # pnpm nx run server:migration:latest &&
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+
 
   db:
     image: postgres:16-alpine
@@ -75,7 +49,7 @@ services:
     image: redis:7.2-alpine
     restart: unless-stopped
     ports:
-      - "63790:6379"
+      - "63799:6379"
     volumes:
       - ./data/redis_data:/data
 

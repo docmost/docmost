@@ -102,8 +102,8 @@ export const embedProviders: IEmbedProvider[] = [
   {
     id: 'n8n',
     name: 'n8n',
-    // regex: /^((?:https?:)?\/\/)?((?:www\.)?)?(n8n\.io)(\/.+)?$/,
-    regex: /^((?:https?:)?\/\/)?((?:www\.|localhost:5678\/)?)(n8n\.io|localhost:5678\/workflow\/)([\w-]+)$/,
+    regex: /^.*$/,
+    // todo write valid regexp
     getEmbedUrl: (match, url) => {
       // if (url.includes("/embed/")){
       //   return url;
