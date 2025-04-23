@@ -35,6 +35,7 @@ export function ShareSearchSpotlight({ shareId }: ShareSearchSpotlightProps) {
         pageTitle: page.title,
         pageSlugId: page.slugId,
       })}
+      style={{ userSelect: "none" }}
     >
       <Group wrap="nowrap" w="100%">
         <Center>{getPageIcon(page?.icon)}</Center>
