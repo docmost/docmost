@@ -149,8 +149,6 @@ export function SpaceSidebar() {
               SpaceCaslSubject.Page,
             ) && (
               <Group gap="xs">
-                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
-
                 <Tooltip label={t("Create page")} withArrow position="right">
                   <ActionIcon
                     variant="default"
@@ -161,6 +159,8 @@ export function SpaceSidebar() {
                     <IconPlus />
                   </ActionIcon>
                 </Tooltip>
+
+                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
               </Group>
             )}
           </Group>

@@ -15,8 +15,7 @@ import {
   IconArrowRight,
   IconChevronDown,
   IconChevronRight,
-  IconCopy,
-  IconDotsVertical,
+  IconDots,
   IconFileDescription,
   IconFileExport,
   IconFileSymlink,
@@ -381,8 +380,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         {node.data.isSynced ? <IconLink size="18" /> : null}
 
         <div className={classes.actions}>
-          <NodeMenu node={node} treeApi={tree} />
-
           {!tree.props.disableEdit && (
             <CreateNode
               node={node}
@@ -390,6 +387,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
               onExpandTree={() => handleLoadChildren(node)}
             />
           )}
+
+          <NodeMenu node={node} treeApi={tree} />
         </div>
       </div>
     </>
@@ -476,10 +475,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
               e.stopPropagation();
             }}
           >
-            <IconDotsVertical
-              style={{ width: rem(20), height: rem(20) }}
-              stroke={2}
-            />
+            <IconDots style={{ width: rem(20), height: rem(20) }} stroke={2} />
           </ActionIcon>
         </Menu.Target>
 

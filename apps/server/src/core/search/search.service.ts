@@ -44,7 +44,9 @@ export class SearchService {
         ),
       ])
       .select((eb) => this.pageRepo.withSpace(eb))
-      .where('spaceId', '=', searchParams.spaceId)
+      .$if(Boolean(searchParams.spaceId), (qb) =>
+        qb.where('spaceId', '=', searchParams.spaceId),
+      )
       .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),

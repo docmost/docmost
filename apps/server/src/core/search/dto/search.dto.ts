@@ -10,9 +10,9 @@ export class SearchDTO {
   @IsString()
   query: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  spaceId: string;
+  spaceId?: string;
 
   @IsOptional()
   @IsString()

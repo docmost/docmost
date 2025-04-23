@@ -31,21 +31,8 @@ export class SearchController {
   @HttpCode(HttpStatus.OK)
   @Post()
   async pageSearch(@Body() searchDto: SearchDTO, @AuthUser() user: User) {
-    if (searchDto.spaceId) {
-      const ability = await this.spaceAbility.createForUser(
-        user,
-        searchDto.spaceId,
-      );
-
-      if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-        throw new ForbiddenException();
-      }
-
-      return this.searchService.searchPage(searchDto.query, searchDto);
-    }
-
-    // TODO: search all spaces user is a member of if no spaceId provided
-    throw new NotImplementedException();
+    // TODO: Permissions check
+    return this.searchService.searchPage(searchDto.query, searchDto);
   }
 
   @HttpCode(HttpStatus.OK)
