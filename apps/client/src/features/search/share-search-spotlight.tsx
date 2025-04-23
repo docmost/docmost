@@ -2,26 +2,25 @@ import { Group, Center, Text } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
-import { usePageSearchQuery } from "@/features/search/queries/search-query";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { useShareSearchQuery } from "@/features/search/queries/search-query";
+import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
-import { searchSpotlightStore } from "./constants";
+import { shareSearchSpotlightStore } from "@/features/search/constants.ts";
 
-interface SearchSpotlightProps {
-  spaceId?: string;
+interface ShareSearchSpotlightProps {
+  shareId?: string;
 }
-export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
+export function ShareSearchSpotlight({ shareId }: ShareSearchSpotlightProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
 
-  const { data: searchResults } = usePageSearchQuery({
+  const { data: searchResults } = useShareSearchQuery({
     query: debouncedSearchQuery,
-    spaceId,
+    shareId,
   });
 
   const pages = (
@@ -29,9 +28,13 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   ).map((page) => (
     <Spotlight.Action
       key={page.id}
-      onClick={() =>
-        navigate(buildPageUrl(page.space.slug, page.slugId, page.title))
-      }
+      component={Link}
+      //@ts-ignore
+      to={buildSharedPageUrl({
+        shareId: shareId,
+        pageTitle: page.title,
+        pageSlugId: page.slugId,
+      })}
     >
       <Group wrap="nowrap" w="100%">
         <Center>{getPageIcon(page?.icon)}</Center>
@@ -54,7 +57,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   return (
     <>
       <Spotlight.Root
-        store={searchSpotlightStore}
+        store={shareSearchSpotlightStore}
         query={query}
         onQueryChange={setQuery}
         scrollable
