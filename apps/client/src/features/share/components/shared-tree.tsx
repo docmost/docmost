@@ -15,6 +15,7 @@ import clsx from "clsx";
 import {
   IconChevronDown,
   IconChevronRight,
+  IconFileDescription,
   IconPointFilled,
 } from "@tabler/icons-react";
 import { ActionIcon, Box } from "@mantine/core";
@@ -23,6 +24,7 @@ import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import styles from "./share.module.css";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 
 interface SharedTree {
   sharedPageTree: ISharedPageTree;
@@ -141,6 +143,20 @@ function Node({ node, style, tree }: NodeRendererProps<any>) {
         }}
       >
         <PageArrow node={node} />
+        <div style={{ marginRight: "4px" }}>
+          <EmojiPicker
+            onEmojiSelect={() => {}}
+            icon={
+              node.data.icon ? (
+                node.data.icon
+              ) : (
+                <IconFileDescription size="18" />
+              )
+            }
+            readOnly={true}
+            removeEmojiAction={() => {}}
+          />
+        </div>
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
       </Box>
     </>
