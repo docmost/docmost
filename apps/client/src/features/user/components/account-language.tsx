@@ -52,6 +52,7 @@ function LanguageSwitcher() {
         { value: "ko-KR", label: "한국어 (Korean)" },
         { value: "ru-RU", label: "Русский (Russian)" },
         { value: "zh-CN", label: "中文 (简体)" },
+        { value: "fa-IR", label: "فارسی" },
       ]}
       value={language || "en-US"}
       onChange={handleChange}
