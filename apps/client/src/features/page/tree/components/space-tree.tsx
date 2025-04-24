@@ -7,10 +7,10 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Menu, rem } from "@mantine/core";
+import { ActionIcon, Box, Menu, rem } from "@mantine/core";
 import {
   IconArrowRight,
   IconChevronDown,
@@ -58,6 +58,8 @@ import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import MovePageModal from "../../components/move-page-modal.tsx";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -84,7 +86,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const rootElement = useRef<HTMLDivElement>();
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef(rootElement, sizeRef);
-  const isDataLoaded = useRef(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
@@ -108,7 +110,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         // and append root pages instead of resetting the entire tree
         // which looses async loaded children too
         setData(treeData);
-        isDataLoaded.current = true;
+        setIsDataLoaded(true);
         setOpenTreeNodes({});
       }
     }
@@ -116,7 +118,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (isDataLoaded.current && currentPage) {
+      if (isDataLoaded && currentPage) {
         // check if pageId node is present in the tree
         const node = dfs(treeApiRef.current?.root, currentPage.id);
         if (node) {
@@ -178,7 +180,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
 
     fetchData();
-  }, [isDataLoaded.current, currentPage?.id]);
+  }, [isDataLoaded, currentPage?.id]);
 
   useEffect(() => {
     if (currentPage?.id) {
@@ -230,13 +232,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 }
 
 function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
   const timerRef = useRef(null);
-  const { t } = useTranslation();
+  const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(() => {
@@ -286,11 +289,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       console.error("Failed to fetch children:", error);
     }
   }
-
-  const handleClick = () => {
-    const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-    navigate(pageUrl);
-  };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
     const updatedTree = updateTreeNodeIcon(treeData, nodeId, newIcon);
@@ -345,13 +343,22 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
     }, 650);
   }
 
+  const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
+
   return (
     <>
-      <div
+      <Box
         style={style}
         className={clsx(classes.node, node.state)}
+        component={Link}
+        to={pageUrl}
+        // @ts-ignore
         ref={dragHandle}
-        onClick={handleClick}
+        onClick={() => {
+          if (mobileSidebarOpened) {
+            toggleMobileSidebar();
+          }
+        }}
         onMouseEnter={prefetchPage}
         onMouseLeave={cancelPagePrefetch}
       >
@@ -385,7 +392,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
             />
           )}
         </div>
-      </div>
+      </Box>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useAtomValue } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { findBreadcrumbPath } from "@/features/page/tree/utils";
 import {
   Button,
@@ -9,14 +9,16 @@ import {
   Breadcrumbs,
   ActionIcon,
   Text,
+  Tooltip,
 } from "@mantine/core";
-import { IconDots } from "@tabler/icons-react";
+import { IconCornerDownRightDouble, IconDots } from "@tabler/icons-react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./breadcrumb.module.css";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { extractPageSlugId } from "@/lib";
+import { useMediaQuery } from "@mantine/hooks";
 
 function getTitle(name: string, icon: string) {
   if (icon) {
@@ -34,6 +36,7 @@ export default function Breadcrumb() {
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const isMobile = useMediaQuery("(max-width: 48em)");
 
   useEffect(() => {
     if (treeData?.length > 0 && currentPage) {
@@ -43,7 +46,7 @@ export default function Breadcrumb() {
   }, [currentPage?.id, treeData]);
 
   const HiddenNodesTooltipContent = () =>
-    breadcrumbNodes?.slice(1, -2).map((node) => (
+    breadcrumbNodes?.slice(1, -1).map((node) => (
       <Button.Group orientation="vertical" key={node.id}>
         <Button
           justify="start"
@@ -59,17 +62,39 @@ export default function Breadcrumb() {
       </Button.Group>
     ));
 
-  const renderAnchor = (node: SpaceTreeNode) => (
-    <Anchor
-      component={Link}
-      to={buildPageUrl(spaceSlug, node.slugId, node.name)}
-      underline="never"
-      fz={"sm"}
-      key={node.id}
-      className={classes.truncatedText}
-    >
-      {getTitle(node.name, node.icon)}
-    </Anchor>
+  const MobileHiddenNodesTooltipContent = () =>
+    breadcrumbNodes?.map((node) => (
+      <Button.Group orientation="vertical" key={node.id}>
+        <Button
+          justify="start"
+          component={Link}
+          to={buildPageUrl(spaceSlug, node.slugId, node.name)}
+          variant="default"
+          style={{ border: "none" }}
+        >
+          <Text fz={"sm"} className={classes.truncatedText}>
+            {getTitle(node.name, node.icon)}
+          </Text>
+        </Button>
+      </Button.Group>
+    ));
+
+  const renderAnchor = useCallback(
+    (node: SpaceTreeNode) => (
+      <Tooltip label={node.name} key={node.id}>
+        <Anchor
+          component={Link}
+          to={buildPageUrl(spaceSlug, node.slugId, node.name)}
+          underline="never"
+          fz="sm"
+          key={node.id}
+          className={classes.truncatedText}
+        >
+          {getTitle(node.name, node.icon)}
+        </Anchor>
+      </Tooltip>
+    ),
+    [spaceSlug],
   );
 
   const getBreadcrumbItems = () => {
@@ -77,7 +102,7 @@ export default function Breadcrumb() {
 
     if (breadcrumbNodes.length > 3) {
       const firstNode = breadcrumbNodes[0];
-      const secondLastNode = breadcrumbNodes[breadcrumbNodes.length - 2];
+      //const secondLastNode = breadcrumbNodes[breadcrumbNodes.length - 2];
       const lastNode = breadcrumbNodes[breadcrumbNodes.length - 1];
 
       return [
@@ -98,8 +123,37 @@ export default function Breadcrumb() {
             <HiddenNodesTooltipContent />
           </Popover.Dropdown>
         </Popover>,
-        renderAnchor(secondLastNode),
+        //renderAnchor(secondLastNode),
         renderAnchor(lastNode),
+      ];
+    }
+
+    return breadcrumbNodes.map(renderAnchor);
+  };
+
+  const getMobileBreadcrumbItems = () => {
+    if (!breadcrumbNodes) return [];
+
+    if (breadcrumbNodes.length > 0) {
+      return [
+        <Popover
+          width={250}
+          position="bottom"
+          withArrow
+          shadow="xl"
+          key="mobile-hidden-nodes"
+        >
+          <Popover.Target>
+            <Tooltip label="Breadcrumbs">
+              <ActionIcon color="gray" variant="transparent">
+                <IconCornerDownRightDouble size={20} stroke={2} />
+              </ActionIcon>
+            </Tooltip>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <MobileHiddenNodesTooltipContent />
+          </Popover.Dropdown>
+        </Popover>,
       ];
     }
 
@@ -110,7 +164,7 @@ export default function Breadcrumb() {
     <div style={{ overflow: "hidden" }}>
       {breadcrumbNodes && (
         <Breadcrumbs className={classes.breadcrumbs}>
-          {getBreadcrumbItems()}
+          {isMobile ? getMobileBreadcrumbItems() : getBreadcrumbItems()}
         </Breadcrumbs>
       )}
     </div>

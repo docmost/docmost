@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 
 type TableOfContentsProps = {
   editor: ReturnType<typeof useEditor>;
+  isShare?: boolean;
 };
 
 export type HeadingLink = {
@@ -73,6 +74,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
 
   const handleUpdate = () => {
     const result = recalculateLinks(props.editor?.$nodes("heading"));
+
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
   };
@@ -85,9 +87,12 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
     };
   }, [props.editor]);
 
-  useEffect(() => {
-    handleUpdate();
-  }, []);
+  useEffect(
+    () => {
+      handleUpdate();
+    },
+    props.isShare ? [props.editor] : [],
+  );
 
   useEffect(() => {
     try {
@@ -133,16 +138,29 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   if (!links.length) {
     return (
       <>
-        <Text size="sm">
-          {t("Add headings (H1, H2, H3) to generate a table of contents.")}
-        </Text>
+        {!props.isShare && (
+          <Text size="sm">
+            {t("Add headings (H1, H2, H3) to generate a table of contents.")}
+          </Text>
+        )}
+
+        {props.isShare && (
+          <Text size="sm" c="dimmed">
+            {t("No table of contents.")}
+          </Text>
+        )}
       </>
     );
   }
 
   return (
     <>
-      <div>
+      {props.isShare && (
+        <Text mb="md" fw={500}>
+          {t("Table of contents")}
+        </Text>
+      )}
+      <div className={props.isShare ? classes.leftBorder : ""}>
         {links.map((item, idx) => (
           <Box<"button">
             component="button"

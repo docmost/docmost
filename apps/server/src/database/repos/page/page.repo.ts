@@ -107,7 +107,11 @@ export class PageRepo {
     return dbOrTx(this.db, trx)
       .updateTable('pages')
       .set({ ...updatePageData, updatedAt: new Date() })
-      .where(pageIds.some(pageId => !isValidUUID(pageId)) ? "slugId" : "id", "in", pageIds)
+      .where(
+        pageIds.some((pageId) => !isValidUUID(pageId)) ? 'slugId' : 'id',
+        'in',
+        pageIds,
+      )
       .executeTakeFirst();
   }
 
@@ -161,9 +165,11 @@ export class PageRepo {
       .where('spaceId', 'in', userSpaceIds)
       .orderBy('updatedAt', 'desc');
 
+    const hasEmptyIds = userSpaceIds.length === 0;
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;
@@ -205,7 +211,10 @@ export class PageRepo {
     ).as('contributors');
   }
 
-  async getPageAndDescendants(parentPageId: string) {
+  async getPageAndDescendants(
+    parentPageId: string,
+    opts: { includeContent: boolean },
+  ) {
     return this.db
       .withRecursive('page_hierarchy', (db) =>
         db
@@ -215,11 +224,12 @@ export class PageRepo {
             'slugId',
             'title',
             'icon',
-            'content',
+            'position',
             'parentPageId',
             'spaceId',
             'workspaceId',
           ])
+          .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
           .unionAll((exp) =>
             exp
@@ -229,11 +239,12 @@ export class PageRepo {
                 'p.slugId',
                 'p.title',
                 'p.icon',
-                'p.content',
+                'p.position',
                 'p.parentPageId',
                 'p.spaceId',
                 'p.workspaceId',
               ])
+              .$if(opts?.includeContent, (qb) => qb.select('content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
           ),
       )

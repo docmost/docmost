@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
@@ -26,12 +27,16 @@ import { DomainService } from '../../../integrations/environment/domain.service'
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
+import { v4 } from 'uuid';
+import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 
 @Injectable()
 export class WorkspaceService {
+  private readonly logger = new Logger(WorkspaceService.name);
+
   constructor(
     private workspaceRepo: WorkspaceRepo,
     private spaceService: SpaceService,
@@ -42,6 +47,7 @@ export class WorkspaceService {
     private environmentService: EnvironmentService,
     private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
   ) {}
 
@@ -205,13 +211,23 @@ export class WorkspaceService {
     );
 
     if (this.environmentService.isCloud() && trialEndAt) {
-      const delay = trialEndAt.getTime() - Date.now();
+      try {
+        const delay = trialEndAt.getTime() - Date.now();
 
-      await this.billingQueue.add(
-        QueueJob.TRIAL_ENDED,
-        { workspaceId: createdWorkspace.id },
-        { delay },
-      );
+        await this.billingQueue.add(
+          QueueJob.TRIAL_ENDED,
+          { workspaceId: createdWorkspace.id },
+          { delay },
+        );
+
+        await this.billingQueue.add(
+          QueueJob.WELCOME_EMAIL,
+          { userId: user.id },
+          { delay: 60 * 1000 }, // 1m
+        );
+      } catch (err) {
+        this.logger.error(err);
+      }
     }
 
     return createdWorkspace;
@@ -405,5 +421,67 @@ export class WorkspaceService {
       throw new NotFoundException('Hostname not found');
     }
     return { hostname: this.domainService.getUrl(hostname) };
+  }
+
+  async deleteUser(
+    authUser: User,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+
+    if (!user || user.deletedAt) {
+      throw new BadRequestException('Workspace member not found');
+    }
+
+    const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+      UserRole.OWNER,
+      workspaceId,
+    );
+
+    if (user.role === UserRole.OWNER && workspaceOwnerCount === 1) {
+      throw new BadRequestException(
+        'There must be at least one workspace owner',
+      );
+    }
+
+    if (authUser.id === userId) {
+      throw new BadRequestException('You cannot delete yourself');
+    }
+
+    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+      throw new BadRequestException('You cannot delete a user with owner role');
+    }
+
+    await executeTx(this.db, async (trx) => {
+      await this.userRepo.updateUser(
+        {
+          name: 'Deleted user',
+          email: v4() + '@deleted.docmost.com',
+          avatarUrl: null,
+          settings: null,
+          deletedAt: new Date(),
+        },
+        userId,
+        workspaceId,
+        trx,
+      );
+
+      await trx.deleteFrom('groupUsers').where('userId', '=', userId).execute();
+      await trx
+        .deleteFrom('spaceMembers')
+        .where('userId', '=', userId)
+        .execute();
+      await trx
+        .deleteFrom('authAccounts')
+        .where('userId', '=', userId)
+        .execute();
+    });
+
+    try {
+      await this.attachmentQueue.add(QueueJob.DELETE_USER_AVATARS, user);
+    } catch (err) {
+      // empty
+    }
   }
 }
