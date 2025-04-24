@@ -1,6 +1,7 @@
-import React from "react";
-import useUserRole from "@/hooks/use-user-role.tsx";
+import CopyTextButton from "@/components/common/copy.tsx";
 import classes from "@/ee/billing/components/billing.module.css";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 import {
   Group,
   Paper,
@@ -9,12 +10,12 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
-import CopyTextButton from "@/components/common/copy.tsx";
+import { useTranslation } from "react-i18next";
 
 export default function InstallationDetails() {
   const { isAdmin } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
+  const { t } = useTranslation();
 
   if (!isAdmin) {
     return null;
@@ -33,7 +34,7 @@ export default function InstallationDetails() {
                 fz="xs"
                 className={classes.label}
               >
-                Workspace ID
+                {t('Workspace ID')}
               </Text>
               <TextInput
                 style={{ fontWeight: 700 }}
@@ -57,7 +58,7 @@ export default function InstallationDetails() {
                 fz="xs"
                 className={classes.label}
               >
-                Member count
+                {t('Member count')}
               </Text>
               <Text fw={700} fz="lg" tt="capitalize">
                 {workspace?.memberCount}

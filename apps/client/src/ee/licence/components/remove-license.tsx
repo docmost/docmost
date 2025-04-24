@@ -1,8 +1,7 @@
-import { useTranslation } from "react-i18next";
 import { useRemoveLicenseMutation } from "@/ee/licence/queries/license-query.ts";
 import { Button, Group, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import React from "react";
+import { useTranslation } from "react-i18next";
 
 export default function RemoveLicense() {
   const { t } = useTranslation();
@@ -26,7 +25,7 @@ export default function RemoveLicense() {
 
   return (
     <Group>
-      <Button variant="light" color="red" onClick={openDeleteModal}>Remove license</Button>
+      <Button variant="light" color="red" onClick={openDeleteModal}>{t("Remove license")}</Button>
     </Group>
   );
 }
