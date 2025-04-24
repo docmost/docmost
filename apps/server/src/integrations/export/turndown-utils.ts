@@ -68,7 +68,7 @@ function taskList(turndownService: TurndownService) {
       ) as HTMLInputElement;
       const isChecked = checkbox.checked;
 
-      return `- ${isChecked ? '[x]' : '[ ]'}  ${content.trim()} \n`;
+      return `- ${isChecked ? '[x]' : '[ ]'} ${content.trim()} \n`;
     },
   });
 }
