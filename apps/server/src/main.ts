@@ -4,7 +4,12 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
+import {
+  Logger,
+  NotFoundException,
+  RequestMethod,
+  ValidationPipe,
+} from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
@@ -26,7 +31,9 @@ async function bootstrap() {
     },
   );
 
-  app.setGlobalPrefix('api', { exclude: ['robots.txt'] });
+  app.setGlobalPrefix('api', {
+    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
+  });
 
   const reflector = app.get(Reflector);
   const redisIoAdapter = new WsRedisIoAdapter(app);

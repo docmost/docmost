@@ -170,7 +170,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
             )}
           />
 
-          {selected && (
+          {selected && editor.isEditable && (
             <ActionIcon
               onClick={handleOpen}
               variant="default"
