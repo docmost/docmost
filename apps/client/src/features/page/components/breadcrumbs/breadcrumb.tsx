@@ -83,7 +83,7 @@ export default function Breadcrumb() {
 
   const renderAnchor = useCallback(
     (node: SpaceTreeNode) => (
-      <Tooltip label={node.name} key={node.id}>
+      <Tooltip label={t(node.name)} key={node.id}>
         <Anchor
           component={Link}
           to={buildPageUrl(spaceSlug, node.slugId, node.name)}
