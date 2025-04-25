@@ -1,24 +1,26 @@
 version: '3'
 
 services:
-  docmost:
-    image: docmost/docmost:latest
-    depends_on:
-      - db
-      - redis
-    environment:
-      APP_URL: 'http://localhost:3000'
-      APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
-      REDIS_URL: 'redis://redis:6379'
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-    volumes:
-      - docmost:/app/data/storage
+  # docmost:
+  #   image: docmost/docmost:latest
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   environment:
+  #     APP_URL: 'http://localhost:3000'
+  #     APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
+  #     DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
+  #     REDIS_URL: 'redis://redis:6379'
+  #   ports:
+  #     - "3000:3000"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - docmost:/app/data/storage
 
   db:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432" # expose port 5432 to the host machine, so we can access it from our containe
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
@@ -29,6 +31,8 @@ services:
 
   redis:
     image: redis:7.2-alpine
+    ports:
+      - "6379:6379" # expose port 6379 to the host machine, so we can access it from our containe
     restart: unless-stopped
     volumes:
       - redis_data:/data

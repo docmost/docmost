@@ -152,6 +152,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
     },
     {
+      title: "Embed URL",
+      description: "Embed Any url",
+      searchTerms: ["Embedurl", "embed", "url"],
+      icon: IconCode,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setEmbed({ provider: "generic" })
+          .run();
+      },
+    },
+    {
       title: "Image",
       description: "Upload any image from your device.",
       searchTerms: ["photo", "picture", "media"],
