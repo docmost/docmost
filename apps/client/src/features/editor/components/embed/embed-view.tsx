@@ -94,9 +94,9 @@ export default function EmbedView(props: NodeViewProps) {
             </Group>
           )}
           <AspectRatio 
-            ratio={height ? 0 : 16 / 9} 
+            ratio={height ? undefined : 16 / 9} 
             style={{ 
-              height: height ? height : 0,
+              height: height ? height : undefined,
               transition: 'height 0.2s ease-out',
             }}
           >
