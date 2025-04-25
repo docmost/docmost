@@ -35,6 +35,12 @@ export default function AppVersion() {
           position="middle-end"
           style={{ cursor: "pointer" }}
           disabled={!hasUpdate}
+          onClick={() => {
+            window.open(
+              "https://github.com/docmost/docmost/releases",
+              "_blank",
+            );
+          }}
         >
           <Text
             size="sm"

@@ -18,6 +18,7 @@ export async function executeWithPagination<O, DB, TB extends keyof DB>(
     perPage: number;
     page: number;
     experimental_deferredJoinPrimaryKey?: StringReference<DB, TB>;
+    hasEmptyIds?: boolean; // in cases where we pass empty whereIn ids
   },
 ): Promise<PaginationResult<O>> {
   if (opts.page < 1) {
@@ -33,21 +34,20 @@ export async function executeWithPagination<O, DB, TB extends keyof DB>(
       .select((eb) => eb.ref(deferredJoinPrimaryKey).as('primaryKey'))
       .execute()
       // @ts-expect-error TODO: Fix the type here later
-       
+
       .then((rows) => rows.map((row) => row.primaryKey));
 
     qb = qb
       .where((eb) =>
         primaryKeys.length > 0
-          ?  
-            eb(deferredJoinPrimaryKey, 'in', primaryKeys as any)
+          ? eb(deferredJoinPrimaryKey, 'in', primaryKeys as any)
           : eb(sql`1`, '=', 0),
       )
       .clearOffset()
       .clearLimit();
   }
 
-  const rows = await qb.execute();
+  const rows = opts.hasEmptyIds ? [] : await qb.execute();
   const hasNextPage = rows.length > 0 ? rows.length > opts.perPage : false;
   const hasPrevPage = rows.length > 0 ? opts.page > 1 : false;
 

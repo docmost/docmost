@@ -24,6 +24,7 @@ import * as process from 'node:process';
 import { MigrationService } from '@docmost/db/services/migration.service';
 import { UserTokenRepo } from './repos/user-token/user-token.repo';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 
 // https://github.com/brianc/node-postgres/issues/811
 types.setTypeParser(types.builtins.INT8, (val) => Number(val));
@@ -47,7 +48,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         log: (event: LogEvent) => {
           if (environmentService.getNodeEnv() !== 'development') return;
           const logger = new Logger(DatabaseModule.name);
-          if (event.level === 'query') {
+          if (event.level) {
             if (process.env.DEBUG_DB?.toLowerCase() === 'true') {
               logger.debug(event.query.sql);
               logger.debug('query time: ' + event.queryDurationMillis + ' ms');
@@ -74,6 +75,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     AttachmentRepo,
     UserTokenRepo,
     BacklinkRepo,
+    ShareRepo
   ],
   exports: [
     WorkspaceRepo,
@@ -88,6 +90,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     AttachmentRepo,
     UserTokenRepo,
     BacklinkRepo,
+    ShareRepo
   ],
 })
 export class DatabaseModule

@@ -19,11 +19,14 @@ import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
+import { executeTx } from '@docmost/db/utils';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 
 @Injectable()
 export class PageService {
   constructor(
     private pageRepo: PageRepo,
+    private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -60,12 +63,31 @@ export class PageService {
       parentPageId = parentPage.id;
     }
 
+    const createdPage = await this.pageRepo.insertPage({
+      slugId: generateSlugId(),
+      title: createPageDto.title,
+      position: await this.nextPagePosition(
+        createPageDto.spaceId,
+        parentPageId,
+      ),
+      icon: createPageDto.icon,
+      parentPageId: parentPageId,
+      spaceId: createPageDto.spaceId,
+      creatorId: userId,
+      workspaceId: workspaceId,
+      lastUpdatedById: userId,
+    });
+
+    return createdPage;
+  }
+
+  async nextPagePosition(spaceId: string, parentPageId?: string) {
     let pagePosition: string;
 
     const lastPageQuery = this.db
       .selectFrom('pages')
-      .select(['id', 'position'])
-      .where('spaceId', '=', createPageDto.spaceId)
+      .select(['position'])
+      .where('spaceId', '=', spaceId)
       .orderBy('position', 'desc')
       .limit(1);
 
@@ -96,37 +118,36 @@ export class PageService {
       }
     }
 
-    const createdPage = await this.pageRepo.insertPage({
-      slugId: generateSlugId(),
-      title: createPageDto.title,
-      position: pagePosition,
-      icon: createPageDto.icon,
-      parentPageId: parentPageId,
-      spaceId: createPageDto.spaceId,
-      creatorId: userId,
-      workspaceId: workspaceId,
-      lastUpdatedById: userId,
-    });
-
-    return createdPage;
+    return pagePosition;
   }
 
   async update(
-    pageId: string,
+    page: Page,
     updatePageDto: UpdatePageDto,
     userId: string,
   ): Promise<Page> {
+    const contributors = new Set<string>(page.contributorIds);
+    contributors.add(userId);
+    const contributorIds = Array.from(contributors);
+
     await this.pageRepo.updatePage(
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
         lastUpdatedById: userId,
         updatedAt: new Date(),
+        contributorIds: contributorIds,
       },
-      pageId,
+      page.id,
     );
 
-    return await this.pageRepo.findById(pageId);
+    return await this.pageRepo.findById(page.id, {
+      includeSpace: true,
+      includeContent: true,
+      includeCreator: true,
+      includeLastUpdatedBy: true,
+      includeContributors: true,
+    });
   }
 
   withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
@@ -179,6 +200,46 @@ export class PageService {
     });
 
     return result;
+  }
+
+  async movePageToSpace(rootPage: Page, spaceId: string) {
+    await executeTx(this.db, async (trx) => {
+      // Update root page
+      const nextPosition = await this.nextPagePosition(spaceId);
+      await this.pageRepo.updatePage(
+        { spaceId, parentPageId: null, position: nextPosition },
+        rootPage.id,
+        trx,
+      );
+      const pageIds = await this.pageRepo
+        .getPageAndDescendants(rootPage.id, { includeContent: false })
+        .then((pages) => pages.map((page) => page.id));
+      // The first id is the root page id
+      if (pageIds.length > 1) {
+        // Update sub pages
+        await this.pageRepo.updatePages(
+          { spaceId },
+          pageIds.filter((id) => id !== rootPage.id),
+          trx,
+        );
+      }
+
+      // update spaceId in shares
+      if (pageIds.length > 0) {
+        await trx
+          .updateTable('shares')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+      }
+
+      // Update attachments
+      await this.attachmentRepo.updateAttachmentsByPageId(
+        { spaceId },
+        pageIds,
+        trx,
+      );
+    });
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {
