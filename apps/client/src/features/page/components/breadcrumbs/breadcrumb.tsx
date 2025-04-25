@@ -1,7 +1,7 @@
-import { useAtomValue } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import React, { useCallback, useEffect, useState } from "react";
-import { findBreadcrumbPath } from "@/features/page/tree/utils";
+import { useAtomValue } from "jotai"
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts"
+import React, { useCallback, useEffect, useState } from "react"
+import { findBreadcrumbPath } from "@/features/page/tree/utils"
 import {
   Button,
   Anchor,
@@ -10,40 +10,42 @@ import {
   ActionIcon,
   Text,
   Tooltip,
-} from "@mantine/core";
-import { IconCornerDownRightDouble, IconDots } from "@tabler/icons-react";
-import { Link, useParams } from "react-router-dom";
-import classes from "./breadcrumb.module.css";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
-import { usePageQuery } from "@/features/page/queries/page-query.ts";
-import { extractPageSlugId } from "@/lib";
-import { useMediaQuery } from "@mantine/hooks";
-
-function getTitle(name: string, icon: string) {
-  if (icon) {
-    return `${icon} ${name}`;
-  }
-  return name;
-}
+} from "@mantine/core"
+import { IconCornerDownRightDouble, IconDots } from "@tabler/icons-react"
+import { Link, useParams } from "react-router-dom"
+import classes from "./breadcrumb.module.css"
+import { SpaceTreeNode } from "@/features/page/tree/types.ts"
+import { buildPageUrl } from "@/features/page/page.utils.ts"
+import { usePageQuery } from "@/features/page/queries/page-query.ts"
+import { extractPageSlugId } from "@/lib"
+import { useMediaQuery } from "@mantine/hooks"
+import { useTranslation } from "react-i18next"
 
 export default function Breadcrumb() {
-  const treeData = useAtomValue(treeDataAtom);
+  const { t } = useTranslation()
+  const treeData = useAtomValue(treeDataAtom)
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
     SpaceTreeNode[] | null
-  >(null);
-  const { pageSlug, spaceSlug } = useParams();
+  >(null)
+  const { pageSlug, spaceSlug } = useParams()
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
-  });
-  const isMobile = useMediaQuery("(max-width: 48em)");
+  })
+  const isMobile = useMediaQuery("(max-width: 48em)")
+
+  function getTitle(name: string, icon: string) {
+    if (icon) {
+      return `${icon} ${t(name)}`
+    }
+    return t(name)
+  }
 
   useEffect(() => {
     if (treeData?.length > 0 && currentPage) {
-      const breadcrumb = findBreadcrumbPath(treeData, currentPage.id);
-      setBreadcrumbNodes(breadcrumb || null);
+      const breadcrumb = findBreadcrumbPath(treeData, currentPage.id)
+      setBreadcrumbNodes(breadcrumb || null)
     }
-  }, [currentPage?.id, treeData]);
+  }, [currentPage?.id, treeData])
 
   const HiddenNodesTooltipContent = () =>
     breadcrumbNodes?.slice(1, -1).map((node) => (
@@ -60,7 +62,7 @@ export default function Breadcrumb() {
           </Text>
         </Button>
       </Button.Group>
-    ));
+    ))
 
   const MobileHiddenNodesTooltipContent = () =>
     breadcrumbNodes?.map((node) => (
@@ -77,7 +79,7 @@ export default function Breadcrumb() {
           </Text>
         </Button>
       </Button.Group>
-    ));
+    ))
 
   const renderAnchor = useCallback(
     (node: SpaceTreeNode) => (
@@ -94,16 +96,16 @@ export default function Breadcrumb() {
         </Anchor>
       </Tooltip>
     ),
-    [spaceSlug],
-  );
+    [spaceSlug]
+  )
 
   const getBreadcrumbItems = () => {
-    if (!breadcrumbNodes) return [];
+    if (!breadcrumbNodes) return []
 
     if (breadcrumbNodes.length > 3) {
-      const firstNode = breadcrumbNodes[0];
+      const firstNode = breadcrumbNodes[0]
       //const secondLastNode = breadcrumbNodes[breadcrumbNodes.length - 2];
-      const lastNode = breadcrumbNodes[breadcrumbNodes.length - 1];
+      const lastNode = breadcrumbNodes[breadcrumbNodes.length - 1]
 
       return [
         renderAnchor(firstNode),
@@ -125,14 +127,14 @@ export default function Breadcrumb() {
         </Popover>,
         //renderAnchor(secondLastNode),
         renderAnchor(lastNode),
-      ];
+      ]
     }
 
-    return breadcrumbNodes.map(renderAnchor);
-  };
+    return breadcrumbNodes.map(renderAnchor)
+  }
 
   const getMobileBreadcrumbItems = () => {
-    if (!breadcrumbNodes) return [];
+    if (!breadcrumbNodes) return []
 
     if (breadcrumbNodes.length > 0) {
       return [
@@ -154,11 +156,11 @@ export default function Breadcrumb() {
             <MobileHiddenNodesTooltipContent />
           </Popover.Dropdown>
         </Popover>,
-      ];
+      ]
     }
 
-    return breadcrumbNodes.map(renderAnchor);
-  };
+    return breadcrumbNodes.map(renderAnchor)
+  }
 
   return (
     <div style={{ overflow: "hidden" }}>
@@ -168,5 +170,5 @@ export default function Breadcrumb() {
         </Breadcrumbs>
       )}
     </div>
-  );
+  )
 }
