@@ -28,6 +28,7 @@ import {
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
+import { CopyPageToSpaceDto } from './dto/copy-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -235,6 +236,36 @@ export class PageController {
     }
 
     return this.pageService.movePageToSpace(movedPage, dto.spaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('copy-to-space')
+  async copyPageToSpace(
+    @Body() dto: CopyPageToSpaceDto,
+    @AuthUser() user: User,
+  ) {
+    const copiedPage = await this.pageRepo.findById(dto.pageId);
+    if (!copiedPage) {
+      throw new NotFoundException('Page to copy not found');
+    }
+    if (copiedPage.spaceId === dto.spaceId) {
+      throw new BadRequestException('Page is already in this space');
+    }
+
+    const abilities = await Promise.all([
+      this.spaceAbility.createForUser(user, copiedPage.spaceId),
+      this.spaceAbility.createForUser(user, dto.spaceId),
+    ]);
+
+    if (
+      abilities.some((ability) =>
+        ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+      )
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.copyPageToSpace(copiedPage, dto.spaceId, user);
   }
 
   @HttpCode(HttpStatus.OK)

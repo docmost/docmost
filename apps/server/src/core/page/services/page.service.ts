@@ -6,7 +6,7 @@ import {
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { Page } from '@docmost/db/types/entity.types';
+import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   executeWithPagination,
@@ -21,6 +21,14 @@ import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { v7 as uuid7 } from 'uuid';
+import {
+  createYdocFromJson,
+  getProsemirrorContent,
+  removeMarkTypeFromDoc,
+} from '../../../common/helpers/prosemirror/utils';
+import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
+import { CopyPageMapEntry } from '../dto/copy-page.dto';
 
 @Injectable()
 export class PageService {
@@ -239,6 +247,60 @@ export class PageService {
         pageIds,
         trx,
       );
+    });
+  }
+
+  async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
+    //TODO:
+    // i. copy uploaded attachments
+    // ii. update the attachmentId in the prosemirror node
+    // iii. maintain internal links within copied pages
+
+    await executeTx(this.db, async (trx) => {
+      const nextPosition = await this.nextPagePosition(spaceId);
+
+      const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+        includeContent: true,
+      });
+
+      const pageMap = new Map<string, CopyPageMapEntry>();
+      pages.forEach((page) => {
+        pageMap.set(page.id, {
+          newPageId: uuid7(),
+          newSlugId: generateSlugId(),
+          oldSlugId: page.slugId,
+        });
+      });
+
+      const insertablePages: InsertablePage[] = await Promise.all(
+        pages.map(async (page) => {
+          const pageContent = getProsemirrorContent(page.content);
+
+          const doc = jsonToNode(pageContent);
+          const prosemirrorDoc = removeMarkTypeFromDoc(doc, 'comment');
+          const prosemirrorJson = prosemirrorDoc.toJSON();
+
+          return {
+            id: pageMap.get(page.id).newPageId,
+            slugId: pageMap.get(page.id).newSlugId,
+            title: page.title,
+            icon: page.icon,
+            content: prosemirrorJson,
+            textContent: jsonToText(prosemirrorJson),
+            ydoc: createYdocFromJson(prosemirrorJson),
+            position: page.id === rootPage.id ? nextPosition : page.position,
+            spaceId: spaceId,
+            workspaceId: page.workspaceId,
+            creatorId: authUser.id,
+            lastUpdatedById: authUser.id,
+            parentPageId: page.parentPageId
+              ? pageMap.get(page.parentPageId).newPageId
+              : null,
+          };
+        }),
+      );
+
+      await this.db.insertInto('pages').values(insertablePages).execute();
     });
   }
 
