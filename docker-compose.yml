@@ -6,21 +6,24 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/docmost?schema=public
     depends_on:
-      - db
       - redis
     ports:
       - "3002:3002"
+    extra_hosts:
+      - "${POSTGRES_HOST}:host-gateway"
     restart: unless-stopped
     volumes:
       - docmost:/app/data/storage
 
-  db:
-    image: postgres:16-alpine
-    env_file: .env
-    restart: unless-stopped
-    volumes:
-      - db_data:/var/lib/postgresql/data
+  # db:
+  #   image: postgres:16-alpine
+  #   env_file: .env
+  #   restart: unless-stopped
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7.2-alpine
