@@ -14,6 +14,11 @@ export class StorageService {
     this.logger.debug(`File uploaded successfully. Path: ${filePath}`);
   }
 
+  async copy(fromFilePath: string, toFilePath: string) {
+    await this.storageDriver.copy(fromFilePath, toFilePath);
+    this.logger.debug(`File copied successfully. Path: ${toFilePath}`);
+  }
+
   async read(filePath: string): Promise<Buffer> {
     return this.storageDriver.read(filePath);
   }
