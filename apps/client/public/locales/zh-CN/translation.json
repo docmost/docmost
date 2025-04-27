@@ -415,8 +415,7 @@
   "Everyone":"所有人",
   "Column layout":"列布局",
   "Insert a column layout.":"插入列布局。",
-  "LG":"大屏幕宽度效果",
-  "MD":"中屏幕宽度效果",
-  "SM":"小屏幕宽度效果",
-  "auto":"自动"
+  "Small screen width":"小屏幕宽度",
+  "Medium screen width":"中屏幕宽度",
+  "Large screen width":"大屏幕宽度"
 }

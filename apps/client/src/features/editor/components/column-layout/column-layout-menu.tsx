@@ -187,17 +187,17 @@ export const ColumnLayoutMenu = React.memo(
                 gap="xs"
               >
                 <SliderItem
-                  label="XS"
+                  label={t("Small screen width")}
                   value={tmpXsAttr}
                   onChange={setTmpXsAttr}
                 />
                 <SliderItem
-                  label="MD"
+                  label={t("Medium screen width")}
                   value={tmpMdAttr}
                   onChange={setTmpMdAttr}
                 />
                 <SliderItem
-                  label="LG"
+                  label={t("Large screen width")}
                   value={tmpLgAttr}
                   onChange={setTmpLgAttr}
                 />
