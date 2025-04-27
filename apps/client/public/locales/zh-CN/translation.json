@@ -414,5 +414,9 @@
   "Enter a valid enterprise license key. Contact sales@docmost.com to purchase one.":"请输入有效的企业许可密钥。联系sales@docmost.com购买。",
   "Everyone":"所有人",
   "Column layout":"列布局",
-  "Insert a column layout.":"插入列布局。"
+  "Insert a column layout.":"插入列布局。",
+  "LG":"大屏幕宽度效果",
+  "MD":"中屏幕宽度效果",
+  "SM":"小屏幕宽度效果",
+  "auto":"自动"
 }
