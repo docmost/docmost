@@ -412,5 +412,7 @@
   "Enterprise license": "企业许可证",
   "License key": "许可证密钥",
   "Enter a valid enterprise license key. Contact sales@docmost.com to purchase one.":"请输入有效的企业许可密钥。联系sales@docmost.com购买。",
-  "Everyone":"所有人"
+  "Everyone":"所有人",
+  "Column layout":"列布局",
+  "Insert a column layout.":"插入列布局。"
 }
