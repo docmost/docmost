@@ -342,65 +342,71 @@ export class PageService {
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
           parentPageId: page.parentPageId
-            ? pageMap.get(page.parentPageId).newPageId
+            ? pageMap.get(page.parentPageId)?.newPageId
             : null,
         };
       }),
     );
 
+    // we need the newly parent created pageId and return it
+
     await this.db.insertInto('pages').values(insertablePages).execute();
 
     //TODO: best to handle this in a queue
     const attachmentsIds = Array.from(attachmentMap.keys());
-    if (attachmentsIds.length === 0) {
-      return;
-    }
+    if (attachmentsIds.length > 0) {
+      const attachments = await this.db
+        .selectFrom('attachments')
+        .selectAll()
+        .where('id', 'in', attachmentsIds)
+        .where('workspaceId', '=', rootPage.workspaceId)
+        .execute();
 
-    const attachments = await this.db
-      .selectFrom('attachments')
-      .selectAll()
-      .where('id', 'in', attachmentsIds)
-      .where('workspaceId', '=', rootPage.workspaceId)
-      .execute();
+      for (const attachment of attachments) {
+        try {
+          const pageAttachment = attachmentMap.get(attachment.id);
 
-    for (const attachment of attachments) {
-      try {
-        const pageAttachment = attachmentMap.get(attachment.id);
+          // make sure the copied attachment belongs to the page it was copied from
+          if (attachment.pageId !== pageAttachment.oldPageId) {
+            continue;
+          }
 
-        // make sure the copied attachment belongs to the page it was copied from
-        if (attachment.pageId !== pageAttachment.oldPageId) {
-          continue;
+          const newAttachmentId = pageAttachment.newAttachmentId;
+
+          const newPageId = pageAttachment.newPageId;
+
+          const newPathFile = attachment.filePath.replace(
+            attachment.id,
+            newAttachmentId,
+          );
+          await this.storageService.copy(attachment.filePath, newPathFile);
+          await this.db
+            .insertInto('attachments')
+            .values({
+              id: newAttachmentId,
+              type: attachment.type,
+              filePath: newPathFile,
+              fileName: attachment.fileName,
+              fileSize: attachment.fileSize,
+              mimeType: attachment.mimeType,
+              fileExt: attachment.fileExt,
+              creatorId: attachment.creatorId,
+              workspaceId: attachment.workspaceId,
+              pageId: newPageId,
+              spaceId: spaceId,
+            })
+            .execute();
+        } catch (err) {
+          this.logger.log(err);
         }
-
-        const newAttachmentId = pageAttachment.newAttachmentId;
-
-        const newPageId = pageAttachment.newPageId;
-
-        const newPathFile = attachment.filePath.replace(
-          attachment.id,
-          newAttachmentId,
-        );
-        await this.storageService.copy(attachment.filePath, newPathFile);
-        await this.db
-          .insertInto('attachments')
-          .values({
-            id: newAttachmentId,
-            type: attachment.type,
-            filePath: newPathFile,
-            fileName: attachment.fileName,
-            fileSize: attachment.fileSize,
-            mimeType: attachment.mimeType,
-            fileExt: attachment.fileExt,
-            creatorId: attachment.creatorId,
-            workspaceId: attachment.workspaceId,
-            pageId: newPageId,
-            spaceId: spaceId,
-          })
-          .execute();
-      } catch (err) {
-        this.logger.log(err);
       }
     }
+
+    // return root copied page
+    const newPageId = pageMap.get(rootPage.id).newPageId;
+    return await this.pageRepo.findById(newPageId, {
+      includeSpace: true,
+    });
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {

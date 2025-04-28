@@ -47,6 +47,11 @@ export interface IMovePageToSpace {
   spaceId: string;
 }
 
+export interface ICopyPageToSpace {
+  pageId: string;
+  spaceId: string;
+}
+
 export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;

@@ -1,5 +1,5 @@
 import { Modal, Button, Group, Text } from "@mantine/core";
-import { movePageToSpace } from "@/features/page/services/page-service.ts";
+import { copyPageToSpace } from "@/features/page/services/page-service.ts";
 import { useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -9,30 +9,31 @@ import { SpaceSelect } from "@/features/space/components/sidebar/space-select.ts
 import { useNavigate } from "react-router-dom";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 
-interface MovePageModalProps {
+interface CopyPageModalProps {
   pageId: string;
-  slugId: string;
   currentSpaceSlug: string;
   open: boolean;
   onClose: () => void;
 }
 
-export default function MovePageModal({
+export default function CopyPageModal({
   pageId,
-  slugId,
   currentSpaceSlug,
   open,
   onClose,
-}: MovePageModalProps) {
+}: CopyPageModalProps) {
   const { t } = useTranslation();
   const [targetSpace, setTargetSpace] = useState<ISpace>(null);
   const navigate = useNavigate();
 
-  const handlePageMove = async () => {
+  const handleCopy = async () => {
     if (!targetSpace) return;
 
     try {
-      await movePageToSpace({ pageId, spaceId: targetSpace.id });
+      const copiedPage = await copyPageToSpace({
+        pageId,
+        spaceId: targetSpace.id,
+      });
       queryClient.removeQueries({
         predicate: (item) =>
           ["pages", "sidebar-pages", "root-sidebar-pages"].includes(
@@ -40,10 +41,14 @@ export default function MovePageModal({
           ),
       });
 
-      const pageUrl = buildPageUrl(targetSpace.slug, slugId, undefined);
+      const pageUrl = buildPageUrl(
+        copiedPage.space.slug,
+        copiedPage.slugId,
+        copiedPage.title,
+      );
       navigate(pageUrl);
       notifications.show({
-        message: t("Page moved successfully"),
+        message: t("Page copied successfully"),
       });
       onClose();
       setTargetSpace(null);
@@ -74,12 +79,12 @@ export default function MovePageModal({
       <Modal.Overlay />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
-          <Modal.Title fw={500}>{t("Move page")}</Modal.Title>
+          <Modal.Title fw={500}>{t("Copy page")}</Modal.Title>
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
           <Text mb="xs" c="dimmed" size="sm">
-            {t("Move page to a different space.")}
+            {t("Copy page to a different space.")}
           </Text>
 
           <SpaceSelect
@@ -91,7 +96,7 @@ export default function MovePageModal({
             <Button onClick={onClose} variant="default">
               {t("Cancel")}
             </Button>
-            <Button onClick={handlePageMove}>{t("Move")}</Button>
+            <Button onClick={handleCopy}>{t("Copy")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>
