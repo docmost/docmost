@@ -4,12 +4,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import {
-  Logger,
-  NotFoundException,
-  RequestMethod,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
@@ -91,6 +86,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const logger = new Logger('NestApplication');
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`UnhandledRejection: ${promise}, reason: ${reason}`);
+  });
+
+  process.on('uncaughtException', (error) => {
+    logger.error('UncaughtException:', error);
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0', () => {
