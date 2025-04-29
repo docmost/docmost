@@ -41,7 +41,7 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
       this.collaborationGateway.handleConnection(client, request);
 
       client.on('error', (error) => {
-        Logger.error('WebSocket client error:', error);
+        this.logger.error('WebSocket client error:', error);
       });
     });
 
