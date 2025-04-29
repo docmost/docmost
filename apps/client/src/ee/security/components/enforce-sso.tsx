@@ -15,7 +15,7 @@ export default function EnforceSso() {
         <Text size="md">{t("Enforce SSO")}</Text>
         <Text size="sm" c="dimmed">
           {t(
-            "Once enforced, members will not able able to login with email and password.",
+            "Once enforced, members will not able to login with email and password.",
           )}
         </Text>
       </div>
