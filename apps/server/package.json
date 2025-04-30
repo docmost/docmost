@@ -30,6 +30,7 @@
     "test:e2e": "jest --config test/jest-e2e.json"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.797.0",
     "@aws-sdk/client-s3": "3.701.0",
     "@aws-sdk/s3-request-presigner": "3.701.0",
     "@casl/ability": "^6.7.3",
