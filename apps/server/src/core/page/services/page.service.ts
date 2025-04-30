@@ -1,12 +1,13 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { Page } from '@docmost/db/types/entity.types';
+import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   executeWithPagination,
@@ -21,13 +22,28 @@ import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { v7 as uuid7 } from 'uuid';
+import {
+  createYdocFromJson,
+  getAttachmentIds,
+  getProsemirrorContent,
+  isAttachmentNode,
+  removeMarkTypeFromDoc,
+} from '../../../common/helpers/prosemirror/utils';
+import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
+import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/copy-page.dto';
+import { Node as PMNode } from '@tiptap/pm/model';
+import { StorageService } from '../../../integrations/storage/storage.service';
 
 @Injectable()
 export class PageService {
+  private readonly logger = new Logger(PageService.name);
+
   constructor(
     private pageRepo: PageRepo,
     private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    private readonly storageService: StorageService,
   ) {}
 
   async findById(
@@ -239,6 +255,154 @@ export class PageService {
         pageIds,
         trx,
       );
+    });
+  }
+
+  async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
+    //TODO:
+    // i. maintain internal links within copied pages
+
+    const nextPosition = await this.nextPagePosition(spaceId);
+
+    const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+      includeContent: true,
+    });
+
+    const pageMap = new Map<string, CopyPageMapEntry>();
+    pages.forEach((page) => {
+      pageMap.set(page.id, {
+        newPageId: uuid7(),
+        newSlugId: generateSlugId(),
+        oldSlugId: page.slugId,
+      });
+    });
+
+    const attachmentMap = new Map<string, ICopyPageAttachment>();
+
+    const insertablePages: InsertablePage[] = await Promise.all(
+      pages.map(async (page) => {
+        const pageContent = getProsemirrorContent(page.content);
+        const pageFromMap = pageMap.get(page.id);
+
+        const doc = jsonToNode(pageContent);
+        const prosemirrorDoc = removeMarkTypeFromDoc(doc, 'comment');
+
+        const attachmentIds = getAttachmentIds(prosemirrorDoc.toJSON());
+
+        if (attachmentIds.length > 0) {
+          attachmentIds.forEach((attachmentId: string) => {
+            const newPageId = pageFromMap.newPageId;
+            const newAttachmentId = uuid7();
+            attachmentMap.set(attachmentId, {
+              newPageId: newPageId,
+              oldPageId: page.id,
+              oldAttachmentId: attachmentId,
+              newAttachmentId: newAttachmentId,
+            });
+
+            prosemirrorDoc.descendants((node: PMNode) => {
+              if (isAttachmentNode(node.type.name)) {
+                if (node.attrs.attachmentId === attachmentId) {
+                  //@ts-ignore
+                  node.attrs.attachmentId = newAttachmentId;
+
+                  if (node.attrs.src) {
+                    //@ts-ignore
+                    node.attrs.src = node.attrs.src.replace(
+                      attachmentId,
+                      newAttachmentId,
+                    );
+                  }
+                  if (node.attrs.src) {
+                    //@ts-ignore
+                    node.attrs.src = node.attrs.src.replace(
+                      attachmentId,
+                      newAttachmentId,
+                    );
+                  }
+                }
+              }
+            });
+          });
+        }
+
+        const prosemirrorJson = prosemirrorDoc.toJSON();
+
+        return {
+          id: pageFromMap.newPageId,
+          slugId: pageFromMap.newSlugId,
+          title: page.title,
+          icon: page.icon,
+          content: prosemirrorJson,
+          textContent: jsonToText(prosemirrorJson),
+          ydoc: createYdocFromJson(prosemirrorJson),
+          position: page.id === rootPage.id ? nextPosition : page.position,
+          spaceId: spaceId,
+          workspaceId: page.workspaceId,
+          creatorId: authUser.id,
+          lastUpdatedById: authUser.id,
+          parentPageId: page.parentPageId
+            ? pageMap.get(page.parentPageId)?.newPageId
+            : null,
+        };
+      }),
+    );
+
+    await this.db.insertInto('pages').values(insertablePages).execute();
+
+    //TODO: best to handle this in a queue
+    const attachmentsIds = Array.from(attachmentMap.keys());
+    if (attachmentsIds.length > 0) {
+      const attachments = await this.db
+        .selectFrom('attachments')
+        .selectAll()
+        .where('id', 'in', attachmentsIds)
+        .where('workspaceId', '=', rootPage.workspaceId)
+        .execute();
+
+      for (const attachment of attachments) {
+        try {
+          const pageAttachment = attachmentMap.get(attachment.id);
+
+          // make sure the copied attachment belongs to the page it was copied from
+          if (attachment.pageId !== pageAttachment.oldPageId) {
+            continue;
+          }
+
+          const newAttachmentId = pageAttachment.newAttachmentId;
+
+          const newPageId = pageAttachment.newPageId;
+
+          const newPathFile = attachment.filePath.replace(
+            attachment.id,
+            newAttachmentId,
+          );
+          await this.storageService.copy(attachment.filePath, newPathFile);
+          await this.db
+            .insertInto('attachments')
+            .values({
+              id: newAttachmentId,
+              type: attachment.type,
+              filePath: newPathFile,
+              fileName: attachment.fileName,
+              fileSize: attachment.fileSize,
+              mimeType: attachment.mimeType,
+              fileExt: attachment.fileExt,
+              creatorId: attachment.creatorId,
+              workspaceId: attachment.workspaceId,
+              pageId: newPageId,
+              spaceId: spaceId,
+            })
+            .execute();
+        } catch (err) {
+          this.logger.log(err);
+        }
+      }
+    }
+
+    const newPageId = pageMap.get(rootPage.id).newPageId;
+    return await this.pageRepo.findById(newPageId, {
+      includeSpace: true,
     });
   }
 
