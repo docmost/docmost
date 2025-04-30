@@ -1,6 +1,8 @@
 .env
 .env.dev
 .env.prod
+.env.example
+docker-compose.yml
 data
 # compiled output
 /dist
