@@ -15,6 +15,7 @@ import {
   IconArrowRight,
   IconChevronDown,
   IconChevronRight,
+  IconCopy,
   IconDotsVertical,
   IconFileDescription,
   IconFileExport,
@@ -60,6 +61,7 @@ import ExportModal from "@/components/common/export-modal";
 import MovePageModal from "../../components/move-page-modal.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import CopyPageModal from "../../components/copy-page-modal.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -448,6 +450,10 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
   ] = useDisclosure(false);
+  const [
+    copyPageModalOpened,
+    { open: openCopyPageModal, close: closeCopySpaceModal },
+  ] = useDisclosure(false);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -511,6 +517,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                 {t("Move")}
               </Menu.Item>
 
+              <Menu.Item
+                leftSection={<IconCopy size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openCopyPageModal();
+                }}
+              >
+                {t("Copy")}
+              </Menu.Item>
+
               <Menu.Divider />
               <Menu.Item
                 c="red"
@@ -534,6 +551,13 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
         currentSpaceSlug={spaceSlug}
         onClose={closeMoveSpaceModal}
         open={movePageModalOpened}
+      />
+
+      <CopyPageModal
+        pageId={node.id}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeCopySpaceModal}
+        open={copyPageModalOpened}
       />
 
       <ExportModal

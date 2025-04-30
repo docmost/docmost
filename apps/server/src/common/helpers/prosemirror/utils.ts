@@ -1,7 +1,12 @@
 import { Node } from '@tiptap/pm/model';
-import { jsonToNode } from '../../../collaboration/collaboration.util';
+import {
+  jsonToNode,
+  tiptapExtensions,
+} from '../../../collaboration/collaboration.util';
 import { validate as isValidUUID } from 'uuid';
 import { Transform } from '@tiptap/pm/transform';
+import { TiptapTransformer } from '@hocuspocus/transformer';
+import * as Y from 'yjs';
 
 export interface MentionNode {
   id: string;
@@ -59,7 +64,6 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
   return pageMentionList as MentionNode[];
 }
 
-
 export function getProsemirrorContent(content: any) {
   return (
     content ?? {
@@ -107,4 +111,19 @@ export function removeMarkTypeFromDoc(doc: Node, markName: string): Node {
 
   const tr = new Transform(doc).removeMark(0, doc.content.size, markType);
   return tr.doc;
+}
+
+export function createYdocFromJson(prosemirrorJson: any): Buffer | null {
+  if (prosemirrorJson) {
+    const ydoc = TiptapTransformer.toYdoc(
+      prosemirrorJson,
+      'default',
+      tiptapExtensions,
+    );
+
+    Y.encodeStateAsUpdate(ydoc);
+
+    return Buffer.from(Y.encodeStateAsUpdate(ydoc));
+  }
+  return null;
 }

@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "Publicly shared pages from spaces you are a member of will appear here",
   "Share deleted successfully": "Share deleted successfully",
   "Share not found": "Share not found",
-  "Failed to share page": "Failed to share page"
+  "Failed to share page": "Failed to share page",
+  "Copy page":  "Copy page",
+  "Copy page to a different space.": "Copy page to a different space.",
+  "Page copied successfully": "Page copied successfully"
 }
