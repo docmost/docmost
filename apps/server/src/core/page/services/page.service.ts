@@ -348,8 +348,6 @@ export class PageService {
       }),
     );
 
-    // we need the newly parent created pageId and return it
-
     await this.db.insertInto('pages').values(insertablePages).execute();
 
     //TODO: best to handle this in a queue
@@ -402,7 +400,6 @@ export class PageService {
       }
     }
 
-    // return root copied page
     const newPageId = pageMap.get(rootPage.id).newPageId;
     return await this.pageRepo.findById(newPageId, {
       includeSpace: true,
