@@ -58,7 +58,7 @@
   "Enter a strong password": "강력한 비밀번호를 입력하세요",
   "Enter valid email addresses separated by comma or space max_50": "유효한 이메일 주소를 쉼표나 공백으로 구분하여 입력하세요 [최대: 50]",
   "enter valid emails addresses": "유효한 이메일 주소를 입력하세요",
-  "Enter your current password": "현재 비밀번호를 입력하세요",
+  "Enter your current password": "기존 비밀번호를 입력하세요",
   "enter your full name": "전체 이름을 입력하세요",
   "Enter your new password": "새 비밀번호를 입력하세요",
   "Enter your new preferred email": "새로운 이메일을 입력하세요",
@@ -170,7 +170,7 @@
   "Successfully restored": "복원 완료",
   "System settings": "시스템 설정",
   "Theme": "배경",
-  "To change your email, you have to enter your password and new email.": "이메일을 변경하려면 현재 비밀번호와 새 이메일을 입력해야 합니다.",
+  "To change your email, you have to enter your password and new email.": "이메일을 변경하려면 기존 비밀번호와 새 이메일을 입력해야 합니다.",
   "Toggle full page width": "전체 페이지 너비 전환",
   "Unable to import pages. Please try again.": "페이지를 가져올 수 없습니다. 다시 시도해주세요.",
   "untitled": "제목 없음",
@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "회원인 공간의 공개 공유된 페이지가 여기에 표시됩니다",
   "Share deleted successfully": "공유가 성공적으로 삭제되었습니다",
   "Share not found": "공유를 찾을 수 없습니다",
-  "Failed to share page": "페이지 공유에 실패했습니다"
+  "Failed to share page": "페이지 공유에 실패했습니다",
+  "Copy page": "Copy page",
+  "Copy page to a different space.": "Copy page to a different space.",
+  "Page copied successfully": "Page copied successfully"
 }
