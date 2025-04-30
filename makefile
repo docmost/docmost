@@ -1,3 +1,7 @@
+init:
+	-mkdir docmost_data
+	chmod +777 -R docmost_data
+
 prod:
 	docker compose -f docker-compose.yml up
 

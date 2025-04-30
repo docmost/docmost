@@ -16,14 +16,7 @@ services:
       - "${POSTGRES_HOST}:host-gateway"
     restart: unless-stopped
     volumes:
-      - docmost:/app/data/storage
-
-  # db:
-  #   image: postgres:16-alpine
-  #   env_file: .env
-  #   restart: unless-stopped
-  #   volumes:
-  #     - db_data:/var/lib/postgresql/data
+      - ./docmost_data:/app/data/storage
 
   redis:
     image: redis:7.2-alpine
@@ -32,6 +25,4 @@ services:
       - redis_data:/data
 
 volumes:
-  docmost:
-  db_data:
   redis_data:
