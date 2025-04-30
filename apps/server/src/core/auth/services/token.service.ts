@@ -1,7 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
+  JwtAttachmentPayload,
   JwtCollabPayload,
   JwtExchangePayload,
   JwtPayload,
@@ -17,6 +22,10 @@ export class TokenService {
   ) {}
 
   async generateAccessToken(user: User): Promise<string> {
+    if (user.deletedAt) {
+      throw new ForbiddenException();
+    }
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -49,6 +58,21 @@ export class TokenService {
       type: JwtType.EXCHANGE,
     };
     return this.jwtService.sign(payload, { expiresIn: '10s' });
+  }
+
+  async generateAttachmentToken(opts: {
+    attachmentId: string;
+    pageId: string;
+    workspaceId: string;
+  }): Promise<string> {
+    const { attachmentId, pageId, workspaceId } = opts;
+    const payload: JwtAttachmentPayload = {
+      attachmentId: attachmentId,
+      pageId: pageId,
+      workspaceId: workspaceId,
+      type: JwtType.ATTACHMENT,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
   async verifyJwt(token: string, tokenType: string) {

@@ -1,0 +1,20 @@
+.shareLinkText {
+  @mixin light {
+    border-bottom: 0.05em solid var(--mantine-color-dark-0);
+  }
+  @mixin dark {
+    border-bottom: 0.05em solid var(--mantine-color-dark-2);
+  }
+}
+
+.treeNode {
+  text-decoration: none;
+  user-select: none;
+}
+
+.navbar,
+.aside {
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 350px;
+  }
+}

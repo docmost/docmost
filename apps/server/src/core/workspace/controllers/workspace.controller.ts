@@ -34,6 +34,7 @@ import { addDays } from 'date-fns';
 import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
+import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -118,6 +119,22 @@ export class WorkspaceController {
     ) {
       throw new ForbiddenException();
     }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('members/delete')
+  async deleteWorkspaceMember(
+    @Body() dto: RemoveWorkspaceUserDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    await this.workspaceService.deleteUser(user, dto.userId, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)

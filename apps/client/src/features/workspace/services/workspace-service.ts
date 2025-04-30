@@ -7,6 +7,7 @@ import {
   IAcceptInvite,
   IPublicWorkspace,
   IInvitationLink,
+  IVersion,
 } from "../types/workspace.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { ISetupWorkspace } from "@/features/auth/types/auth.types.ts";
@@ -33,6 +34,12 @@ export async function getWorkspaceMembers(
 ): Promise<IPagination<IUser>> {
   const req = await api.post("/workspace/members", params);
   return req.data;
+}
+
+export async function deleteWorkspaceMember(data: {
+  userId: string;
+}): Promise<void> {
+  await api.post("/workspace/members/delete", data);
 }
 
 export async function updateWorkspace(data: Partial<IWorkspace>) {
@@ -73,7 +80,6 @@ export async function getInviteLink(data: {
 export async function resendInvitation(data: {
   invitationId: string;
 }): Promise<void> {
-  console.log(data);
   await api.post("/workspace/invites/resend", data);
 }
 
@@ -94,6 +100,11 @@ export async function createWorkspace(
   data: ISetupWorkspace,
 ): Promise<{ workspace: IWorkspace } & { exchangeToken: string }> {
   const req = await api.post("/workspace/create", data);
+  return req.data;
+}
+
+export async function getAppVersion(): Promise<IVersion> {
+  const req = await api.post("/version");
   return req.data;
 }
 

@@ -8,7 +8,11 @@ import React, {
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import { HocuspocusProvider, WebSocketStatus } from "@hocuspocus/provider";
+import {
+  HocuspocusProvider,
+  onAuthenticationFailedParameters,
+  WebSocketStatus,
+} from "@hocuspocus/provider";
 import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
 import {
   collabExtensions,
@@ -41,16 +45,14 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
-import {
-  useDebouncedCallback,
-  useDocumentVisibility,
-} from "@mantine/hooks";
+import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
-import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
+import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { jwtDecode } from "jwt-decode";
 
 interface PageEditorProps {
   pageId: string;
@@ -77,7 +79,7 @@ export default function PageEditor({
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
-  const { data } = useCollabToken();
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
   const [isCollabReady, setIsCollabReady] = useState(false);
@@ -92,16 +94,24 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [pageId, ydoc, data?.token]);
+  }, [pageId, ydoc]);
 
   const remoteProvider = useMemo(() => {
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
       document: ydoc,
-      token: data?.token,
+      token: collabQuery?.token,
       connect: false,
       preserveConnection: false,
+      onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
+        const payload = jwtDecode(collabQuery?.token);
+        const now = Date.now().valueOf() / 1000;
+        const isTokenExpired = now >= payload.exp;
+        if (isTokenExpired) {
+          refetchCollabToken();
+        }
+      },
       onStatus: (status) => {
         if (status.status === "connected") {
           setYjsConnectionStatus(status.status);
@@ -118,7 +128,7 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [ydoc, pageId, data?.token]);
+  }, [ydoc, pageId, collabQuery?.token]);
 
   useLayoutEffect(() => {
     remoteProvider.connect();
@@ -199,6 +209,7 @@ export default function PageEditor({
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
         content: newContent,
+        updatedAt: new Date(),
       });
     }
   }, 3000);
@@ -253,23 +264,28 @@ export default function PageEditor({
       documentState === "visible" &&
       remoteProvider?.status === WebSocketStatus.Disconnected
     ) {
-      remoteProvider.connect();
       resetIdle();
+      remoteProvider.connect();
       setTimeout(() => {
         setIsCollabReady(true);
       }, 600);
     }
-  }, [isIdle, documentState, remoteProvider?.status]);
+  }, [isIdle, documentState, remoteProvider]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
-    setTimeout(() => {
-      if (isSynced) {
+    const collabReadyTimeout = setTimeout(() => {
+      if (
+        !isCollabReady &&
+        isSynced &&
+        remoteProvider?.status === WebSocketStatus.Connected
+      ) {
         setIsCollabReady(true);
       }
     }, 500);
-  }, [isRemoteSynced, isLocalSynced]);
+    return () => clearTimeout(collabReadyTimeout);
+  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
 
   return isCollabReady ? (
     <div>
