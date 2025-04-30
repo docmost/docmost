@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "회원인 공간의 공개 공유된 페이지가 여기에 표시됩니다",
   "Share deleted successfully": "공유가 성공적으로 삭제되었습니다",
   "Share not found": "공유를 찾을 수 없습니다",
-  "Failed to share page": "페이지 공유에 실패했습니다"
+  "Failed to share page": "페이지 공유에 실패했습니다",
+  "Copy page": "Copy page",
+  "Copy page to a different space.": "Copy page to a different space.",
+  "Page copied successfully": "Page copied successfully"
 }
