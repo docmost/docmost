@@ -163,6 +163,14 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  .floatLeft {
+    float: left;
+  }
+
+  .floatRight {
+    float: right;
+  }
 }
 
 .ProseMirror-icon {
