@@ -1,3 +1,5 @@
+import { ActionIcon } from "@mantine/core";
+import { IconGripVertical } from "@tabler/icons-react";
 import { NodeViewProps, mergeAttributes } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import { useEffect, useRef } from "react";
@@ -38,6 +40,19 @@ export default function ColumnView(props: NodeViewProps) {
       })}
       ref={ref}
     >
+      <ActionIcon
+        className="column-drag-handle"
+        variant="default"
+        size="sm"
+        data-drag-handle
+        contentEditable={false}
+      >
+        <IconGripVertical
+          style={{ width: "70%", height: "70%" }}
+          stroke={1.5}
+        />
+      </ActionIcon>
+
       <NodeViewContent />
     </NodeViewWrapper>
   );

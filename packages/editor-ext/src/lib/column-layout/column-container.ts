@@ -33,7 +33,7 @@ export const ColumnContainer = Node.create<ColummnContainerOptions>({
   name: "columnContainer",
   group: "block",
   content: "columnItem+",
-  draggable: true,
+  draggable: false,
 
   addOptions() {
     return {

@@ -5,15 +5,32 @@
   width: 100%;
 }
 
-.node-column .popover-open{
+.node-column .popover-open {
   opacity: 1;
 }
-.node-column{
+
+.node-column {
   outline: 2px solid transparent;
-  transition: outline 0.3s ease-in-out; 
+  transition: outline 0.3s ease-in-out;
+  position: relative;
 }
-.node-column:hover{
+
+.node-column:hover {
   outline: 2px solid #70cff8;
+}
+
+.node-column .column-drag-handle {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  position: absolute;
+  border-color: transparent;
+  top: 0;
+  right: 0;
+  cursor: grab;
+}
+
+.node-column:hover .column-drag-handle {
+  opacity: 1;
 }
 
 .node-columnContainer {

@@ -9,7 +9,7 @@ export const Column = Node.create<ColumnOptions>({
   name: "column",
   group: 'columnItem',
   content: "block+",
-  draggable: false,
+  draggable: true,
 
   addAttributes() {
     return {
