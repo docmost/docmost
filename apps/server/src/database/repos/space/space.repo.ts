@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
@@ -7,11 +7,12 @@ import {
   Space,
   UpdatableSpace,
 } from '@docmost/db/types/entity.types';
-import { ExpressionBuilder, sql } from 'kysely';
+import { ExpressionBuilder, Kysely, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { DB } from '@docmost/db/types/db';
 import { validate as isValidUUID } from 'uuid';
+import { SpaceVisibility } from 'src/common/helpers/types/permission';
 
 @Injectable()
 export class SpaceRepo {
@@ -155,5 +156,20 @@ export class SpaceRepo {
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+  }
+
+  async findPersonalSpace(
+    userId: string,
+    trx?: KyselyTransaction,
+  ): Promise<Space | null> {
+    const db = dbOrTx(this.db, trx);
+    const space = await db
+      .selectFrom('spaces')
+      .selectAll()
+      .where('creatorId', '=', userId)
+      .where('visibility', '=', SpaceVisibility.PERSONAL)
+      .executeTakeFirst();
+
+    return space;
   }
 }

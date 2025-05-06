@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { SpaceService } from '../space/services/space.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -20,6 +21,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly workspaceRepo: WorkspaceRepo,
+    private readonly spaceService: SpaceService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -40,7 +42,16 @@ export class UserController {
       hasLicenseKey: Boolean(licenseKey),
     };
 
-    return { user: authUser, workspace: workspaceInfo };
+    const personalSpace = await this.spaceService.getPersonalSpace(
+      authUser,
+      workspace.id,
+    );
+
+    return {
+      user: authUser,
+      workspace: workspaceInfo,
+      personalSpaceId: personalSpace?.id,
+    };
   }
 
   @HttpCode(HttpStatus.OK)

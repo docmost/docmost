@@ -28,6 +28,7 @@ export interface TitleEditorProps {
   title: string;
   spaceSlug: string;
   editable: boolean;
+  isMyPages?: boolean;
 }
 
 export function TitleEditor({
@@ -36,6 +37,7 @@ export function TitleEditor({
   title,
   spaceSlug,
   editable,
+  isMyPages,
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updatePageMutationAsync } = useUpdatePageMutation();
@@ -80,6 +82,10 @@ export function TitleEditor({
   });
 
   useEffect(() => {
+    if (isMyPages) {
+      return;
+    }
+
     const pageSlug = buildPageUrl(spaceSlug, slugId, title);
     navigate(pageSlug, { replace: true });
   }, [title]);

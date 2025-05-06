@@ -13,7 +13,10 @@ import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { SpaceMemberService } from './space-member.service';
-import { SpaceRole } from '../../../common/helpers/types/permission';
+import {
+  SpaceRole,
+  SpaceVisibility,
+} from '../../../common/helpers/types/permission';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -147,5 +150,39 @@ export class SpaceService {
 
     await this.spaceRepo.deleteSpace(spaceId, workspaceId);
     await this.attachmentQueue.add(QueueJob.DELETE_SPACE_ATTACHMENTS, space);
+  }
+
+  async getPersonalSpace(
+    user: User,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<Space> {
+    const space = await this.spaceRepo.findPersonalSpace(user.id);
+
+    if (space) {
+      return space;
+    }
+
+    return await this.db.transaction().execute(async (trx) => {
+      const userSpace = await this.spaceRepo.insertSpace(
+        {
+          name: `${user.name}'s Space`,
+          workspaceId: workspaceId,
+          creatorId: user.id,
+          slug: `${user.id}-space`,
+          visibility: SpaceVisibility.PERSONAL,
+        },
+        trx,
+      );
+
+      await this.spaceMemberService.addUserToSpace(
+        user.id,
+        userSpace.id,
+        SpaceRole.ADMIN,
+        workspaceId,
+        trx,
+      );
+      return userSpace;
+    });
   }
 }

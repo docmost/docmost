@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  ColorInput,
   Group,
   Menu,
   Text,
@@ -18,7 +19,6 @@ import {
 } from "@tabler/icons-react";
 
 import classes from "./space-sidebar.module.css";
-import React, { useMemo } from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
@@ -94,7 +94,6 @@ export function SpaceSidebar() {
                 <span>{t("Overview")}</span>
               </div>
             </UnstyledButton>
-
             <UnstyledButton className={classes.menu} onClick={spotlight.open}>
               <div className={classes.menuItemInner}>
                 <IconSearch
@@ -105,7 +104,6 @@ export function SpaceSidebar() {
                 <span>{t("Search")}</span>
               </div>
             </UnstyledButton>
-
             <UnstyledButton className={classes.menu} onClick={openSettings}>
               <div className={classes.menuItemInner}>
                 <IconSettings
@@ -116,7 +114,6 @@ export function SpaceSidebar() {
                 <span>{t("Space settings")}</span>
               </div>
             </UnstyledButton>
-
             {spaceAbility.can(
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
@@ -149,8 +146,6 @@ export function SpaceSidebar() {
               SpaceCaslSubject.Page,
             ) && (
               <Group gap="xs">
-                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
-
                 <Tooltip label={t("Create page")} withArrow position="right">
                   <ActionIcon
                     variant="default"
@@ -161,6 +156,8 @@ export function SpaceSidebar() {
                     <IconPlus />
                   </ActionIcon>
                 </Tooltip>
+
+                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
               </Group>
             )}
           </Group>

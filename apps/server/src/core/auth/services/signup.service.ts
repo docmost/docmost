@@ -9,7 +9,13 @@ import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
-import { UserRole } from '../../../common/helpers/types/permission';
+import {
+  SpaceRole,
+  SpaceVisibility,
+  UserRole,
+} from '../../../common/helpers/types/permission';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceMemberService } from 'src/core/space/services/space-member.service';
 
 @Injectable()
 export class SignupService {
@@ -17,6 +23,8 @@ export class SignupService {
     private userRepo: UserRepo,
     private workspaceService: WorkspaceService,
     private groupUserRepo: GroupUserRepo,
+    private readonly spaceRepo: SpaceRepo,
+    private readonly spaceMemberService: SpaceMemberService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -62,6 +70,26 @@ export class SignupService {
           workspaceId,
           trx,
         );
+
+        // create user's space
+        const userSpace = await this.spaceRepo.insertSpace(
+          {
+            name: `${user.name}'s Space`,
+            workspaceId,
+            creatorId: user.id,
+            visibility: SpaceVisibility.PERSONAL,
+            slug: `${user.id}-space`,
+          },
+          trx,
+        );
+        await this.spaceMemberService.addUserToSpace(
+          user.id,
+          userSpace.id,
+          SpaceRole.ADMIN,
+          workspaceId,
+          trx,
+        );
+
         return user;
       },
       trx,
@@ -102,6 +130,25 @@ export class SignupService {
         );
 
         user.workspaceId = workspace.id;
+
+        // create user's space
+        const userSpace = await this.spaceRepo.insertSpace(
+          {
+            name: `${user.name}'s Space`,
+            workspaceId: workspace.id,
+            creatorId: user.id,
+            slug: `${user.id}-space`,
+            visibility: SpaceVisibility.PERSONAL,
+          },
+          trx,
+        );
+        await this.spaceMemberService.addUserToSpace(
+          user.id,
+          userSpace.id,
+          SpaceRole.ADMIN,
+          workspace.id,
+          trx,
+        );
         return user;
       },
       trx,

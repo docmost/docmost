@@ -35,4 +35,7 @@ export class SidebarPageResultDto {
 
   @IsBoolean()
   isSynced: boolean;
+
+  @IsString()
+  color?: string;
 }

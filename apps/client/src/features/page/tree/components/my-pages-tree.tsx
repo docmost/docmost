@@ -3,32 +3,38 @@ import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
   fetchAncestorChildren,
-  useGetRootSidebarPagesQuery,
+  useGetMyPagesQuery,
   usePageQuery,
+  useUpdateMyPageColorMutation,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Menu, rem } from "@mantine/core";
 import {
-  IconArrowRight,
+  ActionIcon,
+  Button,
+  ColorPicker,
+  Group,
+  Menu,
+  Modal,
+  rem,
+  Stack,
+} from "@mantine/core";
+import {
   IconChevronDown,
   IconChevronRight,
+  IconColorPicker,
   IconDots,
   IconFileDescription,
   IconFileExport,
-  IconFileSymlink,
-  IconLink,
   IconPlus,
-  IconPointFilled,
   IconTrash,
   IconUsers,
 } from "@tabler/icons-react";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
-import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import {
   appendNodeChildren,
   buildTree,
@@ -37,61 +43,77 @@ import {
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import {
+  getMyPages,
   getPageBreadcrumbs,
   getPageById,
-  getSidebarPages,
 } from "@/features/page/services/page-service.ts";
-import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
+import { IPage } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
-import {
-  useClipboard,
-  useDisclosure,
-  useElementSize,
-  useMergedRef,
-} from "@mantine/hooks";
+import { useDisclosure, useElementSize, useMergedRef } from "@mantine/hooks";
 import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
-import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import PageShareModal from "../../components/share-modal";
-import MovePageModal from "../../components/move-page-modal.tsx";
-import CreateSyncPageModal from "../../components/create-sync-page-modal.tsx";
+import { colorAtom as pageColorsAtom } from "../atoms/tree-color-atom.ts";
+import { personalSpaceIdAtom } from "../atoms/tree-current-space-atom.ts";
+import { useMyPagesTreeMutation } from "@/features/my-pages/tree/hooks/use-tree-mutation.ts";
 
-interface SpaceTreeProps {
+interface MyPagesTreeProps {
   spaceId: string;
   readOnly: boolean;
 }
 
 const openTreeNodesAtom = atom<OpenMap>({});
 
-export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
+export default function MyPagesTree({ spaceId, readOnly }: MyPagesTreeProps) {
   const { pageSlug } = useParams();
+
   const { data, setData, controllers } =
-    useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
+    useMyPagesTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
   const {
     data: pagesData,
     hasNextPage,
     fetchNextPage,
     isFetching,
-  } = useGetRootSidebarPagesQuery({
-    spaceId,
-  });
-  const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
-  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
-  const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
-  const rootElement = useRef<HTMLDivElement>();
-  const { ref: sizeRef, width } = useElementSize();
-  const mergedRef = useMergedRef(rootElement, sizeRef);
-  const isDataLoaded = useRef(false);
+  } = useGetMyPagesQuery();
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+
+  const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
+  const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
+
+  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
+  const rootElement = useRef<HTMLDivElement>();
+  const { ref: sizeRef, width, height } = useElementSize();
+  const mergedRef = useMergedRef(rootElement, sizeRef);
+  const isDataLoaded = useRef(false);
+
+  const [, setPersonalSpaceId] = useAtom<string>(personalSpaceIdAtom);
+
+  const [, setPageColors] = useAtom(pageColorsAtom);
+
+  const loadColors = (pages: any[]) => {
+    const colors = ["#4CAF50", "#2196F3", "#9C27B0", "#FF9800", "#E91E63"];
+    const loadedColors = pages.reduce(
+      (acc, page) => ({
+        ...acc,
+        [page.id]:
+          page.color ?? colors[Math.floor(Math.random() * colors.length)],
+      }),
+      {},
+    );
+    setPageColors((prev) => ({ ...prev, ...loadedColors }));
+  };
+
+  useEffect(() => {
+    setPersonalSpaceId(spaceId);
+  }, [spaceId]);
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -104,13 +126,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
 
+      loadColors(allItems);
+
       if (data.length < 1 || data?.[0].spaceId !== spaceId) {
-        //Thoughts
-        // don't reset if there is data in state
-        // we only expect to call this once on initial load
-        // even if we decide to refetch, it should only update
-        // and append root pages instead of resetting the entire tree
-        // which looses async loaded children too
         setData(treeData);
         isDataLoaded.current = true;
         setOpenTreeNodes({});
@@ -140,10 +158,11 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             if (ancestor.id === currentPage.id) {
               return;
             }
-            const children = await fetchAncestorChildren({
-              pageId: ancestor.id,
-              spaceId: ancestor.spaceId,
-            });
+
+            const pages = await getMyPages(ancestor.id);
+            const children = buildTree(pages.items);
+
+            loadColors(pages.items);
 
             flatTreeItems = [
               ...flatTreeItems,
@@ -206,7 +225,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     <div ref={mergedRef} className={classes.treeContainer}>
       {rootElement.current && (
         <Tree
-          data={data.filter((node) => node?.spaceId === spaceId)}
+          data={data}
           disableDrag={readOnly}
           disableDrop={readOnly}
           disableEdit={readOnly}
@@ -234,13 +253,33 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 }
 
 function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
-  const navigate = useNavigate();
-  const updatePageMutation = useUpdatePageMutation();
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
-  const emit = useQueryEmit();
-  const { spaceSlug } = useParams();
-  const timerRef = useRef(null);
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const updatePageMutation = useUpdatePageMutation();
+
+  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [personalSpaceId] = useAtom(personalSpaceIdAtom);
+  const [nodeColors] = useAtom(pageColorsAtom);
+  const [nodeColor, setColor] = useState<string>(
+    nodeColors[node.data.id] || "#4CAF50",
+  );
+
+  const emit = useQueryEmit();
+  const timerRef = useRef(null);
+
+  const isPersonalSpace = node.data.spaceId === personalSpaceId;
+
+  useEffect(() => {
+    // Assign the color based on the parent page ID or the node ID?
+    // if (node.data.parentPageId) {
+    //   setColor(nodeColors[node.data.parentPageId] || "#4CAF50");
+    // } else {
+    //   setColor(nodeColors[node.data.id] || "#4CAF50");
+    // }
+
+    setColor(nodeColors[node.data.id] || "#4CAF50");
+  }, [nodeColors, node.data.id]);
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(() => {
@@ -266,17 +305,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
     }
 
     try {
-      const params: SidebarPagesParams = {
-        pageId: node.data.id,
-        spaceId: node.data.spaceId,
-      };
-
-      const newChildren = await queryClient.fetchQuery({
-        queryKey: ["sidebar-pages", params],
-        queryFn: () => getSidebarPages(params),
-        staleTime: 10 * 60 * 1000,
-      });
-
+      const newChildren = await getMyPages(node.data.id);
       const childrenTree = buildTree(newChildren.items);
 
       const updatedTreeData = appendNodeChildren(
@@ -292,8 +321,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   }
 
   const handleClick = () => {
-    const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-    navigate(pageUrl);
+    navigate(`/my-pages/${node.data.id}`);
   };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
@@ -359,6 +387,13 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         onMouseEnter={prefetchPage}
         onMouseLeave={cancelPagePrefetch}
       >
+        {!isPersonalSpace && (
+          <i
+            className={classes.syncIndicator}
+            style={{ backgroundColor: nodeColor }}
+          ></i>
+        )}
+
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
         <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
@@ -383,7 +418,11 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
               onExpandTree={() => handleLoadChildren(node)}
             />
           )}
-          <NodeMenu node={node} treeApi={tree} />
+          <NodeMenu
+            node={node}
+            treeApi={tree}
+            isPersonalSpace={isPersonalSpace}
+          />
         </div>
       </div>
     </>
@@ -428,34 +467,49 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
 interface NodeMenuProps {
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
+  isPersonalSpace: boolean;
 }
 
-function NodeMenu({ node, treeApi }: NodeMenuProps) {
+function NodeMenu({ node, treeApi, isPersonalSpace }: NodeMenuProps) {
   const { t } = useTranslation();
-  const clipboard = useClipboard({ timeout: 500 });
-  const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
+  const updateMyPageColorMutation = useUpdateMyPageColorMutation();
+
+  const [pageColors, setPageColors] = useAtom(pageColorsAtom);
+
+  const [color, setColor] = useState(pageColors[node.data.id]);
 
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [shareOpened, { open: openShareModal, close: closeShareModal }] =
     useDisclosure(false);
-
   const [
-    movePageModalOpened,
-    { open: openMovePageModal, close: closeMoveSpaceModal },
+    colorPickerOpened,
+    { open: openColorPicker, close: closeColorPicker },
   ] = useDisclosure(false);
 
-  const [
-    createSyncedPageModelOpened,
-    { open: openCreateSyncedPageModal, close: closeCreateSyncedPageModal },
-  ] = useDisclosure(false);
+  const handleColorChange = (newColor: string) => {
+    setColor(newColor);
+  };
 
-  const handleCopyLink = () => {
-    const pageUrl =
-      getAppUrl() + buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-    clipboard.copy(pageUrl);
-    notifications.show({ message: t("Link copied") });
+  const applyNewColor = () => {
+    updateMyPageColorMutation
+      .mutateAsync({ pageId: node.data.id, color: color })
+      .then(() => {
+        setPageColors((prev) => ({
+          ...prev,
+          [node.data.id]: color,
+        }));
+        notifications.show({ message: t("Color updated") });
+      })
+      .catch(() => {
+        notifications.show({
+          message: t("Failed to update color"),
+          color: "red",
+        });
+      });
+
+    closeColorPicker();
   };
 
   return (
@@ -476,14 +530,14 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
 
         <Menu.Dropdown>
           <Menu.Item
-            leftSection={<IconLink size={16} />}
+            leftSection={<IconColorPicker size={16} />}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleCopyLink();
+              openColorPicker();
             }}
           >
-            {t("Copy link")}
+            {t("Change color")}
           </Menu.Item>
 
           <Menu.Item
@@ -497,41 +551,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
             {t("Export page")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconUsers size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openShareModal();
-            }}
-          >
-            {t("Share")}
-          </Menu.Item>
-
-          {!node.data.isSynced ? (
-            <Menu.Item
-              leftSection={<IconFileSymlink size={16} />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openCreateSyncedPageModal();
-              }}
-            >
-              {t("New Synced Page")}
-            </Menu.Item>
-          ) : null}
-
-          {!(treeApi.props.disableEdit as boolean) && (
-            <>
+          {isPersonalSpace && (
+            <div>
               <Menu.Item
-                leftSection={<IconArrowRight size={16} />}
+                leftSection={<IconUsers size={16} />}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openMovePageModal();
+                  openShareModal();
                 }}
               >
-                {t("Move")}
+                {t("Share")}
               </Menu.Item>
 
               <Menu.Divider />
@@ -541,30 +571,54 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
+                  openDeleteModal({
+                    onConfirm: () => treeApi?.delete(node),
+                  });
                 }}
               >
                 {t("Delete")}
               </Menu.Item>
-            </>
+            </div>
           )}
         </Menu.Dropdown>
       </Menu>
 
-      <MovePageModal
-        pageId={node.id}
-        slugId={node.data.slugId}
-        currentSpaceSlug={spaceSlug}
-        onClose={closeMoveSpaceModal}
-        open={movePageModalOpened}
-      />
-
-      <CreateSyncPageModal
-        originPageId={node.id}
-        currentSpaceSlug={spaceSlug}
-        onClose={closeCreateSyncedPageModal}
-        open={createSyncedPageModelOpened}
-      />
+      <Modal
+        opened={colorPickerOpened}
+        onClose={closeColorPicker}
+        title={t("Choose a color")}
+        size="sm"
+      >
+        <Stack>
+          <ColorPicker
+            format="hex"
+            value={color}
+            onChange={handleColorChange}
+            swatches={[
+              "#25262b",
+              "#868e96",
+              "#fa5252",
+              "#e64980",
+              "#be4bdb",
+              "#7950f2",
+              "#4c6ef5",
+              "#228be6",
+              "#15aabf",
+              "#12b886",
+              "#40c057",
+              "#82c91e",
+              "#fab005",
+              "#fd7e14",
+            ]}
+          />
+          <Group justify="flex-end" mt="md">
+            <Button variant="outline" onClick={closeColorPicker}>
+              {t("Cancel")}
+            </Button>
+            <Button onClick={() => applyNewColor()}>{t("Apply")}</Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <ExportModal
         type="page"
@@ -607,7 +661,8 @@ function PageArrow({ node, onExpandTree }: PageArrowProps) {
           ) : (
             <IconChevronRight stroke={2} size={18} />
           )
-        ) : null
+        ) : // <IconPointFilled size={8} />
+        null
       ) : null}
     </ActionIcon>
   );

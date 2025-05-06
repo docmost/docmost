@@ -47,6 +47,8 @@ import { CreateSyncPageDto } from './dto/create-sync-page.dto';
 import { SynchronizedPageService } from './services/synchronized-page.service';
 import { cpSync } from 'fs-extra';
 import { SpaceIdDto } from '../space/dto/space-id.dto';
+import { MyPageColorDto } from './dto/update-color.dto';
+import { MyPagesDto } from './dto/my-pages.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -420,6 +422,10 @@ export class PageController {
       throw new ForbiddenException();
     }
 
+    if (dto.isMyPages) {
+      return this.pageService.moveMyPage(dto, movedPage, user.id);
+    }
+
     return this.pageService.movePage(dto, movedPage);
   }
 
@@ -516,8 +522,6 @@ export class PageController {
       return;
     }
 
-    Logger.debug(pagesInSpace);
-
     return {
       items: await Promise.all(
         pagesInSpace.items.map(async (page) => {
@@ -538,6 +542,15 @@ export class PageController {
     };
   }
 
+  @HttpCode(HttpStatus.OK)
+  @Get('/my-pages')
+  async myPages(
+    @Query() dto: MyPagesDto,
+    @Query() pagination: PaginationOptions,
+  ) {
+    return this.pageService.getMyPages(pagination, dto.pageId);
+  }
+
   validateIds(dto: RemovePageMemberDto | UpdatePageMemberRoleDto) {
     if (!dto.userId && !dto.groupId) {
       throw new BadRequestException('userId or groupId is required');
@@ -547,5 +560,23 @@ export class PageController {
         'please provide either a userId or groupId and both',
       );
     }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/my-pages/color')
+  async myPageColor(@Body() dto: MyPageColorDto, @AuthUser() user: User) {
+    const page = await this.pageService.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const pageAbility = await this.pageAbility.createForUser(user, page.id);
+    if (!pageAbility.can(PageCaslAction.Manage, PageCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    Logger.debug(`User ${user.id} is updating page color`);
+
+    await this.pageService.updateMyPageColor(dto, user.id);
   }
 }

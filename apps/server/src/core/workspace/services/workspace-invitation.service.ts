@@ -28,6 +28,12 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { SpaceMemberService } from 'src/core/space/services/space-member.service';
+import {
+  SpaceRole,
+  SpaceVisibility,
+} from 'src/common/helpers/types/permission';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -35,6 +41,8 @@ export class WorkspaceInvitationService {
   constructor(
     private userRepo: UserRepo,
     private groupUserRepo: GroupUserRepo,
+    private readonly spaceRepo: SpaceRepo,
+    private readonly spaceMemberService: SpaceMemberService,
     private mailService: MailService,
     private domainService: DomainService,
     private tokenService: TokenService,
@@ -205,6 +213,25 @@ export class WorkspaceInvitationService {
         // add user to default group
         await this.groupUserRepo.addUserToDefaultGroup(
           newUser.id,
+          workspaceId,
+          trx,
+        );
+
+        // create personal space
+        const userSpace = await this.spaceRepo.insertSpace(
+          {
+            name: `${newUser.name}'s Space`,
+            workspaceId,
+            creatorId: newUser.id,
+            slug: `${newUser.id}-space`,
+            visibility: SpaceVisibility.PERSONAL,
+          },
+          trx,
+        );
+        await this.spaceMemberService.addUserToSpace(
+          newUser.id,
+          userSpace.id,
+          SpaceRole.ADMIN,
           workspaceId,
           trx,
         );

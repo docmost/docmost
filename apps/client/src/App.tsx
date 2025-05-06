@@ -26,6 +26,8 @@ import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
+import MyPagesHome from "./pages/my-pages/my-pages-home";
+import MyPagesPage from "./pages/my-pages/my-pages-page";
 
 export default function App() {
   const { t } = useTranslation();
@@ -66,6 +68,9 @@ export default function App() {
               </ErrorBoundary>
             }
           />
+
+          <Route path={"/my-pages"} element={<MyPagesHome />} />
+          <Route path={"/my-pages/:pageSlug"} element={<MyPagesPage />} />
 
           <Route path={"/settings"}>
             <Route path={"account/profile"} element={<AccountSettings />} />
