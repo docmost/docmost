@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePageDto } from '../dto/create-page.dto';
@@ -25,6 +26,7 @@ import { SpaceRole } from 'src/common/helpers/types/permission';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { SidebarPageDto, SidebarPageResultDto } from '../dto/sidebar-page.dto';
 import { SynchronizedPageRepo } from '@docmost/db/repos/page/synchronized_page.repo';
+import { MyPageColorDto } from '../dto/update-color.dto';
 
 @Injectable()
 export class PageService {
@@ -315,6 +317,43 @@ export class PageService {
     );
   }
 
+  async moveMyPage(
+    dto: MovePageDto,
+    movedPage: Page,
+    userId: string,
+  ): Promise<void> {
+    try {
+      generateJitteredKeyBetween(dto.position, null);
+    } catch (err) {
+      throw new BadRequestException('Invalid move position');
+    }
+
+    if (dto.parentPageId) {
+      const parentPage = await this.pageRepo.findById(dto.parentPageId);
+      if (!parentPage) {
+        throw new NotFoundException('Parent page not found');
+      }
+
+      if (parentPage.spaceId !== movedPage.spaceId) {
+        throw new BadRequestException('Parent page must be in the same space');
+      }
+
+      if (parentPage.spaceId !== dto.personalSpaceId) {
+        throw new BadRequestException();
+      }
+    }
+
+    if (movedPage.spaceId !== dto.personalSpaceId && movedPage.parentPageId) {
+      throw new BadRequestException();
+    }
+
+    return this.pageRepo.updateUserPagePreferences({
+      position: dto.position,
+      pageId: dto.pageId,
+      userId: userId,
+    });
+  }
+
   async getPageBreadCrumbs(childPageId: string) {
     const ancestors = await this.db
       .withRecursive('page_ancestors', (db) =>
@@ -395,6 +434,78 @@ export class PageService {
       }
 
       await this.pageRepo.deletePage(pageId, trx);
+    });
+  }
+
+  async getMyPages(
+    pagination: PaginationOptions,
+    pageId?: string,
+  ): Promise<PaginationResult<SidebarPageResultDto>> {
+    const baseQuery = this.db
+      .selectFrom('pages')
+      .select([
+        'id',
+        'slugId',
+        'title',
+        'icon',
+        'position',
+        'parentPageId',
+        'spaceId',
+        'creatorId',
+        'isSynced',
+      ])
+      .select((eb) => this.withHasChildren(eb))
+      .orderBy('position', 'asc');
+
+    const query = baseQuery.where(
+      'parentPageId',
+      pageId ? '=' : 'is',
+      pageId ?? null,
+    );
+
+    const result: PaginationResult<SidebarPageResultDto> =
+      await executeWithPagination(query, {
+        page: pagination.page,
+        perPage: 250,
+      });
+
+    for (const page of result.items) {
+      const preferences = await this.pageRepo.findUserPagePreferences(
+        page.id,
+        page.creatorId,
+      );
+
+      if (!preferences) {
+        await this.pageRepo.createUserPagePreferences({
+          pageId: page.id,
+          userId: page.creatorId,
+          position: page.position,
+          color: '#4CAF50',
+        });
+        continue;
+      }
+
+      page.position = preferences.position;
+      page.color = preferences.color ?? '#4CAF50';
+    }
+
+    return result;
+  }
+
+  async updateMyPageColor(dto: MyPageColorDto, userId: string) {
+    const preferences = await this.pageRepo.findUserPagePreferences(
+      dto.pageId,
+      userId,
+    );
+
+    if (!preferences) {
+      throw new NotFoundException(`Preferences not found`);
+    }
+
+    await this.pageRepo.updateUserPagePreferences({
+      pageId: dto.pageId,
+      userId,
+      color: dto.color,
     });
   }
 }

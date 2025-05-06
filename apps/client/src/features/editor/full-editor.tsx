@@ -16,6 +16,7 @@ export interface FullEditorProps {
   content: string;
   spaceSlug: string;
   editable: boolean;
+  isMyPages?: boolean;
 }
 
 export function FullEditor({
@@ -25,6 +26,7 @@ export function FullEditor({
   content,
   spaceSlug,
   editable,
+  isMyPages,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -41,8 +43,13 @@ export function FullEditor({
         title={title}
         spaceSlug={spaceSlug}
         editable={editable}
+        isMyPages={isMyPages}
       />
-      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} />
+      <MemoizedPageEditor
+        pageId={pageId}
+        editable={editable}
+        content={content}
+      />
     </Container>
   );
 }

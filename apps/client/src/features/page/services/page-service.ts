@@ -149,3 +149,19 @@ export async function changeMemberRole(
 ): Promise<void> {
   await api.post("/pages/members/change-role", data);
 }
+
+export async function getMyPages(pageId?: string): Promise<IPagination<IPage>> {
+  const req = await api.get("/pages/my-pages", { params: { pageId } });
+  return req.data;
+}
+
+export async function updateMyPageColor(
+  pageId: string,
+  color: string,
+): Promise<void> {
+  const req = await api.post("/pages/my-pages/color", {
+    pageId,
+    color,
+  });
+  return req.data;
+}

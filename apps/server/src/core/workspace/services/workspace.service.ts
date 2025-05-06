@@ -165,45 +165,45 @@ export class WorkspaceService {
         );
 
         // create default space
-        const spaceInfo: CreateSpaceDto = {
-          name: 'General',
-          slug: 'general',
-        };
+        // const spaceInfo: CreateSpaceDto = {
+        //   name: 'General',
+        //   slug: 'general',
+        // };
 
-        const createdSpace = await this.spaceService.create(
-          user.id,
-          workspace.id,
-          spaceInfo,
-          trx,
-        );
+        // const createdSpace = await this.spaceService.create(
+        //   user.id,
+        //   workspace.id,
+        //   spaceInfo,
+        //   trx,
+        // );
 
-        // and add user to space as owner
-        await this.spaceMemberService.addUserToSpace(
-          user.id,
-          createdSpace.id,
-          SpaceRole.ADMIN,
-          workspace.id,
-          trx,
-        );
+        // // and add user to space as owner
+        // await this.spaceMemberService.addUserToSpace(
+        //   user.id,
+        //   createdSpace.id,
+        //   SpaceRole.ADMIN,
+        //   workspace.id,
+        //   trx,
+        // );
 
         // add default group to space as writer
-        await this.spaceMemberService.addGroupToSpace(
-          group.id,
-          createdSpace.id,
-          SpaceRole.WRITER,
-          workspace.id,
-          trx,
-        );
+        // await this.spaceMemberService.addGroupToSpace(
+        //   group.id,
+        //   createdSpace.id,
+        //   SpaceRole.WRITER,
+        //   workspace.id,
+        //   trx,
+        // );
 
-        // update default spaceId
-        workspace.defaultSpaceId = createdSpace.id;
-        await this.workspaceRepo.updateWorkspace(
-          {
-            defaultSpaceId: createdSpace.id,
-          },
-          workspace.id,
-          trx,
-        );
+        // // update default spaceId
+        // workspace.defaultSpaceId = createdSpace.id;
+        // await this.workspaceRepo.updateWorkspace(
+        //   {
+        //     defaultSpaceId: createdSpace.id,
+        //   },
+        //   workspace.id,
+        //   trx,
+        // );
 
         return workspace;
       },

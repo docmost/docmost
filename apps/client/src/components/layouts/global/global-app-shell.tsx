@@ -14,6 +14,7 @@ import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
 import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
+import { MyPagesSidebar } from "@/features/my-pages/components/sidebar/my-pages-sidebar";
 
 export default function GlobalAppShell({
   children,
@@ -72,6 +73,7 @@ export default function GlobalAppShell({
   const isSpaceRoute = location.pathname.startsWith("/s/");
   const isHomeRoute = location.pathname.startsWith("/home");
   const isPageRoute = location.pathname.includes("/p/");
+  const isMyPagesRoute = location.pathname.startsWith("/my-pages");
 
   return (
     <AppShell
@@ -107,6 +109,7 @@ export default function GlobalAppShell({
           <div className={classes.resizeHandle} onMouseDown={startResizing} />
           {isSpaceRoute && <SpaceSidebar />}
           {isSettingsRoute && <SettingsSidebar />}
+          {isMyPagesRoute && <MyPagesSidebar />}
         </AppShell.Navbar>
       )}
       <AppShell.Main>

@@ -4,8 +4,11 @@ import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { dbOrTx } from '../../utils';
 import {
   InsertablePage,
+  InsertableUserPagePreferences,
   Page,
   UpdatablePage,
+  UpdatableUserPagePreferences,
+  UserPagePreference,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
@@ -249,5 +252,45 @@ export class PageRepo {
       .selectFrom('page_hierarchy')
       .selectAll()
       .execute();
+  }
+
+  async createUserPagePreferences(
+    preferences: InsertableUserPagePreferences,
+  ): Promise<void> {
+    await this.db
+      .insertInto('userPagePreferences')
+      .values({
+        pageId: preferences.pageId,
+        userId: preferences.userId,
+        position: preferences.position,
+        color: preferences.color,
+      })
+      .execute();
+  }
+
+  async updateUserPagePreferences(
+    preferences: UpdatableUserPagePreferences,
+  ): Promise<void> {
+    await this.db
+      .updateTable('userPagePreferences')
+      .set({
+        position: preferences.position,
+        color: preferences.color,
+      })
+      .where('userId', '=', preferences.userId)
+      .where('pageId', '=', preferences.pageId)
+      .execute();
+  }
+
+  async findUserPagePreferences(
+    pageId: string,
+    userId: string,
+  ): Promise<UserPagePreference> {
+    return await this.db
+      .selectFrom('userPagePreferences')
+      .selectAll()
+      .where('userId', '=', userId)
+      .where('pageId', '=', pageId)
+      .executeTakeFirst();
   }
 }

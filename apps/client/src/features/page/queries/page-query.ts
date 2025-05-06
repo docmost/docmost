@@ -21,6 +21,8 @@ import {
   changeMemberRole,
   createSynchronizedPage,
   getPagesInSpace,
+  getMyPages,
+  updateMyPageColor,
 } from "@/features/page/services/page-service";
 import {
   IAddPageMember,
@@ -259,5 +261,26 @@ export function useChangePageMemberRoleMutation() {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({ message: errorMessage, color: "red" });
     },
+  });
+}
+
+export function useGetMyPagesQuery() {
+  return useInfiniteQuery({
+    queryKey: ["my-pages"],
+    queryFn: async () => {
+      return getMyPages();
+    },
+    initialPageParam: 1,
+    getPreviousPageParam: (firstPage) =>
+      firstPage.meta.hasPrevPage ? firstPage.meta.page - 1 : undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+  });
+}
+
+export function useUpdateMyPageColorMutation() {
+  const { t } = useTranslation();
+  return useMutation<void, Error, { pageId: string; color: string }>({
+    mutationFn: (data) => updateMyPageColor(data.pageId, data.color),
   });
 }

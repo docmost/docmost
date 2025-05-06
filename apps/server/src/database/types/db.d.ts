@@ -229,6 +229,13 @@ export interface SynchronizedPages {
   referencePageId: string;
 }
 
+export interface UserPagePreferences {
+  color: string | null;
+  pageId: string;
+  position: string | null;
+  userId: string;
+}
+
 export interface Users {
   avatarUrl: string | null;
   createdAt: Generated<Timestamp>;
@@ -311,6 +318,7 @@ export interface DB {
   spaceMembers: SpaceMembers;
   spaces: Spaces;
   synchronizedPages: SynchronizedPages;
+  userPagePreferences: UserPagePreferences;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;

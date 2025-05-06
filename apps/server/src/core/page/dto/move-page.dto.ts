@@ -1,4 +1,10 @@
-import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  IsBoolean,
+} from 'class-validator';
 
 export class MovePageDto {
   @IsString()
@@ -12,6 +18,14 @@ export class MovePageDto {
   @IsOptional()
   @IsString()
   parentPageId?: string | null;
+
+  @IsBoolean()
+  @IsOptional()
+  isMyPages?: boolean;
+
+  @IsString()
+  @IsOptional()
+  personalSpaceId?: string;
 }
 
 export class MovePageToSpaceDto {

@@ -18,6 +18,7 @@ import {
   AuthAccounts,
   PageMembers,
   SynchronizedPages,
+  UserPagePreferences,
 } from './db';
 
 // Workspace
@@ -80,6 +81,13 @@ export type UpdatableSynchronizedPage = Updateable<
 export type PageMember = Selectable<PageMembers>;
 export type InsertablePageMember = Insertable<PageMembers>;
 export type UpdatablePageMember = Updateable<Omit<PageMembers, 'id'>>;
+
+// UserPagePreferences
+export type UserPagePreference = Selectable<UserPagePreferences>;
+export type InsertableUserPagePreferences = Insertable<UserPagePreferences>;
+export type UpdatableUserPagePreferences = Updateable<
+  Omit<UserPagePreferences, 'id'>
+>;
 
 // Comment
 export type Comment = Selectable<Comments>;
