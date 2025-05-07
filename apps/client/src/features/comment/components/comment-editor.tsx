@@ -54,6 +54,10 @@ const CommentEditor = forwardRef(
     });
 
     useEffect(() => {
+      commentEditor.commands.setContent(defaultContent);
+    }, [defaultContent]);
+
+    useEffect(() => {
       setTimeout(() => {
         if (autofocus) {
           commentEditor?.commands.focus("end");

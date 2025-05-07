@@ -15,6 +15,7 @@ import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-
 import { useEditor } from "@tiptap/react";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 interface CommentDialogProps {
   editor: ReturnType<typeof useEditor>;
@@ -34,6 +35,8 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   });
   const createCommentMutation = useCreateCommentMutation();
   const { isPending } = createCommentMutation;
+
+  const emit = useQueryEmit();
 
   const handleDialogClose = () => {
     setShowCommentPopup(false);
@@ -68,6 +71,11 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         const selector = `div[data-comment-id="${createdComment.id}"]`;
         const commentElement = document.querySelector(selector);
         commentElement?.scrollIntoView();
+      });
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
       });
     } finally {
       setShowCommentPopup(false);
