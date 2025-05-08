@@ -32,6 +32,7 @@ export interface IUserSettings {
     fullPageWidth: boolean;
     pageEditMode: string;
   };
+}
 
 export enum PageEditMode {
   Read = "read",
