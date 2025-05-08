@@ -4,6 +4,7 @@ import { Node } from '@tiptap/pm/model';
 import { validate as isValidUUID } from 'uuid';
 import * as path from 'path';
 import { Page } from '@docmost/db/types/entity.types';
+import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
 
 export type PageExportTree = Record<string, Page[]>;
 
@@ -25,54 +26,30 @@ export function getPageTitle(title: string) {
   return title ? title : 'untitled';
 }
 
-export function getProsemirrorContent(content: any) {
-  return (
-    content ?? {
-      type: 'doc',
-      content: [{ type: 'paragraph', attrs: { textAlign: 'left' } }],
-    }
-  );
-}
-
-export function getAttachmentIds(prosemirrorJson: any) {
+export function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any) {
   const doc = jsonToNode(prosemirrorJson);
-  const attachmentIds = [];
+  if (!doc) return null;
 
-  doc?.descendants((node: Node) => {
-    if (isAttachmentNode(node.type.name)) {
-      if (node.attrs.attachmentId && isValidUUID(node.attrs.attachmentId)) {
-        if (!attachmentIds.includes(node.attrs.attachmentId)) {
-          attachmentIds.push(node.attrs.attachmentId);
-        }
+  // Helper function to replace specific URL prefixes
+  const replacePrefix = (url: string): string => {
+    const prefixes = ['/files', '/api/files'];
+    for (const prefix of prefixes) {
+      if (url.startsWith(prefix)) {
+        return url.replace(prefix, 'files');
       }
     }
-  });
-
-  return attachmentIds;
-}
-
-export function isAttachmentNode(nodeType: string) {
-  const attachmentNodeTypes = [
-    'attachment',
-    'image',
-    'video',
-    'excalidraw',
-    'drawio',
-  ];
-  return attachmentNodeTypes.includes(nodeType);
-}
-
-export function updateAttachmentUrls(prosemirrorJson: any) {
-  const doc = jsonToNode(prosemirrorJson);
+    return url;
+  };
 
   doc?.descendants((node: Node) => {
     if (isAttachmentNode(node.type.name)) {
-      if (node.attrs.src && node.attrs.src.startsWith('/files')) {
-        //@ts-expect-error
-        node.attrs.src = node.attrs.src.replace('/files', 'files');
-      } else if (node.attrs.url && node.attrs.url.startsWith('/files')) {
-        //@ts-expect-error
-        node.attrs.url = node.attrs.url.replace('/files', 'files');
+      if (node.attrs.src) {
+        // @ts-ignore
+        node.attrs.src = replacePrefix(node.attrs.src);
+      }
+      if (node.attrs.url) {
+        // @ts-ignore
+        node.attrs.url = replacePrefix(node.attrs.url);
       }
     }
   });

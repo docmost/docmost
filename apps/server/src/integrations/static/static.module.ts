@@ -38,6 +38,13 @@ export class StaticModule implements OnModuleInit {
         FILE_UPLOAD_SIZE_LIMIT:
           this.environmentService.getFileUploadSizeLimit(),
         DRAWIO_URL: this.environmentService.getDrawioUrl(),
+        SUBDOMAIN_HOST: this.environmentService.isCloud()
+          ? this.environmentService.getSubdomainHost()
+          : undefined,
+        COLLAB_URL: this.environmentService.getCollabUrl(),
+        BILLING_TRIAL_DAYS: this.environmentService.isCloud()
+          ? this.environmentService.getBillingTrialDays()
+          : undefined,
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;

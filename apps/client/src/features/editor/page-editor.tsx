@@ -8,7 +8,11 @@ import React, {
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import { HocuspocusProvider, WebSocketStatus } from "@hocuspocus/provider";
+import {
+  HocuspocusProvider,
+  onAuthenticationFailedParameters,
+  WebSocketStatus,
+} from "@hocuspocus/provider";
 import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
 import {
   collabExtensions,
@@ -42,6 +46,14 @@ import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
+import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
+import { useIdle } from "@/hooks/use-idle.ts";
+import { queryClient } from "@/main.tsx";
+import { IPage } from "@/features/page/types/page.types.ts";
+import { useParams } from "react-router-dom";
+import { extractPageSlugId } from "@/lib";
+import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { jwtDecode } from "jwt-decode";
 
 interface PageEditorProps {
   pageId: string;
@@ -68,7 +80,12 @@ export default function PageEditor({
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
-  const { data } = useCollabToken();
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
+  const documentState = useDocumentVisibility();
+  const [isCollabReady, setIsCollabReady] = useState(false);
+  const { pageSlug } = useParams();
+  const slugId = extractPageSlugId(pageSlug);
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -78,15 +95,24 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [pageId, ydoc, data?.token]);
+  }, [pageId, ydoc]);
 
   const remoteProvider = useMemo(() => {
     const provider = new HocuspocusProvider({
       name: documentName,
       url: collaborationURL,
       document: ydoc,
-      token: data?.token,
+      token: collabQuery?.token,
       connect: false,
+      preserveConnection: false,
+      onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
+        const payload = jwtDecode(collabQuery?.token);
+        const now = Date.now().valueOf() / 1000;
+        const isTokenExpired = now >= payload.exp;
+        if (isTokenExpired) {
+          refetchCollabToken();
+        }
+      },
       onStatus: (status) => {
         if (status.status === "connected") {
           setYjsConnectionStatus(status.status);
@@ -103,11 +129,10 @@ export default function PageEditor({
     });
 
     return provider;
-  }, [ydoc, pageId, data?.token]);
+  }, [ydoc, pageId, collabQuery?.token]);
 
   useLayoutEffect(() => {
     remoteProvider.connect();
-
     return () => {
       setRemoteSynced(false);
       setLocalSynced(false);
@@ -116,16 +141,19 @@ export default function PageEditor({
     };
   }, [remoteProvider, localProvider]);
 
-  const extensions = [
-    ...mainExtensions,
-    ...collabExtensions(remoteProvider, currentUser.user),
-  ];
+  const extensions = useMemo(() => {
+    return [
+      ...mainExtensions,
+      ...collabExtensions(remoteProvider, currentUser?.user),
+    ];
+  }, [ydoc, pageId, remoteProvider, currentUser?.user]);
 
   const editor = useEditor(
     {
       extensions,
       editable,
       immediatelyRender: true,
+      shouldRerenderOnTransaction: true,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
@@ -134,6 +162,20 @@ export default function PageEditor({
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
+                return true;
+              }
+            }
+            if (
+              [
+                "ArrowUp",
+                "ArrowDown",
+                "ArrowLeft",
+                "ArrowRight",
+                "Enter",
+              ].includes(event.key)
+            ) {
+              const emojiCommand = document.querySelector("#emoji-command");
+              if (emojiCommand) {
                 return true;
               }
             }
@@ -151,9 +193,27 @@ export default function PageEditor({
           editor.storage.pageId = pageId;
         }
       },
+      onUpdate({ editor }) {
+        if (editor.isEmpty) return;
+        const editorJson = editor.getJSON();
+        //update local page cache to reduce flickers
+        debouncedUpdateContent(editorJson);
+      },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, remoteProvider?.status],
   );
+
+  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+    const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
+
+    if (pageData) {
+      queryClient.setQueryData(["pages", slugId], {
+        ...pageData,
+        content: newContent,
+        updatedAt: new Date(),
+      });
+    }
+  }, 3000);
 
   const handleActiveCommentEvent = (event) => {
     const { commentId } = event.detail;
@@ -182,19 +242,53 @@ export default function PageEditor({
   }, [pageId]);
 
   useEffect(() => {
-    if (editable) {
-      if (yjsConnectionStatus === WebSocketStatus.Connected) {
-        editor.setEditable(true);
-      } else {
-        // disable edits if connection fails
-        editor.setEditable(false);
-      }
+    if (remoteProvider?.status === WebSocketStatus.Connecting) {
+      const timeout = setTimeout(() => {
+        setYjsConnectionStatus(WebSocketStatus.Disconnected);
+      }, 5000);
+      return () => clearTimeout(timeout);
     }
-  }, [yjsConnectionStatus]);
+  }, [remoteProvider?.status]);
+
+  useEffect(() => {
+    if (
+      isIdle &&
+      documentState === "hidden" &&
+      remoteProvider?.status === WebSocketStatus.Connected
+    ) {
+      remoteProvider.disconnect();
+      setIsCollabReady(false);
+      return;
+    }
+
+    if (
+      documentState === "visible" &&
+      remoteProvider?.status === WebSocketStatus.Disconnected
+    ) {
+      resetIdle();
+      remoteProvider.connect();
+      setTimeout(() => {
+        setIsCollabReady(true);
+      }, 600);
+    }
+  }, [isIdle, documentState, remoteProvider]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
-  return isSynced ? (
+  useEffect(() => {
+    const collabReadyTimeout = setTimeout(() => {
+      if (
+        !isCollabReady &&
+        isSynced &&
+        remoteProvider?.status === WebSocketStatus.Connected
+      ) {
+        setIsCollabReady(true);
+      }
+    }, 500);
+    return () => clearTimeout(collabReadyTimeout);
+  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
+
+  return isCollabReady ? (
     <div>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
@@ -225,6 +319,7 @@ export default function PageEditor({
   ) : (
     <EditorProvider
       editable={false}
+      immediatelyRender={true}
       extensions={mainExtensions}
       content={content}
     ></EditorProvider>

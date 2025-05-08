@@ -3,7 +3,7 @@ import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import { theme } from "@/theme";
+import { mantineCssResolver, theme } from '@/theme';
 import { MantineProvider } from "@mantine/core";
 import { BrowserRouter } from "react-router-dom";
 import { ModalsProvider } from "@mantine/modals";
@@ -18,6 +18,7 @@ export const queryClient = new QueryClient({
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       retry: false,
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -29,7 +30,7 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <BrowserRouter>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} cssVariablesResolver={mantineCssResolver}>
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
           <Notifications position="bottom-center" limit={3} />

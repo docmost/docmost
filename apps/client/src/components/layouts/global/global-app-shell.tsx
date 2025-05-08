@@ -1,24 +1,29 @@
 import { AppShell, Container } from "@mantine/core";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SettingsSidebar from "@/components/settings/settings-sidebar.tsx";
 import { useAtom } from "jotai";
 import {
   asideStateAtom,
   desktopSidebarAtom,
-  mobileSidebarAtom, sidebarWidthAtom,
+  mobileSidebarAtom,
+  sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
+import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
 export default function GlobalAppShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const [{ isAsideOpen }] = useAtom(asideStateAtom);
   const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
@@ -37,7 +42,9 @@ export default function GlobalAppShell({
   const resize = React.useCallback(
     (mouseMoveEvent) => {
       if (isResizing) {
-        const newWidth = mouseMoveEvent.clientX - sidebarRef.current.getBoundingClientRect().left;
+        const newWidth =
+          mouseMoveEvent.clientX -
+          sidebarRef.current.getBoundingClientRect().left;
         if (newWidth < 220) {
           setSidebarWidth(220);
           return;
@@ -49,7 +56,7 @@ export default function GlobalAppShell({
         setSidebarWidth(newWidth);
       }
     },
-    [isResizing]
+    [isResizing],
   );
 
   useEffect(() => {
@@ -94,7 +101,11 @@ export default function GlobalAppShell({
         <AppHeader />
       </AppShell.Header>
       {!isHomeRoute && (
-        <AppShell.Navbar className={classes.navbar} withBorder={false} ref={sidebarRef}>
+        <AppShell.Navbar
+          className={classes.navbar}
+          withBorder={false}
+          ref={sidebarRef}
+        >
           <div className={classes.resizeHandle} onMouseDown={startResizing} />
           {isSpaceRoute && <SpaceSidebar />}
           {isSettingsRoute && <SettingsSidebar />}
@@ -102,7 +113,7 @@ export default function GlobalAppShell({
       )}
       <AppShell.Main>
         {isSettingsRoute ? (
-          <Container size={800}>{children}</Container>
+          <Container size={850}>{children}</Container>
         ) : (
           children
         )}

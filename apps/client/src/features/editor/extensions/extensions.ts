@@ -71,6 +71,8 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
+import EmojiCommand from "./emoji-command";
+import { CharacterCount } from "@tiptap/extension-character-count";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -133,6 +135,7 @@ export const mainExtensions = [
   TextStyle,
   Color,
   SlashCommand,
+  EmojiCommand,
   Comment.configure({
     HTMLAttributes: {
       class: "comment-mark",
@@ -210,6 +213,7 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
+  CharacterCount,
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {

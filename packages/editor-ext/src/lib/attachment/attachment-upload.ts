@@ -1,6 +1,10 @@
 import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { MediaUploadOptions, UploadFn } from "../media-utils";
+import {
+  insertTrailingNode,
+  MediaUploadOptions,
+  UploadFn,
+} from "../media-utils";
 import { IAttachment } from "../types";
 
 const uploadKey = new PluginKey("attachment-upload");
@@ -33,7 +37,8 @@ export const AttachmentUploadPlugin = ({
 
           placeholder.appendChild(uploadingText);
 
-          const deco = Decoration.widget(pos + 1, placeholder, {
+          const realPos = pos + 1;
+          const deco = Decoration.widget(realPos, placeholder, {
             id,
           });
           set = set.add(tr.doc, [deco]);
@@ -64,8 +69,8 @@ function findPlaceholder(state: EditorState, id: {}) {
 
 export const handleAttachmentUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, view, pos, pageId) => {
-    const validated = validateFn?.(file);
+  async (file, view, pos, pageId, allowMedia) => {
+    const validated = validateFn?.(file, allowMedia);
     // @ts-ignore
     if (!validated) return;
     // A fresh object to act as the ID for this upload
@@ -82,6 +87,8 @@ export const handleAttachmentUpload =
         fileName: file.name,
       },
     });
+
+    insertTrailingNode(tr, pos, view);
     view.dispatch(tr);
 
     await onUpload(file, pageId).then(
@@ -95,7 +102,7 @@ export const handleAttachmentUpload =
         if (!attachment) return;
 
         const node = schema.nodes.attachment?.create({
-          url: `/files/${attachment.id}/${attachment.fileName}`,
+          url: `/api/files/${attachment.id}/${attachment.fileName}`,
           name: attachment.fileName,
           mime: attachment.mimeType,
           size: attachment.fileSize,
