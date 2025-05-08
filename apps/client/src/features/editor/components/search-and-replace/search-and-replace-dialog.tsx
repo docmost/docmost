@@ -60,9 +60,8 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     // @ts-ignore
     editor.commands.setTextSelection(position);
 
-    const { node } = editor.view.domAtPos(editor.state.selection.anchor);
-    node instanceof HTMLElement &&
-      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    const element = document.querySelector(".search-result-current");
+    if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
 
     editor.commands.setTextSelection(0);
   };
