@@ -5,14 +5,21 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 
 export class SearchDTO {
+  @IsNotEmpty()
   @IsString()
   query: string;
 
   @IsNotEmpty()
   @IsString()
   spaceId: string;
+
+  @IsOptional()
+  @IsString()
+  shareId?: string;
 
   @IsOptional()
   @IsString()
@@ -25,6 +32,16 @@ export class SearchDTO {
   @IsOptional()
   @IsNumber()
   offset?: number;
+}
+
+export class SearchShareDTO extends SearchDTO {
+  @IsNotEmpty()
+  @IsString()
+  shareId: string;
+
+  @IsOptional()
+  @IsString()
+  spaceId: string;
 }
 
 export class SearchSuggestionDTO {

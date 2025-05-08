@@ -1,10 +1,10 @@
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class UserService {

@@ -17,6 +17,13 @@ import {
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
+import { useParams } from "react-router-dom";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface Props {
   pageId: string;
@@ -35,6 +42,11 @@ function HistoryList({ pageId }: Props) {
   const [mainEditor] = useAtom(pageEditorAtom);
   const [mainEditorTitle] = useAtom(titleEditorAtom);
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
+
+  const { spaceSlug } = useParams();
+  const { data: space } = useSpaceQuery(spaceSlug);
+  const spaceRules = space?.membership?.permissions;
+  const spaceAbility = useSpaceAbility(spaceRules);
 
   const confirmModal = () =>
     modals.openConfirmModal({
@@ -103,20 +115,26 @@ function HistoryList({ pageId }: Props) {
           ))}
       </ScrollArea>
 
-      <Divider />
-
-      <Group p="xs" wrap="nowrap">
-        <Button size="compact-md" onClick={confirmModal}>
-          {t("Restore")}
-        </Button>
-        <Button
-          variant="default"
-          size="compact-md"
-          onClick={() => setHistoryModalOpen(false)}
-        >
-          {t("Cancel")}
-        </Button>
-      </Group>
+      {spaceAbility.cannot(
+        SpaceCaslAction.Manage,
+        SpaceCaslSubject.Page,
+      ) ? null : (
+        <>
+          <Divider />
+          <Group p="xs" wrap="nowrap">
+            <Button size="compact-md" onClick={confirmModal}>
+              {t("Restore")}
+            </Button>
+            <Button
+              variant="default"
+              size="compact-md"
+              onClick={() => setHistoryModalOpen(false)}
+            >
+              {t("Cancel")}
+            </Button>
+          </Group>
+        </>
+      )}
     </div>
   );
 }

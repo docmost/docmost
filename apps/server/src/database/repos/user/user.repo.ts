@@ -139,6 +139,7 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
       .orderBy('createdAt', 'asc');
 
     if (pagination.query) {

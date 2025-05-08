@@ -35,4 +35,5 @@ export interface ISuggestionResult {
 export interface IPageSearchParams {
   query: string;
   spaceId?: string;
+  shareId?: string;
 }

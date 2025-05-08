@@ -44,6 +44,5 @@ export function markdownToHtml(
   return marked
     .options({ breaks: true })
     .parse(markdown)
-    .toString()
-    .replace(/\n/g, "");
+    .toString();
 }
