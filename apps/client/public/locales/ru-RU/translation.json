@@ -384,7 +384,7 @@
   "Share deleted successfully": "Общий доступ успешно удален",
   "Share not found": "Общий доступ не найден",
   "Failed to share page": "Не удалось поделиться страницей",
-  "Copy page": "Copy page",
-  "Copy page to a different space.": "Copy page to a different space.",
-  "Page copied successfully": "Page copied successfully"
+  "Copy page": "Копировать страницу",
+  "Copy page to a different space.": "Копировать страницу в другое пространство.",
+  "Page copied successfully": "Страница успешно скопирована"
 }
