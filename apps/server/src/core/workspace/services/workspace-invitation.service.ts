@@ -141,6 +141,12 @@ export class WorkspaceInvitationService {
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
 
+        if (invitesToInsert.length < 1) {
+          throw new BadRequestException(
+            'There are no members available to invite.',
+          );
+        }
+
         invites = await trx
           .insertInto('workspaceInvitations')
           .values(invitesToInsert)
@@ -150,6 +156,9 @@ export class WorkspaceInvitationService {
       });
     } catch (err) {
       this.logger.error(`createInvitation - ${err}`);
+      if (err instanceof BadRequestException) {
+        throw new BadRequestException('There are no members available to invite. Please exclude yourself and those already invited.');
+      }
       throw new BadRequestException(
         'An error occurred while processing the invitations.',
       );
