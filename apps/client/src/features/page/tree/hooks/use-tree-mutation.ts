@@ -93,7 +93,7 @@ export function useTreeMutation<T>(spaceId: string) {
     return data;
   };
 
-  const onMove: MoveHandler<T> = (args: {
+  const onMove: MoveHandler<T> = async (args: {
     dragIds: string[];
     dragNodes: NodeApi<T>[];
     parentId: string | null;
@@ -176,7 +176,7 @@ export function useTreeMutation<T>(spaceId: string) {
     };
 
     try {
-      movePageMutation.mutateAsync(payload);
+      await movePageMutation.mutateAsync(payload);
 
       setTimeout(() => {
         emit({
