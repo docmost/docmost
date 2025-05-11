@@ -74,7 +74,13 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
 
   function handleCommentClick(comment: IComment) {
     const el = document.querySelector(`.comment-mark[data-comment-id="${comment.id}"]`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("comment-highlight");
+      setTimeout(() => {
+        el.classList.remove("comment-highlight");
+      }, 3000);
+    }
   }
 
   function handleEditToggle() {
