@@ -223,7 +223,7 @@ export default function PageEditor({
     setTimeout(() => {
       const selector = `div[data-comment-id="${commentId}"]`;
       const commentElement = document.querySelector(selector);
-      commentElement?.scrollIntoView();
+      commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 400);
   };
 

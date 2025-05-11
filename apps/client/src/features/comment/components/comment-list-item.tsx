@@ -72,6 +72,11 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
     }
   }
 
+  function handleCommentClick(comment: IComment) {
+    const el = document.querySelector(`.comment-mark[data-comment-id="${comment.id}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function handleEditToggle() {
     setIsEditing(true);
   }
@@ -116,7 +121,7 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
 
       <div>
         {!comment.parentCommentId && comment?.selection && (
-          <Box className={classes.textSelection}>
+          <Box className={classes.textSelection} onClick={() => handleCommentClick(comment)}>
             <Text size="sm">{comment?.selection}</Text>
           </Box>
         )}

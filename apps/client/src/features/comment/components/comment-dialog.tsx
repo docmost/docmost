@@ -73,7 +73,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       setTimeout(() => {
         const selector = `div[data-comment-id="${createdComment.id}"]`;
         const commentElement = document.querySelector(selector);
-        commentElement?.scrollIntoView();
+        commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
 
         editor.view.dispatch(
           editor.state.tr.scrollIntoView()
