@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -18,7 +19,7 @@ import {
 import clsx from "clsx";
 import classes from "./mention.module.css";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import { IconFileDescription } from "@tabler/icons-react";
+import { IconFileDescription, IconPlus } from "@tabler/icons-react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useParams } from "react-router-dom";
 import { v7 as uuid7 } from "uuid";
@@ -28,6 +29,13 @@ import {
   MentionListProps,
   MentionSuggestionItem,
 } from "@/features/editor/components/mention/mention.type.ts";
+import { IPage } from "@/features/page/types/page.types";
+import { useCreatePageMutation } from "@/features/page/queries/page-query";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { SimpleTree } from "react-arborist";
+import { SpaceTreeNode } from "@/features/page/tree/types";
+import { useTranslation } from "react-i18next";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
@@ -36,6 +44,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const { data: space } = useSpaceQuery(spaceSlug);
   const [currentUser] = useAtom(currentUserAtom);
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
+  const { t } = useTranslation();
+  const [data, setData] = useAtom(treeDataAtom);
+  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
+  const createPageMutation = useCreatePageMutation();
+  const emit = useQueryEmit();
 
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
     query: props.query,
@@ -45,12 +58,23 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     limit: 10,
   });
 
+  const createPageItem = (label: string) : MentionSuggestionItem => {
+    return {
+      id: null,
+      label: label,
+      entityType: "page",
+      entityId: null,
+      slugId: null,
+      icon: null,
+    }
+  }
+
   useEffect(() => {
     if (suggestion && !isLoading) {
       let items: MentionSuggestionItem[] = [];
 
       if (suggestion?.users?.length > 0) {
-        items.push({ entityType: "header", label: "Users" });
+        items.push({ entityType: "header", label: t("Users") });
 
         items = items.concat(
           suggestion.users.map((user) => ({
@@ -64,7 +88,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       }
 
       if (suggestion?.pages?.length > 0) {
-        items.push({ entityType: "header", label: "Pages" });
+        items.push({ entityType: "header", label: t("Pages") });
         items = items.concat(
           suggestion.pages.map((page) => ({
             id: uuid7(),
@@ -76,6 +100,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           })),
         );
       }
+      items.push(createPageItem(props.query));
 
       setRenderItems(items);
       // update editor storage
@@ -96,7 +121,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             creatorId: currentUser?.user.id,
           });
         }
-        if (item.entityType === "page") {
+        if (item.entityType === "page" && item.id!==null) {
           props.command({
             id: item.id,
             label: item.label || "Untitled",
@@ -105,6 +130,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             slugId: item.slugId,
             creatorId: currentUser?.user.id,
           });
+        }
+        if (item.entityType === "page" && item.id===null) {
+          createPage(item.label);
         }
       }
     },
@@ -167,6 +195,58 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     },
   }));
 
+  const createPage = async (title: string) => {
+    const payload: { spaceId: string; parentPageId?: string; title: string } = {
+      spaceId: space.id,
+      parentPageId: null,
+      title: title
+    };
+    
+    let createdPage: IPage;
+    try {
+      createdPage = await createPageMutation.mutateAsync(payload);
+      const parentId=null;
+      const data = {
+        id: createdPage.id,
+        slugId: createdPage.slugId,
+        name: createdPage.title,
+        position: createdPage.position,
+        spaceId: createdPage.spaceId,
+        parentPageId: createdPage.parentPageId,
+        children: [],
+      } as any;
+
+      const lastIndex = tree.data.length;
+
+      tree.create({ parentId, index: lastIndex, data });
+      setData(tree.data);
+
+      props.command({
+        id: uuid7(),
+        label:  createdPage.title || "Untitled",
+        entityType: "page",
+        entityId: createdPage.id,
+        slugId: createdPage.slugId,
+        creatorId: currentUser?.user.id,
+      });
+
+      setTimeout(() => {
+      emit({
+        operation: "addTreeNode",
+        spaceId: space.id,
+        payload: {
+          parentId,
+          index: lastIndex,
+          data,
+        },
+      });
+    }, 50);
+
+    } catch (err) {
+      throw new Error("Failed to create page");
+    }
+  }
+
   // if no results and enter what to do?
 
   useEffect(() => {
@@ -178,7 +258,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   if (renderItems.length === 0) {
     return (
       <Paper shadow="md" p="xs" withBorder>
-        No results
+        { t("No results") }
       </Paper>
     );
   }
@@ -248,14 +328,14 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                         color="gray"
                         size={18}
                       >
-                        <IconFileDescription size={18} />
+                        { (item.id) ? <IconFileDescription size={18} /> : <IconPlus size={18} /> }
                       </ActionIcon>
                     )}
                   </ActionIcon>
 
                   <div style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
-                      {item.label}
+                      { (item.id) ? item.label : t("Create page") + ': ' + item.label }
                     </Text>
                   </div>
                 </Group>
