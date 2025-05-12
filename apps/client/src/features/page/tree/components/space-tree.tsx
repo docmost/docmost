@@ -2,7 +2,7 @@ import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
 import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
-  fetchAncestorChildren,
+  fetchAllAncestorChildren,
   useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
@@ -140,7 +140,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             if (ancestor.id === currentPage.id) {
               return;
             }
-            const children = await fetchAncestorChildren({
+            const children = await fetchAllAncestorChildren({
               pageId: ancestor.id,
               spaceId: ancestor.spaceId,
             });
@@ -263,7 +263,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
-    // in conflict with use-query-subscription.ts => case "addTreeNode":
+    // in conflict with use-query-subscription.ts => case "addTreeNode","moveTreeNode" etc with websocket
     // if (node.data.children && node.data.children.length > 0) {
     //   return;
     // }
@@ -274,13 +274,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         spaceId: node.data.spaceId,
       };
 
-      const newChildren = await queryClient.fetchQuery({
-        queryKey: ["sidebar-pages", params],
-        queryFn: () => getSidebarPages(params),
-        staleTime: 10 * 60 * 1000,
-      });
-
-      const childrenTree = buildTree(newChildren.items);
+      const childrenTree = await fetchAllAncestorChildren(params);
 
       appendChildren({
         parentId: node.data.id,

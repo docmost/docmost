@@ -25,7 +25,7 @@ export const useQuerySubscription = () => {
           });
           break;
         case "addTreeNode":
-          invalidateOnCreatePage(data.payload.data.spaceId, data.payload.data.parentPageId);
+          invalidateOnCreatePage(data.payload.data);
           break;
         case "moveTreeNode":
           invalidateOnMovePage();
