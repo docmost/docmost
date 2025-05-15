@@ -58,12 +58,14 @@ interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
+  spellcheck: boolean;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
+  spellcheck,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
@@ -290,7 +292,7 @@ export default function PageEditor({
   return isCollabReady ? (
     <div>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} spellCheck={spellcheck} />
 
         {editor && editor.isEditable && (
           <div>

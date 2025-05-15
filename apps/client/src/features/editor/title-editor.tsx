@@ -28,6 +28,7 @@ export interface TitleEditorProps {
   title: string;
   spaceSlug: string;
   editable: boolean;
+  spellcheck: boolean;
 }
 
 export function TitleEditor({
@@ -36,6 +37,7 @@ export function TitleEditor({
   title,
   spaceSlug,
   editable,
+  spellcheck,
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updatePageMutationAsync } = useUpdatePageMutation();
@@ -148,5 +150,5 @@ export function TitleEditor({
     }
   }
 
-  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
+  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} spellCheck={spellcheck} />;
 }

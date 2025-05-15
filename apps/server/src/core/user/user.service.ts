@@ -33,6 +33,14 @@ export class UserService {
         updateUserDto.fullPageWidth,
       );
     }
+    // preference update
+    if (typeof updateUserDto.spellcheck !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'spellcheck',
+        updateUserDto.spellcheck,
+      );
+    }
 
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
