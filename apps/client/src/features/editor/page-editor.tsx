@@ -58,14 +58,12 @@ interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
-  spellcheck: boolean;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
-  spellcheck,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
@@ -87,6 +85,8 @@ export default function PageEditor({
   const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
+
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -292,7 +292,7 @@ export default function PageEditor({
   return isCollabReady ? (
     <div>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} spellCheck={spellcheck} />
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
 
         {editor && editor.isEditable && (
           <div>

@@ -28,7 +28,6 @@ export function FullEditor({
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
-  const spellcheck = user.settings?.preferences?.spellcheck ?? true;
 
   return (
     <Container
@@ -42,9 +41,8 @@ export function FullEditor({
         title={title}
         spaceSlug={spaceSlug}
         editable={editable}
-        spellcheck={spellcheck}
       />
-      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} spellcheck={spellcheck} />
+      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} />
     </Container>
   );
 }
