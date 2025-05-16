@@ -140,6 +140,7 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
               defaultContent={content}
               editable={true}
               onUpdate={(newContent: any) => setContent(newContent)}
+              onSave={handleUpdateComment}
               autofocus={true}
             />
 

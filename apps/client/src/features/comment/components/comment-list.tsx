@@ -151,6 +151,7 @@ const CommentEditorWithActions = ({ commentId, onSave, isLoading }) => {
       <CommentEditor
         ref={commentEditorRef}
         onUpdate={setContent}
+        onSave={handleSave}
         editable={true}
       />
       {focused && <CommentActions onSave={handleSave} isLoading={isLoading} />}
