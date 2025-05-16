@@ -29,7 +29,7 @@ const CommentEditor = forwardRef(
       placeholder,
       autofocus,
     }: CommentEditorProps,
-    ref
+    ref,
   ) => {
     const { t } = useTranslation();
     const { ref: focusRef, focused } = useFocusWithin();
@@ -65,7 +65,7 @@ const CommentEditor = forwardRef(
               }
             }
 
-            if (event.ctrlKey && event.key === 'Enter') {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
               event.preventDefault();
               if (onSave) onSave();
 
@@ -106,7 +106,7 @@ const CommentEditor = forwardRef(
         />
       </div>
     );
-  }
+  },
 );
 
 export default CommentEditor;
