@@ -6,6 +6,9 @@ import {
   IconH1,
   IconH2,
   IconH3,
+  IconH4,
+  IconH5,
+  IconH6,
   IconInfoCircle,
   IconList,
   IconListNumbers,
@@ -69,8 +72,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 1",
-      description: "Big section heading.",
-      searchTerms: ["title", "big", "large"],
+      description: "Maximum size section heading.",
+      searchTerms: ["title", "max", "large"],
       icon: IconH1,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -83,8 +86,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 2",
-      description: "Medium section heading.",
-      searchTerms: ["subtitle", "medium"],
+      description: "Big section heading.",
+      searchTerms: ["subtitle", "big"],
       icon: IconH2,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -97,8 +100,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 3",
-      description: "Small section heading.",
-      searchTerms: ["subtitle", "small"],
+      description: "Medium section heading.",
+      searchTerms: ["typography", "medium"],
       icon: IconH3,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -106,6 +109,48 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setNode("heading", { level: 3 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 4",
+      description: "Small section heading.",
+      searchTerms: ["small"],
+      icon: IconH4,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 4 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 5",
+      description: "Very small section heading.",
+      searchTerms: ["verysmall"],
+      icon: IconH5,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 5 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 6",
+      description: "Minimum size section heading.",
+      searchTerms: ["min"],
+      icon: IconH6,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 6 })
           .run();
       },
     },
