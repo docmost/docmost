@@ -10,7 +10,7 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { useUpdatePageMutation } from "@/features/page/queries/page-query";
+import { updatePageData, useUpdateTitlePageMutation } from "@/features/page/queries/page-query";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
@@ -39,8 +39,8 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const { t } = useTranslation();
+  const { mutateAsync: updateTitlePageMutationAsync } = useUpdateTitlePageMutation();
   const [currentUser] = useAtom(currentUserAtom);
-  const { mutateAsync: updatePageMutationAsync } = useUpdatePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
@@ -97,7 +97,7 @@ export function TitleEditor({
       return;
     }
 
-    updatePageMutationAsync({
+    updateTitlePageMutationAsync({
       pageId: pageId,
       title: titleEditor.getText(),
     }).then((page) => {
@@ -108,6 +108,10 @@ export function TitleEditor({
         id: page.id,
         payload: { title: page.title, slugId: page.slugId },
       };
+
+      if (page.title !== titleEditor.getText()) return;
+
+      updatePageData(page);
 
       localEmitter.emit("message", event);
       emit(event);
