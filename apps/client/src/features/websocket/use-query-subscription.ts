@@ -6,6 +6,7 @@ import { WebSocketEvent } from "@/features/websocket/types";
 import { IPage } from "../page/types/page.types";
 import { IPagination } from "@/lib/types";
 import { invalidateOnCreatePage, invalidateOnDeletePage, invalidateOnMovePage, invalidateOnUpdatePage } from "../page/queries/page-query";
+import { RQ_KEY } from "../comment/queries/comment-query";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -22,6 +23,11 @@ export const useQuerySubscription = () => {
         case "invalidate":
           queryClient.invalidateQueries({
             queryKey: [...data.entity, data.id].filter(Boolean),
+          });
+          break;
+        case "invalidateComment":
+          queryClient.invalidateQueries({
+            queryKey: RQ_KEY(data.pageId),
           });
           break;
         case "addTreeNode":
