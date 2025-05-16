@@ -30,17 +30,19 @@ import {
   MentionSuggestionItem,
 } from "@/features/editor/components/mention/mention.type.ts";
 import { IPage } from "@/features/page/types/page.types";
-import { useCreatePageMutation } from "@/features/page/queries/page-query";
+import { useCreatePageMutation, usePageQuery } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { SimpleTree } from "react-arborist";
 import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
+import { extractPageSlugId } from "@/lib";
 
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const { spaceSlug } = useParams();
+  const { pageSlug, spaceSlug } = useParams();
+  const { data: page } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useSpaceQuery(spaceSlug);
   const [currentUser] = useAtom(currentUserAtom);
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
@@ -198,14 +200,14 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const createPage = async (title: string) => {
     const payload: { spaceId: string; parentPageId?: string; title: string } = {
       spaceId: space.id,
-      parentPageId: null,
+      parentPageId: page.id || null,
       title: title
     };
     
     let createdPage: IPage;
     try {
       createdPage = await createPageMutation.mutateAsync(payload);
-      const parentId=null;
+      const parentId = page.id || null;
       const data = {
         id: createdPage.id,
         slugId: createdPage.slugId,
