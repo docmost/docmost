@@ -29,6 +29,7 @@
     "clsx": "^2.1.1",
     "emoji-mart": "^5.6.0",
     "file-saver": "^2.0.5",
+    "highlightjs-sap-abap": "^0.3.0",
     "i18next": "^23.14.0",
     "i18next-http-backend": "^2.6.1",
     "jotai": "^2.12.1",
