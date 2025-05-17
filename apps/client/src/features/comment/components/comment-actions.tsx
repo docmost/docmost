@@ -1,4 +1,4 @@
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
 type CommentActionsProps = {
@@ -15,7 +15,7 @@ function CommentActions({
   isCommentEditor,
 }: CommentActionsProps) {
   const { t } = useTranslation();
-  
+
   return (
     <Group justify="flex-end" pt="sm" wrap="nowrap">
       {isCommentEditor && (
