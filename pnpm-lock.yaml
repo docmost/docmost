@@ -257,6 +257,9 @@ importers:
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
+      highlightjs-sap-abap:
+        specifier: ^0.3.0
+        version: 0.3.0
       i18next:
         specifier: ^23.14.0
         version: 23.14.0
@@ -5871,6 +5874,9 @@ packages:
   highlight.js@11.10.0:
     resolution: {integrity: sha512-SYVnVFswQER+zu1laSya563s+F8VDGt7o35d4utbamowvUNLLMovFqwCLSocpZTz3MgaSRA1IbqRWZv97dtErQ==}
     engines: {node: '>=12.0.0'}
+
+  highlightjs-sap-abap@0.3.0:
+    resolution: {integrity: sha512-nSiUvEOCycjtFA3pHaTowrbAAk5+lciBHyoVkDsd6FTRBtW9sT2dt42o2jAKbXjZVUidtacdk+j0Y2xnd233Mw==}
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
@@ -15435,6 +15441,8 @@ snapshots:
   hexoid@1.0.0: {}
 
   highlight.js@11.10.0: {}
+
+  highlightjs-sap-abap@0.3.0: {}
 
   hoist-non-react-statics@3.3.2:
     dependencies:
