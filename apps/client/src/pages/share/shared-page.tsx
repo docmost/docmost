@@ -7,8 +7,9 @@ import React, { useEffect } from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import ShareBranding from "@/features/share/components/share-branding.tsx";
 
-export default function SingleSharedPage() {
+export default function SharedPage() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { shareId } = useParams();
@@ -53,6 +54,8 @@ export default function SingleSharedPage() {
           content={data.page.content}
         />
       </Container>
+
+      {data && !shareId && !data.hasLicenseKey && <ShareBranding />}
     </div>
   );
 }
