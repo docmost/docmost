@@ -7,6 +7,12 @@ export interface IEmbedProvider {
 
 export const embedProviders: IEmbedProvider[] = [
   {
+    id: 'generic',
+    name: 'URL',
+    regex: /^https?:\/\/[^\s\/$.?#].[^\s]*$/,
+    getEmbedUrl: (match, url) => url
+  },
+  {
     id: 'loom',
     name: 'Loom',
     regex: /^https?:\/\/(?:www\.)?loom\.com\/(?:share|embed)\/([\da-zA-Z]+)\/?/,
