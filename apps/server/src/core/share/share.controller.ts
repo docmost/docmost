@@ -65,7 +65,9 @@ export class ShareController {
 
     return {
       ...(await this.shareService.getSharedPage(dto, workspace.id)),
-      hasLicenseKey: Boolean(workspace.licenseKey),
+      hasLicenseKey:
+        Boolean(workspace.licenseKey) ||
+        (this.environmentService.isCloud() && workspace.plan === 'business'),
     };
   }
 
@@ -173,7 +175,9 @@ export class ShareController {
   ) {
     return {
       ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
-      hasLicenseKey: Boolean(workspace.licenseKey),
+      hasLicenseKey:
+        Boolean(workspace.licenseKey) ||
+        (this.environmentService.isCloud() && workspace.plan === 'business'),
     };
   }
 }

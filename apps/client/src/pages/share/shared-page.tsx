@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
-import { Affix, Button, Container } from "@mantine/core";
+import { Container } from "@mantine/core";
 import React, { useEffect } from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
