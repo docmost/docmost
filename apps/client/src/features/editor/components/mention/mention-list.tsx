@@ -30,7 +30,7 @@ import {
   MentionSuggestionItem,
 } from "@/features/editor/components/mention/mention.type.ts";
 import { IPage } from "@/features/page/types/page.types";
-import { useCreatePageMutation, usePageQuery } from "@/features/page/queries/page-query";
+import { invalidateGraph, useCreatePageMutation, usePageQuery } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { SimpleTree } from "react-arborist";
 import { SpaceTreeNode } from "@/features/page/tree/types";
@@ -132,6 +132,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             slugId: item.slugId,
             creatorId: currentUser?.user.id,
           });
+          invalidateGraph();
         }
         if (item.entityType === "page" && item.id===null) {
           createPage(item.label);

@@ -56,7 +56,9 @@ export function useCreatePageMutation() {
   const { t } = useTranslation();
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => createPage(data),
-    onSuccess: (data) => {},
+    onSuccess: (data) => {
+      invalidateGraph();
+    },
     onError: (error) => {
       notifications.show({ message: t("Failed to create page"), color: "red" });
     },
@@ -85,6 +87,9 @@ export function updatePageData(data: IPage) {
 export function useUpdateTitlePageMutation() {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
+    onSuccess: () => {
+      invalidateGraph();
+    }
   });
 }
 
@@ -93,6 +98,7 @@ export function useUpdatePageMutation() {
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
       updatePage(data);
+      invalidateGraph();
     },
   });
 }
@@ -103,6 +109,7 @@ export function useDeletePageMutation() {
     mutationFn: (pageId: string) => deletePage(pageId),
     onSuccess: () => {
       notifications.show({ message: t("Page deleted successfully") });
+      invalidateGraph();
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -113,6 +120,9 @@ export function useDeletePageMutation() {
 export function useMovePageMutation() {
   return useMutation<void, Error, IMovePage>({
     mutationFn: (data) => movePage(data),
+    onSuccess: () => {
+      invalidateGraph();
+    }
   });
 }
 
@@ -166,5 +176,12 @@ export function useRecentChangesQuery(
     queryKey: ["recent-changes", spaceId],
     queryFn: () => getRecentChanges(spaceId),
     refetchOnMount: true,
+  });
+}
+
+export function invalidateGraph() {
+  queryClient.invalidateQueries({
+    queryKey: ["space-graph"],
+    exact: false,
   });
 }
