@@ -16,7 +16,13 @@ export default function Graph({ space }) {
   const computedColorScheme = useComputedColorScheme();
   const { ref, width, height } = useElementSize();
   const graphRef = useRef<any>();
-  const { data: graphData, isLoading, isFetching, isError, refetch } = useGetSpaceGraph(space.id);
+  const {
+    data: graphData,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetSpaceGraph(space.id);
 
   const [data, setData] = useState<GraphData<IGraphDataNode, IGraphDataLink>>();
 
@@ -31,8 +37,8 @@ export default function Graph({ space }) {
   useEffect(() => {
     // we need to force refatch
     setData(null);
-    refetch()
-  },[])
+    refetch();
+  }, []);
 
   const graphConfig = {
     label: {
@@ -170,8 +176,8 @@ export default function Graph({ space }) {
 
   useEffect(() => {
     if (data && graphRef.current) {
-      graphRef.current.d3Force('charge')?.strength(-50);
-      graphRef.current.d3Force('link')?.distance(80);
+      graphRef.current.d3Force("charge")?.strength(-50);
+      graphRef.current.d3Force("link")?.distance(80);
       setTimeout(() => {
         graphRef.current.zoomToFit(400, 100);
       }, 2000);
@@ -232,7 +238,10 @@ export default function Graph({ space }) {
       } else if (highlightNodes.has(node)) {
         ctx.fillStyle =
           graphConfig.colors[computedColorScheme].nodeBorderHighlight;
-      } else if (highlightLinks.size > 0 && !highlightNodes.has(node)) {
+      } else if (
+        (highlightNodes.size == 1 && !highlightNodes.has(node)) ||
+        (highlightNodes.size > 0 && !highlightNodes.has(node))
+      ) {
         ctx.fillStyle =
           graphConfig.colors[computedColorScheme].nodeBorderNotHighlight;
       } else {
@@ -243,7 +252,12 @@ export default function Graph({ space }) {
       ctx.beginPath();
       ctx.arc(node.x, node.y, graphConfig.node.size, 0, 2 * Math.PI, false);
       ctx.fillStyle = graphConfig.colors[computedColorScheme].node;
-      if (highlightLinks.size > 0 && !highlightNodes.has(node)) {
+      if (node === hoverNode) {
+        ctx.fillStyle = graphConfig.colors[computedColorScheme].node;
+      } else if (
+        (highlightNodes.size == 1 && hoverNode) ||
+        (highlightNodes.size > 0 && !highlightNodes.has(node))
+      ) {
         ctx.fillStyle =
           graphConfig.colors[computedColorScheme].nodeNotHighlight;
       }
@@ -283,7 +297,10 @@ export default function Graph({ space }) {
             width={width}
             height={height}
             linkColor={(link) => {
-              if (highlightLinks.size > 0 && !highlightLinks.has(link)) {
+              if (
+                (highlightLinks.size > 0 && !highlightLinks.has(link)) ||
+                (highlightLinks.size == 0 && hoverNode)
+              ) {
                 if (link.type === "backlink")
                   return graphConfig.colors[computedColorScheme]
                     .backlinkNotHighlight;
