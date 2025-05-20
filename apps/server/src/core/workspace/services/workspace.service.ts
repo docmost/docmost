@@ -387,14 +387,14 @@ export class WorkspaceService {
       .replace(/[^a-z0-9]/g, '')
       .substring(0, 20);
     // Ensure we leave room for a random suffix.
-    const maxSuffixLength = 3;
+    const maxSuffixLength = 6;
 
     if (subdomain.length < 4) {
       subdomain = `${subdomain}-${generateRandomSuffix(maxSuffixLength)}`;
     }
 
     if (DISALLOWED_HOSTNAMES.includes(subdomain)) {
-      subdomain = `myworkspace-${generateRandomSuffix(maxSuffixLength)}`;
+      subdomain = `workspace-${generateRandomSuffix(maxSuffixLength)}`;
     }
 
     let uniqueHostname = subdomain;
