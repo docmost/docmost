@@ -32,7 +32,6 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
-import ColumnLayoutMenu from "@/features/editor/components/column-layout/column-layout-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
@@ -301,7 +300,6 @@ export default function PageEditor({
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
-            <ColumnLayoutMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
             <CalloutMenu editor={editor} />
