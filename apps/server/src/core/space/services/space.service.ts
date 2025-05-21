@@ -7,7 +7,7 @@ import { CreateSpaceDto } from '../dto/create-space.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Space, User } from '@docmost/db/types/entity.types';
+import { Graph, Space, User } from '@docmost/db/types/entity.types';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
@@ -125,6 +125,15 @@ export class SpaceService {
     }
 
     return space;
+  }
+
+  async getSpaceGraph(spaceId: string, workspaceId: string): Promise<Graph[]> {
+    const graph = await this.spaceRepo.getGraph(spaceId, workspaceId);
+    if (!graph) {
+      throw new NotFoundException('Graph not found');
+    }
+
+    return graph;
   }
 
   async getWorkspaceSpaces(
