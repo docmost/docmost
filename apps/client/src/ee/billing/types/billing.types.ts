@@ -1,5 +1,6 @@
 export enum BillingPlan {
   STANDARD = "standard",
+  BUSINESS = "business",
 }
 
 export interface IBilling {

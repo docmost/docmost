@@ -12,6 +12,13 @@ import {
 } from '@/features/editor/components/table/types/types.ts';
 import { NodeWidthResize } from '@/features/editor/components/common/node-width-resize.tsx';
 
+
+declare global {
+    interface Window {
+        EXCALIDRAW_ASSET_PATH?: string;
+    }
+}
+window.EXCALIDRAW_ASSET_PATH = "/";
 export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {

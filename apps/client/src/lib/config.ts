@@ -74,6 +74,10 @@ export function getDrawioUrl() {
   return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
 }
 
+export function getBillingTrialDays() {
+  return getConfigValue("BILLING_TRIAL_DAYS");
+}
+
 function getConfigValue(key: string, defaultValue: string = undefined): string {
   const rawValue = import.meta.env.DEV
     ? process?.env?.[key]

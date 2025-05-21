@@ -15,6 +15,7 @@ import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-
 import { useEditor } from "@tiptap/react";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 interface CommentDialogProps {
   editor: ReturnType<typeof useEditor>;
@@ -34,6 +35,8 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   });
   const createCommentMutation = useCreateCommentMutation();
   const { isPending } = createCommentMutation;
+
+  const emit = useQueryEmit();
 
   const handleDialogClose = () => {
     setShowCommentPopup(false);
@@ -63,11 +66,23 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
         .run();
       setActiveCommentId(createdComment.id);
 
+      //unselect text to close bubble menu
+      editor.commands.setTextSelection({ from: editor.view.state.selection.from, to: editor.view.state.selection.from });
+
       setAsideState({ tab: "comments", isAsideOpen: true });
       setTimeout(() => {
         const selector = `div[data-comment-id="${createdComment.id}"]`;
         const commentElement = document.querySelector(selector);
-        commentElement?.scrollIntoView();
+        commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        editor.view.dispatch(
+          editor.state.tr.scrollIntoView()
+        );
+      }, 400);
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
       });
     } finally {
       setShowCommentPopup(false);
@@ -109,6 +124,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
 
         <CommentEditor
           onUpdate={handleCommentEditorChange}
+          onSave={handleAddComment}
           placeholder={t("Write a comment")}
           editable={true}
           autofocus={true}

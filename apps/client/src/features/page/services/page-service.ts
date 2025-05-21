@@ -1,5 +1,6 @@
 import api from "@/lib/api-client";
 import {
+  ICopyPageToSpace,
   IExportPageParams,
   IMovePage,
   IMovePageToSpace,
@@ -37,6 +38,11 @@ export async function movePage(data: IMovePage): Promise<void> {
 
 export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
+}
+
+export async function copyPageToSpace(data: ICopyPageToSpace): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/copy-to-space", data);
+  return req.data;
 }
 
 export async function getSidebarPages(

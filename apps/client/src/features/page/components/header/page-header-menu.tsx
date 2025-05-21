@@ -34,6 +34,8 @@ import {
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
+import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
+import ShareModal from "@/features/share/components/share-modal.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -56,6 +58,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
+
+      <ShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
@@ -102,6 +106,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     { open: openMovePageModal, close: closeMoveSpaceModal },
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
+  const pageUpdatedAt = useTimeAgo(page?.updatedAt);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -208,7 +213,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               <Tooltip
                 label={t("Edited by {{name}} {{time}}", {
                   name: page.lastUpdatedBy.name,
-                  time: timeAgo(page.updatedAt),
+                  time: pageUpdatedAt,
                 })}
                 position="left-start"
               >

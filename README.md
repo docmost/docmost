@@ -4,17 +4,15 @@
         Open-source collaborative wiki and documentation software.
         <br />
         <a href="https://docmost.com"><strong>Website</strong></a> | 
-        <a href="https://docmost.com/docs"><strong>Documentation</strong></a>
+        <a href="https://docmost.com/docs"><strong>Documentation</strong></a> |
+        <a href="https://twitter.com/DocmostHQ"><strong>Twitter / X</strong></a>
     </p>
 </div>
 <br />
 
-> [!NOTE]  
-> Docmost is currently in **beta**. We value your feedback as we progress towards a stable release.
-
 ## Getting started
 
-To get started with Docmost, please refer to our [documentation](https://docmost.com/docs).
+To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
 ## Features
 
@@ -49,3 +47,16 @@ All files in the following directories are licensed under the Docmost Enterprise
 ### Contributing
 
 See the [development documentation](https://docmost.com/docs/self-hosting/development)
+
+## Thanks
+Special thanks to;
+
+<img width="100" alt="Crowdin" src="https://github.com/user-attachments/assets/a6c3d352-e41b-448d-b6cd-3fbca3109f07" />
+
+[Crowdin](https://crowdin.com/) for providing access to their localization platform.
+
+
+<img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
+
+[Algolia](https://www.algolia.com/) for providing full-text search to the docs.
+

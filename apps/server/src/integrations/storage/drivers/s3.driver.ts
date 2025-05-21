@@ -1,5 +1,6 @@
 import { S3StorageConfig, StorageDriver, StorageOption } from '../interfaces';
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -36,6 +37,22 @@ export class S3Driver implements StorageDriver {
       await this.s3Client.send(command);
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
+    }
+  }
+
+  async copy(fromFilePath: string, toFilePath: string): Promise<void> {
+    try {
+      if (await this.exists(fromFilePath)) {
+        await this.s3Client.send(
+          new CopyObjectCommand({
+            Bucket: this.config.bucket,
+            CopySource: `${this.config.bucket}/${fromFilePath}`,
+            Key: toFilePath,
+          }),
+        );
+      }
+    } catch (err) {
+      throw new Error(`Failed to copy file: ${(err as Error).message}`);
     }
   }
 

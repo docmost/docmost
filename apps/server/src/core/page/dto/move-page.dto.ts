@@ -1,4 +1,10 @@
-import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class MovePageDto {
   @IsString()
@@ -15,9 +21,11 @@ export class MovePageDto {
 }
 
 export class MovePageToSpaceDto {
+  @IsNotEmpty()
   @IsString()
   pageId: string;
 
+  @IsNotEmpty()
   @IsString()
   spaceId: string;
 }

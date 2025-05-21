@@ -1,6 +1,8 @@
 export interface StorageDriver {
   upload(filePath: string, file: Buffer): Promise<void>;
 
+  copy(fromFilePath: string, toFilePath: string): Promise<void>;
+
   read(filePath: string): Promise<Buffer>;
 
   exists(filePath: string): Promise<boolean>;

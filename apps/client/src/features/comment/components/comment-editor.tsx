@@ -8,10 +8,12 @@ import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
+import EmojiCommand from "@/features/editor/extensions/emoji-command";
 
 interface CommentEditorProps {
   defaultContent?: any;
   onUpdate?: any;
+  onSave?: any;
   editable: boolean;
   placeholder?: string;
   autofocus?: boolean;
@@ -22,6 +24,7 @@ const CommentEditor = forwardRef(
     {
       defaultContent,
       onUpdate,
+      onSave,
       editable,
       placeholder,
       autofocus,
@@ -42,7 +45,35 @@ const CommentEditor = forwardRef(
         }),
         Underline,
         Link,
+        EmojiCommand,
       ],
+      editorProps: {
+        handleDOMEvents: {
+          keydown: (_view, event) => {
+            if (
+              [
+                "ArrowUp",
+                "ArrowDown",
+                "ArrowLeft",
+                "ArrowRight",
+                "Enter",
+              ].includes(event.key)
+            ) {
+              const emojiCommand = document.querySelector("#emoji-command");
+              if (emojiCommand) {
+                return true;
+              }
+            }
+
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+              event.preventDefault();
+              if (onSave) onSave();
+
+              return true;
+            }
+          },
+        },
+      },
       onUpdate({ editor }) {
         if (onUpdate) onUpdate(editor.getJSON());
       },
@@ -52,6 +83,10 @@ const CommentEditor = forwardRef(
       shouldRerenderOnTransaction: false,
       autofocus: (autofocus && "end") || false,
     });
+
+    useEffect(() => {
+      commentEditor.commands.setContent(defaultContent);
+    }, [defaultContent]);
 
     useEffect(() => {
       setTimeout(() => {

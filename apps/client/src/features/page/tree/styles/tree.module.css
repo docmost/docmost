@@ -18,7 +18,7 @@
     align-items: center;
     height: 100%;
     width: 93%; /* not to overlap with scroll bar */
-
+    text-decoration: none;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
 
     &:hover {
@@ -67,6 +67,10 @@
 }
 
 .row:focus .node:global(.isSelected) {
+    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+}
+
+.row:focus .node:global(.isFocused) {
     background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
 }
 

@@ -1,7 +1,7 @@
 import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 
-function sortPositionKeys(keys: any[]) {
+export function sortPositionKeys(keys: any[]) {
   return keys.sort((a, b) => {
     if (a.position < b.position) return -1;
     if (a.position > b.position) return 1;

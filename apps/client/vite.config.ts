@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
     CLOUD,
     SUBDOMAIN_HOST,
     COLLAB_URL,
+    BILLING_TRIAL_DAYS,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
         CLOUD,
         SUBDOMAIN_HOST,
         COLLAB_URL,
+        BILLING_TRIAL_DAYS,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

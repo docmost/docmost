@@ -25,6 +25,16 @@ export class LocalDriver implements StorageDriver {
     }
   }
 
+  async copy(fromFilePath: string, toFilePath: string): Promise<void> {
+    try {
+      if (await this.exists(fromFilePath)) {
+        await fs.copy(fromFilePath, toFilePath);
+      }
+    } catch (err) {
+      throw new Error(`Failed to copy file: ${(err as Error).message}`);
+    }
+  }
+
   async read(filePath: string): Promise<Buffer> {
     try {
       return await fs.readFile(this._fullPath(filePath));

@@ -7,6 +7,11 @@ export type InvalidateEvent = {
   id?: string;
 };
 
+export type InvalidateCommentsEvent = {
+  operation: "invalidateComment";
+  pageId: string;
+};
+
 export type UpdateEvent = {
   operation: "updateOne";
   spaceId: string;
@@ -52,4 +57,4 @@ export type DeleteTreeNodeEvent = {
   }
 };
 
-export type WebSocketEvent = InvalidateEvent | UpdateEvent | DeleteEvent | AddTreeNodeEvent | MoveTreeNodeEvent | DeleteTreeNodeEvent;
+export type WebSocketEvent = InvalidateEvent | InvalidateCommentsEvent | UpdateEvent | DeleteEvent | AddTreeNodeEvent | MoveTreeNodeEvent | DeleteTreeNodeEvent;

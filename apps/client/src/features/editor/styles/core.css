@@ -144,6 +144,19 @@
     border-bottom: 2px solid rgb(166, 158, 12);
   }
 
+  .comment-highlight {
+    animation: flash-highlight 3s ease-out;
+  }
+
+  @keyframes flash-highlight {
+    0% {
+      background-color: #ff4d4d;
+    }
+    100% {
+      background-color: rgba(255, 215, 0, 0.14);
+    }
+  }
+
   .resize-cursor {
     cursor: ew-resize;
     cursor: col-resize;

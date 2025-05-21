@@ -26,10 +26,16 @@ import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
+import SharedPage from "@/pages/share/shared-page.tsx";
+import Shares from "@/pages/settings/shares/shares.tsx";
+import ShareLayout from "@/features/share/components/share-layout.tsx";
+import ShareRedirect from '@/pages/share/share-redirect.tsx';
+import { useTrackOrigin } from "@/hooks/use-track-origin";
 
 export default function App() {
   const { t } = useTranslation();
   useRedirectToCloudSelect();
+  useTrackOrigin();
 
   return (
     <>
@@ -51,6 +57,12 @@ export default function App() {
           </>
         )}
 
+        <Route element={<ShareLayout />}>
+          <Route path={"/share/:shareId/p/:pageSlug"} element={<SharedPage />} />
+          <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
+        </Route>
+
+        <Route path={"/share/:shareId"} element={<ShareRedirect />} />
         <Route path={"/p/:pageSlug"} element={<PageRedirect />} />
 
         <Route element={<Layout />}>
@@ -78,6 +90,7 @@ export default function App() {
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
+            <Route path={"sharing"} element={<Shares />} />
             <Route path={"security"} element={<Security />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}

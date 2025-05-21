@@ -11,8 +11,9 @@ import {
   IconCoin,
   IconLock,
   IconKey,
+  IconWorld,
 } from "@tabler/icons-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
@@ -23,11 +24,15 @@ import {
   prefetchBilling,
   prefetchGroups,
   prefetchLicense,
+  prefetchShares,
   prefetchSpaces,
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import { useSettingsNavigation } from "@/hooks/use-settings-navigation";
 
 interface DataItem {
   label: string;
@@ -82,6 +87,7 @@ const groupedData: DataGroup[] = [
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
+      { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
     ],
   },
   {
@@ -100,9 +106,11 @@ export default function SettingsSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
-  const navigate = useNavigate();
+  const { goBack } = useSettingsNavigation();
   const { isAdmin } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
+  const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   useEffect(() => {
     setActive(location.pathname);
@@ -170,6 +178,9 @@ export default function SettingsSidebar() {
             case "Security & SSO":
               prefetchHandler = prefetchSsoProviders;
               break;
+            case "Public sharing":
+              prefetchHandler = prefetchShares;
+              break;
             default:
               break;
           }
@@ -181,6 +192,11 @@ export default function SettingsSidebar() {
               data-active={active.startsWith(item.path) || undefined}
               key={item.label}
               to={item.path}
+              onClick={() => {
+                if (mobileSidebarOpened) {
+                  toggleMobileSidebar();
+                }
+              }}
             >
               <item.icon className={classes.linkIcon} stroke={2} />
               <span>{t(item.label)}</span>
@@ -195,7 +211,12 @@ export default function SettingsSidebar() {
     <div className={classes.navbar}>
       <Group className={classes.title} justify="flex-start">
         <ActionIcon
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            goBack();
+            if (mobileSidebarOpened) {
+              toggleMobileSidebar();
+            }
+          }}
           variant="transparent"
           c="gray"
           aria-label="Back"

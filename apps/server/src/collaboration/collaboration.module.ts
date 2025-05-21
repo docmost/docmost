@@ -1,4 +1,4 @@
-import { Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { CollaborationGateway } from './collaboration.gateway';
@@ -22,6 +22,7 @@ import { LoggerExtension } from './extensions/logger.extension';
   imports: [TokenModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(CollaborationModule.name);
   private collabWsAdapter: CollabWsAdapter;
   private path = '/collab';
 
@@ -38,7 +39,15 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
 
     wss.on('connection', (client: WebSocket, request: IncomingMessage) => {
       this.collaborationGateway.handleConnection(client, request);
+
+      client.on('error', (error) => {
+        this.logger.error('WebSocket client error:', error);
+      });
     });
+
+    wss.on('error', (error) =>
+      this.logger.log('WebSocket server error:', error),
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

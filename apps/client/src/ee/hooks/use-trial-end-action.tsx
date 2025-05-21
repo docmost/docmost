@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isCloud } from "@/lib/config.ts";
+import { getBillingTrialDays, isCloud } from "@/lib/config.ts";
 import APP_ROUTE from "@/lib/app-route.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { notifications } from "@mantine/notifications";
@@ -18,7 +18,7 @@ export const useTrialEndAction = () => {
         notifications.show({
           position: "top-right",
           color: "red",
-          title: "Your 7-day trial has ended",
+          title: `Your ${getBillingTrialDays()}-day trial has ended`,
           message:
             "Please upgrade to a paid plan or contact your workspace admin.",
           autoClose: false,
