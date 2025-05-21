@@ -71,6 +71,21 @@ export class S3Driver implements StorageDriver {
     }
   }
 
+  async readStream(filePath: string): Promise<Readable> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: filePath,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      return response.Body as Readable;
+    } catch (err) {
+      throw new Error(`Failed to read file from S3: ${(err as Error).message}`);
+    }
+  }
+
   async exists(filePath: string): Promise<boolean> {
     try {
       const command = new HeadObjectCommand({
