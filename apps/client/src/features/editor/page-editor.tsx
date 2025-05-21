@@ -86,6 +86,8 @@ export default function PageEditor({
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
 
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
+
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
 
@@ -293,7 +295,7 @@ export default function PageEditor({
   return isCollabReady ? (
     <div>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
 
         {editor && editor.isEditable && (
           <div>

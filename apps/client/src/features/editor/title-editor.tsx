@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command.ts";
 import { UpdateEvent } from "@/features/websocket/types";
 import localEmitter from "@/lib/local-emitter.ts";
+import { currentUserAtom } from "../user/atoms/current-user-atom";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -39,11 +40,13 @@ export function TitleEditor({
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updateTitlePageMutationAsync } = useUpdateTitlePageMutation();
+  const [currentUser] = useAtom(currentUserAtom);
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
 
   const titleEditor = useEditor({
     extensions: [
@@ -152,5 +155,5 @@ export function TitleEditor({
     }
   }
 
-  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
+  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} spellCheck={userSpellcheckPref} />;
 }
