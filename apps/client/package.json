@@ -15,7 +15,7 @@
     "@docmost/editor-ext": "workspace:*",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
-    "@excalidraw/excalidraw": "^0.17.6",
+    "@excalidraw/excalidraw": "^0.18.0",
     "@mantine/core": "^7.17.0",
     "@mantine/form": "^7.17.0",
     "@mantine/hooks": "^7.17.0",

@@ -8,19 +8,64 @@ import {
   Text,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useState } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import { getFileUrl } from "@/lib/config.ts";
-import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types/types";
+import { useState, lazy, Suspense } from "react";
 import { IAttachment } from "@/lib/types";
+import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import "@excalidraw/excalidraw/index.css";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
-import { lazy } from "react";
-import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { useHandleLibrary } from "@excalidraw/excalidraw";
+
+
+
+type LibraryItems = any;
+
+type LibraryPersistedData = {
+  libraryItems: LibraryItems;
+};
+
+export interface LibraryPersistenceAdapter {
+  load(metadata: { source: "load" | "save" }):
+      | Promise<{ libraryItems: LibraryItems } | null>
+      | {
+    libraryItems: LibraryItems;
+  }
+      | null;
+
+  save(libraryData: LibraryPersistedData): Promise<void> | void;
+}
+
+const LOCAL_STORAGE_KEY = "excalidrawLibrary";
+
+export const localStorageLibraryAdapter: LibraryPersistenceAdapter = {
+  async load() {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.error("Error downloading Excalidraw library from localStorage", e);
+    }
+    return null;
+  },
+  async save(libraryData) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(libraryData));
+    } catch (e) {
+      console.error(
+          "Error while saving library from Excalidraw to localStorage",
+          e,
+      );
+    }
+  },
+};
 
 const Excalidraw = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -35,6 +80,10 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
+  useHandleLibrary({
+    excalidrawAPI,
+    adapter: localStorageLibraryAdapter,
+  });
   const [excalidrawData, setExcalidrawData] = useState<any>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
