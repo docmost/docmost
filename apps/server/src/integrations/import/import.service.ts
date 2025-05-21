@@ -4,7 +4,8 @@ import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import {
-  htmlToJson, jsonToText,
+  htmlToJson,
+  jsonToText,
   tiptapExtensions,
 } from '../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
@@ -13,7 +14,17 @@ import { generateSlugId } from '../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
-import { markdownToHtml } from "@docmost/editor-ext";
+import { markdownToHtml } from '@docmost/editor-ext';
+import {
+  FileTaskStatus,
+  FileTaskType,
+  getFileTaskFolderPath,
+} from './file.utils';
+import { v7 as uuid7 } from 'uuid';
+import { StorageService } from '../storage/storage.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QueueJob, QueueName } from '../queue/constants';
 
 @Injectable()
 export class ImportService {
@@ -21,7 +32,10 @@ export class ImportService {
 
   constructor(
     private readonly pageRepo: PageRepo,
+    private readonly storageService: StorageService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.FILE_TASK_QUEUE)
+    private readonly fileTaskQueue: Queue,
   ) {}
 
   async importPage(
@@ -160,5 +174,57 @@ export class ImportService {
     } else {
       return generateJitteredKeyBetween(null, null);
     }
+  }
+
+  async importZip(
+    filePromise: Promise<MultipartFile>,
+    source: string,
+    userId: string,
+    spaceId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const file = await filePromise;
+    const fileBuffer = await file.toBuffer();
+    const fileExtension = path.extname(file.filename).toLowerCase();
+    const fileName = sanitize(
+      path.basename(file.filename, fileExtension).slice(0, 255),
+    );
+
+    const fileTaskId = uuid7();
+    const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileName}`;
+
+    // upload file
+    await this.storageService.upload(filePath, fileBuffer);
+
+    // store in fileTasks table
+    await this.db
+      .insertInto('fileTasks')
+      .values({
+        id: fileTaskId,
+        type: FileTaskType.Import,
+        source: source,
+        status: FileTaskStatus.Pending,
+        fileName: fileName,
+        filePath: filePath,
+        fileSize: 0,
+        fileExt: 'zip',
+        creatorId: userId,
+        spaceId: spaceId,
+        workspaceId: workspaceId,
+      })
+      .execute();
+
+    // what to send to queue
+    // pass the task ID
+    await this.fileTaskQueue.add(QueueJob.IMPORT_TASK, {
+      fileTaskId: fileTaskId,
+    });
+    // return tasks info
+
+    // when the processor picks it up
+    // we change the status to processing
+    // if it gets processed successfully,
+    // we change the status to success
+    // else failed
   }
 }
