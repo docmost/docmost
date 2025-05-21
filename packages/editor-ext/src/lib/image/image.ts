@@ -24,7 +24,7 @@ declare module "@tiptap/core" {
       setImageAt: (
         attributes: ImageAttributes & { pos: number | Range },
       ) => ReturnType;
-      setImageAlign: (align: "left" | "center" | "right") => ReturnType;
+      setImageAlign: (align: "left" | "center" | "right" | "floatLeft" | "floatRight") => ReturnType;
       setImageWidth: (width: number) => ReturnType;
     };
   }
