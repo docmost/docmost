@@ -20,11 +20,14 @@ import {
   FileTaskType,
   getFileTaskFolderPath,
 } from './file.utils';
-import { v7 as uuid7 } from 'uuid';
+import { v7, v7 as uuid7 } from 'uuid';
 import { StorageService } from '../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../queue/constants';
+import { Node as PMNode } from '@tiptap/pm/model';
+import { EditorState, Transaction } from '@tiptap/pm/state';
+import { getSchema } from '@tiptap/core';
 
 @Injectable()
 export class ImportService {
@@ -127,7 +130,7 @@ export class ImportService {
 
   async createYdoc(prosemirrorJson: any): Promise<Buffer | null> {
     if (prosemirrorJson) {
-      this.logger.debug(`Converting prosemirror json state to ydoc`);
+     // this.logger.debug(`Converting prosemirror json state to ydoc`);
 
       const ydoc = TiptapTransformer.toYdoc(
         prosemirrorJson,
@@ -226,5 +229,90 @@ export class ImportService {
     // if it gets processed successfully,
     // we change the status to success
     // else failed
+  }
+
+  async markdownOrHtmlToProsemirror(
+    fileContent: string,
+    fileExtension: string,
+  ): Promise<any> {
+    let prosemirrorState = '';
+    if (fileExtension === '.md') {
+      prosemirrorState = await this.processMarkdown(fileContent);
+    } else if (fileExtension.endsWith('.html')) {
+      prosemirrorState = await this.processHTML(fileContent);
+    }
+    return prosemirrorState;
+  }
+
+  async convertInternalLinksToMentionsPM(
+    doc: PMNode,
+    currentFilePath: string,
+    filePathToPageMetaMap: Map<
+      string,
+      { id: string; title: string; slugId: string }
+    >,
+  ): Promise<PMNode> {
+    const schema = getSchema(tiptapExtensions);
+    const state = EditorState.create({ doc, schema });
+    let tr: Transaction = state.tr;
+
+    const normalizePath = (p: string) => p.replace(/\\/g, '/');
+
+    // Collect replacements from the original doc.
+    const replacements: Array<{
+      from: number;
+      to: number;
+      mentionNode: PMNode;
+    }> = [];
+
+    doc.descendants((node, pos) => {
+      if (!node.isText || !node.marks?.length) return;
+
+      // Look for the link mark
+      const linkMark = node.marks.find(
+        (mark) => mark.type.name === 'link' && mark.attrs?.href,
+      );
+      if (!linkMark) return;
+
+      // Compute the range for the entire text node.
+      const from = pos;
+      const to = pos + node.nodeSize;
+
+      // Resolve the path and get page meta.
+      const resolvedPath = normalizePath(
+        path.join(path.dirname(currentFilePath), linkMark.attrs.href),
+      );
+      const pageMeta = filePathToPageMetaMap.get(resolvedPath);
+      if (!pageMeta) return;
+
+      // Create the mention node with all required attributes.
+      const mentionNode = schema.nodes.mention.create({
+        id: v7(),
+        entityType: 'page',
+        entityId: pageMeta.id,
+        label: node.text || pageMeta.title,
+        slugId: pageMeta.slugId,
+        creatorId: 'not available', // This is required per your schema.
+      });
+
+      replacements.push({ from, to, mentionNode });
+    });
+
+    // Apply replacements in reverse order.
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const { from, to, mentionNode } = replacements[i];
+      try {
+        tr = tr.replaceWith(from, to, mentionNode);
+      } catch (err) {
+        console.error('❌ Failed to insert mention:', err);
+      }
+    }
+    if (tr.docChanged) {
+      console.log('doc changed');
+      console.log(JSON.stringify(state.apply(tr).doc.toJSON()));
+    }
+
+    // Return the updated document if any change was made.
+    return tr.docChanged ? state.apply(tr).doc : doc;
   }
 }

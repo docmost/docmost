@@ -1,3 +1,7 @@
+import * as yauzl from 'yauzl';
+import * as path from 'path';
+import * as fs from 'node:fs';
+
 export enum FileTaskType {
   Import = 'import',
   Export = 'export',
@@ -26,4 +30,48 @@ export function getFileTaskFolderPath(
     case FileTaskType.Export:
       return `${workspaceId}/exports`;
   }
+}
+
+export function extractZip(source: string, target: string) {
+  //https://github.com/Surfer-Org
+  return new Promise((resolve, reject) => {
+    yauzl.open(source, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(err);
+
+      zipfile.readEntry();
+      zipfile.on('entry', (entry) => {
+        const fullPath = path.join(target, entry.fileName);
+        const directory = path.dirname(fullPath);
+
+        if (/\/$/.test(entry.fileName)) {
+          // Directory entry
+          try {
+            fs.mkdirSync(fullPath, { recursive: true });
+            zipfile.readEntry();
+          } catch (err) {
+            reject(err);
+          }
+        } else {
+          // File entry
+          try {
+            fs.mkdirSync(directory, { recursive: true });
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) return reject(err);
+              const writeStream = fs.createWriteStream(fullPath);
+              readStream.on('end', () => {
+                writeStream.end();
+                zipfile.readEntry();
+              });
+              readStream.pipe(writeStream);
+            });
+          } catch (err) {
+            reject(err);
+          }
+        }
+      });
+
+      zipfile.on('end', resolve);
+      zipfile.on('error', reject);
+    });
+  });
 }
