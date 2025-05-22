@@ -92,6 +92,19 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const [, setTreeData] = useAtom(treeDataAtom);
+
+  async function handleToggle(id: string) {
+    const node = treeApiRef.current.get(id);
+    if (!node) return;
+
+    // if we just opened and have never fetched children
+    if (node.isOpen && node.data.hasChildren && node.children.length === 0) {
+      const { items } = await getSidebarPages({ pageId: node.id, spaceId });
+      const childrenTree = buildTree(items);
+      setTreeData((prev) => appendNodeChildren(prev, node.id, childrenTree));
+    }
+  }
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -148,13 +161,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             flatTreeItems = [
               ...flatTreeItems,
               ...children.filter(
-                (child) => !flatTreeItems.some((item) => item.id === child.id),
+                (child) => !flatTreeItems.some((item) => item.id === child.id)
               ),
             ];
           };
 
           const fetchPromises = ancestors.map((ancestor) =>
-            fetchAndUpdateChildren(ancestor),
+            fetchAndUpdateChildren(ancestor)
           );
 
           // Wait for all fetch operations to complete
@@ -168,7 +181,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             const updatedTree = appendNodeChildren(
               data,
               rootChild.id,
-              rootChild.children,
+              rootChild.children
             );
             setData(updatedTree);
 
@@ -221,9 +234,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           rowHeight={30}
           overscanCount={10}
           dndRootElement={rootElement.current}
-          onToggle={() => {
-            setOpenTreeNodes(treeApiRef.current?.openState);
-          }}
+          onToggle={handleToggle}
           initialOpenState={openTreeNodes}
         >
           {Node}
@@ -283,7 +294,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       const updatedTreeData = appendNodeChildren(
         treeData,
         node.data.id,
-        childrenTree,
+        childrenTree
       );
 
       setTreeData(updatedTreeData);

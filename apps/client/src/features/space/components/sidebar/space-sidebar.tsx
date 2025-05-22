@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import {
   IconArrowDown,
+  IconArrowUp,
   IconDots,
   IconFileExport,
   IconHome,
@@ -16,7 +17,7 @@ import {
   IconSettings,
 } from "@tabler/icons-react";
 import classes from "./space-sidebar.module.css";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
@@ -40,6 +41,70 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
 
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { getSidebarPages } from "@/features/page/services/page-service";
+import {
+  buildTree,
+  appendNodeChildren,
+} from "@/features/page/tree/utils/utils";
+import type { SpaceTreeNode } from "@/features/page/tree/types";
+import type { NodeApi, TreeApi } from "react-arborist";
+
+interface ExpandCollapseAllButtonProps {
+  spaceId: string;
+}
+
+export function ExpandCollapseAllButton({ spaceId }: { spaceId: string }) {
+  const [treeApi] = useAtom<TreeApi<SpaceTreeNode> | null>(treeApiAtom);
+  const [allExpanded, setAllExpanded] = useState(false);
+
+  async function toggleExpandAll() {
+    if (!treeApi) return;
+
+    if (allExpanded) {
+      treeApi.closeAll();
+      setAllExpanded(false);
+    } else {
+      // keep opening until we've fetched & opened every lazy branch
+      let prevCount = -1;
+      let currCount = treeApi.visibleNodes.length;
+
+      // loop until opening produces no new visible nodes
+      while (currCount > prevCount) {
+        prevCount = currCount;
+        treeApi.openAll(); // opens every loaded branch, firing onToggle
+        // give onToggle a moment to fetch & append children
+        // you might tune this delay lower or higher
+        // but it only needs to wait for your network + React state update
+        // in practice ~50–100ms often works
+        // (we could also await your fetch directly, but this is simpler)
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 100));
+        currCount = treeApi.visibleNodes.length;
+      }
+
+      setAllExpanded(true);
+    }
+  }
+
+  return (
+    <Tooltip
+      withArrow
+      position="right"
+      label={allExpanded ? "Collapse all pages" : "Expand all pages"}
+    >
+      <ActionIcon
+        variant="default"
+        size={18}
+        onClick={toggleExpandAll}
+        aria-label={allExpanded ? "Collapse all pages" : "Expand all pages"}
+      >
+        {allExpanded ? <IconArrowUp size={18} /> : <IconArrowDown size={18} />}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
 export function SpaceSidebar() {
   const { t } = useTranslation();
   const [tree] = useAtom(treeApiAtom);
@@ -54,6 +119,7 @@ export function SpaceSidebar() {
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
+  const [allExpanded, setAllExpanded] = useState(false);
 
   if (!space) {
     return <></>;
@@ -86,7 +152,7 @@ export function SpaceSidebar() {
                 classes.menu,
                 location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
                   ? classes.activeButton
-                  : "",
+                  : ""
               )}
             >
               <div className={classes.menuItemInner}>
@@ -126,7 +192,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
+              SpaceCaslSubject.Page
             ) && (
               <UnstyledButton
                 className={classes.menu}
@@ -158,7 +224,7 @@ export function SpaceSidebar() {
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
+              SpaceCaslSubject.Page
             ) && (
               <Group gap="xs">
                 <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
@@ -173,6 +239,7 @@ export function SpaceSidebar() {
                     <IconPlus />
                   </ActionIcon>
                 </Tooltip>
+                <ExpandCollapseAllButton spaceId={space.id} />
               </Group>
             )}
           </Group>
@@ -182,7 +249,7 @@ export function SpaceSidebar() {
               spaceId={space.id}
               readOnly={spaceAbility.cannot(
                 SpaceCaslAction.Manage,
-                SpaceCaslSubject.Page,
+                SpaceCaslSubject.Page
               )}
             />
           </div>
