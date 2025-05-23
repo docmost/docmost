@@ -383,5 +383,6 @@
   "Publicly shared pages from spaces you are a member of will appear here": "メンバーであるスペースからの公開ページがここに表示されます",
   "Share deleted successfully": "共有が正常に削除されました",
   "Share not found": "共有が見つかりません",
-  "Failed to share page": "ページの共有に失敗しました"
+  "Failed to share page": "ページの共有に失敗しました",
+  "Background color": "背景色"
 }
