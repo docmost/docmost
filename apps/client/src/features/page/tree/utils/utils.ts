@@ -164,16 +164,35 @@ export function appendNodeChildren(
   nodeId: string,
   children: SpaceTreeNode[],
 ) {
-  return treeItems.map((nodeItem) => {
-    if (nodeItem.id === nodeId) {
-      return { ...nodeItem, children };
-    }
-    if (nodeItem.children) {
+  // Preserve deeper children if they exist and remove node if deleted
+  return treeItems.map((node) => {
+    if (node.id === nodeId) {
+      const newIds = new Set(children.map(c => c.id));
+
+      const existingMap = new Map(
+        (node.children ?? []).filter(c => newIds.has(c.id)).map(c => [c.id, c])
+      );
+
+      const merged = children.map((newChild) => {
+        const existing = existingMap.get(newChild.id);
+        return existing && existing.children
+          ? { ...newChild, children: existing.children }
+          : newChild;
+      });
+
       return {
-        ...nodeItem,
-        children: appendNodeChildren(nodeItem.children, nodeId, children),
+        ...node,
+        children: merged,
       };
     }
-    return nodeItem;
+
+    if (node.children) {
+      return {
+        ...node,
+        children: appendNodeChildren(node.children, nodeId, children),
+      };
+    }
+
+    return node;
   });
 }

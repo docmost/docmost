@@ -93,7 +93,7 @@ export function useTreeMutation<T>(spaceId: string) {
     return data;
   };
 
-  const onMove: MoveHandler<T> = (args: {
+  const onMove: MoveHandler<T> = async (args: {
     dragIds: string[];
     dragNodes: NodeApi<T>[];
     parentId: string | null;
@@ -176,7 +176,7 @@ export function useTreeMutation<T>(spaceId: string) {
     };
 
     try {
-      movePageMutation.mutateAsync(payload);
+      await movePageMutation.mutateAsync(payload);
 
       setTimeout(() => {
         emit({
@@ -206,6 +206,23 @@ export function useTreeMutation<T>(spaceId: string) {
     }
   };
 
+  const isPageInNode = (
+    node: { data: SpaceTreeNode; children?: any[] },
+    pageSlug: string
+  ): boolean => {
+    if (node.data.slugId === pageSlug) {
+      return true;
+    }
+    for (const item of node.children) {
+      if (item.data.slugId === pageSlug) {
+        return true;
+      } else {
+        return isPageInNode(item, pageSlug);
+      }
+    }
+    return false;
+  };
+
   const onDelete: DeleteHandler<T> = async (args: { ids: string[] }) => {
     try {
       await deletePageMutation.mutateAsync(args.ids[0]);
@@ -218,8 +235,7 @@ export function useTreeMutation<T>(spaceId: string) {
       tree.drop({ id: args.ids[0] });
       setData(tree.data);
 
-      // navigate only if the current url is same as the deleted page
-      if (pageSlug && node.data.slugId === pageSlug.split("-")[1]) {
+      if (pageSlug && isPageInNode(node, pageSlug.split("-")[1])) {
         navigate(getSpaceUrl(spaceSlug));
       }
 
