@@ -18,7 +18,7 @@ export class SearchService {
     private pageRepo: PageRepo,
     private shareRepo: ShareRepo,
     private spaceMemberRepo: SpaceMemberRepo,
-  ) {}
+  ) { }
 
   async searchPage(
     query: string,
@@ -112,6 +112,33 @@ export class SearchService {
     //@ts-ignore
     queryResults = await queryResults.execute();
 
+    console.log('Results:', queryResults);
+
+    // @ts-expect-error
+    if (!queryResults.length) {
+      const demo = await this.db
+        .selectFrom('pages')
+        .select([
+          'id',
+          'slugId',
+          'title',
+          'icon',
+          'parentPageId',
+          'creatorId',
+          'createdAt',
+          'updatedAt',
+          'textContent',
+        ])
+        .where('spaceId', '=', searchParams.spaceId)
+        .where(sql<boolean>`similarity(text_content, ${searchQuery}) > 0.1`)
+        .$if(Boolean(searchParams.creatorId), (qb) =>
+          qb.where('creatorId', '=', searchParams.creatorId),
+        )
+        .limit(searchParams.limit | 20)
+        .offset(searchParams.offset || 0)
+        .execute();
+    }
+
     //@ts-ignore
     const searchResults = queryResults.map((result: SearchResponseDto) => {
       if (result.highlight) {
@@ -141,7 +168,7 @@ export class SearchService {
       users = await this.db
         .selectFrom('users')
         .select(['id', 'name', 'avatarUrl'])
-        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
+        .where((eb) => eb(sql`LOWER(users.name)`, 'like', ` % ${query} % `))
         .where('workspaceId', '=', workspaceId)
         .where('deletedAt', 'is', null)
         .limit(limit)
@@ -152,7 +179,7 @@ export class SearchService {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
+        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', ` % ${query} % `))
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -162,7 +189,7 @@ export class SearchService {
       let pageSearch = this.db
         .selectFrom('pages')
         .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
-        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
+        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', ` % ${query} % `))
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 
