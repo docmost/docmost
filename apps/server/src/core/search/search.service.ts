@@ -199,7 +199,7 @@ export class SearchService {
       users = await this.db
         .selectFrom('users')
         .select(['id', 'name', 'avatarUrl'])
-        .where((eb) => eb(sql`LOWER(users.name)`, 'like', ` % ${query} % `))
+        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .where('deletedAt', 'is', null)
         .limit(limit)
@@ -210,7 +210,7 @@ export class SearchService {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', ` % ${query} % `))
+        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -220,7 +220,7 @@ export class SearchService {
       let pageSearch = this.db
         .selectFrom('pages')
         .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
-        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', ` % ${query} % `))
+        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 
