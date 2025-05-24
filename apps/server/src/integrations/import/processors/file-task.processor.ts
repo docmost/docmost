@@ -22,6 +22,7 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
           console.log('export task', job.data.fileTaskId);
       }
     } catch (err) {
+      console.error(err);
       throw err;
     }
   }

@@ -130,7 +130,7 @@ export class ImportService {
 
   async createYdoc(prosemirrorJson: any): Promise<Buffer | null> {
     if (prosemirrorJson) {
-     // this.logger.debug(`Converting prosemirror json state to ydoc`);
+      // this.logger.debug(`Converting prosemirror json state to ydoc`);
 
       const ydoc = TiptapTransformer.toYdoc(
         prosemirrorJson,
@@ -146,20 +146,34 @@ export class ImportService {
   }
 
   extractTitleAndRemoveHeading(prosemirrorState: any) {
-    let title = null;
+    let title: string | null = null;
+
+    const content = prosemirrorState.content ?? [];
 
     if (
-      prosemirrorState?.content?.length > 0 &&
-      prosemirrorState.content[0].type === 'heading' &&
-      prosemirrorState.content[0].attrs?.level === 1
+      content.length > 0 &&
+      content[0].type === 'heading' &&
+      content[0].attrs?.level === 1
     ) {
-      title = prosemirrorState.content[0].content[0].text;
-
-      // remove h1 header node from state
-      prosemirrorState.content.shift();
+      title = content[0].content?.[0]?.text ?? null;
+      content.shift();
     }
 
-    return { title, prosemirrorJson: prosemirrorState };
+    // ensure at least one paragraph
+    if (content.length === 0) {
+      content.push({
+        type: 'paragraph',
+        content: [],
+      });
+    }
+
+    return {
+      title,
+      prosemirrorJson: {
+        ...prosemirrorState,
+        content,
+      },
+    };
   }
 
   async getNewPagePosition(spaceId: string): Promise<string> {

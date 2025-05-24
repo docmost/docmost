@@ -15,6 +15,11 @@ export class StorageService {
     this.logger.debug(`File uploaded successfully. Path: ${filePath}`);
   }
 
+  async uploadStream(filePath: string, fileContent: Readable) {
+    await this.storageDriver.uploadStream(filePath, fileContent);
+    this.logger.debug(`File uploaded successfully. Path: ${filePath}`);
+  }
+
   async copy(fromFilePath: string, toFilePath: string) {
     await this.storageDriver.copy(fromFilePath, toFilePath);
     this.logger.debug(`File copied successfully. Path: ${toFilePath}`);
