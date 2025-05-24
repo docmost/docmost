@@ -107,6 +107,17 @@ export interface Billing {
   workspaceId: string;
 }
 
+export interface Blocks {
+  blockType: string | null;
+  position: number;
+  content: Json;
+  createdAt: Generated<Timestamp | null>;
+  id: Generated<string>;
+  pageId: string;
+  stateHash: string | null;
+  updatedAt: Generated<Timestamp | null>;
+}
+
 export interface Comments {
   content: Json | null;
   createdAt: Generated<Timestamp>;
@@ -169,12 +180,6 @@ export interface PageMembers {
   role: string;
   updatedAt: Generated<Timestamp>;
   userId: string | null;
-}
-
-export interface Blocks {
-  id: Generated<string>;
-  content: Json | null;
-  pageId: string;
 }
 
 export interface Pages {
@@ -315,12 +320,12 @@ export interface DB {
   authProviders: AuthProviders;
   backlinks: Backlinks;
   billing: Billing;
+  blocks: Blocks;
   comments: Comments;
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
   pageMembers: PageMembers;
-  blocks: Blocks;
   pages: Pages;
   spaceMembers: SpaceMembers;
   spaces: Spaces;

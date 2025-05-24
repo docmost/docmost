@@ -29,7 +29,7 @@ export function getProsemirrorContent(content: any) {
   return (
     content ?? {
       type: 'doc',
-      content: [{ type: 'paragraph', attrs: { textAlign: 'left' } }],
+      content: [{ type: 'paragraph', attrs: { textAlign: 'left', blockId: 'content.blockId' } }],
     }
   );
 }

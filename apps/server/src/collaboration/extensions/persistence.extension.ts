@@ -24,6 +24,7 @@ import {
 import { isDeepStrictEqual } from 'node:util';
 import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import { PageService } from 'src/core/page/services/page.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -31,6 +32,7 @@ export class PersistenceExtension implements Extension {
   private contributors: Map<string, Set<string>> = new Map();
 
   constructor(
+    private readonly pageService: PageService,
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private eventEmitter: EventEmitter2,
@@ -45,7 +47,7 @@ export class PersistenceExtension implements Extension {
       return;
     }
 
-    const page = await this.pageRepo.findById(pageId, {
+    const page: Page = await this.pageRepo.findById(pageId, {
       includeContent: true,
       includeYdoc: true,
     });
@@ -68,6 +70,7 @@ export class PersistenceExtension implements Extension {
     // if no ydoc state in db convert json in page.content to Ydoc.
     if (page.content) {
       this.logger.debug(`converting json to ydoc: ${pageId}`);
+      this.logger.debug('Sending page: ', page);
 
       const ydoc = TiptapTransformer.toYdoc(
         page.content,
@@ -77,6 +80,8 @@ export class PersistenceExtension implements Extension {
 
       Y.encodeStateAsUpdate(ydoc);
       return ydoc;
+
+      // return Y.encodeStateAsUpdate(ydoc);
     }
 
     this.logger.debug(`creating fresh ydoc: ${pageId}`);
@@ -90,6 +95,8 @@ export class PersistenceExtension implements Extension {
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
+
+    Logger.debug('Document: ', tiptapJson);
 
     let textContent = null;
 
@@ -133,7 +140,7 @@ export class PersistenceExtension implements Extension {
           this.logger.log('Contributors error:' + err?.['message']);
         }
 
-        await this.pageRepo.updatePage(
+        await this.pageService.updateForSocket(
           {
             content: tiptapJson,
             textContent: textContent,

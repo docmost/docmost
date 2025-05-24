@@ -44,6 +44,8 @@ lerna-debug.log*
 
 # dev local volumes
 /data
+/.pnpm-store
+/backups
 /backups/*tar.gz
 /db_data
 /redis_data

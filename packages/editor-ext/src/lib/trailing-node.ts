@@ -28,6 +28,25 @@ export const TrailingNode = Extension.create<TrailingNodeExtensionOptions>({
     };
   },
 
+  addAttributes() {
+    return {
+      type: {
+        default: "info",
+        parseHTML: (element) => element.getAttribute("data-callout-type"),
+        renderHTML: (attributes) => ({
+          "data-callout-type": attributes.type,
+        }),
+      },
+      blockId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("blockId"),
+        renderHTML: (attributes) => ({
+          "blockId": attributes.blockId,
+        }),
+      },
+    };
+  },
+
   addProseMirrorPlugins() {
     const plugin = new PluginKey(this.name)
     const disabledNodes = Object.entries(this.editor.schema.nodes)

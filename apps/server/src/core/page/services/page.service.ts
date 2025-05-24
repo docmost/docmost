@@ -7,7 +7,7 @@ import {
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { Page } from '@docmost/db/types/entity.types';
+import { Page, UpdatablePage } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   executeWithPagination,
@@ -20,7 +20,7 @@ import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
-import { executeTx } from '@docmost/db/utils';
+import { calculateBlockHash, dbOrTx, executeTx } from '@docmost/db/utils';
 import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { SpaceRole } from 'src/common/helpers/types/permission';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
@@ -30,13 +30,17 @@ import { MyPageColorDto } from '../dto/update-color.dto';
 
 @Injectable()
 export class PageService {
+  private readonly logger: Logger;
+
   constructor(
     private pageRepo: PageRepo,
     private pageMemberRepo: PageMemberRepo,
     private attachmentRepo: AttachmentRepo,
     private readonly syncPageRepo: SynchronizedPageRepo,
     @InjectKysely() private readonly db: KyselyDB,
-  ) {}
+  ) {
+    this.logger = new Logger('PageService');
+  }
 
   async findById(
     pageId: string,
@@ -150,17 +154,15 @@ export class PageService {
     updatePageDto: UpdatePageDto,
     userId: string,
   ): Promise<Page> {
-    const contributors = new Set<string>(page.contributorIds);
+    const contributors = new Set<string>(page.contributorIds ?? []);
     contributors.add(userId);
-    const contributorIds = Array.from(contributors);
-
-    await this.pageRepo.updatePage(
+    await this.pageRepo.updatePageMetadata(
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
         lastUpdatedById: userId,
         updatedAt: new Date(),
-        contributorIds: contributorIds,
+        contributorIds: Array.from(contributors),
       },
       page.id,
     );
@@ -260,8 +262,13 @@ export class PageService {
     await executeTx(this.db, async (trx) => {
       // Update root page
       const nextPosition = await this.nextPagePosition(spaceId);
-      await this.pageRepo.updatePage(
-        { spaceId, parentPageId: null, position: nextPosition },
+      await this.pageRepo.updatePageMetadata(
+        {
+          spaceId,
+          parentPageId: null,
+          position: nextPosition,
+          content: rootPage.content,
+        },
         rootPage.id,
         trx,
       );
@@ -271,7 +278,7 @@ export class PageService {
       // The first id is the root page id
       if (pageIds.length > 1) {
         // Update sub pages
-        await this.pageRepo.updatePages(
+        await this.updatePages(
           { spaceId },
           pageIds.filter((id) => id !== rootPage.id),
           trx,
@@ -284,6 +291,108 @@ export class PageService {
         trx,
       );
     });
+  }
+
+  async updatePages(
+    updatePageData: UpdatablePage,
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    for (const pageId of pageIds) {
+      await this.updatePageWithContent(updatePageData, pageId, trx);
+    }
+  }
+
+  async updatePageWithContent(
+    updatePageData: UpdatablePage,
+    pageId: string,
+    trx?: KyselyTransaction,
+  ) {
+    this.logger.debug('Updating page: ', updatePageData);
+
+    const pageUpdateResult = await this.pageRepo.updatePageMetadata(
+      updatePageData,
+      pageId,
+      trx,
+    );
+
+    if (updatePageData.content) {
+      await this.updatePageBlocks(updatePageData, pageId, trx);
+    }
+
+    return pageUpdateResult;
+  }
+
+  async updatePageBlocks(
+    updatePageData: UpdatablePage,
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const blocks: {
+      attrs: { blockId: string };
+      type?: string;
+      content?: any[];
+    }[] = (updatePageData?.content as any)?.content;
+
+    if (!blocks || blocks.length === 0) {
+      return;
+    }
+
+    const existingBlocks = await this.pageRepo.getExistingPageBlocks(
+      pageId,
+      trx,
+    );
+
+    const existingBlocksMap = new Map(
+      existingBlocks.map((block) => [block.id, block]),
+    );
+
+    const incomingBlockIds = new Set(
+      blocks.map((block) => {
+        if (!Object.prototype.hasOwnProperty.call(block, 'attrs')) {
+          this.logger.error('Block missing blockId attribute: ', block);
+          return null;
+        }
+        if (!Object.prototype.hasOwnProperty.call(block.attrs, 'blockId')) {
+          this.logger.error('Block missing blockId attribute: ', block);
+          return null;
+        }
+        return block.attrs.blockId;
+      }),
+    );
+    this.logger.debug('Incoming blocks: ', incomingBlockIds);
+
+    const removedBlocks = existingBlocks.filter(
+      (existingBlock) => !incomingBlockIds.has(existingBlock.id),
+    );
+
+    this.logger.debug('Deleting blocks: ', removedBlocks);
+    for (const removedBlock of removedBlocks) {
+      await this.pageRepo.deleteBlock(removedBlock.id, trx);
+    }
+
+    for (const block of blocks) {
+      const blockId = block.attrs.blockId;
+      const existingBlock = existingBlocksMap.get(blockId);
+      const calculatedHash = calculateBlockHash(block);
+
+      if (!existingBlock) {
+        await this.pageRepo.createBlock(
+          block,
+          blockId,
+          pageId,
+          calculatedHash,
+          trx,
+        );
+      } else if (existingBlock.stateHash !== calculatedHash) {
+        await this.pageRepo.updateExistingBlock(
+          block,
+          blockId,
+          calculatedHash,
+          trx,
+        );
+      }
+    }
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {
@@ -308,7 +417,7 @@ export class PageService {
       }
     }
 
-    await this.pageRepo.updatePage(
+    await this.pageRepo.updatePageMetadata(
       {
         position: dto.position,
         parentPageId: parentPageId,
@@ -507,6 +616,26 @@ export class PageService {
       userId,
       color: dto.color,
     });
+  }
+
+  async updateForSocket(
+    updatePageData: UpdatablePage,
+    pageId: string,
+    trx?: KyselyTransaction,
+  ) {
+    this.logger.debug('Updating page: ', updatePageData);
+
+    const pageUpdateResult = await this.pageRepo.updatePageMetadata(
+      updatePageData,
+      pageId,
+      trx,
+    );
+
+    if (updatePageData.content) {
+      await this.updatePageBlocks(updatePageData, pageId, trx);
+    }
+
+    return pageUpdateResult;
   }
 }
 

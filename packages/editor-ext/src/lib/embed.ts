@@ -6,6 +6,7 @@ export interface EmbedOptions {
   view: any;
 }
 export interface EmbedAttributes {
+  blockId?: string;
   src?: string;
   provider: string;
   align?: string;
@@ -38,6 +39,13 @@ export const Embed = Node.create<EmbedOptions>({
   },
   addAttributes() {
     return {
+      blockId: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('blockId'),
+        renderHTML: (attributes: EmbedAttributes) => ({
+          'blockId': attributes.blockId,
+        }),
+      },
       src: {
         default: '',
         parseHTML: (element) => element.getAttribute('data-src'),

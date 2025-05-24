@@ -66,12 +66,15 @@ import fortran from "highlight.js/lib/languages/fortran";
 import haskell from "highlight.js/lib/languages/haskell";
 import scala from "highlight.js/lib/languages/scala";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
-import { ReactNodeViewRenderer } from "@tiptap/react";
+import { ReactNodeViewRenderer, Extension } from "@tiptap/react";
 import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import { BlockId } from "@/features/editor/extensions/block-id";
+import { BlockPosition } from "@/features/editor/extensions/block-position";
+import { BlockTypes } from "@/features/editor/utils/block-types";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -212,7 +215,7 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  CharacterCount
+  CharacterCount,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
@@ -229,3 +232,14 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
     },
   }),
 ];
+
+export const creobitExtentions = [
+  BlockId.configure({
+    attributeName: "blockId",
+    types: BlockTypes,
+    createId: () => window.crypto.randomUUID(),
+  }),
+  BlockPosition.configure({
+    types: BlockTypes,
+  }),
+] as any;

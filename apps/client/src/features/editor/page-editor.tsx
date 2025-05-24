@@ -16,6 +16,7 @@ import {
 import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
 import {
   collabExtensions,
+  creobitExtentions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
 import { useAtom } from "jotai";
@@ -53,6 +54,7 @@ import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { jwtDecode } from "jwt-decode";
+import { Loader } from "@mantine/core";
 
 interface PageEditorProps {
   pageId: string;
@@ -144,6 +146,7 @@ export default function PageEditor({
     return [
       ...mainExtensions,
       ...collabExtensions(remoteProvider, currentUser?.user),
+      ...creobitExtentions,
     ];
   }, [ydoc, pageId, remoteProvider, currentUser?.user]);
 
