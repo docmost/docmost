@@ -112,11 +112,9 @@ export class SearchService {
     //@ts-ignore
     queryResults = await queryResults.execute();
 
-    console.log('Results:', queryResults);
-
     // @ts-expect-error
     if (!queryResults.length) {
-      const demo = await this.db
+      const fuzzyResults = await this.db
         .selectFrom('pages')
         .select([
           'id',
@@ -127,7 +125,9 @@ export class SearchService {
           'creatorId',
           'createdAt',
           'updatedAt',
-          'textContent',
+          sql<string>`regexp_replace(text_content, ${searchQuery}, '<b>\\&</b>', 'gi')`.as(
+            'highlight',
+          ),
         ])
         .where('spaceId', '=', searchParams.spaceId)
         .where(sql<boolean>`similarity(text_content, ${searchQuery}) > 0.1`)
@@ -136,7 +136,10 @@ export class SearchService {
         )
         .limit(searchParams.limit | 20)
         .offset(searchParams.offset || 0)
+        .select((eb) => this.pageRepo.withSpace(eb))
         .execute();
+
+      return fuzzyResults as unknown as SearchResponseDto[];
     }
 
     //@ts-ignore
