@@ -28,8 +28,7 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { getAttachmentFolderPath } from '../../core/attachment/attachment.utils';
 import { AttachmentType } from '../../core/attachment/attachment.constants';
 import { getProsemirrorContent } from '../../common/helpers/prosemirror/utils';
-import { not } from 'rxjs/internal/util/not';
-import { notionFormatter } from './import-formatter';
+import { formatImportHtml, notionFormatter } from './import-formatter';
 
 @Injectable()
 export class FileTaskService {
@@ -68,9 +67,8 @@ export class FileTaskService {
     await pipeline(fileStream, createWriteStream(tmpZipPath));
 
     await extractZip(tmpZipPath, tmpExtractDir);
-    console.log('extract here');
 
-    // TODO: internal link mentions, backlinks, attachments
+    // TODO: backlinks
     try {
       await this.updateTaskStatus(fileTaskId, FileTaskStatus.Processing);
       // if type == generic
@@ -126,8 +124,6 @@ export class FileTaskService {
         if (ext === '.md') {
           content = await markdownToHtml(content);
         }
-
-        //content = this.stripAllStyles(content)
 
         content = await this.rewriteLocalFilesInHtml({
           html: content,
@@ -209,7 +205,7 @@ export class FileTaskService {
         );
 
         const pmState = getProsemirrorContent(
-          await this.importService.processHTML(notionFormatter(htmlContent)),
+          await this.importService.processHTML(formatImportHtml(htmlContent)),
         );
 
         const { title, prosemirrorJson } =

@@ -1,9 +1,52 @@
 import { Window } from 'happy-dom';
+import { cleanUrlString } from './file.utils';
+import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
+
+export function formatImportHtml(html: string) {
+  const pmHtml = notionFormatter(html);
+  return defaultHtmlFormatter(pmHtml);
+}
+
+export function defaultHtmlFormatter(html: string): string {
+  const window = new Window();
+  const doc = window.document;
+  doc.body.innerHTML = html;
+
+  // embed providers
+  const anchors = Array.from(doc.getElementsByTagName('a'));
+  for (const a of anchors) {
+    const href = cleanUrlString(a.getAttribute('href')) ?? '';
+    if (!href) continue;
+
+    const embedProvider = getEmbedUrlAndProvider(href);
+
+    if (embedProvider) {
+      const embed = doc.createElement('div');
+      embed.setAttribute('data-type', 'embed');
+      embed.setAttribute('data-src', href);
+      embed.setAttribute('data-provider', embedProvider.provider);
+      embed.setAttribute('data-align', 'center');
+      embed.setAttribute('data-width', '640');
+      embed.setAttribute('data-height', '480');
+
+      a.replaceWith(embed);
+    }
+  }
+
+  return doc.body.innerHTML;
+}
 
 export function notionFormatter(html: string): string {
   const window = new Window();
   const doc = window.document;
   doc.body.innerHTML = html;
+
+  // remove empty description paragraph
+  doc.querySelectorAll('p.page-description').forEach((p) => {
+    if (p.textContent?.trim() === '') {
+      p.remove();
+    }
+  });
 
   // Block math
   for (const fig of Array.from(doc.querySelectorAll('figure.equation'))) {
