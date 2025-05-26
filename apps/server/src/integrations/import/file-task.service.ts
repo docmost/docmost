@@ -3,7 +3,7 @@ import * as path from 'path';
 import { jsonToText } from '../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { extractZip, FileTaskStatus } from './file.utils';
+import { cleanUrlString, extractZip, FileTaskStatus } from './file.utils';
 import { StorageService } from '../storage/storage.service';
 import * as tmp from 'tmp-promise';
 import { pipeline } from 'node:stream/promises';
@@ -117,14 +117,17 @@ export class FileTaskService {
       const ext = path.extname(relPath).toLowerCase();
       let content = await fs.readFile(absPath, 'utf-8');
 
+      console.log('relative path: ', relPath, ' abs path: ', absPath);
+
       if (ext.toLowerCase() === '.html' || ext.toLowerCase() === '.md') {
-        // rewrite local asset references
+        // we want to process all inputs as markr
         if (ext === '.md') {
           content = await markdownToHtml(content);
         }
 
         content = await this.rewriteLocalFilesInHtml({
           html: content,
+          pageRelativePath: relPath,
           extractDir,
           pageId: v7(),
           fileTask,
@@ -201,6 +204,8 @@ export class FileTaskService {
           fileTask.creatorId,
         );
 
+        console.log(htmlContent);
+
         const pmState = getProsemirrorContent(
           await this.importService.processHTML(htmlContent),
         );
@@ -227,6 +232,10 @@ export class FileTaskService {
 
     try {
       await this.db.insertInto('pages').values(insertablePages).execute();
+      //todo: avoid duplicates
+      // log success
+      // backlinks mapping
+      // handle svg diagram nodes
     } catch (e) {
       console.error(e);
     }
@@ -234,12 +243,20 @@ export class FileTaskService {
 
   async rewriteLocalFilesInHtml(opts: {
     html: string;
+    pageRelativePath: string;
     extractDir: string;
     pageId: string;
     fileTask: FileTask;
     attachmentCandidates: Map<string, string>;
   }): Promise<string> {
-    const { html, extractDir, pageId, fileTask, attachmentCandidates } = opts;
+    const {
+      html,
+      pageRelativePath,
+      extractDir,
+      pageId,
+      fileTask,
+      attachmentCandidates,
+    } = opts;
 
     const window = new Window();
     const doc = window.document;
@@ -252,22 +269,19 @@ export class FileTaskService {
       const attachmentId = v7();
       const ext = path.extname(abs);
 
-      const fileName = sanitizeFileName(path.basename(abs, ext));
       const fileNameWithExt =
         sanitizeFileName(path.basename(abs, ext)) + ext.toLowerCase();
 
       const storageFilePath = `${getAttachmentFolderPath(AttachmentType.File, fileTask.workspaceId)}/${attachmentId}/${fileNameWithExt}`;
 
       const apiFilePath = `/api/files/${attachmentId}/${fileNameWithExt}`;
-      // console.log('file Path:', apiFilePath, ' and ', storageFilePath);
-
-      console.log(storageFilePath);
 
       tasks.push(
         (async () => {
           const fileStream = createReadStream(abs);
           await this.storageService.uploadStream(storageFilePath, fileStream);
           const stat = await fs.stat(abs);
+
           const uploaded = await this.db
             .insertInto('attachments')
             .values({
@@ -275,7 +289,8 @@ export class FileTaskService {
               filePath: storageFilePath,
               fileName: fileNameWithExt,
               fileSize: stat.size,
-              mimeType: getMimeType(ext),
+              mimeType: getMimeType(fileNameWithExt),
+              type: 'file',
               fileExt: ext,
               creatorId: fileTask.creatorId,
               workspaceId: fileTask.workspaceId,
@@ -288,7 +303,6 @@ export class FileTaskService {
         })(),
       );
 
-      console.log('upload file');
       return {
         attachmentId,
         storageFilePath,
@@ -298,46 +312,57 @@ export class FileTaskService {
       };
     };
 
-    // rewrite <img>
+    const pageDir = path.dirname(pageRelativePath);
+
     for (const img of Array.from(doc.getElementsByTagName('img'))) {
-      const src = img.getAttribute('src') ?? '';
-      if (!src || src.startsWith('http') || src.startsWith('/api/files/'))
-        continue;
-      const rel = src.replace(/^\.\/?/, '');
-      if (!attachmentCandidates.has(rel)) continue;
+      const src = cleanUrlString(img.getAttribute('src')) ?? '';
+      if (!src || src.startsWith('http')) continue;
 
-      const {
-        attachmentId,
-        storageFilePath,
-        apiFilePath,
-        fileNameWithExt,
-        abs,
-      } = processFile(rel);
+      const relPath = this.resolveRelativeAttachmentPath(
+        src,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
 
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
+
+      const width = img.getAttribute('width') || '100%';
+      const align = img.getAttribute('data-align') || 'center';
+
       img.setAttribute('src', apiFilePath);
       img.setAttribute('data-attachment-id', attachmentId);
       img.setAttribute('data-size', stat.size.toString());
-      img.setAttribute('width', '100%');
-      img.setAttribute('data-align', 'center');
+      img.setAttribute('width', width);
+      img.setAttribute('data-align', align);
 
       this.unwrapFromParagraph(img);
     }
 
     // rewrite <video>
     for (const vid of Array.from(doc.getElementsByTagName('video'))) {
-      const src = vid.getAttribute('src') ?? '';
-      if (!src || src.startsWith('http') || src.startsWith('/api/files/'))
-        continue;
-      const rel = src.replace(/^\.\/?/, '');
-      if (!attachmentCandidates.has(rel)) continue;
-      const { attachmentId, apiFilePath, abs } = processFile(rel);
+      const src = cleanUrlString(vid.getAttribute('src')) ?? '';
+      if (!src || src.startsWith('http')) continue;
+
+      const relPath = this.resolveRelativeAttachmentPath(
+        src,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
+
+      const width = vid.getAttribute('width') || '100%';
+      const align = vid.getAttribute('data-align') || 'center';
+
       vid.setAttribute('src', apiFilePath);
       vid.setAttribute('data-attachment-id', attachmentId);
       vid.setAttribute('data-size', stat.size.toString());
-      vid.setAttribute('width', '100%');
-      vid.setAttribute('data-align', 'center');
+      vid.setAttribute('width', width);
+      vid.setAttribute('data-align', align);
 
       // @ts-ignore
       this.unwrapFromParagraph(vid);
@@ -345,31 +370,116 @@ export class FileTaskService {
 
     // rewrite other attachments via <a>
     for (const a of Array.from(doc.getElementsByTagName('a'))) {
-      const href = a.getAttribute('href') ?? '';
-      if (!href || href.startsWith('http') || href.startsWith('/api/files/'))
-        continue;
-      const rel = href.replace(/^\.\/?/, '');
-      if (!attachmentCandidates.has(rel)) continue;
+      const href = cleanUrlString(a.getAttribute('href')) ?? '';
+      if (!href || href.startsWith('http')) continue;
 
-      const { attachmentId, apiFilePath, abs } = processFile(rel);
+      const relPath = this.resolveRelativeAttachmentPath(
+        href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
+      const ext = path.extname(relPath).toLowerCase();
+
+      if (ext === '.mp4') {
+        const video = doc.createElement('video');
+        video.setAttribute('src', apiFilePath);
+        video.setAttribute('data-attachment-id', attachmentId);
+        video.setAttribute('data-size', stat.size.toString());
+        video.setAttribute('width', '100%');
+        video.setAttribute('data-align', 'center');
+
+        a.replaceWith(video);
+        // @ts-ignore
+        this.unwrapFromParagraph(video);
+      } else {
+        const div = doc.createElement('div') as HDElement;
+        div.setAttribute('data-type', 'attachment');
+        div.setAttribute('data-attachment-url', apiFilePath);
+        div.setAttribute('data-attachment-name', path.basename(abs));
+        div.setAttribute('data-attachment-mime', getMimeType(abs));
+        div.setAttribute('data-attachment-size', stat.size.toString());
+        div.setAttribute('data-attachment-id', attachmentId);
+
+        a.replaceWith(div);
+        this.unwrapFromParagraph(div);
+      }
+    }
+
+    const attachmentDivs = Array.from(
+      doc.querySelectorAll('div[data-type="attachment"]'),
+    );
+    for (const oldDiv of attachmentDivs) {
+      const rawUrl =
+        cleanUrlString(oldDiv.getAttribute('data-attachment-url')) ?? '';
+      if (!rawUrl || rawUrl.startsWith('http')) continue;
+
+      const relPath = this.resolveRelativeAttachmentPath(
+        rawUrl,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
+      const stat = await fs.stat(abs);
+      const fileName = path.basename(abs);
+      const mime = getMimeType(abs);
 
       const div = doc.createElement('div') as HDElement;
       div.setAttribute('data-type', 'attachment');
       div.setAttribute('data-attachment-url', apiFilePath);
-      div.setAttribute('data-attachment-name', path.basename(abs));
-      div.setAttribute('data-attachment-mime', getMimeType(abs));
+      div.setAttribute('data-attachment-name', fileName);
+      div.setAttribute('data-attachment-mime', mime);
       div.setAttribute('data-attachment-size', stat.size.toString());
       div.setAttribute('data-attachment-id', attachmentId);
 
-      a.replaceWith(div);
+      oldDiv.replaceWith(div);
       this.unwrapFromParagraph(div);
+    }
+
+    for (const type of ['excalidraw', 'drawio'] as const) {
+      const selector = `div[data-type="${type}"]`;
+      const oldDivs = Array.from(doc.querySelectorAll(selector));
+
+      for (const oldDiv of oldDivs) {
+        const rawSrc = cleanUrlString(oldDiv.getAttribute('data-src')) ?? '';
+        if (!rawSrc || rawSrc.startsWith('http')) continue;
+
+        const relPath = this.resolveRelativeAttachmentPath(
+          rawSrc,
+          pageDir,
+          attachmentCandidates,
+        );
+        if (!relPath) continue;
+
+        const { attachmentId, apiFilePath, abs } = processFile(relPath);
+        const stat = await fs.stat(abs);
+        const fileName = path.basename(abs);
+
+        const width = oldDiv.getAttribute('data-width') || '100%';
+        const align = oldDiv.getAttribute('data-align') || 'center';
+
+        const newDiv = doc.createElement('div') as HDElement;
+        newDiv.setAttribute('data-type', type);
+        newDiv.setAttribute('data-src', apiFilePath);
+        newDiv.setAttribute('data-title', fileName);
+        newDiv.setAttribute('data-width', width);
+        newDiv.setAttribute('data-size', stat.size.toString());
+        newDiv.setAttribute('data-align', align);
+        newDiv.setAttribute('data-attachment-id', attachmentId);
+
+        oldDiv.replaceWith(newDiv);
+        this.unwrapFromParagraph(newDiv);
+      }
     }
 
     // wait for all uploads & DB inserts
     await Promise.all(tasks);
 
-    // serialize back to HTML
     return doc.documentElement.outerHTML;
   }
 
@@ -393,20 +503,16 @@ export class FileTaskService {
       const rawHref = a.getAttribute('href');
       if (!rawHref) continue;
 
-      // 1) skip absolute/external URLs
+      // skip absolute/external URLs
       if (rawHref.startsWith('http') || rawHref.startsWith('/api/')) {
         continue;
       }
 
-      const decoded = decodeURIComponent(rawHref);
-
-      // 3) resolve "../Main Page.md" relative to the current file
-      //    path.dirname might be "" for root-level pages
+      const decodedRef = decodeURIComponent(rawHref);
       const parentDir = path.dirname(currentFilePath);
-      const joined = path.join(parentDir, decoded);
+      const joined = path.join(parentDir, decodedRef);
       const resolved = normalize(joined);
 
-      // 4) look up in your map
       const pageMeta = filePathToPageMetaMap.get(resolved);
       if (!pageMeta) {
         // not an internal link we know about
@@ -430,15 +536,16 @@ export class FileTaskService {
   }
 
   unwrapFromParagraph(node: HDElement) {
-    const parent = node.parentNode as HDElement;
-    if (parent && parent.tagName === 'P') {
-      if (parent.childNodes.length === 1) {
-        // <p><node></node></p>  →  <node>
-        parent.replaceWith(node);
+    let wrapper = node.closest('p, a') as HDElement | null;
+
+    while (wrapper) {
+      if (wrapper.childNodes.length === 1) {
+        // e.g. <p><node/></p> or <a><node/></a> → <node/>
+        wrapper.replaceWith(node);
       } else {
-        // mixed content: move node out, leave the rest of the <p> intact
-        parent.parentNode!.insertBefore(node, parent);
+        wrapper.parentNode!.insertBefore(node, wrapper);
       }
+      wrapper = node.closest('p, a') as HDElement | null;
     }
   }
 
@@ -452,12 +559,16 @@ export class FileTaskService {
         if (ent.isDirectory()) {
           await walk(abs);
         } else {
+          if (['.md', '.html'].includes(path.extname(ent.name).toLowerCase())) {
+            continue;
+          }
+
           const rel = path.relative(extractDir, abs).split(path.sep).join('/');
-          console.log(abs)
           map.set(rel, abs);
         }
       }
     }
+
     await walk(extractDir);
     return map;
   }
@@ -481,6 +592,23 @@ export class FileTaskService {
 
     await walk(dir);
     return results;
+  }
+
+  resolveRelativeAttachmentPath(
+    raw: string,
+    pageDir: string,
+    attachmentCandidates: Map<string, string>,
+  ): string | null {
+    const mainRel = decodeURIComponent(raw.replace(/^\.?\/+/, ''));
+    const fallback = path.normalize(path.join(pageDir, mainRel));
+
+    if (attachmentCandidates.has(mainRel)) {
+      return mainRel;
+    }
+    if (attachmentCandidates.has(fallback)) {
+      return fallback;
+    }
+    return null;
   }
 
   async updateTaskStatus(fileTaskId: string, status: FileTaskStatus) {

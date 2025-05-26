@@ -87,3 +87,8 @@ export function extractZip(source: string, target: string) {
     );
   });
 }
+
+export function cleanUrlString(url: string): string {
+  const [maybePath] = url.split('?', 1);
+  return maybePath;
+}
