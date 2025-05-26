@@ -28,6 +28,8 @@ import { markdownToHtml } from '@docmost/editor-ext';
 import { getAttachmentFolderPath } from '../../core/attachment/attachment.utils';
 import { AttachmentType } from '../../core/attachment/attachment.constants';
 import { getProsemirrorContent } from '../../common/helpers/prosemirror/utils';
+import { not } from 'rxjs/internal/util/not';
+import { notionFormatter } from './import-formatter';
 
 @Injectable()
 export class FileTaskService {
@@ -125,6 +127,8 @@ export class FileTaskService {
           content = await markdownToHtml(content);
         }
 
+        //content = this.stripAllStyles(content)
+
         content = await this.rewriteLocalFilesInHtml({
           html: content,
           pageRelativePath: relPath,
@@ -204,10 +208,8 @@ export class FileTaskService {
           fileTask.creatorId,
         );
 
-        console.log(htmlContent);
-
         const pmState = getProsemirrorContent(
-          await this.importService.processHTML(htmlContent),
+          await this.importService.processHTML(notionFormatter(htmlContent)),
         );
 
         const { title, prosemirrorJson } =
