@@ -35,15 +35,11 @@ export function getFileTaskFolderPath(
 /**
  * Extracts a ZIP archive.
  */
-export async function extractZip(source: string, target: string): Promise<void> {
-  const logFinal = createMemoryTracker();
-  try {
-    await extractZipInternal(source, target, true);
-    logFinal('end');
-  } catch (err) {
-    logFinal('error');
-    throw err;
-  }
+export async function extractZip(
+  source: string,
+  target: string,
+): Promise<void> {
+  await extractZipInternal(source, target, true);
 }
 
 /**
