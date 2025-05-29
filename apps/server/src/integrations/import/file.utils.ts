@@ -32,8 +32,31 @@ export function getFileTaskFolderPath(
   }
 }
 
-export function extractZip(source: string, target: string) {
-  //https://github.com/Surfer-Org
+/**
+ * Extracts a ZIP archive.
+ */
+export async function extractZip(source: string, target: string): Promise<void> {
+  const logFinal = createMemoryTracker();
+  try {
+    await extractZipInternal(source, target, true);
+    logFinal('end');
+  } catch (err) {
+    logFinal('error');
+    throw err;
+  }
+}
+
+/**
+ * Internal helper to extract a ZIP, with optional single-nested-ZIP handling.
+ * @param source   Path to the ZIP file
+ * @param target   Directory to extract into
+ * @param allowNested  Whether to check and unwrap one level of nested ZIP
+ */
+function extractZipInternal(
+  source: string,
+  target: string,
+  allowNested: boolean,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     yauzl.open(
       source,
@@ -41,54 +64,128 @@ export function extractZip(source: string, target: string) {
       (err, zipfile) => {
         if (err) return reject(err);
 
+        // Handle one level of nested ZIP if allowed
+        if (allowNested && zipfile.entryCount === 1) {
+          zipfile.readEntry();
+          zipfile.once('entry', (entry) => {
+            const name = entry.fileName.toString('utf8').replace(/^\/+/, '');
+            const isZip =
+              !/\/$/.test(entry.fileName) &&
+              name.toLowerCase().endsWith('.zip');
+            if (isZip) {
+              const nestedPath = source.endsWith('.zip')
+                ? source.slice(0, -4) + '.inner.zip'
+                : source + '.inner.zip';
+
+              zipfile.openReadStream(entry, (openErr, rs) => {
+                if (openErr) return reject(openErr);
+                const ws = fs.createWriteStream(nestedPath);
+                rs.on('error', reject);
+                ws.on('error', reject);
+                ws.on('finish', () => {
+                  zipfile.close();
+                  extractZipInternal(nestedPath, target, false)
+                    .then(() => {
+                      fs.unlinkSync(nestedPath);
+                      resolve();
+                    })
+                    .catch(reject);
+                });
+                rs.pipe(ws);
+              });
+            } else {
+              zipfile.close();
+              extractZipInternal(source, target, false).then(resolve, reject);
+            }
+          });
+          zipfile.once('error', reject);
+          return;
+        }
+
+        // Normal extraction
         zipfile.readEntry();
         zipfile.on('entry', (entry) => {
-          const name = entry.fileName.toString('utf8'); // or 'cp437' if you need the original DOS charset
-          const safeName = name.replace(/^\/+/, ''); // strip any leading slashes
-
-          const fullPath = path.join(target, safeName);
-          const directory = path.dirname(fullPath);
-
-          // <-- skip all macOS metadata
-          if (safeName.startsWith('__MACOSX/')) {
-            return zipfile.readEntry();
+          const name = entry.fileName.toString('utf8');
+          const safe = name.replace(/^\/+/, '');
+          if (safe.startsWith('__MACOSX/')) {
+            zipfile.readEntry();
+            return;
           }
 
-          if (/\/$/.test(entry.fileName)) {
-            // Directory entry
+          const fullPath = path.join(target, safe);
+
+          // Handle directories
+          if (/\/$/.test(name)) {
             try {
               fs.mkdirSync(fullPath, { recursive: true });
-              zipfile.readEntry();
-            } catch (err) {
-              reject(err);
+            } catch (mkdirErr: any) {
+              if (mkdirErr.code === 'ENAMETOOLONG') {
+                console.warn(`Skipping directory (path too long): ${fullPath}`);
+                zipfile.readEntry();
+                return;
+              }
+              return reject(mkdirErr);
             }
-          } else {
-            // File entry
-            try {
-              fs.mkdirSync(directory, { recursive: true });
-              zipfile.openReadStream(entry, (err, readStream) => {
-                if (err) return reject(err);
-                const writeStream = fs.createWriteStream(fullPath);
-                readStream.on('end', () => {
-                  writeStream.end();
-                  zipfile.readEntry();
-                });
-                readStream.pipe(writeStream);
-              });
-            } catch (err) {
-              reject(err);
-            }
+            zipfile.readEntry();
+            return;
           }
+
+          // Handle files
+          try {
+            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+          } catch (mkdirErr: any) {
+            if (mkdirErr.code === 'ENAMETOOLONG') {
+              console.warn(
+                `Skipping file directory creation (path too long): ${fullPath}`,
+              );
+              zipfile.readEntry();
+              return;
+            }
+            return reject(mkdirErr);
+          }
+
+          zipfile.openReadStream(entry, (openErr, rs) => {
+            if (openErr) return reject(openErr);
+
+            let ws: fs.WriteStream;
+            try {
+              ws = fs.createWriteStream(fullPath);
+            } catch (openWsErr: any) {
+              if (openWsErr.code === 'ENAMETOOLONG') {
+                console.warn(
+                  `Skipping file write (path too long): ${fullPath}`,
+                );
+                zipfile.readEntry();
+                return;
+              }
+              return reject(openWsErr);
+            }
+
+            rs.on('error', (err) => reject(err));
+            ws.on('error', (err) => {
+              if ((err as any).code === 'ENAMETOOLONG') {
+                console.warn(
+                  `Skipping file write on stream (path too long): ${fullPath}`,
+                );
+                zipfile.readEntry();
+              } else {
+                reject(err);
+              }
+            });
+            ws.on('finish', () => zipfile.readEntry());
+            rs.pipe(ws);
+          });
         });
 
-        zipfile.on('end', resolve);
-        zipfile.on('error', reject);
+        zipfile.on('end', () => resolve());
+        zipfile.on('error', (err) => reject(err));
       },
     );
   });
 }
 
 export function cleanUrlString(url: string): string {
-  const [maybePath] = url.split('?', 1);
-  return maybePath;
+  if (!url) return null;
+  const [mainUrl] = url.split('?', 1);
+  return mainUrl;
 }

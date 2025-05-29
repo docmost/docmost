@@ -1,6 +1,13 @@
-import { Window } from 'happy-dom';
-import { cleanUrlString } from './file.utils';
+import {
+  Window,
+  HTMLAnchorElement,
+  HTMLIFrameElement,
+  Element as HDElement,
+} from 'happy-dom';
 import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
+import * as path from 'path';
+import { v7 } from 'uuid';
+import { InsertableBacklink } from '@docmost/db/types/entity.types';
 
 export function formatImportHtml(html: string) {
   const pmHtml = notionFormatter(html);
@@ -14,23 +21,41 @@ export function defaultHtmlFormatter(html: string): string {
 
   // embed providers
   const anchors = Array.from(doc.getElementsByTagName('a'));
-  for (const a of anchors) {
-    const href = cleanUrlString(a.getAttribute('href')) ?? '';
-    if (!href) continue;
+  for (const node of anchors) {
+    const url = (node as HTMLAnchorElement).href;
+    if (!url) continue;
 
-    const embedProvider = getEmbedUrlAndProvider(href);
+    const embedProvider = getEmbedUrlAndProvider(url);
+    // we only want to embed valid matches
+    if (embedProvider.provider === 'iframe') continue;
 
-    if (embedProvider) {
-      const embed = doc.createElement('div');
-      embed.setAttribute('data-type', 'embed');
-      embed.setAttribute('data-src', href);
-      embed.setAttribute('data-provider', embedProvider.provider);
-      embed.setAttribute('data-align', 'center');
-      embed.setAttribute('data-width', '640');
-      embed.setAttribute('data-height', '480');
+    const embed = doc.createElement('div');
+    embed.setAttribute('data-type', 'embed');
+    embed.setAttribute('data-src', url);
+    embed.setAttribute('data-provider', embedProvider.provider);
+    embed.setAttribute('data-align', 'center');
+    embed.setAttribute('data-width', '640');
+    embed.setAttribute('data-height', '480');
 
-      a.replaceWith(embed);
-    }
+    node.replaceWith(embed);
+  }
+
+  // embed providers
+  const iframes = Array.from(doc.getElementsByTagName('iframe'));
+  for (const iframe of iframes) {
+    const url = (iframe as HTMLIFrameElement).src;
+    if (!url) continue;
+
+    const embedProvider = getEmbedUrlAndProvider(url);
+    const embed = doc.createElement('div');
+    embed.setAttribute('data-type', 'embed');
+    embed.setAttribute('data-src', url);
+    embed.setAttribute('data-provider', embedProvider.provider);
+    embed.setAttribute('data-align', 'center');
+    embed.setAttribute('data-width', '640');
+    embed.setAttribute('data-height', '480');
+
+    iframe.replaceWith(embed);
   }
 
   return doc.body.innerHTML;
@@ -167,4 +192,79 @@ export function notionFormatter(html: string): string {
     }
   }
   return doc.body.innerHTML;
+}
+
+export function unwrapFromParagraph(node: HDElement) {
+  let wrapper = node.closest('p, a') as HDElement | null;
+
+  while (wrapper) {
+    if (wrapper.childNodes.length === 1) {
+      // e.g. <p><node/></p> or <a><node/></a> → <node/>
+      wrapper.replaceWith(node);
+    } else {
+      wrapper.parentNode!.insertBefore(node, wrapper);
+    }
+    wrapper = node.closest('p, a') as HDElement | null;
+  }
+}
+
+export async function rewriteInternalLinksToMentionHtml(
+  html: string,
+  currentFilePath: string,
+  filePathToPageMetaMap: Map<
+    string,
+    { id: string; title: string; slugId: string }
+  >,
+  creatorId: string,
+  sourcePageId: string,
+  workspaceId: string,
+): Promise<{ html: string; backlinks: InsertableBacklink[] }> {
+  const window = new Window();
+  const doc = window.document;
+  doc.body.innerHTML = html;
+
+  // normalize helper
+  const normalize = (p: string) => p.replace(/\\/g, '/');
+
+  const backlinks: InsertableBacklink[] = [];
+
+  for (const a of Array.from(doc.getElementsByTagName('a'))) {
+    const rawHref = a.getAttribute('href');
+    if (!rawHref) continue;
+
+    // skip absolute/external URLs
+    if (rawHref.startsWith('http') || rawHref.startsWith('/api/')) {
+      continue;
+    }
+
+    const decodedRef = decodeURIComponent(rawHref);
+    const parentDir = path.dirname(currentFilePath);
+    const joined = path.join(parentDir, decodedRef);
+    const resolved = normalize(joined);
+
+    const pageMeta = filePathToPageMetaMap.get(resolved);
+    if (!pageMeta) {
+      continue;
+    }
+
+    const mentionEl = doc.createElement('span') as HDElement;
+    mentionEl.setAttribute('data-type', 'mention');
+    mentionEl.setAttribute('data-id', v7());
+    mentionEl.setAttribute('data-entity-type', 'page');
+    mentionEl.setAttribute('data-entity-id', pageMeta.id);
+    mentionEl.setAttribute('data-label', pageMeta.title);
+    mentionEl.setAttribute('data-slug-id', pageMeta.slugId);
+    mentionEl.setAttribute('data-creator-id', creatorId);
+    mentionEl.textContent = pageMeta.title;
+
+    a.replaceWith(mentionEl);
+
+    backlinks.push({
+      sourcePageId,
+      targetPageId: pageMeta.id,
+      workspaceId: workspaceId,
+    });
+  }
+
+  return { html: doc.body.innerHTML, backlinks };
 }
