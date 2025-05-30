@@ -14,7 +14,6 @@ export enum FileImportType {
 }
 
 export enum FileTaskStatus {
-  Pending = 'pending',
   Processing = 'processing',
   Success = 'success',
   Failed = 'failed',

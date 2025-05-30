@@ -7,10 +7,10 @@ import {
   htmlToJson,
   jsonToText,
   tiptapExtensions,
-} from '../../collaboration/collaboration.util';
+} from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { generateSlugId } from '../../common/helpers';
+import { generateSlugId } from '../../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
@@ -19,15 +19,16 @@ import {
   FileTaskStatus,
   FileTaskType,
   getFileTaskFolderPath,
-} from './file.utils';
+} from '../utils/file.utils';
 import { v7, v7 as uuid7 } from 'uuid';
-import { StorageService } from '../storage/storage.service';
+import { StorageService } from '../../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QueueJob, QueueName } from '../queue/constants';
+import { QueueJob, QueueName } from '../../queue/constants';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, Transaction } from '@tiptap/pm/state';
 import { getSchema } from '@tiptap/core';
+import { FileTask } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class ImportService {
@@ -199,13 +200,14 @@ export class ImportService {
     userId: string,
     spaceId: string,
     workspaceId: string,
-  ): Promise<void> {
+  ) {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
     const fileName = sanitize(
       path.basename(file.filename, fileExtension).slice(0, 255),
     );
+    const fileSize = fileBuffer.length;
 
     const fileTaskId = uuid7();
     const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileName}`;
@@ -213,36 +215,29 @@ export class ImportService {
     // upload file
     await this.storageService.upload(filePath, fileBuffer);
 
-    // store in fileTasks table
-    await this.db
+    const fileTask = await this.db
       .insertInto('fileTasks')
       .values({
         id: fileTaskId,
         type: FileTaskType.Import,
         source: source,
-        status: FileTaskStatus.Pending,
+        status: FileTaskStatus.Processing,
         fileName: fileName,
         filePath: filePath,
-        fileSize: 0,
+        fileSize: fileSize,
         fileExt: 'zip',
         creatorId: userId,
         spaceId: spaceId,
         workspaceId: workspaceId,
       })
+      .returningAll()
       .execute();
 
-    // what to send to queue
-    // pass the task ID
     await this.fileTaskQueue.add(QueueJob.IMPORT_TASK, {
       fileTaskId: fileTaskId,
     });
-    // return tasks info
 
-    // when the processor picks it up
-    // we change the status to processing
-    // if it gets processed successfully,
-    // we change the status to success
-    // else failed
+    return fileTask;
   }
 
   async markdownOrHtmlToProsemirror(

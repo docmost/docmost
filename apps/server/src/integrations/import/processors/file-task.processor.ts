@@ -2,7 +2,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
-import { FileTaskService } from '../file-task.service';
+import { FileTaskService } from '../services/file-task.service';
 
 @Processor(QueueName.FILE_TASK_QUEUE)
 export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
