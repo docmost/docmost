@@ -18,17 +18,19 @@ import {
 import { v7 } from 'uuid';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { FileTask, InsertablePage } from '@docmost/db/types/entity.types';
-import {
-  DOMParser,
-  Node as HDNode,
-  Element as HDElement,
-  Window,
-} from 'happy-dom';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { getAttachmentFolderPath } from '../../core/attachment/attachment.utils';
 import { AttachmentType } from '../../core/attachment/attachment.constants';
 import { getProsemirrorContent } from '../../common/helpers/prosemirror/utils';
-import { formatImportHtml, notionFormatter } from './import-formatter';
+import { formatImportHtml, unwrapFromParagraph } from './import-formatter';
+import {
+  buildAttachmentCandidates,
+  collectMarkdownAndHtmlFiles,
+  resolveRelativeAttachmentPath,
+} from './import.utils';
+import { executeTx } from '@docmost/db/utils';
+import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
+import { load } from 'cheerio';
 
 @Injectable()
 export class FileTaskService {
@@ -37,6 +39,7 @@ export class FileTaskService {
   constructor(
     private readonly storageService: StorageService,
     private readonly importService: ImportService,
+    private readonly backlinkRepo: BacklinkRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -48,7 +51,12 @@ export class FileTaskService {
       .executeTakeFirst();
 
     if (!fileTask) {
-      this.logger.log(`File task with ID ${fileTaskId} not found`);
+      this.logger.log(`Import file task with ID ${fileTaskId} not found`);
+      return;
+    }
+
+    if (fileTask.status === FileTaskStatus.Success) {
+      this.logger.log('Imported task already processed.');
       return;
     }
 
@@ -68,15 +76,27 @@ export class FileTaskService {
 
     await extractZip(tmpZipPath, tmpExtractDir);
 
-    // TODO: backlinks
     try {
       await this.updateTaskStatus(fileTaskId, FileTaskStatus.Processing);
       // if type == generic
-      await this.processGenericImport({ extractDir: tmpExtractDir, fileTask });
+      if (fileTask.source === 'generic') {
+        await this.processGenericImport({
+          extractDir: tmpExtractDir,
+          fileTask,
+        });
+      }
+
+      /*
+      if (fileTask.source === 'confluence') {
+        await this.processConfluenceImport({
+          extractDir: tmpExtractDir,
+          fileTask,
+        });
+      }*/
       await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success);
     } catch (error) {
       await this.updateTaskStatus(fileTaskId, FileTaskStatus.Failed);
-      console.error(error);
+      this.logger.error(error);
     } finally {
       await cleanupTmpFile();
       await cleanupTmpDir();
@@ -88,12 +108,8 @@ export class FileTaskService {
     fileTask: FileTask;
   }): Promise<void> {
     const { extractDir, fileTask } = opts;
-
-    const allFiles = await this.collectMarkdownAndHtmlFiles(extractDir);
-    const attachmentCandidates =
-      await this.buildAttachmentCandidates(extractDir);
-
-    console.log('attachment count: ', attachmentCandidates.size);
+    const allFiles = await collectMarkdownAndHtmlFiles(extractDir);
+    const attachmentCandidates = await buildAttachmentCandidates(extractDir);
 
     const pagesMap = new Map<
       string,
@@ -117,22 +133,8 @@ export class FileTaskService {
       const ext = path.extname(relPath).toLowerCase();
       let content = await fs.readFile(absPath, 'utf-8');
 
-      console.log('relative path: ', relPath, ' abs path: ', absPath);
-
-      if (ext.toLowerCase() === '.html' || ext.toLowerCase() === '.md') {
-        // we want to process all inputs as markr
-        if (ext === '.md') {
-          content = await markdownToHtml(content);
-        }
-
-        content = await this.rewriteLocalFilesInHtml({
-          html: content,
-          pageRelativePath: relPath,
-          extractDir,
-          pageId: v7(),
-          fileTask,
-          attachmentCandidates,
-        });
+      if (ext.toLowerCase() === '.md') {
+        content = await markdownToHtml(content);
       }
 
       pagesMap.set(relPath, {
@@ -195,23 +197,34 @@ export class FileTaskService {
       });
     });
 
-    const insertablePages: InsertablePage[] = await Promise.all(
+    const pageResults = await Promise.all(
       Array.from(pagesMap.values()).map(async (page) => {
-        const htmlContent = await this.rewriteInternalLinksToMentionHtml(
-          page.content,
-          page.filePath,
-          filePathToPageMetaMap,
-          fileTask.creatorId,
-        );
+        const htmlContent = await this.rewriteLocalFilesInHtml({
+          html: page.content,
+          pageRelativePath: page.filePath,
+          extractDir,
+          pageId: page.id,
+          fileTask,
+          attachmentCandidates,
+        });
+
+        const { html, backlinks } = await formatImportHtml({
+          html: htmlContent,
+          currentFilePath: page.filePath,
+          filePathToPageMetaMap: filePathToPageMetaMap,
+          creatorId: fileTask.creatorId,
+          sourcePageId: page.id,
+          workspaceId: fileTask.workspaceId,
+        });
 
         const pmState = getProsemirrorContent(
-          await this.importService.processHTML(formatImportHtml(htmlContent)),
+          await this.importService.processHTML(html),
         );
 
         const { title, prosemirrorJson } =
           this.importService.extractTitleAndRemoveHeading(pmState);
 
-        return {
+        const insertablePage: InsertablePage = {
           id: page.id,
           slugId: page.slugId,
           title: title || page.name,
@@ -225,18 +238,28 @@ export class FileTaskService {
           lastUpdatedById: fileTask.creatorId,
           parentPageId: page.parentPageId,
         };
+
+        return { insertablePage, backlinks };
       }),
     );
 
-    try {
-      await this.db.insertInto('pages').values(insertablePages).execute();
-      //todo: avoid duplicates
-      // log success
-      // backlinks mapping
-      // handle svg diagram nodes
-    } catch (e) {
-      console.error(e);
-    }
+    const insertablePages = pageResults.map((r) => r.insertablePage);
+    const insertableBacklinks = pageResults.flatMap((r) => r.backlinks);
+
+    if (insertablePages.length < 1) return;
+    const validPageIds = new Set(insertablePages.map((row) => row.id));
+    const filteredBacklinks = insertableBacklinks.filter(
+      ({ sourcePageId, targetPageId }) =>
+        validPageIds.has(sourcePageId) && validPageIds.has(targetPageId),
+    );
+
+    await executeTx(this.db, async (trx) => {
+      await trx.insertInto('pages').values(insertablePages).execute();
+
+      if (filteredBacklinks.length > 0) {
+        await this.backlinkRepo.insertBacklink(filteredBacklinks, trx);
+      }
+    });
   }
 
   async rewriteLocalFilesInHtml(opts: {
@@ -256,11 +279,7 @@ export class FileTaskService {
       attachmentCandidates,
     } = opts;
 
-    const window = new Window();
-    const doc = window.document;
-    doc.body.innerHTML = html;
-
-    const tasks: Promise<void>[] = [];
+    const attachmentTasks: Promise<void>[] = [];
 
     const processFile = (relPath: string) => {
       const abs = attachmentCandidates.get(relPath)!;
@@ -274,13 +293,13 @@ export class FileTaskService {
 
       const apiFilePath = `/api/files/${attachmentId}/${fileNameWithExt}`;
 
-      tasks.push(
+      attachmentTasks.push(
         (async () => {
           const fileStream = createReadStream(abs);
           await this.storageService.uploadStream(storageFilePath, fileStream);
           const stat = await fs.stat(abs);
 
-          const uploaded = await this.db
+          await this.db
             .insertInto('attachments')
             .values({
               id: attachmentId,
@@ -295,9 +314,7 @@ export class FileTaskService {
               pageId,
               spaceId: fileTask.spaceId,
             })
-            .returningAll()
             .execute();
-          console.log(uploaded);
         })(),
       );
 
@@ -311,12 +328,15 @@ export class FileTaskService {
     };
 
     const pageDir = path.dirname(pageRelativePath);
+    const $ = load(html);
 
-    for (const img of Array.from(doc.getElementsByTagName('img'))) {
-      const src = cleanUrlString(img.getAttribute('src')) ?? '';
+    // image
+    for (const imgEl of $('img').toArray()) {
+      const $img = $(imgEl);
+      const src = cleanUrlString($img.attr('src') ?? '')!;
       if (!src || src.startsWith('http')) continue;
 
-      const relPath = this.resolveRelativeAttachmentPath(
+      const relPath = resolveRelativeAttachmentPath(
         src,
         pageDir,
         attachmentCandidates,
@@ -326,24 +346,26 @@ export class FileTaskService {
       const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
 
-      const width = img.getAttribute('width') || '100%';
-      const align = img.getAttribute('data-align') || 'center';
+      const width = $img.attr('width') ?? '100%';
+      const align = $img.attr('data-align') ?? 'center';
 
-      img.setAttribute('src', apiFilePath);
-      img.setAttribute('data-attachment-id', attachmentId);
-      img.setAttribute('data-size', stat.size.toString());
-      img.setAttribute('width', width);
-      img.setAttribute('data-align', align);
+      $img
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId)
+        .attr('data-size', stat.size.toString())
+        .attr('width', width)
+        .attr('data-align', align);
 
-      this.unwrapFromParagraph(img);
+      unwrapFromParagraph($, $img);
     }
 
-    // rewrite <video>
-    for (const vid of Array.from(doc.getElementsByTagName('video'))) {
-      const src = cleanUrlString(vid.getAttribute('src')) ?? '';
+    // video
+    for (const vidEl of $('video').toArray()) {
+      const $vid = $(vidEl);
+      const src = cleanUrlString($vid.attr('src') ?? '')!;
       if (!src || src.startsWith('http')) continue;
 
-      const relPath = this.resolveRelativeAttachmentPath(
+      const relPath = resolveRelativeAttachmentPath(
         src,
         pageDir,
         attachmentCandidates,
@@ -353,69 +375,25 @@ export class FileTaskService {
       const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
 
-      const width = vid.getAttribute('width') || '100%';
-      const align = vid.getAttribute('data-align') || 'center';
+      const width = $vid.attr('width') ?? '100%';
+      const align = $vid.attr('data-align') ?? 'center';
 
-      vid.setAttribute('src', apiFilePath);
-      vid.setAttribute('data-attachment-id', attachmentId);
-      vid.setAttribute('data-size', stat.size.toString());
-      vid.setAttribute('width', width);
-      vid.setAttribute('data-align', align);
+      $vid
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId)
+        .attr('data-size', stat.size.toString())
+        .attr('width', width)
+        .attr('data-align', align);
 
-      // @ts-ignore
-      this.unwrapFromParagraph(vid);
+      unwrapFromParagraph($, $vid);
     }
 
-    // rewrite other attachments via <a>
-    for (const a of Array.from(doc.getElementsByTagName('a'))) {
-      const href = cleanUrlString(a.getAttribute('href')) ?? '';
-      if (!href || href.startsWith('http')) continue;
-
-      const relPath = this.resolveRelativeAttachmentPath(
-        href,
-        pageDir,
-        attachmentCandidates,
-      );
-      if (!relPath) continue;
-
-      const { attachmentId, apiFilePath, abs } = processFile(relPath);
-      const stat = await fs.stat(abs);
-      const ext = path.extname(relPath).toLowerCase();
-
-      if (ext === '.mp4') {
-        const video = doc.createElement('video');
-        video.setAttribute('src', apiFilePath);
-        video.setAttribute('data-attachment-id', attachmentId);
-        video.setAttribute('data-size', stat.size.toString());
-        video.setAttribute('width', '100%');
-        video.setAttribute('data-align', 'center');
-
-        a.replaceWith(video);
-        // @ts-ignore
-        this.unwrapFromParagraph(video);
-      } else {
-        const div = doc.createElement('div') as HDElement;
-        div.setAttribute('data-type', 'attachment');
-        div.setAttribute('data-attachment-url', apiFilePath);
-        div.setAttribute('data-attachment-name', path.basename(abs));
-        div.setAttribute('data-attachment-mime', getMimeType(abs));
-        div.setAttribute('data-attachment-size', stat.size.toString());
-        div.setAttribute('data-attachment-id', attachmentId);
-
-        a.replaceWith(div);
-        this.unwrapFromParagraph(div);
-      }
-    }
-
-    const attachmentDivs = Array.from(
-      doc.querySelectorAll('div[data-type="attachment"]'),
-    );
-    for (const oldDiv of attachmentDivs) {
-      const rawUrl =
-        cleanUrlString(oldDiv.getAttribute('data-attachment-url')) ?? '';
+    for (const el of $('div[data-type="attachment"]').toArray()) {
+      const $oldDiv = $(el);
+      const rawUrl = cleanUrlString($oldDiv.attr('data-attachment-url') ?? '')!;
       if (!rawUrl || rawUrl.startsWith('http')) continue;
 
-      const relPath = this.resolveRelativeAttachmentPath(
+      const relPath = resolveRelativeAttachmentPath(
         rawUrl,
         pageDir,
         attachmentCandidates,
@@ -427,27 +405,71 @@ export class FileTaskService {
       const fileName = path.basename(abs);
       const mime = getMimeType(abs);
 
-      const div = doc.createElement('div') as HDElement;
-      div.setAttribute('data-type', 'attachment');
-      div.setAttribute('data-attachment-url', apiFilePath);
-      div.setAttribute('data-attachment-name', fileName);
-      div.setAttribute('data-attachment-mime', mime);
-      div.setAttribute('data-attachment-size', stat.size.toString());
-      div.setAttribute('data-attachment-id', attachmentId);
+      const $newDiv = $('<div>')
+        .attr('data-type', 'attachment')
+        .attr('data-attachment-url', apiFilePath)
+        .attr('data-attachment-name', fileName)
+        .attr('data-attachment-mime', mime)
+        .attr('data-attachment-size', stat.size.toString())
+        .attr('data-attachment-id', attachmentId);
 
-      oldDiv.replaceWith(div);
-      this.unwrapFromParagraph(div);
+      $oldDiv.replaceWith($newDiv);
+      unwrapFromParagraph($, $newDiv);
     }
 
-    for (const type of ['excalidraw', 'drawio'] as const) {
-      const selector = `div[data-type="${type}"]`;
-      const oldDivs = Array.from(doc.querySelectorAll(selector));
+    // rewrite other attachments via <a>
+    for (const aEl of $('a').toArray()) {
+      const $a = $(aEl);
+      const href = cleanUrlString($a.attr('href') ?? '')!;
+      if (!href || href.startsWith('http')) continue;
 
-      for (const oldDiv of oldDivs) {
-        const rawSrc = cleanUrlString(oldDiv.getAttribute('data-src')) ?? '';
+      const relPath = resolveRelativeAttachmentPath(
+        href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
+      const stat = await fs.stat(abs);
+      const ext = path.extname(relPath).toLowerCase();
+
+      if (ext === '.mp4') {
+        const $video = $('<video>')
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId)
+          .attr('data-size', stat.size.toString())
+          .attr('width', '100%')
+          .attr('data-align', 'center');
+        $a.replaceWith($video);
+        unwrapFromParagraph($, $video);
+      } else {
+        // build attachment <div>
+        const confAliasName = $a.attr('data-linked-resource-default-alias');
+        let attachmentName = path.basename(abs);
+        if (confAliasName) attachmentName = confAliasName;
+
+        const $div = $('<div>')
+          .attr('data-type', 'attachment')
+          .attr('data-attachment-url', apiFilePath)
+          .attr('data-attachment-name', attachmentName)
+          .attr('data-attachment-mime', getMimeType(abs))
+          .attr('data-attachment-size', stat.size.toString())
+          .attr('data-attachment-id', attachmentId);
+
+        $a.replaceWith($div);
+        unwrapFromParagraph($, $div);
+      }
+    }
+
+    // excalidraw and drawio
+    for (const type of ['excalidraw', 'drawio'] as const) {
+      for (const el of $(`div[data-type="${type}"]`).toArray()) {
+        const $oldDiv = $(el);
+        const rawSrc = cleanUrlString($oldDiv.attr('data-src') ?? '')!;
         if (!rawSrc || rawSrc.startsWith('http')) continue;
 
-        const relPath = this.resolveRelativeAttachmentPath(
+        const relPath = resolveRelativeAttachmentPath(
           rawSrc,
           pageDir,
           attachmentCandidates,
@@ -458,155 +480,27 @@ export class FileTaskService {
         const stat = await fs.stat(abs);
         const fileName = path.basename(abs);
 
-        const width = oldDiv.getAttribute('data-width') || '100%';
-        const align = oldDiv.getAttribute('data-align') || 'center';
+        const width = $oldDiv.attr('data-width') || '100%';
+        const align = $oldDiv.attr('data-align') || 'center';
 
-        const newDiv = doc.createElement('div') as HDElement;
-        newDiv.setAttribute('data-type', type);
-        newDiv.setAttribute('data-src', apiFilePath);
-        newDiv.setAttribute('data-title', fileName);
-        newDiv.setAttribute('data-width', width);
-        newDiv.setAttribute('data-size', stat.size.toString());
-        newDiv.setAttribute('data-align', align);
-        newDiv.setAttribute('data-attachment-id', attachmentId);
+        const $newDiv = $('<div>')
+          .attr('data-type', type)
+          .attr('data-src', apiFilePath)
+          .attr('data-title', fileName)
+          .attr('data-width', width)
+          .attr('data-size', stat.size.toString())
+          .attr('data-align', align)
+          .attr('data-attachment-id', attachmentId);
 
-        oldDiv.replaceWith(newDiv);
-        this.unwrapFromParagraph(newDiv);
+        $oldDiv.replaceWith($newDiv);
+        unwrapFromParagraph($, $newDiv);
       }
     }
 
     // wait for all uploads & DB inserts
-    await Promise.all(tasks);
+    await Promise.all(attachmentTasks);
 
-    return doc.documentElement.outerHTML;
-  }
-
-  async rewriteInternalLinksToMentionHtml(
-    html: string,
-    currentFilePath: string,
-    filePathToPageMetaMap: Map<
-      string,
-      { id: string; title: string; slugId: string }
-    >,
-    creatorId: string,
-  ): Promise<string> {
-    const window = new Window();
-    const doc = window.document;
-    doc.body.innerHTML = html;
-
-    // normalize helper
-    const normalize = (p: string) => p.replace(/\\/g, '/');
-
-    for (const a of Array.from(doc.getElementsByTagName('a'))) {
-      const rawHref = a.getAttribute('href');
-      if (!rawHref) continue;
-
-      // skip absolute/external URLs
-      if (rawHref.startsWith('http') || rawHref.startsWith('/api/')) {
-        continue;
-      }
-
-      const decodedRef = decodeURIComponent(rawHref);
-      const parentDir = path.dirname(currentFilePath);
-      const joined = path.join(parentDir, decodedRef);
-      const resolved = normalize(joined);
-
-      const pageMeta = filePathToPageMetaMap.get(resolved);
-      if (!pageMeta) {
-        // not an internal link we know about
-        continue;
-      }
-
-      const mentionEl = doc.createElement('span') as HDElement;
-      mentionEl.setAttribute('data-type', 'mention');
-      mentionEl.setAttribute('data-id', v7());
-      mentionEl.setAttribute('data-entity-type', 'page');
-      mentionEl.setAttribute('data-entity-id', pageMeta.id);
-      mentionEl.setAttribute('data-label', pageMeta.title);
-      mentionEl.setAttribute('data-slug-id', pageMeta.slugId);
-      mentionEl.setAttribute('data-creator-id', creatorId);
-      mentionEl.textContent = pageMeta.title;
-
-      a.replaceWith(mentionEl);
-    }
-
-    return doc.body.innerHTML;
-  }
-
-  unwrapFromParagraph(node: HDElement) {
-    let wrapper = node.closest('p, a') as HDElement | null;
-
-    while (wrapper) {
-      if (wrapper.childNodes.length === 1) {
-        // e.g. <p><node/></p> or <a><node/></a> → <node/>
-        wrapper.replaceWith(node);
-      } else {
-        wrapper.parentNode!.insertBefore(node, wrapper);
-      }
-      wrapper = node.closest('p, a') as HDElement | null;
-    }
-  }
-
-  async buildAttachmentCandidates(
-    extractDir: string,
-  ): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    async function walk(dir: string) {
-      for (const ent of await fs.readdir(dir, { withFileTypes: true })) {
-        const abs = path.join(dir, ent.name);
-        if (ent.isDirectory()) {
-          await walk(abs);
-        } else {
-          if (['.md', '.html'].includes(path.extname(ent.name).toLowerCase())) {
-            continue;
-          }
-
-          const rel = path.relative(extractDir, abs).split(path.sep).join('/');
-          map.set(rel, abs);
-        }
-      }
-    }
-
-    await walk(extractDir);
-    return map;
-  }
-
-  async collectMarkdownAndHtmlFiles(dir: string): Promise<string[]> {
-    const results: string[] = [];
-
-    async function walk(current: string) {
-      const entries = await fs.readdir(current, { withFileTypes: true });
-      for (const ent of entries) {
-        const fullPath = path.join(current, ent.name);
-        if (ent.isDirectory()) {
-          await walk(fullPath);
-        } else if (
-          ['.md', '.html'].includes(path.extname(ent.name).toLowerCase())
-        ) {
-          results.push(fullPath);
-        }
-      }
-    }
-
-    await walk(dir);
-    return results;
-  }
-
-  resolveRelativeAttachmentPath(
-    raw: string,
-    pageDir: string,
-    attachmentCandidates: Map<string, string>,
-  ): string | null {
-    const mainRel = decodeURIComponent(raw.replace(/^\.?\/+/, ''));
-    const fallback = path.normalize(path.join(pageDir, mainRel));
-
-    if (attachmentCandidates.has(mainRel)) {
-      return mainRel;
-    }
-    if (attachmentCandidates.has(fallback)) {
-      return fallback;
-    }
-    return null;
+    return $.root().html() || '';
   }
 
   async updateTaskStatus(fileTaskId: string, status: FileTaskStatus) {

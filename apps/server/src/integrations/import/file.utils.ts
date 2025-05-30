@@ -39,7 +39,7 @@ export async function extractZip(
   source: string,
   target: string,
 ): Promise<void> {
-  await extractZipInternal(source, target, true);
+  return extractZipInternal(source, target, true);
 }
 
 /**
@@ -69,6 +69,7 @@ function extractZipInternal(
               !/\/$/.test(entry.fileName) &&
               name.toLowerCase().endsWith('.zip');
             if (isZip) {
+              // temporary name to avoid overwriting file
               const nestedPath = source.endsWith('.zip')
                 ? source.slice(0, -4) + '.inner.zip'
                 : source + '.inner.zip';

@@ -84,6 +84,14 @@ export const TiptapVideo = Node.create<VideoOptions>({
     };
   },
 
+  parseHTML() {
+    return [
+      {
+        tag: 'video',
+      },
+    ]
+  },
+
   renderHTML({ HTMLAttributes }) {
     return [
       "video",
