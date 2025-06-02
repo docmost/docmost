@@ -51,8 +51,13 @@ export const TrailingNode = Extension.create<TrailingNodeExtensionOptions>({
         },
         state: {
           init: (_, state) => {
-            const lastNode = state.tr.doc.lastChild
-            return !nodeEqualsType({ node: lastNode, types: disabledNodes })
+            try {
+              const lastNode = state.tr.doc.lastChild
+              return !nodeEqualsType({ node: lastNode, types: disabledNodes })
+            } catch (err){
+              console.log(err)
+            }
+            return true;
           },
           apply: (tr, value) => {
             if (!tr.docChanged) {

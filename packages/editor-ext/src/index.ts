@@ -17,3 +17,4 @@ export * from "./lib/excalidraw";
 export * from "./lib/embed";
 export * from "./lib/mention";
 export * from "./lib/markdown";
+export * from "./lib/embed-provider";

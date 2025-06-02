@@ -3,6 +3,7 @@ export enum QueueName {
   ATTACHMENT_QUEUE = '{attachment-queue}',
   GENERAL_QUEUE = '{general-queue}',
   BILLING_QUEUE = '{billing-queue}',
+  FILE_TASK_QUEUE = '{file-task-queue}',
 }
 
 export enum QueueJob {
@@ -19,4 +20,7 @@ export enum QueueJob {
   TRIAL_ENDED = 'trial-ended',
   WELCOME_EMAIL = 'welcome-email',
   FIRST_PAYMENT_EMAIL = 'first-payment-email',
+
+  IMPORT_TASK = 'import-task',
+  EXPORT_TASK = 'export-task',
 }

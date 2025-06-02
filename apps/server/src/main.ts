@@ -88,7 +88,7 @@ async function bootstrap() {
   const logger = new Logger('NestApplication');
 
   process.on('unhandledRejection', (reason, promise) => {
-    logger.error(`UnhandledRejection: ${promise}, reason: ${reason}`);
+    logger.error(`UnhandledRejection, reason: ${reason}`, promise);
   });
 
   process.on('uncaughtException', (error) => {

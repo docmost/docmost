@@ -49,6 +49,9 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
     BullModule.registerQueue({
       name: QueueName.BILLING_QUEUE,
     }),
+    BullModule.registerQueue({
+      name: QueueName.FILE_TASK_QUEUE,
+    }),
   ],
   exports: [BullModule],
   providers: [BacklinksProcessor],

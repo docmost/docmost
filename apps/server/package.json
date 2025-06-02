@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.701.0",
+    "@aws-sdk/lib-storage": "3.701.0",
     "@aws-sdk/s3-request-presigner": "3.701.0",
     "@casl/ability": "^6.7.3",
     "@fastify/cookie": "^11.0.2",
@@ -56,6 +57,7 @@
     "bcrypt": "^5.1.1",
     "bullmq": "^5.41.3",
     "cache-manager": "^6.4.0",
+    "cheerio": "^1.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cookie": "^1.0.2",
@@ -80,7 +82,9 @@
     "sanitize-filename-ts": "^1.0.2",
     "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
-    "ws": "^8.18.0"
+    "tmp-promise": "^3.0.3",
+    "ws": "^8.18.0",
+    "yauzl": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -99,6 +103,7 @@
     "@types/pg": "^8.11.11",
     "@types/supertest": "^6.0.2",
     "@types/ws": "^8.5.14",
+    "@types/yauzl": "^2.10.3",
     "eslint": "^9.20.1",
     "eslint-config-prettier": "^10.0.1",
     "globals": "^15.15.0",

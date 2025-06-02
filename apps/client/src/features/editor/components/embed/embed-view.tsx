@@ -15,13 +15,10 @@ import {
 import { IconEdit } from "@tabler/icons-react";
 import { z } from "zod";
 import { useForm, zodResolver } from "@mantine/form";
-import {
-  getEmbedProviderById,
-  getEmbedUrlAndProvider,
-} from "@/features/editor/components/embed/providers.ts";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
+import { getEmbedProviderById, getEmbedUrlAndProvider } from '@docmost/editor-ext';
 
 const schema = z.object({
   url: z
