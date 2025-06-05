@@ -50,6 +50,7 @@ export enum BlockType {
   Embed = "embed",
   MarkdownClipboard = "markdownClipboard",
   CharacterCount = "characterCount",
+  BlockGroup = "blockGroup",
 }
 
 export const BlockTypes = Object.values(BlockType);

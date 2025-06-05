@@ -61,6 +61,7 @@ export default function Page() {
           pageId={page.id}
           title={page.title}
           content={page.content}
+          // blocks={page.blocks}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={pageAbility.can(PageCaslAction.Edit, PageCaslSubject.Page)}

@@ -18,6 +18,7 @@ import {
   IconTypography,
   IconMenu4,
   IconCalendar,
+  IconLayoutGrid,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -57,6 +58,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .toggleNode("paragraph", "paragraph")
           .run();
+      },
+    },
+    {
+      title: "Block Group",
+      description: "Group content blocks",
+      searchTerms: ["container", "blocks", "group"],
+      icon: IconLayoutGrid,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).toggleBlockGroup().run();
       },
     },
     {

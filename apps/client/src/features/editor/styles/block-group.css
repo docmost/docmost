@@ -1,0 +1,19 @@
+.block-group {
+  border-left: 2px solid #9ca3af;
+  padding-left: 12px;
+  margin: 8px 0;
+  transition: border-color 0.2s ease;
+}
+
+.block-group > * {
+  margin-top: 0.15em !important;
+  margin-bottom: 0.15em !important;
+}
+
+.block-group > *:first-child {
+  margin-top: 0;
+}
+
+.block-group > *:last-child {
+  margin-bottom: 0;
+}

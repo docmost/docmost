@@ -14,6 +14,11 @@ export interface FullEditorProps {
   slugId: string;
   title: string;
   content: string;
+  // blocks: {
+  //   blockIds: string[];
+  //   deletedBlocksId: string[];
+  //   updatedBlocksId: string[];
+  // };
   spaceSlug: string;
   editable: boolean;
   isMyPages?: boolean;
