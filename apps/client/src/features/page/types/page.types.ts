@@ -51,6 +51,7 @@ export interface SidebarPagesParams {
   spaceId: string;
   pageId?: string;
   page?: number; // pagination
+  sortBy?: 'position' | 'alphabetical' | 'recent';
 }
 
 export interface IPageInput {

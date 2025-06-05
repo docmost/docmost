@@ -171,6 +171,7 @@ export class PageService {
     spaceId: string,
     pagination: PaginationOptions,
     pageId?: string,
+    sortBy: string = 'position',
   ): Promise<any> {
     let query = this.db
       .selectFrom('pages')
@@ -183,15 +184,29 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'updatedAt',
+        'createdAt',
       ])
       .select((eb) => this.withHasChildren(eb))
-      .orderBy('position', 'asc')
       .where('spaceId', '=', spaceId);
 
     if (pageId) {
       query = query.where('parentPageId', '=', pageId);
     } else {
       query = query.where('parentPageId', 'is', null);
+    }
+
+    // Apply sorting based on the sortBy parameter
+    switch (sortBy) {
+      case 'alphabetical':
+        query = query.orderBy('title', 'asc');
+        break;
+      case 'recent':
+        query = query.orderBy('updatedAt', 'desc');
+        break;
+      default:
+        query = query.orderBy('position', 'asc');
+        break;
     }
 
     const result = executeWithPagination(query, {
@@ -307,7 +322,6 @@ export class PageService {
                   .limit(1)
                   .as('hasChildren'),
               )
-              //.select((eb) => this.withHasChildren(eb))
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
           ),
       )

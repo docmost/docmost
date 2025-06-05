@@ -23,7 +23,7 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { treeDataAtom, sortByAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
@@ -70,6 +70,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
+  const [sortBy] = useAtom(sortByAtom);
   const {
     data: pagesData,
     hasNextPage,
@@ -98,21 +99,27 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   useEffect(() => {
     if (pagesData?.pages && !hasNextPage) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
-      const treeData = buildTree(allItems);
+      let treeData = buildTree(allItems);
+
+      if (sortBy !== 'position') {
+        treeData = [...treeData].sort((a, b) => {
+          if (sortBy === 'alphabetical') {
+            return a.name.localeCompare(b.name);
+          } else {
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          }
+        });
+      }
 
       if (data.length < 1 || data?.[0].spaceId !== spaceId) {
-        //Thoughts
-        // don't reset if there is data in state
-        // we only expect to call this once on initial load
-        // even if we decide to refetch, it should only update
-        // and append root pages instead of resetting the entire tree
-        // which looses async loaded children too
         setData(treeData);
         isDataLoaded.current = true;
         setOpenTreeNodes({});
+      } else {
+        setData(treeData);
       }
     }
-  }, [pagesData, hasNextPage]);
+  }, [pagesData, hasNextPage, sortBy]);
 
   useEffect(() => {
     const fetchData = async () => {

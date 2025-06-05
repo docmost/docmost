@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Group,
   Menu,
+  SegmentedControl,
   Text,
   Tooltip,
   UnstyledButton,
@@ -38,6 +39,8 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 import { SwitchSpace } from "./switch-space";
 import ExportModal from "@/components/common/export-modal";
+import useUserRole from "@/hooks/use-user-role";
+import { sortByAtom } from "@/features/page/tree/atoms/tree-data-atom";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -198,9 +201,46 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const { isAdmin } = useUserRole();
+  const [sortBy, setSortBy] = useAtom(sortByAtom);
+
+  const handleSortChange = (value: string) => {
+    const sortMap = {
+      "Position": "position",
+      "A-Z": "alphabetical",
+      "Newest": "recent"
+    };
+    
+    const newSortBy = sortMap[value] || "position";
+    setSortBy(newSortBy);
+  };
+
+  const getUIValue = (sortBy: string) => {
+    const uiMap = {
+      "position": "Position",
+      "alphabetical": "A-Z",
+      "recent": "Newest"
+    };
+    return uiMap[sortBy] || "Position";
+  };
 
   return (
     <>
+      {isAdmin && (
+        <Group gap="xs">
+          <Text size="xs" fw={500} c="dimmed">
+            {t("Sort by")}
+          </Text>
+          <SegmentedControl
+            withItemsBorders={true}
+            size="xs"
+            radius="xs"
+            data={["Position", "A-Z", "Newest"]}
+            value={getUIValue(sortBy)}
+            onChange={handleSortChange}
+          />
+        </Group>
+      )}
       <Menu width={200} shadow="md" withArrow>
         <Menu.Target>
           <Tooltip

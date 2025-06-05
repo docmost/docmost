@@ -9,7 +9,7 @@ function sortPositionKeys(keys: any[]) {
   });
 }
 
-export function buildTree(pages: IPage[]): SpaceTreeNode[] {
+export function buildTree(pages: IPage[], preserveOrder: boolean = false): SpaceTreeNode[] {
   const pageMap: Record<string, SpaceTreeNode> = {};
 
   const tree: SpaceTreeNode[] = [];
@@ -24,6 +24,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       hasChildren: page.hasChildren,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      updatedAt: String(page.updatedAt),
       children: [],
     };
   });
@@ -32,7 +33,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
     tree.push(pageMap[page.id]);
   });
 
-  return sortPositionKeys(tree);
+  return preserveOrder ? tree : sortPositionKeys(tree);
 }
 
 export function findBreadcrumbPath(

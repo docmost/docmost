@@ -204,7 +204,12 @@ export class PageController {
       pageId = page.id;
     }
 
-    return this.pageService.getSidebarPages(dto.spaceId, pagination, pageId);
+    return this.pageService.getSidebarPages(
+      dto.spaceId, 
+      pagination, 
+      pageId,
+      dto.sortBy
+    );
   }
 
   @HttpCode(HttpStatus.OK)
