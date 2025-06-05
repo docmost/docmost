@@ -8,7 +8,7 @@ import {
   SimpleTree,
 } from "react-arborist";
 import { useAtom } from "jotai";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { treeDataAtom, sortByAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -25,6 +25,7 @@ import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
+  const [sortBy] = useAtom(sortByAtom);
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
@@ -50,13 +51,14 @@ export function useTreeMutation<T>(spaceId: string) {
       throw new Error("Failed to create page");
     }
 
-    const data = {
+    const newPageData = {
       id: createdPage.id,
       slugId: createdPage.slugId,
       name: "",
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
+      updatedAt: String(createdPage.updatedAt || new Date()),
       children: [],
     } as any;
 
@@ -69,8 +71,20 @@ export function useTreeMutation<T>(spaceId: string) {
     // to place the newly created node at the bottom
     index = lastIndex;
 
-    tree.create({ parentId, index, data });
-    setData(tree.data);
+    tree.create({ parentId, index, data: newPageData });
+    
+    let sortedData = [...tree.data];
+    if (parentId === null && sortBy !== 'position') {
+      sortedData = sortedData.sort((a, b) => {
+        if (sortBy === 'alphabetical') {
+          return a.name.localeCompare(b.name);
+        } else {
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        }
+      });
+    }
+    
+    setData(sortedData);
 
     setTimeout(() => {
       emit({
@@ -79,7 +93,7 @@ export function useTreeMutation<T>(spaceId: string) {
         payload: {
           parentId,
           index,
-          data,
+          data: newPageData,
         },
       });
     }, 50);
@@ -90,7 +104,7 @@ export function useTreeMutation<T>(spaceId: string) {
       createdPage.title
     );
     navigate(pageUrl);
-    return data;
+    return newPageData;
   };
 
   const onMove: MoveHandler<T> = (args: {
