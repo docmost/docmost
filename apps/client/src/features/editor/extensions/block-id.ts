@@ -63,12 +63,8 @@ export const BlockId = new Extension({
           ]);
 
           for (const { newRange } of getChangedRanges(combinedSteps)) {
-            const changedNodes = findChildrenInRange(
-              newDoc,
-              newRange,
-              (node) => {
-                return types.includes(node.type.name);
-              },
+            const changedNodes = findChildrenInRange(newDoc, newRange, (node) =>
+              types.includes(node.type.name),
             );
 
             const existingIds = changedNodes

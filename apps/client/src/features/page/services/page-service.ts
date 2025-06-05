@@ -26,6 +26,8 @@ export async function getPageById(
   pageInput: Partial<IPageInput>,
 ): Promise<IPage & { originPageId?: string; isSyncedPage?: boolean }> {
   const req = await api.post<IPage>("/pages/info", pageInput);
+  console.log("[req.data]");
+  console.log(req.data);
   return req.data;
 }
 
