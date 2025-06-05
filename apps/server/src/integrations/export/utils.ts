@@ -4,6 +4,7 @@ import { Node } from '@tiptap/pm/model';
 import { validate as isValidUUID } from 'uuid';
 import * as path from 'path';
 import { Page } from '@docmost/db/types/entity.types';
+import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
 
 export type PageExportTree = Record<string, Page[]>;
 
@@ -23,43 +24,6 @@ export function getExportExtension(format: string) {
 
 export function getPageTitle(title: string) {
   return title ? title : 'untitled';
-}
-
-export function getProsemirrorContent(content: any) {
-  return (
-    content ?? {
-      type: 'doc',
-      content: [{ type: 'paragraph', attrs: { textAlign: 'left' } }],
-    }
-  );
-}
-
-export function getAttachmentIds(prosemirrorJson: any) {
-  const doc = jsonToNode(prosemirrorJson);
-  const attachmentIds = [];
-
-  doc?.descendants((node: Node) => {
-    if (isAttachmentNode(node.type.name)) {
-      if (node.attrs.attachmentId && isValidUUID(node.attrs.attachmentId)) {
-        if (!attachmentIds.includes(node.attrs.attachmentId)) {
-          attachmentIds.push(node.attrs.attachmentId);
-        }
-      }
-    }
-  });
-
-  return attachmentIds;
-}
-
-export function isAttachmentNode(nodeType: string) {
-  const attachmentNodeTypes = [
-    'attachment',
-    'image',
-    'video',
-    'excalidraw',
-    'drawio',
-  ];
-  return attachmentNodeTypes.includes(nodeType);
 }
 
 export function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any) {

@@ -47,7 +47,7 @@
 
     .column-resize-handle {
       background-color: #adf;
-      bottom: -2px;
+      bottom: -1px;
       position: absolute;
       right: -2px;
       pointer-events: none;
