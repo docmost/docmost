@@ -19,12 +19,14 @@ import {
   getPageMembers,
   removePageMember,
   changeMemberRole,
-  createSynchronizedPage,
+  createSynchronizedPage as createSyncPage,
   getPagesInSpace,
   getMyPages,
   updateMyPageColor,
+  copyPage,
 } from "@/features/page/services/page-service";
 import {
+  CopyPageParams,
   IAddPageMember,
   IChangePageMemberRole,
   ICreateSynchronizedPage,
@@ -125,9 +127,9 @@ export function useMovePageMutation() {
   });
 }
 
-export function useCreateSynchronizedPageMutation() {
+export function useCreateSyncPageMutation() {
   return useMutation<IPage, Error, ICreateSynchronizedPage>({
-    mutationFn: (data) => createSynchronizedPage(data),
+    mutationFn: (data) => createSyncPage(data),
   });
 }
 
@@ -281,5 +283,21 @@ export function useUpdateMyPageColorMutation() {
   const { t } = useTranslation();
   return useMutation<void, Error, { pageId: string; color: string }>({
     mutationFn: (data) => updateMyPageColor(data.pageId, data.color),
+  });
+}
+
+export function useCopyPageMutation() {
+  const { t } = useTranslation();
+
+  return useMutation<IPage, Error, CopyPageParams>({
+    mutationKey: ["copyPage"],
+    mutationFn: ({ originPageId, spaceId, parentPageId }) =>
+      copyPage(originPageId, spaceId, parentPageId),
+    onError: () => {
+      notifications.show({
+        message: t("Failed to create page"),
+        color: "red",
+      });
+    },
   });
 }

@@ -3,6 +3,7 @@ import {
   ColorInput,
   Group,
   Menu,
+  rem,
   Text,
   Tooltip,
   UnstyledButton,
@@ -28,7 +29,7 @@ import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
-import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
+import SpaceTree from "@/features/page/tree/components/space-tree/space-tree";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
   SpaceCaslAction,
@@ -153,7 +154,10 @@ export function SpaceSidebar() {
                     onClick={handleCreatePage}
                     aria-label={t("Create page")}
                   >
-                    <IconPlus />
+                    <IconPlus
+                      style={{ width: rem(20), height: rem(20) }}
+                      stroke={2}
+                    />
                   </ActionIcon>
                 </Tooltip>
 
@@ -210,7 +214,10 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
               size={18}
               aria-label={t("Space menu")}
             >
-              <IconDots />
+              <IconDots
+                style={{ width: rem(20), height: rem(20) }}
+                stroke={2}
+              />
             </ActionIcon>
           </Tooltip>
         </Menu.Target>

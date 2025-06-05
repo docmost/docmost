@@ -9,14 +9,15 @@ import { useTranslation } from "react-i18next";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { SpaceSelect } from "@/features/space/components/sidebar/space-select.tsx";
 import { useNavigate } from "react-router-dom";
-import Page from "@/pages/page/page";
 import { buildPageUrl } from "../page.utils";
+import { useAtom } from "jotai";
+import { reloadTreeAtom } from "@/features/page/atoms/reload-tree-atom";
 
 interface CreateSyncPageModalProps {
   originPageId: string;
-  currentSpaceSlug: string;
   open: boolean;
   onClose: () => void;
+  isPersonalSpace?: boolean | null;
 }
 
 interface PageOption {
@@ -26,16 +27,17 @@ interface PageOption {
 
 export default function CreateSyncPageModal({
   originPageId,
-  currentSpaceSlug,
   open,
   onClose,
+  isPersonalSpace = false,
 }: CreateSyncPageModalProps) {
   const { t } = useTranslation();
   const [targetSpace, setTargetSpace] = useState<ISpace>(null);
   const [targetPageId, setTargetPageId] = useState<string>("");
   const [pages, setPages] = useState<PageOption[]>([]);
-  const [isLoadingPages, setIsLoadingPages] = useState<boolean>(false);
+  const [, setIsLoadingPages] = useState<boolean>(false);
   const navigate = useNavigate();
+  const [, setReloadTree] = useAtom(reloadTreeAtom);
 
   useEffect(() => {
     if (targetSpace) {
@@ -96,11 +98,11 @@ export default function CreateSyncPageModal({
       return;
     }
 
-    const pageUrl = buildPageUrl(
-      targetSpace.slug,
-      createdPage.slugId,
-      undefined,
-    );
+    setReloadTree((prev) => prev + 1);
+
+    const pageUrl = isPersonalSpace
+      ? `my-pages/${createdPage.id}`
+      : buildPageUrl(targetSpace.slug, createdPage.slugId, undefined);
     navigate(pageUrl);
 
     notifications.show({
@@ -139,12 +141,8 @@ export default function CreateSyncPageModal({
           <Modal.CloseButton />
         </Modal.Header>
         <Modal.Body>
-          <Text mb="xs" c="dimmed" size="sm">
-            {t("Create a synchronized page in a different space.")}
-          </Text>
           <Stack>
             <SpaceSelect
-              value={currentSpaceSlug}
               clearable={false}
               onChange={handleSpaceChange}
               label={t("Select target space")}

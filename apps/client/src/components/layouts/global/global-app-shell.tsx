@@ -80,7 +80,7 @@ export default function GlobalAppShell({
       header={{ height: 45 }}
       navbar={
         !isHomeRoute && {
-          width: isSpaceRoute ? sidebarWidth : 300,
+          width: isSpaceRoute || isMyPagesRoute ? sidebarWidth : 300,
           breakpoint: "sm",
           collapsed: {
             mobile: !mobileOpened,

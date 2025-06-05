@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { dbOrTx } from '../../utils';
+import { calculateBlockHash, dbOrTx } from '../../utils';
 import {
   Block,
   InsertablePage,
   InsertableUserPagePreferences,
   Page,
+  PageContent,
   UpdatablePage,
   UpdatableUserPagePreferences,
   UserPagePreference,
@@ -15,7 +16,7 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { validate as isValidUUID } from 'uuid';
 import { ExpressionBuilder, sql, UpdateResult } from 'kysely';
-import { DB } from '@docmost/db/types/db';
+import { DB, JsonValue } from '@docmost/db/types/db';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
@@ -357,12 +358,7 @@ export class PageRepo {
   ): Promise<void> {
     await this.db
       .insertInto('userPagePreferences')
-      .values({
-        pageId: preferences.pageId,
-        userId: preferences.userId,
-        position: preferences.position,
-        color: preferences.color,
-      })
+      .values(preferences)
       .execute();
   }
 
@@ -390,5 +386,25 @@ export class PageRepo {
       .where('userId', '=', userId)
       .where('pageId', '=', pageId)
       .executeTakeFirst();
+  }
+
+  async insertContent(
+    pageId: string,
+    content: PageContent,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    content.content.forEach(async (block, position) => {
+      await db
+        .insertInto('blocks')
+        .values({
+          pageId: pageId,
+          blockType: block.type,
+          content: block,
+          stateHash: calculateBlockHash(block),
+          position: position,
+        })
+        .execute();
+    });
   }
 }

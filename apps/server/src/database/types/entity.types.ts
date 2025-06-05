@@ -129,3 +129,16 @@ export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
 export type AuthAccount = Selectable<AuthAccounts>;
 export type InsertableAuthAccount = Insertable<AuthAccounts>;
 export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;
+
+// Page Content
+export type PageContent = {
+  type: string;
+  content: ContentBlock[];
+};
+
+// Content Block
+export type ContentBlock = {
+  type: string;
+  attrs: { blockId: string };
+  content: any;
+};

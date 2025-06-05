@@ -22,6 +22,7 @@ export interface FullEditorProps {
   spaceSlug: string;
   editable: boolean;
   isMyPages?: boolean;
+  syncPageOriginId?: string | null;
 }
 
 export function FullEditor({
@@ -32,6 +33,7 @@ export function FullEditor({
   spaceSlug,
   editable,
   isMyPages,
+  syncPageOriginId,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -54,6 +56,7 @@ export function FullEditor({
         pageId={pageId}
         editable={editable}
         content={content}
+        syncPageOriginId={syncPageOriginId}
       />
     </Container>
   );

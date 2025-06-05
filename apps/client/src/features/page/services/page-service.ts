@@ -15,7 +15,6 @@ import {
 } from "@/features/page/types/page.types";
 import { IAttachment, IPagination, QueryParams } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
-import { IChangePassword } from "@/features/auth/types/auth.types";
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
@@ -164,6 +163,19 @@ export async function updateMyPageColor(
   const req = await api.post("/pages/my-pages/color", {
     pageId,
     color,
+  });
+  return req.data;
+}
+
+export async function copyPage(
+  originPageId: string,
+  spaceId: string,
+  parentPageId?: string | null,
+): Promise<IPage> {
+  const req = await api.post("/pages/copy", {
+    originPageId,
+    spaceId,
+    parentPageId,
   });
   return req.data;
 }

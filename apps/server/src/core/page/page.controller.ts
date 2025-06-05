@@ -22,7 +22,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { SpaceMember, User, Workspace } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import { SidebarPageDto } from './dto/sidebar-page.dto';
 import {
   SpaceCaslAction,
@@ -42,13 +42,12 @@ import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { RemovePageMemberDto } from './dto/remove-page-member.dto';
 import { UpdatePageMemberRoleDto } from './dto/update-page-member-role.dto';
-import { SpaceRole } from 'src/common/helpers/types/permission';
 import { CreateSyncPageDto } from './dto/create-sync-page.dto';
 import { SynchronizedPageService } from './services/synchronized-page.service';
-import { cpSync } from 'fs-extra';
 import { SpaceIdDto } from '../space/dto/space-id.dto';
 import { MyPageColorDto } from './dto/update-color.dto';
 import { MyPagesDto } from './dto/my-pages.dto';
+import { CopyPageDto } from './dto/copy-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -98,9 +97,8 @@ export class PageController {
       permissions: pageAbility.rules,
     };
 
-    const syncPage = await this.syncPageService.findByReferenceId(page.id);
-
-    if (syncPage) {
+    if (page.isSynced) {
+      const syncPage = await this.syncPageService.findByReferenceId(page.id);
       const originPage = await this.pageRepo.findById(syncPage.originPageId, {
         includeContent: true,
         includeLastUpdatedBy: true,
@@ -110,9 +108,7 @@ export class PageController {
         throw new NotFoundException('Origin page not found');
       }
       page.content = originPage.content;
-      page.id = originPage.id;
-      page.title = originPage.title;
-      page.icon = originPage.icon;
+      return { ...page, membership, originPageId: originPage.id };
     }
 
     return { ...page, membership };
@@ -402,7 +398,11 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.movePageToSpace(movedPage, dto.spaceId);
+    return this.pageService.movePageToSpace(
+      movedPage,
+      dto.spaceId,
+      dto.parentPageId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -547,8 +547,32 @@ export class PageController {
   async myPages(
     @Query() dto: MyPagesDto,
     @Query() pagination: PaginationOptions,
+    @AuthUser() user: User,
   ) {
-    return this.pageService.getMyPages(pagination, dto.pageId);
+    const pages = await this.pageService.getMyPages(
+      user.id,
+      pagination,
+      dto.pageId,
+    );
+
+    return {
+      items: await Promise.all(
+        pages.items.map(async (page) => {
+          try {
+            const pageAbility = await this.pageAbility.createForUser(
+              user,
+              page.id,
+            );
+            return pageAbility.can(PageCaslAction.Read, PageCaslSubject.Page)
+              ? page
+              : null;
+          } catch (err) {
+            return null;
+          }
+        }),
+      ).then((items) => items.filter(Boolean)),
+      meta: pages.meta,
+    };
   }
 
   validateIds(dto: RemovePageMemberDto | UpdatePageMemberRoleDto) {
@@ -575,8 +599,24 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    Logger.debug(`User ${user.id} is updating page color`);
-
     await this.pageService.updateMyPageColor(dto, user.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/copy')
+  async copyPage(
+    @Body() copyPageDto: CopyPageDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const pageAbility = await this.pageAbility.createForUser(
+      user,
+      copyPageDto.originPageId,
+    );
+    if (!pageAbility.can(PageCaslAction.Read, PageCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.copyPage(copyPageDto, user.id, workspace.id);
   }
 }

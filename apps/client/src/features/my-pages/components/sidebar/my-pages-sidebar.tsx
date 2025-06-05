@@ -16,7 +16,7 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import MyPagesTree from "@/features/page/tree/components/my-pages-tree";
+import MyPagesTree from "@/features/page/tree/components/my-pages-tree/my-pages-tree";
 
 export function MyPagesSidebar() {
   const { t } = useTranslation();
@@ -57,6 +57,8 @@ export function MyPagesSidebar() {
                   <IconPlus />
                 </ActionIcon>
               </Tooltip>
+
+              <MyPagesMenu onSpaceSettings={null} />
             </Group>
           </Group>
 

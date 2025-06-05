@@ -2,17 +2,18 @@ import { useMemo } from "react";
 import {
   CreateHandler,
   DeleteHandler,
-  MoveHandler,
   NodeApi,
   RenameHandler,
   SimpleTree,
 } from "react-arborist";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
+import { IPage } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  useCopyPageMutation,
   useCreatePageMutation,
+  useCreateSyncPageMutation,
   useDeletePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
@@ -23,19 +24,29 @@ import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
+import { onMoveActions } from "@/features/page/tree/components/move-or-copy-modal";
+import { movePageToSpace } from "@/features/page/services/page-service";
+import { usePageColors } from "@/features/page/tree/hooks/use-page-colors";
 
 export function useMyPagesTreeMutation<T>(spaceId: string) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
   const [data, setData] = useAtom(treeDataAtom);
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
+
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
   const deletePageMutation = useDeletePageMutation();
   const movePageMutation = useMovePageMutation();
-  const navigate = useNavigate();
+  const copyPageMutation = useCopyPageMutation();
+  const createSyncPageMutation = useCreateSyncPageMutation();
+
   const { spaceSlug } = useParams();
   const { pageSlug } = useParams();
   const emit = useQueryEmit();
+
+  const { loadColors } = usePageColors();
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
     const payload: { spaceId: string; parentPageId?: string } = {
@@ -92,166 +103,269 @@ export function useMyPagesTreeMutation<T>(spaceId: string) {
     return data;
   };
 
-  const onMove: MoveHandler<T> = (args: {
-    dragIds: string[];
-    dragNodes: NodeApi<T>[];
-    parentId: string | null;
-    parentNode: NodeApi<T> | null;
-    index: number;
-  }) => {
-    const draggedNodeId = args.dragIds[0];
+  const onMove = async (
+    {
+      dragIds,
+      dragNodes,
+      parentId,
+      parentNode,
+      index,
+    }: {
+      dragIds: string[];
+      dragNodes: NodeApi<SpaceTreeNode>[];
+      parentId: string | null;
+      parentNode: NodeApi<SpaceTreeNode> | null;
+      index: number;
+    },
+    action?: onMoveActions,
+  ) => {
+    const originPageId = dragIds[0];
+    const originNode = tree.find(originPageId);
+    if (!originNode) return;
+
     const originalTreeData = [...tree.data];
-    const originalNode = tree.find(draggedNodeId);
 
-    if (!originalNode) return;
+    const targetSpaceId =
+      parentNode?.data?.spaceId ??
+      (originNode.data.parentPageId && originNode.data.parentPageId !== "ROOT"
+        ? spaceId
+        : originNode.data.spaceId);
 
-    const originalParentId = originalNode.parent.id;
-    const originalIndex = originalNode.childIndex;
-    // @ts-ignore
-    const originalPosition = args.dragNodes[0].data.position;
+    if (action === "copy" || action === "sync") {
+      try {
+        let created: IPage | null = null;
 
-    const draggedNodeSpaceId = originalNode.data.spaceId;
-    const draggedNodeHasParentPage = Boolean(originalNode.data.parentPageId);
-    // @ts-ignore
-    const targetSpaceId = args.parentNode?.data?.spaceId;
+        if (action === "copy") {
+          created = await copyPageMutation.mutateAsync({
+            originPageId: originPageId,
+            spaceId: targetSpaceId,
+            parentPageId: parentId,
+          });
+        } else {
+          created = await createSyncPageMutation.mutateAsync({
+            originPageId: originPageId,
+            spaceId: targetSpaceId,
+            parentPageId: parentId,
+          });
+        }
 
-    const isMovingToAnotherSpace =
-      draggedNodeSpaceId !== spaceId && draggedNodeHasParentPage;
-    const isTargetInDifferentSpace =
-      args.parentId && draggedNodeSpaceId !== targetSpaceId;
-    const isTargetNotInCurrentSpace =
-      args.parentId && spaceId !== targetSpaceId;
+        if (!created) {
+          throw new Error("Failed to create a new page");
+        }
 
-    if (isMovingToAnotherSpace || isTargetInDifferentSpace) {
-      notifications.show({
-        message: "You cannot move a page to a different space",
-        color: "red",
-      });
+        const newNodeData: SpaceTreeNode = {
+          id: created.id,
+          slugId: created.slugId ?? "",
+          name: created.title ?? "",
+          position: created.position,
+          spaceId: created.spaceId,
+          parentPageId: created.parentPageId,
+          children: [],
+          isSynced: action === "sync",
+          hasChildren: false,
+        };
+
+        tree.create({ parentId, index, data: newNodeData });
+        setData(tree.data);
+
+        loadColors([
+          {
+            id: created.id,
+            spaceId: created.spaceId,
+            parentPageId: created.parentPageId,
+          },
+        ]);
+
+        notifications.show({
+          message: t("Page moved successfully"),
+          color: "green",
+        });
+
+        setTimeout(() => {
+          emit({
+            operation: "addTreeNode",
+            spaceId,
+            payload: {
+              parentId,
+              index,
+              data: newNodeData,
+            },
+          });
+        }, 50);
+      } catch (error) {
+        notifications.show({
+          message: t("Failed to move a page"),
+          color: "red",
+        });
+
+        setData(originalTreeData);
+      }
       return;
     }
 
-    if (isTargetNotInCurrentSpace) {
+    const originalParentId = originNode.parent.data.id;
+    const originalIndex = originNode.childIndex;
+    const originalPosition = dragNodes[0].data.position;
+
+    moveNodeInTree(originPageId, parentId, index);
+
+    const newPosition = calculateNewPosition(originPageId, parentId, index);
+    updateNodePosition(originPageId, newPosition);
+    maybeUpdateOldParent(dragNodes[0].parent, parentId, originPageId);
+
+    setData(tree.data);
+
+    try {
+      await performBackendMove(
+        action,
+        originPageId,
+        targetSpaceId,
+        parentId,
+        newPosition,
+      );
+
+      updateNodeSpaceAndParent(originPageId, targetSpaceId, parentId);
+      loadColors([
+        { id: originPageId, spaceId: targetSpaceId, parentPageId: parentId },
+      ]);
       notifications.show({
-        message: "You cannot move a page to a different space",
+        message: t("Page moved successfully"),
+        color: "green",
+      });
+    } catch (error) {
+      notifications.show({
+        message: t("Failed to move a page"),
         color: "red",
       });
-      return;
+
+      setData(originalTreeData);
+      tree.move({
+        id: originPageId,
+        parentId: originalParentId,
+        index: originalIndex,
+      });
+      tree.update({
+        id: originPageId,
+        changes: { position: originalPosition } as any,
+      });
     }
 
-    tree.move({
-      id: draggedNodeId,
-      parentId: args.parentId,
-      index: args.index,
-    });
+    setData(tree.data);
 
-    const newDragIndex = tree.find(draggedNodeId)?.childIndex;
+    emitMove(originPageId, parentId, index, newPosition);
+  };
 
-    const currentTreeData = args.parentId
-      ? tree.find(args.parentId).children
-      : tree.data;
+  function moveNodeInTree(id: string, parentId: string | null, index: number) {
+    tree.move({ id, parentId, index });
+  }
 
-    // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
-    // we have to access the node differently via currentTreeData[args.index]?.data?.position
-    // this makes it possible to correctly sort children of a parent node that is not the root
+  function calculateNewPosition(
+    id: string,
+    parentId: string | null,
+    index: number,
+  ): string {
+    const movedNode = tree.find(id);
+    const newIndex = movedNode?.childIndex ?? index;
+    const siblings = parentId ? tree.find(parentId).children : tree.data;
 
-    const afterPosition =
+    const after =
       // @ts-ignore
-      currentTreeData[newDragIndex - 1]?.position ||
+      siblings[newIndex - 1]?.position ||
       // @ts-ignore
-      currentTreeData[args.index - 1]?.data?.position ||
+      siblings[index - 1]?.data?.position ||
       null;
 
-    const beforePosition =
+    const before =
       // @ts-ignore
-      currentTreeData[newDragIndex + 1]?.position ||
+      siblings[newIndex + 1]?.position ||
       // @ts-ignore
-      currentTreeData[args.index + 1]?.data?.position ||
+      siblings[index + 1]?.data?.position ||
       null;
 
-    let newPosition: string;
+    return after && before && after === before
+      ? generateJitteredKeyBetween(after, null)
+      : generateJitteredKeyBetween(after, before);
+  }
 
-    if (afterPosition && beforePosition && afterPosition === beforePosition) {
-      // if after is equal to before, put it next to the after node
-      newPosition = generateJitteredKeyBetween(afterPosition, null);
-    } else {
-      // if both are null then, it is the first index
-      newPosition = generateJitteredKeyBetween(afterPosition, beforePosition);
-    }
-
-    // update the node position in tree
+  function updateNodePosition(id: string, position: string) {
     tree.update({
-      id: draggedNodeId,
-      changes: { position: newPosition } as any,
+      id,
+      changes: { position } as any,
     });
+  }
 
-    const previousParent = args.dragNodes[0].parent;
-    if (
-      previousParent.id !== args.parentId &&
-      previousParent.id !== "__REACT_ARBORIST_INTERNAL_ROOT__"
-    ) {
-      // if the page was moved to another parent,
-      // check if the previous still has children
-      // if no children left, change 'hasChildren' to false, to make the page toggle arrows work properly
-      const childrenCount = previousParent.children.filter(
-        (child) => child.id !== draggedNodeId,
-      ).length;
-      if (childrenCount === 0) {
+  function maybeUpdateOldParent(
+    previousParent: NodeApi<SpaceTreeNode>,
+    newParentId: string | null,
+    movedId: string,
+  ) {
+    const isRoot = previousParent.id === "__REACT_ARBORIST_INTERNAL_ROOT__";
+    if (previousParent.id !== newParentId && !isRoot) {
+      const remaining = previousParent.children.filter((c) => c.id !== movedId);
+      if (remaining.length === 0) {
         tree.update({
           id: previousParent.id,
           changes: { ...previousParent.data, hasChildren: false } as any,
         });
       }
     }
+  }
 
-    const payload: IMovePage = {
-      pageId: draggedNodeId,
-      position: newPosition,
-      parentPageId: args.parentId,
-      isMyPages: true,
-      personalSpaceId: spaceId,
-    };
-
-    setData(tree.data);
-
-    movePageMutation
-      .mutateAsync(payload)
-      .then(() => {
-        notifications.show({
-          message: t("Page moved successfully"),
-          color: "green",
+  async function performBackendMove(
+    action: onMoveActions | undefined,
+    pageId: string,
+    spaceId: string,
+    parentPageId: string | null,
+    position: string,
+  ) {
+    switch (action) {
+      case "copy":
+        return copyPageMutation.mutateAsync({
+          originPageId: pageId,
+          spaceId,
+          parentPageId,
         });
-      })
-      .catch(() => {
-        notifications.show({
-          message: t("Failed to move a page"),
-          color: "red",
+      case "sync":
+        return createSyncPageMutation.mutateAsync({
+          originPageId: pageId,
+          spaceId,
+          parentPageId,
         });
-        setData(originalTreeData);
+      case "move":
+        return movePageToSpace({ pageId, spaceId, parentPageId });
+      default:
+        return movePageMutation.mutateAsync({
+          pageId,
+          position,
+          parentPageId,
+          isMyPages: true,
+          personalSpaceId: spaceId,
+        });
+    }
+  }
 
-        tree.move({
-          id: draggedNodeId,
-          parentId: originalParentId,
-          index: originalIndex,
-        });
-        tree.update({
-          id: draggedNodeId,
-          changes: { position: originalPosition } as any,
-        });
-      });
+  function updateNodeSpaceAndParent(
+    id: string,
+    spaceId: string,
+    parentId: string,
+  ) {
+    tree.update({ id, changes: { spaceId, parentPageId: parentId } });
+  }
 
+  function emitMove(
+    id: string,
+    parentId: string | null,
+    index: number,
+    position: string,
+  ) {
     setTimeout(() => {
       emit({
         operation: "moveTreeNode",
-        spaceId: spaceId,
-        payload: {
-          id: draggedNodeId,
-          parentId: args.parentId,
-          index: args.index,
-          position: newPosition,
-        },
+        spaceId,
+        payload: { id, parentId, index, position },
       });
     }, 50);
-  };
+  }
 
   const onRename: RenameHandler<T> = ({ name, id }) => {
     tree.update({ id, changes: { name } as any });

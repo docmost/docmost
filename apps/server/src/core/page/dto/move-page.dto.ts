@@ -4,7 +4,9 @@ import {
   MinLength,
   MaxLength,
   IsBoolean,
+  IsNotEmpty,
 } from 'class-validator';
+import { isOperator } from 'kysely';
 
 export class MovePageDto {
   @IsString()
@@ -29,9 +31,15 @@ export class MovePageDto {
 }
 
 export class MovePageToSpaceDto {
+  @IsNotEmpty()
   @IsString()
   pageId: string;
 
+  @IsNotEmpty()
   @IsString()
   spaceId: string;
+
+  @IsOptional()
+  @IsString()
+  parentPageId?: string | null;
 }

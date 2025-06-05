@@ -7,7 +7,11 @@ import {
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { Page, UpdatablePage } from '@docmost/db/types/entity.types';
+import {
+  Page,
+  PageContent,
+  UpdatablePage,
+} from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
   executeWithPagination,
@@ -20,13 +24,14 @@ import { MovePageDto } from '../dto/move-page.dto';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
-import { calculateBlockHash, dbOrTx, executeTx } from '@docmost/db/utils';
+import { calculateBlockHash, executeTx } from '@docmost/db/utils';
 import { PageMemberRepo } from '@docmost/db/repos/page/page-member.repo';
 import { SpaceRole } from 'src/common/helpers/types/permission';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { SidebarPageDto, SidebarPageResultDto } from '../dto/sidebar-page.dto';
+import { SidebarPageResultDto } from '../dto/sidebar-page.dto';
 import { SynchronizedPageRepo } from '@docmost/db/repos/page/synchronized_page.repo';
 import { MyPageColorDto } from '../dto/update-color.dto';
+import { CopyPageDto } from '../dto/copy-page.dto';
 
 @Injectable()
 export class PageService {
@@ -258,14 +263,18 @@ export class PageService {
     return result;
   }
 
-  async movePageToSpace(rootPage: Page, spaceId: string) {
+  async movePageToSpace(
+    rootPage: Page,
+    spaceId: string,
+    parentPageId?: string,
+  ) {
     await executeTx(this.db, async (trx) => {
       // Update root page
       const nextPosition = await this.nextPagePosition(spaceId);
       await this.pageRepo.updatePageMetadata(
         {
           spaceId,
-          parentPageId: null,
+          parentPageId: parentPageId ?? null,
           position: nextPosition,
           content: rootPage.content,
         },
@@ -437,6 +446,7 @@ export class PageService {
       throw new BadRequestException('Invalid move position');
     }
 
+    // TODO: проверка прав
     if (dto.parentPageId) {
       const parentPage = await this.pageRepo.findById(dto.parentPageId);
       if (!parentPage) {
@@ -447,14 +457,14 @@ export class PageService {
         throw new BadRequestException('Parent page must be in the same space');
       }
 
-      if (parentPage.spaceId !== dto.personalSpaceId) {
-        throw new BadRequestException();
-      }
+      // if (parentPage.spaceId !== dto.personalSpaceId) {
+      //   throw new BadRequestException();
+      // }
     }
 
-    if (movedPage.spaceId !== dto.personalSpaceId && movedPage.parentPageId) {
-      throw new BadRequestException();
-    }
+    // if (movedPage.spaceId !== dto.personalSpaceId && movedPage.parentPageId) {
+    //   throw new BadRequestException();
+    // }
 
     return this.pageRepo.updateUserPagePreferences({
       position: dto.position,
@@ -547,6 +557,7 @@ export class PageService {
   }
 
   async getMyPages(
+    userId: string,
     pagination: PaginationOptions,
     pageId?: string,
   ): Promise<PaginationResult<SidebarPageResultDto>> {
@@ -581,13 +592,13 @@ export class PageService {
     for (const page of result.items) {
       const preferences = await this.pageRepo.findUserPagePreferences(
         page.id,
-        page.creatorId,
+        userId,
       );
 
       if (!preferences) {
         await this.pageRepo.createUserPagePreferences({
           pageId: page.id,
-          userId: page.creatorId,
+          userId: userId,
           position: page.position,
           color: '#4CAF50',
         });
@@ -608,10 +619,14 @@ export class PageService {
     );
 
     if (!preferences) {
-      throw new NotFoundException(`Preferences not found`);
+      return this.pageRepo.createUserPagePreferences({
+        userId: userId,
+        pageId: dto.pageId,
+        color: dto.color,
+      });
     }
 
-    await this.pageRepo.updateUserPagePreferences({
+    return this.pageRepo.updateUserPagePreferences({
       pageId: dto.pageId,
       userId,
       color: dto.color,
@@ -636,6 +651,74 @@ export class PageService {
     }
 
     return pageUpdateResult;
+  }
+
+  async copyPage(
+    copyPageDto: CopyPageDto,
+    userId: string,
+    workspaceId: string,
+  ) {
+    const { parentPageId, originPageId, spaceId } = copyPageDto;
+
+    if (parentPageId) {
+      const parentPage = await this.pageRepo.findById(parentPageId);
+      if (!parentPage) {
+        throw new NotFoundException(`Parent page "${parentPageId}" not found.`);
+      }
+      if (parentPage.spaceId !== spaceId) {
+        throw new NotFoundException(
+          `Parent page "${parentPageId}" does not belong to space "${spaceId}".`,
+        );
+      }
+    }
+
+    const originPage = await this.pageRepo.findById(originPageId, {
+      includeContent: true,
+    });
+    if (!originPage) {
+      throw new NotFoundException('Origin page not found');
+    }
+
+    const newPage = await executeTx<Page>(this.db, async (trx) => {
+      const position = await this.nextPagePosition(spaceId, parentPageId);
+
+      const copyPage = await this.pageRepo.insertPage(
+        {
+          slugId: generateSlugId(),
+          title: `${originPage.title} - Copy`,
+          position,
+          icon: originPage.icon,
+          parentPageId,
+          spaceId,
+          creatorId: userId,
+          workspaceId,
+          lastUpdatedById: userId,
+        },
+        trx,
+      );
+
+      if (originPage.content) {
+        await this.pageRepo.insertContent(
+          copyPage.id,
+          originPage.content as PageContent,
+          trx,
+        );
+      }
+
+      await this.pageMemberRepo.insertPageMember(
+        {
+          userId,
+          pageId: copyPage.id,
+          role: SpaceRole.ADMIN,
+          addedById: userId,
+        },
+        trx,
+      );
+
+      return copyPage;
+    });
+
+    return newPage;
   }
 }
 

@@ -13,7 +13,11 @@ import {
   PageCaslSubject,
 } from "@/features/page/permissions/permissions.type";
 
-export default function Page() {
+interface PageParams {
+  isMyPages?: boolean;
+}
+
+export default function Page({ isMyPages = false }: PageParams) {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
 
@@ -67,6 +71,8 @@ export default function Page() {
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
           editable={pageAbility.can(PageCaslAction.Edit, PageCaslSubject.Page)}
+          isMyPages={isMyPages}
+          syncPageOriginId={page?.originPageId}
         />
         <HistoryModal pageId={page.id} />
       </div>

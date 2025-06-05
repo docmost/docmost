@@ -1,5 +1,4 @@
 .navbar {
-  /*background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));*/
   height: 100%;
   width: 100%;
   padding: var(--mantine-spacing-md);
@@ -68,13 +67,13 @@
 
 .pages {
   padding-left: calc(var(--mantine-spacing-md) - rem(6px));
-  padding-right: calc(var(--mantine-spacing-md) - rem(6px));
   padding-bottom: var(--mantine-spacing-md);
 }
 
 .pagesHeader {
+  width: 93%;
   padding-left: calc(var(--mantine-spacing-md) + rem(2px));
-  padding-right: var(--mantine-spacing-md);
+  padding-right: calc(var(--mantine-spacing-md) - rem(6px));
   margin-bottom: rem(5px);
 }
 

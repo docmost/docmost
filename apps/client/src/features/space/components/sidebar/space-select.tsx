@@ -66,7 +66,7 @@ export function SpaceSelect({
       data={data}
       renderOption={renderSelectOption}
       maxDropdownHeight={300}
-      //label={label || 'Select space'}
+      label={label}
       placeholder={t("Search for spaces")}
       searchable
       searchValue={searchValue}
