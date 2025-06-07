@@ -50,6 +50,8 @@ import { validate as isValidUUID } from 'uuid';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
+import { ShareService } from '../share/share.service';
+import { ShareInfoDto } from '../share/dto/share.dto';
 
 @Controller()
 export class AttachmentController {
@@ -64,6 +66,7 @@ export class AttachmentController {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
+    private readonly shareService: ShareService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -223,6 +226,14 @@ export class AttachmentController {
       fileId !== jwtPayload.attachmentId ||
       jwtPayload.workspaceId !== workspace.id
     ) {
+      throw new NotFoundException('File not found');
+    }
+
+    try{
+      const dto = new ShareInfoDto();
+      dto.pageId = jwtPayload.pageId;
+      await this.shareService.getSharedPage(dto, workspace.id);
+    } catch (err) {
       throw new NotFoundException('File not found');
     }
 
