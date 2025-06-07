@@ -384,7 +384,7 @@
   "Share deleted successfully": "Freigabe erfolgreich gelöscht",
   "Share not found": "Freigabe nicht gefunden",
   "Failed to share page": "Fehler beim Teilen der Seite",
-  "Copy page": "Copy page",
-  "Copy page to a different space.": "Copy page to a different space.",
-  "Page copied successfully": "Page copied successfully"
+  "Copy page": "Seite kopieren",
+  "Copy page to a different space.": "Seite in einen anderen Bereich kopieren.",
+  "Page copied successfully": "Seite erfolgreich kopiert"
 }
