@@ -123,10 +123,10 @@ export interface Comments {
 }
 
 export interface FileTasks {
-  completedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
+  errorMessage: string | null;
   fileExt: string | null;
   fileName: string;
   filePath: string;

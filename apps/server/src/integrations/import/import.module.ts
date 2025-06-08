@@ -5,6 +5,7 @@ import { StorageModule } from '../storage/storage.module';
 import { FileTaskService } from './services/file-task.service';
 import { FileTaskProcessor } from './processors/file-task.processor';
 import { ImportAttachmentService } from './services/import-attachment.service';
+import { FileTaskController } from './file-task.controller';
 
 @Module({
   providers: [
@@ -14,7 +15,7 @@ import { ImportAttachmentService } from './services/import-attachment.service';
     ImportAttachmentService,
   ],
   exports: [ImportService, ImportAttachmentService],
-  controllers: [ImportController],
+  controllers: [ImportController, FileTaskController],
   imports: [StorageModule],
 })
 export class ImportModule {}

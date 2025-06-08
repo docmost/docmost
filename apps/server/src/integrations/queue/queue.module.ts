@@ -51,6 +51,10 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
     }),
     BullModule.registerQueue({
       name: QueueName.FILE_TASK_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
     }),
   ],
   exports: [BullModule],

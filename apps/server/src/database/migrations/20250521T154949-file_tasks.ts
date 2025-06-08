@@ -6,22 +6,17 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
-    //type: import or export
+    // type (import, export)
     .addColumn('type', 'varchar', (col) => col)
-    // source - generic, notion, confluence
-    // type or provider?
+    // source (generic, notion, confluence)
     .addColumn('source', 'varchar', (col) => col)
-    // status (enum: PENDING|PROCESSING|SUCCESS|FAILED),
+    // status (pending|processing|success|failed),
     .addColumn('status', 'varchar', (col) => col)
-    // file name
-    // file path
-    // file size
-
     .addColumn('file_name', 'varchar', (col) => col.notNull())
     .addColumn('file_path', 'varchar', (col) => col.notNull())
     .addColumn('file_size', 'int8', (col) => col)
     .addColumn('file_ext', 'varchar', (col) => col)
-
+    .addColumn('error_message', 'varchar', (col) => col)
     .addColumn('creator_id', 'uuid', (col) => col.references('users.id'))
     .addColumn('space_id', 'uuid', (col) =>
       col.references('spaces.id').onDelete('cascade'),
@@ -35,7 +30,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('updated_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
-    .addColumn('completed_at', 'timestamptz', (col) => col)
     .addColumn('deleted_at', 'timestamptz', (col) => col)
     .execute();
 }

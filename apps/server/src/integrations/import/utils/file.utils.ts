@@ -7,7 +7,7 @@ export enum FileTaskType {
   Export = 'export',
 }
 
-export enum FileImportType {
+export enum FileImportSource {
   Generic = 'generic',
   Notion = 'notion',
   Confluence = 'confluence',

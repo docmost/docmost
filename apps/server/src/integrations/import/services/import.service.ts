@@ -10,7 +10,7 @@ import {
 } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { generateSlugId } from '../../../common/helpers';
+import { generateSlugId, sanitizeFileName } from '../../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
@@ -20,15 +20,11 @@ import {
   FileTaskType,
   getFileTaskFolderPath,
 } from '../utils/file.utils';
-import { v7, v7 as uuid7 } from 'uuid';
+import { v7 as uuid7 } from 'uuid';
 import { StorageService } from '../../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
-import { Node as PMNode } from '@tiptap/pm/model';
-import { EditorState, Transaction } from '@tiptap/pm/state';
-import { getSchema } from '@tiptap/core';
-import { FileTask } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class ImportService {
@@ -204,13 +200,15 @@ export class ImportService {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
-    const fileName = sanitize(
-      path.basename(file.filename, fileExtension).slice(0, 255),
+    const fileName = sanitizeFileName(
+      path.basename(file.filename, fileExtension),
     );
     const fileSize = fileBuffer.length;
 
+    const fileNameWithExt = fileName + fileExtension;
+
     const fileTaskId = uuid7();
-    const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileName}`;
+    const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileNameWithExt}`;
 
     // upload file
     await this.storageService.upload(filePath, fileBuffer);
@@ -222,7 +220,7 @@ export class ImportService {
         type: FileTaskType.Import,
         source: source,
         status: FileTaskStatus.Processing,
-        fileName: fileName,
+        fileName: fileNameWithExt,
         filePath: filePath,
         fileSize: fileSize,
         fileExt: 'zip',
@@ -231,97 +229,12 @@ export class ImportService {
         workspaceId: workspaceId,
       })
       .returningAll()
-      .execute();
+      .executeTakeFirst();
 
     await this.fileTaskQueue.add(QueueJob.IMPORT_TASK, {
       fileTaskId: fileTaskId,
     });
 
     return fileTask;
-  }
-
-  async markdownOrHtmlToProsemirror(
-    fileContent: string,
-    fileExtension: string,
-  ): Promise<any> {
-    let prosemirrorState = '';
-    if (fileExtension === '.md') {
-      prosemirrorState = await this.processMarkdown(fileContent);
-    } else if (fileExtension.endsWith('.html')) {
-      prosemirrorState = await this.processHTML(fileContent);
-    }
-    return prosemirrorState;
-  }
-
-  async convertInternalLinksToMentionsPM(
-    doc: PMNode,
-    currentFilePath: string,
-    filePathToPageMetaMap: Map<
-      string,
-      { id: string; title: string; slugId: string }
-    >,
-  ): Promise<PMNode> {
-    const schema = getSchema(tiptapExtensions);
-    const state = EditorState.create({ doc, schema });
-    let tr: Transaction = state.tr;
-
-    const normalizePath = (p: string) => p.replace(/\\/g, '/');
-
-    // Collect replacements from the original doc.
-    const replacements: Array<{
-      from: number;
-      to: number;
-      mentionNode: PMNode;
-    }> = [];
-
-    doc.descendants((node, pos) => {
-      if (!node.isText || !node.marks?.length) return;
-
-      // Look for the link mark
-      const linkMark = node.marks.find(
-        (mark) => mark.type.name === 'link' && mark.attrs?.href,
-      );
-      if (!linkMark) return;
-
-      // Compute the range for the entire text node.
-      const from = pos;
-      const to = pos + node.nodeSize;
-
-      // Resolve the path and get page meta.
-      const resolvedPath = normalizePath(
-        path.join(path.dirname(currentFilePath), linkMark.attrs.href),
-      );
-      const pageMeta = filePathToPageMetaMap.get(resolvedPath);
-      if (!pageMeta) return;
-
-      // Create the mention node with all required attributes.
-      const mentionNode = schema.nodes.mention.create({
-        id: v7(),
-        entityType: 'page',
-        entityId: pageMeta.id,
-        label: node.text || pageMeta.title,
-        slugId: pageMeta.slugId,
-        creatorId: 'not available', // This is required per your schema.
-      });
-
-      replacements.push({ from, to, mentionNode });
-    });
-
-    // Apply replacements in reverse order.
-    for (let i = replacements.length - 1; i >= 0; i--) {
-      const { from, to, mentionNode } = replacements[i];
-      try {
-        tr = tr.replaceWith(from, to, mentionNode);
-      } catch (err) {
-        console.error('❌ Failed to insert mention:', err);
-      }
-    }
-    if (tr.docChanged) {
-      console.log('doc changed');
-      console.log(JSON.stringify(state.apply(tr).doc.toJSON()));
-    }
-
-    // Return the updated document if any change was made.
-    return tr.docChanged ? state.apply(tr).doc : doc;
   }
 }

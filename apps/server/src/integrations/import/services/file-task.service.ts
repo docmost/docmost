@@ -5,7 +5,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import {
   extractZip,
-  FileImportType,
+  FileImportSource,
   FileTaskStatus,
 } from '../utils/file.utils';
 import { StorageService } from '../../storage/storage.service';
@@ -40,7 +40,6 @@ export class FileTaskService {
     private readonly backlinkRepo: BacklinkRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly importAttachmentService: ImportAttachmentService,
-    // private readonly confluenceTaskService: ConfluenceImportService,
     private moduleRef: ModuleRef,
   ) {}
 
@@ -72,15 +71,23 @@ export class FileTaskService {
       unsafeCleanup: true,
     });
 
-    const fileStream = await this.storageService.readStream(fileTask.filePath);
-    await pipeline(fileStream, createWriteStream(tmpZipPath));
+    try {
+      const fileStream = await this.storageService.readStream(
+        fileTask.filePath,
+      );
+      await pipeline(fileStream, createWriteStream(tmpZipPath));
+      await extractZip(tmpZipPath, tmpExtractDir);
+    } catch (err) {
+      await cleanupTmpFile();
+      await cleanupTmpDir();
 
-    await extractZip(tmpZipPath, tmpExtractDir);
+      throw err;
+    }
 
     try {
       if (
-        fileTask.source === FileImportType.Generic ||
-        fileTask.source === FileImportType.Notion
+        fileTask.source === FileImportSource.Generic ||
+        fileTask.source === FileImportSource.Notion
       ) {
         await this.processGenericImport({
           extractDir: tmpExtractDir,
@@ -88,7 +95,7 @@ export class FileTaskService {
         });
       }
 
-      if (fileTask.source === FileImportType.Confluence) {
+      if (fileTask.source === FileImportSource.Confluence) {
         let ConfluenceModule: any;
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -109,13 +116,21 @@ export class FileTaskService {
           fileTask,
         });
       }
-      await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success);
-    } catch (error) {
-      await this.updateTaskStatus(fileTaskId, FileTaskStatus.Failed);
-      this.logger.error(error);
-    } finally {
+      try {
+        await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success, null);
+        // delete stored file on success
+        await this.storageService.delete(fileTask.filePath);
+      } catch (err) {
+        this.logger.error(
+          `Failed to delete import file from storage. Task ID: ${fileTaskId}`,
+          err,
+        );
+      }
+    } catch (err) {
       await cleanupTmpFile();
       await cleanupTmpDir();
+
+      throw err;
     }
   }
 
@@ -279,11 +294,27 @@ export class FileTaskService {
     });
   }
 
-  async updateTaskStatus(fileTaskId: string, status: FileTaskStatus) {
-    await this.db
-      .updateTable('fileTasks')
-      .set({ status: status })
+  async getFileTask(fileTaskId: string) {
+    return this.db
+      .selectFrom('fileTasks')
+      .selectAll()
       .where('id', '=', fileTaskId)
-      .execute();
+      .executeTakeFirst();
+  }
+
+  async updateTaskStatus(
+    fileTaskId: string,
+    status: FileTaskStatus,
+    errorMessage?: string,
+  ) {
+    try {
+      await this.db
+        .updateTable('fileTasks')
+        .set({ status: status, errorMessage, updatedAt: new Date() })
+        .where('id', '=', fileTaskId)
+        .execute();
+    } catch (err) {
+      this.logger.error(err);
+    }
   }
 }
