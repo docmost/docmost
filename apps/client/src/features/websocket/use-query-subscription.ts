@@ -1,8 +1,11 @@
 import React from "react";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
 import { useAtom } from "jotai";
-import { useQueryClient } from "@tanstack/react-query";
+import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { WebSocketEvent } from "@/features/websocket/types";
+import { IPage } from "../page/types/page.types";
+import { IPagination } from "@/lib/types";
+import { invalidateOnCreatePage, invalidateOnDeletePage, invalidateOnMovePage, invalidateOnUpdatePage } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
 
 export const useQuerySubscription = () => {
@@ -27,6 +30,16 @@ export const useQuerySubscription = () => {
             queryKey: RQ_KEY(data.pageId),
           });
           break;
+        case "addTreeNode":
+          invalidateOnCreatePage(data.payload.data);
+          break;
+        case "moveTreeNode":
+          invalidateOnMovePage();
+          break;
+        case "deleteTreeNode":
+          const pageId = data.payload.node.id;
+          invalidateOnDeletePage(pageId);
+          break;
         case "updateOne":
           entity = data.entity[0];
           if (entity === "pages") {
@@ -43,7 +56,11 @@ export const useQuerySubscription = () => {
               ...data.payload,
             });
           }
-
+          
+          if (entity === "pages") {
+            invalidateOnUpdatePage(data.spaceId, data.payload.parentPageId, data.id, data.payload.title, data.payload.icon);
+          }
+          
           /*
           queryClient.setQueriesData(
             { queryKey: [data.entity, data.id] },
@@ -55,7 +72,7 @@ export const useQuerySubscription = () => {
                 : update(oldData as Record<string, unknown>);
             },
           );
-      */
+      */          
           break;
       }
     });

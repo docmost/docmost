@@ -36,6 +36,7 @@ import {
 } from "@/features/search/components/search-control.tsx";
 import { ShareSearchSpotlight } from "@/features/search/share-search-spotlight";
 import { shareSearchSpotlight } from "@/features/search/constants";
+import ShareBranding from '@/features/share/components/share-branding.tsx';
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -163,16 +164,7 @@ export default function ShareShell({
       <AppShell.Main>
         {children}
 
-        <Affix position={{ bottom: 20, right: 20 }}>
-          <Button
-            variant="default"
-            component="a"
-            target="_blank"
-            href="https://docmost.com?ref=public-share"
-          >
-            Powered by Docmost
-          </Button>
-        </Affix>
+        {data && shareId && !data.hasLicenseKey && <ShareBranding />}
       </AppShell.Main>
 
       <AppShell.Aside

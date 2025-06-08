@@ -103,7 +103,7 @@ export function TitleEditor({
         spaceId: page.spaceId,
         entity: ["pages"],
         id: page.id,
-        payload: { title: page.title, slugId: page.slugId },
+        payload: { title: page.title, slugId: page.slugId, parentPageId: page.parentPageId, icon: page.icon },
       };
 
       if (page.title !== titleEditor.getText()) return;
