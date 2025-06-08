@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Slider } from '@mantine/core';
 
 export type ImageWidthProps = {
@@ -10,11 +10,11 @@ export type ImageWidthProps = {
 export const NodeWidthResize = memo(({ onChange, value, width }: ImageWidthProps) => {
   const [currentValue, setCurrentValue] = useState(value);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setCurrentValue(value);
   }, [value]);
 
-  const handleChange = useCallback(
+  const handleChangeEnd = useCallback(
     (newValue: number) => {
       onChange(newValue);
     },
@@ -27,7 +27,7 @@ export const NodeWidthResize = memo(({ onChange, value, width }: ImageWidthProps
       min={10}
       value={currentValue}
       onChange={setCurrentValue}
-      onChangeEnd={handleChange}
+      onChangeEnd={handleChangeEnd}
       w={width || 100}
       label={(value) => `${value}%`}
     />

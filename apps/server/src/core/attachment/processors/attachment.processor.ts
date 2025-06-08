@@ -5,7 +5,7 @@ import { AttachmentService } from '../services/attachment.service';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { Space } from '@docmost/db/types/entity.types';
 
-@Processor(QueueName.ATTACHEMENT_QUEUE)
+@Processor(QueueName.ATTACHMENT_QUEUE)
 export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(AttachmentProcessor.name);
   constructor(private readonly attachmentService: AttachmentService) {
@@ -16,6 +16,9 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
     try {
       if (job.name === QueueJob.DELETE_SPACE_ATTACHMENTS) {
         await this.attachmentService.handleDeleteSpaceAttachments(job.data.id);
+      }
+      if (job.name === QueueJob.DELETE_USER_AVATARS) {
+        await this.attachmentService.handleDeleteUserAvatars(job.data.id);
       }
     } catch (err) {
       throw err;

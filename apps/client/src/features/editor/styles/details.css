@@ -53,24 +53,22 @@
       padding: 4px;
       word-break: break-word;
       overflow-wrap: break-word;
-
-      [data-type="detailsContent"] {
-        display: none;
-      }
     }
+  }
 
-    &[open] {
-      [data-type="detailsButton"] {
-        .ProseMirror-icon {
-          transform: rotateZ(90deg);
-        }
-      }
+  [data-type="details"] > [data-type="detailsContainer"] > [data-type="detailsContent"]{
+    display: none;
+  }
 
-      [data-type="detailsContainer"] {
-        [data-type="detailsContent"] {
-          display: block;
-        }
-      }
-    }
+  [data-type="details"][open] > [data-type="detailsContainer"] > [data-type="detailsContent"]{
+    display: block;
+  }
+
+  [data-type="details"][open] > [data-type="detailsButton"] {
+    align-items: start;
+  }
+
+  [data-type="details"][open] > [data-type="detailsButton"] .ProseMirror-icon{
+    transform: rotateZ(90deg);
   }
 }

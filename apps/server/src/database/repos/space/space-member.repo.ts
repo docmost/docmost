@@ -97,7 +97,7 @@ export class SpaceMemberRepo {
     spaceId: string,
     pagination: PaginationOptions,
   ) {
-    const query = this.db
+    let query = this.db
       .selectFrom('spaceMembers')
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
@@ -114,7 +114,16 @@ export class SpaceMemberRepo {
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
       .where('spaceId', '=', spaceId)
+      .orderBy((eb) => eb('groups.id', 'is not', null), 'desc')
       .orderBy('spaceMembers.createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`)
+          .or('users.email', 'ilike', `%${pagination.query}%`)
+          .or('groups.name', 'ilike', `%${pagination.query}%`),
+      );
+    }
 
     const result = await executeWithPagination(query, {
       page: pagination.page,
@@ -211,7 +220,7 @@ export class SpaceMemberRepo {
 
     let query = this.db
       .selectFrom('spaces')
-      .selectAll('spaces')
+      .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       //.where('workspaceId', '=', workspaceId)
       .where('id', 'in', userSpaceIds)
@@ -227,9 +236,12 @@ export class SpaceMemberRepo {
       );
     }
 
+    const hasEmptyIds = userSpaceIds.length === 0;
+
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;

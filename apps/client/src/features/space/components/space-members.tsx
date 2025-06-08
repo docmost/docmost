@@ -1,4 +1,11 @@
-import { Group, Table, Text, Menu, ActionIcon } from "@mantine/core";
+import {
+  Group,
+  Table,
+  Text,
+  Menu,
+  ActionIcon,
+  ScrollArea,
+} from "@mantine/core";
 import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
@@ -17,6 +24,9 @@ import {
 } from "@/features/space/types/space-role-data.ts";
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
+import Paginate from "@/components/common/paginate.tsx";
+import { SearchInput } from "@/components/common/search-input.tsx";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 
 type MemberType = "user" | "group";
 
@@ -30,8 +40,12 @@ export default function SpaceMembersList({
   readOnly,
 }: SpaceMembersProps) {
   const { t } = useTranslation();
-  const { data, isLoading } = useSpaceMembersQuery(spaceId);
-
+  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { data, isLoading } = useSpaceMembersQuery(spaceId, {
+    page,
+    limit: 100,
+    query: search,
+  });
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
 
@@ -98,9 +112,10 @@ export default function SpaceMembersList({
 
   return (
     <>
-      {data && (
+      <SearchInput onSearch={handleSearch} />
+      <ScrollArea h={400}>
         <Table.ScrollContainer minWidth={500}>
-          <Table verticalSpacing={8}>
+          <Table highlightOnHover verticalSpacing={8}>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t("Member")}</Table.Th>
@@ -113,7 +128,7 @@ export default function SpaceMembersList({
               {data?.items.map((member, index) => (
                 <Table.Tr key={index}>
                   <Table.Td>
-                    <Group gap="sm">
+                    <Group gap="sm" wrap="nowrap">
                       {member.type === "user" && (
                         <CustomAvatar
                           avatarUrl={member?.avatarUrl}
@@ -124,7 +139,7 @@ export default function SpaceMembersList({
                       {member.type === "group" && <IconGroupCircle />}
 
                       <div>
-                        <Text fz="sm" fw={500}>
+                        <Text fz="sm" fw={500} lineClamp={1}>
                           {member?.name}
                         </Text>
                         <Text fz="xs" c="dimmed">
@@ -186,6 +201,15 @@ export default function SpaceMembersList({
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
+      </ScrollArea>
+
+      {data?.items.length > 0 && (
+        <Paginate
+          currentPage={page}
+          hasPrevPage={data?.meta.hasPrevPage}
+          hasNextPage={data?.meta.hasNextPage}
+          onPageChange={setPage}
+        />
       )}
     </>
   );

@@ -12,6 +12,18 @@
   font-weight: 400;
   width: 100%;
 
+  padding-left: 3rem;
+  padding-right: 3rem;
+
+  @media (max-width: $mantine-breakpoint-sm) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media print {
+    padding: 0;
+  }
+
   > * + * {
     margin-top: 0.75em;
   }
@@ -56,8 +68,14 @@
   }
 
   a {
-    color: light-dark(#207af1, #587da9);
-    /*font-weight: bold;*/
+    color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
+    @mixin light {
+      border-bottom: 0.05em solid var(--mantine-color-dark-0);
+    }
+    @mixin dark {
+      border-bottom: 0.05em solid var(--mantine-color-dark-2);
+    }
+    /*font-weight: 500; */
     text-decoration: none;
     cursor: pointer;
   }
@@ -124,6 +142,19 @@
   .comment-mark {
     background: rgba(255, 215, 0, 0.14);
     border-bottom: 2px solid rgb(166, 158, 12);
+  }
+
+  .comment-highlight {
+    animation: flash-highlight 3s ease-out;
+  }
+
+  @keyframes flash-highlight {
+    0% {
+      background-color: #ff4d4d;
+    }
+    100% {
+      background-color: rgba(255, 215, 0, 0.14);
+    }
   }
 
   .resize-cursor {

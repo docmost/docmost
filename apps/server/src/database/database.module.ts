@@ -3,7 +3,7 @@ import {
   Logger,
   Module,
   OnApplicationBootstrap,
-  OnModuleDestroy,
+  BeforeApplicationShutdown,
 } from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
@@ -23,6 +23,8 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as process from 'node:process';
 import { MigrationService } from '@docmost/db/services/migration.service';
 import { UserTokenRepo } from './repos/user-token/user-token.repo';
+import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 
 // https://github.com/brianc/node-postgres/issues/811
 types.setTypeParser(types.builtins.INT8, (val) => Number(val));
@@ -37,6 +39,7 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         dialect: new PostgresDialect({
           pool: new Pool({
             connectionString: environmentService.getDatabaseURL(),
+            max: environmentService.getDatabaseMaxPool(),
           }).on('error', (err) => {
             console.error('Database error:', err.message);
           }),
@@ -44,12 +47,15 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
         plugins: [new CamelCasePlugin()],
         log: (event: LogEvent) => {
           if (environmentService.getNodeEnv() !== 'development') return;
-          if (event.level === 'query') {
-            // console.log(event.query.sql);
-            //if (event.query.parameters.length > 0) {
-            //console.log('parameters: ' + event.query.parameters);
-            //}
-            // console.log('time: ' + event.queryDurationMillis);
+          const logger = new Logger(DatabaseModule.name);
+          if (event.level) {
+            if (process.env.DEBUG_DB?.toLowerCase() === 'true') {
+              logger.debug(event.query.sql);
+              logger.debug('query time: ' + event.queryDurationMillis + ' ms');
+              //if (event.query.parameters.length > 0) {
+              // logger.debug('parameters: ' + event.query.parameters);
+              //}
+            }
           }
         },
       }),
@@ -68,6 +74,8 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     CommentRepo,
     AttachmentRepo,
     UserTokenRepo,
+    BacklinkRepo,
+    ShareRepo
   ],
   exports: [
     WorkspaceRepo,
@@ -81,9 +89,13 @@ types.setTypeParser(types.builtins.INT8, (val) => Number(val));
     CommentRepo,
     AttachmentRepo,
     UserTokenRepo,
+    BacklinkRepo,
+    ShareRepo
   ],
 })
-export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
+export class DatabaseModule
+  implements OnApplicationBootstrap, BeforeApplicationShutdown
+{
   private readonly logger = new Logger(DatabaseModule.name);
 
   constructor(
@@ -100,7 +112,7 @@ export class DatabaseModule implements OnModuleDestroy, OnApplicationBootstrap {
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async beforeApplicationShutdown(): Promise<void> {
     if (this.db) {
       await this.db.destroy();
     }

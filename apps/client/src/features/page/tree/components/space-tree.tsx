@@ -2,18 +2,20 @@ import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
 import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
-  fetchAncestorChildren,
+  fetchAllAncestorChildren,
   useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import React, { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Menu, rem } from "@mantine/core";
+import { ActionIcon, Box, Menu, rem } from "@mantine/core";
 import {
+  IconArrowRight,
   IconChevronDown,
   IconChevronRight,
+  IconCopy,
   IconDotsVertical,
   IconFileDescription,
   IconFileExport,
@@ -22,7 +24,7 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import { appendNodeChildrenAtom, treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
@@ -56,6 +58,10 @@ import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
+import MovePageModal from "../../components/move-page-modal.tsx";
+import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import CopyPageModal from "../../components/copy-page-modal.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -82,7 +88,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const rootElement = useRef<HTMLDivElement>();
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef(rootElement, sizeRef);
-  const isDataLoaded = useRef(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
@@ -106,7 +112,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         // and append root pages instead of resetting the entire tree
         // which looses async loaded children too
         setData(treeData);
-        isDataLoaded.current = true;
+        setIsDataLoaded(true);
         setOpenTreeNodes({});
       }
     }
@@ -114,7 +120,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (isDataLoaded.current && currentPage) {
+      if (isDataLoaded && currentPage) {
         // check if pageId node is present in the tree
         const node = dfs(treeApiRef.current?.root, currentPage.id);
         if (node) {
@@ -134,7 +140,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             if (ancestor.id === currentPage.id) {
               return;
             }
-            const children = await fetchAncestorChildren({
+            const children = await fetchAllAncestorChildren({
               pageId: ancestor.id,
               spaceId: ancestor.spaceId,
             });
@@ -176,7 +182,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
 
     fetchData();
-  }, [isDataLoaded.current, currentPage?.id]);
+  }, [isDataLoaded, currentPage?.id]);
 
   useEffect(() => {
     if (currentPage?.id) {
@@ -228,12 +234,15 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 }
 
 function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [, appendChildren] = useAtom(appendNodeChildrenAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
   const timerRef = useRef(null);
+  const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
+  const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(() => {
@@ -254,9 +263,10 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
-    if (node.data.children && node.data.children.length > 0) {
-      return;
-    }
+    // in conflict with use-query-subscription.ts => case "addTreeNode","moveTreeNode" etc with websocket
+    // if (node.data.children && node.data.children.length > 0) {
+    //   return;
+    // }
 
     try {
       const params: SidebarPagesParams = {
@@ -264,30 +274,16 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         spaceId: node.data.spaceId,
       };
 
-      const newChildren = await queryClient.fetchQuery({
-        queryKey: ["sidebar-pages", params],
-        queryFn: () => getSidebarPages(params),
-        staleTime: 10 * 60 * 1000,
+      const childrenTree = await fetchAllAncestorChildren(params);
+
+      appendChildren({
+        parentId: node.data.id,
+        children: childrenTree,
       });
-
-      const childrenTree = buildTree(newChildren.items);
-
-      const updatedTreeData = appendNodeChildren(
-        treeData,
-        node.data.id,
-        childrenTree,
-      );
-
-      setTreeData(updatedTreeData);
     } catch (error) {
       console.error("Failed to fetch children:", error);
     }
   }
-
-  const handleClick = () => {
-    const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-    navigate(pageUrl);
-  };
 
   const handleUpdateNodeIcon = (nodeId: string, newIcon: string) => {
     const updatedTree = updateTreeNodeIcon(treeData, nodeId, newIcon);
@@ -301,17 +297,17 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     handleUpdateNodeIcon(node.id, emoji.native);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native });
-
-    setTimeout(() => {
-      emit({
-        operation: "updateOne",
-        spaceId: node.data.spaceId,
-        entity: ["pages"],
-        id: node.id,
-        payload: { icon: emoji.native },
-      });
-    }, 50);
+    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native }).then((data) => {
+      setTimeout(() => {
+        emit({
+          operation: "updateOne",
+          spaceId: node.data.spaceId,
+          entity: ["pages"],
+          id: node.id,
+          payload: { icon: emoji.native, parentPageId: data.parentPageId},
+        });
+      }, 50);
+    });
   };
 
   const handleRemoveEmoji = () => {
@@ -342,13 +338,22 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
     }, 650);
   }
 
+  const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
+
   return (
     <>
-      <div
+      <Box
         style={style}
         className={clsx(classes.node, node.state)}
+        component={Link}
+        to={pageUrl}
+        // @ts-ignore
         ref={dragHandle}
-        onClick={handleClick}
+        onClick={() => {
+          if (mobileSidebarOpened) {
+            toggleMobileSidebar();
+          }
+        }}
         onMouseEnter={prefetchPage}
         onMouseLeave={cancelPagePrefetch}
       >
@@ -369,7 +374,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
           />
         </div>
 
-        <span className={classes.text}>{node.data.name || "untitled"}</span>
+        <span className={classes.text}>{node.data.name || t("untitled")}</span>
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} />
@@ -382,7 +387,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
             />
           )}
         </div>
-      </div>
+      </Box>
     </>
   );
 }
@@ -434,6 +439,14 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
   const { openDeleteModal } = useDeletePageModal();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
+  const [
+    movePageModalOpened,
+    { open: openMovePageModal, close: closeMoveSpaceModal },
+  ] = useDisclosure(false);
+  const [
+    copyPageModalOpened,
+    { open: openCopyPageModal, close: closeCopySpaceModal },
+  ] = useDisclosure(false);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -486,8 +499,29 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
 
           {!(treeApi.props.disableEdit as boolean) && (
             <>
-              <Menu.Divider />
+              <Menu.Item
+                leftSection={<IconArrowRight size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openMovePageModal();
+                }}
+              >
+                {t("Move")}
+              </Menu.Item>
 
+              <Menu.Item
+                leftSection={<IconCopy size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openCopyPageModal();
+                }}
+              >
+                {t("Copy")}
+              </Menu.Item>
+
+              <Menu.Divider />
               <Menu.Item
                 c="red"
                 leftSection={<IconTrash size={16} />}
@@ -503,6 +537,21 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <MovePageModal
+        pageId={node.id}
+        slugId={node.data.slugId}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeMoveSpaceModal}
+        open={movePageModalOpened}
+      />
+
+      <CopyPageModal
+        pageId={node.id}
+        currentSpaceSlug={spaceSlug}
+        onClose={closeCopySpaceModal}
+        open={copyPageModalOpened}
+      />
 
       <ExportModal
         type="page"
@@ -520,6 +569,12 @@ interface PageArrowProps {
 }
 
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
+  useEffect(() => {
+    if(node.isOpen){
+      onExpandTree();
+    }
+  }, []);
+
   return (
     <ActionIcon
       size={20}
