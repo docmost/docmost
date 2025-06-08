@@ -144,6 +144,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsHighlightColorSelectorOpen(false);
           }}
         />
 
@@ -155,6 +156,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsHighlightColorSelectorOpen(false);
           }}
         />
 
@@ -185,6 +187,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
+            setIsHighlightColorSelectorOpen(false);
           }}
         />
 
@@ -193,6 +196,10 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isHighlightColorSelectorOpen}
           setIsOpen={() => {
             setIsHighlightColorSelectorOpen(!isHighlightColorSelectorOpen);
+            setIsLinkSelectorOpen(false);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 
@@ -204,6 +211,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsHighlightColorSelectorOpen(false);
           }}
         />
 
