@@ -5,7 +5,7 @@ import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { WebSocketEvent } from "@/features/websocket/types";
 import { IPage } from "../page/types/page.types";
 import { IPagination } from "@/lib/types";
-import { invalidateOnCreatePage, invalidateOnDeletePage, invalidateOnMovePage, invalidateOnUpdatePage } from "../page/queries/page-query";
+import { invalidateGraph, invalidateOnCreatePage, invalidateOnDeletePage, invalidateOnMovePage, invalidateOnUpdatePage } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
 
 export const useQuerySubscription = () => {
@@ -32,13 +32,16 @@ export const useQuerySubscription = () => {
           break;
         case "addTreeNode":
           invalidateOnCreatePage(data.payload.data);
+          invalidateGraph();
           break;
         case "moveTreeNode":
           invalidateOnMovePage();
+          invalidateGraph();
           break;
         case "deleteTreeNode":
           const pageId = data.payload.node.id;
           invalidateOnDeletePage(pageId);
+          invalidateGraph();
           break;
         case "updateOne":
           entity = data.entity[0];
