@@ -43,7 +43,23 @@ export class ImportAttachmentService {
 
     const attachmentTasks: Promise<void>[] = [];
 
-    const processFile = (relPath: string) => {
+    /**
+     * Cache keyed by the *relative* path that appears in the HTML.
+     * Ensures we upload (and DB-insert) each attachment at most once,
+     * even if it’s referenced multiple times on the page.
+     */
+    const processed = new Map<
+      string,
+      {
+        attachmentId: string;
+        storageFilePath: string;
+        apiFilePath: string;
+        fileNameWithExt: string;
+        abs: string;
+      }
+    >();
+
+    const uploadOnce = (relPath: string) => {
       const abs = attachmentCandidates.get(relPath)!;
       const attachmentId = v7();
       const ext = path.extname(abs);
@@ -51,7 +67,10 @@ export class ImportAttachmentService {
       const fileNameWithExt =
         sanitizeFileName(path.basename(abs, ext)) + ext.toLowerCase();
 
-      const storageFilePath = `${getAttachmentFolderPath(AttachmentType.File, fileTask.workspaceId)}/${attachmentId}/${fileNameWithExt}`;
+      const storageFilePath = `${getAttachmentFolderPath(
+        AttachmentType.File,
+        fileTask.workspaceId,
+      )}/${attachmentId}/${fileNameWithExt}`;
 
       const apiFilePath = `/api/files/${attachmentId}/${fileNameWithExt}`;
 
@@ -87,6 +106,19 @@ export class ImportAttachmentService {
         fileNameWithExt,
         abs,
       };
+    };
+
+    /**
+     * – Returns cached data if we’ve already processed this path.
+     * – Otherwise calls `uploadOnce`, stores the result, and returns it.
+     */
+    const processFile = (relPath: string) => {
+      const cached = processed.get(relPath);
+      if (cached) return cached;
+
+      const fresh = uploadOnce(relPath);
+      processed.set(relPath, fresh);
+      return fresh;
     };
 
     const pageDir = path.dirname(pageRelativePath);
@@ -150,6 +182,7 @@ export class ImportAttachmentService {
       unwrapFromParagraph($, $vid);
     }
 
+    // <div data-type="attachment">
     for (const el of $('div[data-type="attachment"]').toArray()) {
       const $oldDiv = $(el);
       const rawUrl = cleanUrlString($oldDiv.attr('data-attachment-url') ?? '')!;
@@ -206,7 +239,6 @@ export class ImportAttachmentService {
         $a.replaceWith($video);
         unwrapFromParagraph($, $video);
       } else {
-        // build attachment <div>
         const confAliasName = $a.attr('data-linked-resource-default-alias');
         let attachmentName = path.basename(abs);
         if (confAliasName) attachmentName = confAliasName;

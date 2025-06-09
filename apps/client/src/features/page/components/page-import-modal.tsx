@@ -96,7 +96,8 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
       notifications.show({
         id: "import",
-        message: t("Uploading import file"),
+        title: t("Uploading import file"),
+        message: t("Please don't close this tab."),
         loading: true,
         withCloseButton: false,
         autoClose: false,
@@ -106,14 +107,15 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       notifications.update({
         id: "import",
         title: t("Importing pages"),
-        message: t("Page import is in progress."),
+        message: t(
+          "Page import is in progress. You can check back later if this takes longer.",
+        ),
         loading: true,
-        withCloseButton: false,
+        withCloseButton: true,
         autoClose: false,
       });
 
       setFileTaskId(importTask.id);
-      onClose();
     } catch (err) {
       console.log("Failed to upload import file", err);
       notifications.update({
@@ -124,7 +126,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         icon: <IconX size={18} />,
         loading: false,
         withCloseButton: true,
-        autoClose: 5000,
+        autoClose: false,
       });
     }
   };
@@ -146,7 +148,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             icon: <IconCheck size={18} />,
             loading: false,
             withCloseButton: true,
-            autoClose: 5000,
+            autoClose: false,
           });
           clearInterval(intervalId);
           setFileTaskId(null);
@@ -177,7 +179,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             icon: <IconX size={18} />,
             loading: false,
             withCloseButton: true,
-            autoClose: 5000,
+            autoClose: false,
           });
           clearInterval(intervalId);
           setFileTaskId(null);
@@ -197,7 +199,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           icon: <IconX size={18} />,
           loading: false,
           withCloseButton: true,
-          autoClose: 5000,
+          autoClose: false,
         });
         clearInterval(intervalId);
         setFileTaskId(null);
