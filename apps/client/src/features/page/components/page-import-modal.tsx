@@ -92,6 +92,8 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }
 
     try {
+      onClose();
+
       notifications.show({
         id: "import",
         message: t("Uploading import file"),
@@ -101,7 +103,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       });
 
       const importTask = await importZip(selectedFile, spaceId, source);
-      notifications.show({
+      notifications.update({
         id: "import",
         title: t("Importing pages"),
         message: t("Page import is in progress."),

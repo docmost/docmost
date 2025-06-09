@@ -98,7 +98,7 @@ export default function EmbedView(props: NodeViewProps) {
 
                 <Text component="span" size="lg" c="dimmed">
                   {t("Embed {{provider}}", {
-                    provider: getEmbedProviderById(provider).name,
+                    provider: getEmbedProviderById(provider)?.name,
                   })}
                 </Text>
               </div>
