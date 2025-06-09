@@ -56,6 +56,7 @@ export default function PageImportModal({
         yOffset="10vh"
         xOffset={0}
         mah={400}
+        keepMounted={true}
       >
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
@@ -90,8 +91,6 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       return;
     }
 
-    onClose();
-
     try {
       const importTask = await importZip(selectedFile, spaceId, source);
       notifications.show({
@@ -104,6 +103,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       });
 
       setFileTaskId(importTask.id);
+      onClose();
     } catch (err) {
       console.log("Failed to import page", err);
       notifications.update({
