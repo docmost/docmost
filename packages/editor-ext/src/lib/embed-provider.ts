@@ -104,6 +104,14 @@ export const embedProviders: IEmbedProvider[] = [
       return url;
     },
   },
+  {
+    id: "iframe",
+    name: "Iframe",
+    regex: /any-iframe/,
+    getEmbedUrl: (match, url) => {
+      return url;
+    },
+  },
 ];
 
 export function getEmbedProviderById(id: string) {
