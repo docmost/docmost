@@ -54,6 +54,7 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
+        attempts: 1,
       },
     }),
   ],

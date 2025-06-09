@@ -12,6 +12,7 @@ import {
   invalidateOnUpdatePage,
 } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
+import { queryClient } from "@/main.tsx";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -84,6 +85,17 @@ export const useQuerySubscription = () => {
           );
       */
           break;
+        case "refetchRootTreeNodeEvent": {
+          const spaceId = data.spaceId;
+          queryClient.refetchQueries({
+            queryKey: ["root-sidebar-pages", spaceId],
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: ["recent-changes", spaceId],
+          });
+          break;
+        }
       }
     });
   }, [queryClient, socket]);

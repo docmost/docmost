@@ -44,33 +44,21 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
       `Error processing ${job.name} job. Reason: ${job.failedReason}`,
     );
 
-    const MAX_JOB_ATTEMPTS = 3;
-    const fileTaskId = job.data.fileTaskId;
-
-    if (job.attemptsMade >= MAX_JOB_ATTEMPTS) {
-      this.logger.error(`Max import attempts reached for Task ${fileTaskId}.`);
+    try {
+      const fileTaskId = job.data.fileTaskId;
       await this.fileTaskService.updateTaskStatus(
         fileTaskId,
         FileTaskStatus.Failed,
         job.failedReason,
       );
 
-      try {
-        const fileTask = await this.fileTaskService.getFileTask(fileTaskId);
-        if (fileTask) {
-          await this.storageService.delete(fileTask.filePath);
-        }
-      } catch (err) {
-        this.logger.error(err);
+      const fileTask = await this.fileTaskService.getFileTask(fileTaskId);
+      if (fileTask) {
+        await this.storageService.delete(fileTask.filePath);
       }
+    } catch (err) {
+      this.logger.error(err);
     }
-  }
-
-  @OnWorkerEvent('stalled')
-  async onStalled(job: Job) {
-    this.logger.error(
-      `Stalled processing ${job.name} job. Reason: ${job.failedReason}`,
-    );
   }
 
   @OnWorkerEvent('completed')

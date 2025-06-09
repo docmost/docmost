@@ -260,7 +260,11 @@ export class ImportAttachmentService {
     }
 
     // wait for all uploads & DB inserts
-    await Promise.all(attachmentTasks);
+    try {
+      await Promise.all(attachmentTasks);
+    } catch (err) {
+      this.logger.log('Import attachment upload error', err);
+    }
 
     return $.root().html() || '';
   }

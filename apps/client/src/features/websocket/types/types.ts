@@ -47,15 +47,28 @@ export type MoveTreeNodeEvent = {
     parentId: string;
     index: number;
     position: string;
-  }
+  };
 };
 
 export type DeleteTreeNodeEvent = {
   operation: "deleteTreeNode";
   spaceId: string;
   payload: {
-    node: SpaceTreeNode
-  }
+    node: SpaceTreeNode;
+  };
 };
 
-export type WebSocketEvent = InvalidateEvent | InvalidateCommentsEvent | UpdateEvent | DeleteEvent | AddTreeNodeEvent | MoveTreeNodeEvent | DeleteTreeNodeEvent;
+export type RefetchRootTreeNodeEvent = {
+  operation: "refetchRootTreeNodeEvent";
+  spaceId: string;
+};
+
+export type WebSocketEvent =
+  | InvalidateEvent
+  | InvalidateCommentsEvent
+  | UpdateEvent
+  | DeleteEvent
+  | AddTreeNodeEvent
+  | MoveTreeNodeEvent
+  | DeleteTreeNodeEvent
+  | RefetchRootTreeNodeEvent;

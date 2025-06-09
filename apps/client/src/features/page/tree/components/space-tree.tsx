@@ -24,7 +24,10 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import { appendNodeChildrenAtom, treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import {
+  appendNodeChildrenAtom,
+  treeDataAtom,
+} from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
@@ -32,6 +35,7 @@ import {
   appendNodeChildren,
   buildTree,
   buildTreeWithChildren,
+  mergeRootTrees,
   updateTreeNodeIcon,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
@@ -104,17 +108,17 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
 
-      if (data.length < 1 || data?.[0].spaceId !== spaceId) {
-        //Thoughts
-        // don't reset if there is data in state
-        // we only expect to call this once on initial load
-        // even if we decide to refetch, it should only update
-        // and append root pages instead of resetting the entire tree
-        // which looses async loaded children too
-        setData(treeData);
-        setIsDataLoaded(true);
-        setOpenTreeNodes({});
-      }
+      setData((prev) => {
+        // fresh space; full reset
+        if (prev.length === 0 || prev[0]?.spaceId !== spaceId) {
+          setIsDataLoaded(true);
+          setOpenTreeNodes({});
+          return treeData;
+        }
+
+        // same space; append only missing roots
+        return mergeRootTrees(prev, treeData);
+      });
     }
   }, [pagesData, hasNextPage]);
 
@@ -297,17 +301,19 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     handleUpdateNodeIcon(node.id, emoji.native);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native }).then((data) => {
-      setTimeout(() => {
-        emit({
-          operation: "updateOne",
-          spaceId: node.data.spaceId,
-          entity: ["pages"],
-          id: node.id,
-          payload: { icon: emoji.native, parentPageId: data.parentPageId},
-        });
-      }, 50);
-    });
+    updatePageMutation
+      .mutateAsync({ pageId: node.id, icon: emoji.native })
+      .then((data) => {
+        setTimeout(() => {
+          emit({
+            operation: "updateOne",
+            spaceId: node.data.spaceId,
+            entity: ["pages"],
+            id: node.id,
+            payload: { icon: emoji.native, parentPageId: data.parentPageId },
+          });
+        }, 50);
+      });
   };
 
   const handleRemoveEmoji = () => {
@@ -570,7 +576,7 @@ interface PageArrowProps {
 
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
   useEffect(() => {
-    if(node.isOpen){
+    if (node.isOpen) {
       onExpandTree();
     }
   }, []);

@@ -29,6 +29,8 @@ import { executeTx } from '@docmost/db/utils';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ImportAttachmentService } from './import-attachment.service';
 import { ModuleRef } from '@nestjs/core';
+import { PageService } from '../../../core/page/services/page.service';
+import { ImportPageNode } from '../dto/file-task-dto';
 
 @Injectable()
 export class FileTaskService {
@@ -37,6 +39,7 @@ export class FileTaskService {
   constructor(
     private readonly storageService: StorageService,
     private readonly importService: ImportService,
+    private readonly pageService: PageService,
     private readonly backlinkRepo: BacklinkRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly importAttachmentService: ImportAttachmentService,
@@ -52,6 +55,10 @@ export class FileTaskService {
 
     if (!fileTask) {
       this.logger.log(`Import file task with ID ${fileTaskId} not found`);
+      return;
+    }
+
+    if (fileTask.status === FileTaskStatus.Failed) {
       return;
     }
 
@@ -118,6 +125,8 @@ export class FileTaskService {
       }
       try {
         await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success, null);
+        await cleanupTmpFile();
+        await cleanupTmpDir();
         // delete stored file on success
         await this.storageService.delete(fileTask.filePath);
       } catch (err) {
@@ -142,19 +151,7 @@ export class FileTaskService {
     const allFiles = await collectMarkdownAndHtmlFiles(extractDir);
     const attachmentCandidates = await buildAttachmentCandidates(extractDir);
 
-    const pagesMap = new Map<
-      string,
-      {
-        id: string;
-        slugId: string;
-        name: string;
-        content: string;
-        position?: string | null;
-        parentPageId: string | null;
-        fileExtension: string;
-        filePath: string;
-      }
-    >();
+    const pagesMap = new Map<string, ImportPageNode>();
 
     for (const absPath of allFiles) {
       const relPath = path
@@ -201,14 +198,42 @@ export class FileTaskService {
     });
 
     // generate position keys
-    const siblingsMap = new Map<string | null, typeof Array.prototype>();
+    const siblingsMap = new Map<string | null, ImportPageNode[]>();
+
     pagesMap.forEach((page) => {
-      const sibs = siblingsMap.get(page.parentPageId) || [];
-      sibs.push(page);
-      siblingsMap.set(page.parentPageId, sibs);
+      const group = siblingsMap.get(page.parentPageId) ?? [];
+      group.push(page);
+      siblingsMap.set(page.parentPageId, group);
     });
-    siblingsMap.forEach((sibs) => {
+
+    // get root pages
+    const rootSibs = siblingsMap.get(null);
+
+    if (rootSibs?.length) {
+      rootSibs.sort((a, b) => a.name.localeCompare(b.name));
+
+      // get first position key from the server
+      const nextPosition = await this.pageService.nextPagePosition(
+        fileTask.spaceId,
+      );
+
+      let prevPos: string | null = null;
+      rootSibs.forEach((page, idx) => {
+        if (idx === 0) {
+          page.position = nextPosition;
+        } else {
+          page.position = generateJitteredKeyBetween(prevPos, null);
+        }
+        prevPos = page.position;
+      });
+    }
+
+    // non-root buckets (children & deeper levels)
+    siblingsMap.forEach((sibs, parentId) => {
+      if (parentId === null) return; // root already done
+
       sibs.sort((a, b) => a.name.localeCompare(b.name));
+
       let prevPos: string | null = null;
       for (const page of sibs) {
         page.position = generateJitteredKeyBetween(prevPos, null);
@@ -216,6 +241,7 @@ export class FileTaskService {
       }
     });
 
+    // internal page links
     const filePathToPageMetaMap = new Map<
       string,
       { id: string; title: string; slugId: string }

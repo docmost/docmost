@@ -121,7 +121,6 @@ export const deleteTreeNode = (
     .filter((node) => node !== null);
 };
 
-
 export function buildTreeWithChildren(items: SpaceTreeNode[]): SpaceTreeNode[] {
   const nodeMap = {};
   let result: SpaceTreeNode[] = [];
@@ -167,10 +166,12 @@ export function appendNodeChildren(
   // Preserve deeper children if they exist and remove node if deleted
   return treeItems.map((node) => {
     if (node.id === nodeId) {
-      const newIds = new Set(children.map(c => c.id));
+      const newIds = new Set(children.map((c) => c.id));
 
       const existingMap = new Map(
-        (node.children ?? []).filter(c => newIds.has(c.id)).map(c => [c.id, c])
+        (node.children ?? [])
+          .filter((c) => newIds.has(c.id))
+          .map((c) => [c.id, c]),
       );
 
       const merged = children.map((newChild) => {
@@ -195,4 +196,22 @@ export function appendNodeChildren(
 
     return node;
   });
+}
+
+/**
+ * Merge root nodes; keep existing ones intact, append new ones,
+ */
+export function mergeRootTrees(
+  prevRoots: SpaceTreeNode[],
+  incomingRoots: SpaceTreeNode[],
+): SpaceTreeNode[] {
+  const seen = new Set(prevRoots.map((r) => r.id));
+
+  // add new roots that were not present before
+  const merged = [...prevRoots];
+  incomingRoots.forEach((node) => {
+    if (!seen.has(node.id)) merged.push(node);
+  });
+
+  return sortPositionKeys(merged);
 }

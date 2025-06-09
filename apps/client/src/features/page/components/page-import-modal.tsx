@@ -31,6 +31,8 @@ import { getFileImportSizeLimit, isCloud } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { getFileTaskById } from "@/features/file-task/services/file-task-service.ts";
+import { queryClient } from "@/main.tsx";
+import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 
 interface PageImportModalProps {
   spaceId: string;
@@ -79,6 +81,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const [workspace] = useAtom(workspaceAtom);
   const [fileTaskId, setFileTaskId] = useState<string | null>(null);
+  const emit = useQueryEmit();
 
   const canUseConfluence = isCloud() || workspace?.hasLicenseKey;
 
@@ -94,16 +97,13 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       notifications.show({
         id: "import",
         title: t("Importing pages"),
-        message: t(
-          "Page import is in progress. Refresh this tab after a while.",
-        ),
+        message: t("Page import is in progress."),
         loading: true,
         withCloseButton: false,
         autoClose: false,
       });
 
       setFileTaskId(importTask.id);
-      console.log("taskId set", importTask.id);
     } catch (err) {
       console.log("Failed to import page", err);
       notifications.update({
@@ -140,6 +140,17 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
           });
           clearInterval(intervalId);
           setFileTaskId(null);
+
+          await queryClient.refetchQueries({
+            queryKey: ["root-sidebar-pages", fileTask.spaceId],
+          });
+
+          setTimeout(() => {
+            emit({
+              operation: "refetchRootTreeNodeEvent",
+              spaceId: spaceId,
+            });
+          }, 50);
         }
 
         if (status === "failed") {
