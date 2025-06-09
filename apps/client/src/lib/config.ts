@@ -70,6 +70,11 @@ export function getFileUploadSizeLimit() {
   return bytes(limit);
 }
 
+export function getFileImportSizeLimit() {
+  const limit = getConfigValue("FILE_IMPORT_SIZE_LIMIT", "200mb");
+  return bytes(limit);
+}
+
 export function getDrawioUrl() {
   return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
 }
