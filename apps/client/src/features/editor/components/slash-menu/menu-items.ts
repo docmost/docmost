@@ -19,6 +19,7 @@ import {
   IconMenu4,
   IconCalendar,
   IconColumns,
+  IconAppWindow,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -368,6 +369,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertContent(currentDate)
+          .run();
+      },
+    },
+    {
+      title: "Iframe embed",
+      description: "Embed any Iframe",
+      searchTerms: ["iframe"],
+      icon: IconAppWindow,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setEmbed({ provider: "iframe" })
           .run();
       },
     },

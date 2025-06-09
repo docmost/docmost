@@ -139,7 +139,7 @@ export default function DrawioView(props: NodeViewProps) {
             )}
           />
 
-          {selected && (
+          {selected && editor.isEditable && (
             <ActionIcon
               onClick={handleOpen}
               variant="default"

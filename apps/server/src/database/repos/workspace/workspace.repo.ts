@@ -70,7 +70,7 @@ export class WorkspaceRepo {
     return await this.db
       .selectFrom('workspaces')
       .selectAll()
-      .orderBy('createdAt asc')
+      .orderBy('createdAt', 'asc')
       .limit(1)
       .executeTakeFirst();
   }

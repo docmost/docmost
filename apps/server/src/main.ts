@@ -26,7 +26,9 @@ async function bootstrap() {
     },
   );
 
-  app.setGlobalPrefix('api', { exclude: ['robots.txt'] });
+  app.setGlobalPrefix('api', {
+    exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
+  });
 
   const reflector = app.get(Reflector);
   const redisIoAdapter = new WsRedisIoAdapter(app);
@@ -84,6 +86,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const logger = new Logger('NestApplication');
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`UnhandledRejection, reason: ${reason}`, promise);
+  });
+
+  process.on('uncaughtException', (error) => {
+    logger.error('UncaughtException:', error);
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0', () => {

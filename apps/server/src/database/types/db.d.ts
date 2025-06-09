@@ -122,6 +122,24 @@ export interface Comments {
   workspaceId: string;
 }
 
+export interface FileTasks {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  errorMessage: string | null;
+  fileExt: string | null;
+  fileName: string;
+  filePath: string;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  source: string | null;
+  spaceId: string | null;
+  status: string | null;
+  type: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -181,6 +199,20 @@ export interface Pages {
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
   ydoc: Buffer | null;
+}
+
+export interface Shares {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  includeSubPages: Generated<boolean | null>;
+  key: string;
+  pageId: string | null;
+  searchIndexing: Generated<boolean | null>;
+  spaceId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
 }
 
 export interface SpaceMembers {
@@ -284,10 +316,12 @@ export interface DB {
   backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
+  fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
   pages: Pages;
+  shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
   users: Users;

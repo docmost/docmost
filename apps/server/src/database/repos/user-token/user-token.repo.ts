@@ -70,7 +70,7 @@ export class UserTokenRepo {
       .where('userId', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .where('type', '=', tokenType)
-      .orderBy('expiresAt desc')
+      .orderBy('expiresAt', 'desc')
       .execute();
   }
 
