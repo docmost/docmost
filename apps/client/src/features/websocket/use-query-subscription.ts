@@ -5,8 +5,15 @@ import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { WebSocketEvent } from "@/features/websocket/types";
 import { IPage } from "../page/types/page.types";
 import { IPagination } from "@/lib/types";
-import { invalidateGraph, invalidateOnCreatePage, invalidateOnDeletePage, invalidateOnMovePage, invalidateOnUpdatePage } from "../page/queries/page-query";
+import {
+  invalidateGraph,
+  invalidateOnCreatePage,
+  invalidateOnDeletePage,
+  invalidateOnMovePage,
+  invalidateOnUpdatePage,
+} from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
+import { queryClient } from "@/main.tsx";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -42,6 +49,7 @@ export const useQuerySubscription = () => {
           const pageId = data.payload.node.id;
           invalidateOnDeletePage(pageId);
           invalidateGraph();
+          invalidateOnDeletePage(pageId);
           break;
         case "updateOne":
           entity = data.entity[0];
@@ -53,17 +61,23 @@ export const useQuerySubscription = () => {
           }
 
           // only update if data was already in cache
-          if(queryClient.getQueryData([...data.entity, queryKeyId])){
+          if (queryClient.getQueryData([...data.entity, queryKeyId])) {
             queryClient.setQueryData([...data.entity, queryKeyId], {
               ...queryClient.getQueryData([...data.entity, queryKeyId]),
               ...data.payload,
             });
           }
-          
+
           if (entity === "pages") {
-            invalidateOnUpdatePage(data.spaceId, data.payload.parentPageId, data.id, data.payload.title, data.payload.icon);
+            invalidateOnUpdatePage(
+              data.spaceId,
+              data.payload.parentPageId,
+              data.id,
+              data.payload.title,
+              data.payload.icon,
+            );
           }
-          
+
           /*
           queryClient.setQueriesData(
             { queryKey: [data.entity, data.id] },
@@ -75,8 +89,19 @@ export const useQuerySubscription = () => {
                 : update(oldData as Record<string, unknown>);
             },
           );
-      */          
+      */
           break;
+        case "refetchRootTreeNodeEvent": {
+          const spaceId = data.spaceId;
+          queryClient.refetchQueries({
+            queryKey: ["root-sidebar-pages", spaceId],
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: ["recent-changes", spaceId],
+          });
+          break;
+        }
       }
     });
   }, [queryClient, socket]);

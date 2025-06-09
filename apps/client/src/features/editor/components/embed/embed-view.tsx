@@ -15,13 +15,13 @@ import {
 import { IconEdit } from "@tabler/icons-react";
 import { z } from "zod";
 import { useForm, zodResolver } from "@mantine/form";
-import {
-  getEmbedProviderById,
-  getEmbedUrlAndProvider,
-} from "@/features/editor/components/embed/providers.ts";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
+import {
+  getEmbedProviderById,
+  getEmbedUrlAndProvider,
+} from "@docmost/editor-ext";
 
 const schema = z.object({
   url: z
@@ -52,6 +52,10 @@ export default function EmbedView(props: NodeViewProps) {
   async function onSubmit(data: { url: string }) {
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
+      if (embedProvider.id === "iframe") {
+        updateAttributes({ src: data.url });
+        return;
+      }
       if (embedProvider.regex.test(data.url)) {
         updateAttributes({ src: data.url });
       } else {
@@ -101,7 +105,7 @@ export default function EmbedView(props: NodeViewProps) {
 
                 <Text component="span" size="lg" c="dimmed">
                   {t("Embed {{provider}}", {
-                    provider: getEmbedProviderById(provider).name,
+                    provider: getEmbedProviderById(provider)?.name,
                   })}
                 </Text>
               </div>
