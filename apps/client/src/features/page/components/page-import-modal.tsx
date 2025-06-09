@@ -92,6 +92,14 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }
 
     try {
+      notifications.show({
+        id: "import",
+        message: t("Uploading import file"),
+        loading: true,
+        withCloseButton: false,
+        autoClose: false,
+      });
+
       const importTask = await importZip(selectedFile, spaceId, source);
       notifications.show({
         id: "import",
@@ -105,12 +113,12 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       setFileTaskId(importTask.id);
       onClose();
     } catch (err) {
-      console.log("Failed to import page", err);
+      console.log("Failed to upload import file", err);
       notifications.update({
         id: "import",
         color: "red",
-        title: t("Failed to import pages"),
-        message: t("Unable to import pages. Please try again."),
+        title: t("Failed to upload import file"),
+        message: err?.response.data.message,
         icon: <IconX size={18} />,
         loading: false,
         withCloseButton: true,
