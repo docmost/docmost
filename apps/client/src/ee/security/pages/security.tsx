@@ -10,11 +10,13 @@ import EnforceSso from "@/ee/security/components/enforce-sso.tsx";
 import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
 import useLicense from "@/ee/hooks/use-license.tsx";
+import usePlan from "@/ee/hooks/use-plan.tsx";
 
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const { hasLicenseKey } = useLicense();
+  const { isBusiness } = usePlan();
 
   if (!isAdmin) {
     return null;
@@ -35,8 +37,7 @@ export default function Security() {
         Single sign-on (SSO)
       </Title>
 
-      {/*TODO: revisit when we add a second plan */}
-      {!isCloud() && hasLicenseKey ? (
+      {(isCloud() && isBusiness) || (!isCloud() && hasLicenseKey) ? (
         <>
           <EnforceSso />
           <Divider my="lg" />

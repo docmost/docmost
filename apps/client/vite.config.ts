@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   const {
     APP_URL,
     FILE_UPLOAD_SIZE_LIMIT,
+    FILE_IMPORT_SIZE_LIMIT,
     DRAWIO_URL,
     CLOUD,
     SUBDOMAIN_HOST,
@@ -20,6 +21,7 @@ export default defineConfig(({ mode }) => {
       "process.env": {
         APP_URL,
         FILE_UPLOAD_SIZE_LIMIT,
+        FILE_IMPORT_SIZE_LIMIT,
         DRAWIO_URL,
         CLOUD,
         SUBDOMAIN_HOST,
