@@ -80,7 +80,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
         default: undefined,
         parseHTML: (element) => element.getAttribute("data-attachment-id"),
         renderHTML: (attributes: ImageAttributes) => ({
-          "data-attachment-id": attributes.align,
+          "data-attachment-id": attributes.attachmentId,
         }),
       },
       size: {
