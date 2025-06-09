@@ -383,5 +383,6 @@
   "Publicly shared pages from spaces you are a member of will appear here": "Les pages partagées publiquement des espaces dont vous êtes membre apparaîtront ici",
   "Share deleted successfully": "Partage supprimé avec succès",
   "Share not found": "Partage non trouvé",
-  "Failed to share page": "Échec du partage de la page"
+  "Failed to share page": "Échec du partage de la page",
+  "Background color": "Couleur de fond"
 }
