@@ -121,30 +121,6 @@ export const TableMenu = React.memo(
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
-          <Tooltip position="top" label={t("Toggle header row")}
-          >
-            <ActionIcon
-              onClick={toggleHeaderRow}
-              variant="default"
-              size="lg"
-              aria-label={t("Toggle header row")}
-            >
-              <IconTableRow size={18} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Tooltip position="top" label={t("Toggle header column")}
-          >
-            <ActionIcon
-              onClick={toggleHeaderColumn}
-              variant="default"
-              size="lg"
-              aria-label={t("Toggle header column")}
-            >
-              <IconTableColumn size={18} />
-            </ActionIcon>
-          </Tooltip>
-
           <Tooltip position="top" label={t("Add left column")}
           >
             <ActionIcon
@@ -209,6 +185,30 @@ export const TableMenu = React.memo(
               aria-label={t("Delete row")}
             >
               <IconRowRemove size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header row")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderRow}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header row")}
+            >
+              <IconTableRow size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header column")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderColumn}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header column")}
+            >
+              <IconTableColumn size={18} />
             </ActionIcon>
           </Tooltip>
 
