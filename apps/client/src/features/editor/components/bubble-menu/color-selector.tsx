@@ -70,35 +70,35 @@ const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   },
   {
     name: "Blue",
-    color: "#c1ecf9",
+    color: "#A3BFFA",
   },
   {
     name: "Green",
-    color: "#acf79f",
+    color: "#A8E6A2",
   },
   {
     name: "Purple",
-    color: "#f6f3f8",
+    color: "#D3B8F6",
   },
   {
     name: "Red",
-    color: "#fdebeb",
+    color: "#F4A1A1",
   },
   {
     name: "Yellow",
-    color: "#fbf4a2",
+    color: "#FAF3A3",
   },
   {
     name: "Orange",
-    color: "#faebdd",
+    color: "#FFD8A8",
   },
   {
     name: "Pink",
-    color: "#faf1f5",
+    color: "#F7B6D2",
   },
   {
     name: "Gray",
-    color: "#f1f1ef",
+    color: "#D4D4D4",
   },
 ];
 
@@ -117,7 +117,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
   );
 
   return (
-    <Popover width={200} opened={isOpen} withArrow>
+    <Popover width={220} opened={isOpen} withArrow>
       <Popover.Target>
         <Tooltip label={t("Text color")} withArrow>
           <ActionIcon
@@ -127,6 +127,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
             style={{
               border: "none",
               color: activeColorItem?.color,
+              backgroundColor: activeHighlightItem?.color,
             }}
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -162,6 +163,50 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       .chain()
                       .focus()
                       .setColor(color || "")
+                      .run();
+                  setIsOpen(false);
+                }}
+                style={{ border: "none" }}
+              >
+                {t(name)}
+              </Button>
+            ))}
+          </Button.Group>
+
+          <Text size="xs" span c="dimmed" tt="uppercase" inherit>
+            {t("Background color")}
+          </Text>
+
+          <Button.Group orientation="vertical">
+            {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+              <Button
+                key={index}
+                variant="default"
+                leftSection={
+                  <span
+                    style={{
+                      backgroundColor: color,
+                      paddingInline: rem(4),
+                      paddingBlock: rem(2),
+                    }}
+                  >
+                    A
+                  </span>
+                }
+                justify="left"
+                fullWidth
+                rightSection={
+                  editor.isActive("highlight", { color }) && (
+                    <IconCheck style={{ width: rem(16) }} />
+                  )
+                }
+                onClick={() => {
+                  editor.commands.unsetHighlight();
+                  name !== "Default" &&
+                    editor
+                      .chain()
+                      .focus()
+                      .toggleHighlight({ color: color || "" })
                       .run();
                   setIsOpen(false);
                 }}

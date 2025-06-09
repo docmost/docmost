@@ -5,7 +5,7 @@
   );
   color: light-dark(
     var(--mantine-color-default-color),
-    var(--mantine-color-dark-0)
+    var(--mantine-color-white)
   );
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
