@@ -209,6 +209,7 @@ export default function PageEditor({
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
         content: newContent,
+        updatedAt: new Date(),
       });
     }
   }, 3000);
@@ -218,9 +219,12 @@ export default function PageEditor({
     setActiveCommentId(commentId);
     setAsideState({ tab: "comments", isAsideOpen: true });
 
-    const selector = `div[data-comment-id="${commentId}"]`;
-    const commentElement = document.querySelector(selector);
-    commentElement?.scrollIntoView();
+    //wait if aside is closed
+    setTimeout(() => {
+      const selector = `div[data-comment-id="${commentId}"]`;
+      const commentElement = document.querySelector(selector);
+      commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
   };
 
   useEffect(() => {

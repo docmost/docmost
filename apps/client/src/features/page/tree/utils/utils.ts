@@ -1,7 +1,7 @@
 import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 
-function sortPositionKeys(keys: any[]) {
+export function sortPositionKeys(keys: any[]) {
   return keys.sort((a, b) => {
     if (a.position < b.position) return -1;
     if (a.position > b.position) return 1;
@@ -121,7 +121,6 @@ export const deleteTreeNode = (
     .filter((node) => node !== null);
 };
 
-
 export function buildTreeWithChildren(items: SpaceTreeNode[]): SpaceTreeNode[] {
   const nodeMap = {};
   let result: SpaceTreeNode[] = [];
@@ -164,16 +163,55 @@ export function appendNodeChildren(
   nodeId: string,
   children: SpaceTreeNode[],
 ) {
-  return treeItems.map((nodeItem) => {
-    if (nodeItem.id === nodeId) {
-      return { ...nodeItem, children };
-    }
-    if (nodeItem.children) {
+  // Preserve deeper children if they exist and remove node if deleted
+  return treeItems.map((node) => {
+    if (node.id === nodeId) {
+      const newIds = new Set(children.map((c) => c.id));
+
+      const existingMap = new Map(
+        (node.children ?? [])
+          .filter((c) => newIds.has(c.id))
+          .map((c) => [c.id, c]),
+      );
+
+      const merged = children.map((newChild) => {
+        const existing = existingMap.get(newChild.id);
+        return existing && existing.children
+          ? { ...newChild, children: existing.children }
+          : newChild;
+      });
+
       return {
-        ...nodeItem,
-        children: appendNodeChildren(nodeItem.children, nodeId, children),
+        ...node,
+        children: merged,
       };
     }
-    return nodeItem;
+
+    if (node.children) {
+      return {
+        ...node,
+        children: appendNodeChildren(node.children, nodeId, children),
+      };
+    }
+
+    return node;
   });
+}
+
+/**
+ * Merge root nodes; keep existing ones intact, append new ones,
+ */
+export function mergeRootTrees(
+  prevRoots: SpaceTreeNode[],
+  incomingRoots: SpaceTreeNode[],
+): SpaceTreeNode[] {
+  const seen = new Set(prevRoots.map((r) => r.id));
+
+  // add new roots that were not present before
+  const merged = [...prevRoots];
+  incomingRoots.forEach((node) => {
+    if (!seen.has(node.id)) merged.push(node);
+  });
+
+  return sortPositionKeys(merged);
 }

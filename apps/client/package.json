@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.20.4",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -25,10 +25,11 @@
     "@tabler/icons-react": "^3.22.0",
     "@tanstack/react-query": "^5.61.4",
     "@tiptap/extension-character-count": "^2.11.5",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "clsx": "^2.1.1",
     "emoji-mart": "^5.6.0",
     "file-saver": "^2.0.5",
+    "highlightjs-sap-abap": "^0.3.0",
     "i18next": "^23.14.0",
     "i18next-http-backend": "^2.6.1",
     "jotai": "^2.12.1",
@@ -63,7 +64,7 @@
     "@types/node": "22.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^4.4.1",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.1.0",
@@ -76,6 +77,6 @@
     "prettier": "^3.4.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.17.0",
-    "vite": "^6.1.0"
+    "vite": "^6.3.2"
   }
 }

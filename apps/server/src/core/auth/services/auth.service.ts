@@ -47,13 +47,18 @@ export class AuthService {
       includePassword: true,
     });
 
+    const errorMessage = 'email or password does not match';
+    if (!user || user?.deletedAt) {
+      throw new UnauthorizedException(errorMessage);
+    }
+
     const isPasswordMatch = await comparePasswordHash(
       loginDto.password,
-      user?.password,
+      user.password,
     );
 
-    if (!user || !isPasswordMatch || user.deletedAt) {
-      throw new UnauthorizedException('email or password does not match');
+    if (!isPasswordMatch) {
+      throw new UnauthorizedException(errorMessage);
     }
 
     user.lastLoginAt = new Date();

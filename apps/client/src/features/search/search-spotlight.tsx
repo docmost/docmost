@@ -2,36 +2,36 @@ import { Group, Center, Text } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
 import { usePageSearchQuery } from "@/features/search/queries/search-query";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
+import { searchSpotlightStore } from "./constants";
 
 interface SearchSpotlightProps {
   spaceId?: string;
 }
 export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
 
-  const {
-    data: searchResults,
-    isLoading,
-    error,
-  } = usePageSearchQuery({ query: debouncedSearchQuery, spaceId });
+  const { data: searchResults } = usePageSearchQuery({
+    query: debouncedSearchQuery,
+    spaceId,
+  });
 
   const pages = (
     searchResults && searchResults.length > 0 ? searchResults : []
   ).map((page) => (
     <Spotlight.Action
       key={page.id}
-      onClick={() =>
-        navigate(buildPageUrl(page.space.slug, page.slugId, page.title))
-      }
+      component={Link}
+      //@ts-ignore
+      to={buildPageUrl(page.space.slug, page.slugId, page.title)}
+      style={{ userSelect: "none" }}
     >
       <Group wrap="nowrap" w="100%">
         <Center>{getPageIcon(page?.icon)}</Center>
@@ -54,6 +54,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   return (
     <>
       <Spotlight.Root
+        store={searchSpotlightStore}
         query={query}
         onQueryChange={setQuery}
         scrollable

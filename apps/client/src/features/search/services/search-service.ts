@@ -19,3 +19,10 @@ export async function searchSuggestions(
   const req = await api.post<ISuggestionResult>("/search/suggest", params);
   return req.data;
 }
+
+export async function searchShare(
+  params: IPageSearchParams,
+): Promise<IPageSearch[]> {
+  const req = await api.post<IPageSearch[]>("/search/share-search", params);
+  return req.data;
+}
