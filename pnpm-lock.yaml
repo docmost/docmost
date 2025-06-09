@@ -20101,7 +20101,7 @@ snapshots:
 
   y-prosemirror@1.2.3(prosemirror-model@1.23.0)(prosemirror-state@1.4.3)(prosemirror-view@1.37.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27):
     dependencies:
-      lib0: 0.2.98
+      lib0: 0.2.108
       prosemirror-model: 1.23.0
       prosemirror-state: 1.4.3
       prosemirror-view: 1.37.0
@@ -20110,7 +20110,7 @@ snapshots:
 
   y-protocols@1.0.6(yjs@13.6.27):
     dependencies:
-      lib0: 0.2.98
+      lib0: 0.2.108
       yjs: 13.6.27
 
   y18n@5.0.8: {}
