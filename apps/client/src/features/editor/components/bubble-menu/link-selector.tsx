@@ -28,32 +28,32 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
   );
 
   return (
-      <Popover
-        width={300}
-        opened={isOpen}
-        trapFocus
-        offset={{ mainAxis: 35, crossAxis: 0 }}
-        withArrow
-      >
-        <Popover.Target>
-          <Tooltip label={t("Add link")} withArrow disabled={isOpen}>
-            <ActionIcon
-              variant="default"
-              size="lg"
-              radius="0"
-              style={{
-                border: "none",
-              }}
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <IconLink size={16} />
-            </ActionIcon>
-          </Tooltip>
-        </Popover.Target>
+    <Popover
+      width={300}
+      opened={isOpen}
+      trapFocus
+      offset={{ mainAxis: 35, crossAxis: 0 }}
+      withArrow
+    >
+      <Popover.Target>
+        <Tooltip label={t("Add link")} withArrow disabled={isOpen}>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            radius="0"
+            style={{
+              border: "none",
+            }}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <IconLink size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
 
-        <Popover.Dropdown>
-          <LinkEditorPanel onSetLink={onLink} />
-        </Popover.Dropdown>
-      </Popover>
+      <Popover.Dropdown>
+        <LinkEditorPanel onSetLink={onLink} />
+      </Popover.Dropdown>
+    </Popover>
   );
 };
