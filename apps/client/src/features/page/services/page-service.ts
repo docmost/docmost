@@ -7,9 +7,11 @@ import {
   IPage,
   IPageInput,
   SidebarPagesParams,
-} from "@/features/page/types/page.types";
+} from '@/features/page/types/page.types';
 import { IAttachment, IPagination } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
+import { InfiniteData } from "@tanstack/react-query";
+import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
@@ -52,6 +54,32 @@ export async function getSidebarPages(
   return req.data;
 }
 
+export async function getAllSidebarPages(
+  params: SidebarPagesParams,
+): Promise<InfiniteData<IPagination<IPage>, unknown>> {
+  let page = 1;
+  let hasNextPage = false;
+  const pages: IPagination<IPage>[] = [];
+  const pageParams: number[] = [];
+
+  do {
+    const req = await api.post("/pages/sidebar-pages", { ...params, page: page });
+
+    const data: IPagination<IPage> = req.data;
+    pages.push(data);
+    pageParams.push(page);
+
+    hasNextPage = data.meta.hasNextPage;
+
+    page += 1;
+  } while (hasNextPage);
+
+  return {
+    pageParams,
+    pages,
+  };
+}
+
 export async function getPageBreadcrumbs(
   pageId: string,
 ): Promise<Partial<IPage[]>> {
@@ -84,6 +112,25 @@ export async function importPage(file: File, spaceId: string) {
   formData.append("file", file);
 
   const req = await api.post<IPage>("/pages/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return req.data;
+}
+
+export async function importZip(
+  file: File,
+  spaceId: string,
+  source?: string,
+): Promise<IFileTask> {
+  const formData = new FormData();
+  formData.append("spaceId", spaceId);
+  formData.append("source", source);
+  formData.append("file", file);
+
+  const req = await api.post<any>("/pages/import-zip", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
