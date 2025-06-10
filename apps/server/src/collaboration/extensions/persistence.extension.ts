@@ -24,6 +24,7 @@ import {
 import { isDeepStrictEqual } from 'node:util';
 import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import { Json } from '@docmost/db/types/db';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -82,10 +83,39 @@ export class PersistenceExtension implements Extension {
     this.logger.debug(`creating fresh ydoc: ${pageId}`);
     return new Y.Doc();
   }
+  async updateContent(pageId: string, userId: string, content: Json) {
+    let page: Page = null;
 
+    try {
+      await executeTx(this.db, async (trx) => {
+        page = await this.pageRepo.findById(pageId, {
+          withLock: true,
+          includeContent: true,
+          trx,
+        });
+
+        if (!page) {
+          this.logger.error(`Page with id ${pageId} not found`);
+          return;
+        }
+
+        await this.pageRepo.updatePage(
+          {
+            content,
+            lastUpdatedById: userId,
+          },
+          pageId,
+          trx,
+        );
+
+        this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
+      });
+    } catch (err) {
+      this.logger.error(`Failed to update page ${pageId}`, err);
+    }
+  }
   async onStoreDocument(data: onStoreDocumentPayload) {
     const { documentName, document, context } = data;
-
     const pageId = getPageId(documentName);
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');

@@ -16,6 +16,7 @@ import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
 import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
+import {Pdf2PagesModule} from './integrations/pdf2pages/pdf2pages.module'
 
 const enterpriseModules = [];
 try {
@@ -43,6 +44,7 @@ try {
     HealthModule,
     ImportModule,
     ExportModule,
+    Pdf2PagesModule,
     StorageModule.forRootAsync({
       imports: [EnvironmentModule],
     }),

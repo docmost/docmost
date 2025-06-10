@@ -1,0 +1,5 @@
+/* In your CSS file */
+.customFileInput::placeholder {
+  color: #1c7ed6;
+  font-weight: bold;
+}

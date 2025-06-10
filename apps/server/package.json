@@ -73,6 +73,7 @@
     "openid-client": "^5.7.1",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
+    "pdfjs-dist": "^5.3.31",
     "pg": "^8.13.3",
     "pg-tsquery": "^8.4.2",
     "postmark": "^4.0.5",
