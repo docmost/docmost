@@ -50,6 +50,7 @@ function LanguageSwitcher() {
         { value: "it-IT", label: "Italiano (Italian)" },
         { value: "ja-JP", label: "日本語 (Japanese)" },
         { value: "ko-KR", label: "한국어 (Korean)" },
+        { value: "ar-SA", label: "العربية (Arabic)" },
         { value: "ru-RU", label: "Русский (Russian)" },
         { value: "zh-CN", label: "中文 (简体)" },
       ]}
