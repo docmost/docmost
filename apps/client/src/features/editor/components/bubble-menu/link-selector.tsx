@@ -4,8 +4,6 @@ import { ActionIcon, Popover, Tooltip } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { useTranslation } from "react-i18next";
-import clsx from "clsx";
-import classes from "./bubble-menu.module.css";
 
 interface LinkSelectorProps {
   editor: ReturnType<typeof useEditor>;
@@ -36,7 +34,7 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
       withArrow
     >
       <Popover.Target>
-        <Tooltip label={t("Add link")} withArrow disabled={isOpen}>
+        <Tooltip label={t("Add link")} withArrow>
           <ActionIcon
             variant="default"
             size="lg"
