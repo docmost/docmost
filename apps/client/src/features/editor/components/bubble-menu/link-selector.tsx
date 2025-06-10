@@ -31,8 +31,8 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
       <Popover
         width={300}
         opened={isOpen}
+        trapFocus
         onClose={() => setIsOpen(false)}
-        trapFocus={false}
         offset={{ mainAxis: 35, crossAxis: 0 }}
         withArrow
       >

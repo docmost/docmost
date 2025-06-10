@@ -116,6 +116,12 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     },
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",
+      onCreate: (instance) => {
+        instance.popper.firstChild?.addEventListener("blur", (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        });
+      },
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
