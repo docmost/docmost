@@ -14,11 +14,12 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconUpload,
 } from "@tabler/icons-react";
 import classes from "./space-sidebar.module.css";
-import React from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
+import { FileUploadModal } from "@/features/file-upload/components/file-upload-modal";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
@@ -43,9 +44,14 @@ import { searchSpotlight } from "@/features/search/constants";
 export function SpaceSidebar() {
   const { t } = useTranslation();
   const [tree] = useAtom(treeApiAtom);
+
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
+  const [
+    uploadFileOpened,
+    { open: openUploadFileModal, close: closeUploadFileModal },
+  ] = useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
@@ -58,6 +64,11 @@ export function SpaceSidebar() {
   if (!space) {
     return <></>;
   }
+
+  const handleUploadFileModalClose = () => {
+    closeUploadFileModal();
+
+  };
 
   function handleCreatePage() {
     tree?.create({ parentId: null, type: "internal", index: 0 });
@@ -147,6 +158,19 @@ export function SpaceSidebar() {
                 </div>
               </UnstyledButton>
             )}
+            <UnstyledButton
+              className={classes.menu}
+              onClick={openUploadFileModal}
+            >
+              <div className={classes.menuItemInner}>
+                <IconUpload
+                  size={18}
+                  className={classes.menuItemIcon}
+                  stroke={2}
+                />
+                <span>{t("Upload PDF")}</span>
+              </div>
+            </UnstyledButton>
           </div>
         </div>
 
@@ -196,6 +220,11 @@ export function SpaceSidebar() {
       />
 
       <SearchSpotlight spaceId={space.id} />
+      <FileUploadModal
+        opened={uploadFileOpened}
+        onClose={handleUploadFileModalClose}
+        spaceId={space.id}
+      />
     </>
   );
 }
