@@ -244,7 +244,7 @@ export class PageRepo {
                 'p.spaceId',
                 'p.workspaceId',
               ])
-              .$if(opts?.includeContent, (qb) => qb.select('content'))
+              .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
           ),
       )

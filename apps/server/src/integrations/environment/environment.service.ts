@@ -67,6 +67,10 @@ export class EnvironmentService {
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
   }
 
+  getFileImportSizeLimit(): string {
+    return this.configService.get<string>('FILE_IMPORT_SIZE_LIMIT', '200mb');
+  }
+
   getAwsS3AccessKeyId(): string {
     return this.configService.get<string>('AWS_S3_ACCESS_KEY_ID');
   }

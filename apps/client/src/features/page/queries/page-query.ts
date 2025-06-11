@@ -1,5 +1,8 @@
 import {
+  InfiniteData,
+  QueryKey,
   useInfiniteQuery,
+  UseInfiniteQueryResult,
   useMutation,
   useQuery,
   useQueryClient,
@@ -14,6 +17,7 @@ import {
   movePage,
   getPageBreadcrumbs,
   getRecentChanges,
+  getAllSidebarPages,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
@@ -56,35 +60,49 @@ export function useCreatePageMutation() {
   const { t } = useTranslation();
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => createPage(data),
-    onSuccess: (data) => {},
+    onSuccess: (data) => {
+      invalidateOnCreatePage(data);
+    },
     onError: (error) => {
       notifications.show({ message: t("Failed to create page"), color: "red" });
     },
   });
 }
 
-export function useUpdatePageMutation() {
-  const queryClient = useQueryClient();
+export function updatePageData(data: IPage) {
+  const pageBySlug = queryClient.getQueryData<IPage>([
+    "pages",
+    data.slugId,
+  ]);
+  const pageById = queryClient.getQueryData<IPage>(["pages", data.id]);
 
+  if (pageBySlug) {
+    queryClient.setQueryData(["pages", data.slugId], {
+      ...pageBySlug,
+      ...data,
+    });
+  }
+
+  if (pageById) {
+    queryClient.setQueryData(["pages", data.id], { ...pageById, ...data });
+  }
+
+  invalidateOnUpdatePage(data.spaceId, data.parentPageId, data.id, data.title, data.icon);
+}
+
+export function useUpdateTitlePageMutation() {
+  return useMutation<IPage, Error, Partial<IPageInput>>({
+    mutationFn: (data) => updatePage(data),
+  });
+}
+
+export function useUpdatePageMutation() {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
-      const pageBySlug = queryClient.getQueryData<IPage>([
-        "pages",
-        data.slugId,
-      ]);
-      const pageById = queryClient.getQueryData<IPage>(["pages", data.id]);
+      updatePage(data);
 
-      if (pageBySlug) {
-        queryClient.setQueryData(["pages", data.slugId], {
-          ...pageBySlug,
-          ...data,
-        });
-      }
-
-      if (pageById) {
-        queryClient.setQueryData(["pages", data.id], { ...pageById, ...data });
-      }
+      invalidateOnUpdatePage(data.spaceId, data.parentPageId, data.id, data.title, data.icon);
     },
   });
 }
@@ -93,8 +111,9 @@ export function useDeletePageMutation() {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId),
-    onSuccess: () => {
+    onSuccess: (data, pageId) => {
       notifications.show({ message: t("Page deleted successfully") });
+      invalidateOnDeletePage(pageId);
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -105,15 +124,21 @@ export function useDeletePageMutation() {
 export function useMovePageMutation() {
   return useMutation<void, Error, IMovePage>({
     mutationFn: (data) => movePage(data),
+    onSuccess: () => {
+      invalidateOnMovePage();
+    },
   });
 }
 
-export function useGetSidebarPagesQuery(
-  data: SidebarPagesParams,
-): UseQueryResult<IPagination<IPage>, Error> {
-  return useQuery({
+export function useGetSidebarPagesQuery(data: SidebarPagesParams|null): UseInfiniteQueryResult<InfiniteData<IPagination<IPage>, unknown>> {
+  return useInfiniteQuery({
     queryKey: ["sidebar-pages", data],
-    queryFn: () => getSidebarPages(data),
+    queryFn: ({ pageParam }) => getSidebarPages({ ...data, page: pageParam }),
+    initialPageParam: 1,
+    getPreviousPageParam: (firstPage) =>
+      firstPage.meta.hasPrevPage ? firstPage.meta.page - 1 : undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
   });
 }
 
@@ -141,14 +166,16 @@ export function usePageBreadcrumbsQuery(
   });
 }
 
-export async function fetchAncestorChildren(params: SidebarPagesParams) {
+export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   // not using a hook here, so we can call it inside a useEffect hook
   const response = await queryClient.fetchQuery({
     queryKey: ["sidebar-pages", params],
-    queryFn: () => getSidebarPages(params),
+    queryFn: () => getAllSidebarPages(params),
     staleTime: 30 * 60 * 1000,
   });
-  return buildTree(response.items);
+
+  const allItems = response.pages.flatMap((page) => page.items);
+  return buildTree(allItems);
 }
 
 export function useRecentChangesQuery(
@@ -158,5 +185,159 @@ export function useRecentChangesQuery(
     queryKey: ["recent-changes", spaceId],
     queryFn: () => getRecentChanges(spaceId),
     refetchOnMount: true,
+  });
+}
+
+export function invalidateOnCreatePage(data: Partial<IPage>) {
+  const newPage: Partial<IPage> = {
+    creatorId: data.creatorId,
+    hasChildren: data.hasChildren,
+    icon: data.icon,
+    id: data.id,
+    parentPageId: data.parentPageId,
+    position: data.position,
+    slugId: data.slugId,
+    spaceId: data.spaceId,
+    title: data.title,
+  };
+
+  let queryKey: QueryKey = null;
+  if (data.parentPageId===null) {
+    queryKey = ['root-sidebar-pages', data.spaceId];
+  }else{
+    queryKey = ['sidebar-pages', {pageId: data.parentPageId, spaceId: data.spaceId}]
+  }
+
+  //update all sidebar pages
+  queryClient.setQueryData<InfiniteData<IPagination<Partial<IPage>>>>(queryKey, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page,index) => {
+        if (index === old.pages.length - 1) {
+          return {
+            ...page,
+            items: [...page.items, newPage],
+          };
+        }
+        return page;
+      }),
+    };
+  });
+
+  //update sidebar haschildren
+  if (data.parentPageId!==null){
+    //update sub sidebar pages haschildern
+    const subSideBarMatches = queryClient.getQueriesData({
+      queryKey: ['sidebar-pages'],
+      exact: false,
+    });
+
+    subSideBarMatches.forEach(([key, d]) => {
+      queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(key, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((sidebarPage: IPage) =>
+              sidebarPage.id === data.parentPageId ? { ...sidebarPage, hasChildren: true } : sidebarPage
+            )
+          })),
+        };
+      });
+    });
+
+    //update root sidebar pages haschildern
+    const rootSideBarMatches = queryClient.getQueriesData({
+      queryKey: ['root-sidebar-pages', data.spaceId],
+      exact: false,
+    });
+
+    rootSideBarMatches.forEach(([key, d]) => {
+      queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(key, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((sidebarPage: IPage) =>
+              sidebarPage.id === data.parentPageId ? { ...sidebarPage, hasChildren: true } : sidebarPage
+            )
+          })),
+        };
+      });
+    });
+  }
+
+  //update recent changes
+  queryClient.invalidateQueries({
+    queryKey: ["recent-changes", data.spaceId],
+  });
+}
+
+export function invalidateOnUpdatePage(spaceId: string, parentPageId: string, id: string, title: string, icon: string) {
+  let queryKey: QueryKey = null;
+  if(parentPageId===null){
+    queryKey = ['root-sidebar-pages', spaceId];
+  }else{
+    queryKey = ['sidebar-pages', {pageId: parentPageId, spaceId: spaceId}]
+  }
+  //update all sidebar pages
+  queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(queryKey, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        items: page.items.map((sidebarPage: IPage) =>
+          sidebarPage.id === id ? { ...sidebarPage, title: title, icon: icon } : sidebarPage
+        )
+      })),
+    };
+  });
+  
+  //update recent changes
+  queryClient.invalidateQueries({
+    queryKey: ["recent-changes", spaceId],
+  });
+}
+
+export function invalidateOnMovePage() {
+  //for move invalidate all sidebars for now (how to do???)
+  //invalidate all root sidebar pages
+  queryClient.invalidateQueries({
+    queryKey: ["root-sidebar-pages"],
+  });
+  //invalidate all sub sidebar pages
+  queryClient.invalidateQueries({
+    queryKey: ['sidebar-pages'],
+  });
+  // ---
+}
+
+export function invalidateOnDeletePage(pageId: string) {
+  //update all sidebar pages
+  const allSideBarMatches = queryClient.getQueriesData({
+    predicate: (query) =>
+      query.queryKey[0] === 'root-sidebar-pages' || query.queryKey[0] === 'sidebar-pages',
+  });
+
+  allSideBarMatches.forEach(([key, d]) => {
+    queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(key, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          items: page.items.filter((sidebarPage: IPage) => sidebarPage.id !== pageId),
+        })),
+      };
+    });
+  });
+  
+  //update recent changes
+  queryClient.invalidateQueries({
+    queryKey: ["recent-changes"],
   });
 }
