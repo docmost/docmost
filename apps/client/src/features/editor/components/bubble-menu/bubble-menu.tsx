@@ -116,6 +116,12 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     },
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",
+      onCreate: (instance) => {
+        instance.popper.firstChild?.addEventListener("blur", (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        });
+      },
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
@@ -177,8 +183,8 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         <LinkSelector
           editor={props.editor}
           isOpen={isLinkSelectorOpen}
-          setIsOpen={() => {
-            setIsLinkSelectorOpen(!isLinkSelectorOpen);
+          setIsOpen={(value) => {
+            setIsLinkSelectorOpen(value);
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
