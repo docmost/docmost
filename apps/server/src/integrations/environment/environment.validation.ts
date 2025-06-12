@@ -14,7 +14,7 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsUrl(
     {
-      protocols: ['postgres', 'postgresql'],
+      protocols: ['postgres', 'postgresql', 'socket'],
       require_tld: false,
       allow_underscores: true,
     },
