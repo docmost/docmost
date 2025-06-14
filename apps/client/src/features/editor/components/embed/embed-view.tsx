@@ -32,7 +32,7 @@ const schema = z.object({
 
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
-  const { node, selected, updateAttributes } = props;
+  const { node, selected, updateAttributes, editor } = props;
   const { src, provider } = node.attrs;
 
   const embedUrl = useMemo(() => {
@@ -50,6 +50,10 @@ export default function EmbedView(props: NodeViewProps) {
   });
 
   async function onSubmit(data: { url: string }) {
+    if (!editor.isEditable) {
+      return;
+    }
+
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.id === "iframe") {
@@ -85,7 +89,13 @@ export default function EmbedView(props: NodeViewProps) {
           </AspectRatio>
         </>
       ) : (
-        <Popover width={300} position="bottom" withArrow shadow="md">
+        <Popover
+          width={300}
+          position="bottom"
+          withArrow
+          shadow="md"
+          disabled={!editor.isEditable}
+        >
           <Popover.Target>
             <Card
               radius="md"
