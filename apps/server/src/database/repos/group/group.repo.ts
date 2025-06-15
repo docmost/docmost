@@ -51,8 +51,11 @@ export class GroupRepo {
     updatableGroup: UpdatableGroup,
     groupId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<void> {
-    await this.db
+    const db = dbOrTx(this.db, trx);
+
+    await db
       .updateTable('groups')
       .set({ ...updatableGroup, updatedAt: new Date() })
       .where('id', '=', groupId)

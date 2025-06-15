@@ -151,8 +151,11 @@ export class GroupService {
   async findAndValidateGroup(
     groupId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<Group> {
-    const group = await this.groupRepo.findById(groupId, workspaceId);
+    const group = await this.groupRepo.findById(groupId, workspaceId, {
+      trx,
+    });
     if (!group) {
       throw new NotFoundException('Group not found');
     }
