@@ -19,6 +19,8 @@ export function turndown(html: string): string {
     highlightedCodeBlock,
     taskList,
     callout,
+    columnContainer,
+    column,
     preserveDetail,
     listParagraph,
     mathInline,
@@ -52,6 +54,35 @@ function callout(turndownService: TurndownService) {
     replacement: function (content: any, node: HTMLInputElement) {
       const calloutType = node.getAttribute('data-callout-type');
       return `\n\n:::${calloutType}\n${content.trim()}\n:::\n\n`;
+    },
+  });
+}
+
+function columnContainer(turndownService: TurndownService) {
+  turndownService.addRule('columnContainer', {
+    filter: function (node: HTMLInputElement) {
+      return (
+        node.nodeName === 'DIV' && node.getAttribute('data-type') === 'columnContainer'
+      );
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      return `\n\n+++ columnContainer +++\n${content.trim()}\n+++ end:columnContainer +++\n\n`;
+    },
+  });
+}
+
+function column(turndownService: TurndownService) {
+  turndownService.addRule('column', {
+    filter: function (node: HTMLInputElement) {
+      return (
+        node.nodeName === 'DIV' && node.getAttribute('data-type') === 'column'
+      );
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      const colXs = node.getAttribute('data-col-xs');
+      const colMd = node.getAttribute('data-col-md');
+      const colLg = node.getAttribute('data-col-lg');
+      return `\n\n+++ column xs:${colXs} md:${colMd} lg:${colLg} +++\n${content.trim()}\n+++ end:column +++\n\n`;
     },
   });
 }

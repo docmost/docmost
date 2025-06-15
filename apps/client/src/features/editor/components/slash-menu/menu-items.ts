@@ -17,8 +17,10 @@ import {
   IconTable,
   IconTypography,
   IconMenu4,
-  IconCalendar, IconAppWindow,
-} from '@tabler/icons-react';
+  IconCalendar,
+  IconColumns,
+  IconAppWindow,
+} from "@tabler/icons-react";
 import {
   CommandProps,
   SlashMenuGroupedItemsType,
@@ -239,6 +241,19 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+    },
+    {
+      title: "Column layout",
+      description: "Insert a column layout.",
+      searchTerms: ["columns", "layout", "flex"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .clAddColumnLayout("Column 1", "Column 2")
           .run(),
     },
     {
