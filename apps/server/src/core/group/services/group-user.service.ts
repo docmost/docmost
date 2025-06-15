@@ -55,7 +55,7 @@ export class GroupUserService {
       .where('users.workspaceId', '=', workspaceId)
       .execute();
 
-    if (validUsers.length <= 0) return;
+    if (validUsers.length === 0) return;
 
     // prepare users to add to group
     const groupUsersToInsert = [];
