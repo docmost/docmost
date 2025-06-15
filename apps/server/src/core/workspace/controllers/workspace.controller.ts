@@ -180,10 +180,13 @@ export class WorkspaceController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('invites/info')
-  async getInvitationById(@Body() dto: InvitationIdDto, @Req() req: any) {
+  async getInvitationById(
+    @Body() dto: InvitationIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     return this.workspaceInvitationService.getInvitationById(
       dto.invitationId,
-      req.raw.workspaceId,
+      workspace,
     );
   }
 
@@ -253,12 +256,12 @@ export class WorkspaceController {
   @Post('invites/accept')
   async acceptInvite(
     @Body() acceptInviteDto: AcceptInviteDto,
-    @Req() req: any,
+    @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
     const authToken = await this.workspaceInvitationService.acceptInvitation(
       acceptInviteDto,
-      req.raw.workspaceId,
+      workspace,
     );
 
     res.setCookie('authToken', authToken, {
