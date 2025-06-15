@@ -35,6 +35,7 @@ export interface IInvitation {
   workspaceId: string;
   invitedById: string;
   createdAt: Date;
+  enforceSso: boolean;
 }
 
 export interface IInvitationLink {
