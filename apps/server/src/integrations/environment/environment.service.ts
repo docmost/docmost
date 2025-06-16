@@ -40,6 +40,10 @@ export class EnvironmentService {
     return this.configService.get<string>('APP_SECRET');
   }
 
+  getAppName(): string {
+    return this.configService.get<string>('APP_NAME', 'Docmost');
+  }
+
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
   }
