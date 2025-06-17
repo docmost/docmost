@@ -11,7 +11,7 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(4),
+  name: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof formSchema>;

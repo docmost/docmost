@@ -10,7 +10,7 @@ export interface IRegister {
 }
 
 export interface ISetupWorkspace {
-  workspaceName: string;
+  workspaceName?: string;
   name: string;
   email: string;
   password: string;
