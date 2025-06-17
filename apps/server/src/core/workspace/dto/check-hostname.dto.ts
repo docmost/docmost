@@ -2,7 +2,7 @@ import { MinLength } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
 
 export class CheckHostnameDto {
-  @MinLength(1)
+  @MinLength(4)
   @Transform(({ value }: TransformFnParams) => value?.trim())
   hostname: string;
 }
