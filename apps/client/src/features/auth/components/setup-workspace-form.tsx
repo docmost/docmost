@@ -46,7 +46,6 @@ export function SetupWorkspaceForm() {
   });
 
   async function onSubmit(data: ISetupWorkspace) {
-    console.log(data)
     await setupWorkspace(data);
   }
 
