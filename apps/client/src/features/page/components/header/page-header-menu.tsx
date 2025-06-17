@@ -60,7 +60,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </Tooltip>
       )}
 
-      {!readOnly && <PageStateSegmentedControl />}
+      {!readOnly && <PageStateSegmentedControl size="xs" />}
 
       <ShareModal readOnly={readOnly} />
 

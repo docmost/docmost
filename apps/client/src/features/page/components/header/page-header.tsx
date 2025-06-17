@@ -9,10 +9,10 @@ interface Props {
 export default function PageHeader({ readOnly }: Props) {
   return (
     <div className={classes.header}>
-      <Group justify="space-between" h="100%" px="md" wrap="nowrap">
+      <Group justify="space-between" h="100%" px="md" wrap="nowrap" className={classes.group}>
         <Breadcrumb />
 
-        <Group justify="flex-end" h="100%" px="md" wrap="nowrap">
+        <Group justify="flex-end" h="100%" px="md" wrap="nowrap" gap="var(--mantine-spacing-xs)">
           <PageHeaderMenu readOnly={readOnly} />
         </Group>
       </Group>
