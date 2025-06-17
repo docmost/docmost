@@ -36,5 +36,5 @@ export interface IVerifyUserToken {
 }
 
 export interface ICollabToken {
-  token: string;
+  token?: string;
 }
