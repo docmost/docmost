@@ -21,6 +21,8 @@ import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command.ts";
 import { UpdateEvent } from "@/features/websocket/types";
 import localEmitter from "@/lib/local-emitter.ts";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -44,6 +46,9 @@ export function TitleEditor({
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  const [currentUser] = useAtom(currentUserAtom);
+  const userPageEditMode =
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
   const titleEditor = useEditor({
     extensions: [
@@ -136,7 +141,18 @@ export function TitleEditor({
     };
   }, [pageId]);
 
-  function handleTitleKeyDown(event) {
+  useEffect(() => {
+    // honor user default page edit mode preference
+    if (userPageEditMode && titleEditor && editable) {
+      if (userPageEditMode === PageEditMode.Edit) {
+        titleEditor.setEditable(true);
+      } else if (userPageEditMode === PageEditMode.Read) {
+        titleEditor.setEditable(false);
+      }
+    }
+  }, [userPageEditMode, titleEditor, editable]);
+
+  function handleTitleKeyDown(event: any) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;
 
     const { key } = event;
