@@ -52,6 +52,7 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { useAnchorScroll } from "./components/heading/use-anchor-scroll";
 
@@ -87,6 +88,8 @@ export default function PageEditor({
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   useAnchorScroll();
+  const userPageEditMode =
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
   const localProvider = useMemo(() => {
     const provider = new IndexeddbPersistence(documentName, ydoc);
@@ -291,6 +294,17 @@ export default function PageEditor({
     }, 500);
     return () => clearTimeout(collabReadyTimeout);
   }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
+
+  useEffect(() => {
+    // honor user default page edit mode preference
+    if (userPageEditMode && editor && editable && isSynced) {
+      if (userPageEditMode === PageEditMode.Edit) {
+        editor.setEditable(true);
+      } else if (userPageEditMode === PageEditMode.Read) {
+        editor.setEditable(false);
+      }
+    }
+  }, [userPageEditMode, editor, editable, isSynced]);
 
   return isCollabReady ? (
     <div>

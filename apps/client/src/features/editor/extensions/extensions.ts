@@ -75,6 +75,7 @@ import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import Heading from "@tiptap/extension-heading";
 import HeadingView from "../components/heading/heading-view";
+import { countWords } from "alfaaz";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -221,7 +222,9 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  CharacterCount
+  CharacterCount.configure({
+    wordCounter: (text) => countWords(text),
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

@@ -1,24 +1,30 @@
 .breadcrumbs {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex-wrap: nowrap;
+
+  a {
+    color: var(--mantine-color-default-color);
+    line-height: inherit;
+  }
+
+  .mantine-Breadcrumbs-breadcrumb {
+    min-width: 1px;
     overflow: hidden;
-    flex-wrap: nowrap;
-
-    a {
-        color: var(--mantine-color-default-color);
-        line-height: inherit;
-    }
-
-    .mantine-Breadcrumbs-breadcrumb {
-        min-width: 1px;
-        overflow: hidden;
-    }
+  }
 }
 
 .truncatedText {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
+.breadcrumbDiv {
+  overflow: hidden;
+  @media (max-width: $mantine-breakpoint-sm) {
+    overflow: visible;
+  }
+}

@@ -122,6 +122,24 @@ export interface Comments {
   workspaceId: string;
 }
 
+export interface FileTasks {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  errorMessage: string | null;
+  fileExt: string | null;
+  fileName: string;
+  filePath: string;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  source: string | null;
+  spaceId: string | null;
+  status: string | null;
+  type: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -298,6 +316,7 @@ export interface DB {
   backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
+  fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;

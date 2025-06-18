@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
-  workspaceName: z.string().trim().min(3).max(50),
+  workspaceName: z.string().trim().max(50).optional(),
   name: z.string().min(1).max(50),
   email: z
     .string()
@@ -60,15 +60,17 @@ export function SetupWorkspaceForm() {
           {isCloud() && <SsoCloudSignup />}
 
           <form onSubmit={form.onSubmit(onSubmit)}>
-            <TextInput
-              id="workspaceName"
-              type="text"
-              label={t("Workspace Name")}
-              placeholder={t("e.g ACME Inc")}
-              variant="filled"
-              mt="md"
-              {...form.getInputProps("workspaceName")}
-            />
+            {!isCloud() && (
+              <TextInput
+                id="workspaceName"
+                type="text"
+                label={t("Workspace Name")}
+                placeholder={t("e.g ACME Inc")}
+                variant="filled"
+                mt="md"
+                {...form.getInputProps("workspaceName")}
+              />
+            )}
 
             <TextInput
               id="name"

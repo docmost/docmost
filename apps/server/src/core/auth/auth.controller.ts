@@ -1,11 +1,9 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -23,7 +21,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
-import { addDays } from 'date-fns';
 import { validateSsoEnforcement } from './auth.util';
 
 @Controller('auth')
@@ -125,7 +122,7 @@ export class AuthController {
     res.setCookie('authToken', token, {
       httpOnly: true,
       path: '/',
-      expires: addDays(new Date(), 30),
+      expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
     });
   }

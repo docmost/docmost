@@ -34,6 +34,14 @@ export class UserService {
       );
     }
 
+    if (typeof updateUserDto.pageEditMode !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'pageEditMode',
+        updateUserDto.pageEditMode.toLowerCase(),
+      );
+    }
+
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }

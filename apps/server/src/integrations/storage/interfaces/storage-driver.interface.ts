@@ -1,9 +1,15 @@
+import { Readable } from 'stream';
+
 export interface StorageDriver {
   upload(filePath: string, file: Buffer): Promise<void>;
+
+  uploadStream(filePath: string, file: Readable): Promise<void>;
 
   copy(fromFilePath: string, toFilePath: string): Promise<void>;
 
   read(filePath: string): Promise<Buffer>;
+
+  readStream(filePath: string): Promise<Readable>;
 
   exists(filePath: string): Promise<boolean>;
 

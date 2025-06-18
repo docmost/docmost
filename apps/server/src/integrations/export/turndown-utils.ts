@@ -1,5 +1,6 @@
 import * as TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
+import * as path from 'path';
 
 export function turndown(html: string): string {
   const turndownService = new TurndownService({
@@ -23,6 +24,7 @@ export function turndown(html: string): string {
     mathInline,
     mathBlock,
     iframeEmbed,
+    video,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
@@ -87,8 +89,12 @@ function preserveDetail(turndownService: TurndownService) {
       }
 
       const detailsContent = Array.from(node.childNodes)
-        .filter(child => child.nodeName !== 'SUMMARY')
-        .map(child => (child.nodeType === 1 ? turndownService.turndown((child as HTMLElement).outerHTML) : child.textContent))
+        .filter((child) => child.nodeName !== 'SUMMARY')
+        .map((child) =>
+          child.nodeType === 1
+            ? turndownService.turndown((child as HTMLElement).outerHTML)
+            : child.textContent,
+        )
         .join('');
 
       return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
@@ -132,6 +138,19 @@ function iframeEmbed(turndownService: TurndownService) {
     replacement: function (content: any, node: HTMLInputElement) {
       const src = node.getAttribute('src');
       return '[' + src + '](' + src + ')';
+    },
+  });
+}
+
+function video(turndownService: TurndownService) {
+  turndownService.addRule('video', {
+    filter: function (node: HTMLInputElement) {
+      return node.tagName === 'VIDEO';
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      const name = path.basename(src);
+      return '[' + name + '](' + src + ')';
     },
   });
 }

@@ -173,7 +173,7 @@ export function useRevokeInvitationMutation() {
 
 export function useGetInvitationQuery(
   invitationId: string,
-): UseQueryResult<any, Error> {
+): UseQueryResult<IInvitation, Error> {
   return useQuery({
     queryKey: ["invitations", invitationId],
     queryFn: () => getInvitationById({ invitationId }),

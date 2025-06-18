@@ -17,9 +17,9 @@ import {
   IconColumnRemove,
   IconRowInsertBottom,
   IconRowInsertTop,
-  IconRowRemove,
+  IconRowRemove, IconTableColumn, IconTableRow,
   IconTrashX,
-} from "@tabler/icons-react";
+} from '@tabler/icons-react';
 import { isCellSelection } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 
@@ -48,6 +48,14 @@ export const TableMenu = React.memo(
       }
 
       return posToDOMRect(editor.view, selection.from, selection.to);
+    }, [editor]);
+
+    const toggleHeaderColumn = useCallback(() => {
+      editor.chain().focus().toggleHeaderColumn().run();
+    }, [editor]);
+
+    const toggleHeaderRow = useCallback(() => {
+      editor.chain().focus().toggleHeaderRow().run();
     }, [editor]);
 
     const addColumnLeft = useCallback(() => {
@@ -177,6 +185,30 @@ export const TableMenu = React.memo(
               aria-label={t("Delete row")}
             >
               <IconRowRemove size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header row")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderRow}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header row")}
+            >
+              <IconTableRow size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header column")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderColumn}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header column")}
+            >
+              <IconTableColumn size={18} />
             </ActionIcon>
           </Tooltip>
 
