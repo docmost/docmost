@@ -29,9 +29,7 @@ import WorkspaceAbilityFactory from '../../casl/abilities/workspace-ability.fact
 import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
-} from '../../casl/interfaces/workspace-ability.type';
-import { addDays } from 'date-fns';
-import { FastifyReply } from 'fastify';
+} from '../../casl/interfaces/workspace-ability.type';import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
@@ -267,7 +265,7 @@ export class WorkspaceController {
     res.setCookie('authToken', authToken, {
       httpOnly: true,
       path: '/',
-      expires: addDays(new Date(), 30),
+      expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
     });
   }
