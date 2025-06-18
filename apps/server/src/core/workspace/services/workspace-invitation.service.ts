@@ -145,6 +145,10 @@ export class WorkspaceInvitationService {
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
         }));
 
+        if (invitesToInsert.length < 1) {
+          return;
+        }
+
         invites = await trx
           .insertInto('workspaceInvitations')
           .values(invitesToInsert)
