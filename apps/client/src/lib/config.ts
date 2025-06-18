@@ -52,6 +52,10 @@ export function getSpaceUrl(spaceSlug: string) {
   return "/s/" + spaceSlug;
 }
 
+export function getSpaceGraphUrl(spaceSlug: string) {
+  return "/s/" + spaceSlug + "/graph";
+}
+
 export function getFileUrl(src: string) {
   if (!src) return src;
   if (src.startsWith("http")) return src;
