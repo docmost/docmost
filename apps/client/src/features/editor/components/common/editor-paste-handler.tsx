@@ -48,6 +48,18 @@ export const handlePaste = (
     }
     return true;
   }
+
+  // removing windows \r and last \n
+  if (clipboardData) {
+    const text = clipboardData.replace(/\r/g, "").replace(/\n$/, "");
+
+    const { state } = view;
+    const { from, to } = state.selection;
+    const tr = state.tr.insertText(text, from, to);
+    view.dispatch(tr);
+    return true;
+  }
+
   return false;
 };
 
