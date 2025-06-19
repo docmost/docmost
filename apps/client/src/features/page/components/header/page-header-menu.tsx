@@ -35,6 +35,7 @@ import {
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
+import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import ShareModal from "@/features/share/components/share-modal.tsx";
@@ -82,6 +83,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
+
+      {!readOnly && <PageStateSegmentedControl size="xs" />}
 
       <Tooltip label={t("Find (Ctrl-F)")} openDelay={250} withArrow>
         <ActionIcon

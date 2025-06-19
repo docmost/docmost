@@ -347,7 +347,7 @@
   "Members added successfully": "メンバーを追加しました",
   "Member removed successfully": "メンバーが削除されました",
   "Member role updated successfully": "メンバーのロールを更新しました",
-  "Created by: <b>{{creatorName}}</b>": "作成者： <b>{{creatorName}}</b>",
+  "Created by: <b>{{creatorName}}</b>": "作成者: <b>{{creatorName}}</b>",
   "Created at: {{time}}": "が作成しました：{{time}}",
   "Edited by {{name}} {{time}}": "最終編集: {{name}} {{time}}",
   "Word count: {{wordCount}}": "ワード数: {{wordCount}}",
@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "メンバーであるスペースからの公開ページがここに表示されます",
   "Share deleted successfully": "共有が正常に削除されました",
   "Share not found": "共有が見つかりません",
-  "Failed to share page": "ページの共有に失敗しました"
+  "Failed to share page": "ページの共有に失敗しました",
+  "Copy page": "ページをコピー",
+  "Copy page to a different space.": "ページを別のスペースにコピーします。",
+  "Page copied successfully": "ページのコピーに成功しました"
 }
