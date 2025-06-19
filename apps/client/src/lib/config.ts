@@ -2,17 +2,17 @@ import bytes from "bytes";
 import { castToBoolean } from "@/lib/utils.tsx";
 
 declare global {
-  interface Window {
-    CONFIG?: Record<string, string>;
-  }
+	interface Window {
+		CONFIG?: Record<string, string>;
+	}
 }
 
 export function getAppName(): string {
-  return "Docmost";
+	return getConfigValue('APP_NAME', 'Docmost');
 }
 
 export function getAppUrl(): string {
-  return `${window.location.protocol}//${window.location.host}`;
+	return `${window.location.protocol}//${window.location.host}`;
 }
 
 export function getServerAppUrl(): string {
@@ -20,7 +20,7 @@ export function getServerAppUrl(): string {
 }
 
 export function getBackendUrl(): string {
-  return getAppUrl() + "/api";
+	return getAppUrl() + '/api';
 }
 
 export function getCollaborationUrl(): string {
@@ -42,14 +42,14 @@ export function isCloud(): boolean {
 }
 
 export function getAvatarUrl(avatarUrl: string) {
-  if (!avatarUrl) return null;
-  if (avatarUrl?.startsWith("http")) return avatarUrl;
+	if (!avatarUrl) return null;
+	if (avatarUrl?.startsWith('http')) return avatarUrl;
 
-  return getBackendUrl() + "/attachments/img/avatar/" + avatarUrl;
+	return getBackendUrl() + '/attachments/img/avatar/' + avatarUrl;
 }
 
 export function getSpaceUrl(spaceSlug: string) {
-  return "/s/" + spaceSlug;
+	return '/s/' + spaceSlug;
 }
 
 export function getFileUrl(src: string) {
@@ -66,8 +66,8 @@ export function getFileUrl(src: string) {
 }
 
 export function getFileUploadSizeLimit() {
-  const limit = getConfigValue("FILE_UPLOAD_SIZE_LIMIT", "50mb");
-  return bytes(limit);
+	const limit = getConfigValue('FILE_UPLOAD_SIZE_LIMIT', '50mb');
+	return bytes(limit);
 }
 
 export function getFileImportSizeLimit() {
@@ -76,7 +76,7 @@ export function getFileImportSizeLimit() {
 }
 
 export function getDrawioUrl() {
-  return getConfigValue("DRAWIO_URL", "https://embed.diagrams.net");
+	return getConfigValue('DRAWIO_URL', 'https://embed.diagrams.net');
 }
 
 export function getBillingTrialDays() {
@@ -84,8 +84,6 @@ export function getBillingTrialDays() {
 }
 
 function getConfigValue(key: string, defaultValue: string = undefined): string {
-  const rawValue = import.meta.env.DEV
-    ? process?.env?.[key]
-    : window?.CONFIG?.[key];
-  return rawValue ?? defaultValue;
+	const rawValue = import.meta.env.DEV ? process?.env?.[key] : window?.CONFIG?.[key];
+	return rawValue ?? defaultValue;
 }
