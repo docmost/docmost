@@ -19,6 +19,7 @@ export interface IUser {
   deactivatedAt: Date;
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
+  pageEditMode: string; // used for update
   spellcheck: boolean; // used for update
 }
 
@@ -30,6 +31,12 @@ export interface ICurrentUser {
 export interface IUserSettings {
   preferences: {
     fullPageWidth: boolean;
+    pageEditMode: string;
     spellcheck: boolean;
   };
+}
+
+export enum PageEditMode {
+  Read = "read",
+  Edit = "edit",
 }

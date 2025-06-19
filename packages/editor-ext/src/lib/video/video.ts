@@ -57,7 +57,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
         default: undefined,
         parseHTML: (element) => element.getAttribute("data-attachment-id"),
         renderHTML: (attributes: VideoAttributes) => ({
-          "data-attachment-id": attributes.align,
+          "data-attachment-id": attributes.attachmentId,
         }),
       },
       width: {
@@ -82,6 +82,14 @@ export const TiptapVideo = Node.create<VideoOptions>({
         }),
       },
     };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'video',
+      },
+    ]
   },
 
   renderHTML({ HTMLAttributes }) {

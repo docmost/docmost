@@ -124,6 +124,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
 
         <CommentEditor
           onUpdate={handleCommentEditorChange}
+          onSave={handleAddComment}
           placeholder={t("Write a comment")}
           editable={true}
           autofocus={true}

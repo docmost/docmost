@@ -30,6 +30,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -39,6 +40,7 @@ export class ShareController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -61,7 +63,12 @@ export class ShareController {
       throw new BadRequestException();
     }
 
-    return this.shareService.getSharedPage(dto, workspace.id);
+    return {
+      ...(await this.shareService.getSharedPage(dto, workspace.id)),
+      hasLicenseKey:
+        Boolean(workspace.licenseKey) ||
+        (this.environmentService.isCloud() && workspace.plan === 'business'),
+    };
   }
 
   @Public()
@@ -166,6 +173,11 @@ export class ShareController {
     @Body() dto: ShareIdDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.shareService.getShareTree(dto.shareId, workspace.id);
+    return {
+      ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
+      hasLicenseKey:
+        Boolean(workspace.licenseKey) ||
+        (this.environmentService.isCloud() && workspace.plan === 'business'),
+    };
   }
 }

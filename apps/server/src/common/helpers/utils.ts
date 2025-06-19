@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
+import { sanitize } from 'sanitize-filename-ts';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -13,6 +14,12 @@ export async function comparePasswordHash(
   passwordHash: string,
 ): Promise<boolean> {
   return bcrypt.compare(plainPassword, passwordHash);
+}
+
+export function generateRandomSuffixNumbers(length: number) {
+  return Math.random()
+    .toFixed(length)
+    .substring(2, 2 + length);
 }
 
 export type RedisConfig = {
@@ -61,4 +68,9 @@ export function extractDateFromUuid7(uuid7: string) {
   const timestamp = parseInt(highBitsHex, 16);
 
   return new Date(timestamp);
+}
+
+export function sanitizeFileName(fileName: string): string {
+  const sanitizedFilename = sanitize(fileName).replace(/ /g, '_');
+  return sanitizedFilename.slice(0, 255);
 }
