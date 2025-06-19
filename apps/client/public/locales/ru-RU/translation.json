@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "Общие страницы из пространств, участником которых вы являетесь, появятся здесь",
   "Share deleted successfully": "Общий доступ успешно удален",
   "Share not found": "Общий доступ не найден",
-  "Failed to share page": "Не удалось поделиться страницей"
+  "Failed to share page": "Не удалось поделиться страницей",
+  "Copy page": "Копировать страницу",
+  "Copy page to a different space.": "Копировать страницу в другое пространство.",
+  "Page copied successfully": "Страница успешно скопирована"
 }

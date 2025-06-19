@@ -75,6 +75,7 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import { countWords } from "alfaaz";
 import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
 import ColumnView from "@/features/editor/components/column-layout/column-view";
 
@@ -217,7 +218,9 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  CharacterCount,
+  CharacterCount.configure({
+    wordCounter: (text) => countWords(text),
+  }),
   ColumnContainer.configure({
     view: ColumnContainerView,
   }),

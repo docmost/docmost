@@ -383,5 +383,8 @@
   "Publicly shared pages from spaces you are a member of will appear here": "Páginas compartilhadas publicamente de espaços que você é membro aparecerão aqui",
   "Share deleted successfully": "Compartilhamento excluído com sucesso",
   "Share not found": "Compartilhamento não encontrado",
-  "Failed to share page": "Falha ao compartilhar página"
+  "Failed to share page": "Falha ao compartilhar página",
+  "Copy page": "Copy page",
+  "Copy page to a different space.": "Copy page to a different space.",
+  "Page copied successfully": "Page copied successfully"
 }
