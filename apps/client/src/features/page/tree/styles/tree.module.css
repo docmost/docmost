@@ -108,3 +108,12 @@
 [role="treeitem"] {
     padding-bottom: 2px;
 }
+
+.deleting {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.row:has(.deleting) {
+    cursor: not-allowed;
+}
