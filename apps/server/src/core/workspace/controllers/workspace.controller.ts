@@ -33,6 +33,7 @@ import {
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
+import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -102,7 +103,17 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.getWorkspaceUsers(workspace.id, pagination);
+    const users: PaginationResult<User> = await this.workspaceService.getWorkspaceUsers(user, workspace.id, pagination)
+
+    return users.meta.page == 1 && users.items.length === 0 ? {
+      items: [user],
+      meta: {
+        page: 1,
+        perPage: pagination.limit,
+        totalItems: 0,
+        totalPages: 0,
+      },
+    } : users;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -165,7 +176,7 @@ export class WorkspaceController {
     pagination: PaginationOptions,
   ) {
     const ability = this.workspaceAbility.createForUser(user, workspace);
-    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Member)) {
+    if (ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)) {
       throw new ForbiddenException();
     }
 
