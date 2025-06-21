@@ -33,6 +33,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { generateRandomSuffixNumbers } from '../../../common/helpers';
+import { AuthUser } from 'src/common/decorators/auth-user.decorator';
 
 @Injectable()
 export class WorkspaceService {
@@ -318,11 +319,17 @@ export class WorkspaceService {
   }
 
   async getWorkspaceUsers(
+    @AuthUser() user: User,
     workspaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersPaginated(
+    const users = (user.role === 'owner' || user.role === 'admin') ?
+      await this.userRepo.getUsersPaginated(
       workspaceId,
+      pagination,
+    ) : await this.userRepo.getUsersInSpacesOfUser(
+      workspaceId,
+      user.id,
       pagination,
     );
 
