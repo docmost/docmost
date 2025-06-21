@@ -323,7 +323,11 @@ export class WorkspaceService {
     workspaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersInSpacesOfUser(
+    const users = (user.role === 'owner' || user.role === 'admin') ?
+      await this.userRepo.getUsersPaginated(
+      workspaceId,
+      pagination,
+    ) : await this.userRepo.getUsersInSpacesOfUser(
       workspaceId,
       user.id,
       pagination,
