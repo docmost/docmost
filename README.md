@@ -1,3 +1,7 @@
+> [!NOTE]
+> This is a custom version of Docmost made for personal use to add features that Docmost is either too slow to add or chooses not to include, sometimes because they put them behind a paywall or simply because they say they "want to keep it simple."
+> I don't guarantee that this fork will be maintained and I also remove some features that other might find useful
+
 <div align="center">
     <h1><b>Docmost</b></h1>
     <p>
