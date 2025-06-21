@@ -32,6 +32,12 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - Embeds (Airtable, Loom, Miro and more)
 - Translations (10+ languages)
 
+> [!NOTE]
+> The following features or changes have been added to this fork:
+> - The "Docmost" branding has been removed from the editor when sharing
+> - Users who are not in the same space (and the user viewing needs at least edit permissions) are hidden
+> - Group members are hidden unless you are an admin or owner
+
 ### Screenshots
 
 <p align="center">
