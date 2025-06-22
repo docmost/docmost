@@ -25,7 +25,7 @@ const recalculateLinks = (nodePos: NodePos[]) => {
     (acc, item) => {
       const label = item.node.textContent;
       const level = Number(item.node.attrs.level);
-      if (label.length && level <= 6) {
+      if (label.length && level <= 3) {
         acc.push({
           label,
           level,
