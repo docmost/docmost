@@ -2,9 +2,10 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
+  NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { comparePasswordHash } from '../../common/helpers';
 
 @Injectable()
 export class UserService {
@@ -19,7 +20,7 @@ export class UserService {
     userId: string,
     workspaceId: string,
   ) {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await this.userRepo.findById(userId, workspaceId, { includePassword: updateUserDto.email != null && updateUserDto.password != null });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -50,6 +51,15 @@ export class UserService {
       if (await this.userRepo.findByEmail(updateUserDto.email, workspaceId)) {
         throw new BadRequestException('A user with this email already exists');
       }
+      const isPasswordMatch = await comparePasswordHash(
+        updateUserDto.password,
+        user.password,
+      );
+
+      if (!isPasswordMatch) {
+        throw new UnauthorizedException('You must provide the correct password to change your email');
+      }
+
       user.email = updateUserDto.email;
     }
 

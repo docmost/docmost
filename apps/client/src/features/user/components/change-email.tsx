@@ -14,6 +14,8 @@ import { useDisclosure } from "@mantine/hooks";
 import * as React from "react";
 import { useForm, zodResolver } from "@mantine/form";
 import { useTranslation } from "react-i18next";
+import { updateUser } from "../services/user-service";
+import { notifications } from "@mantine/notifications";
 
 export default function ChangeEmail() {
   const { t } = useTranslation();
@@ -29,19 +31,15 @@ export default function ChangeEmail() {
         </Text>
       </div>
 
-      {/*
       <Button onClick={open} variant="default">
         {t("Change email")}
-      </Button>
-      */}
-
-      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
+      </Button>      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
         <Text mb="md">
           {t(
             "To change your email, you have to enter your password and new email.",
           )}
         </Text>
-        <ChangeEmailForm />
+        <ChangeEmailForm onClose={close} />
       </Modal>
     </Group>
   );
@@ -56,9 +54,10 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-function ChangeEmailForm() {
+function ChangeEmailForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
 
   const form = useForm<FormValues>({
     validate: zodResolver(formSchema),
@@ -67,9 +66,40 @@ function ChangeEmailForm() {
       email: "",
     },
   });
-
-  function handleSubmit(data: FormValues) {
+  async function handleSubmit(data: FormValues) {
     setIsLoading(true);
+
+    try {
+      const updatedUser = await updateUser({
+        email: data.email,
+        password: data.password,
+      });
+      
+      setCurrentUser((prev) => prev ? { ...prev, user: updatedUser } : prev);
+      
+      notifications.show({
+        message: t("Email updated successfully"),
+      });
+      
+      onClose();
+
+    } catch (err: any) {
+      
+      let errorMessage = t("Failed to update email");
+      
+      if (err?.response?.status === 401) {
+        errorMessage = t("Incorrect password. Please try again.");
+      } else if (err?.response?.status === 400) {
+        errorMessage = err?.response?.data?.message || t("Failed to update email");
+      }
+      
+      notifications.show({
+        message: errorMessage,
+        color: "red",
+      });
+    }
+
+    setIsLoading(false);
   }
 
   return (
