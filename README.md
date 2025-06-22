@@ -34,9 +34,18 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 
 > [!NOTE]
 > The following features or changes have been added to this fork:
-> - The "Docmost" branding has been removed from the editor when sharing
+> - The "Docmost" branding has been removed from the editor when sharing (but moved to the header)
 > - Users who are not in the same space (and the user viewing needs at least edit permissions) are hidden
 > - Group members are hidden unless you are an admin or owner
+> - Allow users to change their email address
+> 
+> The following PRs have been merged into this fork pre Docmost (or closed in Docmost):
+> - ctrl/cmd-s by fuscodev
+> - shared-page-width-toggle by sanua356
+> - extra-ligatures by Webblitchy
+> - highlight-support by fuscodev (Edit: Addition so clicking on default colors automatically applies the highlight color)
+> - float-image by fuscodev
+> - add-more-headings by sanua356 (Edit: Only show headings 1-3 in ToC)
 
 ### Screenshots
 
