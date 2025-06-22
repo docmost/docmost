@@ -71,7 +71,7 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
   const [color, setColor] = useState(activeColorItem || '#ffff00')
 
   const isValidHexCode = (str : string) : boolean => {
-    let regex = new RegExp(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/);
+    const regex = new RegExp(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/);
     if(str === null){
       return false;
     }
@@ -103,18 +103,27 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
           <Text span c="dimmed" tt="uppercase" inherit>
             {t("Color")}
           </Text>
-          
-          <ColorPicker 
-            fullWidth 
+
+          <ColorPicker
+            fullWidth
             value={color}
-            onChange={setColor} 
+            onChange={(newColor) => {
+              setColor(newColor);
+              editor.commands.unsetHighlight();
+              editor
+                .chain()
+                .focus()
+                .setHighlight({ color: newColor })
+                .run();
+              setIsOpen(false);
+            }}
             swatchesPerRow={4}
             swatches={Array.from(HIGHLIGHT_COLORS, (item) => item.color)}
           />
 
-          <Input 
-            size="xs" 
-            value={color} 
+          <Input
+            size="xs"
+            value={color}
             onChange={(e) => setColor(e.target.value)}
           />
 
@@ -126,8 +135,8 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
             direction="row"
             wrap="wrap"
           >
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               size="xs"
               onClick={() => {
                 editor.commands.unsetHighlight();
@@ -136,7 +145,7 @@ export const HighlightColorSelector: FC<HighlightColorSelectorProps> = ({
               >
               {t("Remove")}
             </Button>
-            <Button 
+            <Button
               variant="default"
               size="xs"
               onClick={() => {
