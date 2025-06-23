@@ -49,6 +49,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 > - Allow users to change their email address
 > - Open links in edit mode with ctrl
 > - Added audio extension support <- Do not use if you want to go back
+> - Use more blocks in tables (like bullet list, todo, ...)
 > 
 > The following PRs have been merged into this fork pre Docmost (or closed in Docmost):
 > - ctrl/cmd-s by fuscodev
