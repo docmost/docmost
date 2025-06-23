@@ -77,6 +77,8 @@ export class UserService {
       user.locale = updateUserDto.locale;
     }
 
+    updateUserDto.password = undefined
+
     await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
     return user;
   }
