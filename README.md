@@ -1,10 +1,19 @@
+> [!WARNING]
+> Do not use in current state. I will remove this in the next few days when it should be usable without any new bugs. Until then, I will also merge some new PRs.
+
 > [!NOTE]
-> This is a custom version of Docmost made for personal use to add features that Docmost is either too slow to add or chooses not to include, sometimes because they put them behind a paywall or simply because they say they "want to keep it simple."
-> I don't guarantee that this fork will be maintained and I also remove some features that other might find useful
+> This is a custom, updated fork of Docmost, optimized for personal and educational use, especially for sharing with multiple different users. It also includes features that Docmost is either "too" slow to add or chooses not to include, sometimes because they are behind a paywall or because Docmost aims to "keep it simple." (No judgment)
+> 
+> I do not guarantee that this fork will be maintained. I have also removed some features that others might find useful and may have introduced some bugs.
+> 
+> The re-branding to "Bettermost" is not an assertion that this fork is superior in any way; rather, the original name is held by Docmost and I do not want any conflicts going on.
+> 
+> For added/merged features, see the note at Features.
 
 <div align="center">
-    <h1><b>Docmost</b></h1>
+    <h1><b>Fork of Docmost</b></h1>
     <p>
+        All rights and naming of Docmost belong to Docmost
         Open-source collaborative wiki and documentation software.
         <br />
         <a href="https://docmost.com"><strong>Website</strong></a> | 
