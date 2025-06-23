@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - 'patches/**'
       - 'Dockerfile'
+      - '.github/workflows/image.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,7 +30,7 @@ jobs:
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
