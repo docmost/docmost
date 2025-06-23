@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - 'patches/**'
       - 'Dockerfile'
+  workflow_dispatch:
 
 jobs:
   build:
