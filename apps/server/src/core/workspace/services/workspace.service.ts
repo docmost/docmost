@@ -511,6 +511,12 @@ export class WorkspaceService {
       throw new NotFoundException('User not found');
     }
 
+    if (
+      (actorUser.role === UserRole.ADMIN && user.role === UserRole.OWNER)
+    ) {
+      throw new ForbiddenException();
+    }
+
     // Password from the user that wants to change the password to validate authorization. For ee this needs additional implementation.
     const comparePasswords = await comparePasswordHash(
       dto.actorPassword,
