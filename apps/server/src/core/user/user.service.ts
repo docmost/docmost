@@ -70,9 +70,7 @@ export class UserService {
       );
 
       if (!isPasswordMatch) {
-        throw new UnauthorizedException(
-          'You must provide the correct password to change your email',
-        );
+        throw new BadRequestException('You must provide the correct password to change your email');
       }
 
       if (await this.userRepo.findByEmail(updateUserDto.email, workspace.id)) {
