@@ -155,7 +155,7 @@ export default function BillingPlans() {
                     </Text>
                   )}
                   <Text size="md" fw={500}>
-                    for up to {planSelectedTier.upTo} users
+                    For {planSelectedTier.upTo} users
                   </Text>
                 </Stack>
 

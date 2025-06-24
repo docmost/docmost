@@ -154,7 +154,7 @@ export default function BillingDetails() {
                   Current Tier
                 </Text>
                 <Text fw={700} fz="lg">
-                  For up to {billing.tieredUpTo} users
+                  For {billing.tieredUpTo} users
                 </Text>
                 {/*billing.tieredFlatAmount && (
                   <Text c="dimmed" fz="sm">
