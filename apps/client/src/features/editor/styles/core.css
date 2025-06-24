@@ -176,6 +176,23 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  .floatLeft {
+    float: left;
+  }
+
+  .floatRight {
+    float: right;
+  }
+  
+  @media (max-width: 575px) {
+    .react-renderer.node-image,
+    .react-renderer.node-image img {
+      float: none !important;
+      width: 100% !important;
+      padding: 0 !important;
+    }
+  }
 }
 
 .ProseMirror-icon {

@@ -1,6 +1,17 @@
+> [!WARNING]
+> Do not use in current state. I will remove this in the next few days when it should be usable without any new bugs. Until then, I will also merge some new PRs.
+
+> [!NOTE]
+> This is a custom, updated fork of Docmost, optimized for personal and educational use, especially for sharing with multiple different users. It also includes features that Docmost is either "too" slow to add or chooses not to include, sometimes because they are behind a paywall or because Docmost aims to "keep it simple." (No judgment)
+> 
+> I do not guarantee that this fork will be maintained. I have also removed some features that others might find useful and may have introduced some bugs.
+> 
+> For added/merged features, see the note at Features.
+
 <div align="center">
-    <h1><b>Docmost</b></h1>
+    <h1><b>Fork of Docmost</b></h1>
     <p>
+        All rights and naming of Docmost belong to Docmost
         Open-source collaborative wiki and documentation software.
         <br />
         <a href="https://docmost.com"><strong>Website</strong></a> | 
@@ -27,6 +38,24 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - File attachments
 - Embeds (Airtable, Loom, Miro and more)
 - Translations (10+ languages)
+
+> [!NOTE]
+> The following features or changes have been added to this fork:
+> - The "Docmost" branding has been removed from the editor when sharing (but moved to the header)
+> - Users who are not in the same space (and the user viewing needs at least edit permissions) are hidden
+> - Group members are hidden unless you are an admin or owner
+> - Allow users to change their email address
+> - Open links in edit mode with ctrl
+> - Added audio extension support <- Do not use if you want to go back
+> - Use more blocks in tables (like bullet list, todo, ...)
+> 
+> The following PRs have been merged into this fork pre Docmost (or closed in Docmost):
+> - ctrl/cmd-s by fuscodev
+> - shared-page-width-toggle by sanua356
+> - extra-ligatures by Webblitchy
+> - highlight-support by fuscodev (Edit: Addition so clicking on default colors automatically applies the highlight color)
+> - float-image by fuscodev <- Do not use if you want to go back
+> - add-more-headings by sanua356 (Edit: Only show headings 1-3 in ToC)
 
 ### Screenshots
 
