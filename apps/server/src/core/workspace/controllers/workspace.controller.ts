@@ -33,6 +33,7 @@ import {
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
+import { ChangeWorkspaceMemberPasswordDto } from '../../auth/dto/change-password.dto';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 
 @UseGuards(JwtAuthGuard)
@@ -128,6 +129,27 @@ export class WorkspaceController {
     ) {
       throw new ForbiddenException();
     }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('members/change-password')
+  async changePasswordForWorkspaceMember(
+    @Body() dto: ChangeWorkspaceMemberPasswordDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+
+    await this.workspaceService.changeUserPassword(
+      dto,
+      user.id,
+      workspace.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
