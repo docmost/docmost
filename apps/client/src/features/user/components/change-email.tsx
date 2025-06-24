@@ -81,7 +81,7 @@ function ChangeEmailForm({ onClose }: { onClose: () => void }) {
     try {
       const updatedUser = await updateUser({
         email: data.email,
-        changePassword: data.password,
+        confirmPassword: data.password,
       });
 
       setCurrentUser((prev) => (prev ? { ...prev, user: updatedUser } : prev));
