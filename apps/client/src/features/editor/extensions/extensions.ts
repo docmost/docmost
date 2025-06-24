@@ -37,6 +37,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  ExtraLigatures,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -131,6 +132,7 @@ export const mainExtensions = [
     multicolor: true,
   }),
   Typography,
+  ExtraLigatures,
   TrailingNode,
   GlobalDragHandle,
   TextStyle,
@@ -165,7 +167,10 @@ export const mainExtensions = [
     allowTableNodeSelection: true,
   }),
   TableRow,
-  TableCell,
+  // Full credit for this change goes to https://github.com/docmost/docmost/pull/679/commits/8014e0876bb5baa8f7c4b6b7c280224609dd393c. Fore more infos see https://prosemirror.net/docs/guide/#schema.content_expressions
+  TableCell.extend({
+    content: "block+",
+  }),
   TableHeader,
   MathInline.configure({
     view: MathInlineView,

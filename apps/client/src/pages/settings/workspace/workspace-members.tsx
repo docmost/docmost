@@ -22,14 +22,14 @@ export default function WorkspaceMembers() {
 
   useEffect(() => {
     const currentTab = searchParams.get("tab");
-    if (currentTab === "invites") {
+    if (currentTab === "invites" && isAdmin) {
       setSegmentValue(currentTab);
     }
   }, [searchParams.get("tab")]);
 
   const handleSegmentChange = (value: string) => {
     setSegmentValue(value);
-    if (value === "invites") {
+    if (value === "invites" && isAdmin) {
       navigate(`?tab=${value}`);
     } else {
       navigate("");
@@ -49,7 +49,7 @@ export default function WorkspaceMembers() {
       {/* <Divider my="lg" /> */}
 
       <Group justify="space-between">
-        <SegmentedControl
+        {isAdmin && <SegmentedControl
           value={segmentValue}
           onChange={handleSegmentChange}
           data={[
@@ -60,7 +60,7 @@ export default function WorkspaceMembers() {
             { label: t("Pending"), value: "invites" },
           ]}
           withItemsBorders={false}
-        />
+        />}
 
         {isAdmin && <WorkspaceInviteModal />}
       </Group>

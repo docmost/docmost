@@ -2,7 +2,7 @@ version: '3'
 
 services:
   docmost:
-    image: docmost/docmost:latest
+    image: ghcr.io/vito0912/forkmost:latest
     depends_on:
       - db
       - redis

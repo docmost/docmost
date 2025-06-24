@@ -32,11 +32,12 @@ import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
-import { comparePasswordHash, generateRandomSuffixNumbers, hashPassword } from '../../../common/helpers';
+import { comparePasswordHash, generateRandomSuffixNumbers, hashPassword, generateRandomSuffixNumbers } from '../../../common/helpers';
 import { ChangePasswordDto, ChangeWorkspaceMemberPasswordDto } from '../../auth/dto/change-password.dto';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
 import ChangeUserPasswordEmail from '@docmost/transactional/emails/change-user-password-email';
 import { MailService } from '../../../integrations/mail/mail.service';
+import { AuthUser } from 'src/common/decorators/auth-user.decorator';
 
 @Injectable()
 export class WorkspaceService {
@@ -323,11 +324,17 @@ export class WorkspaceService {
   }
 
   async getWorkspaceUsers(
+    @AuthUser() user: User,
     workspaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersPaginated(
+    const users = (user.role === 'owner' || user.role === 'admin') ?
+      await this.userRepo.getUsersPaginated(
       workspaceId,
+      pagination,
+    ) : await this.userRepo.getUsersInSpacesOfUser(
+      workspaceId,
+      user.id,
       pagination,
     );
 
