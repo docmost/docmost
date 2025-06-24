@@ -2,10 +2,13 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
   Injectable,
-  NotFoundException, UnauthorizedException,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { comparePasswordHash } from '../../common/helpers';
+import { comparePasswordHash } from 'src/common/helpers/utils';
+import { Workspace } from '@docmost/db/types/entity.types';
+import { validateSsoEnforcement } from '../auth/auth.util';
 
 @Injectable()
 export class UserService {
@@ -18,9 +21,14 @@ export class UserService {
   async update(
     updateUserDto: UpdateUserDto,
     userId: string,
-    workspaceId: string,
+    workspace: Workspace,
   ) {
-    const user = await this.userRepo.findById(userId, workspaceId, { includePassword: updateUserDto.email != null && updateUserDto.password != null });
+    const includePassword =
+      updateUserDto.email != null && updateUserDto.confirmPassword != null;
+
+    const user = await this.userRepo.findById(userId, workspace.id, {
+      includePassword,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -48,16 +56,25 @@ export class UserService {
     }
 
     if (updateUserDto.email && user.email != updateUserDto.email) {
-      if (await this.userRepo.findByEmail(updateUserDto.email, workspaceId)) {
-        throw new BadRequestException('A user with this email already exists');
+      validateSsoEnforcement(workspace);
+
+      if (!updateUserDto.confirmPassword) {
+        throw new BadRequestException(
+          'You must provide a password to change your email',
+        );
       }
+
       const isPasswordMatch = await comparePasswordHash(
-        updateUserDto.password,
+        updateUserDto.confirmPassword,
         user.password,
       );
 
       if (!isPasswordMatch) {
-        throw new UnauthorizedException('You must provide the correct password to change your email');
+        throw new BadRequestException('You must provide the correct password to change your email');
+      }
+
+      if (await this.userRepo.findByEmail(updateUserDto.email, workspace.id)) {
+        throw new BadRequestException('A user with this email already exists');
       }
 
       user.email = updateUserDto.email;
@@ -71,7 +88,9 @@ export class UserService {
       user.locale = updateUserDto.locale;
     }
 
-    await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
+    delete updateUserDto.confirmPassword;
+
+    await this.userRepo.updateUser(updateUserDto, userId, workspace.id);
     return user;
   }
 }
