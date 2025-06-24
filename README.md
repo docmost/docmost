@@ -6,8 +6,6 @@
 > 
 > I do not guarantee that this fork will be maintained. I have also removed some features that others might find useful and may have introduced some bugs.
 > 
-> The re-branding to "Bettermost" is not an assertion that this fork is superior in any way; rather, the original name is held by Docmost and I do not want any conflicts going on.
-> 
 > For added/merged features, see the note at Features.
 
 <div align="center">
