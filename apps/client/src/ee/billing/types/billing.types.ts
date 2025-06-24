@@ -58,6 +58,7 @@ export interface IBillingPlan {
 
 interface PricingTier {
   upTo: number;
-  monthly: number;
-  yearly: number;
+  monthly?: number;
+  yearly?: number;
+  custom?: boolean;
 }

@@ -52,14 +52,16 @@ export default function BillingPlans() {
     return null;
   }
 
-  const selectData = firstPlan.pricingTiers.map((tier, index) => {
-    const prevMaxUsers =
-      index > 0 ? firstPlan.pricingTiers[index - 1].upTo : 0;
-    return {
-      value: tier.upTo.toString(),
-      label: `${prevMaxUsers + 1}-${tier.upTo} users`,
-    };
-  });
+  const selectData = firstPlan.pricingTiers
+    .filter((tier) => !tier.custom)
+    .map((tier, index) => {
+      const prevMaxUsers =
+        index > 0 ? firstPlan.pricingTiers[index - 1].upTo : 0;
+      return {
+        value: tier.upTo.toString(),
+        label: `${prevMaxUsers + 1}-${tier.upTo} users`,
+      };
+    });
 
   return (
     <Container size="xl" py="xl">
