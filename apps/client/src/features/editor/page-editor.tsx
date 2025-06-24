@@ -1,7 +1,6 @@
 import "@/features/editor/styles/index.css";
 import React, {
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -155,7 +154,6 @@ export default function PageEditor({
       providersRef.current?.local.destroy();
       providersRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]);
 
   // Only connect/disconnect on tab/idle, not destroy
@@ -180,12 +178,6 @@ export default function PageEditor({
       setTimeout(() => setIsCollabReady(true), 500);
     }
   }, [isIdle, documentState, providersReady, resetIdle]);
-
-  // Connect on mount if ready
-  useEffect(() => {
-    if (providersReady && providersRef.current) {
-    }
-  }, [providersReady]);
 
   const extensions = useMemo(() => {
     if (!remoteProvider || !currentUser?.user) return mainExtensions;
