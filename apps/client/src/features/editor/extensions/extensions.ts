@@ -29,6 +29,7 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  Audio,
   LinkExtension,
   Selection,
   Attachment,
@@ -52,6 +53,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
@@ -192,6 +194,9 @@ export const mainExtensions = [
   }),
   TiptapVideo.configure({
     view: VideoView,
+  }),
+  Audio.configure({
+    view: AudioView,
   }),
   Callout.configure({
     view: CalloutView,
