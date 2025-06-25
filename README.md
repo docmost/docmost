@@ -11,9 +11,9 @@
 <div align="center">
     <h1><b>Forkmost</b></h1>
     <p>
-        Open-source collaborative wiki and documentation software.\
-        View the awesome original project (not associated with this fork other than being a fork of Docmost): <a href="https://docmost.com">Docmost</a>
-        Renaming was done to avoid confusion with the original project. Forkmost does not have any cloud nor enterprise features and is intended for personal use.\
+        <p>Open-source collaborative wiki and documentation software.</p>
+        <p>View the awesome original project (not associated with this fork other than being a fork of Docmost): <a href="https://docmost.com">Docmost</a></p>
+        <p>Renaming was done to avoid confusion and comply with trademark rights with the original project. Forkmost does not have any cloud nor enterprise features and is intended for personal use.</p>
     </p>
 </div>
 <br />
