@@ -192,22 +192,6 @@ export default function CodeBlockView(props: NodeViewProps) {
         </Group>
       )}
 
-      {hideHeader && (
-        <div className={classes.hiddenHeaderActions}>
-          <Tooltip label={t("Show header")} withArrow position="top">
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={toggleHeaderVisibility}
-              className={classes.showHeaderButton}
-            >
-              <IconEye size={14} />
-            </ActionIcon>
-          </Tooltip>
-        </div>
-      )}
-
       <pre
         spellCheck="false"
         className={wrapLines ? classes.wrapLines : classes.noWrapLines}
@@ -217,6 +201,21 @@ export default function CodeBlockView(props: NodeViewProps) {
           node.textContent.length > 0
         }
       >
+        {hideHeader && (
+          <div className={classes.hiddenHeaderActions}>
+            <Tooltip label={t("Show header")} withArrow position="top">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={toggleHeaderVisibility}
+                className={classes.showHeaderButton}
+              >
+                <IconEye size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </div>
+        )}
         <NodeViewContent as="code" className={`language-${language}`} />
       </pre>
 
