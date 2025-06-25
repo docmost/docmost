@@ -21,6 +21,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for Enterprise Edition (EE) folders
+        run: |
+          if [ -d "apps/server/src/ee" ] || [ -d "apps/client/src/ee" ] || [ -d "packages/ee" ]; then
+            echo "--- IMPORTANT: Enterprise Edition (EE) folders detected! ---"
+            echo "This fork is intended for the open-source AGPL 3.0 version."
+            echo "Building with EE features is not permitted under the AGPL license."
+            echo "Please remove the 'ee' directories to proceed."
+            echo "This check is in place to prevent accidental builds with EE features (e.g on syncing)."
+            exit 1
+          fi
+          echo "No Enterprise Edition (EE) folders found. Proceeding with build."
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
