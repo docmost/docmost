@@ -229,19 +229,6 @@ export default function SettingsSidebar() {
       <ScrollArea w="100%">{menuItems}</ScrollArea>
 
       {!isCloud() && <AppVersion />}
-
-      {isCloud() && (
-        <div className={classes.text}>
-          <Text
-            size="sm"
-            c="dimmed"
-            component="a"
-            href="mailto:help@docmost.com"
-          >
-            help@docmost.com
-          </Text>
-        </div>
-      )}
     </div>
   );
 }

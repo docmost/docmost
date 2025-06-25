@@ -9,21 +9,18 @@
 > For added/merged features, see the note at Features.
 
 <div align="center">
-    <h1><b>Fork of Docmost</b></h1>
+    <h1><b>Forkmost</b></h1>
     <p>
-        All rights and naming of Docmost belong to Docmost
-        Open-source collaborative wiki and documentation software.
-        <br />
-        <a href="https://docmost.com"><strong>Website</strong></a> | 
-        <a href="https://docmost.com/docs"><strong>Documentation</strong></a> |
-        <a href="https://twitter.com/DocmostHQ"><strong>Twitter / X</strong></a>
+        Open-source collaborative wiki and documentation software.\
+        View the awesome original project (not associated with this fork other than being a fork of Docmost): <a href="https://docmost.com">Docmost</a>
+        Renaming was done to avoid confusion with the original project. Forkmost does not have any cloud nor enterprise features and is intended for personal use.\
     </p>
 </div>
 <br />
 
 ## Getting started
 
-To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
+To get started with Forkmost, please refer to the Docmost [documentation](https://docmost.com/docs).
 
 ## Features
 
@@ -41,7 +38,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 
 > [!NOTE]
 > The following features or changes have been added to this fork:
-> - The "Docmost" branding has been removed from the editor when sharing (but moved to the header)
+> - The "Docmost" branding has been removed from the editor when sharing (but moved to the header - Now Forkmost)
 > - Users who are not in the same space (and the user viewing needs at least edit permissions) are hidden
 > - Group members are hidden unless you are an admin or owner
 > - Allow users to change their email address
@@ -66,7 +63,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 
 ### License
 Docmost core is licensed under the open-source AGPL 3.0 license.  
-Enterprise features are available under an enterprise license (Enterprise Edition).  
+Enterprise features are available under an enterprise license (Enterprise Edition).  <-- Not available in this fork
 
 All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
   - apps/server/src/ee
@@ -75,17 +72,9 @@ All files in the following directories are licensed under the Docmost Enterprise
 
 ### Contributing
 
-See the [development documentation](https://docmost.com/docs/self-hosting/development)
+See the [development documentation](https://docmost.com/docs/self-hosting/development) of Docmost which Forkmost follows
 
 ## Thanks
-Special thanks to;
 
-<img width="100" alt="Crowdin" src="https://github.com/user-attachments/assets/a6c3d352-e41b-448d-b6cd-3fbca3109f07" />
-
-[Crowdin](https://crowdin.com/) for providing access to their localization platform.
-
-
-<img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
-
-[Algolia](https://www.algolia.com/) for providing full-text search to the docs.
+See [Docmost#Thanks](https://github.com/docmost/docmost?tab=readme-ov-file#thanks)
 

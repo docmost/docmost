@@ -69,7 +69,7 @@ export function AppHeader() {
             component={Link}
             to="/home"
           >
-            {import.meta.env.VITE_APP_NAME || "Docmost"}
+            {import.meta.env.VITE_APP_NAME || "Forkmost"}
           </Text>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">

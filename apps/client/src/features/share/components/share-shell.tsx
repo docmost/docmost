@@ -113,7 +113,7 @@ export default function ShareShell({
               size="lg"
               fw={600}
             >
-              {import.meta.env.VITE_APP_NAME || "Docmost"}
+              {import.meta.env.VITE_APP_NAME || "Forkmost"}
             </Text>
           </Group>
 
