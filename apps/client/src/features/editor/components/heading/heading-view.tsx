@@ -1,4 +1,4 @@
-import { ActionIcon, CopyButton, Flex, Group, Tooltip } from "@mantine/core";
+import { ActionIcon, CopyButton, Tooltip } from "@mantine/core";
 import { IconAnchor, IconCheck, IconCopy } from "@tabler/icons-react";
 import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { ElementType, useEffect, useState } from "react";
@@ -38,10 +38,11 @@ export default function HeadingView({ node }: NodeViewProps) {
       className={classes.anchorScrollMargin}
       onMouseEnter={() => setShowAnchorButton(true)}
       onMouseLeave={() => setShowAnchorButton(false)}
+      style={{ position: "relative" }}
     >
-      <Flex gap="sm" justify="flex-start" align="center">
-        <NodeViewContent as="span" />
-        {showAnchorButton && node.textContent && (
+      <NodeViewContent as="span" />
+      {showAnchorButton && node.textContent && (
+        <div className={classes.anchorIconContainer}>
           <CopyButton value={url} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip
@@ -54,14 +55,15 @@ export default function HeadingView({ node }: NodeViewProps) {
                   variant="subtle"
                   size="sm"
                   onClick={copy}
+                  className={classes.anchorIcon}
                 >
                   {copied ? <IconCheck size={16} /> : <IconAnchor size={16} />}
                 </ActionIcon>
               </Tooltip>
             )}
           </CopyButton>
-        )}
-      </Flex>
+        </div>
+      )}
     </NodeViewWrapper>
   );
 }
