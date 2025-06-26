@@ -8,12 +8,14 @@ import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import ShareBranding from "@/features/share/components/share-branding.tsx";
+import { useAnchorScroll } from "@/features/editor/components/heading/use-anchor-scroll";
 
 export default function SharedPage() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { shareId } = useParams();
   const navigate = useNavigate();
+  useAnchorScroll();
 
   const { data, isLoading, isError, error } = useSharePageQuery({
     pageId: extractPageSlugId(pageSlug),

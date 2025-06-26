@@ -73,6 +73,8 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import Heading from "@tiptap/extension-heading";
+import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
 
 const lowlight = createLowlight(common);
@@ -90,6 +92,7 @@ lowlight.register("scala", scala);
 export const mainExtensions = [
   StarterKit.configure({
     history: false,
+    heading: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -100,6 +103,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(HeadingView);
+    }
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
