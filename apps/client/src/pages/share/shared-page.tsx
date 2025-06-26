@@ -7,6 +7,8 @@ import React, { useEffect } from "react";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
 import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
+import ShareBranding from "@/features/share/components/share-branding.tsx";
+import { useAnchorScroll } from "@/features/editor/components/heading/use-anchor-scroll";
 import { useAtom } from "jotai";
 import { shareFullPageWidthAtom } from "@/features/share/atoms/sidebar-atom";
 
@@ -15,6 +17,7 @@ export default function SharedPage() {
   const { pageSlug } = useParams();
   const { shareId } = useParams();
   const navigate = useNavigate();
+  useAnchorScroll();
 
   const [isFullWidth] = useAtom(shareFullPageWidthAtom);
 
