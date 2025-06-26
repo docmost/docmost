@@ -1,6 +1,3 @@
-> [!WARNING]
-> Do not use in current state. I will remove this in the next few days when it should be usable without any new bugs. Until then, I will also merge some new PRs.
-
 > [!NOTE]
 > This is a custom, updated fork of Docmost, optimized for personal and educational use, especially for sharing with multiple different users. It also includes features that Docmost is either "too" slow to add or chooses not to include, sometimes because they are behind a paywall or because Docmost aims to "keep it simple." (No judgment)
 > 
@@ -45,6 +42,9 @@ To get started with Forkmost, please refer to the Docmost [documentation](https:
 > - Open links in edit mode with ctrl
 > - Added audio extension support <- Do not use if you want to go back
 > - Use more blocks in tables (like bullet list, todo, ...)
+> - Custom emoji in callouts
+> - Added more options to code blocks (See https://github.com/docmost/docmost/pull/1298)
+> - Added PWA support (Based on docmost pull request #614)
 > 
 > The following PRs have been merged into this fork pre Docmost (or closed in Docmost):
 > - ctrl/cmd-s by fuscodev
