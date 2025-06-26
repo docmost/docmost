@@ -1,0 +1,56 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: ["personal"]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'patches/**'
+      - 'Dockerfile'
+      - '.github/workflows/image.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Enterprise Edition (EE) folders
+        run: |
+          if [ -d "apps/server/src/ee" ] || [ -d "apps/client/src/ee" ] || [ -d "packages/ee" ]; then
+            echo "--- IMPORTANT: Enterprise Edition (EE) folders detected! ---"
+            echo "This fork is intended for the open-source AGPL 3.0 version."
+            echo "Building with EE features is not permitted under the AGPL license."
+            echo "Please remove the 'ee' directories to proceed."
+            echo "This check is in place to prevent accidental builds with EE features (e.g on syncing)."
+            exit 1
+          fi
+          echo "No Enterprise Edition (EE) folders found. Proceeding with build."
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/vito0912/forkmost:latest

@@ -21,12 +21,9 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai/index";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
-  prefetchBilling,
   prefetchGroups,
-  prefetchLicense,
   prefetchShares,
   prefetchSpaces,
-  prefetchSsoProviders,
   prefetchWorkspaceMembers,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
@@ -70,34 +67,9 @@ const groupedData: DataGroup[] = [
         icon: IconUsers,
         path: "/settings/members",
       },
-      {
-        label: "Billing",
-        icon: IconCoin,
-        path: "/settings/billing",
-        isCloud: true,
-        isAdmin: true,
-      },
-      {
-        label: "Security & SSO",
-        icon: IconLock,
-        path: "/settings/security",
-        isCloud: true,
-        isEnterprise: true,
-        isAdmin: true,
-      },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
-    ],
-  },
-  {
-    heading: "System",
-    items: [
-      {
-        label: "License & Edition",
-        icon: IconKey,
-        path: "/settings/license",
-      },
     ],
   },
 ];
@@ -167,17 +139,6 @@ export default function SettingsSidebar() {
             case "Groups":
               prefetchHandler = prefetchGroups;
               break;
-            case "Billing":
-              prefetchHandler = prefetchBilling;
-              break;
-            case "License & Edition":
-              if (workspace?.hasLicenseKey) {
-                prefetchHandler = prefetchLicense;
-              }
-              break;
-            case "Security & SSO":
-              prefetchHandler = prefetchSsoProviders;
-              break;
             case "Public sharing":
               prefetchHandler = prefetchShares;
               break;
@@ -229,19 +190,6 @@ export default function SettingsSidebar() {
       <ScrollArea w="100%">{menuItems}</ScrollArea>
 
       {!isCloud() && <AppVersion />}
-
-      {isCloud() && (
-        <div className={classes.text}>
-          <Text
-            size="sm"
-            c="dimmed"
-            component="a"
-            href="mailto:help@docmost.com"
-          >
-            help@docmost.com
-          </Text>
-        </div>
-      )}
     </div>
   );
 }

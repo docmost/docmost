@@ -1,8 +1,8 @@
 version: '3'
 
 services:
-  docmost:
-    image: docmost/docmost:latest
+  forkmost:
+    image: ghcr.io/vito0912/forkmost:latest
     depends_on:
       - db
       - redis
@@ -15,7 +15,7 @@ services:
       - "3000:3000"
     restart: unless-stopped
     volumes:
-      - docmost:/app/data/storage
+      - forkmost:/app/data/storage
 
   db:
     image: postgres:16-alpine

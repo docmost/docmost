@@ -20,6 +20,48 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
       };
     },
 
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        title: {
+          default: null,
+          parseHTML: element => element.getAttribute('data-title'),
+          renderHTML: attributes => {
+            if (!attributes.title) {
+              return {};
+            }
+            return {
+              'data-title': attributes.title,
+            };
+          },
+        },
+        wrapLines: {
+          default: true,
+          parseHTML: element => {
+            const value = element.getAttribute('data-wrap-lines');
+            return value === null || value === 'true';
+          },
+          renderHTML: attributes => {
+            return {
+              'data-wrap-lines': attributes.wrapLines.toString(),
+            };
+          },
+        },
+        hideHeader: {
+          default: false,
+          parseHTML: element => {
+            const value = element.getAttribute('data-hide-header');
+            return value === 'true';
+          },
+          renderHTML: attributes => {
+            return {
+              'data-hide-header': attributes.hideHeader.toString(),
+            };
+          },
+        },
+      };
+    },
+
     addKeyboardShortcuts() {
       return {
         ...this.parent?.(),

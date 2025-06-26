@@ -6,6 +6,9 @@ import {
   IconH1,
   IconH2,
   IconH3,
+  IconH4,
+  IconH5,
+  IconH6,
   IconInfoCircle,
   IconList,
   IconListNumbers,
@@ -17,7 +20,9 @@ import {
   IconTable,
   IconTypography,
   IconMenu4,
-  IconCalendar, IconAppWindow,
+  IconCalendar,
+  IconAppWindow,
+  IconHeadphones,
 } from '@tabler/icons-react';
 import {
   CommandProps,
@@ -41,6 +46,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { uploadAudioAction } from "@/features/editor/components/audio/upload-audio-action.ts";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -69,8 +75,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 1",
-      description: "Big section heading.",
-      searchTerms: ["title", "big", "large"],
+      description: "Maximum size section heading.",
+      searchTerms: ["title", "max", "large"],
       icon: IconH1,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -83,8 +89,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 2",
-      description: "Medium section heading.",
-      searchTerms: ["subtitle", "medium"],
+      description: "Big section heading.",
+      searchTerms: ["subtitle", "big"],
       icon: IconH2,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -97,8 +103,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 3",
-      description: "Small section heading.",
-      searchTerms: ["subtitle", "small"],
+      description: "Medium section heading.",
+      searchTerms: ["typography", "medium"],
       icon: IconH3,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -106,6 +112,48 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setNode("heading", { level: 3 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 4",
+      description: "Small section heading.",
+      searchTerms: ["small"],
+      icon: IconH4,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 4 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 5",
+      description: "Very small section heading.",
+      searchTerms: ["verysmall"],
+      icon: IconH5,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 5 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 6",
+      description: "Minimum size section heading.",
+      searchTerms: ["min"],
+      icon: IconH6,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 6 })
           .run();
       },
     },
@@ -198,6 +246,31 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             const file = input.files[0];
             const pos = editor.view.state.selection.from;
             uploadVideoAction(file, editor.view, pos, pageId);
+          }
+        };
+        input.click();
+      },
+    },
+    {
+      title: "Audio",
+      description: "Upload any audio from your device.",
+      searchTerms: ["audio", "mp3", "media", "m4a", "opus"],
+      icon: IconHeadphones,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).run();
+
+        const pageId = editor.storage?.pageId;
+        if (!pageId) return;
+
+        // upload audio
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "audio/*";
+        input.onchange = async () => {
+          if (input.files?.length) {
+            const file = input.files[0];
+            const pos = editor.view.state.selection.from;
+            uploadAudioAction(file, editor.view, pos, pageId);
           }
         };
         input.click();

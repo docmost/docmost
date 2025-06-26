@@ -29,6 +29,7 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  Audio,
   LinkExtension,
   Selection,
   Attachment,
@@ -37,6 +38,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  ExtraLigatures,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -51,6 +53,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
@@ -139,6 +142,7 @@ export const mainExtensions = [
     multicolor: true,
   }),
   Typography,
+  ExtraLigatures,
   TrailingNode,
   GlobalDragHandle,
   TextStyle,
@@ -173,7 +177,10 @@ export const mainExtensions = [
     allowTableNodeSelection: true,
   }),
   TableRow,
-  TableCell,
+  // Full credit for this change goes to https://github.com/docmost/docmost/pull/679/commits/8014e0876bb5baa8f7c4b6b7c280224609dd393c. Fore more infos see https://prosemirror.net/docs/guide/#schema.content_expressions
+  TableCell.extend({
+    content: "block+",
+  }),
   TableHeader,
   MathInline.configure({
     view: MathInlineView,
@@ -195,6 +202,9 @@ export const mainExtensions = [
   }),
   TiptapVideo.configure({
     view: VideoView,
+  }),
+  Audio.configure({
+    view: AudioView,
   }),
   Callout.configure({
     view: CalloutView,
