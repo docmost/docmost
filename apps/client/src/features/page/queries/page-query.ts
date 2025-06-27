@@ -146,7 +146,10 @@ export function useGetRootSidebarPagesQuery(data: SidebarPagesParams) {
   return useInfiniteQuery({
     queryKey: ["root-sidebar-pages", data.spaceId],
     queryFn: async ({ pageParam }) => {
-      return getSidebarPages({ spaceId: data.spaceId, page: pageParam });
+      return getSidebarPages({ 
+        spaceId: data.spaceId, 
+        page: pageParam
+      });
     },
     initialPageParam: 1,
     getPreviousPageParam: (firstPage) =>
