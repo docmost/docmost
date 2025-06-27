@@ -11,3 +11,19 @@ export class ChangePasswordDto {
   @IsString()
   newPassword: string;
 }
+
+export class ChangeWorkspaceMemberPasswordDto {
+  @IsNotEmpty()
+  @MinLength(8)
+  @IsString()
+  actorPassword: string;
+
+  @IsNotEmpty()
+  @MinLength(8)
+  @IsString()
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+}
