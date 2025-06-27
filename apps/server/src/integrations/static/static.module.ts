@@ -47,6 +47,8 @@ export class StaticModule implements OnModuleInit {
         BILLING_TRIAL_DAYS: this.environmentService.isCloud()
           ? this.environmentService.getBillingTrialDays()
           : undefined,
+        POSTHOG_HOST: this.environmentService.getPostHogHost(),
+        POSTHOG_KEY: this.environmentService.getPostHogKey(),
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;

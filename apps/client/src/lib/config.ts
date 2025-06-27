@@ -83,6 +83,18 @@ export function getBillingTrialDays() {
   return getConfigValue("BILLING_TRIAL_DAYS");
 }
 
+export function getPostHogHost() {
+  return getConfigValue("POSTHOG_HOST");
+}
+
+export function isPostHogEnabled(): boolean {
+  return Boolean(getPostHogHost() && getPostHogKey());
+}
+
+export function getPostHogKey() {
+  return getConfigValue("POSTHOG_KEY");
+}
+
 function getConfigValue(key: string, defaultValue: string = undefined): string {
   const rawValue = import.meta.env.DEV
     ? process?.env?.[key]
