@@ -37,6 +37,8 @@ import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { extractPageSlugId } from "@/lib";
+import { AnchorSelector } from "./anchor-selector";
+import { generateSlug } from "../../utils/heading-extractor";
 
 const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(1);
@@ -60,16 +62,14 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     limit: 10,
   });
 
-  const createPageItem = (label: string) : MentionSuggestionItem => {
-    return {
-      id: null,
-      label: label,
-      entityType: "page",
-      entityId: null,
-      slugId: null,
-      icon: null,
-    }
-  }
+  const createPageItem = (label: string): MentionSuggestionItem => ({
+    id: null,
+    label,
+    entityType: "page",
+    entityId: null,
+    slugId: null,
+    icon: null,
+  });
 
   useEffect(() => {
     if (suggestion && !isLoading) {
@@ -99,13 +99,16 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             entityId: page.id,
             slugId: page.slugId,
             icon: page.icon,
+            headings: (page.headings || []).map(heading => ({
+              ...heading,
+              slug: heading.slug || generateSlug(heading.text)
+            })),
           })),
         );
       }
       items.push(createPageItem(props.query));
 
       setRenderItems(items);
-      // update editor storage
       props.editor.storage.mentionItems = items;
     }
   }, [suggestion, isLoading]);
@@ -130,6 +133,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
             entityType: "page",
             entityId: item.entityId,
             slugId: item.slugId,
+            anchorSlug: item.anchorSlug,
             creatorId: currentUser?.user.id,
           });
         }
@@ -139,6 +143,24 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       }
     },
     [renderItems],
+  );
+
+  const selectPageWithAnchor = useCallback(
+    (pageItem: MentionSuggestionItem, anchorSlug: string, headingText: string) => {
+      if (pageItem.entityType === "page" && pageItem.id !== null) {
+        props.command({
+          id: pageItem.id,
+          label: `${pageItem.label} → ${headingText}`,
+          entityType: "page",
+          entityId: pageItem.entityId,
+          slugId: pageItem.slugId,
+          anchorSlug: anchorSlug,
+          anchorText: headingText,
+          creatorId: currentUser?.user.id,
+        });
+      }
+    },
+    [props.command, currentUser],
   );
 
   const upHandler = () => {
@@ -198,16 +220,16 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   }));
 
   const createPage = async (title: string) => {
-    const payload: { spaceId: string; parentPageId?: string; title: string } = {
+    const payload = {
       spaceId: space.id,
       parentPageId: page.id || null,
-      title: title
+      title
     };
     
-    let createdPage: IPage;
     try {
-      createdPage = await createPageMutation.mutateAsync(payload);
+      const createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
+      
       const data = {
         id: createdPage.id,
         slugId: createdPage.slugId,
@@ -219,13 +241,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       } as any;
 
       const lastIndex = tree.data.length;
-
       tree.create({ parentId, index: lastIndex, data });
       setData(tree.data);
 
       props.command({
         id: uuid7(),
-        label:  createdPage.title || "Untitled",
+        label: createdPage.title || "Untitled",
         entityType: "page",
         entityId: createdPage.id,
         slugId: createdPage.slugId,
@@ -233,18 +254,13 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       });
 
       setTimeout(() => {
-      emit({
-        operation: "addTreeNode",
-        spaceId: space.id,
-        payload: {
-          parentId,
-          index: lastIndex,
-          data,
-        },
-      });
-    }, 50);
-
-    } catch (err) {
+        emit({
+          operation: "addTreeNode",
+          spaceId: space.id,
+          payload: { parentId, index: lastIndex, data },
+        });
+      }, 50);
+    } catch {
       throw new Error("Failed to create page");
     }
   }
@@ -266,7 +282,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   }
 
   return (
-    <Paper id="mention" shadow="md" p="xs" withBorder>
+    <Paper id="mention" shadow="md" p="xs" withBorder className={classes.mentionPanel}>
       <ScrollArea.Autosize
         viewportRef={viewportRef}
         mah={350}
@@ -340,6 +356,17 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                       { (item.id) ? item.label : t("Create page") + ': ' + item.label }
                     </Text>
                   </div>
+
+                  {item.id && item.entityId && item.entityType === "page" && item.headings && (
+                    <div onClick={(e) => e.stopPropagation()} className={classes.anchorSelector}>
+                      <AnchorSelector
+                        headings={item.headings}
+                        onSelectAnchor={(anchorSlug, headingText) => {
+                          selectPageWithAnchor(item, anchorSlug, headingText);
+                        }}
+                      />
+                    </div>
+                  )}
                 </Group>
               </UnstyledButton>
             );

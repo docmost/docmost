@@ -1,4 +1,5 @@
 import { Editor, Range } from "@tiptap/core";
+import { HeadingInfo } from "@/features/search/types/search.types";
 
 export interface MentionListProps {
   query: string;
@@ -25,4 +26,7 @@ export type MentionSuggestionItem =
   entityId: string;
   slugId: string;
   icon: string;
+  anchorSlug?: string;
+  anchorText?: string;
+  headings?: HeadingInfo[];
 };

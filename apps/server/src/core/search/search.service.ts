@@ -7,6 +7,7 @@ import { sql } from 'kysely';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { extractHeadingsFromContent } from './utils/heading-extractor';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tsquery = require('pg-tsquery')();
@@ -161,7 +162,7 @@ export class SearchService {
     if (suggestion.includePages) {
       let pageSearch = this.db
         .selectFrom('pages')
-        .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
+        .select(['id', 'slugId', 'title', 'icon', 'spaceId', 'content'])
         .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
@@ -172,12 +173,30 @@ export class SearchService {
       if (suggestion?.spaceId) {
         if (userSpaceIds.includes(suggestion.spaceId)) {
           pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
-          pages = await pageSearch.execute();
+          const pagesWithContent = await pageSearch.execute();
+          
+          pages = pagesWithContent.map(page => ({
+            id: page.id,
+            slugId: page.slugId,
+            title: page.title,
+            icon: page.icon,
+            spaceId: page.spaceId,
+            headings: extractHeadingsFromContent(page.content),
+          }));
         }
       } else if (userSpaceIds?.length > 0) {
         // we need this check or the query will throw an error if the userSpaceIds array is empty
         pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
-        pages = await pageSearch.execute();
+        const pagesWithContent = await pageSearch.execute();
+        
+        pages = pagesWithContent.map(page => ({
+          id: page.id,
+          slugId: page.slugId,
+          title: page.title,
+          icon: page.icon,
+          spaceId: page.spaceId,
+          headings: extractHeadingsFromContent(page.content),
+        }));
       }
     }
 
