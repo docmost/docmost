@@ -20,20 +20,16 @@ export class SearchService {
     private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
-  async searchPage(
-    query: string,
+  async buildSearchQuery(
+    searchQuery: string,
     searchParams: SearchDTO,
     opts: {
       userId?: string;
       workspaceId: string;
     },
-  ): Promise<SearchResponseDto[]> {
-    if (query.length < 1) {
-      return;
-    }
-    const searchQuery = tsquery(query.trim() + '*');
-
-    let queryResults = this.db
+    type: 'fts' | 'fuzzy',
+  ) {
+    let query = this.db
       .selectFrom('pages')
       .select([
         'id',
@@ -44,44 +40,66 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
-          'highlight',
-        ),
       ])
-      .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
-      .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 20)
-      .offset(searchParams.offset || 0);
+      .limit(searchParams.limit ?? 20)
+      .offset(searchParams.offset ?? 0);
+
+    if (type === 'fts') {
+      query = query
+        .select([
+          sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
+          sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+            'highlight',
+          ),
+        ])
+        .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
+        .orderBy('rank', 'desc');
+    } else if (type === 'fuzzy') {
+      query = query
+        .select([
+          sql<string>`regexp_replace(text_content, ${searchQuery}, '<b>\\&</b>', 'gi')`.as(
+            'highlight',
+          ),
+          sql<number>`similarity(text_content, ${searchQuery}) > 0.1`.as(
+            'similarity',
+          ),
+        ])
+        .where((eb) =>
+          eb.or([
+            sql<boolean>`similarity(text_content, ${searchQuery}) > 0.1`,
+            sql<boolean>`text_content ILIKE '%' || ${searchQuery} || '%'`,
+          ]),
+        );
+    }
 
     if (!searchParams.shareId) {
-      queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
+      query = query.select((eb) => this.pageRepo.withSpace(eb));
     }
 
     if (searchParams.spaceId) {
       // search by spaceId
-      queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
+      query = query.where('spaceId', '=', searchParams.spaceId);
     } else if (opts.userId && !searchParams.spaceId) {
       // only search spaces the user is a member of
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(
         opts.userId,
       );
       if (userSpaceIds.length > 0) {
-        queryResults = queryResults
+        query = query
           .where('spaceId', 'in', userSpaceIds)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
-        return [];
+        return null;
       }
     } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
       // search in shares
       const shareId = searchParams.shareId;
       const share = await this.shareRepo.findById(shareId);
       if (!share || share.workspaceId !== opts.workspaceId) {
-        return [];
+        return null;
       }
 
       const pageIdsToSearch = [];
@@ -99,30 +117,70 @@ export class SearchService {
       }
 
       if (pageIdsToSearch.length > 0) {
-        queryResults = queryResults
+        query = query
           .where('id', 'in', pageIdsToSearch)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
-        return [];
+        return null;
       }
     } else {
-      return [];
+      return null;
     }
 
-    //@ts-ignore
-    queryResults = await queryResults.execute();
+    return {
+      query,
+    };
+  }
 
-    //@ts-ignore
-    const searchResults = queryResults.map((result: SearchResponseDto) => {
-      if (result.highlight) {
-        result.highlight = result.highlight
-          .replace(/\r\n|\r|\n/g, ' ')
-          .replace(/\s+/g, ' ');
-      }
-      return result;
-    });
+  async searchPage(
+    query: string,
+    searchParams: SearchDTO,
+    opts: {
+      userId?: string;
+      workspaceId: string;
+    },
+  ): Promise<SearchResponseDto[]> {
+    if (!query || query.trim().length < 1) return [];
 
-    return searchResults;
+    const trimmedQuery = query.trim();
+    const ftsQuery = tsquery(trimmedQuery + '*');
+
+    const { query: ftsQueryBuilder } = await this.buildSearchQuery(
+      ftsQuery,
+      searchParams,
+      opts,
+      'fts',
+    );
+
+    if (!ftsQueryBuilder) return [];
+
+    const ftsResults = await ftsQueryBuilder.execute();
+
+    if (ftsResults.length > 0) {
+      // @ts-expect-error
+      return ftsResults.map((result: SearchResponseDto) => {
+        if (result.highlight) {
+          result.highlight = result.highlight
+            .replace(/\r\n|\r|\n/g, ' ')
+            .replace(/\s+/g, ' ');
+        }
+        return result;
+      }) as unknown as SearchResponseDto[];
+    }
+
+    // Fuzzy fallback
+    const { query: fuzzyQueryBuilder } = await this.buildSearchQuery(
+      trimmedQuery,
+      searchParams,
+      opts,
+      'fuzzy',
+    );
+
+    if (!fuzzyQueryBuilder) return [];
+
+    const fuzzyResults = await fuzzyQueryBuilder.execute();
+
+    return fuzzyResults as unknown as SearchResponseDto[];
   }
 
   async searchSuggestions(
