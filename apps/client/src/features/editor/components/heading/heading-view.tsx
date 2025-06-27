@@ -16,32 +16,36 @@ const generateSlug = (text: string) =>
 
 export default function HeadingView({ node }: NodeViewProps) {
   const { t } = useTranslation();
-  const [slug, setSlug] = useState("");
+  const [combinedId, setCombinedId] = useState("");
   const [url, setUrl] = useState("");
   const [showAnchorButton, setShowAnchorButton] = useState(false);
 
   const tag: ElementType = `h${node.attrs.level}` as ElementType;
+  const uid = node.attrs.uid;
 
   useEffect(() => {
-    const text = node.textContent || "";
-    const generatedSlug = generateSlug(text);
-    setSlug(generatedSlug);
-
-    const baseUrl = window.location.href.split("#")[0];
-    setUrl(`${baseUrl}#${generatedSlug}`);
-  }, [node.content]);
+    if (uid) {
+      const text = node.textContent || "";
+      const textSlug = generateSlug(text);
+      const combined = textSlug ? `${textSlug}-${uid}` : uid;
+      setCombinedId(combined);
+      
+      const baseUrl = window.location.href.split("#")[0];
+      setUrl(`${baseUrl}#${combined}`);
+    }
+  }, [uid, node.content]);
 
   return (
     <NodeViewWrapper
       as={tag}
-      id={slug}
+      id={combinedId}
       className={classes.anchorScrollMargin}
       onMouseEnter={() => setShowAnchorButton(true)}
       onMouseLeave={() => setShowAnchorButton(false)}
     >
       <Flex gap="sm" justify="flex-start" align="center">
         <NodeViewContent as="span" />
-        {showAnchorButton && node.textContent && (
+        {showAnchorButton && uid && combinedId && node.textContent && (
           <CopyButton value={url} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip
