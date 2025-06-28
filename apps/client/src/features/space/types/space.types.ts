@@ -4,6 +4,7 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
+import { LinkObject, NodeObject } from "react-force-graph-2d";
 
 export interface ISpace {
   id: string;
@@ -74,4 +75,31 @@ export interface IExportSpaceParams {
   spaceId: string;
   format: ExportFormat;
   includeAttachments?: boolean;
+}
+
+export interface IGraph {
+  id: string;
+  slugId: string;
+  title: string | null;
+  parentPageId: string | null;
+  backlinks: IGraphBacklink[];
+}
+
+export interface IGraphBacklink {
+  sourcePageId: string;
+  targetPageId: string;
+}
+
+export interface IGraphDataNode {
+  id: string;
+  slugId: string;
+  title: string;
+  neighbors: Set<NodeObject<IGraphDataNode>>;
+  links: Set<LinkObject<IGraphDataNode,IGraphDataLink>>;
+}
+
+export interface IGraphDataLink {
+  source: string | IGraphDataNode;
+  target: string | IGraphDataNode;
+  type: "parent" | "backlink";
 }

@@ -25,6 +25,7 @@ import Shares from "@/pages/settings/shares/shares.tsx";
 import ShareLayout from "@/features/share/components/share-layout.tsx";
 import ShareRedirect from '@/pages/share/share-redirect.tsx';
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import SpaceGraph from "./pages/space/space-graph";
 
 export default function App() {
   const { t } = useTranslation();
@@ -54,6 +55,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
+          <Route path={"/s/:spaceSlug/graph"} element={<SpaceGraph />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={
