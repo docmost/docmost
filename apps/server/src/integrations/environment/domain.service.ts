@@ -5,9 +5,12 @@ import { EnvironmentService } from './environment.service';
 export class DomainService {
   constructor(private environmentService: EnvironmentService) {}
 
-  getUrl(hostname?: string): string {
+  getUrl(hostname?: string, customDomain?: string): string {
     if (!this.environmentService.isCloud()) {
       return this.environmentService.getAppUrl();
+    }
+    if (customDomain) {
+      return customDomain;
     }
 
     const domain = this.environmentService.getSubdomainHost();

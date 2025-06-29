@@ -134,7 +134,7 @@ export class AuthService {
 
     const token = nanoIdGen(16);
 
-    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
+    const resetLink = `${this.domainService.getUrl(workspace.hostname, workspace.customDomain)}/password-reset?token=${token}`;
 
     await this.userTokenRepo.insertUserToken({
       token: token,

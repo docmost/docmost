@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, NotFoundException } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
@@ -27,8 +27,19 @@ export class DomainMiddleware implements NestMiddleware {
       (req as any).workspace = workspace;
     } else if (this.environmentService.isCloud()) {
       const header = req.headers.host;
-      const subdomain = header.split('.')[0];
 
+      // First, try to find workspace by custom domain
+      const workspaceByCustomDomain =
+        await this.workspaceRepo.findByCustomDomain(header);
+
+      if (workspaceByCustomDomain) {
+        (req as any).workspaceId = workspaceByCustomDomain.id;
+        (req as any).workspace = workspaceByCustomDomain;
+        return next();
+      }
+
+      // Fall back to subdomain logic
+      const subdomain = header.split('.')[0];
       const workspace = await this.workspaceRepo.findByHostname(subdomain);
 
       if (!workspace) {

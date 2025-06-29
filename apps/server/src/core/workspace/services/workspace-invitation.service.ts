@@ -171,7 +171,7 @@ export class WorkspaceInvitationService {
           invitation.email,
           invitation.token,
           authUser.name,
-          workspace.hostname,
+          workspace,
         );
       });
     }
@@ -317,7 +317,7 @@ export class WorkspaceInvitationService {
       invitation.email,
       invitation.token,
       invitedByUser.name,
-      workspace.hostname,
+      workspace,
     );
   }
 
@@ -340,17 +340,17 @@ export class WorkspaceInvitationService {
     return this.buildInviteLink({
       invitationId,
       inviteToken: token.token,
-      hostname: workspace.hostname,
+      workspace: workspace,
     });
   }
 
   async buildInviteLink(opts: {
     invitationId: string;
     inviteToken: string;
-    hostname?: string;
+    workspace: Workspace;
   }): Promise<string> {
-    const { invitationId, inviteToken, hostname } = opts;
-    return `${this.domainService.getUrl(hostname)}/invites/${invitationId}?token=${inviteToken}`;
+    const { invitationId, inviteToken, workspace } = opts;
+    return `${this.domainService.getUrl(workspace.hostname, workspace.customDomain)}/invites/${invitationId}?token=${inviteToken}`;
   }
 
   async sendInvitationMail(
@@ -358,12 +358,12 @@ export class WorkspaceInvitationService {
     inviteeEmail: string,
     inviteToken: string,
     invitedByName: string,
-    hostname?: string,
+    workspace: Workspace,
   ): Promise<void> {
     const inviteLink = await this.buildInviteLink({
       invitationId,
       inviteToken,
-      hostname,
+      workspace,
     });
 
     const emailTemplate = InvitationEmail({

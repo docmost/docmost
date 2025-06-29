@@ -82,6 +82,7 @@
     "sanitize-filename-ts": "^1.0.2",
     "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
+    "tld-extract": "^2.1.0",
     "tmp-promise": "^3.0.3",
     "ws": "^8.18.2",
     "yauzl": "^3.2.0"

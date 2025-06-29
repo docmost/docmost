@@ -83,6 +83,14 @@ export class WorkspaceRepo {
       .executeTakeFirst();
   }
 
+  async findByCustomDomain(domain: string): Promise<Workspace> {
+    return await this.db
+      .selectFrom('workspaces')
+      .selectAll()
+      .where(sql`LOWER(custom_domain)`, '=', sql`LOWER(${domain})`)
+      .executeTakeFirst();
+  }
+
   async hostnameExists(
     hostname: string,
     trx?: KyselyTransaction,

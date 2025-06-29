@@ -567,6 +567,9 @@ importers:
       stripe:
         specifier: ^17.5.0
         version: 17.5.0
+      tld-extract:
+        specifier: ^2.1.0
+        version: 2.1.0
       tmp-promise:
         specifier: ^3.0.3
         version: 3.0.3
@@ -8863,6 +8866,9 @@ packages:
 
   tiptap-extension-global-drag-handle@0.1.18:
     resolution: {integrity: sha512-jwFuy1K8DP3a4bFy76Hpc63w1Sil0B7uZ3mvhQomVvUFCU787Lg2FowNhn7NFzeyok761qY2VG+PZ/FDthWUdg==}
+
+  tld-extract@2.1.0:
+    resolution: {integrity: sha512-Y9QHWIoDQPJJVm3/pOC7kOfOj7vsNSVZl4JGoEHb605FiwZgIfzSMyU0HC0wYw5Cx8435vaG1yGZtIm1yiQGOw==}
 
   tldts-core@6.1.72:
     resolution: {integrity: sha512-FW3H9aCaGTJ8l8RVCR3EX8GxsxDbQXuwetwwgXA2chYdsX+NY1ytCBl61narjjehWmCw92tc1AxlcY3668CU8g==}
@@ -19537,6 +19543,8 @@ snapshots:
       '@popperjs/core': 2.11.8
 
   tiptap-extension-global-drag-handle@0.1.18: {}
+
+  tld-extract@2.1.0: {}
 
   tldts-core@6.1.72: {}
 

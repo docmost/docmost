@@ -68,6 +68,10 @@ export class EnvironmentVariables {
   )
   @ValidateIf((obj) => obj.CLOUD === 'true'.toLowerCase())
   SUBDOMAIN_HOST: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.CLOUD === 'true'.toLowerCase())
+  APP_IP: string;
 }
 
 export function validate(config: Record<string, any>) {
