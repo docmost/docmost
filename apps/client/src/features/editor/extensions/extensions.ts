@@ -37,6 +37,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  SearchAndReplace,
   Mention,
   ExtraLigatures,
 } from "@docmost/editor-ext";
@@ -235,6 +236,22 @@ export const mainExtensions = [
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
   }),
+  SearchAndReplace.extend({
+    addKeyboardShortcuts() {
+      return {
+        'Control-f': () => {
+          const event = new CustomEvent("openFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+        'Escape': () => {
+          const event = new CustomEvent("closeFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+      }
+    },
+  }).configure(),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
