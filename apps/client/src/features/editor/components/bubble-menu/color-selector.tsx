@@ -156,13 +156,11 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                   )
                 }
                 onClick={() => {
-                  editor.commands.unsetColor();
-                  name !== "Default" &&
-                    editor
-                      .chain()
-                      .focus()
-                      .setColor(color || "")
-                      .run();
+                  if (name === "Default") {
+                    editor.commands.unsetColor();
+                  } else {
+                    editor.chain().focus().setColor(color || "").run();
+                  }
                   setIsOpen(false);
                 }}
                 style={{ border: "none" }}

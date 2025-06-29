@@ -13,7 +13,8 @@ import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import { getFileUrl } from "@/lib/config.ts";
-import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types/types";
+import "@excalidraw/excalidraw/index.css";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { IAttachment } from "@/lib/types";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
@@ -21,6 +22,8 @@ import { IconEdit } from "@tabler/icons-react";
 import { lazy } from "react";
 import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { useHandleLibrary } from "@excalidraw/excalidraw";
+import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 
 const Excalidraw = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -35,6 +38,10 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
+  useHandleLibrary({
+    excalidrawAPI,
+    adapter: localStorageLibraryAdapter,
+  });
   const [excalidrawData, setExcalidrawData] = useState<any>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();

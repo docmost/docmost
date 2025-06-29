@@ -84,6 +84,7 @@ export interface Backlinks {
 
 export interface Billing {
   amount: Int8 | null;
+  billingScheme: string | null;
   cancelAt: Timestamp | null;
   cancelAtPeriodEnd: boolean | null;
   canceledAt: Timestamp | null;
@@ -96,6 +97,7 @@ export interface Billing {
   metadata: Json | null;
   periodEndAt: Timestamp | null;
   periodStartAt: Timestamp;
+  planName: string | null;
   quantity: Int8 | null;
   status: string;
   stripeCustomerId: string | null;
@@ -103,6 +105,9 @@ export interface Billing {
   stripePriceId: string | null;
   stripeProductId: string | null;
   stripeSubscriptionId: string;
+  tieredFlatAmount: Int8 | null;
+  tieredUnitAmount: Int8 | null;
+  tieredUpTo: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -119,6 +124,24 @@ export interface Comments {
   resolvedAt: Timestamp | null;
   selection: string | null;
   type: string | null;
+  workspaceId: string;
+}
+
+export interface FileTasks {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  errorMessage: string | null;
+  fileExt: string | null;
+  fileName: string;
+  filePath: string;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  source: string | null;
+  spaceId: string | null;
+  status: string | null;
+  type: string | null;
+  updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
 
@@ -298,6 +321,7 @@ export interface DB {
   backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
+  fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
