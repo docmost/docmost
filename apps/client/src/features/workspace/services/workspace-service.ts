@@ -120,3 +120,19 @@ export async function uploadLogo(file: File) {
   });
   return req.data;
 }
+
+// Custom Domain Functions
+export async function addCustomDomain(data: { domain: string }) {
+  const req = await api.post("/custom-domain/add", data);
+  return req.data;
+}
+
+export async function removeCustomDomain(data: { domain: string }) {
+  const req = await api.delete("/custom-domain/remove", { data });
+  return req.data;
+}
+
+export async function verifyDnsConfiguration(data: { domain: string }) {
+  const req = await api.post("/custom-domain/verify-dns", data);
+  return req.data;
+}

@@ -5,6 +5,7 @@ import { getAppName, isCloud } from "@/lib/config.ts";
 import { Helmet } from "react-helmet-async";
 import ManageHostname from "@/ee/components/manage-hostname.tsx";
 import { Divider } from "@mantine/core";
+import ManageCustomDomain from "@/ee/components/manage-custom-domain";
 
 export default function WorkspaceSettings() {
   const { t } = useTranslation();
@@ -20,6 +21,8 @@ export default function WorkspaceSettings() {
         <>
           <Divider my="md" />
           <ManageHostname />
+          <Divider my="md" />
+          <ManageCustomDomain />
         </>
       )}
     </>
