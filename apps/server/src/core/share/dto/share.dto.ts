@@ -18,6 +18,10 @@ export class CreateShareDto {
   @IsOptional()
   @IsBoolean()
   searchIndexing: boolean;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }
 
 export class UpdateShareDto extends CreateShareDto {
@@ -28,12 +32,20 @@ export class UpdateShareDto extends CreateShareDto {
   @IsString()
   @IsOptional()
   pageId: string;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }
 
 export class ShareIdDto {
   @IsString()
   @IsNotEmpty()
   shareId: string;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }
 
 export class SpaceIdDto {
@@ -49,10 +61,24 @@ export class ShareInfoDto {
   @IsString()
   @IsOptional()
   pageId: string;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }
 
 export class SharePageIdDto {
   @IsString()
   @IsNotEmpty()
   pageId: string;
+}
+
+export class SharePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  shareId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

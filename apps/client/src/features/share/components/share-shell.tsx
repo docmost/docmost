@@ -57,7 +57,8 @@ export default function ShareShell({
   const toggleToc = useToggleToc(tableOfContentAsideAtom);
 
   const { shareId } = useParams();
-  const { data } = useGetSharedPageTreeQuery(shareId);
+  const sessionPassword = shareId ? sessionStorage.getItem(`share-password-${shareId}`) : null;
+  const { data } = useGetSharedPageTreeQuery(shareId, sessionPassword || undefined);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
 
   return (

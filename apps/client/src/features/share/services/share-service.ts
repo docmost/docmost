@@ -9,6 +9,7 @@ import {
   ISharedPageTree,
   IShareForPage,
   IShareInfoInput,
+  ISharePassword,
   IUpdateShare,
 } from "@/features/share/types/share.types.ts";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -25,8 +26,8 @@ export async function createShare(data: ICreateShare): Promise<any> {
   return req.data;
 }
 
-export async function getShareInfo(shareId: string): Promise<IShare> {
-  const req = await api.post<IShare>("/shares/info", { shareId });
+export async function getShareInfo(shareId: string, password?: string): Promise<IShare> {
+  const req = await api.post<IShare>("/shares/info", { shareId, password });
   return req.data;
 }
 
@@ -53,7 +54,16 @@ export async function deleteShare(shareId: string): Promise<void> {
 
 export async function getSharedPageTree(
   shareId: string,
+  password?: string,
 ): Promise<ISharedPageTree> {
-  const req = await api.post<ISharedPageTree>("/shares/tree", { shareId });
+  const req = await api.post<ISharedPageTree>("/shares/tree", { shareId, password });
   return req.data;
+}
+
+export async function setSharePassword(data: ISharePassword): Promise<void> {
+  await api.post("/shares/set-password", data);
+}
+
+export async function removeSharePassword(shareId: string): Promise<void> {
+  await api.post("/shares/remove-password", { shareId });
 }

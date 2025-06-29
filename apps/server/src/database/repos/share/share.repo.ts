@@ -28,6 +28,7 @@ export class ShareRepo {
     'pageId',
     'includeSubPages',
     'searchIndexing',
+    'passwordHash',
     'creatorId',
     'spaceId',
     'workspaceId',
