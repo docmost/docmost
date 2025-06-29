@@ -12,6 +12,8 @@ import {
 } from "@/features/editor/components/table/types/types.ts";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import {
+  IconBoxAlignLeftFilled,
+  IconBoxAlignRightFilled,
   IconLayoutAlignCenter,
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
@@ -69,6 +71,23 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       .run();
   }, [editor]);
 
+  const alignImageFloatLeft = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setImageAlign("floatLeft")
+      .run();
+  }, [editor]);
+
+  
+  const alignImageFloatRight = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setImageAlign("floatRight")
+      .run();
+  }, [editor]);
+
   const onWidthChange = useCallback(
     (value: number) => {
       editor
@@ -98,6 +117,19 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
+        <Tooltip position="top" label={t("Float left")}>
+          <ActionIcon
+            onClick={alignImageFloatLeft}
+            size="lg"
+            aria-label={t("Float left")}
+            variant={
+              editor.isActive("image", { align: "floatLeft" }) ? "light" : "default"
+            }
+          >
+            <IconBoxAlignLeftFilled size={18} />
+          </ActionIcon>
+        </Tooltip>
+
         <Tooltip position="top" label={t("Align left")}>
           <ActionIcon
             onClick={alignImageLeft}
@@ -138,6 +170,20 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             <IconLayoutAlignRight size={18} />
           </ActionIcon>
         </Tooltip>
+
+        <Tooltip position="top" label={t("Float right")}>
+          <ActionIcon
+            onClick={alignImageFloatRight}
+            size="lg"
+            aria-label={t("Float right")}
+            variant={
+              editor.isActive("image", { align: "floatRight" }) ? "light" : "default"
+            }
+          >
+            <IconBoxAlignRightFilled size={18} />
+          </ActionIcon>
+        </Tooltip>
+
       </ActionIcon.Group>
 
       {editor.getAttributes("image")?.width && (

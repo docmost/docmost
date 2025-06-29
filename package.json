@@ -1,6 +1,6 @@
 {
-  "name": "docmost",
-  "homepage": "https://docmost.com",
+  "name": "forkmost",
+  "homepage": "https://github.com/Vito0912/forkmost",
   "version": "0.21.0",
   "private": true,
   "scripts": {

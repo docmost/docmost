@@ -36,6 +36,7 @@ import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import AudioMenu from "@/features/editor/components/audio/audio-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -53,6 +54,7 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
+import { useAnchorScroll } from "./components/heading/use-anchor-scroll";
 
 interface PageEditorProps {
   pageId: string;
@@ -89,6 +91,7 @@ export default function PageEditor({
   const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
+  useAnchorScroll();
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
@@ -187,6 +190,11 @@ export default function PageEditor({
     ];
   }, [remoteProvider, currentUser?.user]);
 
+  const debouncedSendSaveCommand = useDebouncedCallback(() => {
+    const payload = 'forceSave';
+    remoteProvider.sendStateless(payload);
+  }, 300);
+
   const editor = useEditor(
     {
       extensions,
@@ -198,6 +206,11 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+              event.preventDefault();
+              debouncedSendSaveCommand();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -357,6 +370,7 @@ export default function PageEditor({
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
+            <AudioMenu editor={editor} />
             <CalloutMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />

@@ -18,3 +18,5 @@ export * from "./lib/embed";
 export * from "./lib/mention";
 export * from "./lib/markdown";
 export * from "./lib/embed-provider";
+export * from "./lib/extra-ligatures";
+export * from "./lib/audio";

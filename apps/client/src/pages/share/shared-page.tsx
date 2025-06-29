@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
-import { 
+import {
   useSharePageQuery
 } from "@/features/share/queries/share-query.ts";
 import { Container } from "@mantine/core";
@@ -12,6 +12,9 @@ import { Error404 } from "@/components/ui/error-404.tsx";
 import ShareBranding from "@/features/share/components/share-branding.tsx";
 import SharePasswordModal from "@/features/share/components/share-password-modal.tsx";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAnchorScroll } from "@/features/editor/components/heading/use-anchor-scroll";
+import { useAtom } from "jotai";
+import { shareFullPageWidthAtom } from "@/features/share/atoms/sidebar-atom";
 
 export default function SharedPage() {
   const { t } = useTranslation();
@@ -20,9 +23,12 @@ export default function SharedPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  useAnchorScroll();
+
+  const [isFullWidth] = useAtom(shareFullPageWidthAtom);
 
   const sessionPassword = shareId ? sessionStorage.getItem(`share-password-${shareId}`) : null;
-  
+
   const { data, isLoading, isError, error } = useSharePageQuery({
     pageId: extractPageSlugId(pageSlug),
     password: sessionPassword || undefined,
@@ -49,7 +55,7 @@ export default function SharedPage() {
       sessionStorage.setItem(`share-password-${shareId}`, enteredPassword);
     }
     setIsPasswordModalOpen(false);
-    
+
     queryClient.invalidateQueries({
       queryKey: ["shares", {
         pageId: extractPageSlugId(pageSlug),
@@ -97,7 +103,7 @@ export default function SharedPage() {
         )}
       </Helmet>
 
-      <Container size={900} p={0}>
+      <Container size={isFullWidth ? "100%" : 900} p={0}>
         <ReadonlyPageEditor
           key={data.page.id}
           title={data.page.title}
