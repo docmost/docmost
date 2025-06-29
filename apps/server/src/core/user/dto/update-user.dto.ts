@@ -20,6 +20,10 @@ export class UpdateUserDto extends PartialType(
   @IsOptional()
   @IsBoolean()
   fullPageWidth: boolean;
+  
+  @IsOptional()
+  @IsBoolean()
+  spellcheck: boolean;
 
   @IsOptional()
   @IsString()
