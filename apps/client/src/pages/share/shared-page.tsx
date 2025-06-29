@@ -11,20 +11,21 @@ import { extractPageSlugId } from "@/lib";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import ShareBranding from "@/features/share/components/share-branding.tsx";
 import SharePasswordModal from "@/features/share/components/share-password-modal.tsx";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SharedPage() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { shareId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [password, setPassword] = useState<string>("");
 
   const sessionPassword = shareId ? sessionStorage.getItem(`share-password-${shareId}`) : null;
   
-  const { data, isLoading, isError, error, refetch } = useSharePageQuery({
+  const { data, isLoading, isError, error } = useSharePageQuery({
     pageId: extractPageSlugId(pageSlug),
-    password: sessionPassword || password || undefined,
+    password: sessionPassword || undefined,
   });
 
   useEffect(() => {
@@ -47,10 +48,14 @@ export default function SharedPage() {
     if (shareId) {
       sessionStorage.setItem(`share-password-${shareId}`, enteredPassword);
     }
-    setPassword(enteredPassword);
     setIsPasswordModalOpen(false);
-
-    refetch();
+    
+    queryClient.invalidateQueries({
+      queryKey: ["shares", {
+        pageId: extractPageSlugId(pageSlug),
+        password: enteredPassword,
+      }],
+    });
   };
 
   if (isLoading) {
