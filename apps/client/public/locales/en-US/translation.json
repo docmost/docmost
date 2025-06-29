@@ -402,5 +402,8 @@
   "Failed to share page": "Failed to share page",
   "Copy page": "Copy page",
   "Copy page to a different space.": "Copy page to a different space.",
-  "Page copied successfully": "Page copied successfully"
+  "Page copied successfully": "Page copied successfully",
+  "Spellcheck": "Spellcheck",
+  "Choose if spellcheck is enabled.": "Choose if spellcheck is enabled.",
+  "Toggle spellcheck": "Toggle spellcheck"
 }

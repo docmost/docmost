@@ -95,6 +95,8 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
+
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -362,7 +364,8 @@ export default function PageEditor({
   return (
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
+        
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
