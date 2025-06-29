@@ -16,6 +16,12 @@ export async function comparePasswordHash(
   return bcrypt.compare(plainPassword, passwordHash);
 }
 
+export function generateRandomSuffixNumbers(length: number) {
+  return Math.random()
+    .toFixed(length)
+    .substring(2, 2 + length);
+}
+
 export type RedisConfig = {
   host: string;
   port: number;
