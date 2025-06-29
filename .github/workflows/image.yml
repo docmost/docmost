@@ -67,12 +67,3 @@ jobs:
           labels: |
             org.opencontainers.image.title=Forkmost
             org.opencontainers.image.description=Forkmost is a open-source collaborative wiki and documentation software with no paywalled features.
-
-      - name: Update Docker Hub README
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TKN }}
-          short-description: "Forkmost is a open-source collaborative wiki and documentation software with no paywalled features."
-          repository: vito0912/forkmost
-          readme-filepath: ./README.md
