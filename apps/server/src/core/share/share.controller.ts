@@ -23,6 +23,7 @@ import {
   ShareIdDto,
   ShareInfoDto,
   SharePageIdDto,
+  SharePasswordDto,
   UpdateShareDto,
 } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
@@ -31,6 +32,8 @@ import { Public } from '../../common/decorators/public.decorator';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { SharePasswordRequiredException } from './exceptions/share-password-required.exception';
+import { comparePasswordHash } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -81,6 +84,17 @@ export class ShareController {
 
     if (!share) {
       throw new NotFoundException('Share not found');
+    }
+
+    if (share.passwordHash) {
+      if (!dto.password) {
+        throw new SharePasswordRequiredException(share.key);
+      }
+
+      const isValidPassword = await comparePasswordHash(dto.password, share.passwordHash);
+      if (!isValidPassword) {
+        throw new SharePasswordRequiredException(share.key);
+      }
     }
 
     return share;
@@ -174,10 +188,48 @@ export class ShareController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     return {
-      ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
+      ...(await this.shareService.getShareTreeWithPassword(dto.shareId, dto.password, workspace.id)),
       hasLicenseKey:
         Boolean(workspace.licenseKey) ||
         (this.environmentService.isCloud() && workspace.plan === 'business'),
     };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/set-password')
+  async setPassword(@Body() dto: SharePasswordDto, @AuthUser() user: User) {
+    const share = await this.shareRepo.findById(dto.shareId);
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Share)) {
+      throw new ForbiddenException();
+    }
+
+    await this.shareService.setSharePassword(dto.shareId, dto.password);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/remove-password')
+  async removePassword(
+    @Body() dto: ShareIdDto,
+    @AuthUser() user: User,
+  ) {
+    const share = await this.shareRepo.findById(dto.shareId);
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
+    // Can created by .Edit, but needs Manage permission to remove password to prevent abuse. They still can delete the share which will change the slug
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Share)) {
+      throw new ForbiddenException();
+    }
+
+    await this.shareService.removeSharePassword(dto.shareId);
   }
 }
