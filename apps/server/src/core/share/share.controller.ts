@@ -34,6 +34,9 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { SharePasswordRequiredException } from './exceptions/share-password-required.exception';
 import { comparePasswordHash } from '../../common/helpers';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
+import { SpaceRole } from 'src/common/helpers/types/permission';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -44,6 +47,7 @@ export class ShareController {
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
     private readonly environmentService: EnvironmentService,
+    private readonly spaceMemberRepo: SpaceMemberRepo
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -224,9 +228,15 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    // Can created by .Edit, but needs Manage permission to remove password to prevent abuse. They still can delete the share which will change the slug
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Share)) {
+    const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
+      user.id,
+      share.spaceId,
+    );
+
+    const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+
+    // Can created by Reader, but needs Admin permission to remove password to prevent abuse. They still can delete the share which will change the slug
+    if (userSpaceRole !== SpaceRole.ADMIN) {
       throw new ForbiddenException();
     }
 
