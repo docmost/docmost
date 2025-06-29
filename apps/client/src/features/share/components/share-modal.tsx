@@ -139,10 +139,11 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
   return (
     <Popover width={350} position="bottom" withArrow shadow="md">
       <Popover.Target>
-        <Button
-          style={{ border: "none" }}
-          size="compact-sm"
-          leftSection={
+        <Tooltip label={t("Share")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="default"
+            style={{ border: "none" }}
+          >
             <Indicator
               color="green"
               offset={5}
@@ -151,11 +152,8 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
             >
               <IconWorld size={20} stroke={1.5} />
             </Indicator>
-          }
-          variant="default"
-        >
-          {t("Share")}
-        </Button>
+          </ActionIcon>
+        </Tooltip>
       </Popover.Target>
       <Popover.Dropdown style={{ userSelect: "none" }}>
         {isDescendantShared ? (

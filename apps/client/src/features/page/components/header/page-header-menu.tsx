@@ -85,7 +85,9 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       )}
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
-
+        
+      <ShareModal readOnly={readOnly} />
+      
       <Tooltip label={t("Find (Ctrl-F)")} openDelay={250} withArrow>
         <ActionIcon
           variant="default"
@@ -95,8 +97,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           <IconSearch size={20} stroke={2} />
         </ActionIcon>
       </Tooltip>
-        
-      <ShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
