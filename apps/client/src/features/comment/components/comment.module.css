@@ -12,6 +12,12 @@
     padding: 8px;
     background: var(--mantine-color-gray-light);
     cursor: pointer;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    -ms-word-break: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .commentEditor {
