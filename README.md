@@ -58,13 +58,6 @@ To get started with Forkmost, please refer to the Docmost [documentation](https:
 > - add-more-headings by sanua356 (Edit: Only show headings 1-3 in ToC)
 > - anchor-link by fuscodev (Edit: The user interface for copying has been fully redesigned, and scrolling should now be faster)
 
-### Screenshots
-
-<p align="center">
-<img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
-<img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%">
-</p>
-
 ### License
 Docmost core is licensed under the open-source AGPL 3.0 license.  
 Enterprise features are available under an enterprise license (Enterprise Edition).  <-- Not available in this fork

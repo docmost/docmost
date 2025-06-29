@@ -39,12 +39,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to the Container registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TKN }}
 
       - name: Build and push Docker image
         id: push
@@ -53,4 +59,20 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/vito0912/forkmost:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ghcr.io/vito0912/forkmost:latest
+            vito0912/forkmost:latest
+          labels: |
+            org.opencontainers.image.title=Forkmost
+            org.opencontainers.image.description=Forkmost is a open-source collaborative wiki and documentation software with no paywalled features.
+
+      - name: Update Docker Hub README
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TKN }}
+          short-description: "Forkmost is a open-source collaborative wiki and documentation software with no paywalled features."
+          repository: vito0912/forkmost
+          readme-filepath: ./README.md
