@@ -93,7 +93,9 @@ export class AuthService {
     userId: string,
     workspaceId: string,
   ): Promise<{ isValid: boolean; usedBackupCodeIndex?: number }> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await this.userRepo.findById(userId, workspaceId, {
+      includePassword: true
+    });
     
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
@@ -408,21 +410,6 @@ export class AuthService {
 
     if (!verificationResult.isValid) {
       throw new BadRequestException('Invalid TOTP token or backup code');
-    }
-
-    if (verificationResult.usedBackupCodeIndex !== undefined && user.totpBackupCodes) {
-      const backupCodes = await this.parseBackupCodes(user.totpBackupCodes, userId, workspaceId);
-      if (backupCodes) {
-        const updatedCodes = this.totpService.removeUsedBackupCode(verificationResult.usedBackupCodeIndex, backupCodes);
-        
-        await this.userRepo.updateUser(
-          {
-            totpBackupCodes: JSON.stringify(updatedCodes),
-          },
-          userId,
-          workspaceId,
-        );
-      }
     }
 
     await this.userRepo.updateUser(
