@@ -9,6 +9,12 @@ export async function hashPassword(password: string) {
   return bcrypt.hash(password, saltRounds);
 }
 
+export async function hashFastCodes(password: string) {
+  // Tradeoff for speed
+  const saltRounds = 6;
+  return bcrypt.hash(password, saltRounds);
+}
+
 export async function comparePasswordHash(
   plainPassword: string,
   passwordHash: string,

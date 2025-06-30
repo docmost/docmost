@@ -10,8 +10,18 @@ import {
 } from "@/features/auth/types/auth.types";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 
-export async function login(data: ILogin): Promise<void> {
-  await api.post<void>("/auth/login", data);
+export async function login(data: ILogin): Promise<any> {
+  const payload: any = {
+    email: data.email,
+    password: data.password,
+  };
+  
+  if (data.totpToken && data.totpToken.trim() !== '') {
+    payload.totpToken = data.totpToken;
+  }
+  
+  const req = await api.post("/auth/login", payload);
+  return req.data;
 }
 
 export async function logout(): Promise<void> {
@@ -46,5 +56,35 @@ export async function verifyUserToken(data: IVerifyUserToken): Promise<any> {
 
 export async function getCollabToken(): Promise<ICollabToken> {
   const req = await api.post<ICollabToken>("/auth/collab-token");
+  return req.data;
+}
+
+export async function setupTotp(): Promise<{
+  qrCodeDataUrl: string;
+  secret: string;
+}> {
+  const req = await api.post("/auth/totp/setup");
+  return req.data;
+}
+
+export async function enableTotp(data: {
+  token: string;
+  secret: string;
+}): Promise<{ backupCodes: string[] }> {
+  const req = await api.post("/auth/totp/enable", data);
+  return req.data;
+}
+
+export async function disableTotp(data: { token: string }): Promise<void> {
+  await api.post("/auth/totp/disable", data);
+}
+
+export async function verifyTotp(data: { token: string }): Promise<{ valid: boolean }> {
+  const req = await api.post("/auth/totp/verify", data);
+  return req.data;
+}
+
+export async function regenerateBackupCodes(): Promise<{ backupCodes: string[] }> {
+  const req = await api.post("/auth/totp/regenerate-backup-codes");
   return req.data;
 }

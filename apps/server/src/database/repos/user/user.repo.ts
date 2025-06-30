@@ -28,6 +28,7 @@ export class UserRepo {
     'locale',
     'timezone',
     'settings',
+    'totpEnabled',
     'lastLoginAt',
     'deactivatedAt',
     'createdAt',
@@ -47,7 +48,15 @@ export class UserRepo {
     return db
       .selectFrom('users')
       .select(this.baseFields)
-      .$if(opts?.includePassword, (qb) => qb.select('password'))
+      .$if(
+        opts?.includePassword,
+        (qb) =>
+          qb.select([
+            'password',
+            'totpSecret',
+            'totpBackupCodes',
+          ])
+      )
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -65,7 +74,15 @@ export class UserRepo {
     return db
       .selectFrom('users')
       .select(this.baseFields)
-      .$if(opts?.includePassword, (qb) => qb.select('password'))
+            .$if(
+        opts?.includePassword,
+        (qb) =>
+          qb.select([
+            'password',
+            'totpSecret',
+            'totpBackupCodes',
+          ])
+      )
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();

@@ -67,6 +67,8 @@ export class GroupUserRepo {
 
     result.items.map((user) => {
       delete user.password;
+      delete user.totpSecret;
+      delete user.totpBackupCodes;
     });
 
     return result;

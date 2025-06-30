@@ -40,7 +40,12 @@ export class UserController {
       hasLicenseKey: Boolean(licenseKey),
     };
 
-    return { user: authUser, workspace: workspaceInfo };
+    const userWithTotpStatus = {
+      ...authUser,
+      totpEnabled: authUser.totpEnabled || false,
+    };
+
+    return { user: userWithTotpStatus, workspace: workspaceInfo };
   }
 
   @HttpCode(HttpStatus.OK)

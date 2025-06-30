@@ -22,6 +22,7 @@ import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
+import { EnableTotpDto, DisableTotpDto, VerifyTotpDto } from './dto/totp.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -39,8 +40,14 @@ export class AuthController {
   ) {
     validateSsoEnforcement(workspace);
 
-    const authToken = await this.authService.login(loginInput, workspace.id);
-    this.setAuthCookie(res, authToken);
+    const result = await this.authService.login(loginInput, workspace.id);
+    
+    if (typeof result === 'object' && 'requiresTotp' in result) {
+      return result;
+    }
+    
+    this.setAuthCookie(res, result);
+    return { success: true };
   }
 
   @UseGuards(SetupGuard)
@@ -116,6 +123,48 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: FastifyReply) {
     res.clearCookie('authToken');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/setup')
+  async setupTotp(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.authService.generateTotpSetup(user.id, workspace.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/enable')
+  async enableTotp(
+    @Body() dto: EnableTotpDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.authService.enableTotp(dto, user.id, workspace.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/disable')
+  async disableTotp(
+    @Body() dto: DisableTotpDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.authService.disableTotp(dto, user.id, workspace.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('totp/regenerate-backup-codes')
+  async regenerateBackupCodes(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.authService.regenerateBackupCodes(user.id, workspace.id);
   }
 
   setAuthCookie(res: FastifyReply, token: string) {

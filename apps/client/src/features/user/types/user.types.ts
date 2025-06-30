@@ -20,6 +20,7 @@ export interface IUser {
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
   pageEditMode: string; // used for update
+  totpEnabled: boolean; // TOTP status
 }
 
 export interface ICurrentUser {

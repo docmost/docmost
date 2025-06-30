@@ -29,6 +29,8 @@ import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { TotpService } from './totp.service';
+import { EnableTotpDto, DisableTotpDto, VerifyTotpDto } from '../dto/totp.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,8 +41,87 @@ export class AuthService {
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
     private domainService: DomainService,
+    private totpService: TotpService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
+
+  private async parseBackupCodes(
+    backupCodesData: any,
+    userId: string,
+    workspaceId: string,
+  ): Promise<string[] | null> {
+    if (!backupCodesData) {
+      return null;
+    }
+
+    try {
+      if (Array.isArray(backupCodesData)) {
+        return backupCodesData;
+      }
+      
+      if (typeof backupCodesData === 'string') {
+        const parsed = JSON.parse(backupCodesData);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+      
+      console.warn(`Invalid backup codes format for user ${userId}, resetting...`);
+      await this.userRepo.updateUser(
+        {
+          totpBackupCodes: null,
+        },
+        userId,
+        workspaceId,
+      );
+      return null;
+    } catch (error) {
+      console.warn(`Corrupted backup codes data for user ${userId}, resetting...`);
+      await this.userRepo.updateUser(
+        {
+          totpBackupCodes: null,
+        },
+        userId,
+        workspaceId,
+      );
+      return null;
+    }
+  }
+
+  private async verifyTotpOrBackupCode(
+    token: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<{ isValid: boolean; usedBackupCodeIndex?: number }> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+    
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.totpEnabled || !user.totpSecret) {
+      throw new BadRequestException('TOTP is not enabled for this user');
+    }
+
+    const secret = this.totpService.decrypt(user.totpSecret);
+    if (this.totpService.verifyToken(token, secret)) {
+      return { isValid: true };
+    }
+
+    const backupCodes = await this.parseBackupCodes(user.totpBackupCodes, userId, workspaceId);
+    if (backupCodes) {
+      const backupResult = await this.totpService.verifyBackupCode(token, backupCodes);
+      
+      if (backupResult.isValid) {
+        return { 
+          isValid: true, 
+          usedBackupCodeIndex: backupResult.codeIndex 
+        };
+      }
+    }
+
+    return { isValid: false };
+  }
 
   async login(loginDto: LoginDto, workspaceId: string) {
     const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
@@ -59,6 +140,22 @@ export class AuthService {
 
     if (!isPasswordMatch) {
       throw new UnauthorizedException(errorMessage);
+    }
+
+    if (user.totpEnabled) {
+      if (!loginDto.totpToken) {
+        return { requiresTotp: true };
+      }
+
+      const totpValid = await this.verifyTotpForLogin(
+        { token: loginDto.totpToken },
+        user.id,
+        workspaceId,
+      );
+
+      if (!totpValid) {
+        throw new UnauthorizedException('Invalid TOTP token');
+      }
     }
 
     user.lastLoginAt = new Date();
@@ -228,5 +325,175 @@ export class AuthService {
       workspaceId,
     );
     return { token };
+  }
+
+  async generateTotpSetup(userId: string, workspaceId: string) {
+    const user = await this.userRepo.findById(userId, workspaceId);
+    
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.totpEnabled) {
+      throw new BadRequestException('TOTP is already enabled for this user');
+    }
+
+    const totpSetup = await this.totpService.generateTotpSetup(user.email);
+    
+    return {
+      qrCodeDataUrl: totpSetup.qrCodeDataUrl,
+      secret: totpSetup.secret,
+    };
+  }
+
+  async enableTotp(
+    dto: EnableTotpDto,
+    userId: string,
+    workspaceId: string,
+  ): Promise<{ backupCodes: string[] }> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+    
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.totpEnabled) {
+      throw new BadRequestException('TOTP is already enabled for this user');
+    }
+
+    if (!this.totpService.verifyToken(dto.token, dto.secret)) {
+      throw new BadRequestException('Invalid TOTP token');
+    }
+
+    const backupCodes = this.totpService.generateBackupCodes();
+    const hashedBackupCodes = await this.totpService.hashBackupCodes(backupCodes);
+
+    const encryptedSecret = this.totpService.encrypt(dto.secret);
+
+    await this.userRepo.updateUser(
+      {
+        totpEnabled: true,
+        totpSecret: encryptedSecret,
+        totpBackupCodes: JSON.stringify(hashedBackupCodes),
+      },
+      userId,
+      workspaceId,
+    );
+
+    return { backupCodes };
+  }
+
+  async disableTotp(
+    dto: DisableTotpDto,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+    
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.totpEnabled || !user.totpSecret) {
+      throw new BadRequestException('TOTP is not enabled for this user');
+    }
+
+    const verificationResult = await this.verifyTotpOrBackupCode(
+      dto.token,
+      userId,
+      workspaceId,
+    );
+
+    if (!verificationResult.isValid) {
+      throw new BadRequestException('Invalid TOTP token or backup code');
+    }
+
+    if (verificationResult.usedBackupCodeIndex !== undefined && user.totpBackupCodes) {
+      const backupCodes = await this.parseBackupCodes(user.totpBackupCodes, userId, workspaceId);
+      if (backupCodes) {
+        const updatedCodes = this.totpService.removeUsedBackupCode(verificationResult.usedBackupCodeIndex, backupCodes);
+        
+        await this.userRepo.updateUser(
+          {
+            totpBackupCodes: JSON.stringify(updatedCodes),
+          },
+          userId,
+          workspaceId,
+        );
+      }
+    }
+
+    await this.userRepo.updateUser(
+      {
+        totpEnabled: false,
+        totpSecret: null,
+        totpBackupCodes: null,
+      },
+      userId,
+      workspaceId,
+    );
+  }
+
+  async verifyTotpForLogin(
+    dto: VerifyTotpDto,
+    userId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    const verificationResult = await this.verifyTotpOrBackupCode(
+      dto.token,
+      userId,
+      workspaceId,
+    );
+
+    if (!verificationResult.isValid) {
+      return false;
+    }
+
+    if (verificationResult.usedBackupCodeIndex !== undefined) {
+      const user = await this.userRepo.findById(userId, workspaceId);
+      if (user?.totpBackupCodes) {
+        const backupCodes = await this.parseBackupCodes(user.totpBackupCodes, userId, workspaceId);
+        if (backupCodes) {
+          const updatedCodes = this.totpService.removeUsedBackupCode(verificationResult.usedBackupCodeIndex, backupCodes);
+          await this.userRepo.updateUser(
+            {
+              totpBackupCodes: JSON.stringify(updatedCodes),
+            },
+            userId,
+            workspaceId,
+          );
+        }
+      }
+    }
+
+    return true;
+  }
+
+  async regenerateBackupCodes(
+    userId: string,
+    workspaceId: string,
+  ): Promise<{ backupCodes: string[] }> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+    
+    if (!user || user.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.totpEnabled) {
+      throw new BadRequestException('TOTP is not enabled for this user');
+    }
+
+    const backupCodes = this.totpService.generateBackupCodes();
+    const hashedBackupCodes = await this.totpService.hashBackupCodes(backupCodes);
+
+    await this.userRepo.updateUser(
+      {
+        totpBackupCodes: JSON.stringify(hashedBackupCodes),
+      },
+      userId,
+      workspaceId,
+    );
+
+    return { backupCodes };
   }
 }
