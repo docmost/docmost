@@ -71,29 +71,40 @@ export default function TotpSecurity() {
       <div>
         <Text size="md">{t("Two-Factor Authentication (TOTP)")}</Text>
         <Text size="sm" c="dimmed">
-          {totpEnabled 
+          {totpEnabled
             ? t("TOTP is enabled. Your account is secured with two-factor authentication.")
             : t("Add an extra layer of security to your account with TOTP.")
           }
         </Text>
       </div>
 
-      <div>
+      <Group gap="md">
         {totpEnabled ? (
           <>
-            <Button onClick={handleRegenerateBackupCodes} variant="default" loading={isLoading}>
+            <Button
+              onClick={handleRegenerateBackupCodes}
+              variant="default"
+              loading={isLoading}
+            >
               {t("Regenerate backup codes")}
             </Button>
-            <Button onClick={openDisable} color="red" variant="light">
+            <Button
+              onClick={openDisable}
+              color="red"
+              variant="light"
+            >
               {t("Disable TOTP")}
             </Button>
           </>
         ) : (
-          <Button onClick={handleSetupTotp} loading={isLoading}>
+          <Button
+            onClick={handleSetupTotp}
+            loading={isLoading}
+          >
             {t("Enable TOTP")}
           </Button>
         )}
-      </div>
+      </Group>
 
       {/* Setup TOTP Modal */}
       <SetupTotpModal 

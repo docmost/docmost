@@ -388,7 +388,9 @@ export class AuthService {
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const user = await this.userRepo.findById(userId, workspaceId, {
+      includePassword: true,
+    });
     
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
