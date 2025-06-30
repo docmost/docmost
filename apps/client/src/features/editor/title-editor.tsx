@@ -61,6 +61,16 @@ export function TitleEditor({
               document.dispatchEvent(event);
               return true;
             },
+            'Control-h': () => {
+              const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Alt-c': () => {
+              const event = new CustomEvent("matchCaseToggle", {});
+              document.dispatchEvent(event);
+              return true;
+            },
             'Escape': () => {
               const event = new CustomEvent("closeFindDialogFromEditor", {});
               document.dispatchEvent(event);

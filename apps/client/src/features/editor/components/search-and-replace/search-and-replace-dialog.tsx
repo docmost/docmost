@@ -61,7 +61,8 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     editor.commands.setTextSelection(position);
 
     const element = document.querySelector(".search-result-current");
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (element)
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
 
     editor.commands.setTextSelection(0);
   };
@@ -97,7 +98,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     setPageFindState({ isOpen: true });
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
-      editor.state.selection.to,
+      editor.state.selection.to
     );
     if (selectedText !== "") {
       setSearchText(selectedText);
@@ -110,25 +111,57 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     closeDialog();
   };
 
+  const matchCaseToggleEvent = (e) => {
+    caseSensitiveToggle();
+  };
+
+  const handleOpenWithReplaceEvent = (e) => {
+    if (!pageFindState.isOpen) {
+      handleOpenEvent(e);
+      setReplaceButton({ isReplaceShow: true, color: "blue" });
+    } else {
+      replaceButtonToggle();
+    }
+  };
+
   useEffect(() => {
     !pageFindState.isOpen && closeDialog();
 
     document.addEventListener("openFindDialogFromEditor", handleOpenEvent);
+    document.addEventListener(
+      "openFindAndReplaceDialogFromEditor",
+      handleOpenWithReplaceEvent
+    );
     document.addEventListener("closeFindDialogFromEditor", handleCloseEvent);
+    if (pageFindState.isOpen) {
+      document.addEventListener("matchCaseToggle", matchCaseToggleEvent);
+    }
 
     return () => {
       document.removeEventListener("openFindDialogFromEditor", handleOpenEvent);
       document.removeEventListener(
-        "closeFindDialogFromEditor",
-        handleCloseEvent,
+        "openFindAndReplaceDialogFromEditor",
+        handleOpenWithReplaceEvent
       );
+      document.removeEventListener(
+        "closeFindDialogFromEditor",
+        handleCloseEvent
+      );
+      document.removeEventListener("matchCaseToggle", matchCaseToggleEvent);
     };
   }, [pageFindState.isOpen]);
 
-  const [replaceButton, replaceButtonToggle] = useToggle([
-    { isReplaceShow: false, color: "gray" },
-    { isReplaceShow: true, color: "blue" },
-  ]);
+  const [replaceButton, setReplaceButton] = useState({
+    isReplaceShow: false,
+    color: "gray",
+  });
+
+  const replaceButtonToggle = () => {
+    setReplaceButton((prevState) => ({
+      isReplaceShow: !prevState.isReplaceShow,
+      color: prevState.isReplaceShow ? "gray" : "blue",
+    }));
+  };
 
   const [caseSensitive, caseSensitiveToggle] = useToggle([
     { isCaseSensitive: false, color: "gray" },
@@ -152,7 +185,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     [
       editor?.storage?.searchAndReplace?.resultIndex,
       editor?.storage?.searchAndReplace?.results.length,
-    ],
+    ]
   );
 
   const location = useLocation();
@@ -164,11 +197,11 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
     <Dialog
       className="find-dialog"
       opened={pageFindState.isOpen}
-      zIndex={999}
+      zIndex={299}
       size="lg"
       radius="md"
       w={"auto"}
-      position={{ top: 0, right: 50 }}
+      position={{ top: 44, right: 50 }}
       withBorder
       transitionProps={{ transition: "slide-down" }}
     >
@@ -192,8 +225,6 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
             onKeyDown={getHotkeyHandler([
               ["Enter", next],
               ["shift+Enter", previous],
-              ["alt+C", caseSensitiveToggle],
-              ["alt+R", replaceButtonToggle],
             ])}
           />
 
@@ -226,7 +257,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
                 />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t("Replace")} zIndex={9999}>
+            <Tooltip label={t("Replace (Ctrl+H)")} zIndex={9999}>
               <ActionIcon
                 variant="subtle"
                 color={replaceButton.color}
@@ -254,7 +285,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
               rightSectionWidth="70"
               rightSectionPointerEvents="all"
               size="xs"
-              autoFocus
+              // autoFocus
               onChange={replaceInputEvent}
               value={replaceText}
               onKeyDown={getHotkeyHandler([

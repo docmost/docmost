@@ -9,6 +9,7 @@ import {
   IconList,
   IconMessage,
   IconPrinter,
+  IconReplace,
   IconSearch,
   IconTrash,
   IconWifiOff,
@@ -55,6 +56,20 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         "ctrl+F",
         () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+        },
+      ],
+      [
+        "ctrl+H",
+        () => {
+          const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+          document.dispatchEvent(event);
+        },
+      ],
+      [
+        "alt+C",
+        () => {
+          const event = new CustomEvent("matchCaseToggle", {});
           document.dispatchEvent(event);
         },
       ],
@@ -133,7 +148,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
-  const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -158,7 +172,13 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   };
 
   const openFindDialog = () => {
-    setPageFindState({ isOpen: true });
+    const event = new CustomEvent("openFindDialogFromEditor", {});
+    document.dispatchEvent(event);
+  }
+
+  const openFindAndReplaceDialog = () => {
+    const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+    document.dispatchEvent(event);
   }
 
   return (
@@ -185,6 +205,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Copy link")}
           </Menu.Item>
           
+          <Menu.Divider />
+
           <Menu.Item
             leftSection={<IconSearch size={16} />}
             rightSection={
@@ -196,6 +218,19 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           >
             {t("Find")}
           </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconReplace size={16} />}
+            rightSection={
+              <Text size="xs" c="dimmed">
+                Crtl + H
+              </Text>
+            }
+            onClick={openFindAndReplaceDialog}
+          >
+            {t("Replace")}
+          </Menu.Item>
+
           <Menu.Divider />
 
           <Menu.Item leftSection={<IconArrowsHorizontal size={16} />}>
