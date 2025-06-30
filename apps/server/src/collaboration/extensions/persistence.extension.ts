@@ -156,6 +156,7 @@ export class PersistenceExtension implements Extension {
         page: {
           ...page,
           content: tiptapJson,
+          textContent: textContent,
           lastUpdatedById: context.user.id,
         },
       });
