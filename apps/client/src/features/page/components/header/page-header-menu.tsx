@@ -48,7 +48,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
   const [editor, setEditor] = useAtom(pageEditorAtom);
-  const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
 
   useHotkeys(
     [
@@ -87,16 +86,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       {!readOnly && <PageStateSegmentedControl size="xs" />}
         
       <ShareModal readOnly={readOnly} />
-      
-      <Tooltip label={t("Find (Ctrl-F)")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="default"
-          style={{ border: "none" }}
-          onClick={() => setPageFindState({ isOpen: true })}
-        >
-          <IconSearch size={20} stroke={2} />
-        </ActionIcon>
-      </Tooltip>
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
@@ -144,6 +133,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
+  const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -167,6 +157,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
     openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
   };
 
+  const openFindDialog = () => {
+    setPageFindState({ isOpen: true });
+  }
+
   return (
     <>
       <Menu
@@ -189,6 +183,18 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             onClick={handleCopyLink}
           >
             {t("Copy link")}
+          </Menu.Item>
+          
+          <Menu.Item
+            leftSection={<IconSearch size={16} />}
+            rightSection={
+              <Text size="xs" c="dimmed">
+                Crtl + F
+              </Text>
+            }
+            onClick={openFindDialog}
+          >
+            {t("Find")}
           </Menu.Item>
           <Menu.Divider />
 
