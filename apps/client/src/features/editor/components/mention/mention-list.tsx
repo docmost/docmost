@@ -232,11 +232,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       parentPageId: page.id || null,
       title
     };
-    
+
     try {
       const createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
-      
+
       const data = {
         id: createdPage.id,
         slugId: createdPage.slugId,
@@ -353,14 +353,20 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                         color="gray"
                         size={18}
                       >
-                        { (item.id) ? <IconFileDescription size={18} /> : <IconPlus size={18} /> }
+                        {item.id ? (
+                          <IconFileDescription size={18} />
+                        ) : (
+                          <IconPlus size={18} />
+                        )}
                       </ActionIcon>
                     )}
                   </ActionIcon>
 
-                  <Stack gap="0">
+                  <Stack gap="0" style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
-                      { (item.id) ? item.label : t("Create page") + ': ' + item.label }
+                      {item.id
+                        ? item.label
+                        : t("Create page") + ": " + item.label}
                     </Text>
                     {item.breadcrumbs !== "" && (
                       <Text size="xs" c="dimmed" lineClamp={1}>
@@ -369,16 +375,22 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                     )}
                   </Stack>
 
-                  {item.id && item.entityId && item.entityType === "page" && item.headings && (
-                    <div onClick={(e) => e.stopPropagation()} className={classes.anchorSelector}>
-                      <AnchorSelector
-                        headings={item.headings}
-                        onSelectAnchor={(anchorSlug, headingText) => {
-                          selectPageWithAnchor(item, anchorSlug, headingText);
-                        }}
-                      />
-                    </div>
-                  )}
+                  {item.id &&
+                    item.entityId &&
+                    item.entityType === "page" &&
+                    item.headings && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className={classes.anchorSelector}
+                      >
+                        <AnchorSelector
+                          headings={item.headings}
+                          onSelectAnchor={(anchorSlug, headingText) => {
+                            selectPageWithAnchor(item, anchorSlug, headingText);
+                          }}
+                        />
+                      </div>
+                    )}
                 </Group>
               </UnstyledButton>
             );
