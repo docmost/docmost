@@ -161,101 +161,74 @@ export class SearchService {
     }
 
     if (suggestion.includePages) {
-      let pageSearch = this.db
-        .selectFrom('pages')
-        .select(['id', 'slugId', 'title', 'icon', 'spaceId', 'content'])
-        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
-        .where('workspaceId', '=', workspaceId)
-        .limit(limit);
-
       // only search spaces the user has access to
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
-      if (suggestion?.spaceId) {
-        if (userSpaceIds.includes(suggestion.spaceId)) {
-          pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
-          const pagesWithContent = await pageSearch.execute();
-          
-          pages = pagesWithContent.map(page => ({
-            id: page.id,
-            slugId: page.slugId,
-            title: page.title,
-            icon: page.icon,
-            spaceId: page.spaceId,
-            headings: extractHeadingsFromContent(page.content),
-          }));
-        }
-      } else if (userSpaceIds?.length > 0) {
-        // we need this check or the query will throw an error if the userSpaceIds array is empty
-        pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
-        const pagesWithContent = await pageSearch.execute();
-        
-        pages = pagesWithContent.map(page => ({
-          id: page.id,
-          slugId: page.slugId,
-          title: page.title,
-          icon: page.icon,
-          spaceId: page.spaceId,
-          headings: extractHeadingsFromContent(page.content),
-        }));
-      }
+      const pageSearch = await this.db
+        .withRecursive('page_ancestors', (db) =>
+          db
+            .selectFrom('pages')
+            .select(['id', 'title', 'parentPageId', 'id as rootId'])
+            .where((eb) =>
+              eb(sql`LOWER(title)`, 'like', `%${query.toLowerCase()}%`),
+            )
+            .where('workspaceId', '=', workspaceId)
+            .$if(suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId), (qb) =>
+              qb.where('spaceId', '=', suggestion.spaceId),
+            )
+            // we need this check or the query will throw an error if the userSpaceIds array is empty
+            .$if(userSpaceIds?.length > 0, (qb) =>
+              qb.where('spaceId', 'in', userSpaceIds),
+            )
+            .unionAll((db) =>
+              db
+                .selectFrom('pages')
+                .innerJoin(
+                  'page_ancestors as pa',
+                  'pa.parentPageId',
+                  'pages.id',
+                )
+                .select([
+                  'pages.id',
+                  'pages.title',
+                  'pages.parentPageId',
+                  'pa.rootId',
+                ]),
+            ),
+        )
+        .selectFrom('page_ancestors as pa')
+        .innerJoin('pages', 'pages.id', 'pa.rootId')
+        .select([
+          'pages.id',
+          'pages.slugId',
+          'pages.title',
+          'pages.icon',
+          'pages.spaceId',
+          'pages.content',
+          sql`COALESCE(json_agg(pa.title ORDER BY pa.id ASC) FILTER (WHERE pa.id != pages.id), '[]')`.as(
+            'breadcrumbs',
+          ),
+        ])
+        .groupBy([
+          'pages.id',
+          'pages.slugId',
+          'pages.title',
+          'pages.icon',
+          'pages.spaceId',
+          'pages.content',
+        ])
+        .limit(limit)
+        .execute();
 
-      for (const page of pages) {
-        const childPageId = page.id;
-        const ancestors = await this.db
-          .withRecursive('page_ancestors', (db) =>
-            db
-              .selectFrom('pages')
-              .select([
-                'id',
-                'slugId',
-                'title',
-                'icon',
-                'position',
-                'parentPageId',
-                'spaceId',
-              ])
-              .select((eb) => this.withHasChildren(eb))
-              .where('id', '=', childPageId)
-              .unionAll((exp) =>
-                exp
-                  .selectFrom('pages as p')
-                  .select([
-                    'p.id',
-                    'p.slugId',
-                    'p.title',
-                    'p.icon',
-                    'p.position',
-                    'p.parentPageId',
-                    'p.spaceId',
-                  ])
-                  .select(
-                    exp
-                      .selectFrom('pages as child')
-                      .select((eb) =>
-                        eb
-                          .case()
-                          .when(eb.fn.countAll(), '>', 0)
-                          .then(true)
-                          .else(false)
-                          .end()
-                          .as('count'),
-                      )
-                      .whereRef('child.parentPageId', '=', 'id')
-                      .limit(1)
-                      .as('hasChildren'),
-                  )
-                  //.select((eb) => this.withHasChildren(eb))
-                  .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
-              ),
-          )
-          .selectFrom('page_ancestors')
-          .selectAll()
-          .execute();
-
-          const breadcrumbs = ancestors.slice(1).reverse().map(p => p.title);
-          page.breadcrumbs = breadcrumbs;
-      }
+      pages = pageSearch.map((page) => ({
+        id: page.id,
+        slugId: page.slugId,
+        title: page.title,
+        icon: page.icon,
+        spaceId: page.spaceId,
+        breadcrumbs: page.breadcrumbs,
+        headings: extractHeadingsFromContent(page.content),
+      }));
     }
 
     return { users, groups, pages };
