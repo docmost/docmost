@@ -27,6 +27,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - File attachments
 - Embeds (Airtable, Loom, Miro and more)
 - Translations (10+ languages)
+- 2FA (TOTP)
 
 ### Screenshots
 

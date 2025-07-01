@@ -11,6 +11,8 @@ services:
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
       DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
       REDIS_URL: 'redis://redis:6379'
+
+      # Note for TOTP: When using TOTP make sure your time is set correctly. TOTP allows a grace period of 30 seconds.
     ports:
       - "3000:3000"
     restart: unless-stopped
