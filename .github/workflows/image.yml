@@ -8,8 +8,11 @@ on:
       - 'packages/**'
       - 'patches/**'
       - 'Dockerfile'
-      - '.github/workflows/image.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -59,8 +62,6 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/vito0912/forkmost:latest
             vito0912/forkmost:latest

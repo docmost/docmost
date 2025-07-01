@@ -96,6 +96,8 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
+
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -191,11 +193,6 @@ export default function PageEditor({
     ];
   }, [remoteProvider, currentUser?.user]);
 
-  const debouncedSendSaveCommand = useDebouncedCallback(() => {
-    const payload = 'forceSave';
-    remoteProvider.sendStateless(payload);
-  }, 300);
-
   const editor = useEditor(
     {
       extensions,
@@ -207,9 +204,8 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
               event.preventDefault();
-              debouncedSendSaveCommand();
               return true;
             }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
@@ -363,9 +359,10 @@ export default function PageEditor({
   return (
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
-        <SearchAndReplaceDialog editor={editor} />
 
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
+        <SearchAndReplaceDialog editor={editor} />
+        
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />

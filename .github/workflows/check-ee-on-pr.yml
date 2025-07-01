@@ -1,0 +1,26 @@
+name: Check for EE Folders on PR
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - '.github/workflows/check-ee-on-pr.yml'
+
+jobs:
+  check-ee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Enterprise Edition (EE) folders
+        run: |
+          if [ -d "apps/server/src/ee" ] || [ -d "apps/client/src/ee" ] || [ -d "packages/ee" ]; then
+            echo "--- IMPORTANT: Enterprise Edition (EE) folders detected! ---"
+            echo "This fork is only allowed to use the open-source AGPL 3.0 version."
+            echo "Building with EE features is not permitted due to the License in these directories."
+            echo "Please remove the 'ee' directories to proceed."
+            exit 1
+          fi
+          echo "No Enterprise Edition (EE) folders found. PR check passed."

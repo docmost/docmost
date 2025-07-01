@@ -22,6 +22,7 @@ export type MentionSuggestionItem =
   | {
   id: string;
   label: string;
+  breadcrumbs: string;
   entityType: "page";
   entityId: string;
   slugId: string;
