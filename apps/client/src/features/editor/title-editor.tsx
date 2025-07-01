@@ -55,6 +55,30 @@ export function TitleEditor({
     extensions: [
       Document.extend({
         content: "heading",
+        addKeyboardShortcuts() {
+          return {
+            'Control-f': () => {
+              const event = new CustomEvent("openFindDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Control-h': () => {
+              const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Alt-c': () => {
+              const event = new CustomEvent("matchCaseToggle", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Escape': () => {
+              const event = new CustomEvent("closeFindDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+          }
+        },
       }),
       Heading.configure({
         levels: [1],
