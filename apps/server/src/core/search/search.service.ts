@@ -161,74 +161,102 @@ export class SearchService {
     }
 
     if (suggestion.includePages) {
-      // only search spaces the user has access to
+      // get spaces the user has access to
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
-      const pageSearch = await this.db
-        .withRecursive('page_ancestors', (db) =>
-          db
-            .selectFrom('pages')
-            .select(['id', 'title', 'parentPageId', 'id as rootId'])
-            .where((eb) =>
-              eb(sql`LOWER(title)`, 'like', `%${query.toLowerCase()}%`),
-            )
-            .where('workspaceId', '=', workspaceId)
-            .$if(suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId), (qb) =>
-              qb.where('spaceId', '=', suggestion.spaceId),
-            )
-            // we need this check or the query will throw an error if the userSpaceIds array is empty
-            .$if(userSpaceIds?.length > 0, (qb) =>
-              qb.where('spaceId', 'in', userSpaceIds),
-            )
-            .unionAll((db) =>
-              db
-                .selectFrom('pages')
-                .innerJoin(
-                  'page_ancestors as pa',
-                  'pa.parentPageId',
-                  'pages.id',
-                )
-                .select([
-                  'pages.id',
-                  'pages.title',
-                  'pages.parentPageId',
-                  'pa.rootId',
-                ]),
-            ),
-        )
-        .selectFrom('page_ancestors as pa')
-        .innerJoin('pages', 'pages.id', 'pa.rootId')
-        .select([
-          'pages.id',
-          'pages.slugId',
-          'pages.title',
-          'pages.icon',
-          'pages.spaceId',
-          'pages.content',
-          sql`COALESCE(json_agg(pa.title ORDER BY pa.id ASC) FILTER (WHERE pa.id != pages.id), '[]')`.as(
-            'breadcrumbs',
-          ),
-        ])
-        .groupBy([
-          'pages.id',
-          'pages.slugId',
-          'pages.title',
-          'pages.icon',
-          'pages.spaceId',
-          'pages.content',
-        ])
-        .limit(limit)
-        .execute();
+      // If the user has no access to any space we skip (See original here: https://github.com/Vito0912/forkmost/blob/232cea8cc97fc17ea08823bc613c2aafbfa74589/apps/server/src/core/search/search.service.ts#L161-L182)
+      if (userSpaceIds && userSpaceIds?.length > 0) {
+        // Just to prevent any unwanted problems
+        const maxDepth = 11;
 
-      pages = pageSearch.map((page) => ({
-        id: page.id,
-        slugId: page.slugId,
-        title: page.title,
-        icon: page.icon,
-        spaceId: page.spaceId,
-        breadcrumbs: page.breadcrumbs,
-        headings: extractHeadingsFromContent(page.content),
-      }));
+        const pageSearch = await this.db
+          .withRecursive('page_ancestors', (db) =>
+            db
+              .selectFrom('pages')
+              .select([
+                'id',
+                'title',
+                'parentPageId',
+                'id as rootid',
+                sql`1::int`.as('depth'),
+              ])
+              .where((eb) =>
+                eb('title', 'ilike', `%${query}%`),
+              )
+              .where('workspaceId', '=', workspaceId)
+              .$if(
+                suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId),
+                (qb) => qb.where('spaceId', '=', suggestion.spaceId),
+              )
+              .$if(
+                !userSpaceIds.includes(suggestion.spaceId) || !suggestion?.spaceId,
+                (qb) => qb.where('spaceId', 'in', userSpaceIds),
+              )
+              .unionAll((db) =>
+                db
+                  .selectFrom('pages')
+                  .innerJoin(
+                    'page_ancestors as pa',
+                    'pa.parentPageId',
+                    'pages.id',
+                  )
+                  .select([
+                    'pages.id',
+                    'pages.title',
+                    'pages.parentPageId',
+                    'pa.rootid',
+                    sql`pa.depth + 1`.as('depth'),
+                  ])
+                  .where((eb) => eb('pa.depth', '<', maxDepth))
+                  .where('pages.workspaceId', '=', workspaceId),
+              ),
+          )
+          // Prewvents grouping by content
+          .with('page_data', (db) =>
+            db
+              .selectFrom('page_ancestors as pa')
+              .select([
+                'pa.rootid',
+                sql`json_agg(
+                  json_build_object('title', pa.title, 'id', pa.id) 
+                  ORDER BY pa.depth DESC
+                ) FILTER (WHERE pa.id != pa.rootid)`.as('breadcrumbs'),
+              ])
+              .groupBy('pa.rootid')
+          )
+          .selectFrom('pages')
+          .innerJoin('page_data', 'page_data.rootid', 'pages.id')
+          .select([
+            'pages.id',
+            'pages.slugId',
+            'pages.title',
+            'pages.icon',
+            'pages.spaceId',
+            'pages.content',
+            'page_data.breadcrumbs',
+          ])
+          .where('pages.workspaceId', '=', workspaceId)
+          .$if(
+            suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId),
+            (qb) => qb.where('pages.spaceId', '=', suggestion.spaceId),
+          )
+          .$if(
+            !userSpaceIds.includes(suggestion.spaceId) || !suggestion?.spaceId,
+            (qb) => qb.where('pages.spaceId', 'in', userSpaceIds),
+          )
+          .limit(limit)
+          .execute();
+
+        pages = pageSearch.map((page) => ({
+          id: page.id,
+          slugId: page.slugId,
+          title: page.title,
+          icon: page.icon,
+          spaceId: page.spaceId,
+          breadcrumbs: (page.breadcrumbs as {title: string}[])?.map((v) => v.title) || [],
+          headings: extractHeadingsFromContent(page.content),
+        }));
+      }
     }
 
     return { users, groups, pages };
