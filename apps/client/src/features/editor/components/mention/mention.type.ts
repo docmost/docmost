@@ -15,6 +15,7 @@ export type MentionSuggestionItem =
   | {
   id: string;
   label: string;
+  email: string;
   entityType: "user";
   entityId: string;
   avatarUrl: string;
