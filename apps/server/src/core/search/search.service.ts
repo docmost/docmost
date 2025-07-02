@@ -3,10 +3,11 @@ import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
 import { SearchResponseDto } from './dto/search-response.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { sql } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { DB } from '@docmost/db/types/db';
 import { extractHeadingsFromContent } from './utils/heading-extractor';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -198,8 +199,82 @@ export class SearchService {
           headings: extractHeadingsFromContent(page.content),
         }));
       }
+
+      for (const page of pages) {
+        const childPageId = page.id;
+        const ancestors = await this.db
+          .withRecursive('page_ancestors', (db) =>
+            db
+              .selectFrom('pages')
+              .select([
+                'id',
+                'slugId',
+                'title',
+                'icon',
+                'position',
+                'parentPageId',
+                'spaceId',
+              ])
+              .select((eb) => this.withHasChildren(eb))
+              .where('id', '=', childPageId)
+              .unionAll((exp) =>
+                exp
+                  .selectFrom('pages as p')
+                  .select([
+                    'p.id',
+                    'p.slugId',
+                    'p.title',
+                    'p.icon',
+                    'p.position',
+                    'p.parentPageId',
+                    'p.spaceId',
+                  ])
+                  .select(
+                    exp
+                      .selectFrom('pages as child')
+                      .select((eb) =>
+                        eb
+                          .case()
+                          .when(eb.fn.countAll(), '>', 0)
+                          .then(true)
+                          .else(false)
+                          .end()
+                          .as('count'),
+                      )
+                      .whereRef('child.parentPageId', '=', 'id')
+                      .limit(1)
+                      .as('hasChildren'),
+                  )
+                  //.select((eb) => this.withHasChildren(eb))
+                  .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
+              ),
+          )
+          .selectFrom('page_ancestors')
+          .selectAll()
+          .execute();
+
+          const breadcrumbs = ancestors.slice(1).reverse().map(p => p.title);
+          page.breadcrumbs = breadcrumbs;
+      }
     }
 
     return { users, groups, pages };
+  }
+
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .limit(1)
+      .as('hasChildren');
   }
 }
