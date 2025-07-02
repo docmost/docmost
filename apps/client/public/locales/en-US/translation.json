@@ -404,4 +404,7 @@
   "Copy page to a different space.": "Copy page to a different space.",
   "Page copied successfully": "Page copied successfully",
   "Graph view": "Graph view"
+  "Spellcheck": "Spellcheck",
+  "Choose if spellcheck is enabled.": "Choose if spellcheck is enabled.",
+  "Toggle spellcheck": "Toggle spellcheck"
 }

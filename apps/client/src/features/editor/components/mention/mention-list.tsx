@@ -13,6 +13,7 @@ import {
   Group,
   Paper,
   ScrollArea,
+  Stack,
   Text,
   UnstyledButton,
 } from "@mantine/core";
@@ -62,14 +63,17 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
     limit: 10,
   });
 
-  const createPageItem = (label: string): MentionSuggestionItem => ({
-    id: null,
-    label,
-    entityType: "page",
-    entityId: null,
-    slugId: null,
-    icon: null,
-  });
+  const createPageItem = (label: string) : MentionSuggestionItem => {
+    return {
+      id: null,
+      label: label,
+      breadcrumbs: '',
+      entityType: "page",
+      entityId: null,
+      slugId: null,
+      icon: null,
+    }
+  }
 
   useEffect(() => {
     if (suggestion && !isLoading) {
@@ -95,6 +99,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           suggestion.pages.map((page) => ({
             id: uuid7(),
             label: page.title || "Untitled",
+            breadcrumbs: page.breadcrumbs
+              .map(item => item ?? t("Untitled"))
+              .join(' / '),
             entityType: "page",
             entityId: page.id,
             slugId: page.slugId,
@@ -226,11 +233,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       parentPageId: page.id || null,
       title
     };
-    
+
     try {
       const createdPage = await createPageMutation.mutateAsync(payload);
       const parentId = page.id || null;
-      
+
       const data = {
         id: createdPage.id,
         slugId: createdPage.slugId,
@@ -334,7 +341,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                   [classes.selectedItem]: index === selectedIndex,
                 })}
               >
-                <Group>
+                <Group wrap="nowrap">
                   <ActionIcon
                     variant="default"
                     component="div"
@@ -347,27 +354,44 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
                         color="gray"
                         size={18}
                       >
-                        { (item.id) ? <IconFileDescription size={18} /> : <IconPlus size={18} /> }
+                        {item.id ? (
+                          <IconFileDescription size={18} />
+                        ) : (
+                          <IconPlus size={18} />
+                        )}
                       </ActionIcon>
                     )}
                   </ActionIcon>
 
-                  <div style={{ flex: 1 }}>
+                  <Stack gap="0" style={{ flex: 1 }}>
                     <Text size="sm" fw={500}>
-                      { (item.id) ? item.label : t("Create page") + ': ' + item.label }
+                      {item.id
+                        ? item.label
+                        : t("Create page") + ": " + item.label}
                     </Text>
-                  </div>
+                    {item.breadcrumbs !== "" && (
+                      <Text size="xs" c="dimmed" lineClamp={1}>
+                        {item.breadcrumbs}
+                      </Text>
+                    )}
+                  </Stack>
 
-                  {item.id && item.entityId && item.entityType === "page" && item.headings && (
-                    <div onClick={(e) => e.stopPropagation()} className={classes.anchorSelector}>
-                      <AnchorSelector
-                        headings={item.headings}
-                        onSelectAnchor={(anchorSlug, headingText) => {
-                          selectPageWithAnchor(item, anchorSlug, headingText);
-                        }}
-                      />
-                    </div>
-                  )}
+                  {item.id &&
+                    item.entityId &&
+                    item.entityType === "page" &&
+                    item.headings && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className={classes.anchorSelector}
+                      >
+                        <AnchorSelector
+                          headings={item.headings}
+                          onSelectAnchor={(anchorSlug, headingText) => {
+                            selectPageWithAnchor(item, anchorSlug, headingText);
+                          }}
+                        />
+                      </div>
+                    )}
                 </Group>
               </UnstyledButton>
             );

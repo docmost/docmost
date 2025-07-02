@@ -31,6 +31,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import ColumnLayoutMenu from "@/features/editor/components/column-layout/column-layout-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
@@ -45,6 +46,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -94,6 +96,8 @@ export default function PageEditor({
   useAnchorScroll();
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
 
   // Providers only created once per pageId
   const providersRef = useRef<{
@@ -190,11 +194,6 @@ export default function PageEditor({
     ];
   }, [remoteProvider, currentUser?.user]);
 
-  const debouncedSendSaveCommand = useDebouncedCallback(() => {
-    const payload = 'forceSave';
-    remoteProvider.sendStateless(payload);
-  }, 300);
-
   const editor = useEditor(
     {
       extensions,
@@ -206,9 +205,8 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
               event.preventDefault();
-              debouncedSendSaveCommand();
               return true;
             }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
@@ -362,12 +360,16 @@ export default function PageEditor({
   return (
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
+        <SearchAndReplaceDialog editor={editor} />
+        
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+            <ColumnLayoutMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
             <AudioMenu editor={editor} />

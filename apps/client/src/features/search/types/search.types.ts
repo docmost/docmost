@@ -30,6 +30,7 @@ export interface IPageSuggestion {
   icon: string;
   spaceId: string;
   headings?: HeadingInfo[];
+  breadcrumbs: (string | null)[];
 }
 
 export interface SearchSuggestionParams {
