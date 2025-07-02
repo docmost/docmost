@@ -188,6 +188,7 @@
   "Your password": "Your password",
   "Your password must be a minimum of 8 characters.": "Your password must be a minimum of 8 characters.",
   "Sidebar toggle": "Sidebar toggle",
+  "Toggle Color Scheme": "Toggle Color Scheme",
   "Comments": "Comments",
   "404 page not found": "404 page not found",
   "Sorry, we can't find the page you are looking for.": "Sorry, we can't find the page you are looking for.",
@@ -323,6 +324,7 @@
   "Image": "Image",
   "File attachment": "File attachment",
   "Toggle block": "Toggle block",
+  
   "Callout": "Callout",
   "Insert callout notice.": "Insert callout notice.",
   "Math inline": "Math inline",
