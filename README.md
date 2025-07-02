@@ -1,4 +1,7 @@
 > [!NOTE]
+> A first release is planned very soon
+
+> [!NOTE]
 > This is a custom, updated fork of Docmost, optimized for personal and educational use, especially for sharing with multiple different users. It also includes features that Docmost is either "too" slow to add or chooses not to include, sometimes because they are behind a paywall or because Docmost aims to "keep it simple." (No judgment)
 >
 > I cannot promise that I will keep maintaining this fork forever as I primarily do it for myself, but I will do so as long as the license allows and I actively use Docmost. I have also taken out some features that others might find helpful, and I may have added some bugs. As per license this can be forked at any time
@@ -73,4 +76,9 @@ See the [development documentation](https://docmost.com/docs/self-hosting/develo
 
 ## Thanks
 
-See [Docmost#Thanks](https://github.com/docmost/docmost?tab=readme-ov-file#thanks)
+Major thanks to [@fuscodev](https://github.com/fuscodev), who contributed their changes from upstream themselves. Also, many pull requests I merged are based on their work.
+
+Many thanks to [@Philipinho](https://github.com/Philipinho) for the great base, general features, and the good codebase to work with.
+
+
+Also see [Docmost#Thanks](https://github.com/docmost/docmost?tab=readme-ov-file#thanks)
