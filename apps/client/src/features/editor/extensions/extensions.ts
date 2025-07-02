@@ -40,6 +40,8 @@ import {
   SearchAndReplace,
   Mention,
   ExtraLigatures,
+  ColumnContainer,
+  Column,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -80,6 +82,8 @@ import { CharacterCount } from "@tiptap/extension-character-count";
 import Heading from "@tiptap/extension-heading";
 import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
+import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
+import ColumnView from "@/features/editor/components/column-layout/column-view";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -235,6 +239,12 @@ export const mainExtensions = [
   }),
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
+  }),
+  ColumnContainer.configure({
+    view: ColumnContainerView,
+  }),
+  Column.configure({
+    view: ColumnView,
   }),
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
