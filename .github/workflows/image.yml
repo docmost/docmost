@@ -3,6 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     branches: ["personal"]
+    tags:
+      - 'v*.*.*.*'
     paths:
       - 'apps/**'
       - 'packages/**'
@@ -55,16 +57,28 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TKN }}
 
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/vito0912/forkmost
+            vito0912/forkmost
+          tags: |
+            # Always
+            type=raw,value=dev
+            # For versions
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=match,pattern=v?(\d+\.\d+\.\d+\.\d+),group=0,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=match,pattern=v?(\d+\.\d+\.\d+)\.\d+,group=1,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
       - name: Build and push Docker image
-        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/vito0912/forkmost:latest
-            vito0912/forkmost:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.title=Forkmost
             org.opencontainers.image.description=Forkmost is a open-source collaborative wiki and documentation software with no paywalled features.
