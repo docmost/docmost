@@ -36,6 +36,7 @@ if (isCloud() && isPostHogEnabled) {
     api_host: getPostHogHost(),
     defaults: "2025-05-24",
     disable_session_recording: true,
+    capture_pageleave: false,
   });
 }
 
