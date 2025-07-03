@@ -22,6 +22,7 @@ export class CommentService {
   async findById(commentId: string) {
     const comment = await this.commentRepo.findById(commentId, {
       includeCreator: true,
+      includeResolvedBy: true,
     });
     if (!comment) {
       throw new NotFoundException('Comment not found');

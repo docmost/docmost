@@ -1,4 +1,4 @@
-import { Group, Text, Box } from "@mantine/core";
+import { Group, Text, Box, Badge } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import classes from "./comment.module.css";
 import { useAtom, useAtomValue } from "jotai";
@@ -7,6 +7,8 @@ import CommentEditor from "@/features/comment/components/comment-editor";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
 import CommentActions from "@/features/comment/components/comment-actions";
 import CommentMenu from "@/features/comment/components/comment-menu";
+import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import ResolveComment from "@/ee/comment/components/resolve-comment";
 import { useHover } from "@mantine/hooks";
 import {
   useDeleteCommentMutation,
@@ -16,6 +18,7 @@ import { IComment } from "@/features/comment/types/comment.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
+import { useTranslation } from "react-i18next";
 
 interface CommentListItemProps {
   comment: IComment;
@@ -23,6 +26,7 @@ interface CommentListItemProps {
 }
 
 function CommentListItem({ comment, pageId }: CommentListItemProps) {
+  const { t } = useTranslation();
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +36,7 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
   const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);
   const [currentUser] = useAtom(currentUserAtom);
   const emit = useQueryEmit();
+  const isCloudEE = useIsCloudEE();
 
   useEffect(() => {
     setContent(comment.content)
@@ -106,9 +111,13 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
             </Text>
 
             <div style={{ visibility: hovered ? "visible" : "hidden" }}>
-              {/*!comment.parentCommentId && (
-                <ResolveComment commentId={comment.id} pageId={comment.pageId} resolvedAt={comment.resolvedAt} />
-              )*/}
+              {!comment.parentCommentId && isCloudEE && (
+                <ResolveComment 
+                  commentId={comment.id} 
+                  pageId={comment.pageId} 
+                  resolvedAt={comment.resolvedAt} 
+                />
+              )}
 
               {currentUser?.user?.id === comment.creatorId && (
                 <CommentMenu
@@ -119,9 +128,11 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
             </div>
           </Group>
 
-          <Text size="xs" fw={500} c="dimmed">
-            {timeAgo(comment.createdAt)}
-          </Text>
+          <Group gap="xs">
+            <Text size="xs" fw={500} c="dimmed">
+              {timeAgo(comment.createdAt)}
+            </Text>
+          </Group>
         </div>
       </Group>
 

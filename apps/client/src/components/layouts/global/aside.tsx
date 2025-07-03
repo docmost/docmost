@@ -1,5 +1,5 @@
 import { Box, ScrollArea, Text } from "@mantine/core";
-import CommentList from "@/features/comment/components/comment-list.tsx";
+import CommentListWithTabs from "@/features/comment/components/comment-list-with-tabs.tsx";
 import { useAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import React, { ReactNode } from "react";
@@ -18,7 +18,7 @@ export default function Aside() {
 
   switch (tab) {
     case "comments":
-      component = <CommentList />;
+      component = <CommentListWithTabs />;
       title = "Comments";
       break;
     case "toc":

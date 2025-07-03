@@ -122,6 +122,7 @@ export interface Comments {
   pageId: string;
   parentCommentId: string | null;
   resolvedAt: Timestamp | null;
+  resolvedById: string | null;
   selection: string | null;
   type: string | null;
   workspaceId: string;
