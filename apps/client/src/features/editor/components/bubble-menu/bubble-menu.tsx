@@ -28,6 +28,7 @@ import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
+import { BackgroundColorSelector } from "./background-color-selector";
 
 export interface BubbleMenuItem {
   name: string;
@@ -125,16 +126,18 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
-        setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
+        setIsColorSelectorOpen(false);
+        setIsBackgroundColorSelectorOpen(false);
       },
     },
   };
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
-  const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
+  const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
+  const [isBackgroundColorSelectorOpen, setIsBackgroundColorSelectorOpen] = useState(false);
 
   return (
     <BubbleMenu {...bubbleMenuProps}>
@@ -145,8 +148,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
             setIsTextAlignmentOpen(false);
-            setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsBackgroundColorSelectorOpen(false);
           }}
         />
 
@@ -156,8 +160,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
             setIsNodeSelectorOpen(false);
-            setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsBackgroundColorSelectorOpen(false);
           }}
         />
 
@@ -188,6 +193,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
+            setIsBackgroundColorSelectorOpen(false);
           }}
         />
 
@@ -199,6 +205,18 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsBackgroundColorSelectorOpen(false);
+          }}
+        />
+        <BackgroundColorSelector
+          editor={props.editor}
+          isOpen={isBackgroundColorSelectorOpen}
+          setIsOpen={() => {
+            setIsBackgroundColorSelectorOpen(!isBackgroundColorSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsLinkSelectorOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 
