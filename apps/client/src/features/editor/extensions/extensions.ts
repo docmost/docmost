@@ -13,7 +13,7 @@ import { Color } from "@tiptap/extension-color";
 import Table from "@tiptap/extension-table";
 import TableHeader from "@tiptap/extension-table-header";
 import SlashCommand from "@/features/editor/extensions/slash-command";
-import { Collaboration } from "@tiptap/extension-collaboration";
+import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
@@ -73,7 +73,11 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import Heading from "@tiptap/extension-heading";
+import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
+import UniqueID from '@tiptap/extension-unique-id';
+import { generateSlugId } from "../utils/nanoid";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -90,6 +94,7 @@ lowlight.register("scala", scala);
 export const mainExtensions = [
   StarterKit.configure({
     history: false,
+    heading: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -100,6 +105,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(HeadingView);
+    }
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -216,6 +226,12 @@ export const mainExtensions = [
   }),
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
+  }),
+  UniqueID.configure({
+    types: ['heading'],
+    attributeName: 'uid',
+    generateID: () => generateSlugId(),
+    filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
 ] as any;
 
