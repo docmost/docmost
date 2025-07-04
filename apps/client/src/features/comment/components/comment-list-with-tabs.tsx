@@ -16,6 +16,12 @@ import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -30,6 +36,15 @@ function CommentListWithTabs() {
   const [isLoading, setIsLoading] = useState(false);
   const emit = useQueryEmit();
   const isCloudEE = useIsCloudEE();
+  const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+
+  const spaceRules = space?.membership?.permissions;
+  const spaceAbility = useSpaceAbility(spaceRules);
+
+  const canComment: boolean = spaceAbility.can(
+    SpaceCaslAction.Manage,
+    SpaceCaslSubject.Page,
+  );
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -38,14 +53,14 @@ function CommentListWithTabs() {
     }
 
     const parentComments = comments.items.filter(
-      (comment: IComment) => comment.parentCommentId === null
+      (comment: IComment) => comment.parentCommentId === null,
     );
 
     const active = parentComments.filter(
-      (comment: IComment) => !comment.resolvedAt
+      (comment: IComment) => !comment.resolvedAt,
     );
     const resolved = parentComments.filter(
-      (comment: IComment) => comment.resolvedAt
+      (comment: IComment) => comment.resolvedAt,
     );
 
     return { activeComments: active, resolvedComments: resolved };
@@ -88,11 +103,20 @@ function CommentListWithTabs() {
         data-comment-id={comment.id}
       >
         <div>
-          <CommentListItem comment={comment} pageId={page?.id} />
-          <MemoizedChildComments comments={comments} parentId={comment.id} pageId={page?.id} />
+          <CommentListItem
+            comment={comment}
+            pageId={page?.id}
+            canComment={canComment}
+          />
+          <MemoizedChildComments
+            comments={comments}
+            parentId={comment.id}
+            pageId={page?.id}
+            canComment={canComment}
+          />
         </div>
 
-        {!comment.resolvedAt && (
+        {!comment.resolvedAt && canComment && (
           <>
             <Divider my={4} />
             <CommentEditorWithActions
@@ -115,7 +139,7 @@ function CommentListWithTabs() {
     return <div>{t("Error loading comments.")}</div>;
   }
 
-  const totalComments = (activeComments.length + resolvedComments.length);
+  const totalComments = activeComments.length + resolvedComments.length;
 
   if (totalComments === 0) {
     return <>{t("No comments yet.")}</>;
@@ -135,8 +159,8 @@ function CommentListWithTabs() {
   return (
     <Tabs defaultValue="open" variant="default">
       <Tabs.List justify="center">
-        <Tabs.Tab 
-          value="open" 
+        <Tabs.Tab
+          value="open"
           leftSection={
             <Badge size="xs" variant="light" color="blue">
               {activeComments.length}
@@ -145,8 +169,8 @@ function CommentListWithTabs() {
         >
           {t("Open")}
         </Tabs.Tab>
-        <Tabs.Tab 
-          value="resolved" 
+        <Tabs.Tab
+          value="resolved"
           leftSection={
             <Badge size="xs" variant="light" color="green">
               {resolvedComments.length}
@@ -184,8 +208,14 @@ interface ChildCommentsProps {
   comments: IPagination<IComment>;
   parentId: string;
   pageId: string;
+  canComment: boolean;
 }
-const ChildComments = ({ comments, parentId, pageId }: ChildCommentsProps) => {
+const ChildComments = ({
+  comments,
+  parentId,
+  pageId,
+  canComment,
+}: ChildCommentsProps) => {
   const getChildComments = useCallback(
     (parentId: string) =>
       comments.items.filter(
@@ -198,11 +228,16 @@ const ChildComments = ({ comments, parentId, pageId }: ChildCommentsProps) => {
     <div>
       {getChildComments(parentId).map((childComment) => (
         <div key={childComment.id}>
-          <CommentListItem comment={childComment} pageId={pageId} />
+          <CommentListItem
+            comment={childComment}
+            pageId={pageId}
+            canComment={canComment}
+          />
           <MemoizedChildComments
             comments={comments}
             parentId={childComment.id}
             pageId={pageId}
+            canComment={canComment}
           />
         </div>
       ))}
@@ -236,4 +271,4 @@ const CommentEditorWithActions = ({ commentId, onSave, isLoading }) => {
   );
 };
 
-export default CommentListWithTabs; 
+export default CommentListWithTabs;
