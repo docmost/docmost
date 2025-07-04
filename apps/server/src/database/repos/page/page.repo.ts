@@ -29,7 +29,7 @@ import { SearchResponseDto } from 'src/core/search/dto/search-response.dto';
 import { SpaceRepo } from '../space/space.repo';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const tsquery = require('pg-tsquery');
+const tsquery = require('pg-tsquery')();
 
 interface FindPageOptions {
   includeContent?: boolean;
