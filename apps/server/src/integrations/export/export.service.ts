@@ -8,9 +8,7 @@ import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
 import { turndown } from './turndown-utils';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
-import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
 import { StorageService } from '../storage/storage.service';
 import {
   buildTree,
@@ -26,17 +24,19 @@ import {
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import slugify = require('@sindresorhus/slugify');
+import slugify from '@sindresorhus/slugify';
 import { EnvironmentService } from '../environment/environment.service';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 
 @Injectable()
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
 
   constructor(
+    private readonly spaceRepo: SpaceRepo,
     private readonly pageRepo: PageRepo,
-    @InjectKysely() private readonly db: KyselyDB,
+    private readonly attachmentRepo: AttachmentRepo,
     private readonly storageService: StorageService,
     private readonly environmentService: EnvironmentService,
   ) {}
@@ -76,8 +76,11 @@ export class ExportService {
       </html>`;
     }
 
-    if (format === ExportFormat.Markdown) { 
-      const newPageHtml = pageHtml.replace(/<colgroup[^>]*>[\s\S]*?<\/colgroup>/gmi, '');
+    if (format === ExportFormat.Markdown) {
+      const newPageHtml = pageHtml.replace(
+        /<colgroup[^>]*>[\s\S]*?<\/colgroup>/gim,
+        '',
+      );
       return turndown(newPageHtml);
     }
 
@@ -110,33 +113,18 @@ export class ExportService {
   }
 
   async exportSpace(
+    workspaceId: string,
     spaceId: string,
     format: string,
     includeAttachments: boolean,
   ) {
-    const space = await this.db
-      .selectFrom('spaces')
-      .selectAll()
-      .where('id', '=', spaceId)
-      .executeTakeFirst();
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
 
     if (!space) {
       throw new NotFoundException('Space not found');
     }
 
-    const pages = await this.db
-      .selectFrom('pages')
-      .select([
-        'pages.id',
-        'pages.slugId',
-        'pages.title',
-        'pages.content',
-        'pages.parentPageId',
-        'pages.spaceId',
-        'pages.workspaceId',
-      ])
-      .where('spaceId', '=', spaceId)
-      .execute();
+    const pages = await this.pageRepo.findPagesBySpaceId(spaceId);
 
     const tree = buildTree(pages as Page[]);
 
@@ -218,12 +206,10 @@ export class ExportService {
     const attachmentIds = getAttachmentIds(prosemirrorJson);
 
     if (attachmentIds.length > 0) {
-      const attachments = await this.db
-        .selectFrom('attachments')
-        .selectAll()
-        .where('id', 'in', attachmentIds)
-        .where('spaceId', '=', spaceId)
-        .execute();
+      const attachments = await this.attachmentRepo.findByIdsAndSpaceId(
+        attachmentIds,
+        spaceId,
+      );
 
       await Promise.all(
         attachments.map(async (attachment) => {
@@ -258,20 +244,10 @@ export class ExportService {
       return prosemirrorJson;
     }
 
-    const pages = await this.db
-      .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'creatorId',
-        'spaceId',
-        'workspaceId',
-      ])
-      .select((eb) => this.pageRepo.withSpace(eb))
-      .where('id', 'in', pageMentionIds)
-      .where('workspaceId', '=', workspaceId)
-      .execute();
+    const pages = await this.pageRepo.findPagesByIdsWithSpace(
+      pageMentionIds,
+      workspaceId,
+    );
 
     const pageMap = new Map(pages.map((page) => [page.id, page]));
 

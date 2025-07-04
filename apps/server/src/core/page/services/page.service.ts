@@ -49,14 +49,16 @@ export class PageService {
 
   async findById(
     pageId: string,
-    includeContent?: boolean,
-    includeYdoc?: boolean,
-    includeSpace?: boolean,
+    opts?: {
+      includeContent?: boolean;
+      includeYdoc?: boolean;
+      includeSpace?: boolean;
+    },
   ): Promise<Page> {
     return this.pageRepo.findById(pageId, {
-      includeContent,
-      includeYdoc,
-      includeSpace,
+      includeContent: opts?.includeContent,
+      includeYdoc: opts?.includeYdoc,
+      includeSpace: opts?.includeSpace,
     });
   }
 
@@ -115,43 +117,14 @@ export class PageService {
   }
 
   async nextPagePosition(spaceId: string, parentPageId?: string) {
-    let pagePosition: string;
+    const lastPage = await this.pageRepo.findLastPage(spaceId, parentPageId);
 
-    const lastPageQuery = this.db
-      .selectFrom('pages')
-      .select(['position'])
-      .where('spaceId', '=', spaceId)
-      .orderBy('position', 'desc')
-      .limit(1);
-
-    if (parentPageId) {
-      // check for children of this page
-      const lastPage = await lastPageQuery
-        .where('parentPageId', '=', parentPageId)
-        .executeTakeFirst();
-
-      if (!lastPage) {
-        pagePosition = generateJitteredKeyBetween(null, null);
-      } else {
-        // if there is an existing page, we should get a position below it
-        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
-      }
+    if (!lastPage) {
+      return generateJitteredKeyBetween(null, null);
     } else {
-      // for root page
-      const lastPage = await lastPageQuery
-        .where('parentPageId', 'is', null)
-        .executeTakeFirst();
-
-      // if no existing page, make this the first
-      if (!lastPage) {
-        pagePosition = generateJitteredKeyBetween(null, null); // we expect "a0"
-      } else {
-        // if there is an existing page, we should get a position below it
-        pagePosition = generateJitteredKeyBetween(lastPage.position, null);
-      }
+      // if there is an existing page, we should get a position below it
+      return generateJitteredKeyBetween(lastPage.position, null);
     }
-
-    return pagePosition;
   }
 
   async update(
@@ -181,50 +154,12 @@ export class PageService {
     });
   }
 
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .limit(1)
-      .as('hasChildren');
-  }
-
   async getPagesInSpace(
     spaceId: string,
     pagination?: PaginationOptions,
     trx?: KyselyTransaction,
   ): Promise<PaginationResult<SidebarPageResultDto>> {
-    const query = this.db
-      .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'icon',
-        'position',
-        'parentPageId',
-        'spaceId',
-        'creatorId',
-        'isSynced',
-      ])
-      .orderBy('position', 'asc')
-      .where('spaceId', '=', spaceId);
-
-    const result = executeWithPagination(query, {
-      page: pagination.page,
-      perPage: 250,
-    });
-
-    return result;
+    return this.pageRepo.getPagesInSpace(spaceId, pagination, trx);
   }
 
   async getSidebarPages(
@@ -232,35 +167,7 @@ export class PageService {
     pagination: PaginationOptions,
     pageId?: string,
   ): Promise<PaginationResult<SidebarPageResultDto>> {
-    let query = this.db
-      .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'icon',
-        'position',
-        'parentPageId',
-        'spaceId',
-        'creatorId',
-        'isSynced',
-      ])
-      .select((eb) => this.withHasChildren(eb))
-      .orderBy('position', 'asc')
-      .where('spaceId', '=', spaceId);
-
-    if (pageId) {
-      query = query.where('parentPageId', '=', pageId);
-    } else {
-      query = query.where('parentPageId', 'is', null);
-    }
-
-    const result = executeWithPagination(query, {
-      page: pagination.page,
-      perPage: 250,
-    });
-
-    return result;
+    return this.pageRepo.getSidebarPages(spaceId, pagination, pageId);
   }
 
   async movePageToSpace(
@@ -473,59 +380,8 @@ export class PageService {
     });
   }
 
-  async getPageBreadCrumbs(childPageId: string) {
-    const ancestors = await this.db
-      .withRecursive('page_ancestors', (db) =>
-        db
-          .selectFrom('pages')
-          .select([
-            'id',
-            'slugId',
-            'title',
-            'icon',
-            'position',
-            'parentPageId',
-            'spaceId',
-          ])
-          .select((eb) => this.withHasChildren(eb))
-          .where('id', '=', childPageId)
-          .unionAll((exp) =>
-            exp
-              .selectFrom('pages as p')
-              .select([
-                'p.id',
-                'p.slugId',
-                'p.title',
-                'p.icon',
-                'p.position',
-                'p.parentPageId',
-                'p.spaceId',
-              ])
-              .select(
-                exp
-                  .selectFrom('pages as child')
-                  .select((eb) =>
-                    eb
-                      .case()
-                      .when(eb.fn.countAll(), '>', 0)
-                      .then(true)
-                      .else(false)
-                      .end()
-                      .as('count'),
-                  )
-                  .whereRef('child.parentPageId', '=', 'id')
-                  .limit(1)
-                  .as('hasChildren'),
-              )
-              //.select((eb) => this.withHasChildren(eb))
-              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
-          ),
-      )
-      .selectFrom('page_ancestors')
-      .selectAll()
-      .execute();
-
-    return ancestors.reverse();
+  async getPageBreadCrumbs(childPageId: string): Promise<Partial<Page>[]> {
+    return this.pageRepo.getPageBreadCrumbs(childPageId);
   }
 
   async getRecentSpacePages(
@@ -561,55 +417,7 @@ export class PageService {
     pagination: PaginationOptions,
     pageId?: string,
   ): Promise<PaginationResult<SidebarPageResultDto>> {
-    const baseQuery = this.db
-      .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'icon',
-        'position',
-        'parentPageId',
-        'spaceId',
-        'creatorId',
-        'isSynced',
-      ])
-      .select((eb) => this.withHasChildren(eb))
-      .orderBy('position', 'asc');
-
-    const query = baseQuery.where(
-      'parentPageId',
-      pageId ? '=' : 'is',
-      pageId ?? null,
-    );
-
-    const result: PaginationResult<SidebarPageResultDto> =
-      await executeWithPagination(query, {
-        page: pagination.page,
-        perPage: 250,
-      });
-
-    for (const page of result.items) {
-      const preferences = await this.pageRepo.findUserPagePreferences(
-        page.id,
-        userId,
-      );
-
-      if (!preferences) {
-        await this.pageRepo.createUserPagePreferences({
-          pageId: page.id,
-          userId: userId,
-          position: page.position,
-          color: '#4CAF50',
-        });
-        continue;
-      }
-
-      page.position = preferences.position;
-      page.color = preferences.color ?? '#4CAF50';
-    }
-
-    return result;
+    return this.pageRepo.getMyPages(userId, pagination, pageId);
   }
 
   async updateMyPageColor(dto: MyPageColorDto, userId: string) {

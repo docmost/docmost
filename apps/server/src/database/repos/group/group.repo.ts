@@ -145,4 +145,18 @@ export class GroupRepo {
       .where('workspaceId', '=', workspaceId)
       .execute();
   }
+
+  async searchSuggestionsGroups(
+    query: string,
+    workspaceId: string,
+    limit: number,
+  ): Promise<Partial<Group>[]> {
+    return this.db
+      .selectFrom('groups')
+      .select(['id', 'name', 'description'])
+      .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
+      .where('workspaceId', '=', workspaceId)
+      .limit(limit)
+      .execute();
+  }
 }

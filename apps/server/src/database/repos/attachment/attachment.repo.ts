@@ -27,19 +27,6 @@ export class AttachmentRepo {
       .executeTakeFirst();
   }
 
-  async insertAttachment(
-    insertableAttachment: InsertableAttachment,
-    trx?: KyselyTransaction,
-  ): Promise<Attachment> {
-    const db = dbOrTx(this.db, trx);
-
-    return db
-      .insertInto('attachments')
-      .values(insertableAttachment)
-      .returningAll()
-      .executeTakeFirst();
-  }
-
   async findBySpaceId(
     spaceId: string,
     opts?: {
@@ -53,6 +40,28 @@ export class AttachmentRepo {
       .selectAll()
       .where('spaceId', '=', spaceId)
       .execute();
+  }
+
+  async findByIdsAndSpaceId(attachmentIds: string[], spaceId: string) {
+    return this.db
+      .selectFrom('attachments')
+      .selectAll()
+      .where('id', 'in', attachmentIds)
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
+  async insertAttachment(
+    insertableAttachment: InsertableAttachment,
+    trx?: KyselyTransaction,
+  ): Promise<Attachment> {
+    const db = dbOrTx(this.db, trx);
+
+    return db
+      .insertInto('attachments')
+      .values(insertableAttachment)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   updateAttachmentsByPageId(

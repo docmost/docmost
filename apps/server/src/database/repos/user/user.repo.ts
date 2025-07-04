@@ -169,12 +169,27 @@ export class UserRepo {
       .updateTable('users')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
-                || jsonb_build_object('preferences', COALESCE(settings->'preferences', '{}'::jsonb) 
+                || jsonb_build_object('preferences', COALESCE(settings->'preferences', '{}'::jsonb)
                 || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
         updatedAt: new Date(),
       })
       .where('id', '=', userId)
       .returning(this.baseFields)
       .executeTakeFirst();
+  }
+
+  async searchSuggestionsUsers(
+    query: string,
+    workspaceId: string,
+    limit: number,
+  ): Promise<Partial<User>[]> {
+    return this.db
+      .selectFrom('users')
+      .select(['id', 'name', 'avatarUrl'])
+      .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .limit(limit)
+      .execute();
   }
 }

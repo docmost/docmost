@@ -12,7 +12,7 @@ import {
 import { ExportService } from './export.service';
 import { ExportPageDto, ExportSpaceDto } from './dto/export-dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
-import { User } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
@@ -25,12 +25,14 @@ import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
 import { getMimeType } from '../../common/helpers';
 import * as path from 'path';
+import { AuthWorkspace } from 'src/common/decorators/auth-workspace.decorator';
+import { PageService } from 'src/core/page/services/page.service';
 
 @Controller()
 export class ExportController {
   constructor(
     private readonly exportService: ExportService,
-    private readonly pageRepo: PageRepo,
+    private readonly pageService: PageService,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
@@ -42,7 +44,7 @@ export class ExportController {
     @AuthUser() user: User,
     @Res() res: FastifyReply,
   ) {
-    const page = await this.pageRepo.findById(dto.pageId, {
+    const page = await this.pageService.findById(dto.pageId, {
       includeContent: true,
     });
 
@@ -98,6 +100,7 @@ export class ExportController {
     @Body() dto: ExportSpaceDto,
     @AuthUser() user: User,
     @Res() res: FastifyReply,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
@@ -105,6 +108,7 @@ export class ExportController {
     }
 
     const exportFile = await this.exportService.exportSpace(
+      workspace.id,
       dto.spaceId,
       dto.format,
       dto.includeAttachments,
