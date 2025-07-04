@@ -172,8 +172,6 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
     const commentId = HTMLAttributes?.["data-comment-id"] || null;
     const resolved = HTMLAttributes?.["data-resolved"] || false;
 
-    console.log("firstResolved", resolved);
-
     if (typeof window === "undefined" || typeof document === "undefined") {
       return [
         "span",
