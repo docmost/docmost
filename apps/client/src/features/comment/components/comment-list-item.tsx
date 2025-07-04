@@ -113,6 +113,7 @@ function CommentListItem({ comment, pageId }: CommentListItemProps) {
             <div style={{ visibility: hovered ? "visible" : "hidden" }}>
               {!comment.parentCommentId && isCloudEE && (
                 <ResolveComment 
+                  editor={editor}
                   commentId={comment.id} 
                   pageId={comment.pageId} 
                   resolvedAt={comment.resolvedAt} 

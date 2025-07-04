@@ -2,14 +2,21 @@ import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconCircleCheck, IconCircleCheckFilled } from "@tabler/icons-react";
 import { useResolveCommentMutation } from "@/ee/comment/queries/comment-query";
 import { useTranslation } from "react-i18next";
+import { Editor } from "@tiptap/react";
 
 interface ResolveCommentProps {
+  editor: Editor;
   commentId: string;
   pageId: string;
   resolvedAt?: Date;
 }
 
-function ResolveComment({ commentId, pageId, resolvedAt }: ResolveCommentProps) {
+function ResolveComment({
+  editor,
+  commentId,
+  pageId,
+  resolvedAt,
+}: ResolveCommentProps) {
   const { t } = useTranslation();
   const resolveCommentMutation = useResolveCommentMutation();
 
@@ -23,13 +30,19 @@ function ResolveComment({ commentId, pageId, resolvedAt }: ResolveCommentProps) 
         pageId,
         resolved: !isResolved,
       });
+
+      if (editor) {
+        editor.commands.setCommentResolved(commentId, !isResolved);
+      }
+
+      //
     } catch (error) {
       console.error("Failed to toggle resolved state:", error);
     }
   };
 
   return (
-    <Tooltip 
+    <Tooltip
       label={isResolved ? t("Re-Open comment") : t("Resolve comment")}
       position="top"
     >
@@ -51,4 +64,4 @@ function ResolveComment({ commentId, pageId, resolvedAt }: ResolveCommentProps) 
   );
 }
 
-export default ResolveComment; 
+export default ResolveComment;
