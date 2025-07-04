@@ -1,5 +1,6 @@
 import { Mark, mergeAttributes } from "@tiptap/core";
 import { commentDecoration } from "./comment-decoration";
+import { Plugin } from "@tiptap/pm/state";
 
 export interface ICommentOptions {
   HTMLAttributes: Record<string, any>;
@@ -76,9 +77,9 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
           const element = el as HTMLSpanElement;
           const commentId = element.getAttribute("data-comment-id")?.trim();
           const resolved = element.hasAttribute("data-resolved");
-          
+
           if (!commentId) return false;
-          
+
           return {
             commentId,
             resolved,
@@ -123,7 +124,7 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
             const commentMark = node.marks.find(
               (mark) =>
                 mark.type.name === this.name &&
-                mark.attrs.commentId === commentId,
+                mark.attrs.commentId === commentId
             );
 
             if (commentMark) {
@@ -145,16 +146,20 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
             const commentMark = node.marks.find(
               (mark) =>
                 mark.type.name === this.name &&
-                mark.attrs.commentId === commentId,
+                mark.attrs.commentId === commentId
             );
 
             if (commentMark) {
               // Remove the existing mark and add a new one with updated resolved state
               tr = tr.removeMark(from, to, commentMark);
-              tr = tr.addMark(from, to, this.type.create({
-                commentId: commentMark.attrs.commentId,
-                resolved: resolved,
-              }));
+              tr = tr.addMark(
+                from,
+                to,
+                this.type.create({
+                  commentId: commentMark.attrs.commentId,
+                  resolved: resolved,
+                })
+              );
             }
           });
 
@@ -173,7 +178,7 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
       return [
         "span",
         mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-          class: resolved ? 'comment-mark resolved' : 'comment-mark',
+          class: resolved ? "comment-mark resolved" : "comment-mark",
           "data-comment-id": commentId,
           ...(resolved && { "data-resolved": "true" }),
         }),
@@ -184,12 +189,12 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
     const elem = document.createElement("span");
 
     Object.entries(
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)
     ).forEach(([attr, val]) => elem.setAttribute(attr, val));
 
     // Add resolved class if the comment is resolved
     if (resolved) {
-      elem.classList.add('resolved');
+      elem.classList.add("resolved");
     }
 
     elem.addEventListener("click", (e) => {
@@ -208,9 +213,7 @@ export const Comment = Mark.create<ICommentOptions, ICommentStorage>({
     return elem;
   },
 
-  // @ts-ignore
   addProseMirrorPlugins(): Plugin[] {
-    // @ts-ignore
     return [commentDecoration()];
   },
 });

@@ -38,13 +38,17 @@ export default function Aside() {
             {t(title)}
           </Text>
 
-          <ScrollArea
-            style={{ height: "85vh" }}
-            scrollbarSize={5}
-            type="scroll"
-          >
-            <div style={{ paddingBottom: "200px" }}>{component}</div>
-          </ScrollArea>
+          {tab === "comments" ? (
+            <CommentListWithTabs />
+          ) : (
+            <ScrollArea
+              style={{ height: "85vh" }}
+              scrollbarSize={5}
+              type="scroll"
+            >
+              <div style={{ paddingBottom: "200px" }}>{component}</div>
+            </ScrollArea>
+          )}
         </>
       )}
     </Box>

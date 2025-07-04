@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, memo, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Divider, Paper, Tabs, Badge, Text } from "@mantine/core";
+import { Divider, Paper, Tabs, Badge, Text, ScrollArea } from "@mantine/core";
 import CommentListItem from "@/features/comment/components/comment-list-item";
 import {
   useCommentsQuery,
@@ -43,7 +43,7 @@ function CommentListWithTabs() {
 
   const canComment: boolean = spaceAbility.can(
     SpaceCaslAction.Manage,
-    SpaceCaslSubject.Page,
+    SpaceCaslSubject.Page
   );
 
   // Separate active and resolved comments
@@ -53,14 +53,14 @@ function CommentListWithTabs() {
     }
 
     const parentComments = comments.items.filter(
-      (comment: IComment) => comment.parentCommentId === null,
+      (comment: IComment) => comment.parentCommentId === null
     );
 
     const active = parentComments.filter(
-      (comment: IComment) => !comment.resolvedAt,
+      (comment: IComment) => !comment.resolvedAt
     );
     const resolved = parentComments.filter(
-      (comment: IComment) => comment.resolvedAt,
+      (comment: IComment) => comment.resolvedAt
     );
 
     return { activeComments: active, resolvedComments: resolved };
@@ -88,7 +88,7 @@ function CommentListWithTabs() {
         setIsLoading(false);
       }
     },
-    [createCommentMutation, page?.id],
+    [createCommentMutation, page?.id]
   );
 
   const renderComments = useCallback(
@@ -128,7 +128,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading],
+    [comments, handleAddReply, isLoading]
   );
 
   if (isCommentsLoading) {
@@ -141,66 +141,78 @@ function CommentListWithTabs() {
 
   const totalComments = activeComments.length + resolvedComments.length;
 
-  if (totalComments === 0) {
-    return <>{t("No comments yet.")}</>;
-  }
-
   // If not cloud/enterprise, show simple list without tabs
   if (!isCloudEE) {
+    if (totalComments === 0) {
+      return <>{t("No comments yet.")}</>;
+    }
+
     return (
-      <div>
-        {comments?.items
-          .filter((comment: IComment) => comment.parentCommentId === null)
-          .map(renderComments)}
-      </div>
+      <ScrollArea style={{ height: "85vh" }} scrollbarSize={5} type="scroll">
+        <div style={{ paddingBottom: "200px" }}>
+          {comments?.items
+            .filter((comment: IComment) => comment.parentCommentId === null)
+            .map(renderComments)}
+        </div>
+      </ScrollArea>
     );
   }
 
   return (
-    <Tabs defaultValue="open" variant="default">
-      <Tabs.List justify="center">
-        <Tabs.Tab
-          value="open"
-          leftSection={
-            <Badge size="xs" variant="light" color="blue">
-              {activeComments.length}
-            </Badge>
-          }
-        >
-          {t("Open")}
-        </Tabs.Tab>
-        <Tabs.Tab
-          value="resolved"
-          leftSection={
-            <Badge size="xs" variant="light" color="green">
-              {resolvedComments.length}
-            </Badge>
-          }
-        >
-          {t("Resolved")}
-        </Tabs.Tab>
-      </Tabs.List>
+    <div style={{ height: "85vh", display: "flex", flexDirection: "column", marginTop: '-15px' }}>
+      <Tabs defaultValue="open" variant="default" style={{ flex: "0 0 auto" }}>
+        <Tabs.List justify="center">
+          <Tabs.Tab
+            value="open"
+            leftSection={
+              <Badge size="sm" variant="light" color="blue">
+                {activeComments.length}
+              </Badge>
+            }
+          >
+            {t("Open")}
+          </Tabs.Tab>
+          <Tabs.Tab
+            value="resolved"
+            leftSection={
+              <Badge size="sm" variant="light" color="green">
+                {resolvedComments.length}
+              </Badge>
+            }
+          >
+            {t("Resolved")}
+          </Tabs.Tab>
+        </Tabs.List>
 
-      <Tabs.Panel value="open" pt="xs">
-        {activeComments.length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="md">
-            {t("No open comments.")}
-          </Text>
-        ) : (
-          activeComments.map(renderComments)
-        )}
-      </Tabs.Panel>
+        <ScrollArea
+          style={{ flex: "1 1 auto", height: "calc(85vh - 60px)" }}
+          scrollbarSize={5}
+          type="scroll"
+        >
+          <div style={{ paddingBottom: "200px" }}>
+            <Tabs.Panel value="open" pt="xs">
+              {activeComments.length === 0 ? (
+                <Text size="sm" c="dimmed" ta="center" py="md">
+                  {t("No open comments.")}
+                </Text>
+              ) : (
+                activeComments.map(renderComments)
+              )}
+            </Tabs.Panel>
 
-      <Tabs.Panel value="resolved" pt="xs">
-        {resolvedComments.length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="md">
-            {t("No resolved comments.")}
-          </Text>
-        ) : (
-          resolvedComments.map(renderComments)
-        )}
-      </Tabs.Panel>
-    </Tabs>
+            <Tabs.Panel value="resolved" pt="xs">
+              {resolvedComments.length === 0 ? (
+                <Text size="sm" c="dimmed" ta="center" py="md">
+                  {t("No resolved comments.")}
+                </Text>
+              ) : (
+                resolvedComments.map(renderComments)
+              )}
+            </Tabs.Panel>
+          </div>
+        </ScrollArea>
+      </Tabs>
+    </div>
   );
 }
 
@@ -219,9 +231,9 @@ const ChildComments = ({
   const getChildComments = useCallback(
     (parentId: string) =>
       comments.items.filter(
-        (comment: IComment) => comment.parentCommentId === parentId,
+        (comment: IComment) => comment.parentCommentId === parentId
       ),
-    [comments.items],
+    [comments.items]
   );
 
   return (
