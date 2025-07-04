@@ -1,6 +1,6 @@
 import { Flex, Box, useComputedColorScheme } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import ForceGraph2D, {
   GraphData,
   LinkObject,
@@ -13,17 +13,23 @@ import { useNavigate } from "react-router-dom";
 
 const GRAPH_CONFIG = {
   label: {
-    baseSize: 10,
-    maxSize: 14,
-    strokeSize: 0.8,
+    baseSize: 11,
+    maxSize: 15,
+    minSize: 9,
+    strokeSize: 2,
     paddingX: 0,
     paddingY: 6,
+    maxOpacity: 1,
+    minOpacity: 0.7,
+    zoomThreshold: 0.4,
+    zoomScaleFactor: 0.8,
   },
   node: {
     minSize: 3,
     maxSize: 8,
     baseBorder: 1.2,
     maxBorder: 2,
+    hoverScale: 1.1,
   },
   link: {
     width: 1,
@@ -31,6 +37,7 @@ const GRAPH_CONFIG = {
     arrowLength: 4,
     opacity: 0.3,
     highlightOpacity: 0.8,
+    dimOpacity: 0.1,
     particle: {
       number: 0,
       highlightNumber: 1,
@@ -41,32 +48,38 @@ const GRAPH_CONFIG = {
   },
   colors: {
     light: {
-      parent: "rgba(1, 82, 162, 0.4)",
-      backlink: "rgba(138, 0, 0, 0.4)",
-      parentNotHighlight: "rgba(127, 147, 167, 0.2)",
-      backlinkNotHighlight: "rgba(152, 119, 119, 0.2)",
-      node: "#244561",
-      nodeBorder: "#b3cde6",
-      nodeBorderHover: "#DA0000",
-      nodeBorderHighlight: "#F78844",
-      nodeNotHighlight: "#9C9D9F",
-      nodeBorderNotHighlight: "#CECECE",
-      text: "#495057",
+      parent: "#4285F4",
+      backlink: "#EA4335",
+      parentNotHighlight: "rgba(66, 133, 244, 0.2)",
+      backlinkNotHighlight: "rgba(234, 67, 53, 0.2)",
+      node: "#5f6368",
+      nodeBorder: "#dadce0",
+      nodeBorderHover: "#4285F4",
+      nodeBorderHighlight: "#34A853",
+      nodeNotHighlight: "#9aa0a6",
+      nodeBorderNotHighlight: "#f1f3f4",
+      nodeHover: "#1a73e8",
+      text: "#202124",
       textBorder: "rgba(255, 255, 255, 0.8)",
+      textHighlight: "#1a73e8",
+      textDimmed: "#9aa0a6",
     },
     dark: {
-      parent: "rgba(116, 184, 252, 0.5)",
-      backlink: "rgba(255, 117, 117, 0.5)",
-      parentNotHighlight: "rgba(112, 143, 174, 0.25)",
-      backlinkNotHighlight: "rgba(162, 118, 118, 0.25)",
-      node: "#b3cde6",
-      nodeBorder: "#244561",
-      nodeBorderHover: "#DA0000",
-      nodeBorderHighlight: "#F78844",
-      nodeNotHighlight: "#9C9D9F",
-      nodeBorderNotHighlight: "#CECECE",
-      text: "#c9c9c9",
-      textBorder: "rgba(36, 36, 36, 0.8)",
+      parent: "#8ab4f8",
+      backlink: "#f28b82",
+      parentNotHighlight: "rgba(138, 180, 248, 0.25)",
+      backlinkNotHighlight: "rgba(242, 139, 130, 0.25)",
+      node: "#9aa0a6",
+      nodeBorder: "#5f6368",
+      nodeBorderHover: "#8ab4f8",
+      nodeBorderHighlight: "#81c995",
+      nodeNotHighlight: "#5f6368",
+      nodeBorderNotHighlight: "#3c4043",
+      nodeHover: "#aecbfa",
+      text: "#e8eaed",
+      textBorder: "rgba(32, 33, 36, 0.8)",
+      textHighlight: "#aecbfa",
+      textDimmed: "#9aa0a6",
     },
   },
 };
@@ -74,7 +87,7 @@ const GRAPH_CONFIG = {
 function assignCurvature(
   links: LinkObject<IGraphDataNode, IGraphDataLink>[]
 ): LinkObject<IGraphDataNode, IGraphDataLink>[] {
-  const groupedLinks = {};
+  const groupedLinks: Record<string, LinkObject<IGraphDataNode, IGraphDataLink>[]> = {};
 
   links.forEach((link) => {
     const key = `${link.source}|${link.target}`;
@@ -83,7 +96,7 @@ function assignCurvature(
   });
 
   Object.values(groupedLinks).forEach(
-    (group: LinkObject<IGraphDataNode, IGraphDataLink>[]) => {
+    (group) => {
       const len = group.length;
       group.forEach((link, i) => {
         const spread = 0.3;
@@ -99,132 +112,6 @@ function assignCurvature(
   return links;
 }
 
-function getLinkColor(
-  link: LinkObject<IGraphDataNode, IGraphDataLink>,
-  highlightLinks: Set<LinkObject<IGraphDataNode, IGraphDataLink>>,
-  hoverNode: NodeObject<IGraphDataNode> | null,
-  colorScheme: string
-) {
-  const colors = GRAPH_CONFIG.colors[colorScheme];
-  const isHighlighted = highlightLinks.has(link);
-  const shouldDim =
-    (highlightLinks.size > 0 && !isHighlighted) ||
-    (highlightLinks.size === 0 && hoverNode);
-
-  if (link.type === "backlink") {
-    return shouldDim ? colors.backlinkNotHighlight : colors.backlink;
-  }
-  return shouldDim ? colors.parentNotHighlight : colors.parent;
-}
-
-function getNodeColors(
-  node: NodeObject<IGraphDataNode>,
-  hoverNode: NodeObject<IGraphDataNode> | null,
-  highlightNodes: Set<NodeObject<IGraphDataNode>>,
-  colorScheme: string
-) {
-  const colors = GRAPH_CONFIG.colors[colorScheme];
-  const isHovered = node === hoverNode;
-  const isHighlighted = highlightNodes.has(node);
-  const shouldDim =
-    (highlightNodes.size === 1 && hoverNode && !isHighlighted) ||
-    (highlightNodes.size > 0 && !isHighlighted);
-
-  let borderColor = colors.nodeBorder;
-  let fillColor = colors.node;
-
-  if (isHovered) {
-    borderColor = colors.nodeBorderHover;
-  } else if (isHighlighted) {
-    borderColor = colors.nodeBorderHighlight;
-  } else if (shouldDim) {
-    borderColor = colors.nodeBorderNotHighlight;
-    fillColor = colors.nodeNotHighlight;
-  }
-
-  return { borderColor, fillColor };
-}
-
-function getNodeSize(node: NodeObject<IGraphDataNode>, maxConnections: number, minConnections: number) {
-  const connectionCount = node.neighbors?.size || 0;
-  const normalizedSize = maxConnections > minConnections
-    ? (connectionCount - minConnections) / (maxConnections - minConnections)
-    : 0.5;
-
-  const nodeSize = GRAPH_CONFIG.node.minSize +
-    (GRAPH_CONFIG.node.maxSize - GRAPH_CONFIG.node.minSize) * normalizedSize;
-
-  const borderSize = GRAPH_CONFIG.node.baseBorder +
-    (GRAPH_CONFIG.node.maxBorder - GRAPH_CONFIG.node.baseBorder) * normalizedSize;
-
-  const labelSize = GRAPH_CONFIG.label.baseSize +
-    (GRAPH_CONFIG.label.maxSize - GRAPH_CONFIG.label.baseSize) * normalizedSize * 0.5;
-
-  return { nodeSize, borderSize, labelSize };
-}
-
-function drawNode(
-  node: NodeObject<IGraphDataNode>,
-  ctx: CanvasRenderingContext2D,
-  globalScale: number,
-  hoverNode: NodeObject<IGraphDataNode> | null,
-  highlightNodes: Set<NodeObject<IGraphDataNode>>,
-  colorScheme: string,
-  maxConnections: number,
-  minConnections: number
-) {
-  const { borderColor, fillColor } = getNodeColors(
-    node,
-    hoverNode,
-    highlightNodes,
-    colorScheme
-  );
-  const { nodeSize, borderSize, labelSize } = getNodeSize(node, maxConnections, minConnections);
-  const colors = GRAPH_CONFIG.colors[colorScheme];
-
-  // Draw border
-  ctx.beginPath();
-  ctx.arc(
-    node.x!,
-    node.y!,
-    nodeSize + borderSize,
-    0,
-    2 * Math.PI,
-    false
-  );
-  ctx.fillStyle = borderColor;
-  ctx.fill();
-
-  // Draw node
-  ctx.beginPath();
-  ctx.arc(node.x!, node.y!, nodeSize, 0, 2 * Math.PI, false);
-  ctx.fillStyle = fillColor;
-  ctx.fill();
-
-  // Draw label
-  const fontSize = labelSize / globalScale;
-  ctx.font = `${fontSize}px Sans-Serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-
-  // Text border
-  ctx.strokeStyle = colors.textBorder;
-  ctx.lineWidth = GRAPH_CONFIG.label.strokeSize / globalScale;
-  ctx.strokeText(
-    node.title!,
-    node.x! + GRAPH_CONFIG.label.paddingX,
-    node.y! + nodeSize + borderSize + GRAPH_CONFIG.label.paddingY
-  );
-
-  // Text fill
-  ctx.fillStyle = colors.text;
-  ctx.fillText(
-    node.title!,
-    node.x! + GRAPH_CONFIG.label.paddingX,
-    node.y! + nodeSize + borderSize + GRAPH_CONFIG.label.paddingY
-  );
-}
-
 export default function Graph({ space }) {
   const navigate = useNavigate();
   const computedColorScheme = useComputedColorScheme();
@@ -232,24 +119,276 @@ export default function Graph({ space }) {
   const graphRef = useRef<any>();
   const {
     data: graphData,
-    isLoading,
     isFetching,
-    isError,
     refetch,
   } = useGetSpaceGraph(space.id);
 
-  const [data, setData] = useState<
-    GraphData<IGraphDataNode, IGraphDataLink>
-  >();
-  const [highlightNodes, setHighlightNodes] = useState<
-    Set<NodeObject<IGraphDataNode>>
-  >(new Set());
-  const [highlightLinks, setHighlightLinks] = useState<
-    Set<LinkObject<IGraphDataNode, IGraphDataLink>>
-  >(new Set());
-  const [hoverNode, setHoverNode] = useState<NodeObject<IGraphDataNode> | null>(null);
-  const [maxConnections, setMaxConnections] = useState(1);
-  const [minConnections, setMinConnections] = useState(0);
+  const [data, setData] = useState<GraphData<IGraphDataNode, IGraphDataLink>>();
+  const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
+  const [hoverLinkId, setHoverLinkId] = useState<string | null>(null);
+
+  const colors = useMemo(
+    () => GRAPH_CONFIG.colors[computedColorScheme],
+    [computedColorScheme]
+  );
+
+  const { nodeMap, linkMap, connectionStats } = useMemo(() => {
+    if (!data) return { nodeMap: new Map(), linkMap: new Map(), connectionStats: { max: 1, min: 0 } };
+
+    const nodeMap = new Map<string, NodeObject<IGraphDataNode>>();
+    const linkMap = new Map<string, LinkObject<IGraphDataNode, IGraphDataLink>>();
+    
+    data.nodes.forEach((node) => {
+      nodeMap.set(node.id as string, node);
+    });
+
+    data.links.forEach((link) => {
+      const linkId = `${link.source}-${link.target}-${link.type}`;
+      linkMap.set(linkId, link);
+    });
+
+    const connectionCounts = data.nodes.map(node => node.neighbors?.size || 0);
+    const connectionStats = {
+      max: Math.max(...connectionCounts, 1),
+      min: Math.min(...connectionCounts, 0),
+    };
+
+    return { nodeMap, linkMap, connectionStats };
+  }, [data]);
+
+  const highlightData = useMemo(() => {
+    if (!hoverNodeId && !hoverLinkId) {
+      return { 
+        directNodes: new Set<string>(), 
+        directLinks: new Set<string>()
+      };
+    }
+
+    const directNodes = new Set<string>();
+    const directLinks = new Set<string>();
+
+    if (hoverNodeId) {
+      directNodes.add(hoverNodeId);
+      
+      if (data) {
+        data.links.forEach((link) => {
+          const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+          const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+          
+          if (sourceId === hoverNodeId) {
+            directNodes.add(targetId);
+            const linkId = `${link.source}-${link.target}-${link.type}`;
+            directLinks.add(linkId);
+          } else if (targetId === hoverNodeId) {
+            directNodes.add(sourceId);
+            const linkId = `${link.source}-${link.target}-${link.type}`;
+            directLinks.add(linkId);
+          }
+        });
+      }
+    }
+
+    if (hoverLinkId) {
+      const link = linkMap.get(hoverLinkId);
+      if (link) {
+        directLinks.add(hoverLinkId);
+        const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+        const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+        directNodes.add(sourceId);
+        directNodes.add(targetId);
+      }
+    }
+
+    return { directNodes, directLinks };
+  }, [hoverNodeId, hoverLinkId, data, linkMap]);
+
+  const getLinkColor = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
+      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const isDirectHighlight = highlightData.directLinks.has(linkId);
+      const shouldDim = (hoverNodeId || hoverLinkId) && !isDirectHighlight;
+
+      if (link.type === "backlink") {
+        if (shouldDim) return colors.backlinkNotHighlight;
+        return isDirectHighlight ? colors.backlink : colors.backlinkNotHighlight;
+      }
+
+      if (shouldDim) return colors.parentNotHighlight;
+      return isDirectHighlight ? colors.parent : colors.parentNotHighlight;
+    },
+    [highlightData.directLinks, hoverNodeId, hoverLinkId, colors]
+  );
+
+  const getNodeSize = useCallback(
+    (node: NodeObject<IGraphDataNode>, isHovered: boolean = false, globalScale: number = 1) => {
+      const connectionCount = node.neighbors?.size || 0;
+      const normalizedSize = connectionStats.max > connectionStats.min
+        ? (connectionCount - connectionStats.min) / (connectionStats.max - connectionStats.min)
+        : 0.5;
+
+      const baseNodeSize = GRAPH_CONFIG.node.minSize +
+        (GRAPH_CONFIG.node.maxSize - GRAPH_CONFIG.node.minSize) * normalizedSize;
+      
+      const nodeSize = isHovered 
+        ? baseNodeSize * GRAPH_CONFIG.node.hoverScale 
+        : baseNodeSize;
+
+      const borderSize = GRAPH_CONFIG.node.baseBorder +
+        (GRAPH_CONFIG.node.maxBorder - GRAPH_CONFIG.node.baseBorder) * normalizedSize;
+
+      const baseTextSize = GRAPH_CONFIG.label.minSize +
+        (GRAPH_CONFIG.label.maxSize - GRAPH_CONFIG.label.minSize) * normalizedSize * 0.6;
+      
+      const zoomAdjustedTextSize = baseTextSize * Math.pow(globalScale, GRAPH_CONFIG.label.zoomScaleFactor);
+      const labelSize = Math.max(GRAPH_CONFIG.label.minSize * 0.5, zoomAdjustedTextSize);
+
+      return { nodeSize, borderSize, labelSize };
+    },
+    [connectionStats.max, connectionStats.min]
+  );
+
+  const paint = useCallback(
+    (
+      node: NodeObject<IGraphDataNode>,
+      ctx: CanvasRenderingContext2D,
+      globalScale: number
+    ) => {
+      const nodeId = node.id as string;
+      const isHovered = nodeId === hoverNodeId;
+      const isDirectHighlight = highlightData.directNodes.has(nodeId);
+      const shouldDim = (hoverNodeId || hoverLinkId) && !isDirectHighlight && !isHovered;
+
+      let borderColor = colors.nodeBorder;
+      let fillColor = colors.node;
+
+      if (isHovered) {
+        borderColor = colors.nodeBorderHover;
+        fillColor = colors.nodeHover;
+      } else if (isDirectHighlight) {
+        borderColor = colors.nodeBorderHighlight;
+        fillColor = colors.node;
+      } else if (shouldDim) {
+        borderColor = colors.nodeBorderNotHighlight;
+        fillColor = colors.nodeNotHighlight;
+      }
+
+      const { nodeSize, borderSize, labelSize } = getNodeSize(node, isHovered, globalScale);
+
+      ctx.beginPath();
+      ctx.arc(node.x!, node.y!, nodeSize + borderSize, 0, 2 * Math.PI, false);
+      ctx.fillStyle = borderColor;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(node.x!, node.y!, nodeSize, 0, 2 * Math.PI, false);
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      const shouldShowLabel = globalScale > GRAPH_CONFIG.label.zoomThreshold || 
+                             isHovered || 
+                             isDirectHighlight;
+
+      if (shouldShowLabel) {
+        const fontSize = labelSize / globalScale;
+        ctx.font = `${isHovered ? 'bold' : 'normal'} ${fontSize}px Sans-Serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+
+        let textOpacity = GRAPH_CONFIG.label.minOpacity;
+        if (isHovered || isDirectHighlight) {
+          textOpacity = GRAPH_CONFIG.label.maxOpacity;
+        } else if (shouldDim) {
+          textOpacity = GRAPH_CONFIG.label.minOpacity * 0.5;
+        } else {
+          textOpacity = Math.min(
+            GRAPH_CONFIG.label.maxOpacity,
+            Math.max(GRAPH_CONFIG.label.minOpacity, globalScale)
+          );
+        }
+
+        ctx.lineWidth = GRAPH_CONFIG.label.strokeSize / globalScale;
+        ctx.strokeStyle = colors.textBorder;
+        ctx.globalAlpha = textOpacity;
+        ctx.strokeText(
+          node.title!,
+          node.x! + GRAPH_CONFIG.label.paddingX,
+          node.y! + nodeSize + borderSize + GRAPH_CONFIG.label.paddingY
+        );
+
+        let textColor = colors.text;
+        if (isHovered || isDirectHighlight) {
+          textColor = colors.textHighlight;
+        } else if (shouldDim) {
+          textColor = colors.textDimmed;
+        }
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(
+          node.title!,
+          node.x! + GRAPH_CONFIG.label.paddingX,
+          node.y! + nodeSize + borderSize + GRAPH_CONFIG.label.paddingY
+        );
+
+        ctx.globalAlpha = 1;
+      }
+    },
+    [hoverNodeId, hoverLinkId, highlightData, colors, getNodeSize]
+  );
+
+  const handleNodeHover = useCallback(
+    (node: NodeObject<IGraphDataNode> | null) => {
+      const nodeId = node?.id as string | null;
+      if (nodeId !== hoverNodeId) {
+        setHoverNodeId(nodeId);
+        setHoverLinkId(null);
+      }
+    },
+    [hoverNodeId]
+  );
+
+  const handleLinkHover = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink> | null) => {
+      const linkId = link ? `${link.source}-${link.target}-${link.type}` : null;
+      if (linkId !== hoverLinkId) {
+        setHoverLinkId(linkId);
+        setHoverNodeId(null);
+      }
+    },
+    [hoverLinkId]
+  );
+
+  const handleNodeClick = useCallback(
+    (node: NodeObject<IGraphDataNode>) => {
+      if (node) {
+        navigate(buildPageUrl(space.slug, node.slugId!, node.title!));
+      }
+    },
+    [navigate, space.slug]
+  );
+
+  const getLinkWidth = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
+      const linkId = `${link.source}-${link.target}-${link.type}`;
+      return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.highlightWidth : GRAPH_CONFIG.link.width;
+    },
+    [highlightData.directLinks]
+  );
+
+  const getLinkParticles = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
+      const linkId = `${link.source}-${link.target}-${link.type}`;
+      return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.particle.highlightNumber : GRAPH_CONFIG.link.particle.number;
+    },
+    [highlightData.directLinks]
+  );
+
+  const getLinkParticleWidth = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
+      const linkId = `${link.source}-${link.target}-${link.type}`;
+      return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.particle.highlightWidth : GRAPH_CONFIG.link.particle.width;
+    },
+    [highlightData.directLinks]
+  );
 
   useEffect(() => {
     setData(undefined);
@@ -299,14 +438,6 @@ export default function Graph({ space }) {
         }
       });
 
-      // Calculate connection statistics
-      const connectionCounts = Array.from(nodeMap.values()).map(node => node.neighbors?.size || 0);
-      const maxConn = Math.max(...connectionCounts, 1);
-      const minConn = Math.min(...connectionCounts, 0);
-
-      setMaxConnections(maxConn);
-      setMinConnections(minConn);
-
       const tempData = {
         nodes: Array.from(nodeMap.values()),
         links: assignCurvature(links),
@@ -320,64 +451,8 @@ export default function Graph({ space }) {
     if (data && graphRef.current) {
       graphRef.current.d3Force("charge")?.strength(-40);
       graphRef.current.d3Force("link")?.distance(70);
-      setTimeout(() => {
-        graphRef.current.zoomToFit(400, 100);
-      }, 2000);
     }
   }, [data]);
-
-  const handleNodeHover = (
-    node: NodeObject<IGraphDataNode> | null,
-    previousNode: NodeObject<IGraphDataNode> | null
-  ) => {
-    const newHighlightNodes = new Set<NodeObject<IGraphDataNode>>();
-    const newHighlightLinks = new Set<LinkObject<IGraphDataNode, IGraphDataLink>>();
-
-    if (node) {
-      newHighlightNodes.add(node);
-      node.neighbors?.forEach((neighbor) => newHighlightNodes.add(neighbor));
-      node.links?.forEach((link) => newHighlightLinks.add(link));
-    }
-
-    setHoverNode(node);
-    setHighlightNodes(newHighlightNodes);
-    setHighlightLinks(newHighlightLinks);
-  };
-
-  const handleLinkHover = (
-    link: LinkObject<IGraphDataNode, IGraphDataLink> | null
-  ) => {
-    const newHighlightNodes = new Set<NodeObject<IGraphDataNode>>();
-    const newHighlightLinks = new Set<LinkObject<IGraphDataNode, IGraphDataLink>>();
-
-    if (link) {
-      newHighlightLinks.add(link);
-      newHighlightNodes.add(link.source as NodeObject<IGraphDataNode>);
-      newHighlightNodes.add(link.target as NodeObject<IGraphDataNode>);
-    }
-    setHighlightNodes(newHighlightNodes);
-    setHighlightLinks(newHighlightLinks);
-  };
-
-  const paint = useCallback(
-    (
-      node: NodeObject<IGraphDataNode>,
-      ctx: CanvasRenderingContext2D,
-      globalScale: number
-    ) => {
-      drawNode(
-        node,
-        ctx,
-        globalScale,
-        hoverNode,
-        highlightNodes,
-        computedColorScheme,
-        maxConnections,
-        minConnections
-      );
-    },
-    [hoverNode, highlightNodes, computedColorScheme, maxConnections, minConnections]
-  );
 
   return (
     <Flex direction="column" style={{ height: "85vh" }}>
@@ -388,37 +463,20 @@ export default function Graph({ space }) {
             graphData={data}
             width={width}
             height={height}
-            linkColor={(link) =>
-              getLinkColor(link, highlightLinks, hoverNode, computedColorScheme)
-            }
-            linkCurvature={(link) => link.curvature || 0}
+            backgroundColor={computedColorScheme === 'dark' ? '#1a1b1e' : '#ffffff'}
+            linkColor={getLinkColor}
+            linkCurvature={(link: LinkObject<IGraphDataNode, IGraphDataLink>) => link.curvature || 0}
             linkDirectionalArrowLength={GRAPH_CONFIG.link.arrowLength}
             linkDirectionalArrowRelPos={1}
-            linkDirectionalParticles={(link) =>
-              highlightLinks.has(link)
-                ? GRAPH_CONFIG.link.particle.highlightNumber
-                : GRAPH_CONFIG.link.particle.number
-            }
-            linkDirectionalParticleWidth={(link) =>
-              highlightLinks.has(link)
-                ? GRAPH_CONFIG.link.particle.highlightWidth
-                : GRAPH_CONFIG.link.particle.width
-            }
-            linkWidth={(link) =>
-              highlightLinks.has(link)
-                ? GRAPH_CONFIG.link.highlightWidth
-                : GRAPH_CONFIG.link.width
-            }
+            linkDirectionalParticles={getLinkParticles}
+            linkDirectionalParticleWidth={getLinkParticleWidth}
+            linkWidth={getLinkWidth}
             linkDirectionalParticleSpeed={GRAPH_CONFIG.link.particle.speed}
             nodeCanvasObject={paint}
             nodeVal={1}
             onNodeHover={handleNodeHover}
             onLinkHover={handleLinkHover}
-            onNodeClick={(node, event) => {
-              if (node) {
-                navigate(buildPageUrl(space.slug, node.slugId!, node.title!));
-              }
-            }}
+            onNodeClick={handleNodeClick}
             cooldownTicks={1000}
           />
         )}
