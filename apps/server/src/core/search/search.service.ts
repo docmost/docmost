@@ -9,6 +9,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { DB } from '@docmost/db/types/db';
 import { extractHeadingsFromContent } from './utils/heading-extractor';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tsquery = require('pg-tsquery')();
@@ -20,6 +21,7 @@ export class SearchService {
     private pageRepo: PageRepo,
     private shareRepo: ShareRepo,
     private spaceMemberRepo: SpaceMemberRepo,
+    private userRepo: UserRepo,
   ) {}
 
   async searchPage(
@@ -140,14 +142,15 @@ export class SearchService {
     const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
-      users = await this.db
-        .selectFrom('users')
-        .select(['id', 'name', 'avatarUrl'])
-        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
-        .where('workspaceId', '=', workspaceId)
-        .where('deletedAt', 'is', null)
-        .limit(limit)
-        .execute();
+      users = (await this.userRepo.getUsersInSpacesOfUser(
+        workspaceId,
+        userId,
+        {
+          query: query,
+          limit: limit,
+          page: 1,
+        },
+      )).items;
     }
 
     if (suggestion.includeGroups) {
