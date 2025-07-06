@@ -1,4 +1,4 @@
-import { Flex, Box, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { Flex, Box, useComputedColorScheme } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import ForceGraph2D, {
@@ -115,7 +115,6 @@ function assignCurvature(
 export default function Graph({ space }) {
   const navigate = useNavigate();
   const computedColorScheme = useComputedColorScheme();
-  const theme = useMantineTheme();
   const { ref, width, height } = useElementSize();
   const graphRef = useRef<any>();
   const {
