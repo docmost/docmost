@@ -14,7 +14,7 @@ export default function SpaceGraph() {
       <Helmet>
         <title>{space?.name || 'Overview'} - {getAppName()}</title>
       </Helmet>
-      <Container fluid={true} pt="xl">
+      <Container fluid={true}>
         {space && <Graph space={space}/>}
       </Container>
     </>

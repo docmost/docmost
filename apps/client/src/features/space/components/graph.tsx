@@ -1,4 +1,4 @@
-import { Flex, Box, useComputedColorScheme } from "@mantine/core";
+import { Flex, Box, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import ForceGraph2D, {
@@ -50,8 +50,8 @@ const GRAPH_CONFIG = {
     light: {
       parent: "#4285F4",
       backlink: "#EA4335",
-      parentNotHighlight: "rgba(66, 133, 244, 0.2)",
-      backlinkNotHighlight: "rgba(234, 67, 53, 0.2)",
+      parentNotHighlight: "rgba(66, 133, 244, 0.15)",
+      backlinkNotHighlight: "rgba(234, 67, 53, 0.15)",
       node: "#5f6368",
       nodeBorder: "#dadce0",
       nodeBorderHover: "#4285F4",
@@ -60,25 +60,25 @@ const GRAPH_CONFIG = {
       nodeBorderNotHighlight: "#f1f3f4",
       nodeHover: "#1a73e8",
       text: "#202124",
-      textBorder: "rgba(255, 255, 255, 0.8)",
+      textBorder: "rgba(255, 255, 255, 0.9)",
       textHighlight: "#1a73e8",
       textDimmed: "#9aa0a6",
     },
     dark: {
-      parent: "#8ab4f8",
-      backlink: "#f28b82",
-      parentNotHighlight: "rgba(138, 180, 248, 0.25)",
-      backlinkNotHighlight: "rgba(242, 139, 130, 0.25)",
+      parent: "#7db46c",
+      backlink: "#e06c75",
+      parentNotHighlight: "rgba(125, 180, 108, 0.2)",
+      backlinkNotHighlight: "rgba(224, 108, 117, 0.2)",
       node: "#9aa0a6",
       nodeBorder: "#5f6368",
-      nodeBorderHover: "#8ab4f8",
-      nodeBorderHighlight: "#81c995",
+      nodeBorderHover: "#7db46c",
+      nodeBorderHighlight: "#98c379",
       nodeNotHighlight: "#5f6368",
       nodeBorderNotHighlight: "#3c4043",
-      nodeHover: "#aecbfa",
+      nodeHover: "#98c379",
       text: "#e8eaed",
-      textBorder: "rgba(32, 33, 36, 0.8)",
-      textHighlight: "#aecbfa",
+      textBorder: "rgba(32, 33, 36, 0.9)",
+      textHighlight: "#98c379",
       textDimmed: "#9aa0a6",
     },
   },
@@ -115,6 +115,7 @@ function assignCurvature(
 export default function Graph({ space }) {
   const navigate = useNavigate();
   const computedColorScheme = useComputedColorScheme();
+  const theme = useMantineTheme();
   const { ref, width, height } = useElementSize();
   const graphRef = useRef<any>();
   const {
@@ -143,7 +144,9 @@ export default function Graph({ space }) {
     });
 
     data.links.forEach((link) => {
-      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+      const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+      const linkId = `${sourceId}-${targetId}-${link.type}`;
       linkMap.set(linkId, link);
     });
 
@@ -175,13 +178,14 @@ export default function Graph({ space }) {
           const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
           const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
           
-          if (sourceId === hoverNodeId) {
-            directNodes.add(targetId);
-            const linkId = `${link.source}-${link.target}-${link.type}`;
-            directLinks.add(linkId);
-          } else if (targetId === hoverNodeId) {
-            directNodes.add(sourceId);
-            const linkId = `${link.source}-${link.target}-${link.type}`;
+          if (sourceId === hoverNodeId || targetId === hoverNodeId) {
+            if (sourceId === hoverNodeId) {
+              directNodes.add(targetId);
+            } else {
+              directNodes.add(sourceId);
+            }
+            
+            const linkId = `${sourceId}-${targetId}-${link.type}`;
             directLinks.add(linkId);
           }
         });
@@ -204,7 +208,9 @@ export default function Graph({ space }) {
 
   const getLinkColor = useCallback(
     (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
-      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+      const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+      const linkId = `${sourceId}-${targetId}-${link.type}`;
       const isDirectHighlight = highlightData.directLinks.has(linkId);
       const shouldDim = (hoverNodeId || hoverLinkId) && !isDirectHighlight;
 
@@ -245,6 +251,54 @@ export default function Graph({ space }) {
       return { nodeSize, borderSize, labelSize };
     },
     [connectionStats.max, connectionStats.min]
+  );
+
+  const nodePointerAreaPaint = useCallback(
+    (
+      node: NodeObject<IGraphDataNode>,
+      paintColor: string,
+      ctx: CanvasRenderingContext2D,
+      globalScale: number
+    ) => {
+      const { nodeSize, borderSize } = getNodeSize(node, false, globalScale);
+      
+      const clickableRadius = Math.max(nodeSize + borderSize + 3, 8);
+      
+      ctx.fillStyle = paintColor;
+      ctx.beginPath();
+      ctx.arc(node.x!, node.y!, clickableRadius, 0, 2 * Math.PI, false);
+      ctx.fill();
+    },
+    [getNodeSize]
+  );
+
+  const getLinkDirectionalArrowRelPos = useCallback(
+    (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
+      const sourceNode = typeof link.source === 'string'
+        ? nodeMap.get(link.source)
+        : link.source as NodeObject<IGraphDataNode>;
+      const targetNode = typeof link.target === 'string'
+        ? nodeMap.get(link.target)
+        : link.target as NodeObject<IGraphDataNode>;
+
+      if (!sourceNode || !targetNode || !sourceNode.x || !sourceNode.y || !targetNode.x || !targetNode.y) return 0.5;
+
+      const { nodeSize: sourceNodeSize, borderSize: sourceBorderSize } = getNodeSize(sourceNode, false, 1);
+      const { nodeSize: targetNodeSize, borderSize: targetBorderSize } = getNodeSize(targetNode, false, 1);
+
+      const sourceRadius = sourceNodeSize + sourceBorderSize;
+      const targetRadius = targetNodeSize + targetBorderSize;
+
+      const linkLength = Math.sqrt(
+        Math.pow(targetNode.x - sourceNode.x, 2) +
+        Math.pow(targetNode.y - sourceNode.y, 2)
+      );
+      if (linkLength === 0) return 0.5;
+
+      const arrowDistanceFromSource = sourceRadius + (linkLength - sourceRadius - targetRadius) / 2;
+      return Math.max(0.1, Math.min(0.9, arrowDistanceFromSource / linkLength));
+    },
+    [nodeMap, getNodeSize]
   );
 
   const paint = useCallback(
@@ -348,7 +402,11 @@ export default function Graph({ space }) {
 
   const handleLinkHover = useCallback(
     (link: LinkObject<IGraphDataNode, IGraphDataLink> | null) => {
-      const linkId = link ? `${link.source}-${link.target}-${link.type}` : null;
+      const linkId = link ? (() => {
+        const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+        const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+        return `${sourceId}-${targetId}-${link.type}`;
+      })() : null;
       if (linkId !== hoverLinkId) {
         setHoverLinkId(linkId);
         setHoverNodeId(null);
@@ -368,7 +426,9 @@ export default function Graph({ space }) {
 
   const getLinkWidth = useCallback(
     (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
-      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+      const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+      const linkId = `${sourceId}-${targetId}-${link.type}`;
       return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.highlightWidth : GRAPH_CONFIG.link.width;
     },
     [highlightData.directLinks]
@@ -376,7 +436,9 @@ export default function Graph({ space }) {
 
   const getLinkParticles = useCallback(
     (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
-      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+      const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+      const linkId = `${sourceId}-${targetId}-${link.type}`;
       return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.particle.highlightNumber : GRAPH_CONFIG.link.particle.number;
     },
     [highlightData.directLinks]
@@ -384,7 +446,9 @@ export default function Graph({ space }) {
 
   const getLinkParticleWidth = useCallback(
     (link: LinkObject<IGraphDataNode, IGraphDataLink>) => {
-      const linkId = `${link.source}-${link.target}-${link.type}`;
+      const sourceId = typeof link.source === 'string' ? link.source : (link.source as NodeObject<IGraphDataNode>).id as string;
+      const targetId = typeof link.target === 'string' ? link.target : (link.target as NodeObject<IGraphDataNode>).id as string;
+      const linkId = `${sourceId}-${targetId}-${link.type}`;
       return highlightData.directLinks.has(linkId) ? GRAPH_CONFIG.link.particle.highlightWidth : GRAPH_CONFIG.link.particle.width;
     },
     [highlightData.directLinks]
@@ -463,16 +527,17 @@ export default function Graph({ space }) {
             graphData={data}
             width={width}
             height={height}
-            backgroundColor={computedColorScheme === 'dark' ? '#1a1b1e' : '#ffffff'}
+            backgroundColor={`var(--mantine-color-body)`}
             linkColor={getLinkColor}
             linkCurvature={(link: LinkObject<IGraphDataNode, IGraphDataLink>) => link.curvature || 0}
             linkDirectionalArrowLength={GRAPH_CONFIG.link.arrowLength}
-            linkDirectionalArrowRelPos={1}
+            linkDirectionalArrowRelPos={getLinkDirectionalArrowRelPos}
             linkDirectionalParticles={getLinkParticles}
             linkDirectionalParticleWidth={getLinkParticleWidth}
             linkWidth={getLinkWidth}
             linkDirectionalParticleSpeed={GRAPH_CONFIG.link.particle.speed}
             nodeCanvasObject={paint}
+            nodePointerAreaPaint={nodePointerAreaPaint}
             nodeVal={1}
             onNodeHover={handleNodeHover}
             onLinkHover={handleLinkHover}
