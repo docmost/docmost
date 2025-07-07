@@ -26,9 +26,40 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     {option["type"] === "group" && <IconGroupCircle />}
     <div>
       <Text size="sm" lineClamp={1}>{option.label}</Text>
+      {option["type"] === "user" && (<Text size="xs" c="dimmed" lineClamp={1}>{option['email']}</Text>)}
     </div>
   </Group>
 );
+
+const optionsFilter = ({ options, search }) => {
+  if (!search) {
+    return options;
+  }
+
+  const lowerCaseSearch = search.toLowerCase();
+
+  return options.map(group => {
+    const filteredItems = group.items.filter(item => {
+      const label = item.label;
+      const email = item.email;
+
+      if (label && String(label).toLowerCase().includes(lowerCaseSearch)) {
+        return true;
+      }
+
+      if (email && String(email).toLowerCase().includes(lowerCaseSearch)) {
+        return true;
+      }
+
+      return false;
+    });
+
+    return {
+      ...group,
+      items: filteredItems,
+    };
+  });
+};
 
 export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
   const { t } = useTranslation();
@@ -47,6 +78,7 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       const userItems = suggestion?.users.map((user: IUser) => ({
         value: `user-${user.id}`,
         label: user.name,
+        email: user.email,
         avatarUrl: user.avatarUrl,
         type: "user",
       }));
@@ -114,6 +146,7 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       variant="filled"
       onChange={onChange}
       maxValues={50}
+      filter={optionsFilter}
     />
   );
 }
