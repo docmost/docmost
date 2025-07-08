@@ -1,0 +1,34 @@
+/* Ordered list type cycling based on nesting depth */
+ol,
+ol ol ol ol,
+ol ol ol ol ol ol ol,
+ol ol ol ol ol ol ol ol ol ol {
+  list-style-type: decimal;
+}
+
+ol ol,
+ol ol ol ol ol,
+ol ol ol ol ol ol ol ol,
+ol ol ol ol ol ol ol ol ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+ol ol ol,
+ol ol ol ol ol ol,
+ol ol ol ol ol ol ol ol ol,
+ol ol ol ol ol ol ol ol ol ol ol ol {
+  list-style-type: lower-roman;
+}
+
+ol {
+  list-style-position: outside;
+  margin-left: 0.25rem;
+}
+
+/* Nested list spacing */
+ol ol,
+ol ul,
+ul ol {
+  margin-top: 0.1rem;
+  margin-bottom: 0.1rem;
+}
