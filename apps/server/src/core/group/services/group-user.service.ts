@@ -47,6 +47,8 @@ export class GroupUserService {
     const db = dbOrTx(this.db, trx);
     await this.groupService.findAndValidateGroup(groupId, workspaceId, trx);
 
+    if (userIds.length === 0) return;
+
     // make sure we have valid workspace users
     const validUsers = await db
       .selectFrom('users')
