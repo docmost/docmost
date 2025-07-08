@@ -20,6 +20,24 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
       };
     },
 
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        wrap: {
+          default: false,
+          parseHTML: (element) => {
+            const value = element.getAttribute("data-wrap");
+            return value === null || value === "true";
+          },
+          renderHTML: (attributes) => {
+            return {
+              "data-wrap": attributes.wrap.toString(),
+            };
+          },
+        },
+      };
+    },
+
     addKeyboardShortcuts() {
       return {
         ...this.parent?.(),
@@ -77,5 +95,5 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
     addNodeView() {
       return ReactNodeViewRenderer(this.options.view);
     },
-  }
+  },
 );

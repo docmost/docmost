@@ -81,8 +81,8 @@
   }
 
   blockquote {
-    padding-left: 25px;
-    padding-right: 25px;
+    padding-left: var(--mantine-spacing-sm);
+    padding-right: var(--mantine-spacing-sm);
     border-left: 2px solid var(--mantine-color-gray-6);
     background-color: light-dark(
       var(--mantine-color-gray-0),

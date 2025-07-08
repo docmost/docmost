@@ -6,7 +6,7 @@
     }
 
   pre {
-    padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    padding: 5px var(--mantine-spacing-sm);
     margin: 4px;
     font-family: "JetBrainsMono", var(--mantine-font-family-monospace);
     border-radius: var(--mantine-radius-default);
