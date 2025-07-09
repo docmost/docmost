@@ -12,6 +12,7 @@ import {
   IconColumnRemove,
   IconRowRemove,
   IconSquareToggle,
+  IconTableRow,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
@@ -43,6 +44,10 @@ export const TableCellMenu = React.memo(
 
     const deleteRow = useCallback(() => {
       editor.chain().focus().deleteRow().run();
+    }, [editor]);
+
+    const toggleHeaderCell = useCallback(() => {
+      editor.chain().focus().toggleHeaderCell().run();
     }, [editor]);
 
     return (
@@ -101,6 +106,17 @@ export const TableCellMenu = React.memo(
               aria-label={t("Delete row")}
             >
               <IconRowRemove size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header cell")}>
+            <ActionIcon
+              onClick={toggleHeaderCell}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle he  ader cell")}
+            >
+              <IconTableRow size={18} />
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
