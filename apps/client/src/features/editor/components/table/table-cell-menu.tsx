@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { TableBackgroundColor } from "./table-background-color";
+import { TableTextAlignment } from "./table-text-alignment";
 
 export const TableCellMenu = React.memo(
   ({ editor, appendTo }: EditorMenuProps): JSX.Element => {
@@ -67,6 +68,7 @@ export const TableCellMenu = React.memo(
       >
         <ActionIcon.Group>
           <TableBackgroundColor editor={editor} />
+          <TableTextAlignment editor={editor} />
           
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
