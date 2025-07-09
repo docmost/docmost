@@ -513,7 +513,10 @@ export default function Graph({ space }) {
   useEffect(() => {
     if (data && graphRef.current) {
       graphRef.current.d3Force("charge")?.strength(-40);
-      graphRef.current.d3Force("link")?.distance(70);
+      // It prevents nodes from spreading too far apart on the initial render
+      graphRef.current.d3Force("charge")?.distanceMax(250);
+      //It prevents the circular layout when there are many child nodes
+      graphRef.current.d3Force("link")?.distance(() => Math.floor(Math.random() * (130 - 70 + 1)) + 70);
     }
   }, [data]);
 
