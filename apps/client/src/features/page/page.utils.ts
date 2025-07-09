@@ -15,22 +15,29 @@ export const buildPageUrl = (
   spaceName: string,
   pageSlugId: string,
   pageTitle?: string,
+  anchor?: string,
 ): string => {
+  let url: string;
   if (spaceName === undefined) {
-    return `/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+    url = `/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+  } else {
+    url = `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
-  return `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+  return anchor ? `${url}#${anchor}` : url;
 };
 
 export const buildSharedPageUrl = (opts: {
   shareId: string;
   pageSlugId: string;
   pageTitle?: string;
+  anchor?: string;
 }): string => {
-  const { shareId, pageSlugId, pageTitle } = opts;
+  const { shareId, pageSlugId, pageTitle, anchor } = opts;
+  let url: string;
   if (!shareId) {
-    return `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+    url = `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+  } else {
+    url = `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
-
-  return `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
+  return anchor ? `${url}#${anchor}` : url;
 };

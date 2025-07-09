@@ -32,7 +32,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
-  Mention
+  Mention,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -47,7 +47,7 @@ export const tiptapExtensions = [
     codeBlock: false,
   }),
   Comment,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TaskList,
   TaskItem,
   Underline,
@@ -80,7 +80,7 @@ export const tiptapExtensions = [
   Mention,
   UniqueID.configure({
     types: ['heading'],
-    attributeName: 'uid',
+    attributeName: 'nodeId',
   }),
 ] as any;
 

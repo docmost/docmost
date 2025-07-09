@@ -3,7 +3,6 @@ import { uploadImageAction } from "@/features/editor/components/image/upload-ima
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
-import { Slice } from "@tiptap/pm/model";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 
 export const handlePaste = (
@@ -34,7 +33,9 @@ export const handlePaste = (
       return false;
     }
 
-    createMentionAction(url, view, pos, creatorId);
+    const anchor = match[6]; // Extract anchor from the regex match
+    const urlWithoutAnchor = anchor ? url.substring(0, url.indexOf("#")) : url;
+    createMentionAction(urlWithoutAnchor, view, pos, creatorId, anchor);
     return true;
   }
 

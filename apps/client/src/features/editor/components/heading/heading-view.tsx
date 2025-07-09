@@ -21,19 +21,19 @@ export default function HeadingView({ node }: NodeViewProps) {
   const [showAnchorButton, setShowAnchorButton] = useState(false);
 
   const tag: ElementType = `h${node.attrs.level}` as ElementType;
-  const uid = node.attrs.uid;
+  const nodeId = node.attrs.nodeId;
 
   useEffect(() => {
-    if (uid) {
+    if (nodeId) {
       const text = node.textContent || "";
       const textSlug = generateSlug(text);
-      const combined = textSlug ? `${textSlug}-${uid}` : uid;
+      const combined = textSlug ? `${textSlug}-${nodeId}` : nodeId;
       setCombinedId(combined);
-      
+
       const baseUrl = window.location.href.split("#")[0];
       setUrl(`${baseUrl}#${combined}`);
     }
-  }, [uid, node.content]);
+  }, [nodeId, node.content]);
 
   return (
     <NodeViewWrapper
@@ -45,14 +45,10 @@ export default function HeadingView({ node }: NodeViewProps) {
     >
       <Flex gap="sm" justify="flex-start" align="center">
         <NodeViewContent as="span" />
-        {showAnchorButton && uid && combinedId && node.textContent && (
+        {showAnchorButton && nodeId && combinedId && node.textContent && (
           <CopyButton value={url} timeout={2000}>
             {({ copied, copy }) => (
-              <Tooltip
-                label={copied ? t("Copied") : t("Copy anchor link")}
-                withArrow
-                position="right"
-              >
+              <Tooltip disabled={!copied} label={t("Anchor link copied")} openDelay={300} withArrow position="bottom">
                 <ActionIcon
                   color={copied ? "teal" : "gray"}
                   variant="subtle"

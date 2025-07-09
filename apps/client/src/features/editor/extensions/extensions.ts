@@ -77,7 +77,7 @@ import Heading from "@tiptap/extension-heading";
 import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
 import UniqueID from '@tiptap/extension-unique-id';
-import { generateSlugId } from "../utils/nanoid";
+import { generateEditorNodeId } from "../utils/nanoid";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -229,8 +229,8 @@ export const mainExtensions = [
   }),
   UniqueID.configure({
     types: ['heading'],
-    attributeName: 'uid',
-    generateID: () => generateSlugId(),
+    attributeName: 'nodeId',
+    generateID: () => generateEditorNodeId(),
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
 ] as any;
