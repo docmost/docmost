@@ -48,7 +48,9 @@ export const tiptapExtensions = [
   Comment,
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
-  TaskItem,
+  TaskItem.configure({
+    nested: true,
+  }),
   Underline,
   LinkExtension,
   Superscript,
