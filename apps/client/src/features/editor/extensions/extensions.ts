@@ -74,6 +74,7 @@ import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboa
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { countWords } from "alfaaz";
+import { TableDragManager } from "./TableDragManager";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -217,6 +218,7 @@ export const mainExtensions = [
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
   }),
+  TableDragManager
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
