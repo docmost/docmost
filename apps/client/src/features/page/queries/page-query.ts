@@ -62,6 +62,7 @@ export function useCreatePageMutation() {
     mutationFn: (data) => createPage(data),
     onSuccess: (data) => {
       invalidateOnCreatePage(data);
+      invalidateGraph();
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to create page"), color: "red" });
@@ -93,6 +94,9 @@ export function updatePageData(data: IPage) {
 export function useUpdateTitlePageMutation() {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
+    onSuccess: () => {
+      invalidateGraph();
+    }
   });
 }
 
@@ -101,8 +105,8 @@ export function useUpdatePageMutation() {
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
       updatePage(data);
-
       invalidateOnUpdatePage(data.spaceId, data.parentPageId, data.id, data.title, data.icon);
+      invalidateGraph();
     },
   });
 }
@@ -114,6 +118,7 @@ export function useDeletePageMutation() {
     onSuccess: (data, pageId) => {
       notifications.show({ message: t("Page deleted successfully") });
       invalidateOnDeletePage(pageId);
+      invalidateGraph();
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -126,6 +131,7 @@ export function useMovePageMutation() {
     mutationFn: (data) => movePage(data),
     onSuccess: () => {
       invalidateOnMovePage();
+      invalidateGraph();
     },
   });
 }
@@ -339,5 +345,12 @@ export function invalidateOnDeletePage(pageId: string) {
   //update recent changes
   queryClient.invalidateQueries({
     queryKey: ["recent-changes"],
+  });
+}
+
+export function invalidateGraph() {
+  queryClient.invalidateQueries({
+    queryKey: ["space-graph"],
+    exact: false,
   });
 }
