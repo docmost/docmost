@@ -114,7 +114,7 @@ export const TableCellMenu = React.memo(
               onClick={toggleHeaderCell}
               variant="default"
               size="lg"
-              aria-label={t("Toggle he  ader cell")}
+              aria-label={t("Toggle header cell")}
             >
               <IconTableRow size={18} />
             </ActionIcon>
