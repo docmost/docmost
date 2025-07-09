@@ -58,6 +58,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
+import abap from "highlightjs-sap-abap";
 import elixir from "highlight.js/lib/languages/elixir";
 import erlang from "highlight.js/lib/languages/erlang";
 import dockerfile from "highlight.js/lib/languages/dockerfile";
@@ -72,12 +73,13 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import { countWords } from "alfaaz";
 import { TableDragManager } from "./TableDragManager";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
 lowlight.register("powershell", powershell);
-lowlight.register("powershell", powershell);
+lowlight.register("abap", abap);
 lowlight.register("erlang", erlang);
 lowlight.register("elixir", elixir);
 lowlight.register("dockerfile", dockerfile);
@@ -213,7 +215,9 @@ export const mainExtensions = [
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),
-  CharacterCount,
+  CharacterCount.configure({
+    wordCounter: (text) => countWords(text),
+  }),
   TableDragManager
 ] as any;
 

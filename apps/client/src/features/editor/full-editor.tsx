@@ -42,7 +42,11 @@ export function FullEditor({
         spaceSlug={spaceSlug}
         editable={editable}
       />
-      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} />
+      <MemoizedPageEditor
+        pageId={pageId}
+        editable={editable}
+        content={content}
+      />
     </Container>
   );
 }

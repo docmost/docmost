@@ -12,6 +12,7 @@ export interface IWorkspace {
   settings: any;
   status: string;
   enforceSso: boolean;
+  stripeCustomerId: string;
   billingEmail: string;
   trialEndAt: Date;
   createdAt: Date;
@@ -35,6 +36,7 @@ export interface IInvitation {
   workspaceId: string;
   invitedById: string;
   createdAt: Date;
+  enforceSso: boolean;
 }
 
 export interface IInvitationLink {

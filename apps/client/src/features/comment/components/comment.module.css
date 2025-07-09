@@ -11,22 +11,31 @@
     border-left: 2px solid var(--mantine-color-gray-6);
     padding: 8px;
     background: var(--mantine-color-gray-light);
+    cursor: pointer;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    -ms-word-break: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .commentEditor {
 
     .focused {
+        border-radius: var(--mantine-radius-sm);
         box-shadow: 0 0 0 2px var(--mantine-color-blue-3);
     }
 
     .ProseMirror :global(.ProseMirror){
+        border-radius: var(--mantine-radius-sm);
         max-width: 100%;
         white-space: pre-wrap;
         word-break: break-word;
         max-height: 20vh;
         padding-left: 6px;
         padding-right: 6px;
-        margin-top: 2px;
+        margin-top: 10px;
         margin-bottom: 2px;
         overflow: hidden auto;
     }

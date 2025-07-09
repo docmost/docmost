@@ -130,7 +130,7 @@ export class PersistenceExtension implements Extension {
           );
           this.contributors.delete(documentName);
         } catch (err) {
-          this.logger.debug('Contributors error:' + err?.['message']);
+          //this.logger.debug('Contributors error:' + err?.['message']);
         }
 
         await this.pageRepo.updatePage(

@@ -50,6 +50,6 @@ export class UserController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.userService.update(updateUserDto, user.id, workspace.id);
+    return this.userService.update(updateUserDto, user.id, workspace);
   }
 }
