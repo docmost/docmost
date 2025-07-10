@@ -62,6 +62,7 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  isGroupSyncEnabled: Generated<boolean>;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
@@ -122,6 +123,7 @@ export interface Comments {
   pageId: string;
   parentCommentId: string | null;
   resolvedAt: Timestamp | null;
+  resolvedById: string | null;
   selection: string | null;
   type: string | null;
   workspaceId: string;
