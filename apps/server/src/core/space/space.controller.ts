@@ -57,6 +57,39 @@ export class SpaceController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('/graph')
+  async getSpaceGraph(
+    @Body() spaceIdDto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const space = await this.spaceService.getSpaceInfo(
+      spaceIdDto.spaceId,
+      workspace.id,
+    );
+
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, space.id);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const graph = await this.spaceService.getSpaceGraph(
+      spaceIdDto.spaceId,
+      workspace.id,
+    );
+
+    if (!graph) {
+      throw new NotFoundException('Graph not found');
+    }
+
+    return graph;
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('info')
   async getSpaceInfo(
     @Body() spaceIdDto: SpaceIdDto,
