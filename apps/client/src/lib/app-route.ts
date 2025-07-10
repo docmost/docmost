@@ -8,6 +8,7 @@ const APP_ROUTE = {
     PASSWORD_RESET: "/password-reset",
     CREATE_WORKSPACE: "/create",
     SELECT_WORKSPACE: "/select",
+    OIDC_CALLBACK: "/auth/oidc/callback",
   },
   SETTINGS: {
     ACCOUNT: {
@@ -21,6 +22,7 @@ const APP_ROUTE = {
       SPACES: "/settings/spaces",
       BILLING: "/settings/billing",
       SECURITY: "/settings/security",
+      OIDC: "/settings/oidc",
     },
   },
 };

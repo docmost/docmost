@@ -18,6 +18,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import InviteSignup from "@/pages/auth/invite-signup.tsx";
 import ForgotPassword from "@/pages/auth/forgot-password.tsx";
 import PasswordReset from "./pages/auth/password-reset";
+import OidcCallbackPage from "@/pages/auth/oidc-callback.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import SharedPage from "@/pages/share/shared-page.tsx";
@@ -26,6 +27,7 @@ import ShareLayout from "@/features/share/components/share-layout.tsx";
 import ShareRedirect from '@/pages/share/share-redirect.tsx';
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 import SpaceGraph from "./pages/space/space-graph";
+import OidcSettingsPage from "@/pages/settings/oidc.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -39,6 +41,7 @@ export default function App() {
         <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
         <Route path={"/forgot-password"} element={<ForgotPassword />} />
         <Route path={"/password-reset"} element={<PasswordReset />} />
+        <Route path={"/auth/oidc/callback"} element={<OidcCallbackPage />} />
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -79,6 +82,7 @@ export default function App() {
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
             <Route path={"sharing"} element={<Shares />} />
+            <Route path={"oidc"} element={<OidcSettingsPage />} />
           </Route>
         </Route>
 
