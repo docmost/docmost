@@ -45,12 +45,16 @@ export class OidcController {
     const { url } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
     const fullUrl = `${url}&state=${state}`;
     
-    res.clearCookie('oidc_state');
+    res.clearCookie('oidc_state', {
+      httpOnly: true,
+      secure: this.environmentService.isHttps(),
+      sameSite: 'lax',
+    });
     
     res.setCookie('oidc_state', stateHash, {
       httpOnly: true,
       secure: this.environmentService.isHttps(),
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 60000,
     });
 
@@ -96,13 +100,21 @@ export class OidcController {
       
       const { token } = await this.oidcService.handleCallback(workspace.id, code, redirectUri);
 
-      res.clearCookie('oidc_state');
+      res.clearCookie('oidc_state', {
+        httpOnly: true,
+        secure: this.environmentService.isHttps(),
+        sameSite: 'lax',
+      });
       
       this.setAuthCookie(res, token);
       
       return { success: true };
     } catch (error) {
-      res.clearCookie('oidc_state');
+      res.clearCookie('oidc_state', {
+        httpOnly: true,
+        secure: this.environmentService.isHttps(),
+        sameSite: 'lax',
+      });
       throw error;
     }
   }
@@ -121,7 +133,7 @@ export class OidcController {
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
-      sameSite: 'strict',
+      sameSite: 'lax',
     });
   }
 }
