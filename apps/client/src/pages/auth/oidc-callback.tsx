@@ -13,8 +13,12 @@ export default function OidcCallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [, setCurrentUser] = useAtom(currentUserAtom);
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
     const handleCallback = async () => {
       const code = searchParams.get("code");
       const state = searchParams.get("state");
