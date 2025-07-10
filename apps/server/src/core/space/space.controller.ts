@@ -72,6 +72,11 @@ export class SpaceController {
       throw new NotFoundException('Space not found');
     }
 
+    const ability = await this.spaceAbility.createForUser(user, space.id);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
     const graph = await this.spaceService.getSpaceGraph(
       spaceIdDto.spaceId,
       workspace.id,
@@ -79,11 +84,6 @@ export class SpaceController {
 
     if (!graph) {
       throw new NotFoundException('Graph not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, space.id);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
     }
 
     return graph;
