@@ -27,9 +27,10 @@ import classes from "./search-replace.module.css";
 
 interface PageFindDialogDialogProps {
   editor: ReturnType<typeof useEditor>;
+  editable?: boolean;
 }
 
-function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
+function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialogProps) {
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState("");
   const [replaceText, setReplaceText] = useState("");
@@ -198,7 +199,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
               ["Enter", next],
               ["shift+Enter", previous],
               ["alt+C", caseSensitiveToggle],
-              ["alt+R", replaceButtonToggle],
+              ...(editable ? [["alt+R", replaceButtonToggle]] : []),
             ])}
           />
 
@@ -231,18 +232,20 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
                 />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t("Replace")}>
-              <ActionIcon
-                variant="subtle"
-                color={replaceButton.color}
-                onClick={() => replaceButtonToggle()}
-              >
-                <IconReplace
-                  style={{ width: "70%", height: "70%" }}
-                  stroke={1.5}
-                />
-              </ActionIcon>
-            </Tooltip>
+            {editable && (
+              <Tooltip label={t("Replace")}>
+                <ActionIcon
+                  variant="subtle"
+                  color={replaceButton.color}
+                  onClick={() => replaceButtonToggle()}
+                >
+                  <IconReplace
+                    style={{ width: "70%", height: "70%" }}
+                    stroke={1.5}
+                  />
+                </ActionIcon>
+              </Tooltip>
+            )}
             <Tooltip label={t("Close (Escape)")}>
               <ActionIcon variant="subtle" color="gray" onClick={closeDialog}>
                 <IconX style={{ width: "70%", height: "70%" }} stroke={1.5} />
@@ -250,7 +253,7 @@ function SearchAndReplaceDialog({ editor }: PageFindDialogDialogProps) {
             </Tooltip>
           </ActionIcon.Group>
         </Flex>
-        {replaceButton.isReplaceShow && (
+        {replaceButton.isReplaceShow && editable && (
           <Flex align="center" gap="xs">
             <Input
               placeholder={t("Replace")}
