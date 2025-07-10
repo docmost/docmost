@@ -38,16 +38,6 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
   const inputRef = useRef(null);
 
-  const [replaceButton, replaceButtonToggle] = useToggle([
-    { isReplaceShow: false, color: "gray" },
-    { isReplaceShow: true, color: "blue" },
-  ]);
-
-  const [caseSensitive, caseSensitiveToggle] = useToggle([
-    { isCaseSensitive: false, color: "gray" },
-    { isCaseSensitive: true, color: "blue" },
-  ]);
-
   const searchInputEvent = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
@@ -115,7 +105,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     editor.commands.selectCurrentItem();
   }, [searchText]);
 
-  const handleOpenEvent = (e) => {
+  const handleOpenEvent = (_) => {
     setPageFindState({ isOpen: true });
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
@@ -128,15 +118,15 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     inputRef.current?.select();
   };
 
-  const handleCloseEvent = (e) => {
+  const handleCloseEvent = (_) => {
     closeDialog();
   };
 
-  const matchCaseToggleEvent = (e) => {
+  const matchCaseToggleEvent = (_) => {
     caseSensitiveToggle();
   };
 
-  const handleOpenWithReplaceEvent = (e) => {
+  const handleOpenWithReplaceEvent = (e: any) => {
     if (!pageFindState.isOpen) {
       handleOpenEvent(e);
       setReplaceButton({ isReplaceShow: true, color: "blue" });
