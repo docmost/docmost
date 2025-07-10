@@ -71,6 +71,7 @@
     "nestjs-kysely": "^1.2.0",
     "nodemailer": "^7.0.3",
     "openid-client": "^5.7.1",
+    "p-limit": "^6.2.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.0",
