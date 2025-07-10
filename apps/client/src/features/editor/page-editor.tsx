@@ -44,6 +44,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -350,6 +351,8 @@ export default function PageEditor({
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
+        <SearchAndReplaceDialog editor={editor} editable={editable} />
+
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />

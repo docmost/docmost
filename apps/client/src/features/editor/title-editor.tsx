@@ -10,8 +10,11 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { updatePageData, useUpdateTitlePageMutation } from "@/features/page/queries/page-query";
-import { useDebouncedCallback } from "@mantine/hooks";
+import {
+  updatePageData,
+  useUpdateTitlePageMutation,
+} from "@/features/page/queries/page-query";
+import { useDebouncedCallback, getHotkeyHandler } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
@@ -40,7 +43,8 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const { t } = useTranslation();
-  const { mutateAsync: updateTitlePageMutationAsync } = useUpdateTitlePageMutation();
+  const { mutateAsync: updateTitlePageMutationAsync } =
+    useUpdateTitlePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
@@ -108,7 +112,12 @@ export function TitleEditor({
         spaceId: page.spaceId,
         entity: ["pages"],
         id: page.id,
-        payload: { title: page.title, slugId: page.slugId, parentPageId: page.parentPageId, icon: page.icon },
+        payload: {
+          title: page.title,
+          slugId: page.slugId,
+          parentPageId: page.parentPageId,
+          icon: page.icon,
+        },
       };
 
       if (page.title !== titleEditor.getText()) return;
@@ -152,13 +161,19 @@ export function TitleEditor({
     }
   }, [userPageEditMode, titleEditor, editable]);
 
+  const openSearchDialog = () => {
+    const event = new CustomEvent("openFindDialogFromEditor", {});
+    document.dispatchEvent(event);
+  };
+
   function handleTitleKeyDown(event: any) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;
-    
-    // Prevent focus shift when IME composition is active 
+
+    // Prevent focus shift when IME composition is active
     // `keyCode === 229` is added to support Safari where `isComposing` may not be reliable
-    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-    
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229)
+      return;
+
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
@@ -172,5 +187,16 @@ export function TitleEditor({
     }
   }
 
-  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
+  return (
+    <EditorContent
+      editor={titleEditor}
+      onKeyDown={(event) => {
+        // First handle the search hotkey
+        getHotkeyHandler([["mod+F", openSearchDialog]])(event);
+        
+        // Then handle other key events
+        handleTitleKeyDown(event);
+      }}
+    />
+  );
 }
