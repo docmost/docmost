@@ -1,7 +1,7 @@
-import { TableCell as TiptapTableCell } from "@tiptap/extension-table-cell";
+import { TableHeader as TiptapTableHeader } from "@tiptap/extension-table-header";
 
-export const TableCell = TiptapTableCell.extend({
-  name: "tableCell",
+export const TableHeader = TiptapTableHeader.extend({
+  name: "tableHeader",
   content: "paragraph+",
   
   addAttributes() {
