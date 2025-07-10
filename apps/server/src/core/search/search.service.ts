@@ -140,7 +140,7 @@ export class SearchService {
     if (suggestion.includeUsers) {
       users = await this.db
         .selectFrom('users')
-        .select(['id', 'name', 'avatarUrl'])
+        .select(['id', 'name', 'email', 'avatarUrl'])
         .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
         .where('workspaceId', '=', workspaceId)
         .where('deletedAt', 'is', null)

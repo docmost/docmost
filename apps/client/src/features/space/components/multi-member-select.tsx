@@ -26,6 +26,9 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     {option["type"] === "group" && <IconGroupCircle />}
     <div>
       <Text size="sm" lineClamp={1}>{option.label}</Text>
+      {option["type"] === "user" && option["email"] && (
+        <Text size="xs" c="dimmed" lineClamp={1}>{option["email"]}</Text>
+      )}
     </div>
   </Group>
 );
@@ -47,6 +50,7 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       const userItems = suggestion?.users.map((user: IUser) => ({
         value: `user-${user.id}`,
         label: user.name,
+        email: user.email,
         avatarUrl: user.avatarUrl,
         type: "user",
       }));
