@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Query, Body, Res, HttpCode, HttpStatus, BadRequestException, Req } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { randomBytes, createHash } from 'crypto';
 import { OidcService } from '../services/oidc.service';
 import { OidcConfigService } from '../services/oidc-config.service';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
@@ -8,11 +9,24 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 
 @Controller('auth/oidc')
 export class OidcController {
+  private readonly allowedOrigins: string[];
+
   constructor(
     private readonly oidcService: OidcService,
     private readonly oidcConfigService: OidcConfigService,
     private readonly environmentService: EnvironmentService,
-  ) {}
+  ) {
+    this.allowedOrigins = [this.environmentService.getAppUrl()];
+  }
+
+  private validateRedirectUri(redirectUri: string): boolean {
+    try {
+      const url = new URL(redirectUri);
+      return this.allowedOrigins.some(origin => redirectUri.startsWith(origin));
+    } catch {
+      return false;
+    }
+  }
 
   @Get('authorize')
   async authorize(
@@ -20,18 +34,27 @@ export class OidcController {
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
     const redirectUri = `${this.environmentService.getAppUrl()}/auth/oidc/callback`;
-    const { url, state } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
+    
+    if (!this.validateRedirectUri(redirectUri)) {
+      throw new BadRequestException('Invalid redirect URI');
+    }
+    
+    const state = randomBytes(32).toString('hex');
+    const stateHash = createHash('sha256').update(state).digest('hex');
+    
+    const { url } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
+    const fullUrl = `${url}&state=${state}`;
     
     res.clearCookie('oidc_state');
     
-    res.setCookie('oidc_state', state, {
+    res.setCookie('oidc_state', stateHash, {
       httpOnly: true,
       secure: this.environmentService.isHttps(),
-      sameSite: 'lax',
-      maxAge: 300000,
+      sameSite: 'strict',
+      maxAge: 60000,
     });
 
-    return { url };
+    return { url: fullUrl };
   }
 
   @Get('callback')
@@ -46,13 +69,30 @@ export class OidcController {
       throw new BadRequestException('Missing code or state parameter');
     }
 
-    const storedState = req.cookies.oidc_state;
-    if (!storedState || state !== storedState) {
+    if (code.length < 10 || code.length > 1000) {
+      throw new BadRequestException('Invalid code parameter format');
+    }
+
+    if (state.length !== 64) {
+      throw new BadRequestException('Invalid state parameter format');
+    }
+
+    const storedStateHash = req.cookies.oidc_state;
+    if (!storedStateHash) {
+      throw new BadRequestException('Missing state cookie');
+    }
+
+    const stateHash = createHash('sha256').update(state).digest('hex');
+    if (stateHash !== storedStateHash) {
       throw new BadRequestException('Invalid state parameter');
     }
 
     try {
       const redirectUri = `${this.environmentService.getAppUrl()}/auth/oidc/callback`;
+      
+      if (!this.validateRedirectUri(redirectUri)) {
+        throw new BadRequestException('Invalid redirect URI');
+      }
       
       const { token } = await this.oidcService.handleCallback(workspace.id, code, redirectUri);
 
@@ -62,6 +102,7 @@ export class OidcController {
       
       return { success: true };
     } catch (error) {
+      res.clearCookie('oidc_state');
       throw error;
     }
   }
@@ -80,6 +121,7 @@ export class OidcController {
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
+      sameSite: 'strict',
     });
   }
 }

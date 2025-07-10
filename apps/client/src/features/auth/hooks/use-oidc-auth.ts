@@ -8,9 +8,22 @@ export function useOidcAuth() {
   const [isLoading, setIsLoading] = useState(false);
 
   const startOidcAuth = async () => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       const { url } = await getOidcAuthUrl();
+      
+      if (!url || typeof url !== 'string') {
+        throw new Error('Invalid URL received from server');
+      }
+      
+      try {
+        new URL(url);
+      } catch {
+        throw new Error('Invalid URL format');
+      }
+      
       window.location.href = url;
     } catch (error) {
       setIsLoading(false);

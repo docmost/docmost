@@ -42,6 +42,24 @@ export default function OidcCallbackPage() {
         return;
       }
 
+      if (code.length < 10 || code.length > 1000) {
+        notifications.show({
+          message: t("Invalid authentication code"),
+          color: "red",
+        });
+        navigate(APP_ROUTE.AUTH.LOGIN);
+        return;
+      }
+
+      if (state.length !== 64) {
+        notifications.show({
+          message: t("Invalid state parameter"),
+          color: "red",
+        });
+        navigate(APP_ROUTE.AUTH.LOGIN);
+        return;
+      }
+
       try {
         const response = await api.get("/auth/oidc/callback", {
           params: { code, state },
