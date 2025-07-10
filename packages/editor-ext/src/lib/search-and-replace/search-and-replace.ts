@@ -18,6 +18,8 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
+
+ Custom mod from: https://github.com/sereneinserenade/tiptap-search-and-replace
  ***/
 
 import { Extension, Range, type Dispatch } from "@tiptap/core";
@@ -184,7 +186,7 @@ const replace = (
 
   if (dispatch) {
     const tr = state.tr;
-    
+
     // Get all marks that span the text being replaced
     const marksSet = new Set<Mark>();
     state.doc.nodesBetween(from, to, (node) => {
@@ -192,13 +194,13 @@ const replace = (
         node.marks.forEach(mark => marksSet.add(mark));
       }
     });
-    
+
     const marks = Array.from(marksSet);
-    
+
     // Delete the old text and insert new text with preserved marks
     tr.delete(from, to);
     tr.insert(from, state.schema.text(replaceTerm, marks));
-    
+
     dispatch(tr);
   }
 };
@@ -223,9 +225,9 @@ const replaceAll = (
         node.marks.forEach(mark => marksSet.add(mark));
       }
     });
-    
+
     const marks = Array.from(marksSet);
-    
+
     // Delete and insert with preserved marks
     tr.delete(from, to);
     tr.insert(from, tr.doc.type.schema.text(replaceTerm, marks));

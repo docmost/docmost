@@ -1,15 +1,17 @@
 import { Menu, ActionIcon, Text } from "@mantine/core";
 import React from "react";
-import { IconDots, IconTrash } from "@tabler/icons-react";
+import { IconDots, IconTrash, IconPassword } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useDeleteWorkspaceMemberMutation } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
 import useUserRole from "@/hooks/use-user-role.tsx";
+import ChangeUserPasswordForm from "@/features/workspace/components/members/components/change-user-password.tsx";
 
 interface Props {
   userId: string;
+  userName: string;
 }
-export default function MemberActionMenu({ userId }: Props) {
+export default function MemberActionMenu({ userId, userName }: Props) {
   const { t } = useTranslation();
   const deleteWorkspaceMemberMutation = useDeleteWorkspaceMemberMutation();
   const { isAdmin } = useUserRole();
@@ -34,6 +36,18 @@ export default function MemberActionMenu({ userId }: Props) {
       onConfirm: onRevoke,
     });
 
+  const openChangePasswordModal = () =>
+    modals.open({
+      title: t("Change password for {{userName}}", { userName }),
+      children: (
+        <ChangeUserPasswordForm
+          userId={userId}
+          userName={userName}
+          onClose={() => modals.closeAll()}
+        />
+      ),
+      centered: true,
+    });
   return (
     <>
       <Menu
@@ -51,6 +65,14 @@ export default function MemberActionMenu({ userId }: Props) {
         </Menu.Target>
 
         <Menu.Dropdown>
+          <Menu.Item
+            onClick={openChangePasswordModal}
+            leftSection={<IconPassword size={16} />}
+            disabled={!isAdmin}
+          >
+            {t("Change password")}
+          </Menu.Item>
+          
           <Menu.Item
             c="red"
             onClick={openRevokeModal}

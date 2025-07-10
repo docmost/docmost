@@ -54,6 +54,14 @@ export async function changeMemberRole(data: {
   await api.post("/workspace/members/change-role", data);
 }
 
+export async function changeWorkspaceMemberPassword(data: {
+  userId: string;
+  newPassword: string;
+  actorPassword: string;
+}): Promise<void> {
+  await api.post("/workspace/members/change-password", data);
+}
+
 export async function getPendingInvitations(
   params?: QueryParams,
 ): Promise<IPagination<IInvitation>> {

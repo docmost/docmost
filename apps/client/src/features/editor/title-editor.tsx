@@ -53,11 +53,36 @@ export function TitleEditor({
   const [currentUser] = useAtom(currentUserAtom);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
 
   const titleEditor = useEditor({
     extensions: [
       Document.extend({
         content: "heading",
+        addKeyboardShortcuts() {
+          return {
+            'Control-f': () => {
+              const event = new CustomEvent("openFindDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Control-h': () => {
+              const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Alt-c': () => {
+              const event = new CustomEvent("matchCaseToggle", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+            'Escape': () => {
+              const event = new CustomEvent("closeFindDialogFromEditor", {});
+              document.dispatchEvent(event);
+              return true;
+            },
+          }
+        },
       }),
       Heading.configure({
         levels: [1],
@@ -193,10 +218,11 @@ export function TitleEditor({
       onKeyDown={(event) => {
         // First handle the search hotkey
         getHotkeyHandler([["mod+F", openSearchDialog]])(event);
-        
+
         // Then handle other key events
         handleTitleKeyDown(event);
       }}
+      spellCheck={userSpellcheckPref}
     />
   );
 }
