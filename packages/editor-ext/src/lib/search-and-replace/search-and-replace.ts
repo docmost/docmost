@@ -355,6 +355,17 @@ export const SearchAndReplace = Extension.create<
 
           replace(replaceTerm, results, resultIndex, { state, dispatch });
 
+          // After replace, adjust index if needed
+          // The results will be recalculated by the plugin, but we need to ensure
+          // the index doesn't exceed the new bounds
+          setTimeout(() => {
+            const newResultsLength = editor.storage.searchAndReplace.results.length;
+            if (newResultsLength > 0 && editor.storage.searchAndReplace.resultIndex >= newResultsLength) {
+              // Keep the same position if possible, otherwise go to the last result
+              editor.storage.searchAndReplace.resultIndex = Math.min(resultIndex, newResultsLength - 1);
+            }
+          }, 0);
+
           return false;
         },
       replaceAll:

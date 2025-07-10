@@ -389,5 +389,15 @@
   "Failed to share page": "Failed to share page",
   "Copy page": "Copy page",
   "Copy page to a different space.": "Copy page to a different space.",
-  "Page copied successfully": "Page copied successfully"
+  "Page copied successfully": "Page copied successfully",
+  "Find": "Find",
+  "Not found": "Not found",
+  "Previous Match (Shift+Enter)": "Previous Match (Shift+Enter)",
+  "Next match (Enter)": "Next match (Enter)",
+  "Match case (Alt+C)": "Match case (Alt+C)",
+  "Replace": "Replace",
+  "Close (Escape)": "Close (Escape)",
+  "Replace (Enter)": "Replace (Enter)",
+  "Replace all (Ctrl+Alt+Enter)": "Replace all (Ctrl+Alt+Enter)",
+  "Replace all": "Replace all"
 }
