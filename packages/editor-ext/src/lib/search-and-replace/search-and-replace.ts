@@ -30,7 +30,7 @@ import {
   type EditorState,
   type Transaction,
 } from "@tiptap/pm/state";
-import { Node as PMNode } from "@tiptap/pm/model";
+import { Node as PMNode, Mark } from "@tiptap/pm/model";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -184,31 +184,25 @@ const replace = (
 
   const { from, to } = results[resultIndex];
 
-  if (dispatch) dispatch(state.tr.insertText(replaceTerm, from, to));
-};
+  if (dispatch) {
+    const tr = state.tr;
 
-const rebaseNextResult = (
-  replaceTerm: string,
-  index: number,
-  lastOffset: number,
-  results: Range[],
-): [number, Range[]] | null => {
-  const nextIndex = index + 1;
+    // Get all marks that span the text being replaced
+    const marksSet = new Set<Mark>();
+    state.doc.nodesBetween(from, to, (node) => {
+      if (node.isText && node.marks) {
+        node.marks.forEach(mark => marksSet.add(mark));
+      }
+    });
 
-  if (!results[nextIndex]) return null;
+    const marks = Array.from(marksSet);
 
-  const { from: currentFrom, to: currentTo } = results[index];
+    // Delete the old text and insert new text with preserved marks
+    tr.delete(from, to);
+    tr.insert(from, state.schema.text(replaceTerm, marks));
 
-  const offset = currentTo - currentFrom - replaceTerm.length + lastOffset;
-
-  const { from, to } = results[nextIndex];
-
-  results[nextIndex] = {
-    to: to - offset,
-    from: from - offset,
-  };
-
-  return [offset, results];
+    dispatch(tr);
+  }
 };
 
 const replaceAll = (
@@ -216,28 +210,27 @@ const replaceAll = (
   results: Range[],
   { tr, dispatch }: { tr: Transaction; dispatch: Dispatch },
 ) => {
-  let offset = 0;
-
-  let resultsCopy = results.slice();
+  const resultsCopy = results.slice();
 
   if (!resultsCopy.length) return;
 
-  for (let i = 0; i < resultsCopy.length; i += 1) {
+  // Process replacements in reverse order to avoid position shifting issues
+  for (let i = resultsCopy.length - 1; i >= 0; i -= 1) {
     const { from, to } = resultsCopy[i];
+    
+    // Get all marks that span the text being replaced
+    const marksSet = new Set<Mark>();
+    tr.doc.nodesBetween(from, to, (node) => {
+      if (node.isText && node.marks) {
+        node.marks.forEach(mark => marksSet.add(mark));
+      }
+    });
 
-    tr.insertText(replaceTerm, from, to);
+    const marks = Array.from(marksSet);
 
-    const rebaseNextResultResponse = rebaseNextResult(
-      replaceTerm,
-      i,
-      offset,
-      resultsCopy,
-    );
-
-    if (!rebaseNextResultResponse) continue;
-
-    offset = rebaseNextResultResponse[0];
-    resultsCopy = rebaseNextResultResponse[1];
+    // Delete and insert with preserved marks
+    tr.delete(from, to);
+    tr.insert(from, tr.doc.type.schema.text(replaceTerm, marks));
   }
 
   dispatch(tr);
@@ -356,6 +349,17 @@ export const SearchAndReplace = Extension.create<
             editor.storage.searchAndReplace;
 
           replace(replaceTerm, results, resultIndex, { state, dispatch });
+
+          // After replace, adjust index if needed
+          // The results will be recalculated by the plugin, but we need to ensure
+          // the index doesn't exceed the new bounds
+          setTimeout(() => {
+            const newResultsLength = editor.storage.searchAndReplace.results.length;
+            if (newResultsLength > 0 && editor.storage.searchAndReplace.resultIndex >= newResultsLength) {
+              // Keep the same position if possible, otherwise go to the last result
+              editor.storage.searchAndReplace.resultIndex = Math.min(resultIndex, newResultsLength - 1);
+            }
+          }, 0);
 
           return false;
         },

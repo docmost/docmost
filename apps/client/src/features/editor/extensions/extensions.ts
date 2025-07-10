@@ -249,12 +249,12 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Control-f': () => {
+        'Mod-f': () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Control-h': () => {
+        'Mod-h': () => {
           const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;

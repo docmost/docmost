@@ -18,7 +18,12 @@ import React from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
-import { useClipboard, useDisclosure, useHotkeys } from "@mantine/hooks";
+import {
+  getHotkeyHandler,
+  useClipboard,
+  useDisclosure,
+  useHotkeys,
+} from "@mantine/hooks";
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -53,14 +58,14 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   useHotkeys(
     [
       [
-        "ctrl+F",
+        "mod+F",
         () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
       ],
       [
-        "ctrl+H",
+        "mod+H",
         () => {
           const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
           document.dispatchEvent(event);
@@ -99,7 +104,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       )}
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
-        
+
       <ShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
@@ -204,7 +209,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           >
             {t("Copy link")}
           </Menu.Item>
-          
+
           <Menu.Divider />
 
           <Menu.Item

@@ -405,5 +405,15 @@
   "Page copied successfully": "Page copied successfully",
   "Spellcheck": "Spellcheck",
   "Choose if spellcheck is enabled.": "Choose if spellcheck is enabled.",
-  "Toggle spellcheck": "Toggle spellcheck"
+  "Toggle spellcheck": "Toggle spellcheck",
+  "Find": "Find",
+  "Not found": "Not found",
+  "Previous Match (Shift+Enter)": "Previous Match (Shift+Enter)",
+  "Next match (Enter)": "Next match (Enter)",
+  "Match case (Alt+C)": "Match case (Alt+C)",
+  "Replace": "Replace",
+  "Close (Escape)": "Close (Escape)",
+  "Replace (Enter)": "Replace (Enter)",
+  "Replace all (Ctrl+Alt+Enter)": "Replace all (Ctrl+Alt+Enter)",
+  "Replace all": "Replace all"
 }
