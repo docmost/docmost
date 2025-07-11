@@ -1,11 +1,24 @@
 import { Controller, Get, Post, Query, Body, Res, HttpCode, HttpStatus, BadRequestException, Req } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { randomBytes, createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { OidcService } from '../services/oidc.service';
 import { OidcConfigService } from '../services/oidc-config.service';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+
+const stateStore = new Map<string, { workspaceId: string; timestamp: number }>();
+
+// TODO: Use redis
+setInterval(() => {
+  const now = Date.now();
+  const maxAge = 60 * 1000;
+  for (const [state, data] of stateStore.entries()) {
+    if (now - data.timestamp > maxAge) {
+      stateStore.delete(state);
+    }
+  }
+}, 60 * 1000);
 
 @Controller('auth/oidc')
 export class OidcController {
@@ -39,26 +52,11 @@ export class OidcController {
       throw new BadRequestException('Invalid redirect URI');
     }
     
-    const state = randomBytes(32).toString('hex');
-    const stateHash = createHash('sha256').update(state).digest('hex');
+    const { url, state } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
     
-    const { url } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
-    const fullUrl = `${url}&state=${state}`;
-    
-    res.clearCookie('oidc_state', {
-      httpOnly: true,
-      secure: this.environmentService.isHttps(),
-      sameSite: 'lax',
-    });
-    
-    res.setCookie('oidc_state', stateHash, {
-      httpOnly: true,
-      secure: this.environmentService.isHttps(),
-      sameSite: 'lax',
-      maxAge: 60000,
-    });
+    stateStore.set(state, { workspaceId: workspace.id, timestamp: Date.now() });
 
-    return { url: fullUrl };
+    return { url };
   }
 
   @Get('callback')
@@ -77,19 +75,12 @@ export class OidcController {
       throw new BadRequestException('Invalid code parameter format');
     }
 
-    if (state.length !== 64) {
-      throw new BadRequestException('Invalid state parameter format');
+    const storedState = stateStore.get(state);
+    if (!storedState || storedState.workspaceId !== workspace.id) {
+      throw new BadRequestException('Invalid or expired state parameter');
     }
 
-    const storedStateHash = req.cookies.oidc_state;
-    if (!storedStateHash) {
-      throw new BadRequestException('Missing state cookie');
-    }
-
-    const stateHash = createHash('sha256').update(state).digest('hex');
-    if (stateHash !== storedStateHash) {
-      throw new BadRequestException('Invalid state parameter');
-    }
+    stateStore.delete(state);
 
     try {
       const redirectUri = `${this.environmentService.getAppUrl()}/auth/oidc/callback`;
@@ -98,23 +89,12 @@ export class OidcController {
         throw new BadRequestException('Invalid redirect URI');
       }
       
-      const { token } = await this.oidcService.handleCallback(workspace.id, code, redirectUri);
-
-      res.clearCookie('oidc_state', {
-        httpOnly: true,
-        secure: this.environmentService.isHttps(),
-        sameSite: 'lax',
-      });
+      const { token } = await this.oidcService.handleCallback(workspace.id, code, state, redirectUri);
       
       this.setAuthCookie(res, token);
       
       return { success: true };
     } catch (error) {
-      res.clearCookie('oidc_state', {
-        httpOnly: true,
-        secure: this.environmentService.isHttps(),
-        sameSite: 'lax',
-      });
       throw error;
     }
   }

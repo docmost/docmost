@@ -51,7 +51,7 @@ export default function OidcCallbackPage() {
         return;
       }
 
-      if (state.length !== 64) {
+      if (state.length < 10 || state.length > 255) {
         notifications.show({
           message: t("Invalid state parameter"),
           color: "red",

@@ -65,6 +65,7 @@ export class OidcService {
   async handleCallback(
     workspaceId: string,
     code: string,
+    state: string,
     redirectUri: string,
   ): Promise<{ token: string; user: User }> {
     const authProvider = await this.authProviderRepo.findOidcProvider(
@@ -78,7 +79,7 @@ export class OidcService {
     const client = await this.createClient(authProvider);
 
     try {
-      const tokenSet = await client.callback(redirectUri, { code });
+      const tokenSet = await client.callback(redirectUri, { code, state }, { state });
 
       const userinfo = await client.userinfo(tokenSet.access_token);
 
