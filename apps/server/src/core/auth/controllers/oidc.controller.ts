@@ -60,11 +60,11 @@ export class OidcController {
     return { url };
   }
 
-  @Get('callback')
+  @Post('callback')
   async callback(
     @AuthWorkspace() workspace: Workspace,
-    @Query('code') code: string,
-    @Query('state') state: string,
+    @Body('code') code: string,
+    @Body('state') state: string,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {

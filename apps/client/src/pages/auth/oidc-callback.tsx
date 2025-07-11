@@ -61,8 +61,9 @@ export default function OidcCallbackPage() {
       }
 
       try {
-        const response = await api.get("/auth/oidc/callback", {
-          params: { code, state },
+        const response = await api.post("/auth/oidc/callback", {
+          code, 
+          state,
         });
 
         if (response.data.success) {
