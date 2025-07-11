@@ -6,6 +6,7 @@ import { OidcConfigService } from '../services/oidc-config.service';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { AuthService } from '../services/auth.service';
 
 const stateStore = new Map<string, { workspaceId: string; timestamp: number }>();
 
@@ -107,13 +108,12 @@ export class OidcController {
     };
   }
 
-  private setAuthCookie(res: FastifyReply, token: string) {
+  setAuthCookie(res: FastifyReply, token: string) {
     res.setCookie('authToken', token, {
       httpOnly: true,
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
-      sameSite: 'lax',
     });
   }
 }
