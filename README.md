@@ -50,7 +50,8 @@ For Docker, these tags are available:
 - File attachments (Video, audio, images)
 - Embeds (Airtable, Loom, Miro, and more)
 - Translations (10+ languages)
-- public sharing (with optional password protection) 
+- public sharing (with optional password protection)
+- free SSO with **OIDC** (tested with Authentik)
 
 ---
 
