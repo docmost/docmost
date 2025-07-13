@@ -1,10 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -351,7 +346,10 @@ export default function PageEditor({
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
-        <SearchAndReplaceDialog editor={editor} editable={editable} />
+
+        {editor && (
+          <SearchAndReplaceDialog editor={editor} editable={editable} />
+        )}
 
         {editor && editor.isEditable && (
           <div>
