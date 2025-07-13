@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
 
 @Injectable()
 export class EnvironmentService {
@@ -56,7 +57,18 @@ export class EnvironmentService {
   }
 
   getJwtTokenExpiresIn(): string {
-    return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '30d');
+    return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '90d');
+  }
+
+  getCookieExpiresIn(): Date {
+    const expiresInStr = this.getJwtTokenExpiresIn();
+    let msUntilExpiry: number;
+    try {
+      msUntilExpiry = ms(expiresInStr as StringValue);
+    } catch (err) {
+      msUntilExpiry = ms('90d');
+    }
+    return new Date(Date.now() + msUntilExpiry);
   }
 
   getStorageDriver(): string {
@@ -65,6 +77,10 @@ export class EnvironmentService {
 
   getFileUploadSizeLimit(): string {
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
+  }
+
+  getFileImportSizeLimit(): string {
+    return this.configService.get<string>('FILE_IMPORT_SIZE_LIMIT', '200mb');
   }
 
   getAwsS3AccessKeyId(): string {
@@ -188,5 +204,13 @@ export class EnvironmentService {
       .get<string>('DISABLE_TELEMETRY', 'false')
       .toLowerCase();
     return disable === 'true';
+  }
+
+  getPostHogHost(): string {
+    return this.configService.get<string>('POSTHOG_HOST');
+  }
+
+  getPostHogKey(): string {
+    return this.configService.get<string>('POSTHOG_KEY');
   }
 }
