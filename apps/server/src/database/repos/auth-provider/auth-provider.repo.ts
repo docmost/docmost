@@ -78,6 +78,14 @@ export class AuthProviderRepo {
       .set({ deletedAt: new Date() })
       .where('id', '=', id)
       .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .execute();
+
+    // disable enforcement of SSO if the provider is deleted
+    await db
+      .updateTable('workspaces')
+      .set({ enforceSso: false })
+      .where('id', '=', workspaceId)
       .execute();
   }
 

@@ -85,6 +85,7 @@ export class WorkspaceService {
               'authProviders.type',
             ])
             .where('authProviders.isEnabled', '=', true)
+            .where('authProviders.deletedAt', 'is', null)
             .where('workspaceId', '=', workspaceId),
         ).as('authProviders'),
       )
@@ -279,6 +280,7 @@ export class WorkspaceService {
         .selectAll()
         .where('isEnabled', '=', true)
         .where('workspaceId', '=', workspaceId)
+        .where('authProviders.deletedAt', 'is', null)
         .execute();
 
       if (sso && sso?.length === 0) {
