@@ -51,7 +51,7 @@ For Docker, these tags are available:
 - Embeds (Airtable, Loom, Miro, and more)
 - Translations (10+ languages)
 - public sharing (with optional password protection)
-- free **OIDC support** for Authentik
+- free SSO with **OIDC** (tested with Authentik)
 
 ---
 
