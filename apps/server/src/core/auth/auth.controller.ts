@@ -108,7 +108,7 @@ export class AuthController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.authService.getCollabToken(user.id, workspace.id);
+    return this.authService.getCollabToken(user, workspace.id);
   }
 
   @UseGuards(JwtAuthGuard)
