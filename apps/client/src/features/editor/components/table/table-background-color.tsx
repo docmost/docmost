@@ -38,12 +38,18 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
   const { t } = useTranslation();
   const [opened, setOpened] = React.useState(false);
 
-  const setTableCellBackground = (color: string) => {
+  const setTableCellBackground = (color: string, colorName: string) => {
     editor
       .chain()
       .focus()
-      .updateAttributes("tableCell", { backgroundColor: color || null })
-      .updateAttributes("tableHeader", { backgroundColor: color || null })
+      .updateAttributes("tableCell", { 
+        backgroundColor: color || null,
+        backgroundColorName: color ? colorName : null 
+      })
+      .updateAttributes("tableHeader", { 
+        backgroundColor: color || null,
+        backgroundColorName: color ? colorName : null 
+      })
       .run();
     setOpened(false);
   };
@@ -65,7 +71,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
 
   return (
     <Popover
-      width={150}
+      width={200}
       position="bottom"
       opened={opened}
       onChange={setOpened}
@@ -101,7 +107,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
             {TABLE_COLORS.map((item, index) => (
               <UnstyledButton
                 key={index}
-                onClick={() => setTableCellBackground(item.color)}
+                onClick={() => setTableCellBackground(item.color, item.name)}
                 style={{
                   position: "relative",
                   width: "24px",

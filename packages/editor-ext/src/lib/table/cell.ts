@@ -16,6 +16,19 @@ export const TableCell = TiptapTableCell.extend({
           }
           return {
             style: `background-color: ${attributes.backgroundColor}`,
+            'data-background-color': attributes.backgroundColor,
+          };
+        },
+      },
+      backgroundColorName: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-color-name') || null,
+        renderHTML: (attributes) => {
+          if (!attributes.backgroundColorName) {
+            return {};
+          }
+          return {
+            'data-color-name': attributes.backgroundColorName.toLowerCase(),
           };
         },
       },

@@ -74,44 +74,44 @@
   table {
     @mixin dark {
       /* Blue */
-      td[style*="background-color: #b4d5ff"],
-      th[style*="background-color: #b4d5ff"] {
+      td[data-background-color="#b4d5ff"],
+      th[data-background-color="#b4d5ff"] {
         background-color: #1a3a5c !important;
       }
 
       /* Green */
-      td[style*="background-color: #acf5d2"],
-      th[style*="background-color: #acf5d2"] {
+      td[data-background-color="#acf5d2"],
+      th[data-background-color="#acf5d2"] {
         background-color: #1a4d3a !important;
       }
 
       /* Yellow */
-      td[style*="background-color: #fef1b4"],
-      th[style*="background-color: #fef1b4"] {
+      td[data-background-color="#fef1b4"],
+      th[data-background-color="#fef1b4"] {
         background-color: #7c5014 !important;
       }
 
       /* Red */
-      td[style*="background-color: #ffbead"],
-      th[style*="background-color: #ffbead"] {
+      td[data-background-color="#ffbead"],
+      th[data-background-color="#ffbead"] {
         background-color: #5c2a23 !important;
       }
 
       /* Pink */
-      td[style*="background-color: #ffc7fe"],
-      th[style*="background-color: #ffc7fe"] {
+      td[data-background-color="#ffc7fe"],
+      th[data-background-color="#ffc7fe"] {
         background-color: #4d2a4d !important;
       }
 
       /* Gray */
-      td[style*="background-color: #eaecef"],
-      th[style*="background-color: #eaecef"] {
+      td[data-background-color="#eaecef"],
+      th[data-background-color="#eaecef"] {
         background-color: #2a2e33 !important;
       }
 
       /* Purple */
-      td[style*="background-color: #c1b7f2"],
-      th[style*="background-color: #c1b7f2"] {
+      td[data-background-color="#c1b7f2"],
+      th[data-background-color="#c1b7f2"] {
         background-color: #3a2f5c !important;
       }
     }
