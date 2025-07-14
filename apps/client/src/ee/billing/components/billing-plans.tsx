@@ -194,11 +194,9 @@ export default function BillingPlans() {
                         : `per month`}
                     </Text>
                   </Group>
-                  {isAnnual && (
-                    <Text size="sm" c="dimmed">
-                      Billed annually
-                    </Text>
-                  )}
+                  <Text size="sm" c="dimmed">
+                    {isAnnual ? "Billed annually" : "Billed monthly"}
+                  </Text>
                   {plan.billingScheme === 'tiered' && plan.pricingTiers && (
                     <Text size="md" fw={500}>
                       For {plan.pricingTiers.find(tier => tier.upTo.toString() === selectedTierValue)?.upTo || plan.pricingTiers[0].upTo} users
