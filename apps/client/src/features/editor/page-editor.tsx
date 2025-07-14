@@ -217,6 +217,10 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+              event.preventDefault();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
