@@ -1,0 +1,32 @@
+.anchorScrollMargin {
+    scroll-margin-top: 95px;
+}
+
+.anchorIconContainer {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 10;
+}
+
+.anchorScrollMargin:hover .anchorIconContainer {
+    opacity: 1;
+}
+
+.anchorIcon {
+    background-color: var(--mantine-color-body);
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-sm);
+    box-shadow: var(--mantine-shadow-sm);
+}
+
+.anchorIcon:hover {
+    background-color: var(--mantine-color-gray-light-hover);
+}
+
+[data-mantine-color-scheme="dark"] .anchorIcon:hover {
+    background-color: var(--mantine-color-dark-5);
+}

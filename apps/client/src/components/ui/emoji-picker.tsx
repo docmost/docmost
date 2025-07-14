@@ -15,6 +15,11 @@ export interface EmojiPickerInterface {
   icon: ReactNode;
   removeEmojiAction: () => void;
   readOnly: boolean;
+  actionIconProps?: {
+    size?: string;
+    variant?: string;
+    c?: string;
+  };
 }
 
 function EmojiPicker({
@@ -22,6 +27,7 @@ function EmojiPicker({
   icon,
   removeEmojiAction,
   readOnly,
+  actionIconProps,
 }: EmojiPickerInterface) {
   const { t } = useTranslation();
   const [opened, handlers] = useDisclosure(false);
@@ -64,7 +70,12 @@ function EmojiPicker({
       closeOnEscape={true}
     >
       <Popover.Target ref={setTarget}>
-        <ActionIcon c="gray" variant="transparent" onClick={handlers.toggle}>
+        <ActionIcon 
+          c={actionIconProps?.c || "gray"} 
+          variant={actionIconProps?.variant || "transparent"} 
+          size={actionIconProps?.size}
+          onClick={handlers.toggle}
+        >
           {icon}
         </ActionIcon>
       </Popover.Target>
