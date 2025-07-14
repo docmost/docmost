@@ -1,10 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -44,6 +39,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -130,7 +126,15 @@ export default function PageEditor({
           const now = Date.now().valueOf() / 1000;
           const isTokenExpired = now >= payload.exp;
           if (isTokenExpired) {
-            refetchCollabToken();
+            refetchCollabToken().then((result) => {
+              if (result.data?.token) {
+                remote.disconnect();
+                setTimeout(() => {
+                  remote.configuration.token = result.data.token;
+                  remote.connect();
+                }, 100);
+              }
+            });
           }
         },
         onStatus: (status) => {
@@ -155,6 +159,21 @@ export default function PageEditor({
       providersRef.current = null;
     };
   }, [pageId]);
+
+  /*
+  useEffect(() => {
+    // Handle token updates by reconnecting with new token
+    if (providersRef.current?.remote && collabQuery?.token) {
+      const currentToken = providersRef.current.remote.configuration.token;
+      if (currentToken !== collabQuery.token) {
+        // Token has changed, need to reconnect with new token
+        providersRef.current.remote.disconnect();
+        providersRef.current.remote.configuration.token = collabQuery.token;
+        providersRef.current.remote.connect();
+      }
+    }
+  }, [collabQuery?.token]);
+   */
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
@@ -198,6 +217,10 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+              event.preventDefault();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -350,6 +373,11 @@ export default function PageEditor({
     <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
+
+        {editor && (
+          <SearchAndReplaceDialog editor={editor} editable={editable} />
+        )}
+
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
