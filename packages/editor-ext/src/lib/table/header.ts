@@ -22,13 +22,13 @@ export const TableHeader = TiptapTableHeader.extend({
       },
       backgroundColorName: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-color-name') || null,
+        parseHTML: (element) => element.getAttribute('data-background-color-name') || null,
         renderHTML: (attributes) => {
           if (!attributes.backgroundColorName) {
             return {};
           }
           return {
-            'data-color-name': attributes.backgroundColorName.toLowerCase(),
+            'data-background-color-name': attributes.backgroundColorName.toLowerCase(),
           };
         },
       },
