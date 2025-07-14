@@ -12,14 +12,18 @@ import {
   Badge,
   Flex,
   Switch,
+  Alert,
 } from "@mantine/core";
 import { useState } from "react";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconInfoCircle } from "@tabler/icons-react";
 import { getCheckoutLink } from "@/ee/billing/services/billing-service.ts";
 import { useBillingPlans } from "@/ee/billing/queries/billing-query.ts";
+import { useAtomValue } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 
 export default function BillingPlans() {
   const { data: plans } = useBillingPlans();
+  const workspace = useAtomValue(workspaceAtom);
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTierValue, setSelectedTierValue] = useState<string | null>(
     null,
@@ -35,6 +39,16 @@ export default function BillingPlans() {
       console.error("Failed to get checkout link", err);
     }
   };
+
+  // TODO: remove by July 30.
+  // Check if workspace was created between June 28 and July 14, 2025
+  const showTieredPricingNotice = (() => {
+    if (!workspace?.createdAt) return false;
+    const createdDate = new Date(workspace.createdAt);
+    const startDate = new Date('2025-06-20');
+    const endDate = new Date('2025-07-14');
+    return createdDate >= startDate && createdDate <= endDate;
+  })();
 
   if (!plans || plans.length === 0) {
     return null;
@@ -68,6 +82,18 @@ export default function BillingPlans() {
 
   return (
     <Container size="xl" py="xl">
+      {/* Tiered pricing notice for eligible workspaces */}
+      {showTieredPricingNotice && !hasTieredPlans && (
+        <Alert
+          icon={<IconInfoCircle size={16} />} 
+          title="Want the old tiered pricing?" 
+          color="blue"
+          mb="lg"
+        >
+          Contact support to switch back to our tiered pricing model.
+        </Alert>
+      )}
+
       {/* Controls Section */}
       <Stack gap="xl" mb="md">
         {/* Team Size and Billing Controls */}
@@ -182,7 +208,7 @@ export default function BillingPlans() {
 
                 {/* CTA Button */}
                 <Button onClick={() => handleCheckout(priceId)} fullWidth>
-                  Upgrade
+                  Subscribe
                 </Button>
 
                 {/* Features */}
