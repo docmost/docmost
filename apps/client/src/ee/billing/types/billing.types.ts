@@ -53,7 +53,7 @@ export interface IBillingPlan {
   };
   features: string[];
   billingScheme: string | null;
-  pricingTiers: PricingTier[];
+  pricingTiers?: PricingTier[];
 }
 
 interface PricingTier {

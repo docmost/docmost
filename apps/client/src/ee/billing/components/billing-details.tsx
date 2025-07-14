@@ -117,7 +117,8 @@ export default function BillingDetails() {
               {billing.billingScheme === "tiered" && (
                 <>
                   <Text fw={700} fz="lg">
-                    ${billing.amount / 100} {billing.currency.toUpperCase()}
+                    ${billing.amount / 100} {billing.currency.toUpperCase()} /{" "}
+                    {billing.interval}
                   </Text>
                   <Text c="dimmed" fz="sm">
                     per {billing.interval}
@@ -129,7 +130,7 @@ export default function BillingDetails() {
                 <>
                   <Text fw={700} fz="lg">
                     {(billing.amount / 100) * billing.quantity}{" "}
-                    {billing.currency.toUpperCase()}
+                    {billing.currency.toUpperCase()} / {billing.interval}
                   </Text>
                   <Text c="dimmed" fz="sm">
                     ${billing.amount / 100} /user/{billing.interval}

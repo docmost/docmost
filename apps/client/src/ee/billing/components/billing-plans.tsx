@@ -40,28 +40,31 @@ export default function BillingPlans() {
     return null;
   }
 
-  const firstPlan = plans[0];
+  // Check if any plan is tiered
+  const hasTieredPlans = plans.some(plan => plan.billingScheme === 'tiered' && plan.pricingTiers?.length > 0);
+  const firstTieredPlan = plans.find(plan => plan.billingScheme === 'tiered' && plan.pricingTiers?.length > 0);
 
-  // Set initial tier value if not set
-  if (!selectedTierValue && firstPlan.pricingTiers.length > 0) {
-    setSelectedTierValue(firstPlan.pricingTiers[0].upTo.toString());
+  // Set initial tier value if not set and we have tiered plans
+  if (hasTieredPlans && !selectedTierValue && firstTieredPlan) {
+    setSelectedTierValue(firstTieredPlan.pricingTiers[0].upTo.toString());
     return null;
   }
 
-  if (!selectedTierValue) {
+  // For tiered plans, ensure we have a selected tier
+  if (hasTieredPlans && !selectedTierValue) {
     return null;
   }
 
-  const selectData = firstPlan.pricingTiers
-    .filter((tier) => !tier.custom)
+  const selectData = firstTieredPlan?.pricingTiers
+    ?.filter((tier) => !tier.custom)
     .map((tier, index) => {
       const prevMaxUsers =
-        index > 0 ? firstPlan.pricingTiers[index - 1].upTo : 0;
+        index > 0 ? firstTieredPlan.pricingTiers[index - 1].upTo : 0;
       return {
         value: tier.upTo.toString(),
         label: `${prevMaxUsers + 1}-${tier.upTo} users`,
       };
-    });
+    }) || [];
 
   return (
     <Container size="xl" py="xl">
@@ -69,16 +72,18 @@ export default function BillingPlans() {
       <Stack gap="xl" mb="md">
         {/* Team Size and Billing Controls */}
         <Group justify="center" align="center" gap="sm">
-          <Select
-            label="Team size"
-            description="Select the number of users"
-            value={selectedTierValue}
-            onChange={setSelectedTierValue}
-            data={selectData}
-            w={250}
-            size="md"
-            allowDeselect={false}
-          />
+          {hasTieredPlans && (
+            <Select
+              label="Team size"
+              description="Select the number of users"
+              value={selectedTierValue}
+              onChange={setSelectedTierValue}
+              data={selectData}
+              w={250}
+              size="md"
+              allowDeselect={false}
+            />
+          )}
 
           <Group justify="center" align="start">
             <Flex justify="center" gap="md" align="center">
@@ -102,16 +107,28 @@ export default function BillingPlans() {
       {/* Plans Grid */}
       <Group justify="center" gap="lg" align="stretch">
         {plans.map((plan, index) => {
-          const tieredPlan = plan;
-          const planSelectedTier =
-            tieredPlan.pricingTiers.find(
-              (tier) => tier.upTo.toString() === selectedTierValue,
-            ) || tieredPlan.pricingTiers[0];
-
-          const price = isAnnual
-            ? planSelectedTier.yearly
-            : planSelectedTier.monthly;
+          let price;
+          let displayPrice;
           const priceId = isAnnual ? plan.yearlyId : plan.monthlyId;
+
+          if (plan.billingScheme === 'tiered' && plan.pricingTiers?.length > 0) {
+            // Tiered billing logic
+            const planSelectedTier =
+              plan.pricingTiers.find(
+                (tier) => tier.upTo.toString() === selectedTierValue,
+              ) || plan.pricingTiers[0];
+
+            price = isAnnual
+              ? planSelectedTier.yearly
+              : planSelectedTier.monthly;
+            displayPrice = isAnnual ? (price / 12).toFixed(0) : price;
+          } else {
+            // Per-unit billing logic
+            const monthlyPrice = parseFloat(plan.price?.monthly || '0');
+            const yearlyPrice = parseFloat(plan.price?.yearly || '0');
+            price = isAnnual ? yearlyPrice : monthlyPrice;
+            displayPrice = isAnnual ? (yearlyPrice / 12).toFixed(0) : monthlyPrice;
+          }
 
           return (
             <Card
@@ -143,10 +160,12 @@ export default function BillingPlans() {
                 <Stack gap="xs">
                   <Group align="baseline" gap="xs">
                     <Title order={1} size="h1">
-                      ${isAnnual ? (price / 12).toFixed(0) : price}
+                      ${displayPrice}
                     </Title>
                     <Text size="lg" c="dimmed">
-                      per {isAnnual ? "month" : "month"}
+                      {plan.billingScheme === 'per_unit' 
+                        ? `per user/month`
+                        : `per month`}
                     </Text>
                   </Group>
                   {isAnnual && (
@@ -154,9 +173,11 @@ export default function BillingPlans() {
                       Billed annually
                     </Text>
                   )}
-                  <Text size="md" fw={500}>
-                    For {planSelectedTier.upTo} users
-                  </Text>
+                  {plan.billingScheme === 'tiered' && plan.pricingTiers && (
+                    <Text size="md" fw={500}>
+                      For {plan.pricingTiers.find(tier => tier.upTo.toString() === selectedTierValue)?.upTo || plan.pricingTiers[0].upTo} users
+                    </Text>
+                  )}
                 </Stack>
 
                 {/* CTA Button */}
