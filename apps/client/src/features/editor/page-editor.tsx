@@ -126,7 +126,15 @@ export default function PageEditor({
           const now = Date.now().valueOf() / 1000;
           const isTokenExpired = now >= payload.exp;
           if (isTokenExpired) {
-            refetchCollabToken();
+            refetchCollabToken().then((result) => {
+              if (result.data?.token) {
+                remote.disconnect();
+                setTimeout(() => {
+                  remote.configuration.token = result.data.token;
+                  remote.connect();
+                }, 100);
+              }
+            });
           }
         },
         onStatus: (status) => {
@@ -151,6 +159,21 @@ export default function PageEditor({
       providersRef.current = null;
     };
   }, [pageId]);
+
+  /*
+  useEffect(() => {
+    // Handle token updates by reconnecting with new token
+    if (providersRef.current?.remote && collabQuery?.token) {
+      const currentToken = providersRef.current.remote.configuration.token;
+      if (currentToken !== collabQuery.token) {
+        // Token has changed, need to reconnect with new token
+        providersRef.current.remote.disconnect();
+        providersRef.current.remote.configuration.token = collabQuery.token;
+        providersRef.current.remote.connect();
+      }
+    }
+  }, [collabQuery?.token]);
+   */
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
