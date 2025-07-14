@@ -22,32 +22,14 @@ interface TableBackgroundColorProps {
 }
 
 const TABLE_COLORS: TableColorItem[] = [
-  // First row - grays
   { name: "Default", color: "" },
-  { name: "Light blue", color: "#E6E9FF" },
-  { name: "Light cyan", color: "#E0F2FE" },
-  { name: "Light teal", color: "#CCFBF1" },
-  { name: "Light yellow", color: "#FEF3C7" },
-  { name: "Light pink", color: "#FCE7F3" },
-  { name: "Light purple", color: "#EDE9FE" },
-
-  // Second row - light colors
-  { name: "Gray", color: "#F3F4F6" },
-  { name: "Blue", color: "#BFDBFE" },
-  { name: "Cyan", color: "#A5F3FC" },
-  { name: "Teal", color: "#99F6E4" },
-  { name: "Yellow", color: "#FDE68A" },
-  { name: "Pink", color: "#FBCFE8" },
-  { name: "Purple", color: "#DDD6FE" },
-  
-  // Third row - bold colors
-  { name: "Dark gray", color: "#9CA3AF" },
-  { name: "Bold blue", color: "#60A5FA" },
-  { name: "Bold cyan", color: "#22D3EE" },
-  { name: "Bold teal", color: "#2DD4BF" },
-  { name: "Bold orange", color: "#FB923C" },
-  { name: "Bold red", color: "#F87171" },
-  { name: "Bold purple", color: "#A78BFA" },
+  { name: "Blue", color: "#b4d5ff" },
+  { name: "Green", color: "#acf5d2" },
+  { name: "Yellow", color: "#fef1b4" },
+  { name: "Red", color: "#ffbead" },
+  { name: "Pink", color: "#ffc7fe" },
+  { name: "Gray", color: "#eaecef" },
+  { name: "Purple", color: "#c1b7f2" },
 ];
 
 export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
@@ -82,13 +64,13 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
   const currentColor = getCurrentColor();
 
   return (
-    <Popover 
-      width={280} 
-      position="bottom" 
-      opened={opened} 
+    <Popover
+      width={150}
+      position="bottom"
+      opened={opened}
       onChange={setOpened}
       withArrow
-      transitionProps={{ transition: 'pop' }}
+      transitionProps={{ transition: "pop" }}
     >
       <Popover.Target>
         <Tooltip label={t("Background color")} withArrow>
@@ -108,11 +90,11 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
           <Text size="sm" c="dimmed">
             {t("Background color")}
           </Text>
-          
+
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
+              gridTemplateColumns: "repeat(4, 1fr)",
               gap: "8px",
             }}
           >
@@ -139,9 +121,10 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
                     <IconCheck
                       size={18}
                       style={{
-                        color: item.color === "" || item.color.startsWith("#F") 
-                          ? "#000000" 
-                          : "#ffffff",
+                        color:
+                          item.color === "" || item.color.startsWith("#F")
+                            ? "#000000"
+                            : "#ffffff",
                       }}
                     />
                   )}
