@@ -11,7 +11,6 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import Table from "@tiptap/extension-table";
-import TableHeader from "@tiptap/extension-table-header";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -25,6 +24,7 @@ import {
   MathInline,
   TableCell,
   TableRow,
+  TableHeader,
   TrailingNode,
   TiptapImage,
   Callout,
