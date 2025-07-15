@@ -42,7 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
     const user = await this.userRepo.findById(payload.sub, payload.workspaceId);
 
-    if (!user || user.deletedAt) {
+    if (!user || user.deactivatedAt || user.deletedAt) {
       throw new UnauthorizedException();
     }
 
