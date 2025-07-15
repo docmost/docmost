@@ -37,7 +37,7 @@ export default function AppVersion() {
           disabled={!hasUpdate}
           onClick={() => {
             window.open(
-              "https://github.com/docmost/docmost/releases",
+              "https://github.com/vito0912/forkmost/releases",
               "_blank",
             );
           }}
@@ -47,10 +47,10 @@ export default function AppVersion() {
             c="dimmed"
             component="a"
             mr={45}
-            href="https://github.com/docmost/docmost/releases"
+            href="https://github.com/vito0912/forkmost/releases"
             target="_blank"
           >
-            v{APP_VERSION}
+            v{APP_VERSION} - Forkmost
           </Text>
         </Indicator>
       </Tooltip>

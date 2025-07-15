@@ -15,7 +15,6 @@ import { ISetupWorkspace } from "@/features/auth/types/auth.types";
 import useAuth from "@/features/auth/hooks/use-auth";
 import classes from "@/features/auth/components/auth.module.css";
 import { useTranslation } from "react-i18next";
-import SsoCloudSignup from "@/ee/components/sso-cloud-signup.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
@@ -56,8 +55,6 @@ export function SetupWorkspaceForm() {
           <Title order={2} ta="center" fw={500} mb="md">
             {t("Create workspace")}
           </Title>
-
-          {isCloud() && <SsoCloudSignup />}
 
           <form onSubmit={form.onSubmit(onSubmit)}>
             {!isCloud() && (

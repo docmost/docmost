@@ -3,7 +3,7 @@ import { TextSelection } from "@tiptap/pm/state";
 import React, { FC, useEffect, useRef, useState } from "react";
 import classes from "./table-of-contents.module.css";
 import clsx from "clsx";
-import { Box, Text } from "@mantine/core";
+import { Box, Loader, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
 type TableOfContentsProps = {
@@ -21,30 +21,37 @@ export type HeadingLink = {
 const recalculateLinks = (nodePos: NodePos[]) => {
   const nodes: HTMLElement[] = [];
 
-  const links: HeadingLink[] = Array.from(nodePos).reduce<HeadingLink[]>(
-    (acc, item) => {
-      const label = item.node.textContent;
-      const level = Number(item.node.attrs.level);
-      if (label.length && level <= 3) {
-        acc.push({
-          label,
-          level,
-          element: item.element,
-          //@ts-ignore
-          position: item.resolvedPos.pos,
-        });
-        nodes.push(item.element);
-      }
-      return acc;
-    },
-    [],
-  );
-  return { links, nodes };
+  try{
+    const links: HeadingLink[] = Array.from(nodePos).reduce<HeadingLink[]>(
+      (acc, item) => {
+        const label = item.node.textContent;
+        const level = Number(item.node.attrs.level);
+        if (label.length && level <= 3) {
+          acc.push({
+            label,
+            level,
+            element: item.element,
+            //@ts-ignore
+            position: item.resolvedPos.pos,
+          });
+          nodes.push(item.element);
+        }
+        return acc;
+      },
+      [],
+    );
+    return { links, nodes };
+  } catch (error ){
+    // workaround if delete last page with headers and create first one in space
+    return { links: [] as HeadingLink[], nodes: [] as HTMLElement[] };
+  }
+  
 };
 
 export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   const { t } = useTranslation();
   const [links, setLinks] = useState<HeadingLink[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
   const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
   const headerPaddingRef = useRef<HTMLDivElement | null>(null);
@@ -73,10 +80,13 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   };
 
   const handleUpdate = () => {
+    if (props.editor?.$nodes("heading") === undefined) return;
     const result = recalculateLinks(props.editor?.$nodes("heading"));
 
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
+
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -134,6 +144,10 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
       console.log(err);
     }
   }, [headingDOMNodes, props.editor]);
+
+  if (isLoading) {
+    return <Loader color="gray" size="xs" type="dots" />;
+  }
 
   if (!links.length) {
     return (

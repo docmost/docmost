@@ -1,5 +1,5 @@
 import { Text, Avatar, SimpleGrid, Card, rem } from "@mantine/core";
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   prefetchSpace,
   useGetSpacesQuery,
@@ -9,10 +9,12 @@ import { Link } from "react-router-dom";
 import classes from "./space-grid.module.css";
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
+import Paginate from "@/components/common/paginate";
 
 export default function SpaceGrid() {
   const { t } = useTranslation();
-  const { data, isLoading } = useGetSpacesQuery({ page: 1 });
+  const [ page, setPage ] = useState(1);
+  const { data, isLoading } = useGetSpacesQuery({ page, limit: 12 });
 
   const cards = data?.items.map((space, index) => (
     <Card
@@ -51,6 +53,15 @@ export default function SpaceGrid() {
       </Text>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }}>{cards}</SimpleGrid>
+      
+      {data?.items.length > 0 && (
+        <Paginate
+          currentPage={page}
+          hasPrevPage={data?.meta.hasPrevPage}
+          hasNextPage={data?.meta.hasNextPage}
+          onPageChange={setPage}
+        />
+      )}
     </>
   );
 }

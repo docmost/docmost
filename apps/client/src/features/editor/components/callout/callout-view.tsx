@@ -11,7 +11,7 @@ import { CalloutType } from "@docmost/editor-ext";
 
 export default function CalloutView(props: NodeViewProps) {
   const { node } = props;
-  const { type } = node.attrs;
+  const { type, icon } = node.attrs;
 
   return (
     <NodeViewWrapper>
@@ -19,7 +19,7 @@ export default function CalloutView(props: NodeViewProps) {
         variant="light"
         title=""
         color={getCalloutColor(type)}
-        icon={getCalloutIcon(type)}
+        icon={getCalloutIcon(type, icon)}
         p="xs"
         classNames={{
           message: classes.message,
@@ -32,7 +32,11 @@ export default function CalloutView(props: NodeViewProps) {
   );
 }
 
-function getCalloutIcon(type: CalloutType) {
+function getCalloutIcon(type: CalloutType, customIcon?: string) {
+  if (customIcon && customIcon.trim() !== "") {
+    return <span style={{ fontSize: '18px' }}>{customIcon}</span>;
+  }
+
   switch (type) {
     case "info":
       return <IconInfoCircleFilled />;
