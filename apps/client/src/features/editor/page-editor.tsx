@@ -303,7 +303,6 @@ export default function PageEditor({
   useEffect(() => {
     setActiveCommentId(null);
     setShowCommentPopup(false);
-    setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
   useEffect(() => {
