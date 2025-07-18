@@ -34,17 +34,21 @@ COPY --from=builder /app/pnpm*.yaml /app/
 COPY --from=builder /app/patches /app/patches
 
 RUN npm install -g pnpm@10.4.0
-
-RUN chown -R node:node /app
-
-USER node
-
 RUN pnpm install --frozen-lockfile --prod
-
 RUN mkdir -p /app/data/storage
 
 VOLUME ["/app/data/storage"]
 
+COPY ./entrypoint.sh /app/run.sh
+RUN chown -R node:node /app && \
+    find /app -type d -exec chmod 770 {} + && \
+    find /app -type f -exec chmod 660 {} + && \
+    find /app/node_modules/.bin/ -type f -exec chmod 770 {} + && \
+    chmod +x /app/run.sh \
+
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+ENTRYPOINT ["/app/run.sh"]
+
+
+#CMD ["pnpm", "start"]

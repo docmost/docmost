@@ -37,6 +37,8 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+# IDE - Intellij
+*.iml
 
 .nx
 .nx/installation
