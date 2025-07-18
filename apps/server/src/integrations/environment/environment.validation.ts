@@ -54,6 +54,20 @@ export class EnvironmentVariables {
   @ValidateIf((obj) => obj.COLLAB_URL != '' && obj.COLLAB_URL != null)
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   COLLAB_URL: string;
+
+  @IsOptional()
+  CLOUD: boolean;
+
+  @IsOptional()
+  @IsUrl(
+    { protocols: [], require_tld: true },
+    {
+      message:
+        'SUBDOMAIN_HOST must be a valid FQDN domain without the http protocol. e.g example.com',
+    },
+  )
+  @ValidateIf((obj) => obj.CLOUD === 'true'.toLowerCase())
+  SUBDOMAIN_HOST: string;
 }
 
 export function validate(config: Record<string, any>) {

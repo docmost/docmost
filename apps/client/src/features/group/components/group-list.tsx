@@ -7,11 +7,21 @@ import { useTranslation } from "react-i18next";
 import { formatMemberCount } from "@/lib";
 import { IGroup } from "@/features/group/types/group.types.ts";
 import Paginate from "@/components/common/paginate.tsx";
+import { queryClient } from "@/main.tsx";
+import { getSpaces } from "@/features/space/services/space-service.ts";
+import { getGroupMembers } from "@/features/group/services/group-service.ts";
 
 export default function GroupList() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetGroupsQuery({ page });
+
+  const prefetchGroupMembers = (groupId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ["groupMembers", groupId, { page: 1 }],
+      queryFn: () => getGroupMembers(groupId, { page: 1 }),
+    });
+  };
 
   return (
     <>
@@ -27,7 +37,7 @@ export default function GroupList() {
           <Table.Tbody>
             {data?.items.map((group: IGroup, index: number) => (
               <Table.Tr key={index}>
-                <Table.Td>
+                <Table.Td onMouseEnter={() => prefetchGroupMembers(group.id)}>
                   <Anchor
                     size="sm"
                     underline="never"

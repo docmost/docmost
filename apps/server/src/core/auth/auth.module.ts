@@ -10,5 +10,6 @@ import { TokenModule } from './token.module';
   imports: [TokenModule, WorkspaceModule],
   controllers: [AuthController],
   providers: [AuthService, SignupService, JwtStrategy],
+  exports: [SignupService],
 })
 export class AuthModule {}

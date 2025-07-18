@@ -4,6 +4,7 @@
   overflow-x: auto;
   & table {
     overflow-x: hidden;
+    min-width: 700px !important;
   }
 }
 
@@ -38,8 +39,8 @@
 
     th {
       background-color: light-dark(
-              var(--mantine-color-gray-1),
-              var(--mantine-color-dark-5)
+        var(--mantine-color-gray-1),
+        var(--mantine-color-dark-5)
       );
       font-weight: bold;
       text-align: left;
@@ -47,7 +48,7 @@
 
     .column-resize-handle {
       background-color: #adf;
-      bottom: -2px;
+      bottom: -1px;
       position: absolute;
       right: -2px;
       pointer-events: none;
@@ -66,8 +67,54 @@
       position: absolute;
       z-index: 2;
     }
-
   }
 }
 
+/* Table cell background colors with dark mode support */
+.ProseMirror {
+  table {
+    @mixin dark {
+      /* Blue */
+      td[data-background-color="#b4d5ff"],
+      th[data-background-color="#b4d5ff"] {
+        background-color: #1a3a5c !important;
+      }
 
+      /* Green */
+      td[data-background-color="#acf5d2"],
+      th[data-background-color="#acf5d2"] {
+        background-color: #1a4d3a !important;
+      }
+
+      /* Yellow */
+      td[data-background-color="#fef1b4"],
+      th[data-background-color="#fef1b4"] {
+        background-color: #7c5014 !important;
+      }
+
+      /* Red */
+      td[data-background-color="#ffbead"],
+      th[data-background-color="#ffbead"] {
+        background-color: #5c2a23 !important;
+      }
+
+      /* Pink */
+      td[data-background-color="#ffc7fe"],
+      th[data-background-color="#ffc7fe"] {
+        background-color: #4d2a4d !important;
+      }
+
+      /* Gray */
+      td[data-background-color="#eaecef"],
+      th[data-background-color="#eaecef"] {
+        background-color: #2a2e33 !important;
+      }
+
+      /* Purple */
+      td[data-background-color="#c1b7f2"],
+      th[data-background-color="#c1b7f2"] {
+        background-color: #3a2f5c !important;
+      }
+    }
+  }
+}

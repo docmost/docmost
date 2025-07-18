@@ -15,12 +15,16 @@ import {
   revokeInvitation,
   getWorkspace,
   getWorkspacePublicData,
+  getAppVersion,
+  deleteWorkspaceMember,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
+  IPublicWorkspace,
+  IVersion,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
@@ -34,7 +38,7 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
+  IPublicWorkspace,
   Error
 > {
   return useQuery({
@@ -50,6 +54,30 @@ export function useWorkspaceMembersQuery(
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useDeleteWorkspaceMemberMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    {
+      userId: string;
+    }
+  >({
+    mutationFn: (data) => deleteWorkspaceMember(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: "Member deleted successfully" });
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceMembers"],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }
 
@@ -145,10 +173,22 @@ export function useRevokeInvitationMutation() {
 
 export function useGetInvitationQuery(
   invitationId: string,
-): UseQueryResult<any, Error> {
+): UseQueryResult<IInvitation, Error> {
   return useQuery({
     queryKey: ["invitations", invitationId],
     queryFn: () => getInvitationById({ invitationId }),
     enabled: !!invitationId,
+  });
+}
+
+export function useAppVersion(
+  isEnabled: boolean,
+): UseQueryResult<IVersion, Error> {
+  return useQuery({
+    queryKey: ["version"],
+    queryFn: () => getAppVersion(),
+    staleTime: 60 * 60 * 1000, // 1 hr
+    enabled: isEnabled,
+    refetchOnMount: true,
   });
 }

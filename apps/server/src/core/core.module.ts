@@ -15,6 +15,7 @@ import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
+import { ShareModule } from './share/share.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DomainMiddleware } from '../common/middlewares/domain.middleware';
     SpaceModule,
     GroupModule,
     CaslModule,
+    ShareModule,
   ],
 })
 export class CoreModule implements NestModule {
@@ -37,6 +39,8 @@ export class CoreModule implements NestModule {
       .exclude(
         { path: 'auth/setup', method: RequestMethod.POST },
         { path: 'health', method: RequestMethod.GET },
+        { path: 'health/live', method: RequestMethod.GET },
+        { path: 'billing/stripe/webhook', method: RequestMethod.POST },
       )
       .forRoutes('*');
   }

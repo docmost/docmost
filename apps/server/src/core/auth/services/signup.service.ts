@@ -7,7 +7,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
-import { User } from '@docmost/db/types/entity.types';
+import { User, Workspace } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { UserRole } from '../../../common/helpers/types/permission';
 
@@ -32,7 +32,7 @@ export class SignupService {
 
     if (userCheck) {
       throw new BadRequestException(
-        'You already have an account on this workspace',
+        'An account with this email already exists in this workspace',
       );
     }
 
@@ -72,11 +72,14 @@ export class SignupService {
     createAdminUserDto: CreateAdminUserDto,
     trx?: KyselyTransaction,
   ) {
-    return await executeTx(
+    let user: User,
+      workspace: Workspace = null;
+
+    await executeTx(
       this.db,
       async (trx) => {
         // create user
-        const user = await this.userRepo.insertUser(
+        user = await this.userRepo.insertUser(
           {
             name: createAdminUserDto.name,
             email: createAdminUserDto.email,
@@ -89,10 +92,11 @@ export class SignupService {
 
         // create workspace with full setup
         const workspaceData: CreateWorkspaceDto = {
-          name: createAdminUserDto.workspaceName,
+          name: createAdminUserDto.workspaceName || 'My workspace',
+          hostname: createAdminUserDto.hostname,
         };
 
-        const workspace = await this.workspaceService.create(
+        workspace = await this.workspaceService.create(
           user,
           workspaceData,
           trx,
@@ -103,5 +107,7 @@ export class SignupService {
       },
       trx,
     );
+
+    return { user, workspace };
   }
 }

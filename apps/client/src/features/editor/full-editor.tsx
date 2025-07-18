@@ -32,7 +32,7 @@ export function FullEditor({
   return (
     <Container
       fluid={fullPageWidth}
-      size={!fullPageWidth && 850}
+      size={!fullPageWidth && 900}
       className={classes.editor}
     >
       <MemoizedTitleEditor
@@ -42,7 +42,11 @@ export function FullEditor({
         spaceSlug={spaceSlug}
         editable={editable}
       />
-      <MemoizedPageEditor pageId={pageId} editable={editable} content={content} />
+      <MemoizedPageEditor
+        pageId={pageId}
+        editable={editable}
+        content={content}
+      />
     </Container>
   );
 }

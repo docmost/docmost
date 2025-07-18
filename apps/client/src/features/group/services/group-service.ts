@@ -33,7 +33,7 @@ export async function getGroupMembers(
   groupId: string,
   params?: QueryParams,
 ): Promise<IPagination<IUser>> {
-  const req = await api.post("/groups/members", { groupId, params });
+  const req = await api.post("/groups/members", { groupId, ...params });
   return req.data;
 }
 

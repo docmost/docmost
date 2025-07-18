@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
+import { sanitize } from 'sanitize-filename-ts';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -15,16 +16,24 @@ export async function comparePasswordHash(
   return bcrypt.compare(plainPassword, passwordHash);
 }
 
+export function generateRandomSuffixNumbers(length: number) {
+  return Math.random()
+    .toFixed(length)
+    .substring(2, 2 + length);
+}
+
 export type RedisConfig = {
   host: string;
   port: number;
   db: number;
   password?: string;
+  family?: number;
 };
 
 export function parseRedisUrl(redisUrl: string): RedisConfig {
-  // format - redis[s]://[[username][:password]@][host][:port][/db-number]
-  const { hostname, port, password, pathname } = new URL(redisUrl);
+  // format - redis[s]://[[username][:password]@][host][:port][/db-number][?family=4|6]
+  const url = new URL(redisUrl);
+  const { hostname, port, password, pathname, searchParams } = url;
   const portInt = parseInt(port, 10);
 
   let db: number = 0;
@@ -36,7 +45,14 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
     }
   }
 
-  return { host: hostname, port: portInt, password, db };
+  // extract family from query parameters
+  let family: number | undefined;
+  const familyParam = searchParams.get('family');
+  if (familyParam && !isNaN(parseInt(familyParam))) {
+    family = parseInt(familyParam, 10);
+  }
+
+  return { host: hostname, port: portInt, password, db, family };
 }
 
 export function createRetryStrategy() {
@@ -52,4 +68,9 @@ export function extractDateFromUuid7(uuid7: string) {
   const timestamp = parseInt(highBitsHex, 16);
 
   return new Date(timestamp);
+}
+
+export function sanitizeFileName(fileName: string): string {
+  const sanitizedFilename = sanitize(fileName).replace(/ /g, '_');
+  return sanitizedFilename.slice(0, 255);
 }

@@ -10,9 +10,9 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { validate as isValidUUID } from 'uuid';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
@@ -38,6 +38,7 @@ export class PageRepo {
     'createdAt',
     'updatedAt',
     'deletedAt',
+    'contributorIds',
   ];
 
   async findById(
@@ -46,6 +47,9 @@ export class PageRepo {
       includeContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
+      includeCreator?: boolean;
+      includeLastUpdatedBy?: boolean;
+      includeContributors?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -57,6 +61,18 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+
+    if (opts?.includeCreator) {
+      query = query.select((eb) => this.withCreator(eb));
+    }
+
+    if (opts?.includeLastUpdatedBy) {
+      query = query.select((eb) => this.withLastUpdatedBy(eb));
+    }
+
+    if (opts?.includeContributors) {
+      query = query.select((eb) => this.withContributors(eb));
+    }
 
     if (opts?.includeSpace) {
       query = query.select((eb) => this.withSpace(eb));
@@ -80,18 +96,23 @@ export class PageRepo {
     pageId: string,
     trx?: KyselyTransaction,
   ) {
-    const db = dbOrTx(this.db, trx);
-    let query = db
+    return this.updatePages(updatablePage, [pageId], trx);
+  }
+
+  async updatePages(
+    updatePageData: UpdatablePage,
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ) {
+    return dbOrTx(this.db, trx)
       .updateTable('pages')
-      .set({ ...updatablePage, updatedAt: new Date() });
-
-    if (isValidUUID(pageId)) {
-      query = query.where('id', '=', pageId);
-    } else {
-      query = query.where('slugId', '=', pageId);
-    }
-
-    return query.executeTakeFirst();
+      .set({ ...updatePageData, updatedAt: new Date() })
+      .where(
+        pageIds.some((pageId) => !isValidUUID(pageId)) ? 'slugId' : 'id',
+        'in',
+        pageIds,
+      )
+      .executeTakeFirst();
   }
 
   async insertPage(
@@ -119,8 +140,8 @@ export class PageRepo {
             exp
               .selectFrom('pages as p')
               .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
-          )
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
       )
       .selectFrom('page_descendants')
       .selectAll()
@@ -158,8 +179,8 @@ export class PageRepo {
             exp
               .selectFrom('pages as p')
               .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
-          )
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
       )
       .selectFrom('page_descendants')
       .selectAll()
@@ -202,9 +223,11 @@ export class PageRepo {
       .where('deletedAt', '=', null)
       .orderBy('updatedAt', 'desc');
 
+    const hasEmptyIds = userSpaceIds.length === 0;
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;
@@ -236,7 +259,37 @@ export class PageRepo {
     ).as('space');
   }
 
-  async getPageAndDescendants(parentPageId: string) {
+  withCreator(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.creatorId'),
+    ).as('creator');
+  }
+
+  withLastUpdatedBy(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.lastUpdatedById'),
+    ).as('lastUpdatedBy');
+  }
+
+  withContributors(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonArrayFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', sql`ANY(${eb.ref('pages.contributorIds')})`),
+    ).as('contributors');
+  }
+
+  async getPageAndDescendants(
+    parentPageId: string,
+    opts: { includeContent: boolean },
+  ) {
     return this.db
       .withRecursive('page_hierarchy', (db) =>
         db
@@ -246,11 +299,12 @@ export class PageRepo {
             'slugId',
             'title',
             'icon',
-            'content',
+            'position',
             'parentPageId',
             'spaceId',
             'workspaceId',
           ])
+          .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
           .unionAll((exp) =>
             exp
@@ -260,11 +314,12 @@ export class PageRepo {
                 'p.slugId',
                 'p.title',
                 'p.icon',
-                'p.content',
+                'p.position',
                 'p.parentPageId',
                 'p.spaceId',
                 'p.workspaceId',
               ])
+              .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
           ),
       )

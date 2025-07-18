@@ -1,10 +1,14 @@
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { comparePasswordHash } from 'src/common/helpers/utils';
+import { Workspace } from '@docmost/db/types/entity.types';
+import { validateSsoEnforcement } from '../auth/auth.util';
 
 @Injectable()
 export class UserService {
@@ -17,9 +21,14 @@ export class UserService {
   async update(
     updateUserDto: UpdateUserDto,
     userId: string,
-    workspaceId: string,
+    workspace: Workspace,
   ) {
-    const user = await this.userRepo.findById(userId, workspaceId);
+    const includePassword =
+      updateUserDto.email != null && updateUserDto.confirmPassword != null;
+
+    const user = await this.userRepo.findById(userId, workspace.id, {
+      includePassword,
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -27,9 +36,18 @@ export class UserService {
 
     // preference update
     if (typeof updateUserDto.fullPageWidth !== 'undefined') {
-      return this.updateUserPageWidthPreference(
+      return this.userRepo.updatePreference(
         userId,
+        'fullPageWidth',
         updateUserDto.fullPageWidth,
+      );
+    }
+
+    if (typeof updateUserDto.pageEditMode !== 'undefined') {
+      return this.userRepo.updatePreference(
+        userId,
+        'pageEditMode',
+        updateUserDto.pageEditMode.toLowerCase(),
       );
     }
 
@@ -38,9 +56,27 @@ export class UserService {
     }
 
     if (updateUserDto.email && user.email != updateUserDto.email) {
-      if (await this.userRepo.findByEmail(updateUserDto.email, workspaceId)) {
+      validateSsoEnforcement(workspace);
+
+      if (!updateUserDto.confirmPassword) {
+        throw new BadRequestException(
+          'You must provide a password to change your email',
+        );
+      }
+
+      const isPasswordMatch = await comparePasswordHash(
+        updateUserDto.confirmPassword,
+        user.password,
+      );
+
+      if (!isPasswordMatch) {
+        throw new BadRequestException('You must provide the correct password to change your email');
+      }
+
+      if (await this.userRepo.findByEmail(updateUserDto.email, workspace.id)) {
         throw new BadRequestException('A user with this email already exists');
       }
+
       user.email = updateUserDto.email;
     }
 
@@ -52,15 +88,9 @@ export class UserService {
       user.locale = updateUserDto.locale;
     }
 
-    await this.userRepo.updateUser(updateUserDto, userId, workspaceId);
-    return user;
-  }
+    delete updateUserDto.confirmPassword;
 
-  async updateUserPageWidthPreference(userId: string, fullPageWidth: boolean) {
-    return this.userRepo.updatePreference(
-      userId,
-      'fullPageWidth',
-      fullPageWidth,
-    );
+    await this.userRepo.updateUser(updateUserDto, userId, workspace.id);
+    return user;
   }
 }

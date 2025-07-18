@@ -3,9 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Post,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -23,7 +21,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
-import { addDays } from 'date-fns';
+import { validateSsoEnforcement } from './auth.util';
 
 @Controller('auth')
 export class AuthController {
@@ -35,14 +33,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
-    @Req() req,
+    @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() loginInput: LoginDto,
   ) {
-    const authToken = await this.authService.login(
-      loginInput,
-      req.raw.workspaceId,
-    );
+    validateSsoEnforcement(workspace);
+
+    const authToken = await this.authService.login(loginInput, workspace.id);
     this.setAuthCookie(res, authToken);
   }
 
@@ -53,10 +50,11 @@ export class AuthController {
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() createAdminUserDto: CreateAdminUserDto,
   ) {
-    if (this.environmentService.isCloud()) throw new NotFoundException();
+    const { workspace, authToken } =
+      await this.authService.setup(createAdminUserDto);
 
-    const authToken = await this.authService.setup(createAdminUserDto);
     this.setAuthCookie(res, authToken);
+    return workspace;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -76,7 +74,8 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.authService.forgotPassword(forgotPasswordDto, workspace.id);
+    validateSsoEnforcement(workspace);
+    return this.authService.forgotPassword(forgotPasswordDto, workspace);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -109,7 +108,7 @@ export class AuthController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    return this.authService.getCollabToken(user.id, workspace.id);
+    return this.authService.getCollabToken(user, workspace.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -123,7 +122,7 @@ export class AuthController {
     res.setCookie('authToken', token, {
       httpOnly: true,
       path: '/',
-      expires: addDays(new Date(), 30),
+      expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
     });
   }

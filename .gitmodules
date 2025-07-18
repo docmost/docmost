@@ -1,0 +1,3 @@
+[submodule "apps/server/src/ee"]
+	path = apps/server/src/ee
+	url = https://github.com/docmost/ee

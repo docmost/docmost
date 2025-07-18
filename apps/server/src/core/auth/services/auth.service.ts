@@ -22,13 +22,13 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
 import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
 import { PasswordResetDto } from '../dto/password-reset.dto';
-import { UserToken } from '@docmost/db/types/entity.types';
+import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
 import { UserTokenType } from '../auth.constants';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
-import { EnvironmentService } from 'src/integrations/environment/environment.service';
+import { DomainService } from '../../../integrations/environment/domain.service';
 
 @Injectable()
 export class AuthService {
@@ -38,22 +38,27 @@ export class AuthService {
     private userRepo: UserRepo,
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
-    private environmentService: EnvironmentService,
+    private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
-    const user = await this.userRepo.findByEmail(
-      loginDto.email,
-      workspaceId,
-      true,
+    const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
+      includePassword: true,
+    });
+
+    const errorMessage = 'email or password does not match';
+    if (!user || user?.deletedAt) {
+      throw new UnauthorizedException(errorMessage);
+    }
+
+    const isPasswordMatch = await comparePasswordHash(
+      loginDto.password,
+      user.password,
     );
 
-    if (
-      !user ||
-      !(await comparePasswordHash(loginDto.password, user.password))
-    ) {
-      throw new UnauthorizedException('email or password does not match');
+    if (!isPasswordMatch) {
+      throw new UnauthorizedException(errorMessage);
     }
 
     user.lastLoginAt = new Date();
@@ -68,8 +73,11 @@ export class AuthService {
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    const user = await this.signupService.initialSetup(createAdminUserDto);
-    return this.tokenService.generateAccessToken(user);
+    const { workspace, user } =
+      await this.signupService.initialSetup(createAdminUserDto);
+
+    const authToken = await this.tokenService.generateAccessToken(user);
+    return { workspace, authToken };
   }
 
   async changePassword(
@@ -81,7 +89,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
@@ -113,19 +121,20 @@ export class AuthService {
 
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
-    workspaceId: string,
+    workspace: Workspace,
   ): Promise<void> {
     const user = await this.userRepo.findByEmail(
       forgotPasswordDto.email,
-      workspaceId,
+      workspace.id,
     );
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       return;
     }
 
     const token = nanoIdGen(16);
-    const resetLink = `${this.environmentService.getAppUrl()}/password-reset?token=${token}`;
+
+    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
 
     await this.userTokenRepo.insertUserToken({
       token: token,
@@ -162,7 +171,7 @@ export class AuthService {
     }
 
     const user = await this.userRepo.findById(userToken.userId, workspaceId);
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
@@ -199,7 +208,7 @@ export class AuthService {
     userTokenDto: VerifyUserTokenDto,
     workspaceId: string,
   ): Promise<void> {
-    const userToken = await this.userTokenRepo.findById(
+    const userToken: UserToken = await this.userTokenRepo.findById(
       userTokenDto.token,
       workspaceId,
     );
@@ -213,9 +222,9 @@ export class AuthService {
     }
   }
 
-  async getCollabToken(userId: string, workspaceId: string) {
+  async getCollabToken(user: User, workspaceId: string) {
     const token = await this.tokenService.generateCollabToken(
-      userId,
+      user,
       workspaceId,
     );
     return { token };

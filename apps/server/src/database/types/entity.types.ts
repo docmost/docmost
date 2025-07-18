@@ -13,6 +13,11 @@ import {
   WorkspaceInvitations,
   UserTokens,
   Backlinks,
+  Billing as BillingSubscription,
+  AuthProviders,
+  AuthAccounts,
+  Shares,
+  FileTasks,
 } from './db';
 
 // Workspace
@@ -83,3 +88,28 @@ export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;
 export type Backlink = Selectable<Backlinks>;
 export type InsertableBacklink = Insertable<Backlink>;
 export type UpdatableBacklink = Updateable<Omit<Backlink, 'id'>>;
+
+// Billing
+export type Billing = Selectable<BillingSubscription>;
+export type InsertableBilling = Insertable<BillingSubscription>;
+export type UpdatableBilling = Updateable<Omit<BillingSubscription, 'id'>>;
+
+// Auth Provider
+export type AuthProvider = Selectable<AuthProviders>;
+export type InsertableAuthProvider = Insertable<AuthProviders>;
+export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
+
+// Auth Account
+export type AuthAccount = Selectable<AuthAccounts>;
+export type InsertableAuthAccount = Insertable<AuthAccounts>;
+export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;
+
+// Share
+export type Share = Selectable<Shares>;
+export type InsertableShare = Insertable<Shares>;
+export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
+
+// File Task
+export type FileTask = Selectable<FileTasks>;
+export type InsertableFileTask = Insertable<FileTasks>;
+export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;

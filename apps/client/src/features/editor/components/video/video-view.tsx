@@ -22,6 +22,7 @@ export default function VideoView(props: NodeViewProps) {
         controls
         src={getFileUrl(src)}
         className={clsx(selected ? "ProseMirror-selectednode" : "", alignClass)}
+        style={{ display: "block" }}
       />
     </NodeViewWrapper>
   );

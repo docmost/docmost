@@ -20,9 +20,9 @@ export class HistoryListener {
 
     const pageCreationTime = new Date(page.createdAt).getTime();
     const currentTime = Date.now();
-    const TEN_MINUTES = 10 * 60 * 1000;
+    const FIVE_MINUTES = 5 * 60 * 1000;
 
-    if (currentTime - pageCreationTime < TEN_MINUTES) {
+    if (currentTime - pageCreationTime < FIVE_MINUTES) {
       return;
     }
 
@@ -31,13 +31,13 @@ export class HistoryListener {
     if (
       !lastHistory ||
       (!isDeepStrictEqual(lastHistory.content, page.content) &&
-        currentTime - new Date(lastHistory.createdAt).getTime() >= TEN_MINUTES)
+        currentTime - new Date(lastHistory.createdAt).getTime() >= FIVE_MINUTES)
     ) {
       try {
         await this.pageHistoryRepo.saveHistory(page);
         this.logger.debug(`New history created for: ${page.id}`);
       } catch (err) {
-        this.logger.error(`Failed to create history for: ${page.id}`, err);
+        this.logger.error(`Failed to create history for page: ${page.id}`, err);
       }
     }
   }

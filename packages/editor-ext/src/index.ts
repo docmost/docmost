@@ -17,3 +17,5 @@ export * from "./lib/excalidraw";
 export * from "./lib/embed";
 export * from "./lib/mention";
 export * from "./lib/markdown";
+export * from "./lib/search-and-replace";
+export * from "./lib/embed-provider";

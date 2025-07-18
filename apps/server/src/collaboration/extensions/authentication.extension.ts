@@ -32,12 +32,9 @@ export class AuthenticationExtension implements Extension {
     let jwtPayload: JwtCollabPayload;
 
     try {
-      jwtPayload = await this.tokenService.verifyJwt(token);
+      jwtPayload = await this.tokenService.verifyJwt(token, JwtType.COLLAB);
     } catch (error) {
       throw new UnauthorizedException('Invalid collab token');
-    }
-    if (jwtPayload.type !== JwtType.COLLAB) {
-      throw new UnauthorizedException();
     }
 
     const userId = jwtPayload.sub;
@@ -46,6 +43,10 @@ export class AuthenticationExtension implements Extension {
     const user = await this.userRepo.findById(userId, workspaceId);
 
     if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    if (user.deactivatedAt || user.deletedAt) {
       throw new UnauthorizedException();
     }
 
