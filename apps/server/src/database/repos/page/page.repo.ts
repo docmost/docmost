@@ -201,7 +201,7 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
-      .where('deletedAt', '=', null)
+      .where('deletedAt', 'is', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
@@ -220,7 +220,7 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', userSpaceIds)
-      .where('deletedAt', '=', null)
+      .where('deletedAt', 'is', null)
       .orderBy('updatedAt', 'desc');
 
     const hasEmptyIds = userSpaceIds.length === 0;
