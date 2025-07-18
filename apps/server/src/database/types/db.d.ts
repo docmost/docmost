@@ -62,7 +62,6 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
-  isGroupSyncEnabled: Generated<boolean>;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
@@ -123,7 +122,6 @@ export interface Comments {
   pageId: string;
   parentCommentId: string | null;
   resolvedAt: Timestamp | null;
-  resolvedById: string | null;
   selection: string | null;
   type: string | null;
   workspaceId: string;
@@ -165,23 +163,6 @@ export interface GroupUsers {
   id: Generated<string>;
   updatedAt: Generated<Timestamp>;
   userId: string;
-}
-
-export interface Notifications {
-  actorId: string | null;
-  context: Generated<Json | null>;
-  createdAt: Generated<Timestamp>;
-  deduplicationKey: string | null;
-  emailSentAt: Timestamp | null;
-  entityId: string;
-  entityType: string;
-  id: Generated<string>;
-  readAt: Timestamp | null;
-  recipientId: string;
-  spaceId: string | null;
-  type: string;
-  updatedAt: Generated<Timestamp>;
-  workspaceId: string;
 }
 
 export interface PageHistory {
@@ -331,12 +312,12 @@ export interface Workspaces {
   deletedAt: Timestamp | null;
   description: string | null;
   emailDomains: Generated<string[] | null>;
+  enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
   licenseKey: string | null;
   logo: string | null;
-  enforceMfa: Generated<boolean | null>;
   name: string | null;
   plan: string | null;
   settings: Json | null;
@@ -356,7 +337,6 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
-  notifications: Notifications;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;
