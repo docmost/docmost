@@ -22,7 +22,7 @@ export default function ChangeEmail() {
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <Text size="md">{t("Email")}</Text>
         <Text size="sm" c="dimmed">
           {currentUser?.user.email}
@@ -30,7 +30,7 @@ export default function ChangeEmail() {
       </div>
 
       {/*
-      <Button onClick={open} variant="default">
+      <Button onClick={open} variant="default" style={{ whiteSpace: "nowrap" }}>
         {t("Change email")}
       </Button>
       */}

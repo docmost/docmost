@@ -1,0 +1,31 @@
+.qrCodeContainer {
+  background-color: white;
+  padding: 1rem;
+  border-radius: var(--mantine-radius-md);
+  display: inline-block;
+}
+
+.backupCodesList {
+  font-family: var(--mantine-font-family-monospace);
+  background-color: var(--mantine-color-gray-0);
+  padding: 1rem;
+  border-radius: var(--mantine-radius-md);
+  
+  @mixin dark {
+    background-color: var(--mantine-color-dark-7);
+  }
+}
+
+.codeItem {
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.setupStep {
+  min-height: 400px;
+}
+
+.verificationInput {
+  max-width: 320px;
+  margin: 0 auto;
+}

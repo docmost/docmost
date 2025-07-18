@@ -38,3 +38,10 @@ export interface IVerifyUserToken {
 export interface ICollabToken {
   token?: string;
 }
+
+export interface ILoginResponse {
+  userHasMfa?: boolean;
+  requiresMfaSetup?: boolean;
+  mfaToken?: string;
+  isMfaEnforced?: boolean;
+}
