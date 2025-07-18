@@ -69,12 +69,9 @@ export default function useAuth() {
 
       if (response?.requiresLogin) {
         notifications.show({
-          message:
-            response.message ||
-            t(
-              "Account created successfully. Please log in to set up two-factor authentication.",
-            ),
-          color: "green",
+          message: t(
+            "Account created successfully. Please log in to set up two-factor authentication.",
+          ),
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
       } else {
