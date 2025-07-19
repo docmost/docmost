@@ -5,7 +5,6 @@ import {
   UseInfiniteQueryResult,
   useMutation,
   useQuery,
-  useQueryClient,
   UseQueryResult,
 } from "@tanstack/react-query";
 import {
@@ -18,6 +17,9 @@ import {
   getPageBreadcrumbs,
   getRecentChanges,
   getAllSidebarPages,
+  getDeletedPages,
+  restorePage,
+  removePage,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
@@ -70,10 +72,7 @@ export function useCreatePageMutation() {
 }
 
 export function updatePageData(data: IPage) {
-  const pageBySlug = queryClient.getQueryData<IPage>([
-    "pages",
-    data.slugId,
-  ]);
+  const pageBySlug = queryClient.getQueryData<IPage>(["pages", data.slugId]);
   const pageById = queryClient.getQueryData<IPage>(["pages", data.id]);
 
   if (pageBySlug) {
@@ -87,7 +86,13 @@ export function updatePageData(data: IPage) {
     queryClient.setQueryData(["pages", data.id], { ...pageById, ...data });
   }
 
-  invalidateOnUpdatePage(data.spaceId, data.parentPageId, data.id, data.title, data.icon);
+  invalidateOnUpdatePage(
+    data.spaceId,
+    data.parentPageId,
+    data.id,
+    data.title,
+    data.icon,
+  );
 }
 
 export function useUpdateTitlePageMutation() {
@@ -102,7 +107,25 @@ export function useUpdatePageMutation() {
     onSuccess: (data) => {
       updatePage(data);
 
-      invalidateOnUpdatePage(data.spaceId, data.parentPageId, data.id, data.title, data.icon);
+      invalidateOnUpdatePage(
+        data.spaceId,
+        data.parentPageId,
+        data.id,
+        data.title,
+        data.icon,
+      );
+    },
+  });
+}
+
+export function useRemovePageMutation() {
+  return useMutation({
+    mutationFn: (pageId: string) => removePage(pageId),
+    onSuccess: () => {
+      notifications.show({ message: "Page deleted successfully" });
+    },
+    onError: (error) => {
+      notifications.show({ message: "Failed to delete page", color: "red" });
     },
   });
 }
@@ -130,7 +153,21 @@ export function useMovePageMutation() {
   });
 }
 
-export function useGetSidebarPagesQuery(data: SidebarPagesParams|null): UseInfiniteQueryResult<InfiniteData<IPagination<IPage>, unknown>> {
+export function useRestorePageMutation() {
+  return useMutation({
+    mutationFn: (pageId: string) => restorePage(pageId),
+    onSuccess: () => {
+      notifications.show({ message: "Page restored successfully" });
+    },
+    onError: (error) => {
+      notifications.show({ message: "Failed to restore page", color: "red" });
+    },
+  });
+}
+
+export function useGetSidebarPagesQuery(
+  data: SidebarPagesParams | null,
+): UseInfiniteQueryResult<InfiniteData<IPagination<IPage>, unknown>> {
   return useInfiniteQuery({
     queryKey: ["sidebar-pages", data],
     queryFn: ({ pageParam }) => getSidebarPages({ ...data, page: pageParam }),
@@ -188,6 +225,16 @@ export function useRecentChangesQuery(
   });
 }
 
+export function useDeletedPagesQuery(
+  spaceId: string,
+): UseQueryResult<IPagination<IPage>, Error> {
+  return useQuery({
+    queryKey: ["deleted-pages", spaceId],
+    queryFn: () => getDeletedPages(spaceId),
+    refetchOnMount: true,
+  });
+}
+
 export function invalidateOnCreatePage(data: Partial<IPage>) {
   const newPage: Partial<IPage> = {
     creatorId: data.creatorId,
@@ -202,34 +249,40 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
   };
 
   let queryKey: QueryKey = null;
-  if (data.parentPageId===null) {
-    queryKey = ['root-sidebar-pages', data.spaceId];
-  }else{
-    queryKey = ['sidebar-pages', {pageId: data.parentPageId, spaceId: data.spaceId}]
+  if (data.parentPageId === null) {
+    queryKey = ["root-sidebar-pages", data.spaceId];
+  } else {
+    queryKey = [
+      "sidebar-pages",
+      { pageId: data.parentPageId, spaceId: data.spaceId },
+    ];
   }
 
   //update all sidebar pages
-  queryClient.setQueryData<InfiniteData<IPagination<Partial<IPage>>>>(queryKey, (old) => {
-    if (!old) return old;
-    return {
-      ...old,
-      pages: old.pages.map((page,index) => {
-        if (index === old.pages.length - 1) {
-          return {
-            ...page,
-            items: [...page.items, newPage],
-          };
-        }
-        return page;
-      }),
-    };
-  });
+  queryClient.setQueryData<InfiniteData<IPagination<Partial<IPage>>>>(
+    queryKey,
+    (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page, index) => {
+          if (index === old.pages.length - 1) {
+            return {
+              ...page,
+              items: [...page.items, newPage],
+            };
+          }
+          return page;
+        }),
+      };
+    },
+  );
 
   //update sidebar haschildren
-  if (data.parentPageId!==null){
+  if (data.parentPageId !== null) {
     //update sub sidebar pages haschildern
     const subSideBarMatches = queryClient.getQueriesData({
-      queryKey: ['sidebar-pages'],
+      queryKey: ["sidebar-pages"],
       exact: false,
     });
 
@@ -241,8 +294,10 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
           pages: old.pages.map((page) => ({
             ...page,
             items: page.items.map((sidebarPage: IPage) =>
-              sidebarPage.id === data.parentPageId ? { ...sidebarPage, hasChildren: true } : sidebarPage
-            )
+              sidebarPage.id === data.parentPageId
+                ? { ...sidebarPage, hasChildren: true }
+                : sidebarPage,
+            ),
           })),
         };
       });
@@ -250,7 +305,7 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
 
     //update root sidebar pages haschildern
     const rootSideBarMatches = queryClient.getQueriesData({
-      queryKey: ['root-sidebar-pages', data.spaceId],
+      queryKey: ["root-sidebar-pages", data.spaceId],
       exact: false,
     });
 
@@ -262,8 +317,10 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
           pages: old.pages.map((page) => ({
             ...page,
             items: page.items.map((sidebarPage: IPage) =>
-              sidebarPage.id === data.parentPageId ? { ...sidebarPage, hasChildren: true } : sidebarPage
-            )
+              sidebarPage.id === data.parentPageId
+                ? { ...sidebarPage, hasChildren: true }
+                : sidebarPage,
+            ),
           })),
         };
       });
@@ -276,27 +333,38 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
   });
 }
 
-export function invalidateOnUpdatePage(spaceId: string, parentPageId: string, id: string, title: string, icon: string) {
+export function invalidateOnUpdatePage(
+  spaceId: string,
+  parentPageId: string,
+  id: string,
+  title: string,
+  icon: string,
+) {
   let queryKey: QueryKey = null;
-  if(parentPageId===null){
-    queryKey = ['root-sidebar-pages', spaceId];
-  }else{
-    queryKey = ['sidebar-pages', {pageId: parentPageId, spaceId: spaceId}]
+  if (parentPageId === null) {
+    queryKey = ["root-sidebar-pages", spaceId];
+  } else {
+    queryKey = ["sidebar-pages", { pageId: parentPageId, spaceId: spaceId }];
   }
   //update all sidebar pages
-  queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(queryKey, (old) => {
-    if (!old) return old;
-    return {
-      ...old,
-      pages: old.pages.map((page) => ({
-        ...page,
-        items: page.items.map((sidebarPage: IPage) =>
-          sidebarPage.id === id ? { ...sidebarPage, title: title, icon: icon } : sidebarPage
-        )
-      })),
-    };
-  });
-  
+  queryClient.setQueryData<InfiniteData<IPagination<IPage>>>(
+    queryKey,
+    (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          items: page.items.map((sidebarPage: IPage) =>
+            sidebarPage.id === id
+              ? { ...sidebarPage, title: title, icon: icon }
+              : sidebarPage,
+          ),
+        })),
+      };
+    },
+  );
+
   //update recent changes
   queryClient.invalidateQueries({
     queryKey: ["recent-changes", spaceId],
@@ -311,7 +379,7 @@ export function invalidateOnMovePage() {
   });
   //invalidate all sub sidebar pages
   queryClient.invalidateQueries({
-    queryKey: ['sidebar-pages'],
+    queryKey: ["sidebar-pages"],
   });
   // ---
 }
@@ -320,7 +388,8 @@ export function invalidateOnDeletePage(pageId: string) {
   //update all sidebar pages
   const allSideBarMatches = queryClient.getQueriesData({
     predicate: (query) =>
-      query.queryKey[0] === 'root-sidebar-pages' || query.queryKey[0] === 'sidebar-pages',
+      query.queryKey[0] === "root-sidebar-pages" ||
+      query.queryKey[0] === "sidebar-pages",
   });
 
   allSideBarMatches.forEach(([key, d]) => {
@@ -330,12 +399,14 @@ export function invalidateOnDeletePage(pageId: string) {
         ...old,
         pages: old.pages.map((page) => ({
           ...page,
-          items: page.items.filter((sidebarPage: IPage) => sidebarPage.id !== pageId),
+          items: page.items.filter(
+            (sidebarPage: IPage) => sidebarPage.id !== pageId,
+          ),
         })),
       };
     });
   });
-  
+
   //update recent changes
   queryClient.invalidateQueries({
     queryKey: ["recent-changes"],
