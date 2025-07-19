@@ -137,6 +137,9 @@ export function useDeletePageMutation() {
     onSuccess: (data, pageId) => {
       notifications.show({ message: t("Page deleted successfully") });
       invalidateOnDeletePage(pageId);
+      
+      // Invalidate all deleted-pages queries to refresh trash lists
+      queryClient.invalidateQueries({ queryKey: ["deleted-pages"] });
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -156,8 +159,14 @@ export function useMovePageMutation() {
 export function useRestorePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => restorePage(pageId),
-    onSuccess: () => {
+    onSuccess: (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
+      
+      // Invalidate queries to refresh the tree
+      queryClient.invalidateQueries({ queryKey: ["page-tree", restoredPage.spaceId] });
+      
+      // Invalidate deleted pages query to refresh the trash list
+      queryClient.invalidateQueries({ queryKey: ["deleted-pages", restoredPage.spaceId] });
     },
     onError: (error) => {
       notifications.show({ message: "Failed to restore page", color: "red" });
@@ -231,7 +240,9 @@ export function useDeletedPagesQuery(
   return useQuery({
     queryKey: ["deleted-pages", spaceId],
     queryFn: () => getDeletedPages(spaceId),
-    refetchOnMount: true,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 }
 

@@ -147,6 +147,10 @@ export class PageController {
     }
 
     await this.pageService.restore(pageIdDto.pageId);
+    
+    // Return the restored page data
+    const restoredPage = await this.pageRepo.findById(pageIdDto.pageId);
+    return restoredPage;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -176,7 +180,7 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('deleted')
+  @Post('trash')
   async getDeletedPages(
     @Body() deletedPageDto: DeletedPageDto,
     @Body() pagination: PaginationOptions,

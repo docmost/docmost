@@ -6,28 +6,37 @@ import {
 import { modals } from "@mantine/modals";
 import { ActionIcon, Menu, Table, Text } from "@mantine/core";
 import { IconDots } from "@tabler/icons-react";
+import { useEffect } from "react";
 
-interface RecycledPagesProps {
+interface TrashedPagesProps {
   spaceId: string;
   readOnly?: boolean;
+  onRestore?: () => void;
 }
 
-export default function RecycledPagesList({
+export default function TrashedPagesList({
   spaceId,
   readOnly,
-}: RecycledPagesProps) {
-  const { data, isLoading } = useDeletedPagesQuery(spaceId);
+  onRestore,
+}: TrashedPagesProps) {
+  const { data, isLoading, refetch } = useDeletedPagesQuery(spaceId);
   const restorePageMutation = useRestorePageMutation();
   const removePageMutation = useDeletePageMutation();
+  
+  // Refetch data when component mounts to ensure fresh data
+  useEffect(() => {
+    if (spaceId) {
+      refetch();
+    }
+  }, [spaceId, refetch]);
 
   const handleRestorePage = async (pageId: string) => {
     await restorePageMutation.mutateAsync(pageId);
-    window.location.reload();
+    onRestore?.();
   };
 
   const handleRemovePage = async (pageId: string) => {
     await removePageMutation.mutateAsync(pageId);
-    window.location.reload();
   };
 
   const openRemovePageModal = (pageId: string) =>
@@ -60,7 +69,7 @@ export default function RecycledPagesList({
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Deleted Pages</Table.Th>
+              <Table.Th>Pages in Trash</Table.Th>
             </Table.Tr>
           </Table.Thead>
 

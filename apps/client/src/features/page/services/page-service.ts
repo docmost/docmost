@@ -39,12 +39,13 @@ export async function deletePage(pageId: string): Promise<void> {
 }
 
 export async function getDeletedPages(spaceId: string): Promise<IPagination<IPage>> {
-  const req = await api.post("/pages/deleted", { spaceId });
+  const req = await api.post("/pages/trash", { spaceId });
   return req.data;
 }
 
-export async function restorePage(pageId: string): Promise<void> {
-  await api.post("/pages/restore", { pageId });
+export async function restorePage(pageId: string): Promise<IPage> {
+  const response = await api.post<IPage>("/pages/restore", { pageId });
+  return response.data;
 }
 
 export async function movePage(data: IMovePage): Promise<void> {

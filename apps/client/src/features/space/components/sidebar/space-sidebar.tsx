@@ -25,7 +25,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
-import RecycleBinModal from "@/features/space/components/recycle-bin-modal.tsx";
+import TrashModal from "@/features/space/components/trash-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
@@ -212,7 +212,7 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
-  const [openedRecycleBin, { open: openRecycleBin, close: closeRecycleBin }] =
+  const [openedTrash, { open: openTrash, close: closeTrash }] =
     useDisclosure(false);
 
   return (
@@ -259,10 +259,10 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
           </Menu.Item>
 
           <Menu.Item
-            onClick={openRecycleBin}
+            onClick={openTrash}
             leftSection={<IconTrash size={16} />}
           >
-            {t("Recycle bin")}
+            {t("Trash")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
@@ -280,9 +280,9 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
         onClose={closeExportModal}
       />
 
-      <RecycleBinModal
-        opened={openedRecycleBin}
-        onClose={closeRecycleBin}
+      <TrashModal
+        opened={openedTrash}
+        onClose={closeTrash}
         spaceId={spaceId}
       />
     </>
