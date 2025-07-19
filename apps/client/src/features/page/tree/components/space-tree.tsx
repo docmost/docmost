@@ -90,8 +90,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
+  const [isRootReady, setIsRootReady] = useState(false);
   const { ref: sizeRef, width, height } = useElementSize();
-  const mergedRef = useMergedRef(rootElement, sizeRef);
+  const mergedRef = useMergedRef((element) => {
+    rootElement.current = element;
+    if (element && !isRootReady) {
+      setIsRootReady(true);
+    }
+  }, sizeRef);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -199,16 +205,17 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [currentPage?.id]);
 
+  // Clean up tree API on unmount
   useEffect(() => {
-    if (treeApiRef.current) {
+    return () => {
       // @ts-ignore
-      setTreeApi(treeApiRef.current);
-    }
-  }, [treeApiRef.current]);
+      setTreeApi(null);
+    };
+  }, [setTreeApi]);
 
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
-      {rootElement.current && (
+      {isRootReady && rootElement.current && (
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
@@ -217,7 +224,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           {...controllers}
           width={width}
           height={rootElement.current.clientHeight}
-          ref={treeApiRef}
+          ref={(ref) => {
+            treeApiRef.current = ref;
+            if (ref) {
+              //@ts-ignore
+              setTreeApi(ref);
+            }
+          }}
           openByDefault={false}
           disableMultiSelection={true}
           className={classes.tree}
