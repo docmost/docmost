@@ -34,6 +34,11 @@ import { buildTree } from "@/features/page/tree/utils";
 import { useEffect } from "react";
 import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
+import { useAtom } from "jotai";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { SimpleTree } from "react-arborist";
+import { SpaceTreeNode } from "@/features/page/tree/types";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 export function usePageQuery(
   pageInput: Partial<IPageInput>,
@@ -157,16 +162,75 @@ export function useMovePageMutation() {
 }
 
 export function useRestorePageMutation() {
+  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const emit = useQueryEmit();
+  
   return useMutation({
     mutationFn: (pageId: string) => restorePage(pageId),
-    onSuccess: (restoredPage) => {
+    onSuccess: async (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
       
-      // Invalidate queries to refresh the tree
-      queryClient.invalidateQueries({ queryKey: ["page-tree", restoredPage.spaceId] });
+      // Add the restored page back to the tree
+      const treeApi = new SimpleTree<SpaceTreeNode>(treeData);
       
-      // Invalidate deleted pages query to refresh the trash list
-      queryClient.invalidateQueries({ queryKey: ["deleted-pages", restoredPage.spaceId] });
+      // Check if the page already exists in the tree (it shouldn't)
+      if (!treeApi.find(restoredPage.id)) {
+        // Create the tree node data with hasChildren from backend
+        const nodeData: SpaceTreeNode = {
+          id: restoredPage.id,
+          slugId: restoredPage.slugId,
+          name: restoredPage.title || "Untitled",
+          icon: restoredPage.icon,
+          position: restoredPage.position,
+          spaceId: restoredPage.spaceId,
+          parentPageId: restoredPage.parentPageId,
+          hasChildren: restoredPage.hasChildren || false,
+          children: [],
+        };
+        
+        // Determine the parent and index
+        const parentId = restoredPage.parentPageId || null;
+        let index = 0;
+        
+        if (parentId) {
+          const parentNode = treeApi.find(parentId);
+          if (parentNode) {
+            index = parentNode.children?.length || 0;
+          }
+        } else {
+          // Root level page
+          index = treeApi.data.length;
+        }
+        
+        // Add the node to the tree
+        treeApi.create({
+          parentId,
+          index,
+          data: nodeData,
+        });
+        
+        // Update the tree data
+        setTreeData(treeApi.data);
+        
+        // Emit websocket event to sync with other users
+        setTimeout(() => {
+          emit({
+            operation: "addTreeNode",
+            spaceId: restoredPage.spaceId,
+            payload: {
+              parentId,
+              index,
+              data: nodeData,
+            },
+          });
+        }, 50);
+      }
+      
+      // Invalidate queries to refresh the tree (this will fetch children if needed)
+      await queryClient.invalidateQueries({ queryKey: ["page-tree", restoredPage.spaceId] });
+      
+      // Also invalidate deleted pages query to refresh the trash list
+      await queryClient.invalidateQueries({ queryKey: ["deleted-pages", restoredPage.spaceId] });
     },
     onError: (error) => {
       notifications.show({ message: "Failed to restore page", color: "red" });

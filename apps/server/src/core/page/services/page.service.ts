@@ -17,8 +17,6 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
-import { ExpressionBuilder } from 'kysely';
-import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
@@ -166,22 +164,6 @@ export class PageService {
     });
   }
 
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .limit(1)
-      .as('hasChildren');
-  }
 
   async getSidebarPages(
     spaceId: string,
@@ -201,7 +183,7 @@ export class PageService {
         'creatorId',
         'deletedAt',
       ])
-      .select((eb) => this.withHasChildren(eb))
+      .select((eb) => this.pageRepo.withHasChildren(eb))
       .orderBy('position', 'asc')
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
@@ -453,7 +435,7 @@ export class PageService {
             'parentPageId',
             'spaceId',
           ])
-          .select((eb) => this.withHasChildren(eb))
+          .select((eb) => this.pageRepo.withHasChildren(eb))
           .where('id', '=', childPageId)
           .where('deletedAt', 'is not', null)
           .unionAll((exp) =>
@@ -527,6 +509,7 @@ export class PageService {
   async restore(pageId: string): Promise<void> {
     await this.pageRepo.restorePage(pageId);
   }
+
 }
 
 /*

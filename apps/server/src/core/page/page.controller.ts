@@ -148,8 +148,10 @@ export class PageController {
 
     await this.pageService.restore(pageIdDto.pageId);
     
-    // Return the restored page data
-    const restoredPage = await this.pageRepo.findById(pageIdDto.pageId);
+    // Return the restored page data with hasChildren info
+    const restoredPage = await this.pageRepo.findById(pageIdDto.pageId, {
+      includeHasChildren: true,
+    });
     return restoredPage;
   }
 

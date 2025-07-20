@@ -22,6 +22,24 @@ export class PageRepo {
     private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
+  }
+
   private baseFields: Array<keyof Page> = [
     'id',
     'slugId',
@@ -50,6 +68,7 @@ export class PageRepo {
       includeCreator?: boolean;
       includeLastUpdatedBy?: boolean;
       includeContributors?: boolean;
+      includeHasChildren?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -60,7 +79,8 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
-      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeHasChildren, (qb) => qb.select((eb) => this.withHasChildren(eb)));
 
     if (opts?.includeCreator) {
       query = query.select((eb) => this.withCreator(eb));
@@ -169,6 +189,31 @@ export class PageRepo {
   }
 
   async restorePage(pageId: string): Promise<void> {
+    // First, check if the page being restored has a deleted parent
+    const pageToRestore = await this.db
+      .selectFrom('pages')
+      .select(['id', 'parentPageId'])
+      .where('id', '=', pageId)
+      .executeTakeFirst();
+
+    if (!pageToRestore) {
+      return;
+    }
+
+    // Check if the parent is also deleted
+    let shouldDetachFromParent = false;
+    if (pageToRestore.parentPageId) {
+      const parent = await this.db
+        .selectFrom('pages')
+        .select(['id', 'deletedAt'])
+        .where('id', '=', pageToRestore.parentPageId)
+        .executeTakeFirst();
+      
+      // If parent is deleted, we should detach this page from it
+      shouldDetachFromParent = parent?.deletedAt !== null;
+    }
+
+    // Find all descendants to restore
     const pages = await this.db
       .withRecursive('page_descendants', (db) =>
         db
@@ -188,12 +233,23 @@ export class PageRepo {
 
     const pageIds = pages.map((p) => p.id);
 
+    // Restore all pages, but only detach the root page if its parent is deleted
     await this.db
       .updateTable('pages')
-      .set({ deletedAt: null, parentPageId: null })
+      .set({ deletedAt: null })
       .where('id', 'in', pageIds)
       .execute();
+
+    // If we need to detach the restored page from its deleted parent
+    if (shouldDetachFromParent) {
+      await this.db
+        .updateTable('pages')
+        .set({ parentPageId: null })
+        .where('id', '=', pageId)
+        .execute();
+    }
   }
+
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
     const query = this.db
