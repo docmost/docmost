@@ -501,7 +501,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
       const newIndex = currentIndex + 1;
 
       // Add the duplicated page to the tree
-      const treeNodeData = {
+      const treeNodeData: SpaceTreeNode = {
         id: duplicatedPage.id,
         slugId: duplicatedPage.slugId,
         name: duplicatedPage.title,
@@ -509,7 +509,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         spaceId: duplicatedPage.spaceId,
         parentPageId: duplicatedPage.parentPageId,
         icon: duplicatedPage.icon,
-        hasChildren: false,
+        hasChildren: duplicatedPage.hasChildren,
         children: [],
       };
 

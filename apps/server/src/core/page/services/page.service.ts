@@ -31,7 +31,10 @@ import {
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
-import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/duplicate-page.dto';
+import {
+  CopyPageMapEntry,
+  ICopyPageAttachment,
+} from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
 
@@ -258,12 +261,17 @@ export class PageService {
     });
   }
 
-  async duplicatePage(rootPage: Page, targetSpaceId: string | undefined, authUser: User) {
+  async duplicatePage(
+    rootPage: Page,
+    targetSpaceId: string | undefined,
+    authUser: User,
+  ) {
     const spaceId = targetSpaceId || rootPage.spaceId;
-    const isDuplicateInSameSpace = !targetSpaceId || targetSpaceId === rootPage.spaceId;
-    
+    const isDuplicateInSameSpace =
+      !targetSpaceId || targetSpaceId === rootPage.spaceId;
+
     let nextPosition: string;
-    
+
     if (isDuplicateInSameSpace) {
       // For duplicate in same space, position right after the original page
       let siblingQuery = this.db
@@ -273,7 +281,11 @@ export class PageService {
         .where('position', '>', rootPage.position);
 
       if (rootPage.parentPageId) {
-        siblingQuery = siblingQuery.where('parentPageId', '=', rootPage.parentPageId);
+        siblingQuery = siblingQuery.where(
+          'parentPageId',
+          '=',
+          rootPage.parentPageId,
+        );
       } else {
         siblingQuery = siblingQuery.where('parentPageId', 'is', null);
       }
@@ -284,7 +296,10 @@ export class PageService {
         .executeTakeFirst();
 
       if (nextSibling) {
-        nextPosition = generateJitteredKeyBetween(rootPage.position, nextSibling.position);
+        nextPosition = generateJitteredKeyBetween(
+          rootPage.position,
+          nextSibling.position,
+        );
       } else {
         nextPosition = generateJitteredKeyBetween(rootPage.position, null);
       }
@@ -357,9 +372,12 @@ export class PageService {
 
         // Update internal page links in mention nodes
         prosemirrorDoc.descendants((node: PMNode) => {
-          if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
+          if (
+            node.type.name === 'mention' &&
+            node.attrs.entityType === 'page'
+          ) {
             const referencedPageId = node.attrs.entityId;
-            
+
             // Check if the referenced page is within the pages being copied
             if (referencedPageId && pageMap.has(referencedPageId)) {
               const mappedPage = pageMap.get(referencedPageId);
@@ -453,9 +471,16 @@ export class PageService {
     }
 
     const newPageId = pageMap.get(rootPage.id).newPageId;
-    return await this.pageRepo.findById(newPageId, {
+    const duplicatedPage = await this.pageRepo.findById(newPageId, {
       includeSpace: true,
     });
+
+    const hasChildren = pages.length > 1;
+
+    return {
+      ...duplicatedPage,
+      hasChildren,
+    };
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {
