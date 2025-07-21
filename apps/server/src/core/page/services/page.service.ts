@@ -31,7 +31,10 @@ import {
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
-import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/copy-page.dto';
+import {
+  CopyPageMapEntry,
+  ICopyPageAttachment,
+} from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
 
@@ -258,11 +261,52 @@ export class PageService {
     });
   }
 
-  async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
-    //TODO:
-    // i. maintain internal links within copied pages
+  async duplicatePage(
+    rootPage: Page,
+    targetSpaceId: string | undefined,
+    authUser: User,
+  ) {
+    const spaceId = targetSpaceId || rootPage.spaceId;
+    const isDuplicateInSameSpace =
+      !targetSpaceId || targetSpaceId === rootPage.spaceId;
 
-    const nextPosition = await this.nextPagePosition(spaceId);
+    let nextPosition: string;
+
+    if (isDuplicateInSameSpace) {
+      // For duplicate in same space, position right after the original page
+      let siblingQuery = this.db
+        .selectFrom('pages')
+        .select(['position'])
+        .where('spaceId', '=', rootPage.spaceId)
+        .where('position', '>', rootPage.position);
+
+      if (rootPage.parentPageId) {
+        siblingQuery = siblingQuery.where(
+          'parentPageId',
+          '=',
+          rootPage.parentPageId,
+        );
+      } else {
+        siblingQuery = siblingQuery.where('parentPageId', 'is', null);
+      }
+
+      const nextSibling = await siblingQuery
+        .orderBy('position', 'asc')
+        .limit(1)
+        .executeTakeFirst();
+
+      if (nextSibling) {
+        nextPosition = generateJitteredKeyBetween(
+          rootPage.position,
+          nextSibling.position,
+        );
+      } else {
+        nextPosition = generateJitteredKeyBetween(rootPage.position, null);
+      }
+    } else {
+      // For copy to different space, position at the end
+      nextPosition = await this.nextPagePosition(spaceId);
+    }
 
     const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
@@ -326,12 +370,38 @@ export class PageService {
           });
         }
 
+        // Update internal page links in mention nodes
+        prosemirrorDoc.descendants((node: PMNode) => {
+          if (
+            node.type.name === 'mention' &&
+            node.attrs.entityType === 'page'
+          ) {
+            const referencedPageId = node.attrs.entityId;
+
+            // Check if the referenced page is within the pages being copied
+            if (referencedPageId && pageMap.has(referencedPageId)) {
+              const mappedPage = pageMap.get(referencedPageId);
+              //@ts-ignore
+              node.attrs.entityId = mappedPage.newPageId;
+              //@ts-ignore
+              node.attrs.slugId = mappedPage.newSlugId;
+            }
+          }
+        });
+
         const prosemirrorJson = prosemirrorDoc.toJSON();
+
+        // Add "Copy of " prefix to the root page title only for duplicates in same space
+        let title = page.title;
+        if (isDuplicateInSameSpace && page.id === rootPage.id) {
+          const originalTitle = page.title || 'Untitled';
+          title = `Copy of ${originalTitle}`;
+        }
 
         return {
           id: pageFromMap.newPageId,
           slugId: pageFromMap.newSlugId,
-          title: page.title,
+          title: title,
           icon: page.icon,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
@@ -401,9 +471,16 @@ export class PageService {
     }
 
     const newPageId = pageMap.get(rootPage.id).newPageId;
-    return await this.pageRepo.findById(newPageId, {
+    const duplicatedPage = await this.pageRepo.findById(newPageId, {
       includeSpace: true,
     });
+
+    const hasChildren = pages.length > 1;
+
+    return {
+      ...duplicatedPage,
+      hasChildren,
+    };
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {
