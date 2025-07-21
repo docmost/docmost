@@ -259,9 +259,6 @@ export class PageService {
   }
 
   async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
-    //TODO:
-    // i. maintain internal links within copied pages
-
     const nextPosition = await this.nextPagePosition(spaceId);
 
     const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
@@ -325,6 +322,22 @@ export class PageService {
             });
           });
         }
+
+        // Update internal page links in mention nodes
+        prosemirrorDoc.descendants((node: PMNode) => {
+          if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
+            const referencedPageId = node.attrs.entityId;
+            
+            // Check if the referenced page is within the pages being copied
+            if (referencedPageId && pageMap.has(referencedPageId)) {
+              const mappedPage = pageMap.get(referencedPageId);
+              //@ts-ignore
+              node.attrs.entityId = mappedPage.newPageId;
+              //@ts-ignore
+              node.attrs.slugId = mappedPage.newSlugId;
+            }
+          }
+        });
 
         const prosemirrorJson = prosemirrorDoc.toJSON();
 
