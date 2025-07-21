@@ -31,7 +31,7 @@ import {
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
-import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/copy-page.dto';
+import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
 
@@ -258,8 +258,40 @@ export class PageService {
     });
   }
 
-  async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
-    const nextPosition = await this.nextPagePosition(spaceId);
+  async duplicatePage(rootPage: Page, targetSpaceId: string | undefined, authUser: User) {
+    const spaceId = targetSpaceId || rootPage.spaceId;
+    const isDuplicateInSameSpace = !targetSpaceId || targetSpaceId === rootPage.spaceId;
+    
+    let nextPosition: string;
+    
+    if (isDuplicateInSameSpace) {
+      // For duplicate in same space, position right after the original page
+      let siblingQuery = this.db
+        .selectFrom('pages')
+        .select(['position'])
+        .where('spaceId', '=', rootPage.spaceId)
+        .where('position', '>', rootPage.position);
+
+      if (rootPage.parentPageId) {
+        siblingQuery = siblingQuery.where('parentPageId', '=', rootPage.parentPageId);
+      } else {
+        siblingQuery = siblingQuery.where('parentPageId', 'is', null);
+      }
+
+      const nextSibling = await siblingQuery
+        .orderBy('position', 'asc')
+        .limit(1)
+        .executeTakeFirst();
+
+      if (nextSibling) {
+        nextPosition = generateJitteredKeyBetween(rootPage.position, nextSibling.position);
+      } else {
+        nextPosition = generateJitteredKeyBetween(rootPage.position, null);
+      }
+    } else {
+      // For copy to different space, position at the end
+      nextPosition = await this.nextPagePosition(spaceId);
+    }
 
     const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
@@ -341,10 +373,17 @@ export class PageService {
 
         const prosemirrorJson = prosemirrorDoc.toJSON();
 
+        // Add "Copy of " prefix to the root page title only for duplicates in same space
+        let title = page.title;
+        if (isDuplicateInSameSpace && page.id === rootPage.id) {
+          const originalTitle = page.title || 'Untitled';
+          title = `Copy of ${originalTitle}`;
+        }
+
         return {
           id: pageFromMap.newPageId,
           slugId: pageFromMap.newSlugId,
-          title: page.title,
+          title: title,
           icon: page.icon,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),

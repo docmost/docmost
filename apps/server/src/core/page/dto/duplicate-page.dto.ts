@@ -1,13 +1,13 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
-export class CopyPageToSpaceDto {
+export class DuplicatePageDto {
   @IsNotEmpty()
   @IsString()
   pageId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  spaceId: string;
+  spaceId?: string;
 }
 
 export type CopyPageMapEntry = {
