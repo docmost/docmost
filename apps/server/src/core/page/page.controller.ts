@@ -28,7 +28,7 @@ import {
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
-import { CopyPageToSpaceDto } from './dto/copy-page.dto';
+import { DuplicatePageDto } from './dto/duplicate-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -242,33 +242,41 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('copy-to-space')
-  async copyPageToSpace(
-    @Body() dto: CopyPageToSpaceDto,
-    @AuthUser() user: User,
-  ) {
+  @Post('duplicate')
+  async duplicatePage(@Body() dto: DuplicatePageDto, @AuthUser() user: User) {
     const copiedPage = await this.pageRepo.findById(dto.pageId);
     if (!copiedPage) {
       throw new NotFoundException('Page to copy not found');
     }
-    if (copiedPage.spaceId === dto.spaceId) {
-      throw new BadRequestException('Page is already in this space');
+
+    // If spaceId is provided, it's a copy to different space
+    if (dto.spaceId) {
+      const abilities = await Promise.all([
+        this.spaceAbility.createForUser(user, copiedPage.spaceId),
+        this.spaceAbility.createForUser(user, dto.spaceId),
+      ]);
+
+      if (
+        abilities.some((ability) =>
+          ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+        )
+      ) {
+        throw new ForbiddenException();
+      }
+
+      return this.pageService.duplicatePage(copiedPage, dto.spaceId, user);
+    } else {
+      // If no spaceId, it's a duplicate in same space
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        copiedPage.spaceId,
+      );
+      if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
+      }
+
+      return this.pageService.duplicatePage(copiedPage, undefined, user);
     }
-
-    const abilities = await Promise.all([
-      this.spaceAbility.createForUser(user, copiedPage.spaceId),
-      this.spaceAbility.createForUser(user, dto.spaceId),
-    ]);
-
-    if (
-      abilities.some((ability) =>
-        ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
-      )
-    ) {
-      throw new ForbiddenException();
-    }
-
-    return this.pageService.copyPageToSpace(copiedPage, dto.spaceId, user);
   }
 
   @HttpCode(HttpStatus.OK)
