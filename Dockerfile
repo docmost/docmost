@@ -3,6 +3,9 @@ LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 FROM base AS builder
 
+# 安装构建依赖
+RUN apk add --no-cache python3 make g++ py3-pip
+
 WORKDIR /app
 
 COPY . .

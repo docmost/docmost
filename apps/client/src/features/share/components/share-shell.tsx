@@ -62,7 +62,7 @@ export default function ShareShell({
 
   return (
     <AppShell
-      header={{ height: 50 }}
+      // header={{ height: 50 }} // 隐藏导航栏
       {...(data?.pageTree?.length > 1 && {
         navbar: {
           width: 300,
@@ -83,6 +83,7 @@ export default function ShareShell({
       }}
       padding="md"
     >
+      {/* 导航栏已隐藏 - 如需恢复请取消注释
       <AppShell.Header>
         <Group wrap="nowrap" justify="space-between" py="sm" px="xl">
           <Group wrap="nowrap">
@@ -154,6 +155,7 @@ export default function ShareShell({
           </Group>
         </Group>
       </AppShell.Header>
+      */}
 
       {data?.pageTree?.length > 1 && (
         <AppShell.Navbar p="md" className={classes.navbar}>

@@ -2,6 +2,7 @@
   @mixin light {
     border-bottom: 0.05em solid var(--mantine-color-dark-0);
   }
+
   @mixin dark {
     border-bottom: 0.05em solid var(--mantine-color-dark-2);
   }
@@ -17,4 +18,9 @@
   @media (max-width: $mantine-breakpoint-sm) {
     width: 350px;
   }
+}
+
+/* 隐藏分享页面导航栏的备用方案 */
+.hideHeader {
+  display: none !important;
 }
