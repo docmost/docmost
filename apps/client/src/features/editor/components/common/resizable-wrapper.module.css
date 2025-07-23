@@ -1,0 +1,96 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.resizing {
+  user-select: none;
+  cursor: ns-resize;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background: transparent;
+}
+
+.resizeHandleBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  cursor: ns-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+  @mixin light {
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05));
+  }
+
+  @mixin dark {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 255, 255, 0.05)
+    );
+  }
+
+  &:hover {
+    @mixin light {
+      background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
+    }
+
+    @mixin dark {
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255, 255, 255, 0.1)
+      );
+    }
+  }
+}
+
+.wrapper:hover .resizeHandleBottom,
+.resizing .resizeHandleBottom {
+  opacity: 1;
+}
+
+.resizeBar {
+  width: 50px;
+  height: 4px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+
+  @mixin light {
+    background-color: var(--mantine-color-gray-5);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-gray-6);
+  }
+}
+
+.resizeHandleBottom:hover .resizeBar,
+.resizing .resizeBar {
+  @mixin light {
+    background-color: var(--mantine-color-gray-7);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-gray-4);
+  }
+}
