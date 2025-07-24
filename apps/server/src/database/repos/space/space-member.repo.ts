@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
+import { sql } from 'kysely';
 import {
   InsertableSpaceMember,
   SpaceMember,
@@ -119,9 +120,21 @@ export class SpaceMemberRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`)
-          .or('users.email', 'ilike', `%${pagination.query}%`)
-          .or('groups.name', 'ilike', `%${pagination.query}%`),
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        )
+          .or(
+            sql`users.email`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          )
+          .or(
+            sql`f_unaccent(groups.name)`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          ),
       );
     }
 
@@ -228,10 +241,14 @@ export class SpaceMemberRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('name', 'ilike', `%${pagination.query}%`).or(
-          'description',
+        eb(
+          sql`f_unaccent(name)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`f_unaccent(description)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }
