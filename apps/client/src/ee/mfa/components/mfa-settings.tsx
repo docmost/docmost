@@ -25,7 +25,7 @@ export function MfaSettings() {
   }
 
   // Check if MFA is truly enabled
-  const isMfaEnabled = mfaStatus?.enabled === true;
+  const isMfaEnabled = mfaStatus?.isEnabled === true;
 
   const handleSetupComplete = () => {
     setSetupModalOpen(false);

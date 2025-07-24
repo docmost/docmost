@@ -9,11 +9,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('user_id', 'uuid', (col) =>
       col.references('users.id').onDelete('cascade').notNull(),
     )
-    .addColumn('method', 'varchar(50)', (col) =>
-      col.notNull().defaultTo('totp'),
-    )
-    .addColumn('secret', 'varchar(255)', (col) => col)
-    .addColumn('enabled', 'boolean', (col) => col.defaultTo(false))
+    .addColumn('method', 'varchar', (col) => col.notNull().defaultTo('totp'))
+    .addColumn('secret', 'text', (col) => col)
+    .addColumn('is_enabled', 'boolean', (col) => col.defaultTo(false))
     .addColumn('backup_codes', sql`text[]`, (col) => col)
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),

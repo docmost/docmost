@@ -1,10 +1,10 @@
 export interface MfaMethod {
   type: 'totp' | 'email';
-  enabled: boolean;
+  isEnabled: boolean;
 }
 
 export interface MfaSettings {
-  enabled: boolean;
+  isEnabled: boolean;
   methods: MfaMethod[];
   backupCodesCount: number;
   lastUpdated?: string;
@@ -19,7 +19,7 @@ export interface MfaSetupState {
 }
 
 export interface MfaStatusResponse {
-  enabled?: boolean;
+  isEnabled?: boolean;
   method?: string | null;
   backupCodesCount?: number;
 }

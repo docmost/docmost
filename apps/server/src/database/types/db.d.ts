@@ -250,8 +250,8 @@ export interface Spaces {
 export interface UserMfa {
   backupCodes: string[] | null;
   createdAt: Generated<Timestamp>;
-  enabled: Generated<boolean | null>;
   id: Generated<string>;
+  isEnabled: Generated<boolean | null>;
   method: Generated<string>;
   secret: string | null;
   updatedAt: Generated<Timestamp>;
