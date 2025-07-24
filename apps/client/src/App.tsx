@@ -29,6 +29,7 @@ import { useTrackOrigin } from "@/hooks/use-track-origin";
 import SpaceGraph from "./pages/space/space-graph";
 import OidcSettingsPage from "@/pages/settings/oidc.tsx";
 import SpaceTrash from "@/pages/space/trash.tsx";
+import SpacesPage from "@/pages/spaces/spaces.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -58,6 +59,7 @@ export default function App() {
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
+          <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route path={"/s/:spaceSlug/graph"} element={<SpaceGraph />} />
           <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />

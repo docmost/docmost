@@ -49,9 +49,11 @@ export default function SpaceGrid() {
 
   return (
     <>
-      <Text fz="sm" fw={500} mb={"md"}>
-        {t("Spaces you belong to")}
-      </Text>
+      <Group justify="space-between" align="center" mb="md">
+        <Text fz="sm" fw={500}>
+          {t("Spaces you belong to")}
+        </Text>
+      </Group>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }}>{cards}</SimpleGrid>
 
