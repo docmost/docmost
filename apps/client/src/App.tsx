@@ -31,6 +31,7 @@ import Shares from "@/pages/settings/shares/shares.tsx";
 import ShareLayout from "@/features/share/components/share-layout.tsx";
 import ShareRedirect from "@/pages/share/share-redirect.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import SpacesPage from "@/pages/spaces/spaces.tsx";
 import { MfaChallengePage } from "@/ee/mfa/pages/mfa-challenge-page";
 import { MfaSetupRequiredPage } from "@/ee/mfa/pages/mfa-setup-required-page";
 
@@ -77,6 +78,7 @@ export default function App() {
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
+          <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}

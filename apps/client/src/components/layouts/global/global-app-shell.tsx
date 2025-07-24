@@ -73,13 +73,15 @@ export default function GlobalAppShell({
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
   const isHomeRoute = location.pathname.startsWith("/home");
+  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
+  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   return (
     <AppShell
       header={{ height: 45 }}
       navbar={
-        !isHomeRoute && {
+        !hideSidebar && {
           width: isSpaceRoute ? sidebarWidth : 300,
           breakpoint: "sm",
           collapsed: {
@@ -100,7 +102,7 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      {!isHomeRoute && (
+      {!hideSidebar && (
         <AppShell.Navbar
           className={classes.navbar}
           withBorder={false}
