@@ -8,7 +8,7 @@ declare global {
 }
 
 export function getAppName(): string {
-  return "Docmost";
+  return "Forkmost";
 }
 
 export function getAppUrl(): string {
@@ -50,6 +50,10 @@ export function getAvatarUrl(avatarUrl: string) {
 
 export function getSpaceUrl(spaceSlug: string) {
   return "/s/" + spaceSlug;
+}
+
+export function getSpaceGraphUrl(spaceSlug: string) {
+  return "/s/" + spaceSlug + "/graph";
 }
 
 export function getFileUrl(src: string) {

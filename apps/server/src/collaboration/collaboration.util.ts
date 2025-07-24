@@ -26,12 +26,15 @@ import {
   TableRow,
   TiptapImage,
   TiptapVideo,
+  Audio,
   TrailingNode,
   Attachment,
   Drawio,
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -72,6 +75,7 @@ export const tiptapExtensions = [
   Youtube,
   TiptapImage,
   TiptapVideo,
+  Audio,
   Callout,
   Attachment,
   CustomCodeBlock,
@@ -79,6 +83,8 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
