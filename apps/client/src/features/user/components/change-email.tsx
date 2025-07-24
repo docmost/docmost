@@ -24,7 +24,7 @@ export default function ChangeEmail() {
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <Text size="md">{t("Email")}</Text>
         <Text size="sm" c="dimmed">
           {currentUser?.user.email}
