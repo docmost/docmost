@@ -98,7 +98,7 @@ export default function WorkspaceMembersTable() {
                     />
                   </Table.Td>
                   <Table.Td>
-                    {isAdmin && <MemberActionMenu userId={user.id} />}
+                    {isAdmin && <MemberActionMenu userId={user.id} userRole={user.role} />}
                   </Table.Td>
                 </Table.Tr>
               ))

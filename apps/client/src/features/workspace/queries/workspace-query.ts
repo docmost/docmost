@@ -18,6 +18,7 @@ import {
   getAppVersion,
   deleteWorkspaceMember,
 } from "@/features/workspace/services/workspace-service";
+import { resetUserMfa } from "@/ee/mfa";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
@@ -190,5 +191,31 @@ export function useAppVersion(
     staleTime: 60 * 60 * 1000, // 1 hr
     enabled: isEnabled,
     refetchOnMount: true,
+  });
+}
+
+export function useResetUserMfaMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { success: boolean },
+    Error,
+    { userId: string }
+  >({
+    mutationFn: ({ userId }) => resetUserMfa(userId),
+    onSuccess: () => {
+      notifications.show({ 
+        message: t("MFA has been reset successfully"),
+        color: "green" 
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceMembers"],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message || t("Failed to reset MFA");
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }

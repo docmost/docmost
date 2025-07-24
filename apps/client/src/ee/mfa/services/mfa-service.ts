@@ -59,3 +59,10 @@ export async function validateMfaAccess(): Promise<MfaAccessValidationResponse> 
     return { valid: false };
   }
 }
+
+export async function resetUserMfa(
+  userId: string,
+): Promise<{ success: boolean }> {
+  const req = await api.post<{ success: boolean }>('/mfa/reset', { userId });
+  return req.data;
+}
