@@ -27,7 +27,7 @@ import APP_ROUTE from "@/lib/app-route.ts";
 import { RESET } from "jotai/utils";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
-import { exchangeTokenRedirectUrl, getHostnameUrl } from "@/ee/utils.ts";
+import { exchangeTokenRedirectUrl } from "@/ee/utils.ts";
 
 export default function useAuth() {
   const { t } = useTranslation();
@@ -39,9 +39,17 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      await login(data);
+      const response = await login(data);
       setIsLoading(false);
-      navigate(APP_ROUTE.HOME);
+
+      // Check if MFA is required
+      if (response?.userHasMfa) {
+        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE);
+      } else if (response?.requiresMfaSetup) {
+        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED);
+      } else {
+        navigate(APP_ROUTE.HOME);
+      }
     } catch (err) {
       setIsLoading(false);
       console.log(err);
@@ -56,9 +64,19 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      await acceptInvitation(data);
+      const response = await acceptInvitation(data);
       setIsLoading(false);
-      navigate(APP_ROUTE.HOME);
+
+      if (response?.requiresLogin) {
+        notifications.show({
+          message: t(
+            "Account created successfully. Please log in to set up two-factor authentication.",
+          ),
+        });
+        navigate(APP_ROUTE.AUTH.LOGIN);
+      } else {
+        navigate(APP_ROUTE.HOME);
+      }
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -100,12 +118,22 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      await passwordReset(data);
+      const response = await passwordReset(data);
       setIsLoading(false);
-      navigate(APP_ROUTE.HOME);
-      notifications.show({
-        message: t("Password reset was successful"),
-      });
+
+      if (response?.requiresLogin) {
+        notifications.show({
+          message: t(
+            "Password reset was successful. Please log in with your new password.",
+          ),
+        });
+        navigate(APP_ROUTE.AUTH.LOGIN);
+      } else {
+        navigate(APP_ROUTE.HOME);
+        notifications.show({
+          message: t("Password reset was successful"),
+        });
+      }
     } catch (err) {
       setIsLoading(false);
       notifications.show({

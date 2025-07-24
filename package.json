@@ -60,6 +60,7 @@
     "@tiptap/react": "^2.10.3",
     "@tiptap/starter-kit": "^2.10.3",
     "@tiptap/suggestion": "^2.10.3",
+    "@types/qrcode": "^1.5.5",
     "bytes": "^3.1.2",
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
@@ -70,6 +71,7 @@
     "linkifyjs": "^4.2.0",
     "marked": "13.0.3",
     "ms": "3.0.0-canary.1",
+    "qrcode": "^1.5.4",
     "uuid": "^11.1.0",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.27"
