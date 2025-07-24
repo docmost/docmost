@@ -1,0 +1,16 @@
+.embedWrapper {
+  @mixin light {
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-7);
+  }
+}
+
+.embedIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
