@@ -222,6 +222,8 @@
   "Anyone with this link can join this workspace.": "Anyone with this link can join this workspace.",
   "Invite link": "Invite link",
   "Copy": "Copy",
+  "Copy to space": "Copy to space",
+  "Duplicate": "Duplicate",
   "Copy anchor link": "Copy anchor link",
   "Copied": "Copied",
   "Download code": "Download code",
@@ -403,7 +405,8 @@
   "Copy page": "Copy page",
   "Copy page to a different space.": "Copy page to a different space.",
   "Page copied successfully": "Page copied successfully",
-  "Graph view": "Graph view"
+  "Page duplicated successfully": "Page duplicated successfully",
+  "Graph view": "Graph view",
   "Spellcheck": "Spellcheck",
   "Choose if spellcheck is enabled.": "Choose if spellcheck is enabled.",
   "Toggle spellcheck": "Toggle spellcheck",

@@ -50,7 +50,7 @@ export interface IMovePageToSpace {
 
 export interface ICopyPageToSpace {
   pageId: string;
-  spaceId: string;
+  spaceId?: string;
 }
 
 export interface SidebarPagesParams {

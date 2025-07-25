@@ -42,8 +42,8 @@ export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }
 
-export async function copyPageToSpace(data: ICopyPageToSpace): Promise<IPage> {
-  const req = await api.post<IPage>("/pages/copy-to-space", data);
+export async function duplicatePage(data: ICopyPageToSpace): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/duplicate", data);
   return req.data;
 }
 
