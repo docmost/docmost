@@ -177,7 +177,14 @@ export class WorkspaceInvitationService {
     }
   }
 
-  async acceptInvitation(dto: AcceptInviteDto, workspace: Workspace) {
+  async acceptInvitation(
+    dto: AcceptInviteDto,
+    workspace: Workspace,
+  ): Promise<{
+    authToken?: string;
+    requiresLogin?: boolean;
+    message?: string;
+  }> {
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
       .selectAll()
@@ -289,7 +296,14 @@ export class WorkspaceInvitationService {
       });
     }
 
-    return this.tokenService.generateAccessToken(newUser);
+    if (workspace.enforceMfa) {
+      return {
+        requiresLogin: true,
+      };
+    }
+
+    const authToken = await this.tokenService.generateAccessToken(newUser);
+    return { authToken };
   }
 
   async resendInvitation(
