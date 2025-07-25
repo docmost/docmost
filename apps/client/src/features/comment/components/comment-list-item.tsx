@@ -14,6 +14,7 @@ import {
   useDeleteCommentMutation,
   useUpdateCommentMutation,
 } from "@/features/comment/queries/comment-query";
+import { useResolveCommentMutation } from "@/ee/comment/queries/comment-query";
 import { IComment } from "@/features/comment/types/comment.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
@@ -24,12 +25,14 @@ interface CommentListItemProps {
   comment: IComment;
   pageId: string;
   canComment: boolean;
+  userSpaceRole?: string;
 }
 
 function CommentListItem({
   comment,
   pageId,
   canComment,
+  userSpaceRole,
 }: CommentListItemProps) {
   const { t } = useTranslation();
   const { hovered, ref } = useHover();
@@ -39,6 +42,7 @@ function CommentListItem({
   const [content, setContent] = useState<string>(comment.content);
   const updateCommentMutation = useUpdateCommentMutation();
   const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);
+  const resolveCommentMutation = useResolveCommentMutation();
   const [currentUser] = useAtom(currentUserAtom);
   const emit = useQueryEmit();
   const isCloudEE = useIsCloudEE();
@@ -79,6 +83,31 @@ function CommentListItem({
       });
     } catch (error) {
       console.error("Failed to delete comment:", error);
+    }
+  }
+
+  async function handleResolveComment() {
+    if (!isCloudEE) return;
+    
+    try {
+      const isResolved = comment.resolvedAt != null;
+      
+      await resolveCommentMutation.mutateAsync({
+        commentId: comment.id,
+        pageId: comment.pageId,
+        resolved: !isResolved,
+      });
+
+      if (editor) {
+        editor.commands.setCommentResolved(comment.id, !isResolved);
+      }
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
+      });
+    } catch (error) {
+      console.error("Failed to toggle resolved state:", error);
     }
   }
 
@@ -127,10 +156,14 @@ function CommentListItem({
                 />
               )}
 
-              {currentUser?.user?.id === comment.creatorId && (
+              {(currentUser?.user?.id === comment.creatorId || userSpaceRole === 'admin') && (
                 <CommentMenu
                   onEditComment={handleEditToggle}
                   onDeleteComment={handleDeleteComment}
+                  onResolveComment={handleResolveComment}
+                  canEdit={currentUser?.user?.id === comment.creatorId}
+                  isResolved={comment.resolvedAt != null}
+                  isParentComment={!comment.parentCommentId}
                 />
               )}
             </div>

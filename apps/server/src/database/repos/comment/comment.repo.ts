@@ -94,4 +94,25 @@ export class CommentRepo {
   async deleteComment(commentId: string): Promise<void> {
     await this.db.deleteFrom('comments').where('id', '=', commentId).execute();
   }
+
+  async hasChildren(commentId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('comments')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('parentCommentId', '=', commentId)
+      .executeTakeFirst();
+
+    return Number(result?.count) > 0;
+  }
+
+  async hasChildrenFromOtherUsers(commentId: string, userId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('comments')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('parentCommentId', '=', commentId)
+      .where('creatorId', '!=', userId)
+      .executeTakeFirst();
+
+    return Number(result?.count) > 0;
+  }
 }

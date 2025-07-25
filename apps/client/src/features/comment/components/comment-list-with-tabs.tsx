@@ -107,12 +107,14 @@ function CommentListWithTabs() {
             comment={comment}
             pageId={page?.id}
             canComment={canComment}
+            userSpaceRole={space?.membership?.role}
           />
           <MemoizedChildComments
             comments={comments}
             parentId={comment.id}
             pageId={page?.id}
             canComment={canComment}
+            userSpaceRole={space?.membership?.role}
           />
         </div>
 
@@ -128,7 +130,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading]
+    [comments, handleAddReply, isLoading, space?.membership?.role]
   );
 
   if (isCommentsLoading) {
@@ -152,7 +154,33 @@ function CommentListWithTabs() {
         <div style={{ paddingBottom: "200px" }}>
           {comments?.items
             .filter((comment: IComment) => comment.parentCommentId === null)
-            .map(renderComments)}
+            .map((comment) => (
+              <Paper
+                shadow="sm"
+                radius="md"
+                p="sm"
+                mb="sm"
+                withBorder
+                key={comment.id}
+                data-comment-id={comment.id}
+              >
+                <div>
+                  <CommentListItem
+                    comment={comment}
+                    pageId={page?.id}
+                    canComment={canComment}
+                    userSpaceRole={space?.membership?.role}
+                  />
+                  <MemoizedChildComments
+                    comments={comments}
+                    parentId={comment.id}
+                    pageId={page?.id}
+                    canComment={canComment}
+                    userSpaceRole={space?.membership?.role}
+                  />
+                </div>
+              </Paper>
+            ))}
         </div>
       </ScrollArea>
     );
@@ -221,12 +249,14 @@ interface ChildCommentsProps {
   parentId: string;
   pageId: string;
   canComment: boolean;
+  userSpaceRole?: string;
 }
 const ChildComments = ({
   comments,
   parentId,
   pageId,
   canComment,
+  userSpaceRole,
 }: ChildCommentsProps) => {
   const getChildComments = useCallback(
     (parentId: string) =>
@@ -244,12 +274,14 @@ const ChildComments = ({
             comment={childComment}
             pageId={pageId}
             canComment={canComment}
+            userSpaceRole={userSpaceRole}
           />
           <MemoizedChildComments
             comments={comments}
             parentId={childComment.id}
             pageId={pageId}
             canComment={canComment}
+            userSpaceRole={userSpaceRole}
           />
         </div>
       ))}
