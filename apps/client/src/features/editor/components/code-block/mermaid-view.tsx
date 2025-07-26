@@ -4,14 +4,10 @@ import mermaid from "mermaid";
 import { v4 as uuidv4 } from "uuid";
 import classes from "./code-block.module.css";
 import { useTranslation } from "react-i18next";
-import { useComputedColorScheme } from "@mantine/core";
-
-const computedColorScheme = useComputedColorScheme();
 
 mermaid.initialize({
   startOnLoad: false,
   suppressErrorRendering: true,
-  theme: computedColorScheme === "light" ? "default" : "dark",
 });
 
 interface MermaidViewProps {
