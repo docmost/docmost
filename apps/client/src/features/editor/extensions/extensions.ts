@@ -10,7 +10,6 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import Table from "@tiptap/extension-table";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -25,6 +24,7 @@ import {
   TableCell,
   TableRow,
   TableHeader,
+  CustomTable,
   TrailingNode,
   TiptapImage,
   Callout,
@@ -160,7 +160,7 @@ export const mainExtensions = [
       return ReactNodeViewRenderer(MentionView);
     },
   }),
-  Table.configure({
+  CustomTable.configure({
     resizable: true,
     lastColumnResizable: false,
     allowTableNodeSelection: true,
