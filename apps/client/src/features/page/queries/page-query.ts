@@ -6,6 +6,7 @@ import {
   useMutation,
   useQuery,
   UseQueryResult,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import {
   createPage,
@@ -19,7 +20,6 @@ import {
   getAllSidebarPages,
   getDeletedPages,
   restorePage,
-  removePage,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
@@ -28,7 +28,7 @@ import {
   SidebarPagesParams,
 } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
-import { IPagination } from "@/lib/types.ts";
+import { IPagination, QueryParams } from "@/lib/types.ts";
 import { queryClient } from "@/main.tsx";
 import { buildTree } from "@/features/page/tree/utils";
 import { useEffect } from "react";
@@ -125,9 +125,13 @@ export function useUpdatePageMutation() {
 
 export function useRemovePageMutation() {
   return useMutation({
-    mutationFn: (pageId: string) => removePage(pageId),
+    mutationFn: (pageId: string) => deletePage(pageId, false),
     onSuccess: () => {
-      notifications.show({ message: "Page deleted successfully" });
+      notifications.show({ message: "Page moved to trash" });
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["trash-list"].includes(item.queryKey[0] as string),
+      });
     },
     onError: (error) => {
       notifications.show({ message: "Failed to delete page", color: "red" });
@@ -138,13 +142,16 @@ export function useRemovePageMutation() {
 export function useDeletePageMutation() {
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: (pageId: string) => deletePage(pageId),
+    mutationFn: (pageId: string) => deletePage(pageId, true),
     onSuccess: (data, pageId) => {
-      notifications.show({ message: t("Page deleted successfully") });
+      notifications.show({ message: t("Page permanently deleted") });
       invalidateOnDeletePage(pageId);
-      
-      // Invalidate all deleted-pages queries to refresh trash lists
-      queryClient.invalidateQueries({ queryKey: ["deleted-pages"] });
+
+      // Invalidate to refresh trash lists
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["trash-list"].includes(item.queryKey[0] as string),
+      });
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to delete page"), color: "red" });
@@ -164,15 +171,15 @@ export function useMovePageMutation() {
 export function useRestorePageMutation() {
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
-  
+
   return useMutation({
     mutationFn: (pageId: string) => restorePage(pageId),
     onSuccess: async (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
-      
+
       // Add the restored page back to the tree
       const treeApi = new SimpleTree<SpaceTreeNode>(treeData);
-      
+
       // Check if the page already exists in the tree (it shouldn't)
       if (!treeApi.find(restoredPage.id)) {
         // Create the tree node data with hasChildren from backend
@@ -187,11 +194,11 @@ export function useRestorePageMutation() {
           hasChildren: restoredPage.hasChildren || false,
           children: [],
         };
-        
+
         // Determine the parent and index
         const parentId = restoredPage.parentPageId || null;
         let index = 0;
-        
+
         if (parentId) {
           const parentNode = treeApi.find(parentId);
           if (parentNode) {
@@ -201,17 +208,17 @@ export function useRestorePageMutation() {
           // Root level page
           index = treeApi.data.length;
         }
-        
+
         // Add the node to the tree
         treeApi.create({
           parentId,
           index,
           data: nodeData,
         });
-        
+
         // Update the tree data
         setTreeData(treeApi.data);
-        
+
         // Emit websocket event to sync with other users
         setTimeout(() => {
           emit({
@@ -225,12 +232,13 @@ export function useRestorePageMutation() {
           });
         }, 50);
       }
-      
-      // Invalidate queries to refresh the tree (this will fetch children if needed)
-      await queryClient.invalidateQueries({ queryKey: ["page-tree", restoredPage.spaceId] });
-      
+
+      //  await queryClient.invalidateQueries({ queryKey: ["sidebar-pages", restoredPage.spaceId] });
+
       // Also invalidate deleted pages query to refresh the trash list
-      await queryClient.invalidateQueries({ queryKey: ["deleted-pages", restoredPage.spaceId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["trash-list", restoredPage.spaceId],
+      });
     },
     onError: (error) => {
       notifications.show({ message: "Failed to restore page", color: "red" });
@@ -300,12 +308,14 @@ export function useRecentChangesQuery(
 
 export function useDeletedPagesQuery(
   spaceId: string,
+  params?: QueryParams,
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
-    queryKey: ["deleted-pages", spaceId],
-    queryFn: () => getDeletedPages(spaceId),
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    queryKey: ["trash-list", spaceId, params],
+    queryFn: () => getDeletedPages(spaceId, params),
+    enabled: !!spaceId,
+    placeholderData: keepPreviousData,
+    refetchOnMount: true,
     staleTime: 0,
   });
 }

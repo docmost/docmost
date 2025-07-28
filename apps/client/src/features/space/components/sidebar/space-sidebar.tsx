@@ -25,7 +25,6 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
-import TrashModal from "@/features/space/components/trash-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
@@ -208,11 +207,10 @@ interface SpaceMenuProps {
 }
 function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
   const { t } = useTranslation();
+  const { spaceSlug } = useParams();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
-    useDisclosure(false);
-  const [openedTrash, { open: openTrash, close: closeTrash }] =
     useDisclosure(false);
 
   return (
@@ -259,7 +257,8 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
           </Menu.Item>
 
           <Menu.Item
-            onClick={openTrash}
+            component={Link}
+            to={`/s/${spaceSlug}/trash`}
             leftSection={<IconTrash size={16} />}
           >
             {t("Trash")}
@@ -278,12 +277,6 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
         id={spaceId}
         open={exportOpened}
         onClose={closeExportModal}
-      />
-
-      <TrashModal
-        opened={openedTrash}
-        onClose={closeTrash}
-        spaceId={spaceId}
       />
     </>
   );

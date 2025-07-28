@@ -167,7 +167,6 @@ export class PageService {
     });
   }
 
-
   async getSidebarPages(
     spaceId: string,
     pagination: PaginationOptions,
@@ -511,10 +510,11 @@ export class PageService {
             'position',
             'parentPageId',
             'spaceId',
+            'deletedAt',
           ])
           .select((eb) => this.pageRepo.withHasChildren(eb))
           .where('id', '=', childPageId)
-          .where('deletedAt', 'is not', null)
+          .where('deletedAt', 'is', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -526,6 +526,7 @@ export class PageService {
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',
+                'p.deletedAt',
               ])
               .select(
                 exp
@@ -540,11 +541,13 @@ export class PageService {
                       .as('count'),
                   )
                   .whereRef('child.parentPageId', '=', 'id')
+                  .where('child.deletedAt', 'is', null)
                   .limit(1)
                   .as('hasChildren'),
               )
               //.select((eb) => this.withHasChildren(eb))
-              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
+              .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_ancestors')
@@ -579,103 +582,7 @@ export class PageService {
     await this.pageRepo.deletePage(pageId);
   }
 
-  async remove(pageId: string): Promise<void> {
-    await this.pageRepo.removePage(pageId);
+  async remove(pageId: string, userId: string): Promise<void> {
+    await this.pageRepo.removePage(pageId, userId);
   }
-
-  async restore(pageId: string): Promise<void> {
-    await this.pageRepo.restorePage(pageId);
-  }
-
 }
-
-/*
-  // TODO: page deletion and restoration
-  async delete(pageId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      const page = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .select(['page.id', 'page.workspaceId'])
-        .getOne();
-
-      if (!page) {
-        throw new NotFoundException(`Page not found`);
-      }
-      await this.softDeleteChildrenRecursive(page.id, manager);
-      await this.pageOrderingService.removePageFromHierarchy(page, manager);
-
-      await manager.softDelete(Page, pageId);
-    });
-  }
-
-  private async softDeleteChildrenRecursive(
-    parentId: string,
-    manager: EntityManager,
-  ): Promise<void> {
-    const childrenPage = await manager
-      .createQueryBuilder(Page, 'page')
-      .where('page.parentPageId = :parentId', { parentId })
-      .select(['page.id', 'page.title', 'page.parentPageId'])
-      .getMany();
-
-    for (const child of childrenPage) {
-      await this.softDeleteChildrenRecursive(child.id, manager);
-      await manager.softDelete(Page, child.id);
-    }
-  }
-
-  async restore(pageId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      const isDeleted = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .withDeleted()
-        .getCount();
-
-      if (!isDeleted) {
-        return;
-      }
-
-      await manager.recover(Page, { id: pageId });
-
-      await this.restoreChildrenRecursive(pageId, manager);
-
-      // Fetch the page details to find out its parent and workspace
-      const restoredPage = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .select(['page.id', 'page.title', 'page.spaceId', 'page.parentPageId'])
-        .getOne();
-
-      if (!restoredPage) {
-        throw new NotFoundException(`Restored page not found.`);
-      }
-
-      // add page back to its hierarchy
-      await this.pageOrderingService.addPageToOrder(
-        restoredPage.spaceId,
-        pageId,
-        restoredPage.parentPageId,
-      );
-    });
-  }
-
-  private async restoreChildrenRecursive(
-    parentId: string,
-    manager: EntityManager,
-  ): Promise<void> {
-    const childrenPage = await manager
-      .createQueryBuilder(Page, 'page')
-      .setLock('pessimistic_write')
-      .where('page.parentPageId = :parentId', { parentId })
-      .select(['page.id', 'page.title', 'page.parentPageId'])
-      .withDeleted()
-      .getMany();
-
-    for (const child of childrenPage) {
-      await this.restoreChildrenRecursive(child.id, manager);
-      await manager.recover(Page, { id: child.id });
-    }
-  }
-*/

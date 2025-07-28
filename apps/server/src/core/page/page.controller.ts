@@ -13,7 +13,7 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
-import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
+import { PageHistoryIdDto, PageIdDto, PageInfoDto, DeletePageDto } from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -101,24 +101,8 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
-    const page = await this.pageRepo.findById(pageIdDto.pageId);
-
-    if (!page) {
-      throw new NotFoundException('Page not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-    await this.pageService.forceDelete(pageIdDto.pageId);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('remove')
-  async remove(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
-    const page = await this.pageRepo.findById(pageIdDto.pageId);
+  async delete(@Body() deletePageDto: DeletePageDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(deletePageDto.pageId);
 
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -129,7 +113,11 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    await this.pageService.remove(pageIdDto.pageId);
+    if (deletePageDto.permanentlyDelete) {
+      await this.pageService.forceDelete(deletePageDto.pageId);
+    } else {
+      await this.pageService.remove(deletePageDto.pageId, user.id);
+    }
   }
 
   @HttpCode(HttpStatus.OK)
@@ -146,7 +134,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    await this.pageService.restore(pageIdDto.pageId);
+    await this.pageRepo.restorePage(pageIdDto.pageId);
 
     // Return the restored page data with hasChildren info
     const restoredPage = await this.pageRepo.findById(pageIdDto.pageId, {

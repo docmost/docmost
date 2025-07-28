@@ -31,3 +31,9 @@ export class PageInfoDto extends PageIdDto {
   @IsBoolean()
   includeContent: boolean;
 }
+
+export class DeletePageDto extends PageIdDto {
+  @IsOptional()
+  @IsBoolean()
+  permanentlyDelete?: boolean;
+}

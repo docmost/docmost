@@ -80,7 +80,9 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
-      .$if(opts?.includeHasChildren, (qb) => qb.select((eb) => this.withHasChildren(eb)));
+      .$if(opts?.includeHasChildren, (qb) =>
+        qb.select((eb) => this.withHasChildren(eb)),
+      );
 
     if (opts?.includeCreator) {
       query = query.select((eb) => this.withCreator(eb));
@@ -147,7 +149,19 @@ export class PageRepo {
       .executeTakeFirst();
   }
 
-  async removePage(pageId: string): Promise<void> {
+  async deletePage(pageId: string): Promise<void> {
+    let query = this.db.deleteFrom('pages');
+
+    if (isValidUUID(pageId)) {
+      query = query.where('id', '=', pageId);
+    } else {
+      query = query.where('slugId', '=', pageId);
+    }
+
+    await query.execute();
+  }
+
+  async removePage(pageId: string, deletedById: string): Promise<void> {
     const currentDate = new Date();
 
     const descendants = await this.db
@@ -171,21 +185,12 @@ export class PageRepo {
 
     await this.db
       .updateTable('pages')
-      .set({ deletedAt: currentDate })
+      .set({
+        deletedById: deletedById,
+        deletedAt: currentDate,
+      })
       .where('id', 'in', pageIds)
       .execute();
-  }
-
-  async deletePage(pageId: string): Promise<void> {
-    let query = this.db.deleteFrom('pages');
-
-    if (isValidUUID(pageId)) {
-      query = query.where('id', '=', pageId);
-    } else {
-      query = query.where('slugId', '=', pageId);
-    }
-
-    await query.execute();
   }
 
   async restorePage(pageId: string): Promise<void> {
@@ -208,7 +213,7 @@ export class PageRepo {
         .select(['id', 'deletedAt'])
         .where('id', '=', pageToRestore.parentPageId)
         .executeTakeFirst();
-      
+
       // If parent is deleted, we should detach this page from it
       shouldDetachFromParent = parent?.deletedAt !== null;
     }
@@ -236,7 +241,7 @@ export class PageRepo {
     // Restore all pages, but only detach the root page if its parent is deleted
     await this.db
       .updateTable('pages')
-      .set({ deletedAt: null })
+      .set({ deletedById: null, deletedAt: null })
       .where('id', 'in', pageIds)
       .execute();
 
@@ -249,7 +254,6 @@ export class PageRepo {
         .execute();
     }
   }
-
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
     const query = this.db
@@ -293,10 +297,28 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
+      .select('content')
       .select((eb) => this.withSpace(eb))
+      .select((eb) => this.withDeletedBy(eb))
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is not', null)
-      .orderBy('updatedAt', 'desc');
+      // Only include pages that are either root pages (no parent) or whose parent is not deleted
+      // This prevents showing orphaned pages when their parent has been soft-deleted
+      .where((eb) =>
+        eb.or([
+          eb('parentPageId', 'is', null),
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom('pages as parent')
+                .select('parent.id')
+                .where('parent.id', '=', eb.ref('pages.parentPageId'))
+                .where('parent.deletedAt', 'is not', null),
+            ),
+          ),
+        ]),
+      )
+      .orderBy('deletedAt', 'desc');
 
     const result = executeWithPagination(query, {
       page: pagination.page,
@@ -331,6 +353,15 @@ export class PageRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'pages.lastUpdatedById'),
     ).as('lastUpdatedBy');
+  }
+
+  withDeletedBy(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.deletedById'),
+    ).as('deletedBy');
   }
 
   withContributors(eb: ExpressionBuilder<DB, 'pages'>) {
