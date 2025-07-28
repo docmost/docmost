@@ -50,6 +50,7 @@ import { validate as isValidUUID } from 'uuid';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
+import * as path from 'path';
 
 @Controller()
 export class AttachmentController {
@@ -354,6 +355,11 @@ export class AttachmentController {
       attachmentType === AttachmentType.File
     ) {
       throw new BadRequestException('Invalid image attachment type');
+    }
+
+    const filenameWithoutExt = path.basename(fileName, path.extname(fileName));
+    if (!isValidUUID(filenameWithoutExt)) {
+      throw new BadRequestException('Invalid file id');
     }
 
     const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;
