@@ -10,7 +10,6 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
-import Table from '@tiptap/extension-table';
 import {
   Callout,
   Comment,
@@ -24,6 +23,7 @@ import {
   TableHeader,
   TableCell,
   TableRow,
+  CustomTable,
   TiptapImage,
   TiptapVideo,
   Audio,
@@ -68,7 +68,7 @@ export const tiptapExtensions = [
   Details,
   DetailsContent,
   DetailsSummary,
-  Table,
+  CustomTable,
   TableCell,
   TableRow,
   TableHeader,
