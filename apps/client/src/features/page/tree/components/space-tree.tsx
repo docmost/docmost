@@ -32,6 +32,7 @@ import {
 } from "@tabler/icons-react";
 import {
   appendNodeChildrenAtom,
+  sortByAtom,
   treeDataAtom,
 } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
@@ -85,6 +86,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
+  const [sortBy] = useAtom(sortByAtom);
   const {
     data: pagesData,
     hasNextPage,
@@ -119,11 +121,21 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   useEffect(() => {
     if (pagesData?.pages && !hasNextPage) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
-      const treeData = buildTree(allItems);
+      let treeData = buildTree(allItems);
 
+      if (sortBy !== 'position') {
+        treeData = [...treeData].sort((a, b) => {
+          if (sortBy === 'alphabetical') {
+            return a.name.localeCompare(b.name);
+          } else {
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          }
+        });
+      }
+      
       setData((prev) => {
         // fresh space; full reset
-        if (prev.length === 0 || prev[0]?.spaceId !== spaceId) {
+        if (data.length < 1 || data?.[0].spaceId !== spaceId || prev.length === 0 || prev[0]?.spaceId !== spaceId) {
           setIsDataLoaded(true);
           setOpenTreeNodes({});
           return treeData;
@@ -132,8 +144,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         // same space; append only missing roots
         return mergeRootTrees(prev, treeData);
       });
+
     }
-  }, [pagesData, hasNextPage]);
+  }, [pagesData, hasNextPage, sortBy]);
 
   useEffect(() => {
     const fetchData = async () => {
