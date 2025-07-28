@@ -144,7 +144,7 @@ export function useDeletePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, true),
     onSuccess: (data, pageId) => {
-      notifications.show({ message: t("Page permanently deleted") });
+      notifications.show({ message: t("Page deleted successfully") });
       invalidateOnDeletePage(pageId);
 
       // Invalidate to refresh trash lists
