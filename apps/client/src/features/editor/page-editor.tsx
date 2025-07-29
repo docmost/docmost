@@ -75,7 +75,7 @@ export default function PageEditor({
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom,
+    yjsConnectionStatusAtom
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -262,7 +262,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, remoteProvider]
   );
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
@@ -278,7 +278,12 @@ export default function PageEditor({
   }, 3000);
 
   const handleActiveCommentEvent = (event) => {
-    const { commentId } = event.detail;
+    const { commentId, resolved } = event.detail;
+
+    if (resolved) {
+      return;
+    }
+
     setActiveCommentId(commentId);
     setAsideState({ tab: "comments", isAsideOpen: true });
 
@@ -295,7 +300,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent,
+        handleActiveCommentEvent
       );
     };
   }, []);

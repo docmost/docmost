@@ -13,6 +13,7 @@ import {
 } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
 import { queryClient } from "@/main.tsx";
+import { IComment } from "@/features/comment/types/comment.types";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -94,6 +95,30 @@ export const useQuerySubscription = () => {
           queryClient.invalidateQueries({
             queryKey: ["recent-changes", spaceId],
           });
+          break;
+        }
+        case "resolveComment": {
+          const currentComments = queryClient.getQueryData(
+            RQ_KEY(data.pageId),
+          ) as IPagination<IComment>;
+
+          if (currentComments && currentComments.items) {
+            const updatedComments = currentComments.items.map((comment) =>
+              comment.id === data.commentId
+                ? { 
+                    ...comment, 
+                    resolvedAt: data.resolvedAt, 
+                    resolvedById: data.resolvedById, 
+                    resolvedBy: data.resolvedBy 
+                  }
+                : comment,
+            );
+            
+            queryClient.setQueryData(RQ_KEY(data.pageId), {
+              ...currentComments,
+              items: updatedComments,
+            });
+          }
           break;
         }
       }
