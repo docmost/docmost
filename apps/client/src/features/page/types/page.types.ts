@@ -20,6 +20,7 @@ export interface IPage {
   hasChildren: boolean;
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
+  deletedBy: IDeletedBy;
   space: Partial<ISpace>;
 }
 
@@ -29,6 +30,12 @@ interface ICreator {
   avatarUrl: string;
 }
 interface ILastUpdatedBy {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
+interface IDeletedBy {
   id: string;
   name: string;
   avatarUrl: string;

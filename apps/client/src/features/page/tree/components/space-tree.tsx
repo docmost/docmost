@@ -633,7 +633,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
                   openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
                 }}
               >
-                {t("Delete")}
+                {t("Move to trash")}
               </Menu.Item>
             </>
           )}
