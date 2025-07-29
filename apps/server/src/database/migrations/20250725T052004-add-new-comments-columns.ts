@@ -5,7 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('comments')
     .addColumn('last_edited_by_id', 'uuid', (col) =>
-      col.references('users.id').onDelete('cascade'),
+      col.references('users.id').onDelete('set null'),
     )
     .execute();
 
@@ -13,7 +13,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('comments')
     .addColumn('resolved_by_id', 'uuid', (col) =>
-      col.references('users.id').onDelete('cascade'),
+      col.references('users.id').onDelete('set null'),
     )
     .execute();
 
