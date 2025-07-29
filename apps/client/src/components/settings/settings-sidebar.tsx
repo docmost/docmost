@@ -119,7 +119,6 @@ export default function SettingsSidebar() {
   }, [location.pathname]);
 
   const canShowItem = (item: DataItem) => {
-    // For items with showDisabledInCommunity, always show them but in disabled state
     if (item.showDisabledInNonEE && item.isEnterprise) {
       // Check admin permission regardless of license
       return item.isAdmin ? isAdmin : true;
