@@ -35,6 +35,9 @@ import {
 } from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 
 @Injectable()
 export class PageService {
@@ -45,6 +48,7 @@ export class PageService {
     private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async findById(
@@ -579,7 +583,47 @@ export class PageService {
   }
 
   async forceDelete(pageId: string): Promise<void> {
-    await this.pageRepo.deletePage(pageId);
+    // Get all descendant IDs (including the page itself) using recursive CTE
+    const descendants = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = descendants.map((d) => d.id);
+
+    // Queue attachment deletion for all pages with unique job IDs to prevent duplicates
+    for (const id of pageIds) {
+      await this.attachmentQueue.add(
+        QueueJob.DELETE_PAGE_ATTACHMENTS,
+        {
+          pageId: id,
+        },
+        {
+          jobId: `delete-page-attachments-${id}`,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+        },
+      );
+    }
+
+    if (pageIds.length > 0) {
+      await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+    }
   }
 
   async remove(pageId: string, userId: string): Promise<void> {

@@ -13,7 +13,12 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
-import { PageHistoryIdDto, PageIdDto, PageInfoDto, DeletePageDto } from './dto/page.dto';
+import {
+  PageHistoryIdDto,
+  PageIdDto,
+  PageInfoDto,
+  DeletePageDto,
+} from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -109,13 +114,20 @@ export class PageController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
 
     if (deletePageDto.permanentlyDelete) {
+      // Permanent deletion requires space admin permissions
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+        throw new ForbiddenException(
+          'Only space admins can permanently delete pages',
+        );
+      }
       await this.pageService.forceDelete(deletePageDto.pageId);
     } else {
+      // Soft delete requires page manage permissions
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
+      }
       await this.pageService.remove(deletePageDto.pageId, user.id);
     }
   }

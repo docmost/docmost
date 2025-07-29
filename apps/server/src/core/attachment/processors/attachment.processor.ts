@@ -12,13 +12,18 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
     super();
   }
 
-  async process(job: Job<Space, void>): Promise<void> {
+  async process(job: Job<any, void>): Promise<void> {
     try {
       if (job.name === QueueJob.DELETE_SPACE_ATTACHMENTS) {
         await this.attachmentService.handleDeleteSpaceAttachments(job.data.id);
       }
       if (job.name === QueueJob.DELETE_USER_AVATARS) {
         await this.attachmentService.handleDeleteUserAvatars(job.data.id);
+      }
+      if (job.name === QueueJob.DELETE_PAGE_ATTACHMENTS) {
+        await this.attachmentService.handleDeletePageAttachments(
+          job.data.pageId,
+        );
       }
     } catch (err) {
       throw err;

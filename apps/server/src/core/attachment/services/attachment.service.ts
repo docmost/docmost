@@ -321,4 +321,50 @@ export class AttachmentService {
       throw err;
     }
   }
+
+  async handleDeletePageAttachments(pageId: string) {
+    try {
+      // Fetch attachments for this page from database
+      const attachments = await this.db
+        .selectFrom('attachments')
+        .select(['id', 'filePath'])
+        .where('pageId', '=', pageId)
+        .execute();
+
+      if (!attachments || attachments.length === 0) {
+        return;
+      }
+
+      const failedDeletions = [];
+
+      await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            // Delete from storage
+            await this.storageService.delete(attachment.filePath);
+            // Delete from database
+            await this.attachmentRepo.deleteAttachmentById(attachment.id);
+          } catch (err) {
+            failedDeletions.push(attachment.id);
+            this.logger.error(
+              `Failed to delete attachment ${attachment.id} for page ${pageId}:`,
+              err,
+            );
+          }
+        }),
+      );
+
+      if (failedDeletions.length > 0) {
+        this.logger.warn(
+          `Failed to delete ${failedDeletions.length} attachments for page ${pageId}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error in handleDeletePageAttachments for page ${pageId}:`,
+        err,
+      );
+      throw err;
+    }
+  }
 }
