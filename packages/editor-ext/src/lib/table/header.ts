@@ -2,7 +2,7 @@ import { TableHeader as TiptapTableHeader } from "@tiptap/extension-table-header
 
 export const TableHeader = TiptapTableHeader.extend({
   name: "tableHeader",
-  content: "paragraph+",
+  content: "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | attachment | mathBlock | details | codeBlock)+",
   
   addAttributes() {
     return {
