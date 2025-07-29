@@ -403,7 +403,7 @@
   "Replace (Enter)": "Replace (Enter)",
   "Replace all (Ctrl+Alt+Enter)": "Replace all (Ctrl+Alt+Enter)",
   "Replace all": "Replace all",
-  "View all spaces": "View all spaces"
+  "View all spaces": "View all spaces",
   "Error": "Error",
   "Failed to disable MFA": "Failed to disable MFA",
   "Disable two-factor authentication": "Disable two-factor authentication",
@@ -469,5 +469,20 @@
   "Enter one of your backup codes": "Enter one of your backup codes",
   "Backup code": "Backup code",
   "Enter one of your backup codes. Each backup code can only be used once.": "Enter one of your backup codes. Each backup code can only be used once.",
-  "Verify": "Verify"
+  "Verify": "Verify",
+  "Trash": "Trash",
+  "Pages in trash will be permanently deleted after 30 days.": "Pages in trash will be permanently deleted after 30 days.",
+  "Deleted": "Deleted",
+  "No pages in trash": "No pages in trash",
+  "Permanently delete page?": "Permanently delete page?",
+  "Are you sure you want to permanently delete '{{title}}'? This action cannot be undone.": "Are you sure you want to permanently delete '{{title}}'? This action cannot be undone.",
+  "Restore '{{title}}' and its sub-pages?": "Restore '{{title}}' and its sub-pages?",
+  "Move to trash": "Move to trash",
+  "Move this page to trash?": "Move this page to trash?",
+  "Restore page": "Restore page",
+  "Page moved to trash": "Page moved to trash",
+  "Page restored successfully": "Page restored successfully",
+  "Deleted by": "Deleted by",
+  "Deleted at": "Deleted at",
+  "Preview": "Preview"
 }
