@@ -4,6 +4,7 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { DB, Users } from '@docmost/db/types/db';
 import { hashPassword } from '../../../common/helpers';
 import { dbOrTx } from '@docmost/db/utils';
+import { sql } from 'kysely';
 import {
   InsertableUser,
   UpdatableUser,
@@ -149,10 +150,14 @@ export class UserRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`).or(
-          'users.email',
+        eb(
+          sql`f_unaccent(users.name)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`users.email`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }
