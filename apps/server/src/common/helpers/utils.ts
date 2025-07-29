@@ -76,6 +76,10 @@ export function sanitizeFileName(fileName: string): string {
   return sanitizedFilename.slice(0, 255);
 }
 
+export function removeAccent(str: string): string {
+  if (!str) return str;
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 export function extractBearerTokenFromHeader(
   request: FastifyRequest,
 ): string | undefined {
