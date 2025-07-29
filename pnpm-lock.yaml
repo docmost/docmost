@@ -170,8 +170,8 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
       linkifyjs:
-        specifier: ^4.2.0
-        version: 4.2.0
+        specifier: ^4.3.2
+        version: 4.3.2
       marked:
         specifier: 13.0.3
         version: 13.0.3
@@ -7070,8 +7070,8 @@ packages:
   linkify-it@5.0.0:
     resolution: {integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==}
 
-  linkifyjs@4.2.0:
-    resolution: {integrity: sha512-pCj3PrQyATaoTYKHrgWRF3SJwsm61udVh+vuls/Rl6SptiDhgE7ziUIudAedRY9QEfynmM7/RmLEfPUyw1HPCw==}
+  linkifyjs@4.3.2:
+    resolution: {integrity: sha512-NT1CJtq3hHIreOianA8aSXn6Cw0JzYOuDQbOrSPe7gqFnCpKP++MQe3ODgO3oh2GJFORkAAdqredOa60z63GbA==}
 
   load-esm@1.0.2:
     resolution: {integrity: sha512-nVAvWk/jeyrWyXEAs84mpQCYccxRqgKY4OznLuJhJCa0XsPSfdOIr2zvBZEj3IHEHbX97jjscKRRV539bW0Gpw==}
@@ -13747,7 +13747,7 @@ snapshots:
     dependencies:
       '@tiptap/core': 2.14.0(@tiptap/pm@2.14.0)
       '@tiptap/pm': 2.14.0
-      linkifyjs: 4.2.0
+      linkifyjs: 4.3.2
 
   '@tiptap/extension-list-item@2.14.0(@tiptap/core@2.14.0(@tiptap/pm@2.14.0))':
     dependencies:
@@ -17577,7 +17577,7 @@ snapshots:
     dependencies:
       uc.micro: 2.1.0
 
-  linkifyjs@4.2.0: {}
+  linkifyjs@4.3.2: {}
 
   load-esm@1.0.2: {}
 
