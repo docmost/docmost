@@ -119,11 +119,15 @@ export interface Comments {
   deletedAt: Timestamp | null;
   editedAt: Timestamp | null;
   id: Generated<string>;
+  lastEditedById: string | null;
   pageId: string;
   parentCommentId: string | null;
   resolvedAt: Timestamp | null;
+  resolvedById: string | null;
   selection: string | null;
+  spaceId: string;
   type: string | null;
+  updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
 
