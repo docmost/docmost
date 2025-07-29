@@ -21,6 +21,7 @@ import i18n from "i18next";
 import {
   getEmbedProviderById,
   getEmbedUrlAndProvider,
+  sanitizeUrl,
 } from "@docmost/editor-ext";
 import { ResizableWrapper } from "../common/resizable-wrapper";
 import classes from "./embed-view.module.css";
@@ -51,9 +52,12 @@ export default function EmbedView(props: NodeViewProps) {
     validate: zodResolver(schema),
   });
 
-  const handleResize = useCallback((newHeight: number) => {
-    updateAttributes({ height: newHeight });
-  }, [updateAttributes]);
+  const handleResize = useCallback(
+    (newHeight: number) => {
+      updateAttributes({ height: newHeight });
+    },
+    [updateAttributes],
+  );
 
   async function onSubmit(data: { url: string }) {
     if (!editor.isEditable) {
@@ -63,11 +67,11 @@ export default function EmbedView(props: NodeViewProps) {
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.id === "iframe") {
-        updateAttributes({ src: data.url });
+        updateAttributes({ src: sanitizeUrl(data.url) });
         return;
       }
       if (embedProvider.regex.test(data.url)) {
-        updateAttributes({ src: data.url });
+        updateAttributes({ src: sanitizeUrl(data.url) });
       } else {
         notifications.show({
           message: t("Invalid {{provider}} embed link", {
@@ -95,7 +99,7 @@ export default function EmbedView(props: NodeViewProps) {
         >
           <iframe
             className={classes.embedIframe}
-            src={embedUrl}
+            src={sanitizeUrl(embedUrl)}
             allow="encrypted-media"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             allowFullScreen

@@ -18,6 +18,7 @@
     "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
   },
   "dependencies": {
+    "@braintree/sanitize-url": "^7.1.0",
     "@docmost/editor-ext": "workspace:*",
     "@hocuspocus/extension-redis": "^2.15.2",
     "@hocuspocus/provider": "^2.15.2",

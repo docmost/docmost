@@ -231,7 +231,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
                 leftSection={<IconTrash size={16} />}
                 onClick={handleDeletePage}
               >
-                {t("Delete")}
+                {t("Move to trash")}
               </Menu.Item>
             </>
           )}

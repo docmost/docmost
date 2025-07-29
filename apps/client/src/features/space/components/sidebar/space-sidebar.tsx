@@ -14,6 +14,7 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconTrash,
 } from "@tabler/icons-react";
 import classes from "./space-sidebar.module.css";
 import React from "react";
@@ -206,6 +207,7 @@ interface SpaceMenuProps {
 }
 function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
   const { t } = useTranslation();
+  const { spaceSlug } = useParams();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -252,6 +254,14 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             leftSection={<IconSettings size={16} />}
           >
             {t("Space settings")}
+          </Menu.Item>
+
+          <Menu.Item
+            component={Link}
+            to={`/s/${spaceSlug}/trash`}
+            leftSection={<IconTrash size={16} />}
+          >
+            {t("Trash")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
