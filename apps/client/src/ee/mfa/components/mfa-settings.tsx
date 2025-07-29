@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Group, Text, Button } from "@mantine/core";
+import { Group, Text, Button, Tooltip } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,8 @@ import { getMfaStatus } from "@/ee/mfa";
 import { MfaSetupModal } from "@/ee/mfa";
 import { MfaDisableModal } from "@/ee/mfa";
 import { MfaBackupCodesModal } from "@/ee/mfa";
+import { isCloud } from "@/lib/config.ts";
+import useLicense from "@/ee/hooks/use-license.tsx";
 
 export function MfaSettings() {
   const { t } = useTranslation();
@@ -14,15 +16,18 @@ export function MfaSettings() {
   const [setupModalOpen, setSetupModalOpen] = useState(false);
   const [disableModalOpen, setDisableModalOpen] = useState(false);
   const [backupCodesModalOpen, setBackupCodesModalOpen] = useState(false);
+  const { hasLicenseKey } = useLicense();
 
   const { data: mfaStatus, isLoading } = useQuery({
     queryKey: ["mfa-status"],
     queryFn: getMfaStatus,
   });
 
-  if (isLoading) {
+  if (isLoading || !mfaStatus) {
     return null;
   }
+
+  const canUseMfa = isCloud() || hasLicenseKey;
 
   // Check if MFA is truly enabled
   const isMfaEnabled = mfaStatus?.isEnabled === true;
@@ -61,13 +66,19 @@ export function MfaSettings() {
         </div>
 
         {!isMfaEnabled ? (
-          <Button
-            variant="default"
-            onClick={() => setSetupModalOpen(true)}
-            style={{ whiteSpace: "nowrap" }}
+          <Tooltip
+            label={t("Available in enterprise edition")}
+            disabled={canUseMfa}
           >
-            {t("Add 2FA method")}
-          </Button>
+            <Button
+              disabled={!canUseMfa}
+              variant="default"
+              onClick={() => setSetupModalOpen(true)}
+              style={{ whiteSpace: "nowrap" }}
+            >
+              {t("Add 2FA method")}
+            </Button>
+          </Tooltip>
         ) : (
           <Group gap="sm" wrap="nowrap">
             <Button
