@@ -16,7 +16,7 @@ export class TrashCleanupService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
-  @Interval('trash-cleanup', 24 * 60 * 60 * 1000) // Run once every 24 hours
+  @Interval('trash-cleanup', 24 * 60 * 60 * 1000) // every 24 hours
   async cleanupOldTrash() {
     try {
       this.logger.log('Starting trash cleanup job');
@@ -102,7 +102,6 @@ export class TrashCleanupService {
       );
     }
 
-    // Delete pages - if another node already deleted them, this will succeed with 0 affected rows
     try {
       if (pageIds.length > 0) {
         await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
