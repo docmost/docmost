@@ -16,6 +16,9 @@ importers:
 
   .:
     dependencies:
+      '@braintree/sanitize-url':
+        specifier: ^7.1.0
+        version: 7.1.0
       '@docmost/editor-ext':
         specifier: workspace:*
         version: link:packages/editor-ext
