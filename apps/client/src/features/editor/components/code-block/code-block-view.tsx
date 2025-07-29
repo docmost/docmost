@@ -1,6 +1,6 @@
 import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { ActionIcon, CopyButton, Group, Select, Tooltip, TextInput } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { IconCheck, IconCopy, IconDownload, IconTextWrap, IconTextWrapDisabled, IconEyeOff, IconEye } from "@tabler/icons-react";
 import classes from "./code-block.module.css";
 import React from "react";
@@ -20,6 +20,7 @@ export default function CodeBlockView(props: NodeViewProps) {
   );
   const [titleValue, setTitleValue] = useState<string>(title || "");
   const [isSelected, setIsSelected] = useState(false);
+  const codeRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setLanguageValue(language || null);
@@ -45,6 +46,35 @@ export default function CodeBlockView(props: NodeViewProps) {
       editor.off("selectionUpdate", updateSelection);
     };
   }, [editor, getPos(), node.nodeSize]);
+
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const selection = editor.state.selection;
+      const nodePos = getPos();
+      const nodeEnd = nodePos + node.nodeSize;
+      
+      if (selection.from >= nodePos && selection.to <= nodeEnd) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const text = event.clipboardData?.getData("text/plain");
+        if (text) {
+          const { state, view } = editor;
+          const { tr } = state;
+          const { from, to } = state.selection;
+          
+          tr.replaceWith(from, to, state.schema.text(text));
+          view.dispatch(tr);
+        }
+      }
+    };
+
+    document.addEventListener("paste", handlePaste, true);
+    
+    return () => {
+      document.removeEventListener("paste", handlePaste, true);
+    };
+  }, [editor, getPos, node.nodeSize]);
 
   function changeLanguage(language: string) {
     setLanguageValue(language);
@@ -216,7 +246,7 @@ export default function CodeBlockView(props: NodeViewProps) {
             </Tooltip>
           </div>
         )}
-        <NodeViewContent as="code" className={`language-${language}`} />
+        <NodeViewContent as="code" className={`language-${language}`} ref={codeRef} />
       </pre>
 
       {language === "mermaid" && (
