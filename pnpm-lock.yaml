@@ -293,6 +293,9 @@ importers:
       lowlight:
         specifier: ^3.3.0
         version: 3.3.0
+      mantine-form-zod-resolver:
+        specifier: ^1.3.0
+        version: 1.3.0(@mantine/form@8.1.3(react@18.3.1))(zod@3.25.56)
       mermaid:
         specifier: ^11.6.0
         version: 11.6.0
@@ -2852,10 +2855,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@noble/hashes@1.7.1':
-    resolution: {integrity: sha512-B8XBPsn4vT/KJAGqDzbwztd+6Yte3P4V7iafm24bxgDe/mlRuK6xmWPuCNrKt2vDafZ8MfJLlchDG/vYafQEjQ==}
-    engines: {node: ^14.21.3 || >=16}
-
   '@node-saml/node-saml@5.1.0':
     resolution: {integrity: sha512-t3cJnZ4aC7HhPZ6MGylGZULvUtBOZ6FzuUndaHGXjmIZHXnLfC/7L8a57O9Q9V7AxJGKAiRM5zu2wNm9EsvQpw==}
     engines: {node: '>= 18'}
@@ -4364,8 +4363,8 @@ packages:
   '@types/prop-types@15.7.11':
     resolution: {integrity: sha512-ga8y9v9uyeiLdpKddhxYQkxNDrfvuPrlFb0N1qnZZByvcElJaXthF1UhvCh9TLWJBEHeNtdnbysW7Y6Uq8CVng==}
 
-  '@types/qrcode@1.5.5':
-    resolution: {integrity: sha512-CdfBi/e3Qk+3Z/fXYShipBT13OJ2fDO2Q2w5CIP5anLTLIndQG9z6P1cnm+8zCWSpm5dnxMFd/uREtb0EXuQzg==}
+  '@types/qs@6.14.0':
+    resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
 
   '@types/qs@6.9.14':
     resolution: {integrity: sha512-5khscbd3SwWMhFqylJBLQ0zIu7c1K6Vz0uBIt915BI3zV0q1nfjRQD3RqSBcPaO6PHEF4ov/t9y89fSiyThlPA==}
@@ -7223,6 +7222,13 @@ packages:
 
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
+
+  mantine-form-zod-resolver@1.3.0:
+    resolution: {integrity: sha512-XlXXkJCYuUuOllW0zedYW+m/lbdFQ/bso1Vz+pJOYkxgjhoGvzN2EXWCS2+0iTOT9Q7WnOwWvHmvpTJN3PxSXw==}
+    engines: {node: '>=16.6.0'}
+    peerDependencies:
+      '@mantine/form': '>=7.0.0'
+      zod: '>=3.25.0'
 
   markdown-it@14.1.0:
     resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
@@ -12617,9 +12623,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@14.2.10':
     optional: true
 
-  '@noble/hashes@1.7.1': {}
-
-  '@node-saml/node-saml@5.0.1':
+  '@node-saml/node-saml@5.1.0':
     dependencies:
       '@types/debug': 4.1.12
       '@types/qs': 6.14.0
@@ -14262,9 +14266,7 @@ snapshots:
 
   '@types/prop-types@15.7.11': {}
 
-  '@types/qrcode@1.5.5':
-    dependencies:
-      '@types/node': 22.13.4
+  '@types/qs@6.14.0': {}
 
   '@types/qs@6.9.14': {}
 
@@ -17729,6 +17731,11 @@ snapshots:
   makeerror@1.0.12:
     dependencies:
       tmpl: 1.0.5
+
+  mantine-form-zod-resolver@1.3.0(@mantine/form@8.1.3(react@18.3.1))(zod@3.25.56):
+    dependencies:
+      '@mantine/form': 8.1.3(react@18.3.1)
+      zod: 3.25.56
 
   markdown-it@14.1.0:
     dependencies:

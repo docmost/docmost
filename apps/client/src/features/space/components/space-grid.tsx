@@ -54,7 +54,16 @@ export default function SpaceGrid() {
       </Text>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }}>{cards}</SimpleGrid>
-      
+
+      {data?.items.length > 0 && (
+        <Paginate
+          currentPage={page}
+          hasPrevPage={data?.meta.hasPrevPage}
+          hasNextPage={data?.meta.hasNextPage}
+          onPageChange={setPage}
+        />
+      )}
+
       {data?.items && data.items.length > 12 && (
         <Group justify="flex-end" mt="lg">
           <Button
