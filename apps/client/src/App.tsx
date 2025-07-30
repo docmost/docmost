@@ -28,6 +28,7 @@ import ShareRedirect from '@/pages/share/share-redirect.tsx';
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 import SpaceGraph from "./pages/space/space-graph";
 import OidcSettingsPage from "@/pages/settings/oidc.tsx";
+import SpaceTrash from "@/pages/space/trash.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -59,6 +60,7 @@ export default function App() {
           <Route path={"/home"} element={<Home />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route path={"/s/:spaceSlug/graph"} element={<SpaceGraph />} />
+          <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={

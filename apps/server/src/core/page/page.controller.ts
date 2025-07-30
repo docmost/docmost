@@ -13,7 +13,12 @@ import { PageService } from './services/page.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
-import { PageHistoryIdDto, PageIdDto, PageInfoDto } from './dto/page.dto';
+import {
+  PageHistoryIdDto,
+  PageIdDto,
+  PageInfoDto,
+  DeletePageDto,
+} from './dto/page.dto';
 import { PageHistoryService } from './services/page-history.service';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
@@ -29,6 +34,7 @@ import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
+import { DeletedPageDto } from './dto/deleted-page.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -100,7 +106,35 @@ export class PageController {
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
+  async delete(@Body() deletePageDto: DeletePageDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(deletePageDto.pageId);
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+
+    if (deletePageDto.permanentlyDelete) {
+      // Permanent deletion requires space admin permissions
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+        throw new ForbiddenException(
+          'Only space admins can permanently delete pages',
+        );
+      }
+      await this.pageService.forceDelete(deletePageDto.pageId);
+    } else {
+      // Soft delete requires page manage permissions
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
+      }
+      await this.pageService.remove(deletePageDto.pageId, user.id);
+    }
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('restore')
+  async restore(@Body() pageIdDto: PageIdDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(pageIdDto.pageId);
 
     if (!page) {
@@ -111,13 +145,14 @@ export class PageController {
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
-    await this.pageService.forceDelete(pageIdDto.pageId);
-  }
 
-  @HttpCode(HttpStatus.OK)
-  @Post('restore')
-  async restore(@Body() pageIdDto: PageIdDto) {
-    //  await this.pageService.restore(deletePageDto.id);
+    await this.pageRepo.restorePage(pageIdDto.pageId);
+
+    // Return the restored page data with hasChildren info
+    const restoredPage = await this.pageRepo.findById(pageIdDto.pageId, {
+      includeHasChildren: true,
+    });
+    return restoredPage;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -146,6 +181,31 @@ export class PageController {
     return this.pageService.getRecentPages(user.id, pagination);
   }
 
+  @HttpCode(HttpStatus.OK)
+  @Post('trash')
+  async getDeletedPages(
+    @Body() deletedPageDto: DeletedPageDto,
+    @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
+  ) {
+    if (deletedPageDto.spaceId) {
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        deletedPageDto.spaceId,
+      );
+
+      if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
+      }
+
+      return this.pageService.getDeletedSpacePages(
+        deletedPageDto.spaceId,
+        pagination,
+      );
+    }
+  }
+
+  // TODO: scope to workspaces
   @HttpCode(HttpStatus.OK)
   @Post('/history')
   async getPageHistory(

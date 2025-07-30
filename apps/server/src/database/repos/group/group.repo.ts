@@ -114,10 +114,10 @@ export class GroupRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('name', 'ilike', `%${pagination.query}%`).or(
-          'description',
+        eb(sql`f_unaccent(name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`).or(
+          sql`f_unaccent(description)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }

@@ -61,47 +61,26 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
         type: "group",
       }));
 
-      // Function to merge items into groups without duplicates
-      const mergeItemsIntoGroups = (existingGroups, newItems, groupName) => {
-        const existingValues = new Set(
-          existingGroups.flatMap((group) =>
-            group.items.map((item) => item.value),
-          ),
-        );
-        const newItemsFiltered = newItems.filter(
-          (item) => !existingValues.has(item.value),
-        );
-
-        const updatedGroups = existingGroups.map((group) => {
-          if (group.group === groupName) {
-            return { ...group, items: [...group.items, ...newItemsFiltered] };
-          }
-          return group;
+      // Create fresh data structure based on current search results
+      const newData = [];
+      
+      if (userItems && userItems.length > 0) {
+        newData.push({
+          group: t("Select a user"),
+          items: userItems,
         });
+      }
+      
+      if (groupItems && groupItems.length > 0) {
+        newData.push({
+          group: t("Select a group"),
+          items: groupItems,
+        });
+      }
 
-        // Use spread syntax to avoid mutation
-        return updatedGroups.some((group) => group.group === groupName)
-          ? updatedGroups
-          : [...updatedGroups, { group: groupName, items: newItemsFiltered }];
-      };
-
-      // Merge user items into groups
-      const updatedUserGroups = mergeItemsIntoGroups(
-        data,
-        userItems,
-        t("Select a user"),
-      );
-
-      // Merge group items into groups
-      const finalData = mergeItemsIntoGroups(
-        updatedUserGroups,
-        groupItems,
-        t("Select a group"),
-      );
-
-      setData(finalData);
+      setData(newData);
     }
-  }, [suggestion, data]);
+  }, [suggestion, t]);
 
   return (
     <MultiSelect
@@ -114,6 +93,7 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
       searchable
       searchValue={searchValue}
       onSearchChange={setSearchValue}
+      filter={({ options }) => options}
       clearable
       variant="filled"
       onChange={onChange}

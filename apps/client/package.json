@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.21.0",
+  "version": "0.22.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -39,6 +39,7 @@
     "jwt-decode": "^4.0.0",
     "katex": "0.16.22",
     "lowlight": "^3.3.0",
+    "mantine-form-zod-resolver": "^1.3.0",
     "mermaid": "^11.6.0",
     "mitt": "^3.0.1",
     "posthog-js": "^1.255.1",

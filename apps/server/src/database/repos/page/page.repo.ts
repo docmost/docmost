@@ -22,6 +22,24 @@ export class PageRepo {
     private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
+  }
+
   private baseFields: Array<keyof Page> = [
     'id',
     'slugId',
@@ -50,6 +68,7 @@ export class PageRepo {
       includeCreator?: boolean;
       includeLastUpdatedBy?: boolean;
       includeContributors?: boolean;
+      includeHasChildren?: boolean;
       withLock?: boolean;
       trx?: KyselyTransaction;
     },
@@ -60,7 +79,10 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
-      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'));
+      .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeHasChildren, (qb) =>
+        qb.select((eb) => this.withHasChildren(eb)),
+      );
 
     if (opts?.includeCreator) {
       query = query.select((eb) => this.withCreator(eb));
@@ -139,12 +161,107 @@ export class PageRepo {
     await query.execute();
   }
 
+  async removePage(pageId: string, deletedById: string): Promise<void> {
+    const currentDate = new Date();
+
+    const descendants = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = descendants.map((d) => d.id);
+
+    await this.db
+      .updateTable('pages')
+      .set({
+        deletedById: deletedById,
+        deletedAt: currentDate,
+      })
+      .where('id', 'in', pageIds)
+      .execute();
+  }
+
+  async restorePage(pageId: string): Promise<void> {
+    // First, check if the page being restored has a deleted parent
+    const pageToRestore = await this.db
+      .selectFrom('pages')
+      .select(['id', 'parentPageId'])
+      .where('id', '=', pageId)
+      .executeTakeFirst();
+
+    if (!pageToRestore) {
+      return;
+    }
+
+    // Check if the parent is also deleted
+    let shouldDetachFromParent = false;
+    if (pageToRestore.parentPageId) {
+      const parent = await this.db
+        .selectFrom('pages')
+        .select(['id', 'deletedAt'])
+        .where('id', '=', pageToRestore.parentPageId)
+        .executeTakeFirst();
+
+      // If parent is deleted, we should detach this page from it
+      shouldDetachFromParent = parent?.deletedAt !== null;
+    }
+
+    // Find all descendants to restore
+    const pages = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = pages.map((p) => p.id);
+
+    // Restore all pages, but only detach the root page if its parent is deleted
+    await this.db
+      .updateTable('pages')
+      .set({ deletedById: null, deletedAt: null })
+      .where('id', 'in', pageIds)
+      .execute();
+
+    // If we need to detach the restored page from its deleted parent
+    if (shouldDetachFromParent) {
+      await this.db
+        .updateTable('pages')
+        .set({ parentPageId: null })
+        .where('id', '=', pageId)
+        .execute();
+    }
+  }
+
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
@@ -163,6 +280,7 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', userSpaceIds)
+      .where('deletedAt', 'is', null)
       .orderBy('updatedAt', 'desc');
 
     const hasEmptyIds = userSpaceIds.length === 0;
@@ -170,6 +288,41 @@ export class PageRepo {
       page: pagination.page,
       perPage: pagination.limit,
       hasEmptyIds,
+    });
+
+    return result;
+  }
+
+  async getDeletedPagesInSpace(spaceId: string, pagination: PaginationOptions) {
+    const query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select('content')
+      .select((eb) => this.withSpace(eb))
+      .select((eb) => this.withDeletedBy(eb))
+      .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is not', null)
+      // Only include pages that are either root pages (no parent) or whose parent is not deleted
+      // This prevents showing orphaned pages when their parent has been soft-deleted
+      .where((eb) =>
+        eb.or([
+          eb('parentPageId', 'is', null),
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom('pages as parent')
+                .select('parent.id')
+                .where('parent.id', '=', eb.ref('pages.parentPageId'))
+                .where('parent.deletedAt', 'is not', null),
+            ),
+          ),
+        ]),
+      )
+      .orderBy('deletedAt', 'desc');
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
     });
 
     return result;
@@ -200,6 +353,15 @@ export class PageRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'pages.lastUpdatedById'),
     ).as('lastUpdatedBy');
+  }
+
+  withDeletedBy(eb: ExpressionBuilder<DB, 'pages'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'pages.deletedById'),
+    ).as('deletedBy');
   }
 
   withContributors(eb: ExpressionBuilder<DB, 'pages'>) {

@@ -1,7 +1,7 @@
 {
   "name": "forkmost",
   "homepage": "https://github.com/Vito0912/forkmost",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -18,6 +18,7 @@
     "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
   },
   "dependencies": {
+    "@braintree/sanitize-url": "^7.1.0",
     "@docmost/editor-ext": "workspace:*",
     "@hocuspocus/extension-redis": "^2.15.2",
     "@hocuspocus/provider": "^2.15.2",
@@ -67,7 +68,7 @@
     "fractional-indexing-jittered": "^1.0.0",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
-    "linkifyjs": "^4.2.0",
+    "linkifyjs": "^4.3.2",
     "marked": "13.0.3",
     "ms": "3.0.0-canary.1",
     "uuid": "^11.1.0",

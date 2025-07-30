@@ -1,4 +1,4 @@
-import { Text, Avatar, SimpleGrid, Card, rem } from "@mantine/core";
+import { Text, Avatar, SimpleGrid, Card, rem, Button, Group } from "@mantine/core";
 import React, { useEffect, useState } from 'react';
 import {
   prefetchSpace,
@@ -10,6 +10,7 @@ import classes from "./space-grid.module.css";
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate";
+import { IconArrowRight } from "@tabler/icons-react";
 
 export default function SpaceGrid() {
   const { t } = useTranslation();
@@ -53,7 +54,7 @@ export default function SpaceGrid() {
       </Text>
 
       <SimpleGrid cols={{ base: 1, xs: 2, sm: 3 }}>{cards}</SimpleGrid>
-      
+
       {data?.items.length > 0 && (
         <Paginate
           currentPage={page}
@@ -61,6 +62,20 @@ export default function SpaceGrid() {
           hasNextPage={data?.meta.hasNextPage}
           onPageChange={setPage}
         />
+      )}
+
+      {data?.items && data.items.length > 12 && (
+        <Group justify="flex-end" mt="lg">
+          <Button
+            component={Link}
+            to="/spaces"
+            variant="subtle"
+            rightSection={<IconArrowRight size={16} />}
+            size="sm"
+          >
+            {t("View all spaces")}
+          </Button>
+        </Group>
       )}
     </>
   );

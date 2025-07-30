@@ -48,12 +48,18 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+          'rank',
+        ),
+        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
         ),
       ])
-      .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
+      .where(
+        'tsv',
+        '@@',
+        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
@@ -157,7 +163,13 @@ export class SearchService {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
+        .where((eb) =>
+          eb(
+            sql`LOWER(f_unaccent(groups.name))`,
+            'like',
+            sql`LOWER(f_unaccent(${`%${query}%`}))`,
+          ),
+        )
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -184,7 +196,11 @@ export class SearchService {
                 sql`1::int`.as('depth'),
               ])
               .where((eb) =>
-                eb('title', 'ilike', `%${query}%`),
+                eb(
+                  sql`LOWER(f_unaccent(pages.title))`,
+                  'like',
+                  sql`LOWER(f_unaccent(${`%${query}%`}))`,
+                ),
               )
               .where('workspaceId', '=', workspaceId)
               .$if(
@@ -263,22 +279,5 @@ export class SearchService {
     }
 
     return { users, groups, pages };
-  }
-
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .limit(1)
-      .as('hasChildren');
   }
 }
