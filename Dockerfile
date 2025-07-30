@@ -7,6 +7,8 @@ WORKDIR /app
 
 COPY . .
 
+ENV NX_SOCKET_DIR=/tmp/nx-tmp
+
 RUN npm install -g pnpm@10.4.0
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
