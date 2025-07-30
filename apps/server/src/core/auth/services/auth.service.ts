@@ -47,7 +47,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    const errorMessage = 'Email or password does not match';
+    const errorMessage = 'email or password does not match';
     if (!user || user?.deletedAt) {
       throw new UnauthorizedException(errorMessage);
     }
@@ -156,13 +156,10 @@ export class AuthService {
     });
   }
 
-  async passwordReset(
-    passwordResetDto: PasswordResetDto,
-    workspace: Workspace,
-  ) {
+  async passwordReset(passwordResetDto: PasswordResetDto, workspaceId: string) {
     const userToken = await this.userTokenRepo.findById(
       passwordResetDto.token,
-      workspace.id,
+      workspaceId,
     );
 
     if (
@@ -173,9 +170,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired token');
     }
 
-    const user = await this.userRepo.findById(userToken.userId, workspace.id, {
-      includeUserMfa: true,
-    });
+    const user = await this.userRepo.findById(userToken.userId, workspaceId);
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
@@ -188,7 +183,7 @@ export class AuthService {
           password: newPasswordHash,
         },
         user.id,
-        workspace.id,
+        workspaceId,
         trx,
       );
 
@@ -206,18 +201,7 @@ export class AuthService {
       template: emailTemplate,
     });
 
-    // Check if user has MFA enabled or workspace enforces MFA
-    const userHasMfa = user?.['mfa']?.isEnabled || false;
-    const workspaceEnforcesMfa = workspace.enforceMfa || false;
-
-    if (userHasMfa || workspaceEnforcesMfa) {
-      return {
-        requiresLogin: true,
-      };
-    }
-
-    const authToken = await this.tokenService.generateAccessToken(user);
-    return { authToken };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async verifyUserToken(

@@ -14,14 +14,14 @@ export default function ChangePassword() {
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div>
         <Text size="md">{t("Password")}</Text>
         <Text size="sm" c="dimmed">
           {t("You can change your password here.")}
         </Text>
       </div>
 
-      <Button onClick={open} variant="default" style={{ whiteSpace: "nowrap" }}>
+      <Button onClick={open} variant="default">
         {t("Change password")}
       </Button>
 

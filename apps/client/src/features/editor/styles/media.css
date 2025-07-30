@@ -8,9 +8,24 @@
     }
   }
 
-  .node-image, .node-video, .node-excalidraw, .node-drawio {
+  .node-image, .node-video, .node-audio, .node-excalidraw, .node-drawio {
     &.ProseMirror-selectednode {
       outline: none;
+    }
+  }
+
+  .node-audio {
+    margin: var(--mantine-spacing-sm) 0;
+
+    audio {
+      width: 100%;
+      max-width: 100%;
+      outline: none;
+      
+      &:focus {
+        outline: 2px solid var(--mantine-color-blue-5);
+        outline-offset: 2px;
+      }
     }
   }
 

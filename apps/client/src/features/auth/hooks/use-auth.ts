@@ -27,7 +27,6 @@ import APP_ROUTE from "@/lib/app-route.ts";
 import { RESET } from "jotai/utils";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
-import { exchangeTokenRedirectUrl } from "@/ee/utils.ts";
 
 export default function useAuth() {
   const { t } = useTranslation();
@@ -39,17 +38,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const response = await login(data);
+      await login(data);
       setIsLoading(false);
-
-      // Check if MFA is required
-      if (response?.userHasMfa) {
-        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE);
-      } else if (response?.requiresMfaSetup) {
-        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED);
-      } else {
-        navigate(APP_ROUTE.HOME);
-      }
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       console.log(err);
@@ -64,19 +55,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const response = await acceptInvitation(data);
+      await acceptInvitation(data);
       setIsLoading(false);
-
-      if (response?.requiresLogin) {
-        notifications.show({
-          message: t(
-            "Account created successfully. Please log in to set up two-factor authentication.",
-          ),
-        });
-        navigate(APP_ROUTE.AUTH.LOGIN);
-      } else {
-        navigate(APP_ROUTE.HOME);
-      }
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -90,21 +71,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      if (isCloud()) {
-        const res = await createWorkspace(data);
-        const hostname = res?.workspace?.hostname;
-        const exchangeToken = res?.exchangeToken;
-        if (hostname && exchangeToken) {
-          window.location.href = exchangeTokenRedirectUrl(
-            hostname,
-            exchangeToken,
-          );
-        }
-      } else {
-        const res = await setupWorkspace(data);
-        setIsLoading(false);
-        navigate(APP_ROUTE.HOME);
-      }
+      const res = await setupWorkspace(data);
+      setIsLoading(false);
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({
@@ -118,22 +87,12 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      const response = await passwordReset(data);
+      await passwordReset(data);
       setIsLoading(false);
-
-      if (response?.requiresLogin) {
-        notifications.show({
-          message: t(
-            "Password reset was successful. Please log in with your new password.",
-          ),
-        });
-        navigate(APP_ROUTE.AUTH.LOGIN);
-      } else {
-        navigate(APP_ROUTE.HOME);
-        notifications.show({
-          message: t("Password reset was successful"),
-        });
-      }
+      navigate(APP_ROUTE.HOME);
+      notifications.show({
+        message: t("Password reset was successful"),
+      });
     } catch (err) {
       setIsLoading(false);
       notifications.show({

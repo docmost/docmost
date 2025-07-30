@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { DB, Users } from '@docmost/db/types/db';
+import { Users } from '@docmost/db/types/db';
 import { hashPassword } from '../../../common/helpers';
 import { dbOrTx } from '@docmost/db/utils';
 import {
@@ -10,9 +10,9 @@ import {
   User,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { ExpressionBuilder, sql } from 'kysely';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { executeWithPagination, PaginationResult } from '@docmost/db/pagination/pagination';
+import { sql } from 'kysely';
+import { MemberInfo } from '@docmost/db/repos/space/types';
 
 @Injectable()
 export class UserRepo {
@@ -41,7 +41,6 @@ export class UserRepo {
     workspaceId: string,
     opts?: {
       includePassword?: boolean;
-      includeUserMfa?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<User> {
@@ -50,7 +49,6 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .$if(opts?.includePassword, (qb) => qb.select('password'))
-      .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -61,7 +59,6 @@ export class UserRepo {
     workspaceId: string,
     opts?: {
       includePassword?: boolean;
-      includeUserMfa?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<User> {
@@ -70,7 +67,6 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .$if(opts?.includePassword, (qb) => qb.select('password'))
-      .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -169,6 +165,72 @@ export class UserRepo {
     return result;
   }
 
+  async getUsersInSpacesOfUser(
+    workspaceId: string,
+    userId: string,
+    pagination: PaginationOptions
+  ): Promise<PaginationResult<User>> {
+    const accessibleSpaceIds = this.db
+      .selectFrom(() => {
+        const direct = this.db
+          .selectFrom('spaceMembers')
+          .select('spaceMembers.spaceId')
+          .where('spaceMembers.role', '!=', 'reader')
+          .where('spaceMembers.userId', '=', userId);
+
+        const viaGroup = this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('spaceMembers.spaceId')
+          .where('spaceMembers.role', '!=', 'reader')
+          .where('groupUsers.userId', '=', userId);
+
+        return direct.union(viaGroup).as('my_spaces');
+      })
+      .innerJoin('spaces', 'spaces.id', 'my_spaces.spaceId')
+      .select('my_spaces.spaceId')
+      .where('spaces.workspaceId', '=', workspaceId)
+
+    const directPairs = this.db
+      .selectFrom('spaceMembers')
+      .select(['spaceMembers.userId as user_id', 'spaceMembers.spaceId'])
+      .where('spaceMembers.userId', 'is not', null);
+
+    const groupPairs = this.db
+      .selectFrom('spaceMembers')
+      .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+      .select(['groupUsers.userId as user_id', 'spaceMembers.spaceId'])
+      .where('spaceMembers.groupId', 'is not', null);
+
+    const memberIds = this.db
+      .selectFrom(() => directPairs.union(groupPairs).as('mp'))
+      .where('spaceId', 'in', accessibleSpaceIds)
+      .select('user_id')
+      .distinct()
+      .as('uids');
+
+    let query = this.db
+      .selectFrom(memberIds)
+      .innerJoin('users', 'users.id', 'uids.user_id')
+      .selectAll('users')
+      .orderBy('users.id', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb('users.name', 'ilike', `%${pagination.query}%`).or(
+          'users.email',
+          'ilike',
+          `%${pagination.query}%`
+        )
+      );
+    }
+
+    return executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+  }
+
   async updatePreference(
     userId: string,
     prefKey: string,
@@ -185,19 +247,5 @@ export class UserRepo {
       .where('id', '=', userId)
       .returning(this.baseFields)
       .executeTakeFirst();
-  }
-
-  withUserMfa(eb: ExpressionBuilder<DB, 'users'>) {
-    return jsonObjectFrom(
-      eb
-        .selectFrom('userMfa')
-        .select([
-          'userMfa.id',
-          'userMfa.method',
-          'userMfa.isEnabled',
-          'userMfa.createdAt',
-        ])
-        .whereRef('userMfa.userId', '=', 'users.id'),
-    ).as('mfa');
   }
 }

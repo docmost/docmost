@@ -54,6 +54,14 @@ export async function changeMemberRole(data: {
   await api.post("/workspace/members/change-role", data);
 }
 
+export async function changeWorkspaceMemberPassword(data: {
+  userId: string;
+  newPassword: string;
+  actorPassword: string;
+}): Promise<void> {
+  await api.post("/workspace/members/change-password", data);
+}
+
 export async function getPendingInvitations(
   params?: QueryParams,
 ): Promise<IPagination<IInvitation>> {
@@ -66,9 +74,8 @@ export async function createInvitation(data: ICreateInvite) {
   return req.data;
 }
 
-export async function acceptInvitation(data: IAcceptInvite): Promise<{ requiresLogin?: boolean; }> {
-  const req = await api.post("/workspace/invites/accept", data);
-  return req.data;
+export async function acceptInvitation(data: IAcceptInvite): Promise<void> {
+  await api.post<void>("/workspace/invites/accept", data);
 }
 
 export async function getInviteLink(data: {

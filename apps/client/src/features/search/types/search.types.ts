@@ -3,6 +3,12 @@ import { IGroup } from "@/features/group/types/group.types.ts";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 
+export interface HeadingInfo {
+  text: string;
+  level: number;
+  slug?: string;
+}
+
 export interface IPageSearch {
   id: string;
   title: string;
@@ -17,6 +23,16 @@ export interface IPageSearch {
   space: Partial<ISpace>;
 }
 
+export interface IPageSuggestion {
+  id: string;
+  slugId: string;
+  title: string;
+  icon: string;
+  spaceId: string;
+  headings?: HeadingInfo[];
+  breadcrumbs: (string | null)[];
+}
+
 export interface SearchSuggestionParams {
   query: string;
   includeUsers?: boolean;
@@ -29,7 +45,7 @@ export interface SearchSuggestionParams {
 export interface ISuggestionResult {
   users?: Partial<IUser[]>;
   groups?: Partial<IGroup[]>;
-  pages?: Partial<IPage[]>;
+  pages?: IPageSuggestion[];
 }
 
 export interface IPageSearchParams {

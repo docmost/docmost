@@ -56,7 +56,7 @@ export class ExportController {
     }
 
     const fileExt = getExportExtension(dto.format);
-    const fileName = sanitize(page.title || 'untitled') + fileExt;
+    const fileName = sanitize(page.title || 'untitled', { replacement: '-'}) + fileExt;
 
     if (dto.includeChildren) {
       const zipFileBuffer = await this.exportService.exportPageWithChildren(
@@ -114,7 +114,7 @@ export class ExportController {
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(sanitize(exportFile.fileName)) +
+        encodeURIComponent(sanitize(exportFile.fileName, { replacement: '-'})) +
         '"',
     });
 

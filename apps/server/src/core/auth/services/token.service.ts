@@ -9,7 +9,6 @@ import {
   JwtAttachmentPayload,
   JwtCollabPayload,
   JwtExchangePayload,
-  JwtMfaTokenPayload,
   JwtPayload,
   JwtType,
 } from '../dto/jwt-payload';
@@ -75,22 +74,6 @@ export class TokenService {
       type: JwtType.ATTACHMENT,
     };
     return this.jwtService.sign(payload, { expiresIn: '1h' });
-  }
-
-  async generateMfaToken(
-    user: User,
-    workspaceId: string,
-  ): Promise<string> {
-    if (user.deactivatedAt || user.deletedAt) {
-      throw new ForbiddenException();
-    }
-
-    const payload: JwtMfaTokenPayload = {
-      sub: user.id,
-      workspaceId,
-      type: JwtType.MFA_TOKEN,
-    };
-    return this.jwtService.sign(payload, { expiresIn: '5m' });
   }
 
   async verifyJwt(token: string, tokenType: string) {

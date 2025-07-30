@@ -13,7 +13,6 @@ import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
-import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 
 export default function GlobalAppShell({
@@ -21,7 +20,6 @@ export default function GlobalAppShell({
 }: {
   children: React.ReactNode;
 }) {
-  useTrialEndAction();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
   const [desktopOpened] = useAtom(desktopSidebarAtom);
@@ -73,15 +71,13 @@ export default function GlobalAppShell({
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
   const isHomeRoute = location.pathname.startsWith("/home");
-  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
-  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   return (
     <AppShell
       header={{ height: 45 }}
       navbar={
-        !hideSidebar && {
+        !isHomeRoute && {
           width: isSpaceRoute ? sidebarWidth : 300,
           breakpoint: "sm",
           collapsed: {
@@ -102,7 +98,7 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      {!hideSidebar && (
+      {!isHomeRoute && (
         <AppShell.Navbar
           className={classes.navbar}
           withBorder={false}

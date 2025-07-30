@@ -18,7 +18,6 @@ import {
   AuthAccounts,
   Shares,
   FileTasks,
-  UserMfa as _UserMFA,
 } from './db';
 
 // Workspace
@@ -42,6 +41,19 @@ export type UpdatableUser = Updateable<Omit<Users, 'id'>>;
 export type Space = Selectable<Spaces>;
 export type InsertableSpace = Insertable<Spaces>;
 export type UpdatableSpace = Updateable<Omit<Spaces, 'id'>>;
+
+// Graph
+export type Graph = {
+  id: string;
+  slugId: string;
+  title: string | null;
+  parentPageId: string | null;
+  backlinks: GraphBacklink[];
+}
+export type GraphBacklink = {
+  sourcePageId: string;
+  targetPageId: string;
+}
 
 // SpaceMember
 export type SpaceMember = Selectable<SpaceMembers>;
@@ -114,8 +126,3 @@ export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
 export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
-
-// UserMFA
-export type UserMFA = Selectable<_UserMFA>;
-export type InsertableUserMFA = Insertable<_UserMFA>;
-export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;

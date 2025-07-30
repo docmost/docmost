@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 import { sanitize } from 'sanitize-filename-ts';
-import { FastifyRequest } from 'fastify';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 

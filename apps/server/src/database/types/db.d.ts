@@ -218,6 +218,7 @@ export interface Shares {
   includeSubPages: Generated<boolean | null>;
   key: string;
   pageId: string | null;
+  passwordHash: string | null;
   searchIndexing: Generated<boolean | null>;
   spaceId: string;
   updatedAt: Generated<Timestamp>;
@@ -248,18 +249,6 @@ export interface Spaces {
   slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
-  workspaceId: string;
-}
-
-export interface UserMfa {
-  backupCodes: string[] | null;
-  createdAt: Generated<Timestamp>;
-  id: Generated<string>;
-  isEnabled: Generated<boolean | null>;
-  method: Generated<string>;
-  secret: string | null;
-  updatedAt: Generated<Timestamp>;
-  userId: string;
   workspaceId: string;
 }
 
@@ -316,7 +305,6 @@ export interface Workspaces {
   deletedAt: Timestamp | null;
   description: string | null;
   emailDomains: Generated<string[] | null>;
-  enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
@@ -346,7 +334,6 @@ export interface DB {
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
-  userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;
