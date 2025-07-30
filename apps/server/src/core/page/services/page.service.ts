@@ -261,35 +261,7 @@ export class PageService {
 
     if (isDuplicateInSameSpace) {
       // For duplicate in same space, position right after the original page
-      let siblingQuery = this.db
-        .selectFrom('pages')
-        .select(['position'])
-        .where('spaceId', '=', rootPage.spaceId)
-        .where('position', '>', rootPage.position);
-
-      if (rootPage.parentPageId) {
-        siblingQuery = siblingQuery.where(
-          'parentPageId',
-          '=',
-          rootPage.parentPageId,
-        );
-      } else {
-        siblingQuery = siblingQuery.where('parentPageId', 'is', null);
-      }
-
-      const nextSibling = await siblingQuery
-        .orderBy('position', 'asc')
-        .limit(1)
-        .executeTakeFirst();
-
-      if (nextSibling) {
-        nextPosition = generateJitteredKeyBetween(
-          rootPage.position,
-          nextSibling.position,
-        );
-      } else {
-        nextPosition = generateJitteredKeyBetween(rootPage.position, null);
-      }
+      nextPosition = generateJitteredKeyBetween(rootPage.position, null);
     } else {
       // For copy to different space, position at the end
       nextPosition = await this.nextPagePosition(spaceId);
@@ -434,25 +406,35 @@ export class PageService {
             attachment.id,
             newAttachmentId,
           );
-          await this.storageService.copy(attachment.filePath, newPathFile);
-          await this.db
-            .insertInto('attachments')
-            .values({
-              id: newAttachmentId,
-              type: attachment.type,
-              filePath: newPathFile,
-              fileName: attachment.fileName,
-              fileSize: attachment.fileSize,
-              mimeType: attachment.mimeType,
-              fileExt: attachment.fileExt,
-              creatorId: attachment.creatorId,
-              workspaceId: attachment.workspaceId,
-              pageId: newPageId,
-              spaceId: spaceId,
-            })
-            .execute();
+
+          try {
+            await this.storageService.copy(attachment.filePath, newPathFile);
+
+            await this.db
+              .insertInto('attachments')
+              .values({
+                id: newAttachmentId,
+                type: attachment.type,
+                filePath: newPathFile,
+                fileName: attachment.fileName,
+                fileSize: attachment.fileSize,
+                mimeType: attachment.mimeType,
+                fileExt: attachment.fileExt,
+                creatorId: attachment.creatorId,
+                workspaceId: attachment.workspaceId,
+                pageId: newPageId,
+                spaceId: spaceId,
+              })
+              .execute();
+          } catch (err) {
+            this.logger.error(
+              `Duplicate page: failed to copy attachment ${attachment.id}`,
+              err,
+            );
+            // Continue with other attachments even if one fails
+          }
         } catch (err) {
-          this.logger.log(err);
+          this.logger.error(err);
         }
       }
     }
