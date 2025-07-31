@@ -252,6 +252,18 @@ export interface Spaces {
   workspaceId: string;
 }
 
+export interface UserMfa {
+  backupCodes: string[] | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  isEnabled: Generated<boolean | null>;
+  method: Generated<string>;
+  secret: string | null;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
+  workspaceId: string;
+}
+
 export interface Users {
   avatarUrl: string | null;
   createdAt: Generated<Timestamp>;
@@ -305,6 +317,7 @@ export interface Workspaces {
   deletedAt: Timestamp | null;
   description: string | null;
   emailDomains: Generated<string[] | null>;
+  enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
@@ -334,6 +347,7 @@ export interface DB {
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;

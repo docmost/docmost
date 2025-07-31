@@ -25,6 +25,8 @@ export function AppHeader() {
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
 
   const isHomeRoute = location.pathname.startsWith("/home");
+  const isSpacesRoute = location.pathname === "/spaces";
+  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
@@ -36,7 +38,7 @@ export function AppHeader() {
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
         <Group wrap="nowrap">
-          {!isHomeRoute && (
+          {!hideSidebar && (
             <>
               <Tooltip label={t("Sidebar toggle")}>
                 <SidebarToggle

@@ -1,5 +1,6 @@
 const APP_ROUTE = {
   HOME: "/home",
+  SPACES: "/spaces",
   AUTH: {
     LOGIN: "/login",
     SIGNUP: "/signup",
@@ -9,6 +10,8 @@ const APP_ROUTE = {
     CREATE_WORKSPACE: "/create",
     SELECT_WORKSPACE: "/select",
     OIDC_CALLBACK: "/auth/oidc/callback",
+    MFA_CHALLENGE: "/login/mfa",
+    MFA_SETUP_REQUIRED: "/login/mfa/setup",
   },
   SETTINGS: {
     ACCOUNT: {

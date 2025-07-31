@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as z from "zod";
 
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
 import {
   Container,
   Title,
@@ -11,6 +11,7 @@ import {
   Box,
   Stack,
 } from "@mantine/core";
+import { zodResolver } from "mantine-form-zod-resolver";
 import { useParams, useSearchParams } from "react-router-dom";
 import { IRegister } from "@/features/auth/types/auth.types";
 import useAuth from "@/features/auth/hooks/use-auth";
