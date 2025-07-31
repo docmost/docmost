@@ -33,7 +33,6 @@ import SpacesPage from "@/pages/spaces/spaces.tsx";
 
 export default function App() {
   const { t } = useTranslation();
-  useRedirectToCloudSelect();
   useTrackOrigin();
 
   return (
