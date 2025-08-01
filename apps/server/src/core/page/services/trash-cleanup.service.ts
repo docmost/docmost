@@ -19,7 +19,7 @@ export class TrashCleanupService {
   @Interval('trash-cleanup', 24 * 60 * 60 * 1000) // every 24 hours
   async cleanupOldTrash() {
     try {
-      this.logger.log('Starting trash cleanup job');
+      this.logger.debug('Starting trash cleanup job');
 
       const retentionDate = new Date();
       retentionDate.setDate(retentionDate.getDate() - this.RETENTION_DAYS);
