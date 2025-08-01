@@ -65,6 +65,7 @@ export class OidcController {
     @AuthWorkspace() workspace: Workspace,
     @Body('code') code: string,
     @Body('state') state: string,
+    @Body('iss') iss: string,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
