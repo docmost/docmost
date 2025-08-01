@@ -91,7 +91,7 @@ export class OidcController {
         throw new BadRequestException('Invalid redirect URI');
       }
       
-      const { token } = await this.oidcService.handleCallback(workspace.id, code, state, redirectUri);
+      const { token } = await this.oidcService.handleCallback(workspace.id, code, state, iss, redirectUri);
       
       this.setAuthCookie(res, token);
       
