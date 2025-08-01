@@ -59,6 +59,7 @@ export class SearchService {
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
+      .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
       .limit(searchParams.limit | 20)
       .offset(searchParams.offset || 0);
@@ -191,6 +192,7 @@ export class SearchService {
             sql`LOWER(f_unaccent(${`%${query}%`}))`,
           ),
         )
+        .where('deletedAt', 'is', null)
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 
