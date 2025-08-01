@@ -41,10 +41,15 @@ function CommentListWithTabs() {
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
 
+
   const canComment: boolean = spaceAbility.can(
     SpaceCaslAction.Manage,
     SpaceCaslSubject.Page
   );
+
+  console.log(spaceAbility)
+
+  console.log('can comment', canComment);
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -179,6 +184,17 @@ function CommentListWithTabs() {
                     userSpaceRole={space?.membership?.role}
                   />
                 </div>
+
+                {canComment && (
+                  <>
+                    <Divider my={4} />
+                    <CommentEditorWithActions
+                      commentId={comment.id}
+                      onSave={handleAddReply}
+                      isLoading={isLoading}
+                    />
+                  </>
+                )}
               </Paper>
             ))}
         </div>
