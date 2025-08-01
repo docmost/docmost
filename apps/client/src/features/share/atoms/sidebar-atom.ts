@@ -7,3 +7,8 @@ export const tableOfContentAsideAtom = atomWithWebStorage<boolean>(
 );
 
 export const mobileTableOfContentAsideAtom = atom<boolean>(false);
+
+export const shareFullPageWidthAtom = atomWithWebStorage<boolean>(
+  "shareFullPageWidth",
+  false,
+);
