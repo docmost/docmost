@@ -22,6 +22,7 @@ export default function OidcCallbackPage() {
     const handleCallback = async () => {
       const code = searchParams.get("code");
       const state = searchParams.get("state");
+      const iss = searchParams.get("iss");
       const error = searchParams.get("error");
 
       if (error) {
@@ -64,6 +65,7 @@ export default function OidcCallbackPage() {
         const response = await api.post("/auth/oidc/callback", {
           code, 
           state,
+          iss,
         });
 
         if (response.data.success) {

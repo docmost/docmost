@@ -65,6 +65,7 @@ export class OidcController {
     @AuthWorkspace() workspace: Workspace,
     @Body('code') code: string,
     @Body('state') state: string,
+    @Body('iss') iss: string,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
@@ -90,7 +91,7 @@ export class OidcController {
         throw new BadRequestException('Invalid redirect URI');
       }
       
-      const { token } = await this.oidcService.handleCallback(workspace.id, code, state, redirectUri);
+      const { token } = await this.oidcService.handleCallback(workspace.id, code, state, iss, redirectUri);
       
       this.setAuthCookie(res, token);
       
