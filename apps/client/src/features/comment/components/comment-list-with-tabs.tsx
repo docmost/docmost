@@ -47,10 +47,6 @@ function CommentListWithTabs() {
     SpaceCaslSubject.Page
   );
 
-  console.log(spaceAbility)
-
-  console.log('can comment', canComment);
-
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
     if (!comments?.items) {
