@@ -41,6 +41,7 @@ function CommentListWithTabs() {
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
 
+
   const canComment: boolean = spaceAbility.can(
     SpaceCaslAction.Manage,
     SpaceCaslSubject.Page
@@ -179,6 +180,17 @@ function CommentListWithTabs() {
                     userSpaceRole={space?.membership?.role}
                   />
                 </div>
+
+                {canComment && (
+                  <>
+                    <Divider my={4} />
+                    <CommentEditorWithActions
+                      commentId={comment.id}
+                      onSave={handleAddReply}
+                      isLoading={isLoading}
+                    />
+                  </>
+                )}
               </Paper>
             ))}
         </div>
