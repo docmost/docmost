@@ -102,27 +102,6 @@ export class FileTaskService {
         });
       }
 
-      if (fileTask.source === FileImportSource.Confluence) {
-        let ConfluenceModule: any;
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          ConfluenceModule = require('./../../../ee/confluence-import/confluence-import.service');
-        } catch (err) {
-          this.logger.error(
-            'Confluence import requested but EE module not bundled in this build',
-          );
-          return;
-        }
-        const confluenceImportService = this.moduleRef.get(
-          ConfluenceModule.ConfluenceImportService,
-          { strict: false },
-        );
-
-        await confluenceImportService.processConfluenceImport({
-          extractDir: tmpExtractDir,
-          fileTask,
-        });
-      }
       try {
         await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success, null);
         await cleanupTmpFile();
@@ -181,18 +160,25 @@ export class FileTaskService {
       const segments = filePath.split('/');
       segments.pop();
       let parentPage = null;
-      while (segments.length) {
+      if(segments.length > 0) {
         const tryMd = segments.join('/') + '.md';
         const tryHtml = segments.join('/') + '.html';
         if (pagesMap.has(tryMd)) {
           parentPage = pagesMap.get(tryMd)!;
-          break;
-        }
-        if (pagesMap.has(tryHtml)) {
+        } else if (pagesMap.has(tryHtml)) {
           parentPage = pagesMap.get(tryHtml)!;
-          break;
+        } else {
+          pagesMap.set(tryMd, {
+            id: v7(),
+            slugId: generateSlugId(),
+            name: segments[segments.length - 1],
+            content: null,
+            parentPageId: null,
+            fileExtension: null,
+            filePath: null,
+          });
+          parentPage = pagesMap.get(tryMd)!;
         }
-        segments.pop();
       }
       if (parentPage) page.parentPageId = parentPage.id;
     });
@@ -256,6 +242,24 @@ export class FileTaskService {
 
     const pageResults = await Promise.all(
       Array.from(pagesMap.values()).map(async (page) => {
+        if( page.filePath === null ) {
+          const insertablePage: InsertablePage = {
+            id: page.id,
+            slugId: page.slugId,
+            title: page.name,
+            content: null,
+            textContent: null,
+            ydoc: null,
+            position: page.position!,
+            spaceId: fileTask.spaceId,
+            workspaceId: fileTask.workspaceId,
+            creatorId: fileTask.creatorId,
+            lastUpdatedById: fileTask.creatorId,
+            parentPageId: page.parentPageId,
+          };
+          return { insertablePage, backlinks: [] };
+        }
+        
         const htmlContent =
           await this.importAttachmentService.processAttachments({
             html: page.content,

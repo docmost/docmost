@@ -5,11 +5,25 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { SignupService } from './services/signup.service';
 import { TokenModule } from './token.module';
+import { OidcService } from './services/oidc.service';
+import { OidcConfigService } from './services/oidc-config.service';
+import { OidcController } from './controllers/oidc.controller';
+import { OidcProviderController } from './controllers/oidc-provider.controller';
+import { AuthProviderRepo } from '../../database/repos/auth-provider/auth-provider.repo';
+import { AuthAccountRepo } from '../../database/repos/auth-account/auth-account.repo';
 
 @Module({
   imports: [TokenModule, WorkspaceModule],
-  controllers: [AuthController],
-  providers: [AuthService, SignupService, JwtStrategy],
-  exports: [SignupService],
+  controllers: [AuthController, OidcController, OidcProviderController],
+  providers: [
+    AuthService,
+    SignupService,
+    JwtStrategy,
+    OidcService,
+    OidcConfigService,
+    AuthProviderRepo,
+    AuthAccountRepo,
+  ],
+  exports: [SignupService, OidcService],
 })
 export class AuthModule {}
