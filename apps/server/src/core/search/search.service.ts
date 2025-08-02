@@ -63,6 +63,7 @@ export class SearchService {
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
+      .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
       .limit(searchParams.limit | 20)
       .offset(searchParams.offset || 0);
@@ -203,6 +204,7 @@ export class SearchService {
                 ),
               )
               .where('workspaceId', '=', workspaceId)
+              .where('deletedAt', 'is', null)
               .$if(
                 suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId),
                 (qb) => qb.where('spaceId', '=', suggestion.spaceId),
@@ -227,7 +229,8 @@ export class SearchService {
                     sql`pa.depth + 1`.as('depth'),
                   ])
                   .where((eb) => eb('pa.depth', '<', maxDepth))
-                  .where('pages.workspaceId', '=', workspaceId),
+                  .where('pages.workspaceId', '=', workspaceId)
+                  .where('pages.deletedAt', 'is', null),
               ),
           )
           // Prewvents grouping by content
@@ -255,6 +258,7 @@ export class SearchService {
             'page_data.breadcrumbs',
           ])
           .where('pages.workspaceId', '=', workspaceId)
+          .where('pages.deletedAt', 'is', null)
           .$if(
             suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId),
             (qb) => qb.where('pages.spaceId', '=', suggestion.spaceId),
