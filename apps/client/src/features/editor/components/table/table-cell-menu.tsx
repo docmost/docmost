@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import React, { useCallback } from "react";
 
 import {
@@ -57,19 +57,20 @@ export const TableCellMenu = React.memo(
         editor={editor}
         pluginKey="table-cell-menu"
         updateDelay={0}
-        tippyOptions={{
-          appendTo: () => {
-            return appendTo?.current;
-          },
-          offset: [0, 15],
-          zIndex: 99,
+        options={{
+          //appendTo: () => {
+          //  return appendTo?.current;
+          // },
+          placement: "bottom",
+          offset: 15,
+          //zIndex: 99,
         }}
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
           <TableBackgroundColor editor={editor} />
           <TableTextAlignment editor={editor} />
-          
+
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}

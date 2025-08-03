@@ -1,9 +1,13 @@
 import { StarterKit } from "@tiptap/starter-kit";
-import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList } from "@tiptap/extension-task-list";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { Underline } from "@tiptap/extension-underline";
+import {
+  TaskList,
+  TaskItem,
+} from "@tiptap/extension-list";
+import {
+  Placeholder,
+  CharacterCount,
+} from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -12,7 +16,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
-import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
+import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
   Comment,
@@ -73,7 +77,6 @@ import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
-import { CharacterCount } from "@tiptap/extension-character-count";
 import { countWords } from "alfaaz";
 
 const lowlight = createLowlight(common);
@@ -90,7 +93,7 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
-    history: false,
+    undoRedo: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -101,6 +104,8 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+    link: false,
+    trailingNode: false,
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -122,7 +127,6 @@ export const mainExtensions = [
   TaskItem.configure({
     nested: true,
   }),
-  Underline,
   LinkExtension.configure({
     openOnClick: false,
   }),
@@ -221,17 +225,17 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
 ] as any;
@@ -242,7 +246,7 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   Collaboration.configure({
     document: provider.document,
   }),
-  CollaborationCursor.configure({
+  CollaborationCaret.configure({
     provider,
     user: {
       name: user.name,

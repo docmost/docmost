@@ -1,4 +1,5 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { offset } from "@floating-ui/dom";
 import React, { useCallback, useState } from "react";
 import { EditorMenuProps } from "@/features/editor/components/table/types/types.ts";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
@@ -50,16 +51,13 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
       editor={editor}
       pluginKey={`link-menu}`}
       updateDelay={0}
-      tippyOptions={{
-        appendTo: () => {
-          return appendTo?.current;
-        },
-        onHidden: () => {
+      options={{
+        onHide: () => {
           setShowEdit(false);
         },
         placement: "bottom",
-        offset: [0, 5],
-        zIndex: 101,
+        offset: 5,
+       // zIndex: 101,
       }}
       shouldShow={shouldShow}
     >

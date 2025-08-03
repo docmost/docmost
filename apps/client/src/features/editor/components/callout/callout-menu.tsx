@@ -1,8 +1,5 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -55,20 +52,17 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     },
     [editor],
   );
-
   return (
     <BaseBubbleMenu
       editor={editor}
       pluginKey={`callout-menu}`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 10],
-        placement: "bottom",
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
+      options={{
+       // getReferenceClientRect,
+        placement: "right-end",
+       // offset: 233,
+       // zIndex: 99,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >

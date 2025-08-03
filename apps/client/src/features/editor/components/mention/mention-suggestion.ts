@@ -73,6 +73,7 @@ const mentionRenderItems = () => {
       // destroy component if space is greater 3 without a match
       if (
         whitespaceCount > 3 &&
+        //@ts-ignore
         props.editor.storage.mentionItems.length === 0
       ) {
         popup?.[0]?.destroy();

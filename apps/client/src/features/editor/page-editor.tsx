@@ -75,7 +75,7 @@ export default function PageEditor({
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom
+    yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -100,6 +100,7 @@ export default function PageEditor({
 
   // Track when collaborative provider is ready and synced
   const [collabReady, setCollabReady] = useState(false);
+  /*
   useEffect(() => {
     if (
       remoteProvider?.status === WebSocketStatus.Connected &&
@@ -109,6 +110,7 @@ export default function PageEditor({
       setCollabReady(true);
     }
   }, [remoteProvider?.status, isLocalSynced, isRemoteSynced]);
+   */
 
   useEffect(() => {
     if (!providersRef.current) {
@@ -119,8 +121,8 @@ export default function PageEditor({
         url: collaborationURL,
         document: ydoc,
         token: collabQuery?.token,
-        connect: true,
-        preserveConnection: false,
+        //connect: true,
+        //preserveConnection: false,
         onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
           const payload = jwtDecode(collabQuery?.token);
           const now = Date.now().valueOf() / 1000;
@@ -137,11 +139,11 @@ export default function PageEditor({
             });
           }
         },
-        onStatus: (status) => {
-          if (status.status === "connected") {
-            setYjsConnectionStatus(status.status);
-          }
-        },
+        //onStatus: (status) => {
+        //  if (status.status === "connected") {
+        //  setYjsConnectionStatus(status.status);
+        //  }
+        //  },
       });
       remote.on("synced", () => setRemoteSynced(true));
       remote.on("disconnect", () => {
@@ -176,13 +178,14 @@ export default function PageEditor({
    */
 
   // Only connect/disconnect on tab/idle, not destroy
+  /*
   useEffect(() => {
     if (!providersReady || !providersRef.current) return;
     const remoteProvider = providersRef.current.remote;
     if (
       isIdle &&
       documentState === "hidden" &&
-      remoteProvider.status === WebSocketStatus.Connected
+      remoteProvider === WebSocketStatus.Connected
     ) {
       remoteProvider.disconnect();
       setIsCollabReady(false);
@@ -197,6 +200,7 @@ export default function PageEditor({
       setTimeout(() => setIsCollabReady(true), 500);
     }
   }, [isIdle, documentState, providersReady, resetIdle]);
+  */
 
   const extensions = useMemo(() => {
     if (!remoteProvider || !currentUser?.user) return mainExtensions;
@@ -217,7 +221,7 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
               event.preventDefault();
               return true;
             }
@@ -252,6 +256,7 @@ export default function PageEditor({
         if (editor) {
           // @ts-ignore
           setEditor(editor);
+          // @ts-ignore
           editor.storage.pageId = pageId;
         }
       },
@@ -262,7 +267,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider]
+    [pageId, editable, remoteProvider],
   );
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
@@ -300,7 +305,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent
+        handleActiveCommentEvent,
       );
     };
   }, []);
@@ -311,6 +316,7 @@ export default function PageEditor({
     setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
+  /*
   useEffect(() => {
     if (remoteProvider?.status === WebSocketStatus.Connecting) {
       const timeout = setTimeout(() => {
@@ -319,9 +325,10 @@ export default function PageEditor({
       return () => clearTimeout(timeout);
     }
   }, [remoteProvider?.status]);
-
+*/
   const isSynced = isLocalSynced && isRemoteSynced;
 
+  /*
   useEffect(() => {
     const collabReadyTimeout = setTimeout(() => {
       if (
@@ -334,6 +341,7 @@ export default function PageEditor({
     }, 500);
     return () => clearTimeout(collabReadyTimeout);
   }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
+   */
 
   useEffect(() => {
     // Only honor user default page edit mode preference and permissions
@@ -351,8 +359,9 @@ export default function PageEditor({
   }, [userPageEditMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
-  const [showStatic, setShowStatic] = useState(true);
+  const [showStatic, setShowStatic] = useState(false);
 
+  /*
   useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
@@ -361,7 +370,7 @@ export default function PageEditor({
       hasConnectedOnceRef.current = true;
       setShowStatic(false);
     }
-  }, [remoteProvider?.status]);
+  }, [remoteProvider?.status]);*/
 
   if (showStatic) {
     return (

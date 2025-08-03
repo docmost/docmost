@@ -1,29 +1,33 @@
-import Table from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
 import { Editor } from "@tiptap/core";
 
 const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
 
 function isInList(editor: Editor): boolean {
   const { $from } = editor.state.selection;
-  
+
   for (let depth = $from.depth; depth > 0; depth--) {
     const node = $from.node(depth);
     if (LIST_TYPES.includes(node.type.name)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
 function handleListIndent(editor: Editor): boolean {
-  return editor.commands.sinkListItem("listItem") || 
-         editor.commands.sinkListItem("taskItem");
+  return (
+    editor.commands.sinkListItem("listItem") ||
+    editor.commands.sinkListItem("taskItem")
+  );
 }
 
 function handleListOutdent(editor: Editor): boolean {
-  return editor.commands.liftListItem("listItem") || 
-         editor.commands.liftListItem("taskItem");
+  return (
+    editor.commands.liftListItem("listItem") ||
+    editor.commands.liftListItem("taskItem")
+  );
 }
 
 export const CustomTable = Table.extend({

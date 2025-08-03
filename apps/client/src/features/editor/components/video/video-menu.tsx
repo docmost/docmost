@@ -1,10 +1,6 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect } from "@tiptap/react";
 import React, { useCallback } from "react";
-import { sticky } from "tippy.js";
 import { Node as PMNode } from "prosemirror-model";
 import {
   EditorMenuProps,
@@ -85,15 +81,12 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       editor={editor}
       pluginKey={`video-menu}`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 8],
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
-        plugins: [sticky],
-        sticky: "popper",
+      options={{
+        //getReferenceClientRect,
+        placement: "bottom",
+        offset: 8,
+        //zIndex: 99,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >

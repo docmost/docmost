@@ -1,9 +1,5 @@
-import {
-  BubbleMenu,
-  BubbleMenuProps,
-  isNodeSelection,
-  useEditor,
-} from "@tiptap/react";
+import { BubbleMenu, BubbleMenuProps } from "@tiptap/react/menus";
+import { isNodeSelection, useEditor } from "@tiptap/react";
 import { FC, useEffect, useRef, useState } from "react";
 import {
   IconBold,
@@ -114,14 +110,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       }
       return isTextSelected(editor);
     },
-    tippyOptions: {
-      moveTransition: "transform 0.15s ease-out",
-      onCreate: (instance) => {
-        instance.popper.firstChild?.addEventListener("blur", (event) => {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        });
-      },
+    options: {
+      placement: "top",
+      offset: 8,
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
