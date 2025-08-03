@@ -55,40 +55,22 @@ export class ExportController {
       throw new ForbiddenException();
     }
 
-    const fileExt = getExportExtension(dto.format);
-    const fileName = sanitize(page.title || 'untitled') + fileExt;
-
-    if (dto.includeChildren) {
-      const zipFileBuffer = await this.exportService.exportPageWithChildren(
-        dto.pageId,
-        dto.format,
-      );
-
-      const newName = path.parse(fileName).name + '.zip';
-
-      res.headers({
-        'Content-Type': 'application/zip',
-        'Content-Disposition':
-          'attachment; filename="' + encodeURIComponent(newName) + '"',
-      });
-
-      res.send(zipFileBuffer);
-      return;
-    }
-
-    const rawContent = await this.exportService.exportPage(
+    const zipFileBuffer = await this.exportService.exportPages(
+      dto.pageId,
       dto.format,
-      page,
-      true,
+      dto.includeAttachments,
+      dto.includeChildren,
     );
 
+    const fileName = sanitize(page.title || 'untitled') + '.zip';
+
     res.headers({
-      'Content-Type': getMimeType(fileExt),
+      'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' + encodeURIComponent(fileName) + '"',
     });
 
-    res.send(rawContent);
+    res.send(zipFileBuffer);
   }
 
   @UseGuards(JwtAuthGuard)
