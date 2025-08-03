@@ -35,13 +35,16 @@ export default function ExportModal({
   const handleExport = async () => {
     try {
       if (type === "page") {
-        await exportPage({ pageId: id, format, includeChildren, includeAttachments });
+        await exportPage({
+          pageId: id,
+          format,
+          includeChildren,
+          includeAttachments,
+        });
       }
       if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
       }
-      setIncludeChildren(false);
-      setIncludeAttachments(true);
       onClose();
     } catch (err) {
       notifications.show({
