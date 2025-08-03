@@ -107,10 +107,9 @@ export class ExportService {
       const page = await this.pageRepo.findById(pageId, {
         includeContent: true,
       });
-      if (!page) {
-        throw new BadRequestException('Page not found');
+      if (page){
+        pages = [page];
       }
-      pages = [page];
     }
 
     if (!pages || pages.length === 0) {
