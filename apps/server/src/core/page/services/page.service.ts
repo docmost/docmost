@@ -109,6 +109,7 @@ export class PageService {
       .selectFrom('pages')
       .select(['position'])
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
       .orderBy('position', 'desc')
       .limit(1);
 
