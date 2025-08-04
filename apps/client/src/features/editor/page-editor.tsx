@@ -4,6 +4,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
   HocuspocusProvider,
+  onStatusParameters,
   onAuthenticationFailedParameters,
   WebSocketStatus,
 } from "@hocuspocus/provider";
@@ -72,7 +73,7 @@ export default function PageEditor({
     ydocRef.current = new Y.Doc();
   }
   const ydoc = ydocRef.current;
-  const [isLocalSynced, setLocalSynced] = useState(false);
+  const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
@@ -100,29 +101,31 @@ export default function PageEditor({
 
   // Track when collaborative provider is ready and synced
   const [collabReady, setCollabReady] = useState(false);
-  /*
+
   useEffect(() => {
     if (
-      remoteProvider?.status === WebSocketStatus.Connected &&
+      remoteProvider?.configuration.websocketProvider.status ===
+        WebSocketStatus.Connected &&
       isLocalSynced &&
       isRemoteSynced
     ) {
       setCollabReady(true);
     }
-  }, [remoteProvider?.status, isLocalSynced, isRemoteSynced]);
-   */
+  }, [
+    remoteProvider?.configuration.websocketProvider.status,
+    isLocalSynced,
+    isRemoteSynced,
+  ]);
 
   useEffect(() => {
     if (!providersRef.current) {
       const local = new IndexeddbPersistence(documentName, ydoc);
-      local.on("synced", () => setLocalSynced(true));
+      local.on("synced", () => setIsLocalSynced(true));
       const remote = new HocuspocusProvider({
         name: documentName,
         url: collaborationURL,
         document: ydoc,
         token: collabQuery?.token,
-        //connect: true,
-        //preserveConnection: false,
         onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
           const payload = jwtDecode(collabQuery?.token);
           const now = Date.now().valueOf() / 1000;
@@ -130,25 +133,28 @@ export default function PageEditor({
           if (isTokenExpired) {
             refetchCollabToken().then((result) => {
               if (result.data?.token) {
-                remote.disconnect();
+                remote.configuration.websocketProvider.disconnect();
                 setTimeout(() => {
                   remote.configuration.token = result.data.token;
-                  remote.connect();
+                  remote.configuration.websocketProvider.connect();
                 }, 100);
               }
             });
           }
         },
-        //onStatus: (status) => {
-        //  if (status.status === "connected") {
-        //  setYjsConnectionStatus(status.status);
-        //  }
-        //  },
       });
+
       remote.on("synced", () => setRemoteSynced(true));
-      remote.on("disconnect", () => {
-        setYjsConnectionStatus(WebSocketStatus.Disconnected);
-      });
+
+      const handleSocketStatus = (status: onStatusParameters) => {
+        if (status.status === "connected") {
+          setYjsConnectionStatus(WebSocketStatus.Connected);
+        } else if (status.status === "disconnected") {
+          setYjsConnectionStatus(WebSocketStatus.Disconnected);
+        }
+      };
+      remote.configuration.websocketProvider.on("status", handleSocketStatus);
+
       providersRef.current = { local, remote };
       setProvidersReady(true);
     } else {
@@ -178,29 +184,29 @@ export default function PageEditor({
    */
 
   // Only connect/disconnect on tab/idle, not destroy
-  /*
   useEffect(() => {
     if (!providersReady || !providersRef.current) return;
     const remoteProvider = providersRef.current.remote;
     if (
       isIdle &&
       documentState === "hidden" &&
-      remoteProvider === WebSocketStatus.Connected
+      remoteProvider.configuration.websocketProvider.status ===
+        WebSocketStatus.Connected
     ) {
-      remoteProvider.disconnect();
+      remoteProvider.configuration.websocketProvider.disconnect();
       setIsCollabReady(false);
       return;
     }
     if (
       documentState === "visible" &&
-      remoteProvider.status === WebSocketStatus.Disconnected
+      remoteProvider.configuration.websocketProvider.status ===
+        WebSocketStatus.Disconnected
     ) {
       resetIdle();
-      remoteProvider.connect();
+      remoteProvider.configuration.websocketProvider.connect();
       setTimeout(() => setIsCollabReady(true), 500);
     }
   }, [isIdle, documentState, providersReady, resetIdle]);
-  */
 
   const extensions = useMemo(() => {
     if (!remoteProvider || !currentUser?.user) return mainExtensions;
@@ -316,32 +322,37 @@ export default function PageEditor({
     setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
-  /*
   useEffect(() => {
-    if (remoteProvider?.status === WebSocketStatus.Connecting) {
+    if (
+      remoteProvider?.configuration.websocketProvider.status ===
+      WebSocketStatus.Connecting
+    ) {
       const timeout = setTimeout(() => {
         setYjsConnectionStatus(WebSocketStatus.Disconnected);
       }, 5000);
       return () => clearTimeout(timeout);
     }
-  }, [remoteProvider?.status]);
-*/
+  }, [remoteProvider?.configuration.websocketProvider.status]);
+
   const isSynced = isLocalSynced && isRemoteSynced;
 
-  /*
   useEffect(() => {
     const collabReadyTimeout = setTimeout(() => {
       if (
         !isCollabReady &&
         isSynced &&
-        remoteProvider?.status === WebSocketStatus.Connected
+        remoteProvider?.configuration.websocketProvider.status ===
+          WebSocketStatus.Connected
       ) {
         setIsCollabReady(true);
       }
     }, 500);
     return () => clearTimeout(collabReadyTimeout);
-  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
-   */
+  }, [
+    isRemoteSynced,
+    isLocalSynced,
+    remoteProvider?.configuration.websocketProvider.status,
+  ]);
 
   useEffect(() => {
     // Only honor user default page edit mode preference and permissions
@@ -359,18 +370,18 @@ export default function PageEditor({
   }, [userPageEditMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
-  const [showStatic, setShowStatic] = useState(false);
+  const [showStatic, setShowStatic] = useState(true);
 
-  /*
   useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
-      remoteProvider?.status === WebSocketStatus.Connected
+      remoteProvider?.configuration.websocketProvider.status ===
+        WebSocketStatus.Connected
     ) {
       hasConnectedOnceRef.current = true;
       setShowStatic(false);
     }
-  }, [remoteProvider?.status]);*/
+  }, [remoteProvider?.configuration.websocketProvider.status]);
 
   if (showStatic) {
     return (

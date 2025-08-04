@@ -136,9 +136,6 @@ importers:
       bytes:
         specifier: ^3.1.2
         version: 3.1.2
-      core:
-        specifier: link:highlight.js/lib/core
-        version: link:highlight.js/lib/core
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -683,11 +680,7 @@ importers:
         specifier: ^8.24.1
         version: 8.24.1(eslint@9.20.1(jiti@1.21.0))(typescript@5.7.3)
 
-  packages/editor-ext:
-    dependencies:
-      '@tiptap/extension-code-block':
-        specifier: ^3.0.9
-        version: 3.0.9(@tiptap/core@3.0.9(@tiptap/pm@3.0.9))(@tiptap/pm@3.0.9)
+  packages/editor-ext: {}
 
 packages:
 
