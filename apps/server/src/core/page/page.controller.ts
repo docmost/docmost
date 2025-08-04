@@ -194,7 +194,7 @@ export class PageController {
         deletedPageDto.spaceId,
       );
 
-      if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
 
