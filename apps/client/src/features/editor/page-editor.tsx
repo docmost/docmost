@@ -355,15 +355,20 @@ export default function PageEditor({
   const [showStatic, setShowStatic] = useState(true);
 
   useEffect(() => {
+    // Wait for both connection and sync before switching from static editor
     if (
       !hasConnectedOnceRef.current &&
       remoteProvider?.configuration.websocketProvider.status ===
-        WebSocketStatus.Connected
+        WebSocketStatus.Connected &&
+      isLocalSynced // Also wait for local sync to complete
     ) {
       hasConnectedOnceRef.current = true;
-      setShowStatic(false);
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setShowStatic(false);
+      }, 100);
     }
-  }, [remoteProvider?.configuration.websocketProvider.status]);
+  }, [remoteProvider?.configuration.websocketProvider.status, isLocalSynced]);
 
   if (showStatic) {
     return (
