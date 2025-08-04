@@ -42,6 +42,8 @@ import { Node } from '@tiptap/pm/model';
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+    link: false,
+    trailingNode: false,
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
