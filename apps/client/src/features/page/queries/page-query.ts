@@ -126,8 +126,9 @@ export function useUpdatePageMutation() {
 export function useRemovePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, false),
-    onSuccess: () => {
+    onSuccess: (_, pageId) => {
       notifications.show({ message: "Page moved to trash" });
+      invalidateOnDeletePage(pageId);
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),
