@@ -99,24 +99,6 @@ export default function PageEditor({
   const localProvider = providersRef.current?.local;
   const remoteProvider = providersRef.current?.remote;
 
-  // Track when collaborative provider is ready and synced
-  const [collabReady, setCollabReady] = useState(false);
-
-  useEffect(() => {
-    if (
-      remoteProvider?.configuration.websocketProvider.status ===
-        WebSocketStatus.Connected &&
-      isLocalSynced &&
-      isRemoteSynced
-    ) {
-      setCollabReady(true);
-    }
-  }, [
-    remoteProvider?.configuration.websocketProvider.status,
-    isLocalSynced,
-    isRemoteSynced,
-  ]);
-
   useEffect(() => {
     if (!providersRef.current) {
       const local = new IndexeddbPersistence(documentName, ydoc);
