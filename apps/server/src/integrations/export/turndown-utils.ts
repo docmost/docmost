@@ -69,8 +69,17 @@ function taskList(turndownService: TurndownService) {
         'input[type="checkbox"]',
       ) as HTMLInputElement;
       const isChecked = checkbox.checked;
-
-      return `- ${isChecked ? '[x]' : '[ ]'} ${content.trim()} \n`;
+      
+      // Process content like regular list items
+      content = content
+        .replace(/^\n+/, '') // remove leading newlines
+        .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
+        .replace(/\n/gm, '\n  '); // indent nested content with 2 spaces
+      
+      // Create the checkbox prefix
+      const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
+      
+      return prefix + content + (node.nextSibling && !/\n$/.test(content) ? '\n' : '');
     },
   });
 }
