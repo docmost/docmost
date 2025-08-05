@@ -79,6 +79,8 @@ import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkey
 import { t } from "i18next";
 import type { getItem } from "yjs";
 
+// TODO invalidate item data when page is updated from outside
+
 interface SpaceTreeProps {
   spaceId: string;
   readOnly: boolean;
@@ -167,9 +169,10 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   return (
     <div {...tree.getContainerProps()} className="tree">
       {tree.getItems().map((item) => (
-        <NewNode
+        <Node
           key={item.getId()}
           item={item}
+          spaceId={spaceId}
           // style={item.getStyle()}
           // preview={item.isPreview()}
         />
@@ -179,8 +182,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   );
 }
 
-function NewNode({ item,  preview, disableEdit }: {
+function Node({ item, spaceId, preview, disableEdit }: {
   item: ItemInstance<SpaceTreeNode>;
+  spaceId: string;
   preview?: boolean;
   disableEdit?: boolean;
 }) {
@@ -296,13 +300,12 @@ function NewNode({ item,  preview, disableEdit }: {
         <div className={classes.actions}>
           <TreeItemMenu item={item} spaceId={item.getItemData().spaceId} />
 
-          {/*!disableEdit && (
+          {!disableEdit && (
             <CreateNode
-              node={node}
-              treeApi={tree}
-              onExpandTree={() => handleLoadChildren(node)}
+              item={item}
+              spaceId={spaceId}
             />
-          )*/}
+          )}
         </div>
       </Box>
     </>
@@ -310,23 +313,15 @@ function NewNode({ item,  preview, disableEdit }: {
 }
 
 interface CreateNodeProps {
-  node: NodeApi<SpaceTreeNode>;
-  treeApi: TreeApi<SpaceTreeNode>;
-  onExpandTree?: () => void;
+  spaceId: string;
+  item: ItemInstance<SpaceTreeNode>;
 }
 
-function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  function handleCreate() {
-    if (node.data.hasChildren && node.children.length === 0) {
-      node.toggle();
-      onExpandTree();
-
-      setTimeout(() => {
-        treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
-      }, 500);
-    } else {
-      treeApi?.create({ type: "internal", parentId: node.id });
-    }
+function CreateNode({ item, spaceId }: CreateNodeProps) {
+  const treeMutations = useTreeMutation<SpaceTreeNode>(spaceId);
+  async function handleCreate() {
+    await treeMutations.create(item);
+    item.expand();
   }
 
   return (

@@ -26,7 +26,8 @@ export function useTreeMutation<T>(spaceId: string) {
   const create = async (parent: ItemInstance<SpaceTreeNode>) => {
     let createdPage: IPage;
     try {
-      createdPage = await createPageMutation.mutateAsync({ parentPageId: parent?.getId() });
+      const payload = { parentPageId: parent?.getId(), spaceId };
+      createdPage = await createPageMutation.mutateAsync(payload);
     } catch (err) {
       throw new Error("Failed to create page");
     }
@@ -43,7 +44,7 @@ export function useTreeMutation<T>(spaceId: string) {
     };
 
     const index = parent.getChildren().length;
-    parent.invalidateChildrenIds();
+    await parent.invalidateChildrenIds();
 
     setTimeout(() => {
       emit({
