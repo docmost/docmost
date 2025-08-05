@@ -296,6 +296,16 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   return buildTree(allItems);
 }
 
+export async function fetchPageData(pageInput: { pageId: string }) {
+  const response = await queryClient.fetchQuery({
+    queryKey: ["pages", pageInput.pageId],
+    queryFn: () => getPageById(pageInput),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return response;
+}
+
 export function useRecentChangesQuery(
   spaceId?: string,
 ): UseQueryResult<IPagination<IPage>, Error> {

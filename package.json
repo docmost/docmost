@@ -100,5 +100,9 @@
       "jsdom": "25.0.1"
     },
     "neverBuiltDependencies": []
+  },
+  "volta": {
+    "node": "22.17.1",
+    "pnpm": "10.4.0"
   }
 }

@@ -108,3 +108,22 @@
 [role="treeitem"] {
     padding-bottom: 2px;
 }
+
+.dragline {
+    height: 2px;
+    margin-top: -1px;
+    background-color: #4b91e2;
+}
+
+/* Render the circle at the left of the dragline */
+.dragline::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -3px;
+    height: 8px;
+    width: 8px;
+    background: #fff;
+    border: 2px solid #4b91e2;
+    border-radius: 99px;
+}
