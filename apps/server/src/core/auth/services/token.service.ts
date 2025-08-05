@@ -66,13 +66,15 @@ export class TokenService {
     attachmentId: string;
     pageId: string;
     workspaceId: string;
+    sharedPageId?: string;
   }): Promise<string> {
-    const { attachmentId, pageId, workspaceId } = opts;
+    const { attachmentId, pageId, workspaceId, sharedPageId } = opts;
     const payload: JwtAttachmentPayload = {
       attachmentId: attachmentId,
       pageId: pageId,
       workspaceId: workspaceId,
       type: JwtType.ATTACHMENT,
+      sharedPageId: sharedPageId,
     };
     return this.jwtService.sign(payload, { expiresIn: '1h' });
   }

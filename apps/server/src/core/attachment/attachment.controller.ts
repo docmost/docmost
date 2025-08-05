@@ -232,10 +232,36 @@ export class AttachmentController {
       !attachment ||
       attachment.workspaceId !== workspace.id ||
       !attachment.pageId ||
-      !attachment.spaceId ||
-      jwtPayload.pageId !== attachment.pageId
+      !attachment.spaceId
     ) {
       throw new NotFoundException('File not found');
+    }
+
+    if (jwtPayload.sharedPageId && jwtPayload.sharedPageId !== attachment.pageId) {
+      // For cross-page attachments, validate that:
+      // 1. The shared page ID matches the JWT payload
+      // 2. The attachment belongs to the same workspace
+      // 3. Both pages are in the same space
+
+      const sharedPage = await this.pageRepo.findById(jwtPayload.sharedPageId);
+      if (!sharedPage || sharedPage.workspaceId !== workspace.id) {
+        throw new NotFoundException('File not found');
+      }
+
+      const originalPage = await this.pageRepo.findById(attachment.pageId);
+      if (!originalPage || originalPage.workspaceId !== workspace.id) {
+        throw new NotFoundException('File not found');
+      }
+
+      // Ensure both pages are in the same space
+      if (sharedPage.spaceId !== originalPage.spaceId) {
+        throw new NotFoundException('File not found');
+      }
+    } else {
+      // Standard validation for same-page attachments
+      if (jwtPayload.pageId !== attachment.pageId) {
+        throw new NotFoundException('File not found');
+      }
     }
 
     try {
