@@ -74,8 +74,8 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
-import {useTree as useHeadlessTree} from "@headless-tree/react"
-import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type ItemInstance } from "@headless-tree/core";
+import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
+import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
 import { t } from "i18next";
 import type { getItem } from "yjs";
 
@@ -85,6 +85,20 @@ interface SpaceTreeProps {
   spaceId: string;
   readOnly: boolean;
 }
+
+declare module "@headless-tree/core" {
+  export interface TreeConfig<T> {
+    activeItemId?: string;
+  }
+  export interface ItemInstance<T> {
+    isActive: () => boolean;
+  }
+}
+const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
+  itemInstance: {
+    isActive: ({itemId, tree}) => tree.getConfig().activeItemId === itemId,
+  },
+};
 
 const openTreeNodesAtom = atom<OpenMap>({});
 
@@ -98,7 +112,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   } = useGetRootSidebarPagesQuery({
     spaceId,
   });
-  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
   const [isRootReady, setIsRootReady] = useState(false);
@@ -115,20 +128,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     pageId: extractPageSlugId(pageSlug),
   });
 
-  useEffect(() => {
-    if (currentPage?.id) {
-      setTimeout(() => {
-        // focus on node and open all parents
-        treeApiRef.current?.select(currentPage.id, { align: "auto" });
-      }, 200);
-    } else {
-      treeApiRef.current?.deselectAll();
-    }
-  }, [currentPage?.id]);
-
-
    const tree = useHeadlessTree<SpaceTreeNode>({
       rootItemId: "root",
+      activeItemId: currentPage?.id,
       getItemName: item => item.getItemData()?.name ?? t("untitled"),
       createLoadingItemData: () => ({
         id: "loading",
@@ -163,8 +165,15 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         }
       },
       indent: 20,
-      features: [asyncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, dragAndDropFeature]
+      features: [
+        asyncDataLoaderFeature, 
+        selectionFeature, 
+        hotkeysCoreFeature, 
+        dragAndDropFeature,
+        headlessTreeExtensions
+      ]
    });
+
   return (
     <div {...tree.getContainerProps()} className="tree">
       {tree.getItems().map((item) => (
@@ -266,7 +275,12 @@ function Node({ item, spaceId, preview, disableEdit }: {
       <Box
         {...item.getProps()}
         style={{ paddingLeft: `${item.getItemMeta().level * 20}px` }}
-        className={clsx(classes.node, /*node.state*/)}
+        className={clsx(
+          classes.node, 
+          item.isActive() && classes.isSelected, 
+          item.isFocused() && classes.isFocused,
+          item.isDragTarget() && classes.willReceiveDrop,
+        )}
         component={Link}
         to={pageUrl}
         onClick={() => {

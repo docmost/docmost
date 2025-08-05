@@ -72,7 +72,8 @@ export function useTreeMutation<T>(spaceId: string) {
 
 
     const newSiblings = target.item.getChildren();
-    const newDragIndex = isOrderedDragTarget(target) ? target.childIndex : newSiblings.length;
+    // const newDragIndex = isOrderedDragTarget(target) ? target.childIndex : newSiblings.length;
+    const newDragIndex = items[0].getIndexInParent();
 
     // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
     // we have to access the node differently via currentTreeData[args.index]?.data?.position
