@@ -150,7 +150,8 @@ export function useTreeMutation<T>(spaceId: string) {
 
   const deleteItems = async (...items: ItemInstance<SpaceTreeNode>[]) => {
     try {
-      await removePageMutation.mutateAsync(items[0].getId());
+      await Promise.all(items.map(item => removePageMutation.mutateAsync(item.getId())));
+      await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
 
       const navigateItem = items.reduce(
         (found, item) => found ?? item.getParent(),

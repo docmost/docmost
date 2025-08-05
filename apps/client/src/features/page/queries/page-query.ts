@@ -289,7 +289,7 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   const response = await queryClient.fetchQuery({
     queryKey: ["sidebar-pages", params],
     queryFn: () => getAllSidebarPages(params),
-    staleTime: 30 * 60 * 1000,
+    staleTime: 0
   });
 
   const allItems = response.pages.flatMap((page) => page.items);

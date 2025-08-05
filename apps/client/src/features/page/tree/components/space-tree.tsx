@@ -156,7 +156,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             spaceId,
             pageId: pageId === "root" ? null : pageId,
           });
-          console.log("loaded", pageId, children)
           return (children).map(data => ({
             id: data.id,
             data,
@@ -298,7 +297,7 @@ function Node({ item, spaceId, preview, disableEdit }: {
         <span className={classes.text}>{item.getItemName()}</span>
 
         <div className={classes.actions}>
-          <TreeItemMenu item={item} spaceId={item.getItemData().spaceId} />
+          <TreeItemMenu item={item} spaceId={item.getItemData().spaceId} disableEdit={disableEdit} />
 
           {!disableEdit && (
             <CreateNode
@@ -342,14 +341,15 @@ function CreateNode({ item, spaceId }: CreateNodeProps) {
 interface TreeItemMenuProps {
   item: ItemInstance<SpaceTreeNode>;
   spaceId: string;
+  disableEdit?: boolean;
 }
 
-function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
+function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
+  const mutations = useTreeMutation(spaceId)
   const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
-  const [data, setData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
@@ -392,7 +392,7 @@ function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
       };
 
       // Update local tree
-      setData([...data, treeNodeData]);
+      await item.getTree().getRootItem().invalidateChildrenIds();
 
       // Emit socket event
       setTimeout(() => {
@@ -459,8 +459,7 @@ function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
           >
             {t("Export page")}
           </Menu.Item>
-            {/*treeApi.props.disableEdit as boolean*/}
-          {!(true) && (
+          {!disableEdit && (
             <>
               <Menu.Item
                 leftSection={<IconCopy size={16} />}
@@ -502,7 +501,7 @@ function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  // TODO openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
+                  openDeleteModal({ onConfirm: () => mutations.delete(item) });
                 }}
               >
                 {t("Delete")}
@@ -512,16 +511,16 @@ function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
         </Menu.Dropdown>
       </Menu>
 
-      {/*<MovePageModal
-        pageId={node.id}
-        slugId={node.data.slugId}
+      <MovePageModal
+        pageId={item.getId()}
+        slugId={item.getItemData().slugId}
         currentSpaceSlug={spaceSlug}
         onClose={closeMoveSpaceModal}
         open={movePageModalOpened}
       />
 
       <CopyPageModal
-        pageId={node.id}
+        pageId={item.getId()}
         currentSpaceSlug={spaceSlug}
         onClose={closeCopySpaceModal}
         open={copyPageModalOpened}
@@ -529,10 +528,10 @@ function TreeItemMenu({ item, spaceId }: TreeItemMenuProps) {
 
       <ExportModal
         type="page"
-        id={node.id}
+        id={item.getId()}
         open={exportOpened}
         onClose={closeExportModal}
-      />*/}
+      />
     </>
   );
 }
