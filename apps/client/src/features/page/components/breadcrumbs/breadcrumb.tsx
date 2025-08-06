@@ -1,7 +1,7 @@
-import { useAtomValue } from "jotai";
+import {  useAtomValue } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import React, { useCallback, useEffect, useState } from "react";
-import { findBreadcrumbPath } from "@/features/page/tree/utils";
+import { findBreadcrumbPath, findBreadcrumbPathNew } from "@/features/page/tree/utils";
 import {
   Button,
   Anchor,
@@ -19,6 +19,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { extractPageSlugId } from "@/lib";
 import { useMediaQuery } from "@mantine/hooks";
+import { t } from "i18next";
 
 function getTitle(name: string, icon: string) {
   if (icon) {
@@ -28,7 +29,7 @@ function getTitle(name: string, icon: string) {
 }
 
 export default function Breadcrumb() {
-  const treeData = useAtomValue(treeDataAtom);
+  const atom = useAtomValue(treeDataAtom);
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
     SpaceTreeNode[] | null
   >(null);
@@ -39,11 +40,11 @@ export default function Breadcrumb() {
   const isMobile = useMediaQuery("(max-width: 48em)");
 
   useEffect(() => {
-    if (treeData?.length > 0 && currentPage) {
-      const breadcrumb = findBreadcrumbPath(treeData, currentPage.id);
+    if (atom.tree?.getItems().length > 0 && currentPage) {
+      const breadcrumb =  findBreadcrumbPathNew(atom.tree.getItemInstance(currentPage.id));
       setBreadcrumbNodes(breadcrumb || null);
     }
-  }, [currentPage?.id, treeData]);
+  }, [currentPage?.id, atom]);
 
   const HiddenNodesTooltipContent = () =>
     breadcrumbNodes?.slice(1, -1).map((node) => (
@@ -56,7 +57,7 @@ export default function Breadcrumb() {
           style={{ border: "none" }}
         >
           <Text fz={"sm"} className={classes.truncatedText}>
-            {getTitle(node.name, node.icon)}
+            {getTitle(node.name ?? t("untitled"), node.icon)}
           </Text>
         </Button>
       </Button.Group>
@@ -73,7 +74,7 @@ export default function Breadcrumb() {
           style={{ border: "none" }}
         >
           <Text fz={"sm"} className={classes.truncatedText}>
-            {getTitle(node.name, node.icon)}
+            {getTitle(node.name ?? t("untitled"), node.icon)}
           </Text>
         </Button>
       </Button.Group>
@@ -90,7 +91,7 @@ export default function Breadcrumb() {
           key={node.id}
           className={classes.truncatedText}
         >
-          {getTitle(node.name, node.icon)}
+          {getTitle(node.name ?? t("untitled"), node.icon)}
         </Anchor>
       </Tooltip>
     ),

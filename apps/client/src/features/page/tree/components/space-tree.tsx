@@ -1,4 +1,4 @@
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import {
   fetchAllAncestorChildren,
   useGetRootSidebarPagesQuery,
@@ -27,6 +27,7 @@ import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import {
+  getPageBreadcrumbs,
   getPageById,
 } from "@/features/page/services/page-service.ts";
 import { queryClient } from "@/main.tsx";
@@ -53,6 +54,7 @@ import { duplicatePage } from "../../services/page-service.ts";
 import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
 import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
 import { t } from "i18next";
+import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
 // TODO invalidate item data when page is updated from outside
 
@@ -77,6 +79,7 @@ const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
+  const setTreeData = useSetAtom(treeDataAtom);
   const treeMutations = useTreeMutation<SpaceTreeNode>(spaceId);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -125,6 +128,20 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
        headlessTreeExtensions
      ]
   });
+
+  useEffect(() => {
+    setTreeData({tree});
+  }, [tree, setTreeData]);
+
+  useEffect(() => {
+    (async () => {
+      if (!currentPage?.id) return;
+      const breadcrumbs = await getPageBreadcrumbs(currentPage.id);
+      await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
+      breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
+      setTreeData({ tree }); // trigger rerender of breadcrumbs
+    })();
+  }, [currentPage?.id]);
 
   return (
     <div {...tree.getContainerProps()} className="tree">
