@@ -97,11 +97,6 @@ export function useTreeMutation<T>(spaceId: string) {
       position: newPosition,
       parentPageId,
     };
-    console.log("move payload", {
-      pageId: draggedNodeId,
-      position: newPosition,
-      parentPageId,
-    })
 
     // TODO set hasChildren to false if item has no children after moving
 

@@ -1,15 +1,6 @@
-import {
-  NodeApi,
-  NodeRendererProps,
-  Tree,
-  TreeApi,
-  SimpleTree,
-} from "react-arborist";
 import { atom, useAtom } from "jotai";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
   fetchAllAncestorChildren,
-  fetchPageData,
   useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
@@ -31,27 +22,13 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import {
-  appendNodeChildrenAtom,
-  treeDataAtom,
-} from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
-import {
-  appendNodeChildren,
-  buildTree,
-  buildTreeWithChildren,
-  mergeRootTrees,
-  updateTreeNodeIcon,
-} from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import {
-  getPageBreadcrumbs,
   getPageById,
-  getSidebarPages,
 } from "@/features/page/services/page-service.ts";
-import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import {
@@ -60,7 +37,6 @@ import {
   useElementSize,
   useMergedRef,
 } from "@mantine/hooks";
-import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
@@ -77,7 +53,6 @@ import { duplicatePage } from "../../services/page-service.ts";
 import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
 import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
 import { t } from "i18next";
-import type { getItem } from "yjs";
 
 // TODO invalidate item data when page is updated from outside
 
@@ -100,79 +75,56 @@ const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
   },
 };
 
-const openTreeNodesAtom = atom<OpenMap>({});
-
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
-  const {
-    data: pagesData,
-    hasNextPage,
-    fetchNextPage,
-    isFetching,
-  } = useGetRootSidebarPagesQuery({
-    spaceId,
-  });
-  const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
-  const rootElement = useRef<HTMLDivElement>();
-  const [isRootReady, setIsRootReady] = useState(false);
-  const { ref: sizeRef, width, height } = useElementSize();
-  const mergedRef = useMergedRef((element) => {
-    rootElement.current = element;
-    if (element && !isRootReady) {
-      setIsRootReady(true);
-    }
-  }, sizeRef);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const treeMutations = useTreeMutation<SpaceTreeNode>(spaceId);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
 
-   const tree = useHeadlessTree<SpaceTreeNode>({
-      rootItemId: "root",
-      activeItemId: currentPage?.id,
-      getItemName: item => item.getItemData()?.name ?? t("untitled"),
-      createLoadingItemData: () => ({
-        id: "loading",
-        name: "Loading...",
-        position: null,
-        spaceId: spaceId,
-        parentPageId: null,
-        hasChildren: false,
-        slugId: "",
-        children: [],
-      }),
-      // isItemFolder: item => item.getItemData().hasChildren,
-      isItemFolder: item => item.getChildren().length > 0,
-      canDrop: () => true,
-      onDrop: async (items, target) => {
-        console.log("onDrop", items.map(item => item.getId()), target, target.item.getId());
-        await treeMutations.move(items, target);
-      },
-      dataLoader: {
-        getItem: async pageId => {
-          return null as any;
-        },
-        getChildrenWithData: async pageId => {
-          const children = await fetchAllAncestorChildren({
-            spaceId,
-            pageId: pageId === "root" ? null : pageId,
-          });
-          return (children).map(data => ({
-            id: data.id,
-            data,
-          }));
-        }
-      },
-      indent: 20,
-      features: [
-        asyncDataLoaderFeature, 
-        selectionFeature, 
-        hotkeysCoreFeature, 
-        dragAndDropFeature,
-        headlessTreeExtensions
-      ]
-   });
+  // TODO virtualization?
+
+  const tree = useHeadlessTree<SpaceTreeNode>({
+     rootItemId: "root",
+     activeItemId: currentPage?.id,
+     getItemName: item => item.getItemData()?.name ?? t("untitled"),
+     createLoadingItemData: () => ({
+       id: "loading",
+       name: "Loading...",
+       position: null,
+       spaceId: spaceId,
+       parentPageId: null,
+       hasChildren: false,
+       slugId: "",
+       children: [],
+     }),
+     isItemFolder: item => item.getChildren().length > 0,
+     canDrop: () => true,
+     onDrop: treeMutations.move,
+     dataLoader: {
+       getItem: async pageId => {
+         return null as any;
+       },
+       getChildrenWithData: async pageId => {
+         const children = await fetchAllAncestorChildren({
+           spaceId,
+           pageId: pageId === "root" ? null : pageId,
+         });
+         return (children).map(data => ({
+           id: data.id,
+           data,
+         }));
+       }
+     },
+     indent: 20,
+     features: [
+       asyncDataLoaderFeature, 
+       selectionFeature, 
+       hotkeysCoreFeature, 
+       dragAndDropFeature,
+       headlessTreeExtensions
+     ]
+  });
 
   return (
     <div {...tree.getContainerProps()} className="tree">
@@ -181,8 +133,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           key={item.getId()}
           item={item}
           spaceId={spaceId}
-          // style={item.getStyle()}
-          // preview={item.isPreview()}
         />
       ))}
       <div style={tree.getDragLineStyle()} className={classes.dragline} />
@@ -198,7 +148,6 @@ function Node({ item, spaceId, preview, disableEdit }: {
 }) {
   const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
   const timerRef = useRef(null);
