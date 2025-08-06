@@ -70,10 +70,8 @@ export function useTreeMutation<T>(spaceId: string) {
   const move = async (items: ItemInstance<SpaceTreeNode>[], target: DragTarget<SpaceTreeNode>) => {
     const draggedNodeId = items[0].getId();
 
-
     const newSiblings = target.item.getChildren();
-    // const newDragIndex = isOrderedDragTarget(target) ? target.childIndex : newSiblings.length;
-    const newDragIndex = items[0].getIndexInParent();
+    const newDragIndex = isOrderedDragTarget(target) ? target.childIndex : newSiblings.length;
 
     // if there is a parentId, tree.find(args.parentId).children returns a SimpleNode array
     // we have to access the node differently via currentTreeData[args.index]?.data?.position
@@ -121,15 +119,19 @@ export function useTreeMutation<T>(spaceId: string) {
         },
       });
       
-    await removeItemsFromParents(items, () => {});
-    await insertItemsAtTarget(items.map(item => item.getId()), target, () => {});
-    // The lines above update the HT children cache. We could also just invalidate the
-    // cache like below, and wait for the next refetch to update the children:
-    // await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
-    // await target.item.invalidateChildrenIds();
+      await removeItemsFromParents(items, () => {});
+      await insertItemsAtTarget(items.map(item => item.getId()), target, () => {});
+      items[0].updateCachedData({
+        ...items[0].getItemData(),
+        parentPageId,
+        position: newPosition,
+      })
+      // The lines above update the HT children cache. We could also just invalidate the
+      // cache like below, and wait for the next refetch to update the children:
+      // await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
+      // await target.item.invalidateChildrenIds();
 
-    console.log("!!expanding", target.item.getItemName());
-    setTimeout(target.item.expand);
+      if (!target.item.isExpanded()) setTimeout(target.item.expand);
     } catch (error) {
       console.error("Error moving page:", error);
     }

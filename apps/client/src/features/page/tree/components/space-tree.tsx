@@ -555,13 +555,20 @@ interface PageArrowProps {
 }
 
 function PageArrow({ item }: PageArrowProps) {
+  const [isFolder, setIsFolder] = useState(false);
+  useEffect(() => {
+    // isFolder() will dispatch retrieval of children if not loaded,
+    // so let's not call that during render
+    setIsFolder(item.isFolder());
+  });
+
   return (
     <ActionIcon
       size={20}
       variant="subtle"
       c="gray"
-      onClick={(e) => {
-        if (!item.isFolder()) return;
+      onClick={() => {
+        if (!isFolder) return;
         if (item.isExpanded()) {
           item.collapse();
         } else {
@@ -570,7 +577,7 @@ function PageArrow({ item }: PageArrowProps) {
       }}
     >
       {
-        item.isFolder() ? (
+        isFolder ? (
           item.isExpanded() ? (
             <IconChevronDown stroke={2} size={18} />
           ) : (
