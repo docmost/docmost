@@ -96,7 +96,7 @@ export class ExportController {
       'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' +
-        encodeURIComponent(sanitize(exportFile.fileName)) +
+        encodeURIComponent(sanitize(exportFile.fileName, { replacement: '-'})) +
         '"',
     });
 
