@@ -28,7 +28,7 @@ import ShareRedirect from "@/pages/share/share-redirect.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
 import SpaceGraph from "./pages/space/space-graph";
 import OidcSettingsPage from "@/pages/settings/oidc.tsx";
-import SpaceTrash from "@/pages/space/trash.tsx";
+import SpaceTrash from "@/pages/space/space-trash.tsx";
 import SpacesPage from "@/pages/spaces/spaces.tsx";
 
 export default function App() {

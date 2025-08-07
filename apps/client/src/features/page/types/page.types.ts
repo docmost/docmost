@@ -80,6 +80,7 @@ export interface IExportPageParams {
   pageId: string;
   format: ExportFormat;
   includeChildren?: boolean;
+  includeAttachments?: boolean;
 }
 
 export enum ExportFormat {

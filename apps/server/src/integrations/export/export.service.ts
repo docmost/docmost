@@ -89,10 +89,28 @@ export class ExportService {
     return;
   }
 
-  async exportPageWithChildren(pageId: string, format: string) {
-    const pages = await this.pageRepo.getPageAndDescendants(pageId, {
-      includeContent: true,
-    });
+  async exportPages(
+    pageId: string,
+    format: string,
+    includeAttachments: boolean,
+    includeChildren: boolean,
+  ) {
+    let pages: Page[];
+
+    if (includeChildren) {
+      //@ts-ignore
+      pages = await this.pageRepo.getPageAndDescendants(pageId, {
+        includeContent: true,
+      });
+    } else {
+      // Only fetch the single page when includeChildren is false
+      const page = await this.pageRepo.findById(pageId, {
+        includeContent: true,
+      });
+      if (page){
+        pages = [page];
+      }
+    }
 
     if (!pages || pages.length === 0) {
       throw new BadRequestException('No pages to export');
@@ -105,7 +123,7 @@ export class ExportService {
     const tree = buildTree(pages as Page[]);
 
     const zip = new JSZip();
-    await this.zipPages(tree, format, zip);
+    await this.zipPages(tree, format, zip, includeAttachments);
 
     const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
@@ -168,7 +186,7 @@ export class ExportService {
     tree: PageExportTree,
     format: string,
     zip: JSZip,
-    includeAttachments = true,
+    includeAttachments: boolean,
   ): Promise<void> {
     const slugIdToPath: Record<string, string> = {};
 
@@ -200,7 +218,8 @@ export class ExportService {
 
         if (includeAttachments) {
           await this.zipAttachments(updatedJsonContent, page.spaceId, folder);
-          updatedJsonContent = updateAttachmentUrlsToLocalPaths(updatedJsonContent);
+          updatedJsonContent =
+            updateAttachmentUrlsToLocalPaths(updatedJsonContent);
         }
 
         const pageTitle = getPageTitle(page.title);
