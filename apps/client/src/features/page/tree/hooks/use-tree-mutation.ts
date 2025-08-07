@@ -125,7 +125,7 @@ export function useTreeMutation<T>(spaceId: string) {
       // await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
       // await target.item.invalidateChildrenIds();
 
-      if (!target.item.isExpanded()) setTimeout(target.item.expand);
+      if (!target.item.isExpanded()) requestAnimationFrame(() => target.item.expand());
     } catch (error) {
       console.error("Error moving page:", error);
     }

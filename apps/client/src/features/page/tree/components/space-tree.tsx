@@ -1,12 +1,11 @@
-import { atom, useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import {
   fetchAllAncestorChildren,
-  useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
 import { useEffect, useRef, useState } from "react";
-import { data, Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Box, Menu, rem } from "@mantine/core";
 import {
@@ -34,8 +33,6 @@ import { queryClient } from "@/main.tsx";
 import {
   useClipboard,
   useDisclosure,
-  useElementSize,
-  useMergedRef,
 } from "@mantine/hooks";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -51,8 +48,7 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
 import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
-import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
-import { t } from "i18next";
+import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
 import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
 interface SpaceTreeProps {
@@ -75,6 +71,7 @@ const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
 };
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const [, setTree] = useAtom(treeDataAtom);
   const treeMutations = useTreeMutation<SpaceTreeNode>(spaceId);
@@ -101,6 +98,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
      onDrop: treeMutations.move,
      dataLoader: {
        getItem: async pageId => {
+        // docmost doesn't have a direct API for fetching a single page by ID,
+        // but getItem() isn't actually called if getChildrenWithData() is implemented,
+        // and item.invalidateItemData() is never called.
          return null as any;
        },
        getChildrenWithData: async pageId => {
@@ -130,15 +130,16 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   }, [tree, setTree]);
 
   useEffect(() => {
-    (async () => {
+    async function expandCurrentPagePath() {
       if (!currentPage?.id) return;
       const breadcrumbs = await getPageBreadcrumbs(currentPage.id);
       await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
       breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
-
+ 
       // @ts-ignore
       setTree({ tree }); // trigger rerender of breadcrumbs
-    })();
+    }
+    expandCurrentPagePath();
   }, [currentPage?.id]);
 
   return (
@@ -229,9 +230,6 @@ function Node({ item, spaceId, preview, disableEdit }: {
     }, 50);
   };
 
-  if (!item.getItemData()) {
-    console.warn("Item data is missing for item:", item.getId());
-  }
   const pageUrl = buildPageUrl(spaceSlug, item.getItemData()?.slugId, item.getItemName());
 
   return (

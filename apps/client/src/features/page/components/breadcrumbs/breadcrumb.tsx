@@ -41,7 +41,7 @@ export default function Breadcrumb() {
 
   useEffect(() => {
     if (treeAtom?.tree?.getItems().length > 0 && currentPage) {
-      const breadcrumb =  findBreadcrumbPathNew(treeAtom.tree.getItemInstance(currentPage.id));
+      const breadcrumb =  findBreadcrumbPathNew(treeAtom?.tree?.getItemInstance(currentPage.id));
       setBreadcrumbNodes(breadcrumb || null);
     }
   }, [currentPage?.id, treeAtom]);

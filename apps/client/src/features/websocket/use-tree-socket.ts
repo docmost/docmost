@@ -54,7 +54,7 @@ export const useTreeSocket = () => {
           break;
         }
         case "moveTreeNode":
-          tree?.getItemInstance(event.payload.id).getParent()?.invalidateChildrenIds();
+          tree?.getItemInstance(event.payload.id)?.getParent()?.invalidateChildrenIds();
           tree?.getItemInstance(event.payload.parentId)?.invalidateChildrenIds();
 
           break;
