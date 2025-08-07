@@ -16,7 +16,6 @@
     border-radius: 4px;
     display: flex;
     align-items: center;
-    height: 100%;
     width: 93%; /* not to overlap with scroll bar */
     text-decoration: none;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
