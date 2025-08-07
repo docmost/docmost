@@ -31,7 +31,6 @@ import {
   getPageById,
 } from "@/features/page/services/page-service.ts";
 import { queryClient } from "@/main.tsx";
-import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import {
   useClipboard,
   useDisclosure,
@@ -79,7 +78,7 @@ const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
-  const setTreeData = useSetAtom(treeDataAtom);
+  const [, setTree] = useAtom(treeDataAtom);
   const treeMutations = useTreeMutation<SpaceTreeNode>(spaceId);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -130,8 +129,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   });
 
   useEffect(() => {
-    setTreeData({tree});
-  }, [tree, setTreeData]);
+    // @ts-ignore
+    setTree({ tree });
+  }, [tree, setTree]);
 
   useEffect(() => {
     (async () => {
@@ -139,7 +139,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       const breadcrumbs = await getPageBreadcrumbs(currentPage.id);
       await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
       breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
-      setTreeData({ tree }); // trigger rerender of breadcrumbs
+
+      // @ts-ignore
+      setTree({ tree }); // trigger rerender of breadcrumbs
     })();
   }, [currentPage?.id]);
 
@@ -235,6 +237,7 @@ function Node({ item, spaceId, preview, disableEdit }: {
     console.warn("Item data is missing for item:", item.getId());
   }
   const pageUrl = buildPageUrl(spaceSlug, item.getItemData()?.slugId, item.getItemName());
+  // console.log("!!", item.getItemName(), item.isDragTarget())
 
   return (
     <>

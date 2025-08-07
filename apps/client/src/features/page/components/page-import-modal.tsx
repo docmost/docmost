@@ -79,7 +79,7 @@ interface ImportFormatSelection {
 }
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const { t } = useTranslation();
-  const { tree } = useAtomValue(treeDataAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const [workspace] = useAtom(workspaceAtom);
   const [fileTaskId, setFileTaskId] = useState<string | null>(null);
   const emit = useQueryEmit();
@@ -236,7 +236,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }
 
     if (pages?.length > 0 && pageCount > 0) {
-      tree.getRootItem()?.invalidateChildrenIds(); // TODO test
+      tree?.getRootItem()?.invalidateChildrenIds();
 
       const pageCountText =
         pageCount === 1 ? `1 ${t("page")}` : `${pageCount} ${t("pages")}`;

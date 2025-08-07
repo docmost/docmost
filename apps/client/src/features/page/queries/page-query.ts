@@ -36,8 +36,6 @@ import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
-import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 export function usePageQuery(
@@ -169,7 +167,7 @@ export function useMovePageMutation() {
 }
 
 export function useRestorePageMutation() {
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
 
   return useMutation({
@@ -177,57 +175,21 @@ export function useRestorePageMutation() {
     onSuccess: async (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
 
-      // Add the restored page back to the tree
-      const treeApi = new SimpleTree<SpaceTreeNode>(treeData);
-
       // Check if the page already exists in the tree (it shouldn't)
-      if (!treeApi.find(restoredPage.id)) {
-        // Create the tree node data with hasChildren from backend
-        const nodeData: SpaceTreeNode = {
-          id: restoredPage.id,
-          slugId: restoredPage.slugId,
-          name: restoredPage.title || "Untitled",
-          icon: restoredPage.icon,
-          position: restoredPage.position,
-          spaceId: restoredPage.spaceId,
-          parentPageId: restoredPage.parentPageId,
-          hasChildren: restoredPage.hasChildren || false,
-          children: [],
-        };
-
-        // Determine the parent and index
-        const parentId = restoredPage.parentPageId || null;
-        let index = 0;
-
-        if (parentId) {
-          const parentNode = treeApi.find(parentId);
-          if (parentNode) {
-            index = parentNode.children?.length || 0;
-          }
-        } else {
-          // Root level page
-          index = treeApi.data.length;
-        }
-
-        // Add the node to the tree
-        treeApi.create({
-          parentId,
-          index,
-          data: nodeData,
-        });
-
-        // Update the tree data
-        setTreeData(treeApi.data);
+      if (!tree.getItemInstance(restoredPage.id)) {
+        await tree.getItemInstance(restoredPage.parentPageId).invalidateChildrenIds();
+        await tree.loadChildrenIds(restoredPage.parentPageId);
 
         // Emit websocket event to sync with other users
         setTimeout(() => {
+          const item = tree.getItemInstance(restoredPage.id);
           emit({
             operation: "addTreeNode",
             spaceId: restoredPage.spaceId,
             payload: {
-              parentId,
-              index,
-              data: nodeData,
+              parentId: restoredPage.parentPageId,
+              index: item?.getItemMeta()?.index,
+              data: item?.getItemData()
             },
           });
         }, 50);

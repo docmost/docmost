@@ -1,4 +1,4 @@
-import {  useAtomValue } from "jotai";
+import {  useAtom, useAtomValue } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import React, { useCallback, useEffect, useState } from "react";
 import { findBreadcrumbPath, findBreadcrumbPathNew } from "@/features/page/tree/utils";
@@ -29,7 +29,7 @@ function getTitle(name: string, icon: string) {
 }
 
 export default function Breadcrumb() {
-  const atom = useAtomValue(treeDataAtom);
+  const [treeAtom] = useAtom(treeDataAtom);
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
     SpaceTreeNode[] | null
   >(null);
@@ -40,11 +40,11 @@ export default function Breadcrumb() {
   const isMobile = useMediaQuery("(max-width: 48em)");
 
   useEffect(() => {
-    if (atom.tree?.getItems().length > 0 && currentPage) {
-      const breadcrumb =  findBreadcrumbPathNew(atom.tree.getItemInstance(currentPage.id));
+    if (treeAtom?.tree?.getItems().length > 0 && currentPage) {
+      const breadcrumb =  findBreadcrumbPathNew(treeAtom.tree.getItemInstance(currentPage.id));
       setBreadcrumbNodes(breadcrumb || null);
     }
-  }, [currentPage?.id, atom]);
+  }, [currentPage?.id, treeAtom]);
 
   const HiddenNodesTooltipContent = () =>
     breadcrumbNodes?.slice(1, -1).map((node) => (

@@ -32,8 +32,6 @@ import {
 import { IPage } from "@/features/page/types/page.types";
 import { useCreatePageMutation, usePageQuery } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
-import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { extractPageSlugId } from "@/lib";
@@ -47,7 +45,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [currentUser] = useAtom(currentUserAtom);
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
   const { t } = useTranslation();
-  const { tree } = useAtomValue(treeDataAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
 
