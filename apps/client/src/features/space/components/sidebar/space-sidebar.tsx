@@ -20,7 +20,6 @@ import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
 import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
-import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -40,10 +39,13 @@ import ExportModal from "@/components/common/export-modal";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
+import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation";
+import { string } from "zod";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
-  const [tree] = useAtom(treeApiAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
@@ -52,6 +54,7 @@ export function SpaceSidebar() {
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
+  const mutations = useTreeMutation(space?.id);
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
@@ -61,7 +64,7 @@ export function SpaceSidebar() {
   }
 
   function handleCreatePage() {
-    tree?.create({ parentId: null, type: "internal", index: 0 });
+    mutations.create(tree.getRootItem());
   }
 
   return (

@@ -24,9 +24,10 @@ export function useTreeMutation<T>(spaceId: string) {
   const emit = useQueryEmit();
 
   const create = async (parent: ItemInstance<SpaceTreeNode>) => {
+    const parentId = parent.getId() === "root" ? null : parent.getId();
     let createdPage: IPage;
     try {
-      const payload = { parentPageId: parent?.getId(), spaceId };
+      const payload = { parentPageId: parentId, spaceId };
       createdPage = await createPageMutation.mutateAsync(payload);
     } catch (err) {
       throw new Error("Failed to create page");
@@ -51,7 +52,7 @@ export function useTreeMutation<T>(spaceId: string) {
         operation: "addTreeNode",
         spaceId: spaceId,
         payload: {
-          parentId: parent.getId() === "root" ? null : parent.getId(),
+          parentId,
           index,
           data: newItem,
         },
