@@ -55,8 +55,6 @@ import { asyncDataLoaderFeature, createOnDropHandler, dragAndDropFeature, hotkey
 import { t } from "i18next";
 import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
-// TODO invalidate item data when page is updated from outside
-
 interface SpaceTreeProps {
   spaceId: string;
   readOnly: boolean;
@@ -83,8 +81,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
-
-  // TODO virtualization?
 
   const tree = useHeadlessTree<SpaceTreeNode>({
      rootItemId: "root",
@@ -237,7 +233,6 @@ function Node({ item, spaceId, preview, disableEdit }: {
     console.warn("Item data is missing for item:", item.getId());
   }
   const pageUrl = buildPageUrl(spaceSlug, item.getItemData()?.slugId, item.getItemName());
-  // console.log("!!", item.getItemName(), item.isDragTarget())
 
   return (
     <>

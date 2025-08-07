@@ -119,7 +119,6 @@ export function TitleEditor({
           icon: page.icon,
         },
       };
-      // TODO maybe update from here?
 
       if (page.title !== titleEditor.getText()) return;
 

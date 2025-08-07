@@ -99,8 +99,6 @@ export function useTreeMutation<T>(spaceId: string) {
       parentPageId,
     };
 
-    // TODO set hasChildren to false if item has no children after moving
-
     try {
       await movePageMutation.mutateAsync(payload);
 
