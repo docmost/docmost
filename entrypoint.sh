@@ -21,7 +21,7 @@ fi
 addgroup skywalker docmost
 
 echo "Running as user skywalker (UID $PUID)"
-su -s /bin/sh -c "pnpm start" skywalker
+exec su -s /bin/sh -c "pnpm start" skywalker
 
 
 
