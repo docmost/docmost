@@ -39,8 +39,13 @@ RUN mkdir -p /app/data/storage
 
 VOLUME ["/app/data/storage"]
 
+## delete default user node
+RUN deluser node; \
+    delgroup node; \
+    addgroup -g 400 docmost
+
 COPY ./entrypoint.sh /app/run.sh
-RUN chown -R node:node /app && \
+RUN chown -R root:docmost /app && \
     find /app -type d -exec chmod 770 {} + && \
     find /app -type f -exec chmod 660 {} + && \
     find /app/node_modules/.bin/ -type f -exec chmod 770 {} + && \
@@ -50,5 +55,3 @@ EXPOSE 3000
 
 ENTRYPOINT ["/app/run.sh"]
 
-
-#CMD ["pnpm", "start"]
