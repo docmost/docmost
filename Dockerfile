@@ -44,7 +44,7 @@ RUN chown -R node:node /app && \
     find /app -type d -exec chmod 770 {} + && \
     find /app -type f -exec chmod 660 {} + && \
     find /app/node_modules/.bin/ -type f -exec chmod 770 {} + && \
-    chmod +x /app/run.sh \
+    chmod +x /app/run.sh
 
 EXPOSE 3000
 
