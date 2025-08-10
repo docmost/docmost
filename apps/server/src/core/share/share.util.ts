@@ -32,5 +32,5 @@ function updateAttachmentUrl(src: string, jwtToken: string) {
   const updatedSrc = src.replace('/files/', '/files/public/');
   const encodedSrc = encodePathsInUrl(updatedSrc);
   const separator = updatedSrc.includes('?') ? '&' : '?';
-  return `${encodedSrc}${separator}jwt=${jwtToken}`;
+  return `${encodedSrc}${separator}jwt=${encodeURIComponents(jwtToken)}`;
 }
