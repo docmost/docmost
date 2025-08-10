@@ -66,6 +66,7 @@
     "jsonwebtoken": "^9.0.2",
     "kysely": "^0.28.2",
     "kysely-migration-cli": "^0.4.2",
+    "ldapts": "^7.4.0",
     "mime-types": "^2.1.35",
     "nanoid": "3.3.11",
     "nestjs-kysely": "^1.2.0",

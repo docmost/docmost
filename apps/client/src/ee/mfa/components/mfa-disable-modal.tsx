@@ -96,6 +96,7 @@ export function MfaDisableModal({
             placeholder={t("Enter your password")}
             {...form.getInputProps("confirmPassword")}
             autoFocus
+            data-autofocus
           />
 
           <Stack gap="sm">

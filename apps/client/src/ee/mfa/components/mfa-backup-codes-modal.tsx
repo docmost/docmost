@@ -119,6 +119,8 @@ export function MfaBackupCodesModal({
                 placeholder={t("Enter your password")}
                 variant="filled"
                 {...form.getInputProps("confirmPassword")}
+                autoFocus
+                data-autofocus
               />
 
               <Button

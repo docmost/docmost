@@ -5,8 +5,6 @@
 
 import type { ColumnType } from "kysely";
 
-export type AuthProviderType = "google" | "oidc" | "saml";
-
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -62,13 +60,21 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  ldapBaseDn: string | null;
+  ldapBindDn: string | null;
+  ldapBindPassword: string | null;
+  ldapTlsCaCert: string | null;
+  ldapTlsEnabled: Generated<boolean | null>;
+  ldapUrl: string | null;
+  ldapUserAttributes: Json | null;
+  ldapUserSearchFilter: string | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
-  type: AuthProviderType;
+  type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

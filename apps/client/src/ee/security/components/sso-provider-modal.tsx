@@ -5,6 +5,7 @@ import { SsoSamlForm } from "@/ee/security/components/sso-saml-form.tsx";
 import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 import { SsoOIDCForm } from "@/ee/security/components/sso-oidc-form.tsx";
 import { SsoGoogleForm } from "@/ee/security/components/sso-google-form.tsx";
+import { SsoLDAPForm } from "@/ee/security/components/sso-ldap-form.tsx";
 
 interface SsoModalProps {
   opened: boolean;
@@ -37,6 +38,10 @@ export default function SsoProviderModal({
 
       {provider.type === SSO_PROVIDER.GOOGLE && (
         <SsoGoogleForm provider={provider} onClose={onClose} />
+      )}
+
+      {provider.type === SSO_PROVIDER.LDAP && (
+        <SsoLDAPForm provider={provider} onClose={onClose} />
       )}
     </Modal>
   );
