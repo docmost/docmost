@@ -254,21 +254,28 @@ export class PageController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
-    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (!dto.spaceId && !dto.pageId) {
+      throw new BadRequestException(
+        'Either spaceId or pageId must be provided',
+      );
+    }
+    let spaceId = dto.spaceId;
+
+    if (dto.pageId) {
+      const page = await this.pageRepo.findById(dto.pageId);
+      if (!page) {
+        throw new ForbiddenException();
+      }
+
+      spaceId = page.spaceId;
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, spaceId);
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
-    let pageId = null;
-    if (dto.pageId) {
-      const page = await this.pageRepo.findById(dto.pageId);
-      if (page.spaceId !== dto.spaceId) {
-        throw new ForbiddenException();
-      }
-      pageId = page.id;
-    }
-
-    return this.pageService.getSidebarPages(dto.spaceId, pagination, pageId);
+    return this.pageService.getSidebarPages(spaceId, pagination, dto.pageId);
   }
 
   @HttpCode(HttpStatus.OK)
