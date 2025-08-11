@@ -10,8 +10,6 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
-import Table from '@tiptap/extension-table';
-import TableHeader from '@tiptap/extension-table-header';
 import UniqueID from '@tiptap/extension-unique-id';
 import {
   Callout,
@@ -23,8 +21,10 @@ import {
   LinkExtension,
   MathBlock,
   MathInline,
+  TableHeader,
   TableCell,
   TableRow,
+  CustomTable,
   TiptapImage,
   TiptapVideo,
   TrailingNode,
@@ -49,7 +49,9 @@ export const tiptapExtensions = [
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TaskList,
-  TaskItem,
+  TaskItem.configure({
+    nested: true,
+  }),
   Underline,
   LinkExtension,
   Superscript,
@@ -64,10 +66,10 @@ export const tiptapExtensions = [
   Details,
   DetailsContent,
   DetailsSummary,
-  Table,
-  TableHeader,
-  TableRow,
+  CustomTable,
   TableCell,
+  TableRow,
+  TableHeader,
   Youtube,
   TiptapImage,
   TiptapVideo,

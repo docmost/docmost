@@ -1,9 +1,8 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import clsx from "clsx";
 import {
   ActionIcon,
-  AspectRatio,
   Button,
   Card,
   FocusTrap,
@@ -14,14 +13,18 @@ import {
 } from "@mantine/core";
 import { IconEdit } from "@tabler/icons-react";
 import { z } from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zodResolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
 import {
   getEmbedProviderById,
   getEmbedUrlAndProvider,
+  sanitizeUrl,
 } from "@docmost/editor-ext";
+import { ResizableWrapper } from "../common/resizable-wrapper";
+import classes from "./embed-view.module.css";
 
 const schema = z.object({
   url: z
@@ -33,7 +36,7 @@ const schema = z.object({
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, selected, updateAttributes, editor } = props;
-  const { src, provider } = node.attrs;
+  const { src, provider, height: nodeHeight } = node.attrs;
 
   const embedUrl = useMemo(() => {
     if (src) {
@@ -49,6 +52,13 @@ export default function EmbedView(props: NodeViewProps) {
     validate: zodResolver(schema),
   });
 
+  const handleResize = useCallback(
+    (newHeight: number) => {
+      updateAttributes({ height: newHeight });
+    },
+    [updateAttributes],
+  );
+
   async function onSubmit(data: { url: string }) {
     if (!editor.isEditable) {
       return;
@@ -57,11 +67,11 @@ export default function EmbedView(props: NodeViewProps) {
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
       if (embedProvider.id === "iframe") {
-        updateAttributes({ src: data.url });
+        updateAttributes({ src: sanitizeUrl(data.url) });
         return;
       }
       if (embedProvider.regex.test(data.url)) {
-        updateAttributes({ src: data.url });
+        updateAttributes({ src: sanitizeUrl(data.url) });
       } else {
         notifications.show({
           message: t("Invalid {{provider}} embed link", {
@@ -77,17 +87,25 @@ export default function EmbedView(props: NodeViewProps) {
   return (
     <NodeViewWrapper>
       {embedUrl ? (
-        <>
-          <AspectRatio ratio={16 / 9}>
-            <iframe
-              src={embedUrl}
-              allow="encrypted-media"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              allowFullScreen
-              frameBorder="0"
-            ></iframe>
-          </AspectRatio>
-        </>
+        <ResizableWrapper
+          initialHeight={nodeHeight || 480}
+          minHeight={200}
+          maxHeight={1200}
+          onResize={handleResize}
+          isEditable={editor.isEditable}
+          className={clsx(classes.embedWrapper, {
+            "ProseMirror-selectednode": selected,
+          })}
+        >
+          <iframe
+            className={classes.embedIframe}
+            src={sanitizeUrl(embedUrl)}
+            allow="encrypted-media"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            allowFullScreen
+            frameBorder="0"
+          />
+        </ResizableWrapper>
       ) : (
         <Popover
           width={300}

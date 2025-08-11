@@ -30,12 +30,12 @@ export default function BillingDetails() {
               >
                 Plan
               </Text>
-              <Text fw={700} fz="lg">
-                {
-                  plans.find(
-                    (plan) => plan.productId === billing.stripeProductId,
-                  )?.name
-                }
+              <Text fw={700} fz="lg" tt="capitalize">
+                {plans.find(
+                  (plan) => plan.productId === billing.stripeProductId,
+                )?.name ||
+                  billing.planName ||
+                  "Standard"}
               </Text>
             </div>
           </Group>
@@ -112,18 +112,59 @@ export default function BillingDetails() {
                 fz="xs"
                 className={classes.label}
               >
-                Total
+                Cost
               </Text>
-              <Text fw={700} fz="lg">
-                {(billing.amount / 100) * billing.quantity}{" "}
-                {billing.currency.toUpperCase()}
-              </Text>
-              <Text c="dimmed" fz="sm">
-                ${billing.amount / 100} /user/{billing.interval}
-              </Text>
+              {billing.billingScheme === "tiered" && (
+                <>
+                  <Text fw={700} fz="lg">
+                    ${billing.amount / 100} {billing.currency.toUpperCase()} /{" "}
+                    {billing.interval}
+                  </Text>
+                  <Text c="dimmed" fz="sm">
+                    per {billing.interval}
+                  </Text>
+                </>
+              )}
+
+              {billing.billingScheme !== "tiered" && (
+                <>
+                  <Text fw={700} fz="lg">
+                    {(billing.amount / 100) * billing.quantity}{" "}
+                    {billing.currency.toUpperCase()} / {billing.interval}
+                  </Text>
+                  <Text c="dimmed" fz="sm">
+                    ${billing.amount / 100} /user/{billing.interval}
+                  </Text>
+                </>
+              )}
             </div>
           </Group>
         </Paper>
+
+        {billing.billingScheme === "tiered" && billing.tieredUpTo && (
+          <Paper p="md" radius="md">
+            <Group justify="apart">
+              <div>
+                <Text
+                  c="dimmed"
+                  tt="uppercase"
+                  fw={700}
+                  fz="xs"
+                  className={classes.label}
+                >
+                  Current Tier
+                </Text>
+                <Text fw={700} fz="lg">
+                  For {billing.tieredUpTo} users
+                </Text>
+                {/*billing.tieredFlatAmount && (
+                  <Text c="dimmed" fz="sm">
+                  </Text>
+                )*/}
+              </div>
+            </Group>
+          </Paper>
+        )}
       </SimpleGrid>
     </div>
   );

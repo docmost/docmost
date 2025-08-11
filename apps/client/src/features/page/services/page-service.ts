@@ -8,6 +8,7 @@ import {
   IPageInput,
   SidebarPagesParams,
 } from '@/features/page/types/page.types';
+import { QueryParams } from "@/lib/types";
 import { IAttachment, IPagination } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
@@ -30,8 +31,21 @@ export async function updatePage(data: Partial<IPageInput>): Promise<IPage> {
   return req.data;
 }
 
-export async function deletePage(pageId: string): Promise<void> {
-  await api.post("/pages/delete", { pageId });
+export async function deletePage(pageId: string, permanentlyDelete = false): Promise<void> {
+  await api.post("/pages/delete", { pageId, permanentlyDelete });
+}
+
+export async function getDeletedPages(
+  spaceId: string,
+  params?: QueryParams,
+): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/trash", { spaceId, ...params });
+  return req.data;
+}
+
+export async function restorePage(pageId: string): Promise<IPage> {
+  const response = await api.post<IPage>("/pages/restore", { pageId });
+  return response.data;
 }
 
 export async function movePage(data: IMovePage): Promise<void> {
@@ -42,8 +56,8 @@ export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }
 
-export async function copyPageToSpace(data: ICopyPageToSpace): Promise<IPage> {
-  const req = await api.post<IPage>("/pages/copy-to-space", data);
+export async function duplicatePage(data: ICopyPageToSpace): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/duplicate", data);
   return req.data;
 }
 

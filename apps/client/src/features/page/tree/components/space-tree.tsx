@@ -1,4 +1,10 @@
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
+import {
+  NodeApi,
+  NodeRendererProps,
+  Tree,
+  TreeApi,
+  SimpleTree,
+} from "react-arborist";
 import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
@@ -66,6 +72,7 @@ import MovePageModal from "../../components/move-page-modal.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
+import { duplicatePage } from "../../services/page-service.ts";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -90,8 +97,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
+  const [isRootReady, setIsRootReady] = useState(false);
   const { ref: sizeRef, width, height } = useElementSize();
-  const mergedRef = useMergedRef(rootElement, sizeRef);
+  const mergedRef = useMergedRef((element) => {
+    rootElement.current = element;
+    if (element && !isRootReady) {
+      setIsRootReady(true);
+    }
+  }, sizeRef);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -199,16 +212,17 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [currentPage?.id]);
 
+  // Clean up tree API on unmount
   useEffect(() => {
-    if (treeApiRef.current) {
+    return () => {
       // @ts-ignore
-      setTreeApi(treeApiRef.current);
-    }
-  }, [treeApiRef.current]);
+      setTreeApi(null);
+    };
+  }, [setTreeApi]);
 
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
-      {rootElement.current && (
+      {isRootReady && rootElement.current && (
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
@@ -217,7 +231,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           {...controllers}
           width={width}
           height={rootElement.current.clientHeight}
-          ref={treeApiRef}
+          ref={(ref) => {
+            treeApiRef.current = ref;
+            if (ref) {
+              //@ts-ignore
+              setTreeApi(ref);
+            }
+          }}
           openByDefault={false}
           disableMultiSelection={true}
           className={classes.tree}
@@ -383,7 +403,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
 
         <div className={classes.actions}>
-          <NodeMenu node={node} treeApi={tree} />
+          <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
 
           {!tree.props.disableEdit && (
             <CreateNode
@@ -436,13 +456,16 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
 interface NodeMenuProps {
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
+  spaceId: string;
 }
 
-function NodeMenu({ node, treeApi }: NodeMenuProps) {
+function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
   const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
+  const [data, setData] = useAtom(treeDataAtom);
+  const emit = useQueryEmit();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -459,6 +482,68 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
       getAppUrl() + buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
+  };
+
+  const handleDuplicatePage = async () => {
+    try {
+      const duplicatedPage = await duplicatePage({
+        pageId: node.id,
+      });
+
+      // Find the index of the current node
+      const parentId =
+        node.parent?.id === "__REACT_ARBORIST_INTERNAL_ROOT__"
+          ? null
+          : node.parent?.id;
+      const siblings = parentId ? node.parent.children : treeApi?.props.data;
+      const currentIndex =
+        siblings?.findIndex((sibling) => sibling.id === node.id) || 0;
+      const newIndex = currentIndex + 1;
+
+      // Add the duplicated page to the tree
+      const treeNodeData: SpaceTreeNode = {
+        id: duplicatedPage.id,
+        slugId: duplicatedPage.slugId,
+        name: duplicatedPage.title,
+        position: duplicatedPage.position,
+        spaceId: duplicatedPage.spaceId,
+        parentPageId: duplicatedPage.parentPageId,
+        icon: duplicatedPage.icon,
+        hasChildren: duplicatedPage.hasChildren,
+        children: [],
+      };
+
+      // Update local tree
+      const simpleTree = new SimpleTree(data);
+      simpleTree.create({
+        parentId,
+        index: newIndex,
+        data: treeNodeData,
+      });
+      setData(simpleTree.data);
+
+      // Emit socket event
+      setTimeout(() => {
+        emit({
+          operation: "addTreeNode",
+          spaceId: spaceId,
+          payload: {
+            parentId,
+            index: newIndex,
+            data: treeNodeData,
+          },
+        });
+      }, 50);
+
+      notifications.show({
+        message: t("Page duplicated successfully"),
+      });
+    } catch (err) {
+      notifications.show({
+        message: err.response?.data.message || "An error occurred",
+        color: "red",
+      });
+    }
   };
 
   return (
@@ -506,6 +591,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           {!(treeApi.props.disableEdit as boolean) && (
             <>
               <Menu.Item
+                leftSection={<IconCopy size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDuplicatePage();
+                }}
+              >
+                {t("Duplicate")}
+              </Menu.Item>
+
+              <Menu.Item
                 leftSection={<IconArrowRight size={16} />}
                 onClick={(e) => {
                   e.preventDefault();
@@ -524,7 +620,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                   openCopyPageModal();
                 }}
               >
-                {t("Copy")}
+                {t("Copy to space")}
               </Menu.Item>
 
               <Menu.Divider />
@@ -537,7 +633,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                   openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
                 }}
               >
-                {t("Delete")}
+                {t("Move to trash")}
               </Menu.Item>
             </>
           )}

@@ -20,6 +20,7 @@ export interface IPage {
   hasChildren: boolean;
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
+  deletedBy: IDeletedBy;
   space: Partial<ISpace>;
 }
 
@@ -29,6 +30,12 @@ interface ICreator {
   avatarUrl: string;
 }
 interface ILastUpdatedBy {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
+interface IDeletedBy {
   id: string;
   name: string;
   avatarUrl: string;
@@ -49,7 +56,7 @@ export interface IMovePageToSpace {
 
 export interface ICopyPageToSpace {
   pageId: string;
-  spaceId: string;
+  spaceId?: string;
 }
 
 export interface SidebarPagesParams {
@@ -72,6 +79,7 @@ export interface IExportPageParams {
   pageId: string;
   format: ExportFormat;
   includeChildren?: boolean;
+  includeAttachments?: boolean;
 }
 
 export enum ExportFormat {

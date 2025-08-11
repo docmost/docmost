@@ -1,5 +1,5 @@
 import { Modal, Button, Group, Text } from "@mantine/core";
-import { copyPageToSpace } from "@/features/page/services/page-service.ts";
+import { duplicatePage } from "@/features/page/services/page-service.ts";
 import { useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
@@ -30,7 +30,7 @@ export default function CopyPageModal({
     if (!targetSpace) return;
 
     try {
-      const copiedPage = await copyPageToSpace({
+      const copiedPage = await duplicatePage({
         pageId,
         spaceId: targetSpace.id,
       });

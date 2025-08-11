@@ -10,8 +10,6 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import Table from "@tiptap/extension-table";
-import TableHeader from "@tiptap/extension-table-header";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -25,6 +23,8 @@ import {
   MathInline,
   TableCell,
   TableRow,
+  TableHeader,
+  CustomTable,
   TrailingNode,
   TiptapImage,
   Callout,
@@ -36,6 +36,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  SearchAndReplace,
   Mention,
 } from "@docmost/editor-ext";
 import {
@@ -169,7 +170,7 @@ export const mainExtensions = [
       return ReactNodeViewRenderer(MentionView);
     },
   }),
-  Table.configure({
+  CustomTable.configure({
     resizable: true,
     lastColumnResizable: false,
     allowTableNodeSelection: true,
@@ -227,6 +228,22 @@ export const mainExtensions = [
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
   }),
+  SearchAndReplace.extend({
+    addKeyboardShortcuts() {
+      return {
+        'Mod-f': () => {
+          const event = new CustomEvent("openFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+        'Escape': () => {
+          const event = new CustomEvent("closeFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+      }
+    },
+  }).configure(),
   UniqueID.configure({
     types: ['heading'],
     attributeName: 'nodeId',

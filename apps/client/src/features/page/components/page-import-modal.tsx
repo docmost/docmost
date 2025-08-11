@@ -319,7 +319,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         >
           {(props) => (
             <Tooltip
-              label="Available in enterprise edition"
+              label={t("Available in enterprise edition")}
               disabled={canUseConfluence}
             >
               <Button

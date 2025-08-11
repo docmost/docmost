@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 import { sanitize } from 'sanitize-filename-ts';
+import { FastifyRequest } from 'fastify';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -73,4 +74,16 @@ export function extractDateFromUuid7(uuid7: string) {
 export function sanitizeFileName(fileName: string): string {
   const sanitizedFilename = sanitize(fileName).replace(/ /g, '_');
   return sanitizedFilename.slice(0, 255);
+}
+
+export function removeAccent(str: string): string {
+  if (!str) return str;
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+export function extractBearerTokenFromHeader(
+  request: FastifyRequest,
+): string | undefined {
+  const [type, token] = request.headers.authorization?.split(' ') ?? [];
+  return type === 'Bearer' ? token : undefined;
 }

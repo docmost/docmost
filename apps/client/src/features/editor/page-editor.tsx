@@ -1,11 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -45,6 +39,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
+import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
@@ -73,11 +68,15 @@ export default function PageEditor({
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const ydoc = useMemo(() => new Y.Doc(), [pageId]);
+  const ydocRef = useRef<Y.Doc | null>(null);
+  if (!ydocRef.current) {
+    ydocRef.current = new Y.Doc();
+  }
+  const ydoc = ydocRef.current;
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom,
+    yjsConnectionStatusAtom
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -91,66 +90,123 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
-  const localProvider = useMemo(() => {
-    const provider = new IndexeddbPersistence(documentName, ydoc);
+  // Providers only created once per pageId
+  const providersRef = useRef<{
+    local: IndexeddbPersistence;
+    remote: HocuspocusProvider;
+  } | null>(null);
+  const [providersReady, setProvidersReady] = useState(false);
 
-    provider.on("synced", () => {
-      setLocalSynced(true);
-    });
+  const localProvider = providersRef.current?.local;
+  const remoteProvider = providersRef.current?.remote;
 
-    return provider;
-  }, [pageId, ydoc]);
+  // Track when collaborative provider is ready and synced
+  const [collabReady, setCollabReady] = useState(false);
+  useEffect(() => {
+    if (
+      remoteProvider?.status === WebSocketStatus.Connected &&
+      isLocalSynced &&
+      isRemoteSynced
+    ) {
+      setCollabReady(true);
+    }
+  }, [remoteProvider?.status, isLocalSynced, isRemoteSynced]);
 
-  const remoteProvider = useMemo(() => {
-    const provider = new HocuspocusProvider({
-      name: documentName,
-      url: collaborationURL,
-      document: ydoc,
-      token: collabQuery?.token,
-      connect: false,
-      preserveConnection: false,
-      onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
-        const payload = jwtDecode(collabQuery?.token);
-        const now = Date.now().valueOf() / 1000;
-        const isTokenExpired = now >= payload.exp;
-        if (isTokenExpired) {
-          refetchCollabToken();
-        }
-      },
-      onStatus: (status) => {
-        if (status.status === "connected") {
-          setYjsConnectionStatus(status.status);
-        }
-      },
-    });
-
-    provider.on("synced", () => {
-      setRemoteSynced(true);
-    });
-
-    provider.on("disconnect", () => {
-      setYjsConnectionStatus(WebSocketStatus.Disconnected);
-    });
-
-    return provider;
-  }, [ydoc, pageId, collabQuery?.token]);
-
-  useLayoutEffect(() => {
-    remoteProvider.connect();
+  useEffect(() => {
+    if (!providersRef.current) {
+      const local = new IndexeddbPersistence(documentName, ydoc);
+      local.on("synced", () => setLocalSynced(true));
+      const remote = new HocuspocusProvider({
+        name: documentName,
+        url: collaborationURL,
+        document: ydoc,
+        token: collabQuery?.token,
+        connect: true,
+        preserveConnection: false,
+        onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
+          const payload = jwtDecode(collabQuery?.token);
+          const now = Date.now().valueOf() / 1000;
+          const isTokenExpired = now >= payload.exp;
+          if (isTokenExpired) {
+            refetchCollabToken().then((result) => {
+              if (result.data?.token) {
+                remote.disconnect();
+                setTimeout(() => {
+                  remote.configuration.token = result.data.token;
+                  remote.connect();
+                }, 100);
+              }
+            });
+          }
+        },
+        onStatus: (status) => {
+          if (status.status === "connected") {
+            setYjsConnectionStatus(status.status);
+          }
+        },
+      });
+      remote.on("synced", () => setRemoteSynced(true));
+      remote.on("disconnect", () => {
+        setYjsConnectionStatus(WebSocketStatus.Disconnected);
+      });
+      providersRef.current = { local, remote };
+      setProvidersReady(true);
+    } else {
+      setProvidersReady(true);
+    }
+    // Only destroy on final unmount
     return () => {
-      setRemoteSynced(false);
-      setLocalSynced(false);
-      remoteProvider.destroy();
-      localProvider.destroy();
+      providersRef.current?.remote.destroy();
+      providersRef.current?.local.destroy();
+      providersRef.current = null;
     };
-  }, [remoteProvider, localProvider]);
+  }, [pageId]);
+
+  /*
+  useEffect(() => {
+    // Handle token updates by reconnecting with new token
+    if (providersRef.current?.remote && collabQuery?.token) {
+      const currentToken = providersRef.current.remote.configuration.token;
+      if (currentToken !== collabQuery.token) {
+        // Token has changed, need to reconnect with new token
+        providersRef.current.remote.disconnect();
+        providersRef.current.remote.configuration.token = collabQuery.token;
+        providersRef.current.remote.connect();
+      }
+    }
+  }, [collabQuery?.token]);
+   */
+
+  // Only connect/disconnect on tab/idle, not destroy
+  useEffect(() => {
+    if (!providersReady || !providersRef.current) return;
+    const remoteProvider = providersRef.current.remote;
+    if (
+      isIdle &&
+      documentState === "hidden" &&
+      remoteProvider.status === WebSocketStatus.Connected
+    ) {
+      remoteProvider.disconnect();
+      setIsCollabReady(false);
+      return;
+    }
+    if (
+      documentState === "visible" &&
+      remoteProvider.status === WebSocketStatus.Disconnected
+    ) {
+      resetIdle();
+      remoteProvider.connect();
+      setTimeout(() => setIsCollabReady(true), 500);
+    }
+  }, [isIdle, documentState, providersReady, resetIdle]);
 
   const extensions = useMemo(() => {
+    if (!remoteProvider || !currentUser?.user) return mainExtensions;
     return [
       ...mainExtensions,
       ...collabExtensions(remoteProvider, currentUser?.user),
     ];
-  }, [ydoc, pageId, remoteProvider, currentUser?.user]);
+  }, [remoteProvider, currentUser?.user]);
 
   const editor = useEditor(
     {
@@ -163,6 +219,10 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+              event.preventDefault();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -204,7 +264,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider?.status],
+    [pageId, editable, remoteProvider]
   );
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
@@ -220,7 +280,12 @@ export default function PageEditor({
   }, 3000);
 
   const handleActiveCommentEvent = (event) => {
-    const { commentId } = event.detail;
+    const { commentId, resolved } = event.detail;
+
+    if (resolved) {
+      return;
+    }
+
     setActiveCommentId(commentId);
     setAsideState({ tab: "comments", isAsideOpen: true });
 
@@ -237,7 +302,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent,
+        handleActiveCommentEvent
       );
     };
   }, []);
@@ -257,29 +322,6 @@ export default function PageEditor({
     }
   }, [remoteProvider?.status]);
 
-  useEffect(() => {
-    if (
-      isIdle &&
-      documentState === "hidden" &&
-      remoteProvider?.status === WebSocketStatus.Connected
-    ) {
-      remoteProvider.disconnect();
-      setIsCollabReady(false);
-      return;
-    }
-
-    if (
-      documentState === "visible" &&
-      remoteProvider?.status === WebSocketStatus.Disconnected
-    ) {
-      resetIdle();
-      remoteProvider.connect();
-      setTimeout(() => {
-        setIsCollabReady(true);
-      }, 600);
-    }
-  }, [isIdle, documentState, remoteProvider]);
-
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
@@ -296,20 +338,52 @@ export default function PageEditor({
   }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
 
   useEffect(() => {
-    // honor user default page edit mode preference
-    if (userPageEditMode && editor && editable && isSynced) {
-      if (userPageEditMode === PageEditMode.Edit) {
-        editor.setEditable(true);
-      } else if (userPageEditMode === PageEditMode.Read) {
+    // Only honor user default page edit mode preference and permissions
+    if (editor) {
+      if (userPageEditMode && editable) {
+        if (userPageEditMode === PageEditMode.Edit) {
+          editor.setEditable(true);
+        } else if (userPageEditMode === PageEditMode.Read) {
+          editor.setEditable(false);
+        }
+      } else {
         editor.setEditable(false);
       }
     }
-  }, [userPageEditMode, editor, editable, isSynced]);
+  }, [userPageEditMode, editor, editable]);
 
-  return isCollabReady ? (
-    <div>
+  const hasConnectedOnceRef = useRef(false);
+  const [showStatic, setShowStatic] = useState(true);
+
+  useEffect(() => {
+    if (
+      !hasConnectedOnceRef.current &&
+      remoteProvider?.status === WebSocketStatus.Connected
+    ) {
+      hasConnectedOnceRef.current = true;
+      setShowStatic(false);
+    }
+  }, [remoteProvider?.status]);
+
+  if (showStatic) {
+    return (
+      <EditorProvider
+        editable={false}
+        immediatelyRender={true}
+        extensions={mainExtensions}
+        content={content}
+      />
+    );
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
+
+        {editor && (
+          <SearchAndReplaceDialog editor={editor} editable={editable} />
+        )}
 
         {editor && editor.isEditable && (
           <div>
@@ -324,21 +398,12 @@ export default function PageEditor({
             <LinkMenu editor={editor} appendTo={menuContainerRef} />
           </div>
         )}
-
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
       </div>
-
       <div
         onClick={() => editor.commands.focus("end")}
         style={{ paddingBottom: "20vh" }}
       ></div>
     </div>
-  ) : (
-    <EditorProvider
-      editable={false}
-      immediatelyRender={true}
-      extensions={mainExtensions}
-      content={content}
-    ></EditorProvider>
   );
 }

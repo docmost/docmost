@@ -22,7 +22,7 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
 import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
 import { PasswordResetDto } from '../dto/password-reset.dto';
-import { UserToken, Workspace } from '@docmost/db/types/entity.types';
+import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
 import { UserTokenType } from '../auth.constants';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -47,7 +47,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    const errorMessage = 'email or password does not match';
+    const errorMessage = 'Email or password does not match';
     if (!user || user?.deletedAt) {
       throw new UnauthorizedException(errorMessage);
     }
@@ -156,10 +156,13 @@ export class AuthService {
     });
   }
 
-  async passwordReset(passwordResetDto: PasswordResetDto, workspaceId: string) {
+  async passwordReset(
+    passwordResetDto: PasswordResetDto,
+    workspace: Workspace,
+  ) {
     const userToken = await this.userTokenRepo.findById(
       passwordResetDto.token,
-      workspaceId,
+      workspace.id,
     );
 
     if (
@@ -170,7 +173,9 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired token');
     }
 
-    const user = await this.userRepo.findById(userToken.userId, workspaceId);
+    const user = await this.userRepo.findById(userToken.userId, workspace.id, {
+      includeUserMfa: true,
+    });
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
@@ -183,7 +188,7 @@ export class AuthService {
           password: newPasswordHash,
         },
         user.id,
-        workspaceId,
+        workspace.id,
         trx,
       );
 
@@ -201,7 +206,18 @@ export class AuthService {
       template: emailTemplate,
     });
 
-    return this.tokenService.generateAccessToken(user);
+    // Check if user has MFA enabled or workspace enforces MFA
+    const userHasMfa = user?.['mfa']?.isEnabled || false;
+    const workspaceEnforcesMfa = workspace.enforceMfa || false;
+
+    if (userHasMfa || workspaceEnforcesMfa) {
+      return {
+        requiresLogin: true,
+      };
+    }
+
+    const authToken = await this.tokenService.generateAccessToken(user);
+    return { authToken };
   }
 
   async verifyUserToken(
@@ -222,9 +238,9 @@ export class AuthService {
     }
   }
 
-  async getCollabToken(userId: string, workspaceId: string) {
+  async getCollabToken(user: User, workspaceId: string) {
     const token = await this.tokenService.generateCollabToken(
-      userId,
+      user,
       workspaceId,
     );
     return { token };

@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { sanitizeUrl } from './utils';
 
 export interface EmbedOptions {
   HTMLAttributes: Record<string, any>;
@@ -40,9 +41,12 @@ export const Embed = Node.create<EmbedOptions>({
     return {
       src: {
         default: '',
-        parseHTML: (element) => element.getAttribute('data-src'),
+        parseHTML: (element) => {
+          const src = element.getAttribute('data-src');
+          return sanitizeUrl(src);
+        },
         renderHTML: (attributes: EmbedAttributes) => ({
-          'data-src': attributes.src,
+          'data-src': sanitizeUrl(attributes.src),
         }),
       },
       provider: {
@@ -85,6 +89,9 @@ export const Embed = Node.create<EmbedOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const src = HTMLAttributes["data-src"];
+    const safeHref = sanitizeUrl(src);
+    
     return [
       "div",
       mergeAttributes(
@@ -95,10 +102,10 @@ export const Embed = Node.create<EmbedOptions>({
       [
         "a",
         {
-          href: HTMLAttributes["data-src"],
+          href: safeHref,
           target: "blank",
         },
-        `${HTMLAttributes["data-src"]}`,
+        safeHref,
       ],
     ];
   },
@@ -108,9 +115,15 @@ export const Embed = Node.create<EmbedOptions>({
       setEmbed:
         (attrs: EmbedAttributes) =>
         ({ commands }) => {
+          // Validate the URL before inserting
+          const validatedAttrs = {
+            ...attrs,
+            src: sanitizeUrl(attrs.src),
+          };
+          
           return commands.insertContent({
             type: 'embed',
-            attrs: attrs,
+            attrs: validatedAttrs,
           });
         },
     };
