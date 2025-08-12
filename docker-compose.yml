@@ -34,6 +34,6 @@ services:
       - redis_data:/data
 
 volumes:
-  docmost:
+  forkmost:
   db_data:
   redis_data:
