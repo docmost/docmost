@@ -1,0 +1,79 @@
+.heading-block {
+  position: relative;
+  scroll-margin-top: 80px;
+}
+
+.has-anchor {
+  position: relative;
+}
+
+.heading-anchor-wrapper {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.heading-anchor-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--mantine-color-gray-5);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  outline: none;
+}
+
+.has-anchor:hover .heading-anchor-button {
+  opacity: 1;
+}
+
+.heading-anchor-button:hover {
+  color: var(--mantine-color-blue-6);
+}
+
+.heading-anchor-button.copied {
+  color: var(--mantine-color-green-6);
+  opacity: 1;
+}
+
+.heading-anchor-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  .heading-anchor-button {
+    opacity: 0.3;
+  }
+  
+  .has-anchor:hover .heading-anchor-button {
+    opacity: 0.7;
+  }
+}
+
+@media print {
+  .heading-anchor-wrapper {
+    display: none !important;
+  }
+}
+
+.ProseMirror .heading-anchor-button {
+  pointer-events: all;
+}
+
+/* Hide button when cursor is in the same heading */
+.ProseMirror-focused .has-anchor.ProseMirror-selectednode .heading-anchor-button {
+  opacity: 0;
+}
+
+/* Always show on hover, regardless of focus state */
+.has-anchor:hover .heading-anchor-button {
+  opacity: 1;
+  pointer-events: all;
+}

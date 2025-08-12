@@ -33,6 +33,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  HeadingAnchors
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -45,7 +46,9 @@ import { Node } from '@tiptap/pm/model';
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+    heading: false,
   }),
+  HeadingAnchors,
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TaskList,

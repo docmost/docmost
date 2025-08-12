@@ -38,6 +38,7 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
+  HeadingAnchors,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -74,10 +75,8 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
-import Heading from "@tiptap/extension-heading";
-import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
-import UniqueID from '@tiptap/extension-unique-id';
+import UniqueID from "@tiptap/extension-unique-id";
 import { generateEditorNodeId } from "../utils/nanoid";
 
 const lowlight = createLowlight(common);
@@ -107,11 +106,7 @@ export const mainExtensions = [
       },
     },
   }),
-  Heading.extend({
-    addNodeView() {
-      return ReactNodeViewRenderer(HeadingView);
-    }
-  }),
+  HeadingAnchors,
   Placeholder.configure({
     placeholder: ({ node }) => {
       if (node.type.name === "heading") {
@@ -231,22 +226,22 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
   UniqueID.configure({
-    types: ['heading'],
-    attributeName: 'nodeId',
+    types: ["heading"],
+    attributeName: "nodeId",
     generateID: () => generateEditorNodeId(),
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
