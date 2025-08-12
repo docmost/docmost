@@ -1,0 +1,8 @@
+.container {
+  margin: 0;
+  padding-left: 4px;
+
+  a {
+    border: none !important;
+  }
+}

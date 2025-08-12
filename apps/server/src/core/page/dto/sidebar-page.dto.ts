@@ -1,7 +1,11 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 import { SpaceIdDto } from './page.dto';
 
-export class SidebarPageDto extends SpaceIdDto {
+export class SidebarPageDto {
+  @IsOptional()
+  @IsUUID()
+  spaceId: string;
+
   @IsOptional()
   @IsString()
   pageId: string;

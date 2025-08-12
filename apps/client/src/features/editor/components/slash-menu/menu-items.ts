@@ -17,8 +17,10 @@ import {
   IconTable,
   IconTypography,
   IconMenu4,
-  IconCalendar, IconAppWindow,
-} from '@tabler/icons-react';
+  IconCalendar,
+  IconAppWindow,
+  IconSitemap,
+} from "@tabler/icons-react";
 import {
   CommandProps,
   SlashMenuGroupedItemsType,
@@ -355,6 +357,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .insertContent(currentDate)
           .run();
+      },
+    },
+    {
+      title: "Subpages (Child pages)",
+      description: "List all subpages of the current page",
+      searchTerms: ["subpages", "child", "children", "nested", "hierarchy"],
+      icon: IconSitemap,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertSubpages().run();
       },
     },
     {
