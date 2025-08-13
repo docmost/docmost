@@ -23,7 +23,7 @@ import { IconFileDescription, IconPlus } from "@tabler/icons-react";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useParams } from "react-router-dom";
 import { v7 as uuid7 } from "uuid";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   MentionListProps,
@@ -32,8 +32,6 @@ import {
 import { IPage } from "@/features/page/types/page.types";
 import { useCreatePageMutation, usePageQuery } from "@/features/page/queries/page-query";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
-import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { extractPageSlugId } from "@/lib";
@@ -47,8 +45,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const [currentUser] = useAtom(currentUserAtom);
   const [renderItems, setRenderItems] = useState<MentionSuggestionItem[]>([]);
   const { t } = useTranslation();
-  const [data, setData] = useAtom(treeDataAtom);
-  const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
+  const [{ tree }] = useAtom(treeDataAtom);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
 
@@ -218,10 +215,9 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         children: [],
       } as any;
 
-      const lastIndex = tree.data.length;
-
-      tree.create({ parentId, index: lastIndex, data });
-      setData(tree.data);
+      const parent = tree.getItemInstance(parentId);
+      const lastIndex = parent?.getChildren()?.length;
+      parent?.invalidateChildrenIds();
 
       props.command({
         id: uuid7(),
