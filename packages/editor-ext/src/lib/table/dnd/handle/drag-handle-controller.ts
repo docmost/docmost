@@ -72,7 +72,6 @@ export class DragHandleController {
             }
         )
             .then(({ x, y }) => {
-                console.log('xy', yOffset, x, y)
                 Object.assign(this._colDragHandle.style, {
                     display: 'block',
                     top: `${y}px`,
