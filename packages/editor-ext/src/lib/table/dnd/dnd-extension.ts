@@ -1,15 +1,14 @@
 import { Editor, Extension } from "@tiptap/core";
 import { PluginKey, Plugin, PluginSpec } from "@tiptap/pm/state";
 import { EditorProps, EditorView } from "@tiptap/pm/view";
-import { computePosition, offset, ReferenceElement } from '@floating-ui/dom';
+import { computePosition, offset } from '@floating-ui/dom';
 import { DraggingDOMs, getDndRelatedDOMs, getHoveringCell, HoveringCellInfo, isHoveringCellInfoEqual } from "./utils";
-import { clearPreviewDOM, createPreviewDOM } from "./preview/render-preview";
 import { getDragOverColumn, getDragOverRow } from "./calc-drag-over";
 import { moveColumn, moveRow } from "../utils";
+import { PreviewController } from "./preview/preview-controller";
+import { DropIndicatorController } from "./preview/drop-indicator-controller";
 
 export const TableDndKey = new PluginKey('table-drag-and-drop')
-
-const DROP_INDICATOR_WIDTH = 2;
 
 class TableDragHandlePluginSpec implements PluginSpec<void> {
     key = TableDndKey
@@ -17,7 +16,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
     private _colDragHandle: HTMLElement;
     private _rowDragHandle: HTMLElement;
-    private _dropIndicator: HTMLElement;
     private _hoveringCell?: HoveringCellInfo;
     private _emptyImage: HTMLElement;
     private _disposables: (() => void)[] = [];
@@ -26,9 +24,10 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
     private _draggingDirection: 'col' | 'row' = 'col';
     private _draggingIndex = -1;
     private _droppingIndex = -1;
-    private _preview: HTMLElement;
     private _draggingDOMs?: DraggingDOMs | undefined
     private _startCoords: { x: number; y: number } = { x: 0, y: 0 };
+    private _previewController: PreviewController;
+    private _dropIndicatorController: DropIndicatorController;
 
     constructor(public editor: Editor) {
         this.props = {
@@ -39,20 +38,9 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
         this._colDragHandle = this._createDragHandleDom('col');
         this._rowDragHandle = this._createDragHandleDom('row');
-        this._dropIndicator = document.createElement('div');
-        this._dropIndicator.classList.add('table-dnd-drop-indicator');
-        Object.assign(this._dropIndicator.style, {
-            position: 'absolute',
-            pointerEvents: 'none'
-        });
 
-        this._preview = document.createElement('div');
-        this._preview.classList.add('table-dnd-preview');
-        this._preview.classList.add('ProseMirror');
-        Object.assign(this._preview.style, {
-            position: 'absolute',
-            pointerEvents: 'none'
-        })
+        this._previewController = new PreviewController();
+        this._dropIndicatorController = new DropIndicatorController();
 
         this._bindDragEvents();
 
@@ -65,8 +53,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         const wrapper = this.editor.options.element;
         wrapper.appendChild(this._colDragHandle)
         wrapper.appendChild(this._rowDragHandle)
-        wrapper.appendChild(this._preview)
-        wrapper.appendChild(this._dropIndicator)
+        wrapper.appendChild(this._previewController.previewRoot)
+        wrapper.appendChild(this._dropIndicatorController.dropIndicatorRoot)
 
         return {
             update: this.update,
@@ -81,6 +69,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._colDragHandle?.remove()
         this._rowDragHandle?.remove()
         this._emptyImage.remove();
+        this._previewController.destroy();
+        this._dropIndicatorController.destroy();
 
         this._disposables.forEach(disposable => disposable());
     }
@@ -212,25 +202,9 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             'col'
         )
         this._draggingDOMs = relatedDoms;
-        const { table, cell } = relatedDoms;
-        const tableRect = table.getBoundingClientRect();
-        const cellRect = cell.getBoundingClientRect();
 
-        Object.assign(this._preview.style, {
-            display: 'block',
-            width: `${cellRect.width}px`,
-            height: `${tableRect.height}px`,
-        })
-        Object.assign(this._dropIndicator.style, {
-            display: 'block',
-            width: `${DROP_INDICATOR_WIDTH}px`,
-            height: `${tableRect.height}px`,
-        })
-
-        createPreviewDOM(table, this._preview, this._hoveringCell?.colIndex, 'col')
-
-        this._initPreviewPosition(this._preview, cell, 'col');
-        this._initPreviewPosition(this._dropIndicator, cell, 'col');
+        this._previewController.onDragStart(relatedDoms, this._hoveringCell?.colIndex, 'col');
+        this._dropIndicatorController.onDragStart(relatedDoms, 'col');
     }
 
     private _onDraggingCol = (event: DragEvent) => {
@@ -238,7 +212,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         if (!draggingDOMs) return;
 
         this._draggingCoords = { x: event.clientX, y: event.clientY };
-        this._updatePreviewPosition(this._draggingCoords.x, this._draggingCoords.y, draggingDOMs.cell, 'col');
+        this._previewController.onDragging(draggingDOMs, this._draggingCoords.x, this._draggingCoords.y, 'col');
 
         const direction = this._startCoords.x > this._draggingCoords.x ? 'left' : 'right';
         const dragOverColumn = getDragOverColumn(draggingDOMs.table, this._draggingCoords.x);
@@ -246,12 +220,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
         const [col, index] = dragOverColumn;
         this._droppingIndex = index;
-        void computePosition(col, this._dropIndicator, {
-            placement: direction === 'left' ? 'left' : 'right',
-            middleware: [offset((direction === 'left' ? -1 * DROP_INDICATOR_WIDTH : 0))],
-        }).then(({ x }) => {
-            Object.assign(this._dropIndicator.style, { left: `${x}px` });
-        })
+        this._dropIndicatorController.onDragging(col, direction, 'col');
     }
 
     private _onDragRowStart = (event: DragEvent) => {
@@ -273,25 +242,9 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             'row'
         )
         this._draggingDOMs = relatedDoms;
-        const { table, cell } = relatedDoms;
-        const tableRect = table.getBoundingClientRect();
-        const cellRect = cell.getBoundingClientRect();
 
-        Object.assign(this._preview.style, {
-            display: 'block',
-            width: `${tableRect.width}px`,
-            height: `${cellRect.height}px`,
-        })
-        Object.assign(this._dropIndicator.style, {
-            display: 'block',
-            width: `${tableRect.width}px`,
-            height: `${DROP_INDICATOR_WIDTH}px`,
-        })
-
-        createPreviewDOM(table, this._preview, this._hoveringCell?.rowIndex, 'row')
-
-        this._initPreviewPosition(this._preview, cell, 'row');
-        this._initPreviewPosition(this._dropIndicator, cell, 'row');
+        this._previewController.onDragStart(relatedDoms, this._hoveringCell?.rowIndex, 'row');
+        this._dropIndicatorController.onDragStart(relatedDoms, 'row');
     }
 
     private _onDraggingRow = (event: DragEvent) => {
@@ -299,7 +252,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         if (!draggingDOMs) return;
 
         this._draggingCoords = { x: event.clientX, y: event.clientY };
-        this._updatePreviewPosition(this._draggingCoords.x, this._draggingCoords.y, draggingDOMs.cell, 'row');
+        this._previewController.onDragging(draggingDOMs, this._draggingCoords.x, this._draggingCoords.y, 'row');
 
         const direction = this._startCoords.y > this._draggingCoords.y ? 'up' : 'down';
         const dragOverRow = getDragOverRow(draggingDOMs.table, this._draggingCoords.y);
@@ -307,12 +260,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
         const [row, index] = dragOverRow;
         this._droppingIndex = index;
-        void computePosition(row, this._dropIndicator, {
-            placement: direction === 'up' ? 'top' : 'bottom',
-            middleware: [offset((direction === 'up' ? -1 * DROP_INDICATOR_WIDTH : 0))],
-        }).then(({ y }) => {
-            Object.assign(this._dropIndicator.style, { top: `${y}px` });
-        })
+        this._dropIndicatorController.onDragging(row, direction, 'row');
     }
 
     private _onDragEnd = () => {
@@ -320,9 +268,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._draggingIndex = -1;
         this._droppingIndex = -1;
         this._startCoords = { x: 0, y: 0 };
-        clearPreviewDOM(this._preview);
-        Object.assign(this._preview.style, { display: 'none' });
-        Object.assign(this._dropIndicator.style, { display: 'none' });
+        this._dropIndicatorController.onDragEnd();
+        this._previewController.onDragEnd();
     }
 
     private _bindDragEvents = () => {
@@ -374,25 +321,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         }
     }
 
-    private _initPreviewPosition(dom: HTMLElement, cell: HTMLElement, type: 'col' | 'row') {
-        void computePosition(cell, dom, {
-            placement: type === 'row' ? 'right' : 'bottom',
-            middleware: [
-                offset(({ rects }) => {
-                    if (type === 'col') {
-                        return -rects.reference.height
-                    }
-                    return -rects.reference.width
-                }),
-            ],
-        }).then(({ x, y }) => {
-            Object.assign(dom.style, {
-                left: `${x}px`,
-                top: `${y}px`,
-            })
-        });
-    }
-
     private _onDrop = () => {
         if (!this._dragging) return;
         const direction = this._draggingDirection;
@@ -431,28 +359,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             return;
         }
     }
-
-    private _updatePreviewPosition(x: number, y: number, cell: HTMLElement, type: 'col' | 'row') {
-        computePosition(
-            getVirtualElement(cell, x, y),
-            this._preview,
-            { placement: type === 'row' ? 'right' : 'bottom' },
-        ).then(({ x, y }) => {
-            if (type === 'row') {
-                Object.assign(this._preview.style, {
-                    top: `${y}px`,
-                })
-                return
-            }
-
-            if (type === 'col') {
-                Object.assign(this._preview.style, {
-                    left: `${x}px`,
-                })
-                return
-            }
-        })
-    }
 }
 
 export const TableDndExtension = Extension.create({
@@ -466,22 +372,3 @@ export const TableDndExtension = Extension.create({
         return [dragHandlePlugin]
     }
 })
-
-function getVirtualElement(cell: HTMLElement, x: number, y: number): ReferenceElement {
-  return {
-    contextElement: cell,
-    getBoundingClientRect: () => {
-      const rect = cell.getBoundingClientRect()
-      return {
-        width: rect.width,
-        height: rect.height,
-        right: x + rect.width / 2,
-        bottom: y + rect.height / 2,
-        top: y - rect.height / 2,
-        left: x - rect.width / 2,
-        x: x - rect.width / 2,
-        y: y - rect.height / 2,
-      }
-    },
-  }
-}
