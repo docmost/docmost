@@ -4,8 +4,8 @@ import { EditorProps, EditorView } from "@tiptap/pm/view";
 import { computePosition, offset, ReferenceElement } from '@floating-ui/dom';
 import { DraggingDOMs, getDndRelatedDOMs, getHoveringCell, HoveringCellInfo, isHoveringCellInfoEqual } from "./utils";
 import { clearPreviewDOM, createPreviewDOM } from "./preview/render-preview";
-import { getDragOverColumn } from "./calc-drag-over";
-import { moveColumn } from "../utils";
+import { getDragOverColumn, getDragOverRow } from "./calc-drag-over";
+import { moveColumn, moveRow } from "../utils";
 
 export const TableDndKey = new PluginKey('table-drag-and-drop')
 
@@ -262,10 +262,57 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         }
         this._dragging = true;
         this._draggingDirection = 'row';
+        this._startCoords = { x: event.clientX, y: event.clientY };
+        const draggingIndex = this._hoveringCell?.rowIndex ?? -1;
+
+        this._draggingIndex = draggingIndex;
+        const relatedDoms = getDndRelatedDOMs(
+            this.editor.view,
+            this._hoveringCell?.cellPos,
+            draggingIndex,
+            'row'
+        )
+        this._draggingDOMs = relatedDoms;
+        const { table, cell } = relatedDoms;
+        const tableRect = table.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
+
+        Object.assign(this._preview.style, {
+            display: 'block',
+            width: `${tableRect.width}px`,
+            height: `${cellRect.height}px`,
+        })
+        Object.assign(this._dropIndicator.style, {
+            display: 'block',
+            width: `${tableRect.width}px`,
+            height: `${DROP_INDICATOR_WIDTH}px`,
+        })
+
+        createPreviewDOM(table, this._preview, this._hoveringCell?.rowIndex, 'row')
+
+        this._initPreviewPosition(this._preview, cell, 'row');
+        this._initPreviewPosition(this._dropIndicator, cell, 'row');
     }
 
     private _onDraggingRow = (event: DragEvent) => {
+        const draggingDOMs = this._draggingDOMs;
+        if (!draggingDOMs) return;
+
         this._draggingCoords = { x: event.clientX, y: event.clientY };
+        this._updatePreviewPosition(this._draggingCoords.x, this._draggingCoords.y, draggingDOMs.cell, 'row');
+
+        const direction = this._startCoords.y > this._draggingCoords.y ? 'up' : 'down';
+        const dragOverRow = getDragOverRow(draggingDOMs.table, this._draggingCoords.y);
+        if (!dragOverRow) return;
+
+        const [row, index] = dragOverRow;
+        this._droppingIndex = index;
+        void computePosition(row, this._dropIndicator, {
+            placement: direction === 'up' ? 'top' : 'bottom',
+            middleware: [offset((direction === 'up' ? -1 * DROP_INDICATOR_WIDTH : 0))],
+        }).then(({ y }) => {
+            Object.assign(this._dropIndicator.style, { top: `${y}px` });
+        })
     }
 
     private _onDragEnd = () => {
@@ -352,6 +399,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         const from = this._draggingIndex;
         const to = this._droppingIndex;
         const tr = this.editor.state.tr;
+        const pos = this.editor.state.selection.from;
 
         if (direction === 'col') {
             const canMove = moveColumn({
@@ -359,11 +407,28 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
                 originIndex: from,
                 targetIndex: to,
                 select: true,
-                pos: this.editor.state.selection.from,
+                pos,
             })
             if (canMove) {
                 this.editor.view.dispatch(tr);
             }
+
+            return;
+        }
+
+        if (direction === 'row') {
+            const canMove = moveRow({
+                tr,
+                originIndex: from,
+                targetIndex: to,
+                select: true,
+                pos,
+            })
+            if (canMove) {
+                this.editor.view.dispatch(tr);
+            }
+
+            return;
         }
     }
 
