@@ -86,3 +86,37 @@ function getCellIndex(
 ): number {
   return map.width * rowIndex + colIndex
 }
+
+function getTableDOMByPos(view: EditorView, pos: number): HTMLTableElement | undefined {
+  const dom = view.domAtPos(pos).node
+  if (!dom) return
+  const element = dom instanceof HTMLElement ? dom : dom.parentElement
+  const table = element?.closest('table')
+  return table ?? undefined
+}
+
+function getTargetFirstCellDOM(table: HTMLTableElement, index: number, direction: 'row' | 'col'): HTMLTableCellElement | undefined {
+  if (direction === 'row') {
+    const row = table.querySelectorAll('tr')[index]
+    const cell = row?.querySelector<HTMLTableCellElement>('th,td')
+    return cell ?? undefined
+  } else {
+    const row = table.querySelector('tr')
+    const cell = row?.querySelectorAll<HTMLTableCellElement>('th,td')[index]
+    return cell ?? undefined
+  }
+}
+
+export type DraggingDOMs = {
+    table: HTMLTableElement
+    cell: HTMLTableCellElement
+}
+
+export function getDndRelatedDOMs(view: EditorView, cellPos: number | undefined, draggingIndex: number, direction: 'row' | 'col'): DraggingDOMs | undefined {
+  if (cellPos == null) return
+  const table = getTableDOMByPos(view, cellPos)
+  if (!table) return
+  const cell = getTargetFirstCellDOM(table, draggingIndex, direction)
+  if (!cell) return
+  return { table, cell }
+}
