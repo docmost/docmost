@@ -1,21 +1,6 @@
 import { cellAround, TableMap } from "@tiptap/pm/tables"
 import { EditorView } from "@tiptap/pm/view"
 
-export function isHoveringCellInfoEqual(
-  a?: HoveringCellInfo | null,
-  b?: HoveringCellInfo | null,
-): boolean {
-  if (!a && !b) return true
-  if (!a || !b) return false
-  return (
-    a.rowIndex === b.rowIndex
-    && a.colIndex === b.colIndex
-    && a.cellPos === b.cellPos
-    && a.rowFirstCellPos === b.rowFirstCellPos
-    && a.colFirstCellPos === b.colFirstCellPos
-  )
-}
-
 export function getHoveringCell(
   view: EditorView,
   event: MouseEvent,

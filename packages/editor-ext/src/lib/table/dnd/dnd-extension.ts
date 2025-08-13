@@ -2,7 +2,7 @@ import { Editor, Extension } from "@tiptap/core";
 import { PluginKey, Plugin, PluginSpec } from "@tiptap/pm/state";
 import { EditorProps, EditorView } from "@tiptap/pm/view";
 import { computePosition, offset } from '@floating-ui/dom';
-import { DraggingDOMs, getDndRelatedDOMs, getHoveringCell, HoveringCellInfo, isHoveringCellInfoEqual } from "./utils";
+import { DraggingDOMs, getDndRelatedDOMs, getHoveringCell, HoveringCellInfo } from "./utils";
 import { getDragOverColumn, getDragOverRow } from "./calc-drag-over";
 import { moveColumn, moveRow } from "../utils";
 import { PreviewController } from "./preview/preview-controller";
@@ -79,9 +79,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         if (this._dragging) return;
 
         const hoveringCell = getHoveringCell(view, event)
-        if (isHoveringCellInfoEqual(this._hoveringCell, hoveringCell)) {
-            return;
-        }
         this._hoveringCell = hoveringCell;
         if (!hoveringCell) {
             this._hideDragHandle();
@@ -115,6 +112,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             }
         )
             .then(({ x, y }) => {
+                console.log('xy', yOffset, x, y)
                 Object.assign(this._colDragHandle.style, {
                     display: 'block',
                     top: `${y}px`,
