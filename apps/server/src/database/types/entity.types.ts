@@ -4,8 +4,10 @@ import {
   Comments,
   Groups,
   Pages,
+  PagePermissions,
   Spaces,
   Users,
+  UserSharedPages,
   Workspaces,
   PageHistory as History,
   GroupUsers,
@@ -47,6 +49,15 @@ export type UpdatableSpace = Updateable<Omit<Spaces, 'id'>>;
 export type SpaceMember = Selectable<SpaceMembers>;
 export type InsertableSpaceMember = Insertable<SpaceMembers>;
 export type UpdatableSpaceMember = Updateable<Omit<SpaceMembers, 'id'>>;
+
+// PageMember
+export type PagePermission = Selectable<PagePermissions>;
+export type InsertablePagePermission = Insertable<PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<PagePermissions, 'id'>>;
+
+// UserSharedPage
+export type UserSharedPage = Selectable<UserSharedPages>;
+export type InsertableUserSharedPage = Insertable<UserSharedPages>;
 
 // Group
 export type ExtendedGroup = Groups & { memberCount: number };

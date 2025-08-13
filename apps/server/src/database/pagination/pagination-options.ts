@@ -22,5 +22,5 @@ export class PaginationOptions {
 
   @IsOptional()
   @IsString()
-  query: string;
+  query?: string;
 }
