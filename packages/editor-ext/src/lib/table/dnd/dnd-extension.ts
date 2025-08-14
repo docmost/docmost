@@ -8,6 +8,7 @@ import { PreviewController } from "./preview/preview-controller";
 import { DropIndicatorController } from "./preview/drop-indicator-controller";
 import { DragHandleController } from "./handle/drag-handle-controller";
 import { EmptyImageController } from "./handle/empty-image-controller";
+import { AutoScrollController } from "./auto-scroll-controller";
 
 export const TableDndKey = new PluginKey('table-drag-and-drop')
 
@@ -30,6 +31,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
     private _dropIndicatorController: DropIndicatorController;
     private _dragHandleController: DragHandleController;
     private _emptyImageController: EmptyImageController;
+    private _autoScrollController: AutoScrollController;
 
     constructor(public editor: Editor) {
         this.props = {
@@ -45,6 +47,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._previewController = new PreviewController();
         this._dropIndicatorController = new DropIndicatorController();
         this._emptyImageController = new EmptyImageController();
+
+        this._autoScrollController = new AutoScrollController();
 
         this._bindDragEvents();
     }
@@ -70,6 +74,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._emptyImageController.destroy();
         this._previewController.destroy();
         this._dropIndicatorController.destroy();
+        this._autoScrollController.stop();
 
         this._disposables.forEach(disposable => disposable());
     }
@@ -97,6 +102,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._draggingCoords = { x: event.clientX, y: event.clientY };
         this._previewController.onDragging(draggingDOMs, this._draggingCoords.x, this._draggingCoords.y, 'col');
 
+        this._autoScrollController.checkXAutoScroll(event.clientX, draggingDOMs);
+
         const direction = this._startCoords.x > this._draggingCoords.x ? 'left' : 'right';
         const dragOverColumn = getDragOverColumn(draggingDOMs.table, this._draggingCoords.x);
         if (!dragOverColumn) return;
@@ -117,6 +124,8 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._draggingCoords = { x: event.clientX, y: event.clientY };
         this._previewController.onDragging(draggingDOMs, this._draggingCoords.x, this._draggingCoords.y, 'row');
 
+        this._autoScrollController.checkYAutoScroll(event.clientY);
+
         const direction = this._startCoords.y > this._draggingCoords.y ? 'up' : 'down';
         const dragOverRow = getDragOverRow(draggingDOMs.table, this._draggingCoords.y);
         if (!dragOverRow) return;
@@ -131,6 +140,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._draggingIndex = -1;
         this._droppingIndex = -1;
         this._startCoords = { x: 0, y: 0 };
+        this._autoScrollController.stop();
         this._dropIndicatorController.onDragEnd();
         this._previewController.onDragEnd();
     }
@@ -193,7 +203,7 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._dragging = true;
         this._draggingDirection = type;
         this._startCoords = { x: event.clientX, y: event.clientY };
-        const draggingIndex = this._hoveringCell?.colIndex ?? -1;
+        const draggingIndex = (type === 'col' ? this._hoveringCell?.colIndex : this._hoveringCell?.rowIndex) ?? 0;
 
         this._draggingIndex = draggingIndex;
 
@@ -205,7 +215,9 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         )
         this._draggingDOMs = relatedDoms;
 
-        this._previewController.onDragStart(relatedDoms, this._hoveringCell?.colIndex, type);
+        const index = type === 'col' ? this._hoveringCell?.colIndex : this._hoveringCell?.rowIndex;
+
+        this._previewController.onDragStart(relatedDoms, index, type);
         this._dropIndicatorController.onDragStart(relatedDoms, type);
     }
 
