@@ -42,7 +42,7 @@ export class LocalDriver implements StorageDriver {
     try {
       const fromFullPath = this._fullPath(fromFilePath);
       const toFullPath = this._fullPath(toFilePath);
-      
+
       if (await this.exists(fromFilePath)) {
         await fs.copy(fromFullPath, toFullPath);
       }

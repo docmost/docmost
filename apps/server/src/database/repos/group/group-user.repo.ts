@@ -57,7 +57,11 @@ export class GroupUserRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb(sql`f_unaccent(users.name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`),
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ),
       );
     }
 

@@ -85,16 +85,18 @@ export class ImportAttachmentService {
 
       const apiFilePath = `/api/files/${attachmentId}/${fileNameWithExt}`;
 
-      attachmentTasks.push(() => this.uploadWithRetry({
-        abs,
-        storageFilePath,
-        attachmentId,
-        fileNameWithExt,
-        ext,
-        pageId,
-        fileTask,
-        uploadStats,
-      }));
+      attachmentTasks.push(() =>
+        this.uploadWithRetry({
+          abs,
+          storageFilePath,
+          attachmentId,
+          fileNameWithExt,
+          ext,
+          pageId,
+          fileTask,
+          uploadStats,
+        }),
+      );
 
       return {
         attachmentId,
@@ -290,26 +292,26 @@ export class ImportAttachmentService {
 
     // wait for all uploads & DB inserts
     uploadStats.total = attachmentTasks.length;
-    
+
     if (uploadStats.total > 0) {
-      this.logger.debug(`Starting upload of ${uploadStats.total} attachments...`);
-      
+      this.logger.debug(
+        `Starting upload of ${uploadStats.total} attachments...`,
+      );
+
       try {
-        await Promise.all(
-          attachmentTasks.map(task => limit(task))
-        );
+        await Promise.all(attachmentTasks.map((task) => limit(task)));
       } catch (err) {
         this.logger.error('Import attachment upload error', err);
       }
-      
+
       this.logger.debug(
-        `Upload completed: ${uploadStats.completed}/${uploadStats.total} successful, ${uploadStats.failed} failed`
+        `Upload completed: ${uploadStats.completed}/${uploadStats.total} successful, ${uploadStats.failed} failed`,
       );
-      
+
       if (uploadStats.failed > 0) {
         this.logger.warn(
           `Failed to upload ${uploadStats.failed} files:`,
-          uploadStats.failedFiles
+          uploadStats.failedFiles,
         );
       }
     }
@@ -344,7 +346,7 @@ export class ImportAttachmentService {
     } = opts;
 
     let lastError: Error;
-    
+
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         const fileStream = createReadStream(abs);
@@ -367,35 +369,35 @@ export class ImportAttachmentService {
             spaceId: fileTask.spaceId,
           })
           .execute();
-        
+
         uploadStats.completed++;
-        
+
         if (uploadStats.completed % 10 === 0) {
           this.logger.debug(
-            `Upload progress: ${uploadStats.completed}/${uploadStats.total}`
+            `Upload progress: ${uploadStats.completed}/${uploadStats.total}`,
           );
         }
-        
+
         return;
       } catch (error) {
         lastError = error as Error;
         this.logger.warn(
-          `Upload attempt ${attempt}/${this.MAX_RETRIES} failed for ${fileNameWithExt}: ${error instanceof Error ? error.message : String(error)}`
+          `Upload attempt ${attempt}/${this.MAX_RETRIES} failed for ${fileNameWithExt}: ${error instanceof Error ? error.message : String(error)}`,
         );
-        
+
         if (attempt < this.MAX_RETRIES) {
-          await new Promise(resolve => 
-            setTimeout(resolve, this.RETRY_DELAY * attempt)
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.RETRY_DELAY * attempt),
           );
         }
       }
     }
-    
+
     uploadStats.failed++;
     uploadStats.failedFiles.push(fileNameWithExt);
     this.logger.error(
       `Failed to upload ${fileNameWithExt} after ${this.MAX_RETRIES} attempts:`,
-      lastError
+      lastError,
     );
   }
 }

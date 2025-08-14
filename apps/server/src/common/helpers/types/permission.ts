@@ -10,6 +10,12 @@ export enum SpaceRole {
   READER = 'reader', // can only read pages in space
 }
 
+export enum PageRole {
+  WRITER = 'writer', // can read and write pages in space
+  READER = 'reader', // can only read pages in space
+  RESTRICTED = 'restricted', // cannot access page
+}
+
 export enum SpaceVisibility {
   OPEN = 'open', // any workspace member can see that it exists and join.
   PRIVATE = 'private', // only added space users can see

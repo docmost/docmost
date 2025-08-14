@@ -22,24 +22,6 @@ export class PageRepo {
     private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .where('child.deletedAt', 'is', null)
-      .limit(1)
-      .as('hasChildren');
-  }
-
   private baseFields: Array<keyof Page> = [
     'id',
     'slugId',
@@ -379,6 +361,24 @@ export class PageRepo {
     ).as('contributors');
   }
 
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
+  }
+
   async getPageAndDescendants(
     parentPageId: string,
     opts: { includeContent: boolean },
@@ -419,5 +419,47 @@ export class PageRepo {
       .selectFrom('page_hierarchy')
       .selectAll()
       .execute();
+  }
+
+  async update(
+    pageId: string,
+    updatablePage: UpdatablePage,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .updateTable('pages')
+      .set({ ...updatablePage, updatedAt: new Date() })
+      .where('id', '=', pageId)
+      .execute();
+  }
+
+  async getAllDescendants(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<string[]> {
+    const db = dbOrTx(this.db, trx);
+
+    // Recursive CTE to get all descendants
+    const descendants = await db
+      .withRecursive('page_tree', (qb) =>
+        qb
+          .selectFrom('pages')
+          .select(['id', 'parentPageId'])
+          .where('parentPageId', '=', pageId)
+          .where('deletedAt', 'is', null)
+          .unionAll((eb) =>
+            eb
+              .selectFrom('pages as p')
+              .innerJoin('page_tree as pt', 'p.parentPageId', 'pt.id')
+              .select(['p.id', 'p.parentPageId'])
+              .where('p.deletedAt', 'is', null),
+          ),
+      )
+      .selectFrom('page_tree')
+      .select('id')
+      .execute();
+
+    return descendants.map((d) => d.id);
   }
 }

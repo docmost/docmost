@@ -1,5 +1,4 @@
-import { MentionNode } from "../../../common/helpers/prosemirror/utils";
-
+import { MentionNode } from '../../../common/helpers/prosemirror/utils';
 
 export interface IPageBacklinkJob {
   pageId: string;

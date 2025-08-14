@@ -3,15 +3,18 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type AuthProviderType = "google" | "oidc" | "saml";
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
-
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -62,13 +65,21 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  ldapBaseDn: string | null;
+  ldapBindDn: string | null;
+  ldapBindPassword: string | null;
+  ldapTlsCaCert: string | null;
+  ldapTlsEnabled: Generated<boolean | null>;
+  ldapUrl: string | null;
+  ldapUserAttributes: Json | null;
+  ldapUserSearchFilter: string | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
-  type: AuthProviderType;
+  type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -186,6 +197,19 @@ export interface PageHistory {
   workspaceId: string;
 }
 
+export interface PagePermissions {
+  addedById: string | null;
+  cascade: Generated<boolean>;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  groupId: string | null;
+  id: Generated<string>;
+  pageId: string;
+  role: string;
+  updatedAt: Generated<Timestamp>;
+  userId: string | null;
+}
+
 export interface Pages {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
@@ -197,9 +221,11 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
+  isRestricted: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
+  restrictedById: string | null;
   slugId: string;
   spaceId: string;
   textContent: string | null;
@@ -284,6 +310,12 @@ export interface Users {
   workspaceId: string | null;
 }
 
+export interface UserSharedPages {
+  pageId: string;
+  sharedAt: Generated<Timestamp>;
+  userId: string;
+}
+
 export interface UserTokens {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp | null;
@@ -342,12 +374,14 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
+  pagePermissions: PagePermissions;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
   userMfa: UserMfa;
   users: Users;
+  userSharedPages: UserSharedPages;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;

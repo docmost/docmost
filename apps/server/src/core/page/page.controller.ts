@@ -32,9 +32,24 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { SharedPagesRepo } from '@docmost/db/repos/page/shared-pages.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
 import { DeletedPageDto } from './dto/deleted-page.dto';
+import { AddPageMembersDto } from './dto/add-page-members.dto';
+import { RemovePageMemberDto } from './dto/remove-page-member.dto';
+import { UpdatePageMemberRoleDto } from './dto/update-page-member-role.dto';
+import { UpdatePagePermissionDto } from './dto/update-page-permission.dto';
+import { GetPageMembersDto } from './dto/get-page-members.dto';
+import {
+  PagePermissionService,
+  PagePermissionsResponse,
+} from './services/page-member.service';
+import PageAbilityFactory from '../casl/abilities/page-ability.factory';
+import {
+  PageCaslAction,
+  PageCaslSubject,
+} from '../casl/interfaces/page-ability.type';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -44,6 +59,9 @@ export class PageController {
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageAbility: PageAbilityFactory,
+    private readonly pagePermissionService: PagePermissionService,
+    private readonly sharedPagesRepo: SharedPagesRepo,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -61,10 +79,20 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+    const pageAbility = await this.pageAbility.createForUser(user, page.id);
+
+    if (pageAbility.cannot(PageCaslAction.Read, PageCaslSubject.Page)) {
       throw new ForbiddenException();
     }
+
+    /*const ability = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+    );
+    
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }*/
 
     return page;
   }
@@ -371,5 +399,163 @@ export class PageController {
       throw new ForbiddenException();
     }
     return this.pageService.getPageBreadCrumbs(page.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/restrict')
+  async restrictPage(@Body() dto: PageIdDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    // TODO: make sure they have access to the page, and can restrict
+    // And the page is not already restricted
+    // They can add and remove page restriction
+    // When a page restriction is removed, we remove the entries in page permissions table.
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.restrictPage(user, page.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/add')
+  async addPageMembers(
+    @Body() dto: AddPageMembersDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.addMembersToPageBatch(
+      dto,
+      user,
+      workspace.id,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/remove')
+  async removePageMember(
+    @Body() dto: RemovePageMemberDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.removePageMember(dto, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/update-role')
+  async updatePageMemberRole(
+    @Body() dto: UpdatePageMemberRoleDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.updatePageMemberRole(dto, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/update')
+  async updatePagePermissions(
+    @Body() dto: UpdatePagePermissionDto,
+    @AuthUser() user: User,
+  ): Promise<PagePermissionsResponse> {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.updatePagePermission(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/info')
+  async getPagePermissions(
+    @Body() dto: PageIdDto,
+    @AuthUser() user: User,
+  ): Promise<PagePermissionsResponse> {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pagePermissionService.getPagePermissions(dto.pageId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('permissions/list')
+  async getPageMembers(
+    @Body() dto: GetPageMembersDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const pagination: PaginationOptions = {
+      page: dto.page || 1,
+      limit: dto.limit || 20,
+      query: dto.query,
+    };
+
+    return this.pagePermissionService.getPageMembers(
+      dto.pageId,
+      workspace.id,
+      pagination,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('shared')
+  async getUserSharedPages(@AuthUser() user: User) {
+    return this.sharedPagesRepo.getUserSharedPages(user.id);
   }
 }

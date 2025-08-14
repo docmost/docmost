@@ -77,10 +77,7 @@ export class TokenService {
     return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
-  async generateMfaToken(
-    user: User,
-    workspaceId: string,
-  ): Promise<string> {
+  async generateMfaToken(user: User, workspaceId: string): Promise<string> {
     if (user.deactivatedAt || user.deletedAt) {
       throw new ForbiddenException();
     }

@@ -14,11 +14,18 @@ export class InternalLogFilter extends ConsoleLogger {
     super();
     const isProduction = process.env.NODE_ENV === 'production';
     const isDebugMode = process.env.DEBUG_MODE === 'true';
-    
+
     if (isProduction && !isDebugMode) {
       this.allowedLogLevels = ['log', 'error', 'fatal'];
     } else {
-      this.allowedLogLevels = ['log', 'debug', 'verbose', 'warn', 'error', 'fatal'];
+      this.allowedLogLevels = [
+        'log',
+        'debug',
+        'verbose',
+        'warn',
+        'error',
+        'fatal',
+      ];
     }
   }
 

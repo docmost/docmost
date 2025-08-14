@@ -40,8 +40,8 @@ export const storageDriverConfigProvider = {
           },
         };
 
-      case StorageOption.S3:
-        { const s3Config = {
+      case StorageOption.S3: {
+        const s3Config = {
           driver,
           config: {
             region: environmentService.getAwsS3Region(),
@@ -68,7 +68,8 @@ export const storageDriverConfigProvider = {
           };
         }
 
-        return s3Config; }
+        return s3Config;
+      }
 
       default:
         throw new Error(`Unknown storage driver: ${driver}`);
