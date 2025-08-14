@@ -14,7 +14,7 @@ export class AutoScrollController {
         } else if (clientY > window.innerHeight - EDGE_THRESHOLD) {
             this._startYAutoScroll(scrollContainer!, SCROLL_SPEED);
         } else {
-            this._stopXAutoScroll();
+            this._stopYAutoScroll();
         }
     }
 
