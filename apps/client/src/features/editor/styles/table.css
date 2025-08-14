@@ -128,3 +128,13 @@
     }
   }
 }
+
+.editor-container:has(.table-dnd-drop-indicator[data-dragging="true"]) {
+  .prosemirror-dropcursor-block {
+    display: none;
+  }
+
+  .prosemirror-dropcursor-inline {
+    display: none;
+  }
+}

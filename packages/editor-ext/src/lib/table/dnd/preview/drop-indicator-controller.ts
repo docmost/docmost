@@ -22,10 +22,12 @@ export class DropIndicatorController {
     onDragStart = (relatedDoms: DraggingDOMs, type: 'col' | 'row') => {
         this._initDropIndicatorStyle(relatedDoms.table, type);
         this._initDropIndicatorPosition(relatedDoms.cell, type);
+        this._dropIndicator.dataset.dragging = 'true';
     }
 
     onDragEnd = () => {
         Object.assign(this._dropIndicator.style, { display: 'none' });
+        this._dropIndicator.dataset.dragging = 'false';
     }
 
     onDragging = (target: Element, direction: 'left' | 'right' | 'up' | 'down', type: 'col' | 'row') => {
