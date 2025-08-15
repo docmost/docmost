@@ -8,7 +8,7 @@ import {
   onAuthenticationFailedParameters,
   WebSocketStatus,
 } from "@hocuspocus/provider";
-import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
+import { EditorContent, EditorProvider, useEditor, useEditorState } from "@tiptap/react";
 import {
   collabExtensions,
   mainExtensions,
@@ -257,6 +257,14 @@ export default function PageEditor({
     },
     [pageId, editable, remoteProvider],
   );
+  
+  // Track editor's editable state since shouldRerenderOnTransaction is false
+  const editorIsEditable = useEditorState({
+    editor,
+    selector: ctx => {
+      return ctx.editor?.isEditable ?? false;
+    },
+  });
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
@@ -390,7 +398,7 @@ export default function PageEditor({
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
 
-        {editor && editor.isEditable && (
+        {editor && editorIsEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
