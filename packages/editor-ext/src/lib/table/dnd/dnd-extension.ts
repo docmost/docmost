@@ -151,11 +151,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             this._colDragHandle.removeEventListener('dragstart', this._onDragColStart);
         })
 
-        this._colDragHandle.addEventListener('drag', this._onDraggingCol);
-        this._disposables.push(() => {
-            this._colDragHandle.removeEventListener('drag', this._onDraggingCol);
-        })
-
         this._colDragHandle.addEventListener('dragend', this._onDragEnd);
         this._disposables.push(() => {
             this._colDragHandle.removeEventListener('dragend', this._onDragEnd);
@@ -164,11 +159,6 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
         this._rowDragHandle.addEventListener('dragstart', this._onDragRowStart);
         this._disposables.push(() => {
             this._rowDragHandle.removeEventListener('dragstart', this._onDragRowStart);
-        })
-
-        this._rowDragHandle.addEventListener('drag', this._onDraggingRow);
-        this._disposables.push(() => {
-            this._rowDragHandle.removeEventListener('drag', this._onDraggingRow);
         })
 
         this._rowDragHandle.addEventListener('dragend', this._onDragEnd);
@@ -182,14 +172,11 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
             // `dragover` event for drop zone. Here we set the whole document as the
             // drop zone so that even the mouse moves outside the editor, the `drop`
             // event will still be triggered.
-            const handleDragOver = (event: DragEvent) => {
-                event.preventDefault()
-            }
             ownerDocument.addEventListener('drop', this._onDrop);
-            ownerDocument.addEventListener('dragover', handleDragOver);
+            ownerDocument.addEventListener('dragover', this._onDrag);
             this._disposables.push(() => {
                 ownerDocument.removeEventListener('drop', this._onDrop);
-                ownerDocument.removeEventListener('dragover', handleDragOver);
+                ownerDocument.removeEventListener('dragover', this._onDrag);
             });
         }
     }
@@ -219,6 +206,16 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
         this._previewController.onDragStart(relatedDoms, index, type);
         this._dropIndicatorController.onDragStart(relatedDoms, type);
+    }
+
+    private _onDrag = (event: DragEvent) => {
+        event.preventDefault()
+        if (!this._dragging) return;
+        if (this._draggingDirection === 'col') {
+            this._onDraggingCol(event);
+        } else {
+            this._onDraggingRow(event);
+        }
     }
 
     private _onDrop = () => {
