@@ -20,6 +20,7 @@
   "dependencies": {
     "@braintree/sanitize-url": "^7.1.0",
     "@docmost/editor-ext": "workspace:*",
+    "@floating-ui/dom": "^1.7.3",
     "@hocuspocus/extension-redis": "^2.15.2",
     "@hocuspocus/provider": "^2.15.2",
     "@hocuspocus/server": "^2.15.2",

@@ -8,6 +8,16 @@
   }
 }
 
+.table-dnd-preview {
+  padding: 0;
+  background-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(2px);
+}
+
+.table-dnd-drop-indicator {
+  background-color: #adf;
+}
+
 .ProseMirror {
   table {
     border-collapse: collapse;
@@ -116,5 +126,15 @@
         background-color: #3a2f5c !important;
       }
     }
+  }
+}
+
+.editor-container:has(.table-dnd-drop-indicator[data-dragging="true"]) {
+  .prosemirror-dropcursor-block {
+    display: none;
+  }
+
+  .prosemirror-dropcursor-inline {
+    display: none;
   }
 }
