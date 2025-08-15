@@ -203,7 +203,7 @@ export default function PageEditor({
       extensions,
       editable,
       immediatelyRender: true,
-      shouldRerenderOnTransaction: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,

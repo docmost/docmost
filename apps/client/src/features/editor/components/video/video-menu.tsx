@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { findParentNode, posToDOMRect } from "@tiptap/react";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -17,6 +17,26 @@ import { useTranslation } from "react-i18next";
 
 export function VideoMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+  
+  const editorState = useEditorState({
+    editor,
+    selector: ctx => {
+      if (!ctx.editor) {
+        return null;
+      }
+      
+      const videoAttrs = ctx.editor.getAttributes("video");
+      
+      return {
+        isVideo: ctx.editor.isActive("video"),
+        isAlignLeft: ctx.editor.isActive("video", { align: "left" }),
+        isAlignCenter: ctx.editor.isActive("video", { align: "center" }),
+        isAlignRight: ctx.editor.isActive("video", { align: "right" }),
+        videoWidth: videoAttrs?.width ? parseInt(videoAttrs.width) : null,
+      };
+    },
+  });
+  
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -97,7 +117,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align left")}
             variant={
-              editor.isActive("video", { align: "left" }) ? "light" : "default"
+              editorState?.isAlignLeft ? "light" : "default"
             }
           >
             <IconLayoutAlignLeft size={18} />
@@ -110,9 +130,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align center")}
             variant={
-              editor.isActive("video", { align: "center" })
-                ? "light"
-                : "default"
+              editorState?.isAlignCenter ? "light" : "default"
             }
           >
             <IconLayoutAlignCenter size={18} />
@@ -125,7 +143,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align right")}
             variant={
-              editor.isActive("video", { align: "right" }) ? "light" : "default"
+              editorState?.isAlignRight ? "light" : "default"
             }
           >
             <IconLayoutAlignRight size={18} />
@@ -133,10 +151,10 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         </Tooltip>
       </ActionIcon.Group>
 
-      {editor.getAttributes("video")?.width && (
+      {editorState?.videoWidth && (
         <NodeWidthResize
           onChange={onWidthChange}
-          value={parseInt(editor.getAttributes("video").width)}
+          value={editorState.videoWidth}
         />
       )}
     </BaseBubbleMenu>

@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { findParentNode, posToDOMRect } from "@tiptap/react";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -18,6 +18,24 @@ import { useTranslation } from "react-i18next";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      return {
+        isCallout: ctx.editor.isActive("callout"),
+        isInfo: ctx.editor.isActive("callout", { type: "info" }),
+        isSuccess: ctx.editor.isActive("callout", { type: "success" }),
+        isWarning: ctx.editor.isActive("callout", { type: "warning" }),
+        isDanger: ctx.editor.isActive("callout", { type: "danger" }),
+      };
+    },
+  });
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -58,10 +76,10 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       pluginKey={`callout-menu}`}
       updateDelay={0}
       options={{
-       // getReferenceClientRect,
+        // getReferenceClientRect,
         placement: "right-end",
-       // offset: 233,
-       // zIndex: 99,
+        // offset: 233,
+        // zIndex: 99,
         flip: false,
       }}
       shouldShow={shouldShow}
@@ -72,9 +90,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("info")}
             size="lg"
             aria-label={t("Info")}
-            variant={
-              editor.isActive("callout", { type: "info" }) ? "light" : "default"
-            }
+            variant={editorState?.isInfo ? "light" : "default"}
           >
             <IconInfoCircleFilled size={18} />
           </ActionIcon>
@@ -85,11 +101,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("success")}
             size="lg"
             aria-label={t("Success")}
-            variant={
-              editor.isActive("callout", { type: "success" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isSuccess ? "light" : "default"}
           >
             <IconCircleCheckFilled size={18} />
           </ActionIcon>
@@ -100,11 +112,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("warning")}
             size="lg"
             aria-label={t("Warning")}
-            variant={
-              editor.isActive("callout", { type: "warning" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isWarning ? "light" : "default"}
           >
             <IconAlertTriangleFilled size={18} />
           </ActionIcon>
@@ -115,11 +123,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("danger")}
             size="lg"
             aria-label={t("Danger")}
-            variant={
-              editor.isActive("callout", { type: "danger" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isDanger ? "light" : "default"}
           >
             <IconCircleXFilled size={18} />
           </ActionIcon>
