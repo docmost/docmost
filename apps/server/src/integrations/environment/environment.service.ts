@@ -213,4 +213,16 @@ export class EnvironmentService {
   getPostHogKey(): string {
     return this.configService.get<string>('POSTHOG_KEY');
   }
+
+  getOpenAiApiKey(): string {
+    return this.configService.get<string>('OPENAI_API_KEY');
+  }
+
+  getOpenAiApiUrl(): string {
+    return this.configService.get<string>('OPENAI_API_URL');
+  }
+
+  getOpenAiModel(): string {
+    return this.configService.get<string>('OPENAI_MODEL');
+  }
 }
