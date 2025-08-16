@@ -57,6 +57,7 @@
   h5,
   h6 {
     line-height: 1.1;
+    margin-block-end: 0.33em;
   }
 
   code {
