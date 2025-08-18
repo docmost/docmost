@@ -52,6 +52,15 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
         // zIndex: 99,
         flip: false,
       }}
+      //    tippyOptions={{
+      //         getReferenceClientRect,
+      //         offset: [0, 8],
+      //         zIndex: 99,
+      //         popperOptions: {
+      //           modifiers: [{ name: 'flip', enabled: false }],
+      //         },
+      //         plugins: [sticky],
+      //         sticky: 'popper',
       shouldShow={shouldShow}
     >
       <div

@@ -95,6 +95,33 @@ export const TableMenu = React.memo(
           offset: 15,
           //zIndex: 99,
         }}
+        //tippyOptions={{
+        //           getReferenceClientRect: getReferenceClientRect,
+        //           offset: [0, 15],
+        //           zIndex: 99,
+        //           popperOptions: {
+        //             modifiers: [
+        //               {
+        //                 name: "preventOverflow",
+        //                 enabled: true,
+        //                 options: {
+        //                   altAxis: true,
+        //                   boundary: "clippingParents",
+        //                   padding: 8,
+        //                 },
+        //               },
+        //               {
+        //                 name: "flip",
+        //                 enabled: true,
+        //                 options: {
+        //                   boundary: editor.options.element,
+        //                   fallbackPlacements: ["top", "bottom"],
+        //                   padding: { top: 35, left: 8, right: 8, bottom: -Infinity },
+        //                 },
+        //               },
+        //             ],
+        //           },
+        //         }}
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>

@@ -82,6 +82,14 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
         // zIndex: 99,
         flip: false,
       }}
+      //tippyOptions={{
+      //         getReferenceClientRect,
+      //         offset: [0, 10],
+      //         placement: "bottom",
+      //         zIndex: 99,
+      //         popperOptions: {
+      //           modifiers: [{ name: "flip", enabled: false }],
+      //         },
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">

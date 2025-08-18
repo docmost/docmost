@@ -52,8 +52,20 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
         placement: "bottom",
         offset: 8,
         // zIndex: 99,
+        // plugins: [sticky],
+        // sticky: 'popper',
         flip: false,
       }}
+      //  tippyOptions={{
+      //         getReferenceClientRect,
+      //         offset: [0, 8],
+      //         zIndex: 99,
+      //         popperOptions: {
+      //           modifiers: [{ name: 'flip', enabled: false }],
+      //         },
+      //         plugins: [sticky],
+      //         sticky: 'popper',
+      //       }}
       shouldShow={shouldShow}
     >
       <div

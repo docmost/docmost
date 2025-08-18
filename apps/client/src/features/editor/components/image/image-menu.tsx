@@ -17,16 +17,16 @@ import { useTranslation } from "react-i18next";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
-  
+
   const editorState = useEditorState({
     editor,
     selector: ctx => {
       if (!ctx.editor) {
         return null;
       }
-      
+
       const imageAttrs = ctx.editor.getAttributes("image");
-      
+
       return {
         isImage: ctx.editor.isActive("image"),
         isAlignLeft: ctx.editor.isActive("image", { align: "left" }),
@@ -36,7 +36,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       };
     },
   });
-  
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -108,6 +108,16 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         //zIndex: 99,
         flip: false,
       }}
+      //    tippyOptions={{
+      //         getReferenceClientRect,
+      //         offset: [0, 8],
+      //         zIndex: 99,
+      //         popperOptions: {
+      //           modifiers: [{ name: "flip", enabled: false }],
+      //         },
+      //         plugins: [sticky],
+      //         sticky: "popper",
+      //       }}
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">

@@ -65,6 +65,7 @@ export const TableCellMenu = React.memo(
           offset: 15,
           //zIndex: 99,
         }}
+
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
