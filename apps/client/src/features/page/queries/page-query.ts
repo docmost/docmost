@@ -175,25 +175,21 @@ export function useRestorePageMutation() {
     onSuccess: async (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
 
-      // Check if the page already exists in the tree (it shouldn't)
-      if (!tree.getItemInstance(restoredPage.id)) {
-        await tree.getItemInstance(restoredPage.parentPageId).invalidateChildrenIds();
-        await tree.loadChildrenIds(restoredPage.parentPageId);
+      await tree.getItemInstance(restoredPage.parentPageId ?? "root").invalidateChildrenIds();
 
-        // Emit websocket event to sync with other users
-        setTimeout(() => {
-          const item = tree.getItemInstance(restoredPage.id);
-          emit({
-            operation: "addTreeNode",
-            spaceId: restoredPage.spaceId,
-            payload: {
-              parentId: restoredPage.parentPageId,
-              index: item?.getItemMeta()?.index,
-              data: item?.getItemData()
-            },
-          });
-        }, 50);
-      }
+      // Emit websocket event to sync with other users
+      setTimeout(() => {
+        const item = tree.getItemInstance(restoredPage.id);
+        emit({
+          operation: "addTreeNode",
+          spaceId: restoredPage.spaceId,
+          payload: {
+            parentId: restoredPage.parentPageId,
+            index: item?.getItemMeta()?.index,
+            data: item?.getItemData()
+          },
+        });
+      }, 50);
 
       //  await queryClient.invalidateQueries({ queryKey: ["sidebar-pages", restoredPage.spaceId] });
 

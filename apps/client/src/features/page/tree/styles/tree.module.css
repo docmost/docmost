@@ -13,6 +13,13 @@
     }
 }
 
+.dragPreview {
+    position: absolute;
+    top: -99999px;
+    left: -99999px;
+    opacity: .4;
+}
+
 .node {
     position: relative;
     border-radius: 4px;

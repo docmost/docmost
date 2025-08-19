@@ -11,7 +11,13 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
-import { insertItemsAtTarget, isOrderedDragTarget, removeItemsFromParents, type DragTarget, type DragTargetPosition, type ItemInstance, type TreeInstance } from "@headless-tree/core";
+import { 
+  insertItemsAtTarget,
+  isOrderedDragTarget,
+  removeItemsFromParents,
+  type DragTarget,
+  type ItemInstance
+} from "@headless-tree/core";
 
 export function useTreeMutation<T>(spaceId: string) {
   const createPageMutation = useCreatePageMutation();
@@ -44,8 +50,13 @@ export function useTreeMutation<T>(spaceId: string) {
       hasChildren: false
     };
 
-    const index = parent.getChildren().length;
-    await parent.invalidateChildrenIds();
+    const siblings = parent.getChildren();
+    const index = siblings.length;
+    parent.updateCachedChildrenIds([
+      ...siblings.map(sibling => sibling.getId()),
+      newItem.id
+    ]);
+    parent.getTree().getItemInstance(newItem.id).updateCachedData(newItem);
 
     setTimeout(() => {
       emit({
@@ -155,10 +166,24 @@ export function useTreeMutation<T>(spaceId: string) {
     }
   };
 
+  const isPageInNode = (pageSlug: string, node: ItemInstance<SpaceTreeNode>) => {
+    const tree = node.getTree();
+    if (node.getItemData().slugId === pageSlug) return true;
+    if (!node.isFolder()) return false;
+    const children = (tree.retrieveChildrenIds as any)(node.getId(), true); // TODO update type after HT library update
+    return children.some(child => isPageInNode(pageSlug, tree.getItemInstance(child)));
+  };
+  
   const deleteItems = async (...items: ItemInstance<SpaceTreeNode>[]) => {
     try {
       await Promise.all(items.map(item => removePageMutation.mutateAsync(item.getId())));
-      await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
+      await Promise.all(items.map(item => {
+        item.getParent()?.updateCachedChildrenIds(
+          item.getParent()?.getChildren()
+            .map(child => child.getId())
+            .filter(child => child !== item.getId())
+          );
+      }));
 
       const navigateItem = items.reduce(
         (found, item) => found ?? item.getParent(),
@@ -178,6 +203,11 @@ export function useTreeMutation<T>(spaceId: string) {
             payload: { node },
           }));
       }, 50);
+
+      const slugId = pageSlug?.split("-")?.at(-1);
+      if (slugId && items.some(item => isPageInNode(slugId, item))) {
+        navigate(getSpaceUrl(spaceSlug));
+      }
     } catch (error) {
       console.error("Failed to delete page:", error);
     }

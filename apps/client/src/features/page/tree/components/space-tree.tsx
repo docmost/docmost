@@ -48,7 +48,7 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
 import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
-import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance } from "@headless-tree/core";
+import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance, type TreeInstance } from "@headless-tree/core";
 import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
 interface SpaceTreeProps {
@@ -70,7 +70,26 @@ const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
   },
 };
 
+const useExpandCurrentPath = (currentPageId: string | undefined, tree: TreeInstance<SpaceTreeNode>) => {
+  const isDone = useRef(false);
+  useEffect(() => {
+    if (isDone.current) return;
+    async function expandCurrentPagePath() {
+      if (!currentPageId) return;
+      const breadcrumbs = await getPageBreadcrumbs(currentPageId);
+      await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
+      breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
+      isDone.current = true;
+
+      // @ts-ignore
+      setTree({ tree }); // trigger rerender of breadcrumbs
+    }
+    expandCurrentPagePath();
+  }, [currentPageId]);
+}
+
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
+  const dragPreview = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const [, setTree] = useAtom(treeDataAtom);
@@ -82,7 +101,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const tree = useHeadlessTree<SpaceTreeNode>({
      rootItemId: "root",
      activeItemId: currentPage?.id,
-     getItemName: item => item.getItemData()?.name ?? t("untitled"),
+     getItemName: item => item.getItemData()?.name || t("untitled"),
      createLoadingItemData: () => ({
        id: "loading",
        name: "Loading...",
@@ -93,9 +112,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
        slugId: "",
        children: [],
      }),
-     isItemFolder: item => item.getChildren().length > 0,
+     isItemFolder: item => item.getItemData()?.hasChildren,
      canDrop: () => true,
      onDrop: treeMutations.move,
+     setDragImage: () => ({
+      imgElement: dragPreview.current,
+      xOffset: 40,
+      yOffset: 15,
+     }),
      dataLoader: {
        getItem: async pageId => {
         // docmost doesn't have a direct API for fetching a single page by ID,
@@ -129,30 +153,22 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     setTree({ tree });
   }, [tree, setTree]);
 
-  useEffect(() => {
-    async function expandCurrentPagePath() {
-      if (!currentPage?.id) return;
-      const breadcrumbs = await getPageBreadcrumbs(currentPage.id);
-      await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
-      breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
- 
-      // @ts-ignore
-      setTree({ tree }); // trigger rerender of breadcrumbs
-    }
-    expandCurrentPagePath();
-  }, [currentPage?.id]);
+  useExpandCurrentPath(currentPage?.id, tree);
 
   return (
-    <div {...tree.getContainerProps()} className="tree">
-      {tree.getItems().map((item) => (
-        <Node
-          key={item.getId()}
-          item={item}
-          spaceId={spaceId}
-        />
-      ))}
-      <div style={tree.getDragLineStyle()} className={classes.dragline} />
-    </div>
+    <>
+      <div className={classes.dragPreview} ref={dragPreview}>{tree.getSelectedItems()?.[0]?.getItemName()}</div>
+      <div {...tree.getContainerProps()} className="tree">
+        {tree.getItems().map((item) => (
+          <Node
+            key={item.getId()}
+            item={item}
+            spaceId={spaceId}
+          />
+        ))}
+        <div style={tree.getDragLineStyle()} className={classes.dragline} />
+      </div>
+    </>
   );
 }
 
@@ -529,7 +545,9 @@ function PageArrow({ item }: PageArrowProps) {
       size={20}
       variant="subtle"
       c="gray"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
         if (!isFolder) return;
         if (item.isExpanded()) {
           item.collapse();
