@@ -1,5 +1,7 @@
 .tree {
     border-radius: 0;
+    overflow: auto;
+    height: 100%;
 }
 
 .treeContainer {

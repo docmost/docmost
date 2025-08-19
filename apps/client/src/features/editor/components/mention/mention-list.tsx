@@ -216,8 +216,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       } as any;
 
       const parent = tree.getItemInstance(parentId);
-      const lastIndex = parent?.getChildren()?.length;
-      parent?.invalidateChildrenIds();
+      const children = parent?.getChildren().map(child => child.getId());
+      const lastIndex = children?.length;
+      parent?.updateCachedChildrenIds([
+        ...children,
+        createdPage.id
+      ]);
 
       props.command({
         id: uuid7(),

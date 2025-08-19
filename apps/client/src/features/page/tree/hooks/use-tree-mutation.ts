@@ -113,13 +113,23 @@ export function useTreeMutation<T>(spaceId: string) {
         },
       });
       
-      await removeItemsFromParents(items, () => {});
-      await insertItemsAtTarget(items.map(item => item.getId()), target, () => {});
+      await removeItemsFromParents(items, (item, newChildren) => {
+        item.updateCachedData({
+          ...item.getItemData(),
+          hasChildren: newChildren.length > 0,
+        });
+      });
+      await insertItemsAtTarget(items.map(item => item.getId()), target, (item, newChildren) => {
+        item.updateCachedData({
+          ...item.getItemData(),
+          hasChildren: newChildren.length > 0,
+        });
+      });
       items[0].updateCachedData({
         ...items[0].getItemData(),
         parentPageId,
         position: newPosition,
-      })
+      });
       // The lines above update the HT children cache. We could also just invalidate the
       // cache like below, and wait for the next refetch to update the children:
       // await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));

@@ -226,11 +226,11 @@ importers:
         specifier: 0.18.0-864353b
         version: 0.18.0-864353b(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@headless-tree/core':
-        specifier: 0.0.0-20250807163338
-        version: 0.0.0-20250807163338
+        specifier: 1.4.0
+        version: 1.4.0
       '@headless-tree/react':
-        specifier: 0.0.0-20250807163338
-        version: 0.0.0-20250807163338(@headless-tree/core@0.0.0-20250807163338)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 1.4.0
+        version: 1.4.0(@headless-tree/core@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mantine/core':
         specifier: ^8.1.3
         version: 8.1.3(@mantine/hooks@8.1.3(react@18.3.1))(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2205,13 +2205,13 @@ packages:
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
 
-  '@headless-tree/core@0.0.0-20250807163338':
-    resolution: {integrity: sha512-rsmjuXBVo/FbmuEKp9I+EMRFdip4lcPorLi5Jt+iDkog64vUTzkipXVPFb+ycP2SS8TZczLsxlIXiNPbcGSiYg==}
+  '@headless-tree/core@1.4.0':
+    resolution: {integrity: sha512-xBDYr9WJb7CuWuWzAAHfCfYfYUdCknsHa6OkdsLqeOc4JuwYuSlQ+TcDjeeImmgF6hVSAbeBBubOwotk5pmiMw==}
 
-  '@headless-tree/react@0.0.0-20250807163338':
-    resolution: {integrity: sha512-BBn5Axpq6Eg/pXgWGHaxuosR+lDUkovfEOu/cxHY2djbCGiE/ubcYdPh8CQ+7YP6I5KqQGO3thmorBbiOII72Q==}
+  '@headless-tree/react@1.4.0':
+    resolution: {integrity: sha512-B62Ku6E3u0JPrz2Sm3cKqTCRMltmhgo5mgkuOvfYbrVILsDSZ6ct2yX56/1GQlipPkVF3mEhlwiIVKNOQKWnqA==}
     peerDependencies:
-      '@headless-tree/core': 0.0.0-20250807163338
+      '@headless-tree/core': '*'
       react: '*'
       react-dom: '*'
 
@@ -11824,11 +11824,11 @@ snapshots:
 
   '@floating-ui/utils@0.2.8': {}
 
-  '@headless-tree/core@0.0.0-20250807163338': {}
+  '@headless-tree/core@1.4.0': {}
 
-  '@headless-tree/react@0.0.0-20250807163338(@headless-tree/core@0.0.0-20250807163338)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@headless-tree/react@1.4.0(@headless-tree/core@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@headless-tree/core': 0.0.0-20250807163338
+      '@headless-tree/core': 1.4.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
