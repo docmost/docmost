@@ -63,6 +63,7 @@ export class PageRepo {
     pageId: string,
     opts?: {
       includeContent?: boolean;
+      includeText?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
       includeCreator?: boolean;
@@ -79,6 +80,7 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
+      .$if(opts?.includeText, (qb) => qb.select('textContent'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
       .$if(opts?.includeHasChildren, (qb) =>
         qb.select((eb) => this.withHasChildren(eb)),

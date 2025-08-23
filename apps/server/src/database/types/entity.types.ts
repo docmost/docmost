@@ -20,6 +20,7 @@ import {
   FileTasks,
   UserMfa as _UserMFA,
 } from './db';
+import { Embeddings } from '@docmost/db/types/embeddings.types';
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;
@@ -119,3 +120,8 @@ export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
 export type UserMFA = Selectable<_UserMFA>;
 export type InsertableUserMFA = Insertable<_UserMFA>;
 export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
+
+// Page Embedding
+export type PageEmbedding = Selectable<Embeddings>;
+export type InsertablePageEmbedding = Insertable<Embeddings>;
+export type UpdatablePageEmbedding = Updateable<Omit<Embeddings, 'id'>>;

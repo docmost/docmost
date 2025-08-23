@@ -35,6 +35,7 @@ export class PersistenceExtension implements Extension {
     @InjectKysely() private readonly db: KyselyDB,
     private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -181,10 +182,22 @@ export class PersistenceExtension implements Extension {
     }
 
     this.contributors.get(documentName).add(userId);
+
+    console.log('embedd me')
+    const pageId = getPageId(documentName);
+
+    await this.aiQueue.add(QueueJob.GENERATE_PAGE_EMBEDDINGS, {
+      pageId: pageId,
+    });
   }
 
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
+    const pageId = getPageId(documentName);
+
     this.contributors.delete(documentName);
+
+    // should only queue embed after unload// should delay so we dont embed always
+
   }
 }
