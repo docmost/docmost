@@ -90,7 +90,7 @@ export function useTreeMutation<T>(spaceId: string) {
     // this makes it possible to correctly sort children of a parent node that is not the root
 
     const afterPosition = newSiblings[newDragIndex - 1]?.getItemData()?.position || null;
-    const beforePosition = newSiblings[newDragIndex]?.getItemData()?.position || null;
+    const beforePosition = newSiblings[newDragIndex + 1]?.getItemData()?.position || null;
 
     let newPosition: string;
 
@@ -173,7 +173,7 @@ export function useTreeMutation<T>(spaceId: string) {
     const children = (tree.retrieveChildrenIds as any)(node.getId(), true); // TODO update type after HT library update
     return children.some(child => isPageInNode(pageSlug, tree.getItemInstance(child)));
   };
-  
+
   const deleteItems = async (...items: ItemInstance<SpaceTreeNode>[]) => {
     try {
       await Promise.all(items.map(item => removePageMutation.mutateAsync(item.getId())));
