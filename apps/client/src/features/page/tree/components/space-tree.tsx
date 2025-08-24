@@ -384,7 +384,14 @@ function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
       };
 
       // Update local tree
-      await item.getTree().getRootItem().invalidateChildrenIds();
+      const tree = item.getTree();
+      const oldChildren = tree.getRootItem().getChildren().map(child => child.getId());
+      tree.getItemInstance(treeNodeData.id).updateCachedData(treeNodeData);
+      tree.getRootItem().updateCachedChildrenIds([
+        ...oldChildren.slice(0, newIndex),
+        treeNodeData.id,
+        ...oldChildren.slice(newIndex),
+      ]);
 
       // Emit socket event
       setTimeout(() => {
