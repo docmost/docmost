@@ -156,9 +156,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   useExpandCurrentPath(currentPage?.id, tree);
 
   return (
-    <>
+    <div className={classes.tree}>
       <div className={classes.dragPreview} ref={dragPreview}>{tree.getSelectedItems()?.[0]?.getItemName()}</div>
-      <div {...tree.getContainerProps()} className="tree">
+      <div {...tree.getContainerProps()} >
         {tree.getItems().map((item) => (
           <Node
             key={item.getId()}
@@ -168,7 +168,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         ))}
         <div style={tree.getDragLineStyle()} className={classes.dragline} />
       </div>
-    </>
+    </div>
   );
 }
 

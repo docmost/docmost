@@ -17,7 +17,7 @@
     position: absolute;
     top: -99999px;
     left: -99999px;
-    opacity: .4;
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
 }
 
 .node {
@@ -80,12 +80,13 @@
     flex-shrink: 0;
 }
 
-.text {
+.text, .dragPreview {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: rem(14px);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .arrow {
