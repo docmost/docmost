@@ -63,14 +63,20 @@ declare module "@headless-tree/core" {
   export interface ItemInstance<T> {
     isActive: () => boolean;
   }
+  export interface TreeInstance<T> {
+    getActiveItem: () => ItemInstance<T> | null;
+  }
 }
 const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
   itemInstance: {
     isActive: ({itemId, tree}) => tree.getConfig().activeItemId === itemId,
   },
+  treeInstance: {
+    getActiveItem: ({tree}) => tree.getItemInstance(tree.getConfig().activeItemId)
+  }
 };
 
-const useExpandCurrentPath = (currentPageId: string | undefined, tree: TreeInstance<SpaceTreeNode>) => {
+const useExpandCurrentPath = (currentPageId: string | undefined, tree: TreeInstance<SpaceTreeNode>, triggerRerender: () => void) => {
   const isDone = useRef(false);
   useEffect(() => {
     if (isDone.current) return;
@@ -80,9 +86,7 @@ const useExpandCurrentPath = (currentPageId: string | undefined, tree: TreeInsta
       await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
       breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
       isDone.current = true;
-
-      // @ts-ignore
-      setTree({ tree }); // trigger rerender of breadcrumbs
+      triggerRerender();
     }
     expandCurrentPagePath();
   }, [currentPageId]);
@@ -149,11 +153,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   });
 
   useEffect(() => {
-    // @ts-ignore
     setTree({ tree });
   }, [tree, setTree]);
 
-  useExpandCurrentPath(currentPage?.id, tree);
+  useEffect(() => {
+    tree.getActiveItem()?.scrollTo();
+  }, [tree.getActiveItem().getId()]);
+
+  useExpandCurrentPath(currentPage?.id, tree, () => setTree({ tree }));
 
   return (
     <div className={classes.tree}>
