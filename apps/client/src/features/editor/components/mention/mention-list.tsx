@@ -216,9 +216,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       } as any;
 
       const parent = tree.getItemInstance(parentId);
-      const children = parent?.getChildren().map(child => child.getId());
+
+      if (!parent) return;
+
+      const children = parent.getChildren().map(child => child.getId());
       const lastIndex = children?.length;
-      parent?.updateCachedChildrenIds([
+      parent.updateCachedChildrenIds([
         ...children,
         createdPage.id
       ]);

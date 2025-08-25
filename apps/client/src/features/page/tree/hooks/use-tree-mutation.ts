@@ -170,7 +170,8 @@ export function useTreeMutation<T>(spaceId: string) {
     const tree = node.getTree();
     if (node.getItemData().slugId === pageSlug) return true;
     if (!node.isFolder()) return false;
-    const children = (tree.retrieveChildrenIds as any)(node.getId(), true); // TODO update type after HT library update
+    // @ts-expect-error - retrieveChildrenIds types will be fixed in next HT library update
+    const children = tree.retrieveChildrenIds(node.getId(), true) as string[];
     return children.some(child => isPageInNode(pageSlug, tree.getItemInstance(child)));
   };
 
@@ -184,15 +185,6 @@ export function useTreeMutation<T>(spaceId: string) {
             .filter(child => child !== item.getId())
           );
       }));
-
-      const navigateItem = items.reduce(
-        (found, item) => found ?? item.getParent(),
-        null
-      );
-
-      if (navigateItem) {
-        navigate(getSpaceUrl(navigateItem.getItemData().slugId));
-      }
 
       setTimeout(() => {
         items.map(item => item.getItemData())

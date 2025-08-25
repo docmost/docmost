@@ -158,7 +158,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     tree.getActiveItem()?.scrollTo();
-  }, [tree.getActiveItem().getId()]);
+  }, [tree.getActiveItem()?.getId()]);
 
   useExpandCurrentPath(currentPage?.id, tree, () => setTree({ tree }));
 
@@ -374,8 +374,8 @@ function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
         pageId: item.getId(),
       });
 
-      const { index, parentId } = item.getItemMeta();
-      const newIndex = index + 1;
+      const { posInSet, parentId } = item.getItemMeta();
+      const newIndex = posInSet + 1;
 
       // Add the duplicated page to the tree
       const treeNodeData: SpaceTreeNode = {
@@ -392,9 +392,9 @@ function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
 
       // Update local tree
       const tree = item.getTree();
-      const oldChildren = tree.getRootItem().getChildren().map(child => child.getId());
+      const oldChildren = item.getParent()?.getChildren().map(child => child.getId()) ?? [];
       tree.getItemInstance(treeNodeData.id).updateCachedData(treeNodeData);
-      tree.getRootItem().updateCachedChildrenIds([
+      item.getParent()?.updateCachedChildrenIds([
         ...oldChildren.slice(0, newIndex),
         treeNodeData.id,
         ...oldChildren.slice(newIndex),
