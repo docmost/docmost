@@ -151,16 +151,6 @@ export class ImportAttachmentService {
               .execute();
 
             uploadStats.completed++;
-
-            this.logger.debug(
-              `Successfully uploaded Draw.io SVG: ${fileName} (${attachmentId})`,
-            );
-
-            if (uploadStats.completed % 10 === 0) {
-              this.logger.debug(
-                `Upload progress: ${uploadStats.completed}/${uploadStats.total}`,
-              );
-            }
           } catch (error) {
             uploadStats.failed++;
             uploadStats.failedFiles.push(fileName);
@@ -179,15 +169,6 @@ export class ImportAttachmentService {
             apiFilePath,
             fileName,
           });
-        }
-
-        this.logger.debug(
-          `Added Draw.io SVG mapping: ${drawioHref} -> ${attachmentId}`,
-        );
-        if (pair.pngFile) {
-          this.logger.debug(
-            `Added PNG mapping: ${pair.pngFile.href} -> ${attachmentId}`,
-          );
         }
       } catch (error) {
         this.logger.error(
@@ -461,19 +442,13 @@ export class ImportAttachmentService {
       });
 
     // Add Draw.io diagrams that weren't referenced in the HTML content
-    // Now O(n) instead of O(n²)
     for (const [drawioHref, pair] of drawioPairs) {
       const drawioSvg = drawioSvgMap.get(drawioHref);
       if (!drawioSvg) continue;
 
-      // O(1) check if already used
       if (usedAttachmentIds.has(drawioSvg.attachmentId)) {
         continue; // Already in content
       }
-
-      this.logger.debug(
-        `Adding unreferenced Draw.io diagram: ${pair.baseName}`,
-      );
 
       const $drawio = $('<div>')
         .attr('data-type', 'drawio')
@@ -493,36 +468,25 @@ export class ImportAttachmentService {
 
       // Skip temporary files or files that should be ignored
       if (skipFiles.has(href)) {
-        this.logger.debug(`Skipping attachment: ${fileName} (in skip list)`);
         continue;
       }
 
       // Check if this was part of a Draw.io pair that was already handled
       if (drawioSvgMap.has(href)) {
-        this.logger.debug(
-          `Skipping attachment: ${fileName} (part of Draw.io pair)`,
-        );
         continue;
       }
 
       // Check if already processed (was referenced in HTML)
       if (processed.has(href)) {
-        this.logger.debug(
-          `Attachment already processed from HTML: ${fileName}`,
-        );
         continue;
       }
 
       // Skip if the file doesn't exist
       if (!attachmentCandidates.has(href)) {
-        this.logger.warn(`Attachment not found in filesystem: ${href}`);
         continue;
       }
 
       // This attachment was in the list but not referenced in HTML - add it
-      this.logger.debug(
-        `Processing unreferenced attachment: ${fileName} at ${href}`,
-      );
       const { attachmentId, apiFilePath, abs } = processFile(href);
 
       try {
@@ -539,10 +503,6 @@ export class ImportAttachmentService {
           .attr('data-attachment-id', attachmentId);
 
         $.root().append($attachmentDiv);
-
-        this.logger.debug(
-          `Added unreferenced attachment: ${fileName} from attachment section`,
-        );
       } catch (error) {
         this.logger.error(`Failed to process attachment ${fileName}:`, error);
       }
@@ -552,10 +512,6 @@ export class ImportAttachmentService {
     uploadStats.total = attachmentTasks.length;
 
     if (uploadStats.total > 0) {
-      this.logger.debug(
-        `Starting upload of ${uploadStats.total} attachments...`,
-      );
-
       try {
         await Promise.all(attachmentTasks.map((task) => limit(task)));
       } catch (err) {
@@ -614,7 +570,6 @@ export class ImportAttachmentService {
       // Skip temporary files
       if (fileName.endsWith('.tmp') || fileName.includes('~drawio~')) {
         skipFiles.add(href);
-        this.logger.debug(`Skipping temporary file: ${fileName}`);
         continue;
       }
 
@@ -623,11 +578,8 @@ export class ImportAttachmentService {
         const ext = fileNameLower.substring(fileNameLower.lastIndexOf('.'));
         if (!nonDrawioExtensions.has(ext)) {
           drawioFiles.push(attachment);
-          this.logger.debug(`Found Draw.io file: ${fileName} at ${href}`);
         } else {
-          this.logger.debug(
-            `Skipped non-Draw.io file with mxfile MIME: ${fileName}`,
-          );
+          //Skipped non-Draw.io file with mxfile MIME.}`,
         }
       }
 
@@ -648,12 +600,10 @@ export class ImportAttachmentService {
           }
           pngByBaseName.get(baseName)!.push(attachment);
         }
-
-        this.logger.debug(`Found PNG file: ${fileName} at ${href}`);
       }
     }
 
-    // Match Draw.io files with PNG counterparts - now O(n) instead of O(n²)
+    // Match Draw.io files with PNG counterparts
     for (const drawio of drawioFiles) {
       let baseName: string;
 
@@ -671,7 +621,6 @@ export class ImportAttachmentService {
         // Cloud format: "name.drawio.png"
         if (png.fileName === `${baseName}.drawio.png`) {
           matchingPng = png;
-          this.logger.debug(`Matched Cloud format: ${png.fileName}`);
           break;
         }
         // Server format: "name.png" where drawio has no extension
@@ -680,7 +629,6 @@ export class ImportAttachmentService {
           png.fileName === `${baseName}.png`
         ) {
           matchingPng = png;
-          this.logger.debug(`Matched Server format: ${png.fileName}`);
           break;
         }
       }
