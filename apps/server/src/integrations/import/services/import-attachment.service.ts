@@ -160,6 +160,8 @@ export class ImportAttachmentService {
               .execute();
 
             uploadStats.completed++;
+            
+            this.logger.debug(`Successfully uploaded Draw.io SVG: ${fileName} (${attachmentId})`);
 
             if (uploadStats.completed % 10 === 0) {
               this.logger.debug(
@@ -269,6 +271,22 @@ export class ImportAttachmentService {
         attachmentCandidates,
       );
       if (!relPath) continue;
+
+      // Check if this image is part of a Draw.io pair that should be replaced with Draw.io SVG
+      const drawioSvg = drawioSvgMap.get(relPath);
+      if (drawioSvg) {
+        const $drawio = $('<div>')
+          .attr('data-type', 'drawio')
+          .attr('data-src', drawioSvg.apiFilePath)
+          .attr('data-title', 'diagram')
+          .attr('data-width', '100%')
+          .attr('data-align', 'center')
+          .attr('data-attachment-id', drawioSvg.attachmentId);
+
+        $img.replaceWith($drawio);
+        unwrapFromParagraph($, $drawio);
+        continue;
+      }
 
       const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const stat = await fs.stat(abs);
@@ -443,6 +461,94 @@ export class ImportAttachmentService {
 
         $oldDiv.replaceWith($newDiv);
         unwrapFromParagraph($, $newDiv);
+      }
+    }
+
+    // Track which Draw.io SVGs were actually used in the content
+    const usedDrawioSvgs = new Set<string>();
+    
+    // Check which Draw.io SVGs were referenced (replaced images or links)
+    for (const [href, svgInfo] of drawioSvgMap) {
+      // Check if this SVG is referenced in the HTML
+      if ($.root().find(`[data-attachment-id="${svgInfo.attachmentId}"]`).length > 0) {
+        usedDrawioSvgs.add(href);
+      }
+    }
+    
+    // Add Draw.io diagrams that weren't referenced in the HTML content
+    // This handles cases where Draw.io files exist but aren't shown in the page
+    for (const [drawioHref, pair] of drawioPairs) {
+      if (usedDrawioSvgs.has(drawioHref)) {
+        continue; // Already in content
+      }
+      
+      const drawioSvg = drawioSvgMap.get(drawioHref);
+      if (drawioSvg) {
+        this.logger.debug(`Adding unreferenced Draw.io diagram: ${pair.baseName}`);
+        
+        const $drawio = $('<div>')
+          .attr('data-type', 'drawio')
+          .attr('data-src', drawioSvg.apiFilePath)
+          .attr('data-title', 'diagram')
+          .attr('data-width', '100%')
+          .attr('data-align', 'center')
+          .attr('data-attachment-id', drawioSvg.attachmentId);
+        
+        $.root().append($drawio);
+      }
+    }
+
+    // Process attachments from the attachment section that weren't referenced in HTML
+    // These need to be added as attachment nodes so they get uploaded
+    for (const attachment of pageAttachments) {
+      const { href, fileName, mimeType } = attachment;
+      
+      // Skip temporary files or files that should be ignored
+      if (skipFiles.has(href)) {
+        this.logger.debug(`Skipping attachment: ${fileName} (in skip list)`);
+        continue;
+      }
+      
+      // Check if this was part of a Draw.io pair that was already handled
+      if (drawioSvgMap.has(href)) {
+        this.logger.debug(`Skipping attachment: ${fileName} (part of Draw.io pair)`);
+        continue;
+      }
+      
+      // Check if already processed (was referenced in HTML)
+      if (processed.has(href)) {
+        this.logger.debug(`Attachment already processed from HTML: ${fileName}`);
+        continue;
+      }
+      
+      // Skip if the file doesn't exist
+      if (!attachmentCandidates.has(href)) {
+        this.logger.warn(`Attachment not found in filesystem: ${href}`);
+        continue;
+      }
+      
+      // This attachment was in the list but not referenced in HTML - add it
+      this.logger.debug(`Processing unreferenced attachment: ${fileName} at ${href}`);
+      const { attachmentId, apiFilePath, abs } = processFile(href);
+      
+      try {
+        const stat = await fs.stat(abs);
+        const mime = mimeType || getMimeType(abs);
+        
+        // Add as attachment node at the end
+        const $attachmentDiv = $('<div>')
+          .attr('data-type', 'attachment')
+          .attr('data-attachment-url', apiFilePath)
+          .attr('data-attachment-name', fileName)
+          .attr('data-attachment-mime', mime)
+          .attr('data-attachment-size', stat.size.toString())
+          .attr('data-attachment-id', attachmentId);
+        
+        $.root().append($attachmentDiv);
+        
+        this.logger.debug(`Added unreferenced attachment: ${fileName} from attachment section`);
+      } catch (error) {
+        this.logger.error(`Failed to process attachment ${fileName}:`, error);
       }
     }
 
@@ -633,7 +739,7 @@ export class ImportAttachmentService {
         try {
           const pngBuffer = await fs.readFile(pngPath);
           const pngBase64 = pngBuffer.toString('base64');
-          imageElement = `<image href="data:image/png;base64,${pngBase64}" />`;
+          imageElement = `<image href="data:image/png;base64,${pngBase64}" width="100%" height="100%" />`;
         } catch (error) {
           this.logger.warn(
             `Could not read PNG file for Draw.io diagram: ${pngPath}`,
@@ -644,8 +750,11 @@ export class ImportAttachmentService {
 
       // Create the SVG with embedded Draw.io data and image
       const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
-      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-      content="${drawioBase64}"> ${imageElement}</svg>`;
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     content="${drawioBase64}">
+  ${imageElement}
+</svg>`;
 
       return Buffer.from(svgContent, 'utf-8');
     } catch (error) {
