@@ -98,7 +98,6 @@ export class ImportAttachmentService {
       }
     >();
 
-    // Debug: log the drawioPairs
     this.logger.debug(`Found ${drawioPairs.size} Draw.io pairs to process`);
 
     // Process Draw.io pairs and create combined SVG files
@@ -111,13 +110,6 @@ export class ImportAttachmentService {
       const pngAbsPath = pair.pngFile
         ? attachmentCandidates.get(pair.pngFile.href)
         : undefined;
-
-      this.logger.debug(
-        `Processing Draw.io: ${drawioHref} -> PNG: ${pair.pngFile?.href || 'none'}`,
-      );
-      this.logger.debug(
-        `Draw.io path: ${drawioAbsPath}, PNG path: ${pngAbsPath || 'none'}`,
-      );
 
       try {
         // Create combined SVG with Draw.io data and PNG image
@@ -135,7 +127,6 @@ export class ImportAttachmentService {
         // Upload the SVG file
         attachmentTasks.push(async () => {
           try {
-            // Convert buffer to stream for upload
             const stream = Readable.from(svgBuffer);
 
             // Upload to storage
@@ -160,8 +151,10 @@ export class ImportAttachmentService {
               .execute();
 
             uploadStats.completed++;
-            
-            this.logger.debug(`Successfully uploaded Draw.io SVG: ${fileName} (${attachmentId})`);
+
+            this.logger.debug(
+              `Successfully uploaded Draw.io SVG: ${fileName} (${attachmentId})`,
+            );
 
             if (uploadStats.completed % 10 === 0) {
               this.logger.debug(
@@ -203,8 +196,6 @@ export class ImportAttachmentService {
         );
       }
     }
-
-    this.logger.debug(`Draw.io SVG map has ${drawioSvgMap.size} entries`);
 
     const uploadOnce = (relPath: string) => {
       const abs = attachmentCandidates.get(relPath)!;
@@ -259,282 +250,285 @@ export class ImportAttachmentService {
     const pageDir = path.dirname(pageRelativePath);
     const $ = load(html);
 
-    // image
-    for (const imgEl of $('img').toArray()) {
-      const $img = $(imgEl);
-      const src = cleanUrlString($img.attr('src') ?? '')!;
-      if (!src || src.startsWith('http')) continue;
+    // Cache for resolved paths to avoid repeated lookups
+    const resolvedPathCache = new Map<string, string | null>();
 
-      const relPath = resolveRelativeAttachmentPath(
-        src,
-        pageDir,
-        attachmentCandidates,
-      );
-      if (!relPath) continue;
-
-      // Check if this image is part of a Draw.io pair that should be replaced with Draw.io SVG
-      const drawioSvg = drawioSvgMap.get(relPath);
-      if (drawioSvg) {
-        const $drawio = $('<div>')
-          .attr('data-type', 'drawio')
-          .attr('data-src', drawioSvg.apiFilePath)
-          .attr('data-title', 'diagram')
-          .attr('data-width', '100%')
-          .attr('data-align', 'center')
-          .attr('data-attachment-id', drawioSvg.attachmentId);
-
-        $img.replaceWith($drawio);
-        unwrapFromParagraph($, $drawio);
-        continue;
+    const getCachedResolvedPath = (rawPath: string): string | null => {
+      if (resolvedPathCache.has(rawPath)) {
+        return resolvedPathCache.get(rawPath)!;
       }
-
-      const { attachmentId, apiFilePath, abs } = processFile(relPath);
-      const stat = await fs.stat(abs);
-
-      const width = $img.attr('width') ?? '100%';
-      const align = $img.attr('data-align') ?? 'center';
-
-      $img
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', attachmentId)
-        .attr('data-size', stat.size.toString())
-        .attr('width', width)
-        .attr('data-align', align);
-
-      unwrapFromParagraph($, $img);
-    }
-
-    // video
-    for (const vidEl of $('video').toArray()) {
-      const $vid = $(vidEl);
-      const src = cleanUrlString($vid.attr('src') ?? '')!;
-      if (!src || src.startsWith('http')) continue;
-
-      const relPath = resolveRelativeAttachmentPath(
-        src,
+      const resolved = resolveRelativeAttachmentPath(
+        rawPath,
         pageDir,
         attachmentCandidates,
       );
-      if (!relPath) continue;
+      resolvedPathCache.set(rawPath, resolved);
+      return resolved;
+    };
 
-      const { attachmentId, apiFilePath, abs } = processFile(relPath);
-      const stat = await fs.stat(abs);
+    // Cache for file stats to avoid repeated file system calls
+    const statCache = new Map<string, any>();
 
-      const width = $vid.attr('width') ?? '100%';
-      const align = $vid.attr('data-align') ?? 'center';
-
-      $vid
-        .attr('src', apiFilePath)
-        .attr('data-attachment-id', attachmentId)
-        .attr('data-size', stat.size.toString())
-        .attr('width', width)
-        .attr('data-align', align);
-
-      unwrapFromParagraph($, $vid);
-    }
-
-    // <div data-type="attachment">
-    for (const el of $('div[data-type="attachment"]').toArray()) {
-      const $oldDiv = $(el);
-      const rawUrl = cleanUrlString($oldDiv.attr('data-attachment-url') ?? '')!;
-      if (!rawUrl || rawUrl.startsWith('http')) continue;
-
-      const relPath = resolveRelativeAttachmentPath(
-        rawUrl,
-        pageDir,
-        attachmentCandidates,
-      );
-      if (!relPath) continue;
-
-      const { attachmentId, apiFilePath, abs } = processFile(relPath);
-      const stat = await fs.stat(abs);
-      const fileName = path.basename(abs);
-      const mime = getMimeType(abs);
-
-      const $newDiv = $('<div>')
-        .attr('data-type', 'attachment')
-        .attr('data-attachment-url', apiFilePath)
-        .attr('data-attachment-name', fileName)
-        .attr('data-attachment-mime', mime)
-        .attr('data-attachment-size', stat.size.toString())
-        .attr('data-attachment-id', attachmentId);
-
-      $oldDiv.replaceWith($newDiv);
-      unwrapFromParagraph($, $newDiv);
-    }
-
-    // rewrite other attachments via <a>
-    for (const aEl of $('a').toArray()) {
-      const $a = $(aEl);
-      const href = cleanUrlString($a.attr('href') ?? '')!;
-      if (!href || href.startsWith('http')) continue;
-
-      const relPath = resolveRelativeAttachmentPath(
-        href,
-        pageDir,
-        attachmentCandidates,
-      );
-      if (!relPath) continue;
-
-      // Check if this is a Draw.io file that was already processed
-      const drawioSvg = drawioSvgMap.get(relPath);
-      if (drawioSvg) {
-        const $drawio = $('<div>')
-          .attr('data-type', 'drawio')
-          .attr('data-src', drawioSvg.apiFilePath)
-          .attr('data-title', 'diagram')
-          .attr('data-width', '100%')
-          .attr('data-align', 'center')
-          .attr('data-attachment-id', drawioSvg.attachmentId);
-
-        $a.replaceWith($drawio);
-        unwrapFromParagraph($, $drawio);
-        continue;
+    const getCachedStat = async (absPath: string) => {
+      if (statCache.has(absPath)) {
+        return statCache.get(absPath);
       }
+      const stat = await fs.stat(absPath);
+      statCache.set(absPath, stat);
+      return stat;
+    };
 
-      // Skip files that should be ignored (temp files, etc)
-      if (skipFiles.has(relPath)) {
-        $a.remove();
-        continue;
-      }
+    // Single DOM traversal for all attachment elements
+    const selector =
+      'img, video, div[data-type="attachment"], a, div[data-type="excalidraw"], div[data-type="drawio"]';
+    const elements = $(selector).toArray();
 
-      const { attachmentId, apiFilePath, abs } = processFile(relPath);
-      const stat = await fs.stat(abs);
-      const ext = path.extname(relPath).toLowerCase();
+    for (const element of elements) {
+      const $el = $(element);
+      const tagName = element.tagName.toLowerCase();
 
-      if (ext === '.mp4') {
-        const $video = $('<video>')
+      // Process based on element type
+      if (tagName === 'img') {
+        const src = cleanUrlString($el.attr('src') ?? '');
+        if (!src || src.startsWith('http')) continue;
+
+        const relPath = getCachedResolvedPath(src);
+        if (!relPath) continue;
+
+        // Check if this image is part of a Draw.io pair
+        const drawioSvg = drawioSvgMap.get(relPath);
+        if (drawioSvg) {
+          const $drawio = $('<div>')
+            .attr('data-type', 'drawio')
+            .attr('data-src', drawioSvg.apiFilePath)
+            .attr('data-title', 'diagram')
+            .attr('data-width', '100%')
+            .attr('data-align', 'center')
+            .attr('data-attachment-id', drawioSvg.attachmentId);
+
+          $el.replaceWith($drawio);
+          unwrapFromParagraph($, $drawio);
+          continue;
+        }
+
+        const { attachmentId, apiFilePath, abs } = processFile(relPath);
+        const stat = await getCachedStat(abs);
+
+        $el
           .attr('src', apiFilePath)
           .attr('data-attachment-id', attachmentId)
           .attr('data-size', stat.size.toString())
-          .attr('width', '100%')
-          .attr('data-align', 'center');
-        $a.replaceWith($video);
-        unwrapFromParagraph($, $video);
-      } else {
-        const confAliasName = $a.attr('data-linked-resource-default-alias');
-        let attachmentName = path.basename(abs);
-        if (confAliasName) attachmentName = confAliasName;
+          .attr('width', $el.attr('width') ?? '100%')
+          .attr('data-align', $el.attr('data-align') ?? 'center');
 
-        const $div = $('<div>')
-          .attr('data-type', 'attachment')
-          .attr('data-attachment-url', apiFilePath)
-          .attr('data-attachment-name', attachmentName)
-          .attr('data-attachment-mime', getMimeType(abs))
-          .attr('data-attachment-size', stat.size.toString())
-          .attr('data-attachment-id', attachmentId);
+        unwrapFromParagraph($, $el);
+      } else if (tagName === 'video') {
+        const src = cleanUrlString($el.attr('src') ?? '');
+        if (!src || src.startsWith('http')) continue;
 
-        $a.replaceWith($div);
-        unwrapFromParagraph($, $div);
-      }
-    }
-
-    // excalidraw and drawio
-    for (const type of ['excalidraw', 'drawio'] as const) {
-      for (const el of $(`div[data-type="${type}"]`).toArray()) {
-        const $oldDiv = $(el);
-        const rawSrc = cleanUrlString($oldDiv.attr('data-src') ?? '')!;
-        if (!rawSrc || rawSrc.startsWith('http')) continue;
-
-        const relPath = resolveRelativeAttachmentPath(
-          rawSrc,
-          pageDir,
-          attachmentCandidates,
-        );
+        const relPath = getCachedResolvedPath(src);
         if (!relPath) continue;
 
         const { attachmentId, apiFilePath, abs } = processFile(relPath);
-        const stat = await fs.stat(abs);
-        const fileName = path.basename(abs);
+        const stat = await getCachedStat(abs);
 
-        const width = $oldDiv.attr('data-width') || '100%';
-        const align = $oldDiv.attr('data-align') || 'center';
-
-        const $newDiv = $('<div>')
-          .attr('data-type', type)
-          .attr('data-src', apiFilePath)
-          .attr('data-title', fileName)
-          .attr('data-width', width)
+        $el
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId)
           .attr('data-size', stat.size.toString())
-          .attr('data-align', align)
-          .attr('data-attachment-id', attachmentId);
+          .attr('width', $el.attr('width') ?? '100%')
+          .attr('data-align', $el.attr('data-align') ?? 'center');
 
-        $oldDiv.replaceWith($newDiv);
-        unwrapFromParagraph($, $newDiv);
+        unwrapFromParagraph($, $el);
+      } else if (tagName === 'div') {
+        const dataType = $el.attr('data-type');
+
+        if (dataType === 'attachment') {
+          const rawUrl = cleanUrlString($el.attr('data-attachment-url') ?? '');
+          if (!rawUrl || rawUrl.startsWith('http')) continue;
+
+          const relPath = getCachedResolvedPath(rawUrl);
+          if (!relPath) continue;
+
+          const { attachmentId, apiFilePath, abs } = processFile(relPath);
+          const stat = await getCachedStat(abs);
+          const fileName = path.basename(abs);
+          const mime = getMimeType(abs);
+
+          const $newDiv = $('<div>')
+            .attr('data-type', 'attachment')
+            .attr('data-attachment-url', apiFilePath)
+            .attr('data-attachment-name', fileName)
+            .attr('data-attachment-mime', mime)
+            .attr('data-attachment-size', stat.size.toString())
+            .attr('data-attachment-id', attachmentId);
+
+          $el.replaceWith($newDiv);
+          unwrapFromParagraph($, $newDiv);
+        } else if (dataType === 'excalidraw' || dataType === 'drawio') {
+          const rawSrc = cleanUrlString($el.attr('data-src') ?? '');
+          if (!rawSrc || rawSrc.startsWith('http')) continue;
+
+          const relPath = getCachedResolvedPath(rawSrc);
+          if (!relPath) continue;
+
+          const { attachmentId, apiFilePath, abs } = processFile(relPath);
+          const stat = await getCachedStat(abs);
+          const fileName = path.basename(abs);
+
+          const $newDiv = $('<div>')
+            .attr('data-type', dataType)
+            .attr('data-src', apiFilePath)
+            .attr('data-title', fileName)
+            .attr('data-width', $el.attr('data-width') || '100%')
+            .attr('data-size', stat.size.toString())
+            .attr('data-align', $el.attr('data-align') || 'center')
+            .attr('data-attachment-id', attachmentId);
+
+          $el.replaceWith($newDiv);
+          unwrapFromParagraph($, $newDiv);
+        }
+      } else if (tagName === 'a') {
+        const href = cleanUrlString($el.attr('href') ?? '');
+        if (!href || href.startsWith('http')) continue;
+
+        const relPath = getCachedResolvedPath(href);
+        if (!relPath) continue;
+
+        // Check if this is a Draw.io file
+        const drawioSvg = drawioSvgMap.get(relPath);
+        if (drawioSvg) {
+          const $drawio = $('<div>')
+            .attr('data-type', 'drawio')
+            .attr('data-src', drawioSvg.apiFilePath)
+            .attr('data-title', 'diagram')
+            .attr('data-width', '100%')
+            .attr('data-align', 'center')
+            .attr('data-attachment-id', drawioSvg.attachmentId);
+
+          $el.replaceWith($drawio);
+          unwrapFromParagraph($, $drawio);
+          continue;
+        }
+
+        // Skip files that should be ignored
+        if (skipFiles.has(relPath)) {
+          $el.remove();
+          continue;
+        }
+
+        const { attachmentId, apiFilePath, abs } = processFile(relPath);
+        const stat = await getCachedStat(abs);
+        const ext = path.extname(relPath).toLowerCase();
+
+        if (ext === '.mp4') {
+          const $video = $('<video>')
+            .attr('src', apiFilePath)
+            .attr('data-attachment-id', attachmentId)
+            .attr('data-size', stat.size.toString())
+            .attr('width', '100%')
+            .attr('data-align', 'center');
+          $el.replaceWith($video);
+          unwrapFromParagraph($, $video);
+        } else {
+          const confAliasName = $el.attr('data-linked-resource-default-alias');
+          let attachmentName = path.basename(abs);
+          if (confAliasName) attachmentName = confAliasName;
+
+          const $div = $('<div>')
+            .attr('data-type', 'attachment')
+            .attr('data-attachment-url', apiFilePath)
+            .attr('data-attachment-name', attachmentName)
+            .attr('data-attachment-mime', getMimeType(abs))
+            .attr('data-attachment-size', stat.size.toString())
+            .attr('data-attachment-id', attachmentId);
+
+          $el.replaceWith($div);
+          unwrapFromParagraph($, $div);
+        }
       }
     }
 
-    // Track which Draw.io SVGs were actually used in the content
-    const usedDrawioSvgs = new Set<string>();
-    
-    // Check which Draw.io SVGs were referenced (replaced images or links)
-    for (const [href, svgInfo] of drawioSvgMap) {
-      // Check if this SVG is referenced in the HTML
-      if ($.root().find(`[data-attachment-id="${svgInfo.attachmentId}"]`).length > 0) {
-        usedDrawioSvgs.add(href);
-      }
-    }
-    
+    // Collect all attachment IDs in the HTML in a single DOM traversal - O(n)
+    const usedAttachmentIds = new Set<string>();
+    $.root()
+      .find('[data-attachment-id]')
+      .each((_, el) => {
+        const attachmentId = $(el).attr('data-attachment-id');
+        if (attachmentId) {
+          usedAttachmentIds.add(attachmentId);
+        }
+      });
+
     // Add Draw.io diagrams that weren't referenced in the HTML content
-    // This handles cases where Draw.io files exist but aren't shown in the page
+    // Now O(n) instead of O(n²)
     for (const [drawioHref, pair] of drawioPairs) {
-      if (usedDrawioSvgs.has(drawioHref)) {
+      const drawioSvg = drawioSvgMap.get(drawioHref);
+      if (!drawioSvg) continue;
+
+      // O(1) check if already used
+      if (usedAttachmentIds.has(drawioSvg.attachmentId)) {
         continue; // Already in content
       }
-      
-      const drawioSvg = drawioSvgMap.get(drawioHref);
-      if (drawioSvg) {
-        this.logger.debug(`Adding unreferenced Draw.io diagram: ${pair.baseName}`);
-        
-        const $drawio = $('<div>')
-          .attr('data-type', 'drawio')
-          .attr('data-src', drawioSvg.apiFilePath)
-          .attr('data-title', 'diagram')
-          .attr('data-width', '100%')
-          .attr('data-align', 'center')
-          .attr('data-attachment-id', drawioSvg.attachmentId);
-        
-        $.root().append($drawio);
-      }
+
+      this.logger.debug(
+        `Adding unreferenced Draw.io diagram: ${pair.baseName}`,
+      );
+
+      const $drawio = $('<div>')
+        .attr('data-type', 'drawio')
+        .attr('data-src', drawioSvg.apiFilePath)
+        .attr('data-title', 'diagram')
+        .attr('data-width', '100%')
+        .attr('data-align', 'center')
+        .attr('data-attachment-id', drawioSvg.attachmentId);
+
+      $.root().append($drawio);
     }
 
     // Process attachments from the attachment section that weren't referenced in HTML
     // These need to be added as attachment nodes so they get uploaded
     for (const attachment of pageAttachments) {
       const { href, fileName, mimeType } = attachment;
-      
+
       // Skip temporary files or files that should be ignored
       if (skipFiles.has(href)) {
         this.logger.debug(`Skipping attachment: ${fileName} (in skip list)`);
         continue;
       }
-      
+
       // Check if this was part of a Draw.io pair that was already handled
       if (drawioSvgMap.has(href)) {
-        this.logger.debug(`Skipping attachment: ${fileName} (part of Draw.io pair)`);
+        this.logger.debug(
+          `Skipping attachment: ${fileName} (part of Draw.io pair)`,
+        );
         continue;
       }
-      
+
       // Check if already processed (was referenced in HTML)
       if (processed.has(href)) {
-        this.logger.debug(`Attachment already processed from HTML: ${fileName}`);
+        this.logger.debug(
+          `Attachment already processed from HTML: ${fileName}`,
+        );
         continue;
       }
-      
+
       // Skip if the file doesn't exist
       if (!attachmentCandidates.has(href)) {
         this.logger.warn(`Attachment not found in filesystem: ${href}`);
         continue;
       }
-      
+
       // This attachment was in the list but not referenced in HTML - add it
-      this.logger.debug(`Processing unreferenced attachment: ${fileName} at ${href}`);
+      this.logger.debug(
+        `Processing unreferenced attachment: ${fileName} at ${href}`,
+      );
       const { attachmentId, apiFilePath, abs } = processFile(href);
-      
+
       try {
         const stat = await fs.stat(abs);
         const mime = mimeType || getMimeType(abs);
-        
+
         // Add as attachment node at the end
         const $attachmentDiv = $('<div>')
           .attr('data-type', 'attachment')
@@ -543,10 +537,12 @@ export class ImportAttachmentService {
           .attr('data-attachment-mime', mime)
           .attr('data-attachment-size', stat.size.toString())
           .attr('data-attachment-id', attachmentId);
-        
+
         $.root().append($attachmentDiv);
-        
-        this.logger.debug(`Added unreferenced attachment: ${fileName} from attachment section`);
+
+        this.logger.debug(
+          `Added unreferenced attachment: ${fileName} from attachment section`,
+        );
       } catch (error) {
         this.logger.error(`Failed to process attachment ${fileName}:`, error);
       }
@@ -588,80 +584,79 @@ export class ImportAttachmentService {
     const drawioPairs = new Map<string, DrawioPair>();
     const skipFiles = new Set<string>();
 
-    this.logger.debug(`Analyzing ${attachments.length} attachments`);
-    attachments.forEach((att) => {
-      this.logger.debug(
-        `Attachment: ${att.fileName} (${att.mimeType}) -> ${att.href}`,
-      );
-    });
-
     // Group attachments by type
     const drawioFiles: AttachmentInfo[] = [];
-    const pngFiles: AttachmentInfo[] = [];
+    const pngByBaseName = new Map<string, AttachmentInfo[]>();
 
+    const nonDrawioExtensions = new Set([
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.svg',
+      '.txt',
+      '.pdf',
+      '.doc',
+      '.docx',
+      '.xls',
+      '.xlsx',
+      '.csv',
+      '.zip',
+      '.tar',
+      '.gz',
+    ]);
+
+    // Single pass through attachments
     for (const attachment of attachments) {
       const { fileName, mimeType, href } = attachment;
+      const fileNameLower = fileName.toLowerCase();
 
-      // Skip temporary Draw.io files (should already be filtered in parseAttachmentSection, but double-check)
+      // Skip temporary files
       if (fileName.endsWith('.tmp') || fileName.includes('~drawio~')) {
         skipFiles.add(href);
-        this.logger.debug(
-          `Skipping temporary file in analyzeAttachments: ${fileName}`,
-        );
+        this.logger.debug(`Skipping temporary file: ${fileName}`);
         continue;
       }
 
-      // Identify Draw.io files by MIME type
+      // Check for Draw.io files
       if (mimeType === 'application/vnd.jgraph.mxfile') {
-        // Filter out files with non-drawio extensions that have wrong MIME
-        // IMPORTANT: .png files should NEVER be Draw.io files, even if they have the wrong MIME type
-        const nonDrawioExtensions = [
-          '.png',
-          '.jpg',
-          '.jpeg',
-          '.gif',
-          '.svg',
-          '.txt',
-          '.pdf',
-          '.doc',
-          '.docx',
-          '.xls',
-          '.xlsx',
-          '.csv',
-          '.zip',
-          '.tar',
-          '.gz',
-        ];
-        const hasNonDrawioExtension = nonDrawioExtensions.some((ext) =>
-          fileName.toLowerCase().endsWith(ext),
-        );
-
-        if (!hasNonDrawioExtension) {
+        const ext = fileNameLower.substring(fileNameLower.lastIndexOf('.'));
+        if (!nonDrawioExtensions.has(ext)) {
           drawioFiles.push(attachment);
-          this.logger.debug(
-            `Found Draw.io file: ${attachment.fileName} at ${attachment.href}`,
-          );
+          this.logger.debug(`Found Draw.io file: ${fileName} at ${href}`);
         } else {
           this.logger.debug(
-            `Skipped non-Draw.io file with mxfile MIME: ${attachment.fileName}`,
+            `Skipped non-Draw.io file with mxfile MIME: ${fileName}`,
           );
         }
       }
 
-      // Identify PNG files by MIME type OR file extension (as fallback for wrong MIME types)
-      if (mimeType === 'image/png' || fileName.toLowerCase().endsWith('.png')) {
-        pngFiles.push(attachment);
-        this.logger.debug(
-          `Found PNG file: ${attachment.fileName} at ${attachment.href}`,
-        );
+      if (mimeType === 'image/png' || fileNameLower.endsWith('.png')) {
+        const baseNames: string[] = [];
+
+        if (fileName.endsWith('.drawio.png')) {
+          // Cloud format: "name.drawio.png" -> base is "name"
+          baseNames.push(fileName.slice(0, -11)); // Remove .drawio.png
+        } else if (fileName.endsWith('.png')) {
+          // Server format: "name.png" -> base is "name"
+          baseNames.push(fileName.slice(0, -4)); // Remove .png
+        }
+
+        for (const baseName of baseNames) {
+          if (!pngByBaseName.has(baseName)) {
+            pngByBaseName.set(baseName, []);
+          }
+          pngByBaseName.get(baseName)!.push(attachment);
+        }
+
+        this.logger.debug(`Found PNG file: ${fileName} at ${href}`);
       }
     }
 
-    // Match Draw.io files with their PNG counterparts
+    // Match Draw.io files with PNG counterparts - now O(n) instead of O(n²)
     for (const drawio of drawioFiles) {
       let baseName: string;
 
-      // Confluence Cloud: has .drawio extension
       if (drawio.fileName.endsWith('.drawio')) {
         baseName = drawio.fileName.slice(0, -7); // Remove .drawio
       } else {
@@ -669,42 +664,33 @@ export class ImportAttachmentService {
         baseName = drawio.fileName;
       }
 
-      // Find matching PNG
-      const matchingPng = pngFiles.find((png) => {
+      const candidatePngs = pngByBaseName.get(baseName) || [];
+      let matchingPng: AttachmentInfo | undefined;
+
+      for (const png of candidatePngs) {
         // Cloud format: "name.drawio.png"
         if (png.fileName === `${baseName}.drawio.png`) {
-          this.logger.debug(
-            `Matched Cloud format: ${png.fileName} === ${baseName}.drawio.png`,
-          );
-          return true;
+          matchingPng = png;
+          this.logger.debug(`Matched Cloud format: ${png.fileName}`);
+          break;
         }
-
-        // Server format: "name.png" where name matches exactly
+        // Server format: "name.png" where drawio has no extension
         if (
           !drawio.fileName.endsWith('.drawio') &&
           png.fileName === `${baseName}.png`
         ) {
-          this.logger.debug(
-            `Matched Server format: ${png.fileName} === ${baseName}.png`,
-          );
-          return true;
+          matchingPng = png;
+          this.logger.debug(`Matched Server format: ${png.fileName}`);
+          break;
         }
+      }
 
-        return false;
-      });
-
-      // Debug logging
       if (matchingPng) {
         this.logger.debug(
           `Found Draw.io pair: ${drawio.fileName} -> ${matchingPng.fileName}`,
         );
       } else {
-        this.logger.debug(
-          `No PNG found for Draw.io file: ${drawio.fileName}, baseName: ${baseName}`,
-        );
-        this.logger.debug(
-          `Available PNG files: ${pngFiles.map((p) => p.fileName).join(', ')}`,
-        );
+        this.logger.debug(`No PNG found for Draw.io file: ${drawio.fileName}`);
       }
 
       const pair: DrawioPair = {
@@ -714,8 +700,6 @@ export class ImportAttachmentService {
       };
 
       drawioPairs.set(drawio.href, pair);
-
-      // Mark both files to be skipped from regular processing
       skipFiles.add(drawio.href);
       if (matchingPng) {
         skipFiles.add(matchingPng.href);
@@ -739,7 +723,7 @@ export class ImportAttachmentService {
         try {
           const pngBuffer = await fs.readFile(pngPath);
           const pngBase64 = pngBuffer.toString('base64');
-          imageElement = `<image href="data:image/png;base64,${pngBase64}" width="100%" height="100%" />`;
+          imageElement = `<image href="data:image/png;base64,${pngBase64}" width="100%" height="100%"/>`;
         } catch (error) {
           this.logger.warn(
             `Could not read PNG file for Draw.io diagram: ${pngPath}`,
