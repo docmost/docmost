@@ -9,6 +9,7 @@ export enum QueueName {
 export enum QueueJob {
   SEND_EMAIL = 'send-email',
   DELETE_SPACE_ATTACHMENTS = 'delete-space-attachments',
+  ATTACHMENT_INDEX_CONTENT = 'attachment_index_content',
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
   PAGE_CONTENT_UPDATE = 'page-content-update',
 

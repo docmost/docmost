@@ -3,12 +3,15 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { AttachmentService } from '../services/attachment.service';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
-import { Space } from '@docmost/db/types/entity.types';
+import { ModuleRef } from '@nestjs/core';
 
 @Processor(QueueName.ATTACHMENT_QUEUE)
 export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(AttachmentProcessor.name);
-  constructor(private readonly attachmentService: AttachmentService) {
+  constructor(
+    private readonly attachmentService: AttachmentService,
+    private moduleRef: ModuleRef,
+  ) {
     super();
   }
 
@@ -23,6 +26,26 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
       if (job.name === QueueJob.DELETE_PAGE_ATTACHMENTS) {
         await this.attachmentService.handleDeletePageAttachments(
           job.data.pageId,
+        );
+      }
+      if (job.name === QueueJob.ATTACHMENT_INDEX_CONTENT) {
+        let AttachmentIndexingModule: any;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          AttachmentIndexingModule = require('./../../../ee/attachment-indexing/attachment-indexing.service');
+        } catch (err) {
+          this.logger.error(
+            'AttachmentIndexingModule requested but EE module not bundled in this build',
+          );
+          return;
+        }
+        const attachmentIndexingModuleService = this.moduleRef.get(
+          AttachmentIndexingModule.AttachmentIndexingService,
+          { strict: false },
+        );
+
+        await attachmentIndexingModuleService.indexAttachment(
+          job.data.attachmentId,
         );
       }
     } catch (err) {
