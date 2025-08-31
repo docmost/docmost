@@ -375,7 +375,7 @@ export default function PageEditor({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 

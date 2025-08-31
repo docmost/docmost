@@ -38,6 +38,7 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
+  TableDndExtension,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -168,6 +169,7 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
+  TableDndExtension,
   MathInline.configure({
     view: MathInlineView,
   }),
