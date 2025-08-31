@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   ActionIcon,
   Affix,
@@ -14,8 +14,10 @@ import SharedTree from "@/features/share/components/shared-tree.tsx";
 import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useAtom } from "jotai";
+import { sharedPageTreeAtom, sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
+import { buildSharedPageTree } from "@/features/share/utils";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
@@ -59,6 +61,20 @@ export default function ShareShell({
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
+  
+  const setSharedPageTree = useSetAtom(sharedPageTreeAtom);
+  const setSharedTreeData = useSetAtom(sharedTreeDataAtom);
+  
+  // Build and set the tree data when it changes
+  const treeData = useMemo(() => {
+    if (!data?.pageTree) return null;
+    return buildSharedPageTree(data.pageTree);
+  }, [data?.pageTree]);
+  
+  useEffect(() => {
+    setSharedPageTree(data || null);
+    setSharedTreeData(treeData);
+  }, [data, treeData, setSharedPageTree, setSharedTreeData]);
 
   return (
     <AppShell

@@ -38,6 +38,7 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
+  Subpages,
   TableDndExtension,
 } from "@docmost/editor-ext";
 import {
@@ -58,6 +59,7 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import abap from "highlightjs-sap-abap";
@@ -213,6 +215,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  Subpages.configure({
+    view: SubpagesView,
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,
