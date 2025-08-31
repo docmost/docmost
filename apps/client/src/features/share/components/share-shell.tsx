@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import {
   ActionIcon,
-  Affix,
   AppShell,
-  Button,
   Group,
   ScrollArea,
   Tooltip,
@@ -61,16 +59,18 @@ export default function ShareShell({
   const { shareId } = useParams();
   const { data } = useGetSharedPageTreeQuery(shareId);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
-  
+
+  // @ts-ignore
   const setSharedPageTree = useSetAtom(sharedPageTreeAtom);
+  // @ts-ignore
   const setSharedTreeData = useSetAtom(sharedTreeDataAtom);
-  
+
   // Build and set the tree data when it changes
   const treeData = useMemo(() => {
     if (!data?.pageTree) return null;
     return buildSharedPageTree(data.pageTree);
   }, [data?.pageTree]);
-  
+
   useEffect(() => {
     setSharedPageTree(data || null);
     setSharedTreeData(treeData);

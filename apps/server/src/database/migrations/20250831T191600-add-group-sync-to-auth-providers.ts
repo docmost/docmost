@@ -10,6 +10,6 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable('auth_providers')
-    .dropColumn('group_sync')// enable_group_sync
+    .dropColumn('group_sync')
     .execute();
 }
