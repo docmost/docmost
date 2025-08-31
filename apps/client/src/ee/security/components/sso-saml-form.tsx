@@ -26,7 +26,7 @@ const ssoSchema = z.object({
   samlCertificate: z.string().min(1, "SAML Idp Certificate is required"),
   isEnabled: z.boolean(),
   allowSignup: z.boolean(),
-  isGroupSyncEnabled: z.boolean(),
+  groupSync: z.boolean(),
 });
 
 type SSOFormValues = z.infer<typeof ssoSchema>;
@@ -46,7 +46,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
       samlCertificate: provider.samlCertificate || "",
       isEnabled: provider.isEnabled,
       allowSignup: provider.allowSignup,
-      isGroupSyncEnabled: provider.isGroupSyncEnabled || false,
+      groupSync: provider.groupSync || false,
     },
     validate: zodResolver(ssoSchema),
   });
@@ -77,8 +77,8 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
     if (form.isDirty("allowSignup")) {
       ssoData.allowSignup = values.allowSignup;
     }
-    if (form.isDirty("isGroupSyncEnabled")) {
-      ssoData.isGroupSyncEnabled = values.isGroupSyncEnabled;
+    if (form.isDirty("groupSync")) {
+      ssoData.groupSync = values.groupSync;
     }
 
     await updateSsoProviderMutation.mutateAsync(ssoData);
@@ -141,8 +141,8 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
             <div>{t("Group sync")}</div>
             <Switch
               className={classes.switch}
-              checked={form.values.isGroupSyncEnabled}
-              {...form.getInputProps("isGroupSyncEnabled")}
+              checked={form.values.groupSync}
+              {...form.getInputProps("groupSync")}
             />
           </Group>
 

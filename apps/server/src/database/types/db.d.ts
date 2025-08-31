@@ -62,7 +62,7 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
-  isGroupSyncEnabled: Generated<boolean>;
+  groupSync: Generated<boolean>;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
