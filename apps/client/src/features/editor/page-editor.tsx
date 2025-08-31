@@ -1,10 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -36,6 +31,7 @@ import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -80,7 +76,7 @@ export default function PageEditor({
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom,
+    yjsConnectionStatusAtom
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -131,7 +127,15 @@ export default function PageEditor({
           const now = Date.now().valueOf() / 1000;
           const isTokenExpired = now >= payload.exp;
           if (isTokenExpired) {
-            refetchCollabToken();
+            refetchCollabToken().then((result) => {
+              if (result.data?.token) {
+                remote.disconnect();
+                setTimeout(() => {
+                  remote.configuration.token = result.data.token;
+                  remote.connect();
+                }, 100);
+              }
+            });
           }
         },
         onStatus: (status) => {
@@ -156,6 +160,21 @@ export default function PageEditor({
       providersRef.current = null;
     };
   }, [pageId]);
+
+  /*
+  useEffect(() => {
+    // Handle token updates by reconnecting with new token
+    if (providersRef.current?.remote && collabQuery?.token) {
+      const currentToken = providersRef.current.remote.configuration.token;
+      if (currentToken !== collabQuery.token) {
+        // Token has changed, need to reconnect with new token
+        providersRef.current.remote.disconnect();
+        providersRef.current.remote.configuration.token = collabQuery.token;
+        providersRef.current.remote.connect();
+      }
+    }
+  }, [collabQuery?.token]);
+   */
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
@@ -199,6 +218,10 @@ export default function PageEditor({
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+              event.preventDefault();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -240,7 +263,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, remoteProvider]
   );
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
@@ -256,7 +279,12 @@ export default function PageEditor({
   }, 3000);
 
   const handleActiveCommentEvent = (event) => {
-    const { commentId } = event.detail;
+    const { commentId, resolved } = event.detail;
+
+    if (resolved) {
+      return;
+    }
+
     setActiveCommentId(commentId);
     setAsideState({ tab: "comments", isAsideOpen: true });
 
@@ -273,7 +301,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent,
+        handleActiveCommentEvent
       );
     };
   }, []);
@@ -348,10 +376,13 @@ export default function PageEditor({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
-        <SearchAndReplaceDialog editor={editor} editable={editable} />
+
+        {editor && (
+          <SearchAndReplaceDialog editor={editor} editable={editable} />
+        )}
 
         {editor && editor.isEditable && (
           <div>
@@ -361,6 +392,7 @@ export default function PageEditor({
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
             <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />

@@ -10,8 +10,6 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
-import Table from '@tiptap/extension-table';
-import TableHeader from '@tiptap/extension-table-header';
 import {
   Callout,
   Comment,
@@ -22,8 +20,10 @@ import {
   LinkExtension,
   MathBlock,
   MathInline,
+  TableHeader,
   TableCell,
   TableRow,
+  CustomTable,
   TiptapImage,
   TiptapVideo,
   TrailingNode,
@@ -31,7 +31,8 @@ import {
   Drawio,
   Excalidraw,
   Embed,
-  Mention
+  Mention,
+  Subpages,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -46,9 +47,11 @@ export const tiptapExtensions = [
     codeBlock: false,
   }),
   Comment,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TaskList,
-  TaskItem,
+  TaskItem.configure({
+    nested: true,
+  }),
   Underline,
   LinkExtension,
   Superscript,
@@ -63,10 +66,10 @@ export const tiptapExtensions = [
   Details,
   DetailsContent,
   DetailsSummary,
-  Table,
-  TableHeader,
-  TableRow,
+  CustomTable,
   TableCell,
+  TableRow,
+  TableHeader,
   Youtube,
   TiptapImage,
   TiptapVideo,
@@ -76,7 +79,8 @@ export const tiptapExtensions = [
   Drawio,
   Excalidraw,
   Embed,
-  Mention
+  Mention,
+  Subpages,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

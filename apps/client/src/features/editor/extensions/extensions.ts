@@ -10,8 +10,6 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import Table from "@tiptap/extension-table";
-import TableHeader from "@tiptap/extension-table-header";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -25,6 +23,8 @@ import {
   MathInline,
   TableCell,
   TableRow,
+  TableHeader,
+  CustomTable,
   TrailingNode,
   TiptapImage,
   Callout,
@@ -38,6 +38,8 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
+  Subpages,
+  TableDndExtension,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -57,6 +59,7 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import abap from "highlightjs-sap-abap";
@@ -160,7 +163,7 @@ export const mainExtensions = [
       return ReactNodeViewRenderer(MentionView);
     },
   }),
-  Table.configure({
+  CustomTable.configure({
     resizable: true,
     lastColumnResizable: false,
     allowTableNodeSelection: true,
@@ -168,6 +171,7 @@ export const mainExtensions = [
   TableRow,
   TableCell,
   TableHeader,
+  TableDndExtension,
   MathInline.configure({
     view: MathInlineView,
   }),
@@ -211,6 +215,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  Subpages.configure({
+    view: SubpagesView,
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,

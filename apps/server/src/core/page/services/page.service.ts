@@ -17,8 +17,6 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
-import { ExpressionBuilder } from 'kysely';
-import { DB } from '@docmost/db/types/db';
 import { generateSlugId } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
@@ -31,9 +29,15 @@ import {
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
-import { CopyPageMapEntry, ICopyPageAttachment } from '../dto/copy-page.dto';
+import {
+  CopyPageMapEntry,
+  ICopyPageAttachment,
+} from '../dto/duplicate-page.dto';
 import { Node as PMNode } from '@tiptap/pm/model';
 import { StorageService } from '../../../integrations/storage/storage.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 
 @Injectable()
 export class PageService {
@@ -44,6 +48,7 @@ export class PageService {
     private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async findById(
@@ -104,7 +109,8 @@ export class PageService {
       .selectFrom('pages')
       .select(['position'])
       .where('spaceId', '=', spaceId)
-      .orderBy('position', 'desc')
+      .where('deletedAt', 'is', null)
+      .orderBy('position', (ob) => ob.collate('C').desc())
       .limit(1);
 
     if (parentPageId) {
@@ -166,23 +172,6 @@ export class PageService {
     });
   }
 
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .limit(1)
-      .as('hasChildren');
-  }
-
   async getSidebarPages(
     spaceId: string,
     pagination: PaginationOptions,
@@ -199,9 +188,11 @@ export class PageService {
         'parentPageId',
         'spaceId',
         'creatorId',
+        'deletedAt',
       ])
-      .select((eb) => this.withHasChildren(eb))
-      .orderBy('position', 'asc')
+      .select((eb) => this.pageRepo.withHasChildren(eb))
+      .orderBy('position', (ob) => ob.collate('C').asc())
+      .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 
     if (pageId) {
@@ -258,11 +249,24 @@ export class PageService {
     });
   }
 
-  async copyPageToSpace(rootPage: Page, spaceId: string, authUser: User) {
-    //TODO:
-    // i. maintain internal links within copied pages
+  async duplicatePage(
+    rootPage: Page,
+    targetSpaceId: string | undefined,
+    authUser: User,
+  ) {
+    const spaceId = targetSpaceId || rootPage.spaceId;
+    const isDuplicateInSameSpace =
+      !targetSpaceId || targetSpaceId === rootPage.spaceId;
 
-    const nextPosition = await this.nextPagePosition(spaceId);
+    let nextPosition: string;
+
+    if (isDuplicateInSameSpace) {
+      // For duplicate in same space, position right after the original page
+      nextPosition = generateJitteredKeyBetween(rootPage.position, null);
+    } else {
+      // For copy to different space, position at the end
+      nextPosition = await this.nextPagePosition(spaceId);
+    }
 
     const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
@@ -326,12 +330,38 @@ export class PageService {
           });
         }
 
+        // Update internal page links in mention nodes
+        prosemirrorDoc.descendants((node: PMNode) => {
+          if (
+            node.type.name === 'mention' &&
+            node.attrs.entityType === 'page'
+          ) {
+            const referencedPageId = node.attrs.entityId;
+
+            // Check if the referenced page is within the pages being copied
+            if (referencedPageId && pageMap.has(referencedPageId)) {
+              const mappedPage = pageMap.get(referencedPageId);
+              //@ts-ignore
+              node.attrs.entityId = mappedPage.newPageId;
+              //@ts-ignore
+              node.attrs.slugId = mappedPage.newSlugId;
+            }
+          }
+        });
+
         const prosemirrorJson = prosemirrorDoc.toJSON();
+
+        // Add "Copy of " prefix to the root page title only for duplicates in same space
+        let title = page.title;
+        if (isDuplicateInSameSpace && page.id === rootPage.id) {
+          const originalTitle = page.title || 'Untitled';
+          title = `Copy of ${originalTitle}`;
+        }
 
         return {
           id: pageFromMap.newPageId,
           slugId: pageFromMap.newSlugId,
-          title: page.title,
+          title: title,
           icon: page.icon,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
@@ -377,33 +407,50 @@ export class PageService {
             attachment.id,
             newAttachmentId,
           );
-          await this.storageService.copy(attachment.filePath, newPathFile);
-          await this.db
-            .insertInto('attachments')
-            .values({
-              id: newAttachmentId,
-              type: attachment.type,
-              filePath: newPathFile,
-              fileName: attachment.fileName,
-              fileSize: attachment.fileSize,
-              mimeType: attachment.mimeType,
-              fileExt: attachment.fileExt,
-              creatorId: attachment.creatorId,
-              workspaceId: attachment.workspaceId,
-              pageId: newPageId,
-              spaceId: spaceId,
-            })
-            .execute();
+
+          try {
+            await this.storageService.copy(attachment.filePath, newPathFile);
+
+            await this.db
+              .insertInto('attachments')
+              .values({
+                id: newAttachmentId,
+                type: attachment.type,
+                filePath: newPathFile,
+                fileName: attachment.fileName,
+                fileSize: attachment.fileSize,
+                mimeType: attachment.mimeType,
+                fileExt: attachment.fileExt,
+                creatorId: attachment.creatorId,
+                workspaceId: attachment.workspaceId,
+                pageId: newPageId,
+                spaceId: spaceId,
+              })
+              .execute();
+          } catch (err) {
+            this.logger.error(
+              `Duplicate page: failed to copy attachment ${attachment.id}`,
+              err,
+            );
+            // Continue with other attachments even if one fails
+          }
         } catch (err) {
-          this.logger.log(err);
+          this.logger.error(err);
         }
       }
     }
 
     const newPageId = pageMap.get(rootPage.id).newPageId;
-    return await this.pageRepo.findById(newPageId, {
+    const duplicatedPage = await this.pageRepo.findById(newPageId, {
       includeSpace: true,
     });
+
+    const hasChildren = pages.length > 1;
+
+    return {
+      ...duplicatedPage,
+      hasChildren,
+    };
   }
 
   async movePage(dto: MovePageDto, movedPage: Page) {
@@ -450,9 +497,11 @@ export class PageService {
             'position',
             'parentPageId',
             'spaceId',
+            'deletedAt',
           ])
-          .select((eb) => this.withHasChildren(eb))
+          .select((eb) => this.pageRepo.withHasChildren(eb))
           .where('id', '=', childPageId)
+          .where('deletedAt', 'is', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -464,6 +513,7 @@ export class PageService {
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',
+                'p.deletedAt',
               ])
               .select(
                 exp
@@ -478,11 +528,13 @@ export class PageService {
                       .as('count'),
                   )
                   .whereRef('child.parentPageId', '=', 'id')
+                  .where('child.deletedAt', 'is', null)
                   .limit(1)
                   .as('hasChildren'),
               )
               //.select((eb) => this.withHasChildren(eb))
-              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
+              .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_ancestors')
@@ -506,98 +558,58 @@ export class PageService {
     return await this.pageRepo.getRecentPages(userId, pagination);
   }
 
+  async getDeletedSpacePages(
+    spaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Page>> {
+    return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
+  }
+
   async forceDelete(pageId: string): Promise<void> {
-    await this.pageRepo.deletePage(pageId);
+    // Get all descendant IDs (including the page itself) using recursive CTE
+    const descendants = await this.db
+      .withRecursive('page_descendants', (db) =>
+        db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', pageId)
+          .unionAll((exp) =>
+            exp
+              .selectFrom('pages as p')
+              .select(['p.id'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+          ),
+      )
+      .selectFrom('page_descendants')
+      .selectAll()
+      .execute();
+
+    const pageIds = descendants.map((d) => d.id);
+
+    // Queue attachment deletion for all pages with unique job IDs to prevent duplicates
+    for (const id of pageIds) {
+      await this.attachmentQueue.add(
+        QueueJob.DELETE_PAGE_ATTACHMENTS,
+        {
+          pageId: id,
+        },
+        {
+          jobId: `delete-page-attachments-${id}`,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+        },
+      );
+    }
+
+    if (pageIds.length > 0) {
+      await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+    }
+  }
+
+  async remove(pageId: string, userId: string): Promise<void> {
+    await this.pageRepo.removePage(pageId, userId);
   }
 }
-
-/*
-  // TODO: page deletion and restoration
-  async delete(pageId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      const page = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .select(['page.id', 'page.workspaceId'])
-        .getOne();
-
-      if (!page) {
-        throw new NotFoundException(`Page not found`);
-      }
-      await this.softDeleteChildrenRecursive(page.id, manager);
-      await this.pageOrderingService.removePageFromHierarchy(page, manager);
-
-      await manager.softDelete(Page, pageId);
-    });
-  }
-
-  private async softDeleteChildrenRecursive(
-    parentId: string,
-    manager: EntityManager,
-  ): Promise<void> {
-    const childrenPage = await manager
-      .createQueryBuilder(Page, 'page')
-      .where('page.parentPageId = :parentId', { parentId })
-      .select(['page.id', 'page.title', 'page.parentPageId'])
-      .getMany();
-
-    for (const child of childrenPage) {
-      await this.softDeleteChildrenRecursive(child.id, manager);
-      await manager.softDelete(Page, child.id);
-    }
-  }
-
-  async restore(pageId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager: EntityManager) => {
-      const isDeleted = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .withDeleted()
-        .getCount();
-
-      if (!isDeleted) {
-        return;
-      }
-
-      await manager.recover(Page, { id: pageId });
-
-      await this.restoreChildrenRecursive(pageId, manager);
-
-      // Fetch the page details to find out its parent and workspace
-      const restoredPage = await manager
-        .createQueryBuilder(Page, 'page')
-        .where('page.id = :pageId', { pageId })
-        .select(['page.id', 'page.title', 'page.spaceId', 'page.parentPageId'])
-        .getOne();
-
-      if (!restoredPage) {
-        throw new NotFoundException(`Restored page not found.`);
-      }
-
-      // add page back to its hierarchy
-      await this.pageOrderingService.addPageToOrder(
-        restoredPage.spaceId,
-        pageId,
-        restoredPage.parentPageId,
-      );
-    });
-  }
-
-  private async restoreChildrenRecursive(
-    parentId: string,
-    manager: EntityManager,
-  ): Promise<void> {
-    const childrenPage = await manager
-      .createQueryBuilder(Page, 'page')
-      .setLock('pessimistic_write')
-      .where('page.parentPageId = :parentId', { parentId })
-      .select(['page.id', 'page.title', 'page.parentPageId'])
-      .withDeleted()
-      .getMany();
-
-    for (const child of childrenPage) {
-      await this.restoreChildrenRecursive(child.id, manager);
-      await manager.recover(Page, { id: child.id });
-    }
-  }
-*/

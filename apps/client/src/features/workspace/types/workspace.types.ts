@@ -21,6 +21,7 @@ export interface IWorkspace {
   memberCount?: number;
   plan?: string;
   hasLicenseKey?: boolean;
+  enforceMfa?: boolean;
 }
 
 export interface ICreateInvite {

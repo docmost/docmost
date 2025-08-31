@@ -29,8 +29,12 @@ import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-selec
 import SharedPage from "@/pages/share/shared-page.tsx";
 import Shares from "@/pages/settings/shares/shares.tsx";
 import ShareLayout from "@/features/share/components/share-layout.tsx";
-import ShareRedirect from '@/pages/share/share-redirect.tsx';
+import ShareRedirect from "@/pages/share/share-redirect.tsx";
 import { useTrackOrigin } from "@/hooks/use-track-origin";
+import SpacesPage from "@/pages/spaces/spaces.tsx";
+import { MfaChallengePage } from "@/ee/mfa/pages/mfa-challenge-page";
+import { MfaSetupRequiredPage } from "@/ee/mfa/pages/mfa-setup-required-page";
+import SpaceTrash from "@/pages/space/space-trash.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -45,6 +49,8 @@ export default function App() {
         <Route path={"/invites/:invitationId"} element={<InviteSignup />} />
         <Route path={"/forgot-password"} element={<ForgotPassword />} />
         <Route path={"/password-reset"} element={<PasswordReset />} />
+        <Route path={"/login/mfa"} element={<MfaChallengePage />} />
+        <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
@@ -58,7 +64,10 @@ export default function App() {
         )}
 
         <Route element={<ShareLayout />}>
-          <Route path={"/share/:shareId/p/:pageSlug"} element={<SharedPage />} />
+          <Route
+            path={"/share/:shareId/p/:pageSlug"}
+            element={<SharedPage />}
+          />
           <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
         </Route>
 
@@ -67,7 +76,9 @@ export default function App() {
 
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
+          <Route path={"/spaces"} element={<SpacesPage />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
+          <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
           <Route
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={
