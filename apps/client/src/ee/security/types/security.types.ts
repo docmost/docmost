@@ -11,6 +11,7 @@ export interface IAuthProvider {
   oidcClientSecret: string;
   allowSignup: boolean;
   isEnabled: boolean;
+  groupSync: boolean;
   creatorId: string;
   workspaceId: string;
   createdAt: Date;
