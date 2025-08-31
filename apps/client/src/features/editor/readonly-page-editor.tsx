@@ -6,21 +6,19 @@ import { Document } from "@tiptap/extension-document";
 import { Heading } from "@tiptap/extension-heading";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { useAtom } from "jotai/index";
-import {
-  pageEditorAtom,
-  readOnlyEditorAtom,
-} from "@/features/editor/atoms/editor-atoms.ts";
-import { Editor } from "@tiptap/core";
+import { useAtom } from "jotai";
+import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 
 interface PageEditorProps {
   title: string;
   content: any;
+  pageId?: string;
 }
 
 export default function ReadonlyPageEditor({
   title,
   content,
+  pageId,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
 
@@ -56,6 +54,9 @@ export default function ReadonlyPageEditor({
         content={content}
         onCreate={({ editor }) => {
           if (editor) {
+            if (pageId) {
+              editor.storage.pageId = pageId;
+            }
             // @ts-ignore
             setReadOnlyEditor(editor);
           }

@@ -19,6 +19,7 @@ export interface IAuthProvider {
   ldapTlsCaCert: string;
   allowSignup: boolean;
   isEnabled: boolean;
+  groupSync: boolean;
   creatorId: string;
   workspaceId: string;
   createdAt: Date;

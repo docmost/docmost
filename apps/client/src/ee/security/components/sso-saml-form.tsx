@@ -26,6 +26,7 @@ const ssoSchema = z.object({
   samlCertificate: z.string().min(1, "SAML Idp Certificate is required"),
   isEnabled: z.boolean(),
   allowSignup: z.boolean(),
+  groupSync: z.boolean(),
 });
 
 type SSOFormValues = z.infer<typeof ssoSchema>;
@@ -45,6 +46,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
       samlCertificate: provider.samlCertificate || "",
       isEnabled: provider.isEnabled,
       allowSignup: provider.allowSignup,
+      groupSync: provider.groupSync || false,
     },
     validate: zodResolver(ssoSchema),
   });
@@ -74,6 +76,9 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
     }
     if (form.isDirty("allowSignup")) {
       ssoData.allowSignup = values.allowSignup;
+    }
+    if (form.isDirty("groupSync")) {
+      ssoData.groupSync = values.groupSync;
     }
 
     await updateSsoProviderMutation.mutateAsync(ssoData);
@@ -129,6 +134,15 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
               className={classes.switch}
               checked={form.values.allowSignup}
               {...form.getInputProps("allowSignup")}
+            />
+          </Group>
+
+          <Group justify="space-between">
+            <div>{t("Group sync")}</div>
+            <Switch
+              className={classes.switch}
+              checked={form.values.groupSync}
+              {...form.getInputProps("groupSync")}
             />
           </Group>
 
