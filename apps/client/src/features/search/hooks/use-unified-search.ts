@@ -1,6 +1,8 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { searchPage } from "@/features/search/services/search-service";
-import { searchAttachments } from "@/features/search/services/search-service.ts";
+import {
+  searchPage,
+  searchAttachments,
+} from "@/features/search/services/search-service";
 import {
   IAttachmentSearch,
   IPageSearch,
