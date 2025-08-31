@@ -28,25 +28,32 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
           job.data.pageId,
         );
       }
-      if (job.name === QueueJob.ATTACHMENT_INDEX_CONTENT) {
-        let AttachmentIndexingModule: any;
+      if (
+        job.name === QueueJob.ATTACHMENT_INDEX_CONTENT ||
+        job.name === QueueJob.ATTACHMENT_INDEXING
+      ) {
+        let AttachmentEeModule: any;
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
-          AttachmentIndexingModule = require('./../../../ee/attachment-indexing/attachment-indexing.service');
+          AttachmentEeModule = require('./../../../ee/attachments-ee/attachment-ee.service');
         } catch (err) {
           this.logger.error(
-            'AttachmentIndexingModule requested but EE module not bundled in this build',
+            'Attachment enterprise module requested but EE module not bundled in this build',
           );
           return;
         }
-        const attachmentIndexingModuleService = this.moduleRef.get(
-          AttachmentIndexingModule.AttachmentIndexingService,
+        const attachmentEeService = this.moduleRef.get(
+          AttachmentEeModule.AttachmentEeService,
           { strict: false },
         );
 
-        await attachmentIndexingModuleService.indexAttachment(
-          job.data.attachmentId,
-        );
+        if (job.name === QueueJob.ATTACHMENT_INDEX_CONTENT) {
+          await attachmentEeService.indexAttachment(job.data.attachmentId);
+        } else if (job.name === QueueJob.ATTACHMENT_INDEXING) {
+          await attachmentEeService.indexAttachments(
+            job.data.workspaceId,
+          );
+        }
       }
     } catch (err) {
       throw err;

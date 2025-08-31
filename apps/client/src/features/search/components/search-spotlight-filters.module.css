@@ -1,0 +1,19 @@
+.filtersContainer {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+}
+
+.filterButton {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 12px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-6));
+  &:hover {
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-6));
+  }
+}

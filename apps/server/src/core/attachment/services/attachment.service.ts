@@ -104,7 +104,8 @@ export class AttachmentService {
         });
       }
 
-      if (['.pdf', '.docx', ['.doc']].includes(attachment.fileExt.toLowerCase())) {
+      // Only index PDFs and DOCX files
+      if (['.pdf', '.docx'].includes(attachment.fileExt.toLowerCase())) {
         await this.attachmentQueue.add(
           QueueJob.ATTACHMENT_INDEX_CONTENT,
           {
@@ -387,4 +388,5 @@ export class AttachmentService {
       throw err;
     }
   }
+
 }

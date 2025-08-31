@@ -5,15 +5,13 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 
 export class SearchDTO {
   @IsNotEmpty()
   @IsString()
   query: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   spaceId: string;
 
