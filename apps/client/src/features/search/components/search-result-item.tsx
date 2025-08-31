@@ -5,8 +5,7 @@ import { Link } from "react-router-dom";
 import { IconFile, IconDownload } from "@tabler/icons-react";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { getPageIcon } from "@/lib";
-import { IPageSearch } from "@/features/search/types/search.types";
-import { IAttachmentSearch } from "@/features/search/services/attachment-search-service";
+import { IAttachmentSearch, IPageSearch } from '@/features/search/types/search.types';
 
 interface SearchResultItemProps {
   result: IPageSearch | IAttachmentSearch;
