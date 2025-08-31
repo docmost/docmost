@@ -6,31 +6,51 @@ import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./subpages.module.css";
 import styles from "../mention/mention.module.css";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import {
+  buildPageUrl,
+  buildSharedPageUrl,
+} from "@/features/page/page.utils.ts";
 import { useTranslation } from "react-i18next";
 import { sortPositionKeys } from "@/features/page/tree/utils/utils";
+import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
 
 export default function SubpagesView(props: NodeViewProps) {
   const { editor } = props;
-  const { spaceSlug } = useParams();
+  const { spaceSlug, shareId } = useParams();
   const { t } = useTranslation();
 
   const currentPageId = editor.storage.pageId;
+
+  // Get subpages from shared tree if we're in a shared context
+  const sharedSubpages = useSharedPageSubpages(currentPageId);
+
   const { data, isLoading, error } = useGetSidebarPagesQuery({
     pageId: currentPageId,
   });
 
   const subpages = useMemo(() => {
+    // If we're in a shared context, use the shared subpages
+    if (shareId && sharedSubpages) {
+      return sharedSubpages.map((node) => ({
+        id: node.value,
+        slugId: node.slugId,
+        title: node.name,
+        icon: node.icon,
+        position: node.position,
+      }));
+    }
+
+    // Otherwise use the API data
     if (!data?.pages) return [];
     const allPages = data.pages.flatMap((page) => page.items);
     return sortPositionKeys(allPages);
-  }, [data]);
+  }, [data, shareId, sharedSubpages]);
 
-  if (isLoading) {
+  if (isLoading && !shareId) {
     return null;
   }
 
-  if (error) {
+  if (error && !shareId) {
     return (
       <NodeViewWrapper>
         <Text c="dimmed" size="md" py="md">
@@ -61,7 +81,15 @@ export default function SubpagesView(props: NodeViewProps) {
               key={page.id}
               component={Link}
               fw={500}
-              to={buildPageUrl(spaceSlug, page.slugId, page.title)}
+              to={
+                shareId
+                  ? buildSharedPageUrl({
+                      shareId,
+                      pageSlugId: page.slugId,
+                      pageTitle: page.title,
+                    })
+                  : buildPageUrl(spaceSlug, page.slugId, page.title)
+              }
               underline="never"
               className={styles.pageMentionLink}
               draggable={false}
