@@ -81,6 +81,12 @@ class TableDragHandlePluginSpec implements PluginSpec<void> {
 
     private _pointerOver = (view: EditorView, event: PointerEvent) => {
         if (this._dragging) return;
+        
+        // Don't show drag handles in readonly mode
+        if (!this.editor.isEditable) {
+            this._dragHandleController.hide();
+            return;
+        }
 
         const hoveringCell = getHoveringCell(view, event)
         this._hoveringCell = hoveringCell;
