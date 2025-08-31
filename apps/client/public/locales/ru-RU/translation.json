@@ -495,5 +495,10 @@
   "Page restored successfully": "Страница успешно восстановлена",
   "Deleted by": "Удалено пользователем",
   "Deleted at": "Удалено в",
-  "Preview": "Предпросмотр"
+  "Preview": "Предпросмотр",
+  "Subpages": "Subpages",
+  "Failed to load subpages": "Failed to load subpages",
+  "No subpages": "No subpages",
+  "Subpages (Child pages)": "Subpages (Child pages)",
+  "List all subpages of the current page": "List all subpages of the current page"
 }
