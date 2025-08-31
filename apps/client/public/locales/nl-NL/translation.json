@@ -495,5 +495,10 @@
   "Page restored successfully": "Pagina succesvol hersteld",
   "Deleted by": "Verwijderd door",
   "Deleted at": "Verwijderd op",
-  "Preview": "Voorbeeld"
+  "Preview": "Voorbeeld",
+  "Subpages": "Subpages",
+  "Failed to load subpages": "Failed to load subpages",
+  "No subpages": "No subpages",
+  "Subpages (Child pages)": "Subpages (Child pages)",
+  "List all subpages of the current page": "List all subpages of the current page"
 }
