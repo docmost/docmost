@@ -2,10 +2,13 @@
     border-radius: 0;
     overflow: auto;
     height: 100%;
+    padding-top: 3px;
+    padding-left: calc(var(--mantine-spacing-md) - rem(6px));
 }
 
 .treeContainer {
     height: 100%;
+    overflow: auto;
     min-width: 0;
 
     > div, > div > .tree {

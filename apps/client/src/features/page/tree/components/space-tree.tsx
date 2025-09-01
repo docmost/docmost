@@ -48,7 +48,7 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
 import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
-import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, selectionFeature, type FeatureImplementation, type ItemInstance, type TreeInstance } from "@headless-tree/core";
+import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, isOrderedDragTarget, selectionFeature, type FeatureImplementation, type ItemInstance, type TreeInstance } from "@headless-tree/core";
 import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
 interface SpaceTreeProps {
@@ -157,7 +157,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   }, [tree, setTree]);
 
   useEffect(() => {
-    tree.getActiveItem()?.scrollTo();
+    tree.getActiveItem()?.scrollTo({
+      block: "nearest"
+    });
   }, [tree.getActiveItem()?.getId()]);
 
   useExpandCurrentPath(currentPage?.id, tree, () => setTree({ tree }));
@@ -254,6 +256,7 @@ function Node({ item, spaceId, preview, disableEdit }: {
   };
 
   const pageUrl = buildPageUrl(spaceSlug, item.getItemData()?.slugId, item.getItemName());
+  const dragTarget = item.getTree().getDragTarget();
 
   return (
     <>
@@ -264,7 +267,7 @@ function Node({ item, spaceId, preview, disableEdit }: {
           classes.node, 
           item.isActive() && classes.isSelected, 
           item.isFocused() && classes.isFocused,
-          item.isDragTarget() && classes.willReceiveDrop,
+          item.isUnorderedDragTarget() && classes.willReceiveDrop,
         )}
         component={Link}
         to={pageUrl}
