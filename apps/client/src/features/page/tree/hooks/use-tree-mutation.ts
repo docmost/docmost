@@ -18,6 +18,7 @@ import {
   type DragTarget,
   type ItemInstance
 } from "@headless-tree/core";
+import { emit } from "process";
 
 export function useTreeMutation<T>(spaceId: string) {
   const createPageMutation = useCreatePageMutation();
@@ -42,7 +43,7 @@ export function useTreeMutation<T>(spaceId: string) {
     const newItem = {
       id: createdPage.id,
       slugId: createdPage.slugId,
-      name: "",
+      name: createdPage.title ?? "",
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
@@ -89,8 +90,8 @@ export function useTreeMutation<T>(spaceId: string) {
     // we have to access the node differently via currentTreeData[args.index]?.data?.position
     // this makes it possible to correctly sort children of a parent node that is not the root
 
-    const afterPosition = newSiblings[newDragIndex - 1]?.getItemData()?.position || null;
-    const beforePosition = newSiblings[newDragIndex + 1]?.getItemData()?.position || null;
+    const afterPosition = newSiblings[newDragIndex - 1]?.getItemData()?.position ?? null;
+    const beforePosition = newSiblings[newDragIndex + 1]?.getItemData()?.position ?? null;
 
     let newPosition: string;
 
@@ -136,11 +137,13 @@ export function useTreeMutation<T>(spaceId: string) {
           hasChildren: newChildren.length > 0,
         });
       });
-      items[0].updateCachedData({
-        ...items[0].getItemData(),
-        parentPageId,
-        position: newPosition,
-      });
+      for (const it of items) {
+        it.updateCachedData({
+          ...it.getItemData(),
+          parentPageId,
+          position: newPosition,
+        });
+      }
       // The lines above update the HT children cache. We could also just invalidate the
       // cache like below, and wait for the next refetch to update the children:
       // await Promise.all(items.map(item => item.getParent()?.invalidateChildrenIds()));
@@ -154,9 +157,9 @@ export function useTreeMutation<T>(spaceId: string) {
     
   };
 
-  const rename = (item: ItemInstance<SpaceTreeNode>, name: string) => {
+  const rename = async (item: ItemInstance<SpaceTreeNode>, name: string) => {
     try {
-      updatePageMutation.mutateAsync({ pageId: item.getId(), title: name });
+      await updatePageMutation.mutateAsync({ pageId: item.getId(), title: name });
       item.updateCachedData({
         ...item.getItemData(),
         name,
