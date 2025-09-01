@@ -4,7 +4,7 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { ActionIcon, Box, Menu, rem } from "@mantine/core";
@@ -173,6 +173,10 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             key={item.getId()}
             item={item}
             spaceId={spaceId}
+            isDragTarget={item.isUnorderedDragTarget()}
+            isActive={item.isActive()}
+            isFocused={item.isFocused()}
+            level={item.getItemMeta().level}
           />
         ))}
         <div style={tree.getDragLineStyle()} className={classes.dragline} />
@@ -181,11 +185,15 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   );
 }
 
-function Node({ item, spaceId, preview, disableEdit }: {
+const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isDragTarget, isActive, isFocused, level }: {
   item: ItemInstance<SpaceTreeNode>;
   spaceId: string;
   preview?: boolean;
   disableEdit?: boolean;
+  isDragTarget: boolean;
+  isActive: boolean;
+  isFocused: boolean;
+  level: number;
 }) {
   const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
@@ -262,12 +270,12 @@ function Node({ item, spaceId, preview, disableEdit }: {
     <>
       <Box
         {...item.getProps()}
-        style={{ paddingLeft: `${item.getItemMeta().level * 20}px` }}
+  style={{ paddingLeft: `${level * 20}px` }}
         className={clsx(
           classes.node, 
-          item.isActive() && classes.isSelected, 
-          item.isFocused() && classes.isFocused,
-          item.isUnorderedDragTarget() && classes.willReceiveDrop,
+          isActive && classes.isSelected, 
+          isFocused && classes.isFocused,
+          isDragTarget && classes.willReceiveDrop,
         )}
         component={Link}
         to={pageUrl}
@@ -311,7 +319,7 @@ function Node({ item, spaceId, preview, disableEdit }: {
       </Box>
     </>
   );
-}
+});
 
 interface CreateNodeProps {
   spaceId: string;
