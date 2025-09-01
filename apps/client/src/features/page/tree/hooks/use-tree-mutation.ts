@@ -18,7 +18,6 @@ import {
   type DragTarget,
   type ItemInstance
 } from "@headless-tree/core";
-import { emit } from "process";
 
 export function useTreeMutation<T>(spaceId: string) {
   const createPageMutation = useCreatePageMutation();
