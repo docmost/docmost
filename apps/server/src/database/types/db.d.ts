@@ -69,6 +69,8 @@ export interface AuthProviders {
   ldapUrl: string | null;
   ldapUserAttributes: Json | null;
   ldapUserSearchFilter: string | null;
+  ldapConfig: Json | null;
+  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
@@ -282,6 +284,7 @@ export interface Users {
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;

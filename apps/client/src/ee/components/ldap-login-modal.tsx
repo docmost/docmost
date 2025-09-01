@@ -1,19 +1,12 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  TextInput,
-  PasswordInput,
-  Button,
-  Stack,
-  Alert,
-} from "@mantine/core";
-import { useForm, zodResolver } from "@mantine/form";
+import { Modal, TextInput, PasswordInput, Button, Stack } from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IAuthProvider } from "@/ee/security/types/security.types";
-import { IconAlertCircle } from "@tabler/icons-react";
 import APP_ROUTE from "@/lib/app-route";
 import { ldapLogin } from "@/ee/security/services/ldap-auth-service.ts";
 
@@ -76,10 +69,10 @@ export function LdapLoginModal({
       }
     } catch (err: any) {
       setIsLoading(false);
-      const errorMessage = err.response?.data?.message || "Authentication failed";
+      const errorMessage =
+        err.response?.data?.message || "Authentication failed";
       setError(errorMessage);
-      
-      // Also show notification for consistency
+
       notifications.show({
         message: errorMessage,
         color: "red",
@@ -102,16 +95,6 @@ export function LdapLoginModal({
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
-          {error && (
-            <Alert
-              icon={<IconAlertCircle size={16} />}
-              color="red"
-              variant="light"
-            >
-              {error}
-            </Alert>
-          )}
-
           <TextInput
             id="ldap-email"
             type="email"

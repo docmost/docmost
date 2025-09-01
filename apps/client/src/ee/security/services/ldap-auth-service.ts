@@ -9,9 +9,8 @@ interface ILdapLogin {
 }
 
 export async function ldapLogin(data: ILdapLogin): Promise<ILoginResponse> {
-  // Format the request to match server expectations
   const requestData = {
-    username: data.email, // Server expects username but we use email
+    username: data.email,
     password: data.password,
   };
 
@@ -19,6 +18,6 @@ export async function ldapLogin(data: ILdapLogin): Promise<ILoginResponse> {
     `/sso/ldap/${data.providerId}/login`,
     requestData
   );
-  
+
   return response.data;
 }
