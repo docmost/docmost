@@ -18,18 +18,16 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .alterTable('auth_providers')
-    .addColumn('ldap_url', 'varchar', (col) => col.ifNotExists())
-    .addColumn('ldap_bind_dn', 'varchar', (col) => col.ifNotExists())
-    .addColumn('ldap_bind_password', 'varchar', (col) => col.ifNotExists())
-    .addColumn('ldap_base_dn', 'varchar', (col) => col.ifNotExists())
-    .addColumn('ldap_user_search_filter', 'varchar', (col) => col.ifNotExists())
-    .addColumn('ldap_user_attributes', 'jsonb', (col) => col.ifNotExists())
-    .addColumn('ldap_tls_enabled', 'boolean', (col) =>
-      col.defaultTo(false).ifNotExists(),
-    )
-    .addColumn('ldap_tls_ca_cert', 'text', (col) => col.ifNotExists())
-    .addColumn('ldap_config', 'jsonb', (col) => col.ifNotExists())
-    .addColumn('settings', 'jsonb', (col) => col.ifNotExists())
+    .addColumn('ldap_url', 'varchar', (col) => col)
+    .addColumn('ldap_bind_dn', 'varchar', (col) => col)
+    .addColumn('ldap_bind_password', 'varchar', (col) => col)
+    .addColumn('ldap_base_dn', 'varchar', (col) => col)
+    .addColumn('ldap_user_search_filter', 'varchar', (col) => col)
+    .addColumn('ldap_user_attributes', 'jsonb', (col) => col)
+    .addColumn('ldap_tls_enabled', 'boolean', (col) => col.defaultTo(false))
+    .addColumn('ldap_tls_ca_cert', 'text', (col) => col)
+    .addColumn('ldap_config', 'jsonb', (col) => col)
+    .addColumn('settings', 'jsonb', (col) => col)
     .execute();
 }
 
