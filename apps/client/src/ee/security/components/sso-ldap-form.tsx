@@ -1,6 +1,7 @@
 import React from "react";
 import { z } from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zodResolver } from "mantine-form-zod-resolver";
 import {
   Box,
   Button,
@@ -50,7 +51,8 @@ export function SsoLDAPForm({ provider, onClose }: SsoFormProps) {
       ldapBindDn: provider.ldapBindDn || "",
       ldapBindPassword: provider.ldapBindPassword || "",
       ldapBaseDn: provider.ldapBaseDn || "",
-      ldapUserSearchFilter: provider.ldapUserSearchFilter || "(uid={{username}})",
+      ldapUserSearchFilter:
+        provider.ldapUserSearchFilter || "(mail={{username}})",
       ldapTlsEnabled: provider.ldapTlsEnabled || false,
       ldapTlsCaCert: provider.ldapTlsCaCert || "",
       isEnabled: provider.isEnabled,
@@ -146,7 +148,7 @@ export function SsoLDAPForm({ provider, onClose }: SsoFormProps) {
           <TextInput
             label="User Search Filter"
             description="LDAP filter to find users. Use {{username}} as placeholder"
-            placeholder="(uid={{username}})"
+            placeholder="(mail={{username}})"
             {...form.getInputProps("ldapUserSearchFilter")}
           />
 

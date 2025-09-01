@@ -2,7 +2,7 @@ import api from "@/lib/api-client.ts";
 import { ILoginResponse } from "@/features/auth/types/auth.types.ts";
 
 interface ILdapLogin {
-  email: string;
+  username: string;
   password: string;
   providerId: string;
   workspaceId: string;
@@ -10,7 +10,7 @@ interface ILdapLogin {
 
 export async function ldapLogin(data: ILdapLogin): Promise<ILoginResponse> {
   const requestData = {
-    username: data.email,
+    username: data.username,
     password: data.password,
   };
 

@@ -11,10 +11,7 @@ import APP_ROUTE from "@/lib/app-route";
 import { ldapLogin } from "@/ee/security/services/ldap-auth-service.ts";
 
 const formSchema = z.object({
-  email: z
-    .string()
-    .min(1, { message: "Email is required" })
-    .email({ message: "Invalid email address" }),
+  username: z.string().min(1, { message: "Username is required" }),
   password: z.string().min(1, { message: "Password is required" }),
 });
 
@@ -39,18 +36,21 @@ export function LdapLoginModal({
   const form = useForm({
     validate: zodResolver(formSchema),
     initialValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
-  const handleSubmit = async (values: { email: string; password: string }) => {
+  const handleSubmit = async (values: {
+    username: string;
+    password: string;
+  }) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await ldapLogin({
-        email: values.email,
+        username: values.username,
         password: values.password,
         providerId: provider.id,
         workspaceId,
@@ -90,32 +90,32 @@ export function LdapLoginModal({
     <Modal
       opened={opened}
       onClose={handleClose}
-      title={`Login with ${provider.name}`}
+      title={`LDAP Login - ${provider.name}`}
       size="md"
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
           <TextInput
-            id="ldap-email"
-            type="email"
-            label={t("Email")}
-            placeholder="email@example.com"
+            id="ldap-username"
+            type="text"
+            label={t("LDAP username")}
+            placeholder="Enter your LDAP username"
             variant="filled"
             disabled={isLoading}
             data-autofocus
-            {...form.getInputProps("email")}
+            {...form.getInputProps("username")}
           />
 
           <PasswordInput
-            label={t("Password")}
-            placeholder={t("Your password")}
+            label={t("LDAP password")}
+            placeholder={t("Enter your LDAP password")}
             variant="filled"
             disabled={isLoading}
             {...form.getInputProps("password")}
           />
 
           <Button type="submit" fullWidth mt="md" loading={isLoading}>
-            {t("Sign In")}
+            {t("Sign in with LDAP")}
           </Button>
         </Stack>
       </form>
