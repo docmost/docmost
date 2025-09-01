@@ -1,16 +1,18 @@
+import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-
 import { ICurrentUser } from "@/features/user/types/user.types";
-import { focusAtom } from "jotai-optics";
 
 export const currentUserAtom = atomWithStorage<ICurrentUser | null>(
   "currentUser",
   null,
 );
 
-export const userAtom = focusAtom(currentUserAtom, (optic) =>
-  optic.prop("user"),
-);
-export const workspaceAtom = focusAtom(currentUserAtom, (optic) =>
-  optic.prop("workspace"),
-);
+export const userAtom = atom((get) => {
+  const currentUser = get(currentUserAtom);
+  return currentUser?.user ?? null;
+});
+
+export const workspaceAtom = atom((get) => {
+  const currentUser = get(currentUserAtom);
+  return currentUser?.workspace ?? null;
+});
