@@ -170,19 +170,21 @@ export function useTreeMutation<T>(spaceId: string) {
     const tree = node.getTree();
     if (node.getItemData().slugId === pageSlug) return true;
     if (!node.isFolder()) return false;
-    // @ts-expect-error - retrieveChildrenIds types will be fixed in next HT library update
-    const children = tree.retrieveChildrenIds(node.getId(), true) as string[];
+    const children = tree.retrieveChildrenIds(node.getId(), true);
     return children.some(child => isPageInNode(pageSlug, tree.getItemInstance(child)));
   };
 
   const deleteItems = async (...items: ItemInstance<SpaceTreeNode>[]) => {
     try {
+      const removedIds = items.map(item => item.getId());
+      const parents = [...new Set(items.map(item => item.getParent().getId()))];
       await Promise.all(items.map(item => removePageMutation.mutateAsync(item.getId())));
-      await Promise.all(items.map(item => {
-        item.getParent()?.updateCachedChildrenIds(
-          item.getParent()?.getChildren()
+      await Promise.all(parents.map(parentId => {
+        const parent = items[0].getTree().getItemInstance(parentId);
+        parent?.updateCachedChildrenIds(
+          parent?.getChildren()
             .map(child => child.getId())
-            .filter(child => child !== item.getId())
+            .filter(child => !removedIds.includes(child))
           );
       }));
 
