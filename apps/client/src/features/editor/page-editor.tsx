@@ -50,6 +50,7 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
+import { searchSpotlight } from '@/features/search/constants.ts';
 
 interface PageEditorProps {
   pageId: string;
@@ -220,6 +221,10 @@ export default function PageEditor({
           keydown: (_view, event) => {
             if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
               event.preventDefault();
+              return true;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
+              searchSpotlight.open();
               return true;
             }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {

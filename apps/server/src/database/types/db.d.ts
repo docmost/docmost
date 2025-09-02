@@ -37,6 +37,8 @@ export interface Attachments {
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  textContent: string | null;
+  tsv: string | null;
   type: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
