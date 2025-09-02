@@ -82,7 +82,7 @@ export function MfaBackupCodesModal({
 
   const handleRegenerate = (values: { confirmPassword?: string }) => {
     // Only send confirmPassword if it's required (non-SSO users)
-    const payload = requiresPassword 
+    const payload = requiresPassword
       ? { confirmPassword: values.confirmPassword }
       : {};
     regenerateMutation.mutate(payload);

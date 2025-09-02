@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IAuthProvider } from "@/ee/security/types/security.types";
 import APP_ROUTE from "@/lib/app-route";
-import { ldapLogin } from "@/ee/security/services/ldap-auth-service.ts";
+import { ldapLogin } from "@/ee/security/services/ldap-auth-service";
 
 const formSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
