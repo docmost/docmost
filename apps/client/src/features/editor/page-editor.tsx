@@ -31,6 +31,7 @@ import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -49,6 +50,7 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
+import { searchSpotlight } from '@/features/search/constants.ts';
 
 interface PageEditorProps {
   pageId: string;
@@ -221,6 +223,10 @@ export default function PageEditor({
               event.preventDefault();
               return true;
             }
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
+              searchSpotlight.open();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -375,7 +381,7 @@ export default function PageEditor({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 
@@ -391,6 +397,7 @@ export default function PageEditor({
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
             <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />

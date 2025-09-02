@@ -37,7 +37,7 @@ export async function disableMfa(
 }
 
 export async function regenerateBackupCodes(data: {
-  confirmPassword: string;
+  confirmPassword?: string;
 }): Promise<MfaBackupCodesResponse> {
   const req = await api.post<MfaBackupCodesResponse>(
     "/mfa/generate-backup-codes",

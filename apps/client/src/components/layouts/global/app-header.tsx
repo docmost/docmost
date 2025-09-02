@@ -14,6 +14,14 @@ import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
+import {
+  SearchControl,
+  SearchMobileControl,
+} from "@/features/search/components/search-control.tsx";
+import {
+  searchSpotlight,
+  shareSearchSpotlight,
+} from "@/features/search/constants.ts";
 
 const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
@@ -78,6 +86,15 @@ export function AppHeader() {
             {items}
           </Group>
         </Group>
+
+        <div>
+          <Group visibleFrom="sm">
+            <SearchControl onClick={searchSpotlight.open} />
+          </Group>
+          <Group hiddenFrom="sm">
+            <SearchMobileControl onSearch={searchSpotlight.open} />
+          </Group>
+        </div>
 
         <Group px={"xl"} wrap="nowrap">
           {isCloud() && isTrial && trialDaysLeft !== 0 && (
