@@ -129,20 +129,20 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
           />
 
           <Group justify="space-between">
-            <div>{t("Allow signup")}</div>
-            <Switch
-              className={classes.switch}
-              checked={form.values.allowSignup}
-              {...form.getInputProps("allowSignup")}
-            />
-          </Group>
-
-          <Group justify="space-between">
             <div>{t("Group sync")}</div>
             <Switch
               className={classes.switch}
               checked={form.values.groupSync}
               {...form.getInputProps("groupSync")}
+            />
+          </Group>
+
+          <Group justify="space-between">
+            <div>{t("Allow signup")}</div>
+            <Switch
+              className={classes.switch}
+              checked={form.values.allowSignup}
+              {...form.getInputProps("allowSignup")}
             />
           </Group>
 
