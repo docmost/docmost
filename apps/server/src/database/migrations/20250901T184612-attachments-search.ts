@@ -9,7 +9,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('attachments_tsv_idx')
-    .on('pages')
+    .on('attachments')
     .using('GIN')
     .column('tsv')
     .execute();
