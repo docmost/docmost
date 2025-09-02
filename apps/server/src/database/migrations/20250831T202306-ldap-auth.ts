@@ -23,7 +23,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('ldap_bind_password', 'varchar', (col) => col)
     .addColumn('ldap_base_dn', 'varchar', (col) => col)
     .addColumn('ldap_user_search_filter', 'varchar', (col) => col)
-    .addColumn('ldap_user_attributes', 'jsonb', (col) => col)
+    .addColumn('ldap_user_attributes', 'jsonb', (col) =>
+      col.defaultTo(sql`'{}'::jsonb`),
+    )
     .addColumn('ldap_tls_enabled', 'boolean', (col) => col.defaultTo(false))
     .addColumn('ldap_tls_ca_cert', 'text', (col) => col)
     .addColumn('ldap_config', 'jsonb', (col) => col.defaultTo(sql`'{}'::jsonb`))
