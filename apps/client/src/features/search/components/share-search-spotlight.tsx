@@ -9,6 +9,7 @@ import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
 import { shareSearchSpotlightStore } from "@/features/search/constants.ts";
+import DOMPurify from "dompurify";
 
 interface ShareSearchSpotlightProps {
   shareId?: string;
@@ -47,7 +48,12 @@ export function ShareSearchSpotlight({ shareId }: ShareSearchSpotlightProps) {
             <Text
               opacity={0.6}
               size="xs"
-              dangerouslySetInnerHTML={{ __html: page.highlight }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(page.highlight, {
+                  ALLOWED_TAGS: ["mark", "em", "strong", "b"],
+                  ALLOWED_ATTR: []
+                }),
+              }}
             />
           )}
         </div>

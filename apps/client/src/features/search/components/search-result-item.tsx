@@ -5,7 +5,11 @@ import { Link } from "react-router-dom";
 import { IconFile, IconDownload } from "@tabler/icons-react";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { getPageIcon } from "@/lib";
-import { IAttachmentSearch, IPageSearch } from '@/features/search/types/search.types';
+import {
+  IAttachmentSearch,
+  IPageSearch,
+} from "@/features/search/types/search.types";
+import DOMPurify from "dompurify";
 
 interface SearchResultItemProps {
   result: IPageSearch | IAttachmentSearch;
@@ -54,7 +58,12 @@ export function SearchResultItem({
               <Text
                 opacity={0.6}
                 size="xs"
-                dangerouslySetInnerHTML={{ __html: attachmentResult.highlight }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(attachmentResult.highlight, {
+                    ALLOWED_TAGS: ["mark", "em", "strong", "b"],
+                    ALLOWED_ATTR: []
+                  }),
+                }}
               />
             )}
           </div>
@@ -99,7 +108,12 @@ export function SearchResultItem({
               <Text
                 opacity={0.6}
                 size="xs"
-                dangerouslySetInnerHTML={{ __html: pageResult.highlight }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(pageResult.highlight, {
+                    ALLOWED_TAGS: ["mark", "em", "strong", "b"],
+                    ALLOWED_ATTR: []
+                  }),
+                }}
               />
             )}
           </div>
