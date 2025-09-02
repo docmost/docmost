@@ -9,6 +9,7 @@ import {
   ScrollArea,
   Avatar,
   Group,
+  Switch,
   getDefaultZIndex,
 } from "@mantine/core";
 import {
@@ -17,6 +18,7 @@ import {
   IconFileDescription,
   IconSearch,
   IconCheck,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useDebouncedValue } from "@mantine/hooks";
@@ -26,12 +28,16 @@ import classes from "./search-spotlight-filters.module.css";
 
 interface SearchSpotlightFiltersProps {
   onFiltersChange?: (filters: any) => void;
+  onAskClick?: () => void;
   spaceId?: string;
+  isAiMode?: boolean;
 }
 
 export function SearchSpotlightFilters({
   onFiltersChange,
+  onAskClick,
   spaceId,
+  isAiMode = false,
 }: SearchSpotlightFiltersProps) {
   const { t } = useTranslation();
   const { hasLicenseKey } = useLicense();
@@ -119,6 +125,29 @@ export function SearchSpotlightFilters({
 
   return (
     <div className={classes.filtersContainer}>
+      {hasLicenseKey && (
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center",
+          height: "32px",
+          paddingLeft: "8px",
+          paddingRight: "8px"
+        }}>
+          <Switch
+            checked={isAiMode}
+            onChange={(event) => onAskClick()}
+            label="Ask AI"
+            size="sm"
+            color="blue"
+            labelPosition="left"
+            styles={{
+              root: { display: "flex", alignItems: "center" },
+              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 }
+            }}
+          />
+        </div>
+      )}
+
       <Menu
         shadow="md"
         width={250}

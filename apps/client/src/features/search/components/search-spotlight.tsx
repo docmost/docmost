@@ -1,12 +1,15 @@
 import { Spotlight } from "@mantine/spotlight";
-import { IconSearch } from "@tabler/icons-react";
+import { IconSearch, IconSparkles } from "@tabler/icons-react";
+import { Group, Button } from "@mantine/core";
 import React, { useState, useMemo } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { searchSpotlightStore } from "../constants.ts";
 import { SearchSpotlightFilters } from "./search-spotlight-filters.tsx";
 import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
+import { useAiSearch } from "../hooks/use-ai-search.ts";
 import { SearchResultItem } from "./search-result-item.tsx";
+import { AiSearchResult } from "./ai-search-result.tsx";
 import { useLicense } from "@/ee/hooks/use-license.tsx";
 
 interface SearchSpotlightProps {
@@ -23,6 +26,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   }>({
     contentType: "page",
   });
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [triggerAiSearch, setTriggerAiSearch] = useState(false);
 
   // Build unified search params
   const searchParams = useMemo(() => {
@@ -39,7 +44,14 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     return params;
   }, [debouncedSearchQuery, filters]);
 
-  const { data: searchResults, isLoading } = useUnifiedSearch(searchParams);
+  const { data: searchResults, isLoading } = useUnifiedSearch(
+    searchParams,
+    !isAiMode // Disable regular search when in AI mode
+  );
+  const { data: aiSearchResult, isLoading: isAiLoading, refetch: refetchAiSearch } = useAiSearch(
+    searchParams,
+    isAiMode && triggerAiSearch
+  );
 
   // Determine result type for rendering
   const isAttachmentSearch =
@@ -58,6 +70,20 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     setFilters(newFilters);
   };
 
+  const handleAskClick = () => {
+    const newMode = !isAiMode;
+    setIsAiMode(newMode);
+    // Reset AI search state when toggling modes
+    setTriggerAiSearch(false);
+  };
+
+  const handleAiSearchTrigger = () => {
+    if (query.trim() && isAiMode) {
+      setTriggerAiSearch(true);
+      refetchAiSearch();
+    }
+  };
+
   return (
     <>
       <Spotlight.Root
@@ -71,10 +97,30 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
           backgroundOpacity: 0.55,
         }}
       >
-        <Spotlight.Search
-          placeholder={t("Search...")}
-          leftSection={<IconSearch size={20} stroke={1.5} />}
-        />
+        <Group gap="xs" px="sm" pt="sm" pb="xs">
+          <Spotlight.Search
+            placeholder={isAiMode ? t("Ask a question...") : t("Search...")}
+            leftSection={<IconSearch size={20} stroke={1.5} />}
+            style={{ flex: 1 }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && isAiMode && query.trim() && !isAiLoading) {
+                e.preventDefault();
+                handleAiSearchTrigger();
+              }
+            }}
+          />
+          {isAiMode && hasLicenseKey && (
+            <Button
+              size="xs"
+              leftSection={<IconSparkles size={16} />}
+              onClick={handleAiSearchTrigger}
+              disabled={!query.trim()}
+              loading={isAiLoading}
+            >
+              Ask
+            </Button>
+          )}
+        </Group>
 
         <div
           style={{
@@ -83,20 +129,41 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
         >
           <SearchSpotlightFilters
             onFiltersChange={handleFiltersChange}
+            onAskClick={handleAskClick}
             spaceId={spaceId}
+            isAiMode={isAiMode}
           />
         </div>
 
         <Spotlight.ActionsList>
-          {query.length === 0 && resultItems.length === 0 && (
-            <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
-          )}
+          {isAiMode ? (
+            <>
+              {query.length === 0 && (
+                <Spotlight.Empty>{t("Ask a question...")}</Spotlight.Empty>
+              )}
+              {query.length > 0 && (isAiLoading || aiSearchResult) && (
+                <AiSearchResult
+                  result={aiSearchResult}
+                  isLoading={isAiLoading}
+                />
+              )}
+              {query.length > 0 && !isAiLoading && !aiSearchResult && (
+                <Spotlight.Empty>{t("No answer available")}</Spotlight.Empty>
+              )}
+            </>
+          ) : (
+            <>
+              {query.length === 0 && resultItems.length === 0 && (
+                <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
+              )}
 
-          {query.length > 0 && !isLoading && resultItems.length === 0 && (
-            <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
-          )}
+              {query.length > 0 && !isLoading && resultItems.length === 0 && (
+                <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
+              )}
 
-          {resultItems.length > 0 && <>{resultItems}</>}
+              {resultItems.length > 0 && <>{resultItems}</>}
+            </>
+          )}
         </Spotlight.ActionsList>
       </Spotlight.Root>
     </>
