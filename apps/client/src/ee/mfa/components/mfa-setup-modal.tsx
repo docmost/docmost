@@ -235,6 +235,7 @@ export function MfaSetupModal({
                       length={6}
                       type="number"
                       autoFocus
+                      data-autofocus
                       oneTimeCode
                       {...form.getInputProps("verificationCode")}
                       styles={{

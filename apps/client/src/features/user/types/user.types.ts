@@ -20,6 +20,7 @@ export interface IUser {
   deletedAt: Date;
   fullPageWidth: boolean; // used for update
   pageEditMode: string; // used for update
+  hasGeneratedPassword?: boolean;
 }
 
 export interface ICurrentUser {
