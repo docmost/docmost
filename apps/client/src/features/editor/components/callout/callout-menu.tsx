@@ -23,7 +23,7 @@ import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
-  
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -164,19 +164,17 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Custom emoji")}>
-          <EmojiPicker
-            onEmojiSelect={setCalloutIcon}
-            removeEmojiAction={removeCalloutIcon}
-            readOnly={false}
-            icon={currentIcon || <IconMoodSmile size={18} />}
-            actionIconProps={{
-              size: "lg",
-              variant: "default",
-              c: undefined
-            }}
-          />
-        </Tooltip>
+        <EmojiPicker
+          onEmojiSelect={setCalloutIcon}
+          removeEmojiAction={removeCalloutIcon}
+          readOnly={false}
+          icon={currentIcon || <IconMoodSmile size={18} />}
+          actionIconProps={{
+            size: "lg",
+            variant: "default",
+            c: undefined,
+          }}
+        />
       </ActionIcon.Group>
     </BaseBubbleMenu>
   );
