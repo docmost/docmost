@@ -514,7 +514,7 @@
   "Only users with email addresses from these domains can signup via SSO.": "Only users with email addresses from these domains can signup via SSO.",
   "Enter valid domain names separated by comma or space": "Enter valid domain names separated by comma or space",
   "Enforce two-factor authentication": "Enforce two-factor authentication",
-  "Once enforced, all members must enable two-factor authentication to access the workspace." : "Once enforced, all members must enable two-factor authentication to access the workspace.",
+  "Once enforced, all members must enable two-factor authentication to access the workspace.": "Once enforced, all members must enable two-factor authentication to access the workspace.",
   "Toggle MFA enforcement": "Toggle MFA enforcement",
   "Display name": "Display name",
   "Allow signup": "Allow signup",
