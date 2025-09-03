@@ -75,10 +75,10 @@ export function SearchSpotlightFilters({
   }, []);
 
   const contentTypeOptions = [
-    { value: "page", label: "Pages" },
+    { value: "page", label: t("Pages") },
     {
       value: "attachment",
-      label: "Attachments",
+      label: t("Attachments"),
       disabled: !hasLicenseKey,
     },
   ];
@@ -136,13 +136,13 @@ export function SearchSpotlightFilters({
             fw={500}
           >
             {selectedSpaceId
-              ? `Space: ${selectedSpaceData?.name || "Unknown"}`
-              : "Space: All spaces"}
+              ? `${t("Space")}: ${selectedSpaceData?.name || t("Unknown")}`
+              : `${t("Space")}: ${t("All spaces")}`}
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
           <TextInput
-            placeholder="Find a space"
+            placeholder={t("Find a space")}
             data-autofocus
             autoFocus
             leftSection={<IconSearch size={16} />}
@@ -160,15 +160,15 @@ export function SearchSpotlightFilters({
                 <Avatar
                   color="initials"
                   variant="filled"
-                  name="All spaces"
+                  name={t("All spaces")}
                   size={20}
                 />
                 <div style={{ flex: 1 }}>
                   <Text size="sm" fw={500}>
-                    All spaces
+                    {t("All spaces")}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    Search in all your spaces
+                    {t("Search in all your spaces")}
                   </Text>
                 </div>
                 {!selectedSpaceId && <IconCheck size={20} />}
@@ -217,8 +217,8 @@ export function SearchSpotlightFilters({
             fw={500}
           >
             {contentType
-              ? `Type: ${contentTypeOptions.find((opt) => opt.value === contentType)?.label || contentType}`
-              : "Type"}
+              ? `${t("Type")}: ${contentTypeOptions.find((opt) => opt.value === contentType)?.label || t(contentType === "page" ? "Pages" : "Attachments")}`
+              : t("Type")}
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
@@ -237,7 +237,7 @@ export function SearchSpotlightFilters({
                   <Text size="sm">{option.label}</Text>
                   {option.disabled && (
                     <Badge size="xs" mt={4}>
-                      Enterprise
+                      {t("Enterprise")}
                     </Badge>
                   )}
                 </div>

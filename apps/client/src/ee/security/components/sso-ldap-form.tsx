@@ -110,7 +110,7 @@ export function SsoLDAPForm({ provider, onClose }: SsoFormProps) {
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
           <TextInput
-            label="Display name"
+            label={t("Display name")}
             placeholder="e.g Company LDAP"
             data-autofocus
             {...form.getInputProps("name")}
@@ -155,7 +155,7 @@ export function SsoLDAPForm({ provider, onClose }: SsoFormProps) {
           <Accordion variant="separated">
             <Accordion.Item value="advanced">
               <Accordion.Control icon={<IconInfoCircle size={20} />}>
-                Advanced Settings
+                {t("Advanced Settings")}
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack>

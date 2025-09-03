@@ -1,5 +1,5 @@
 import React from "react";
-import { Group, Center, Text, Badge, ActionIcon } from "@mantine/core";
+import { Group, Center, Text, Badge, ActionIcon, Tooltip } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { Link } from "react-router-dom";
 import { IconFile, IconDownload } from "@tabler/icons-react";
@@ -10,6 +10,7 @@ import {
   IPageSearch,
 } from "@/features/search/types/search.types";
 import DOMPurify from "dompurify";
+import { useTranslation } from "react-i18next";
 
 interface SearchResultItemProps {
   result: IPageSearch | IAttachmentSearch;
@@ -22,6 +23,8 @@ export function SearchResultItem({
   isAttachmentResult,
   showSpace,
 }: SearchResultItemProps) {
+  const { t } = useTranslation();
+  
   if (isAttachmentResult) {
     const attachmentResult = result as IAttachmentSearch;
 
@@ -68,14 +71,15 @@ export function SearchResultItem({
             )}
           </div>
 
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            onClick={handleDownload}
-            title="Download attachment"
-          >
-            <IconDownload size={18} />
-          </ActionIcon>
+          <Tooltip label={t("Download attachment")} withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={handleDownload}
+            >
+              <IconDownload size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Spotlight.Action>
     );

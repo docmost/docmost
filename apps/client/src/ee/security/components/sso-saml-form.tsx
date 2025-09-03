@@ -1,6 +1,7 @@
 import React from "react";
 import { z } from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zodResolver } from "mantine-form-zod-resolver";
 import {
   Box,
   Button,
@@ -91,7 +92,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
           <TextInput
-            label="Display name"
+            label={t("Display name")}
             placeholder="e.g Azure Entra"
             data-autofocus
             {...form.getInputProps("name")}

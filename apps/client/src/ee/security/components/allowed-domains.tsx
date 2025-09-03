@@ -55,9 +55,11 @@ export default function AllowedDomains() {
   return (
     <>
       <div>
-        <Text size="md">Allowed email domains</Text>
+        <Text size="md">{t("Allowed email domains")}</Text>
         <Text size="sm" c="dimmed">
-          Only users with email addresses from these domains can signup via SSO.
+          {t(
+            "Only users with email addresses from these domains can signup via SSO.",
+          )}
         </Text>
       </div>
       <form onSubmit={form.onSubmit(handleSubmit)}>
