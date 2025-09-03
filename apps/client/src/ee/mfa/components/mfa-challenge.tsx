@@ -97,6 +97,7 @@ export function MfaChallenge() {
                     length={6}
                     type="number"
                     autoFocus
+                    data-autofocus
                     oneTimeCode
                     {...form.getInputProps("code")}
                     error={!!form.errors.code}

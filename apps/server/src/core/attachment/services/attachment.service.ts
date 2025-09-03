@@ -22,6 +22,9 @@ import { executeTx } from '@docmost/db/utils';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AttachmentService {
@@ -33,6 +36,7 @@ export class AttachmentService {
     private readonly workspaceRepo: WorkspaceRepo,
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async uploadFile(opts: {
@@ -98,6 +102,23 @@ export class AttachmentService {
           workspaceId,
           pageId,
         });
+      }
+
+      // Only index PDFs and DOCX files
+      if (['.pdf', '.docx'].includes(attachment.fileExt.toLowerCase())) {
+        await this.attachmentQueue.add(
+          QueueJob.ATTACHMENT_INDEX_CONTENT,
+          {
+            attachmentId: attachmentId,
+          },
+          {
+            attempts: 2,
+            backoff: {
+              type: 'exponential',
+              delay: 10000,
+            },
+          },
+        );
       }
     } catch (err) {
       // delete uploaded file on error
@@ -367,4 +388,5 @@ export class AttachmentService {
       throw err;
     }
   }
+
 }
