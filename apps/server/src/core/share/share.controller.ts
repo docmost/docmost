@@ -31,6 +31,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { hasLicenseOrEE } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -65,9 +66,11 @@ export class ShareController {
 
     return {
       ...(await this.shareService.getSharedPage(dto, workspace.id)),
-      hasLicenseKey:
-        Boolean(workspace.licenseKey) ||
-        (this.environmentService.isCloud() && workspace.plan === 'business'),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
     };
   }
 
@@ -175,9 +178,11 @@ export class ShareController {
   ) {
     return {
       ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
-      hasLicenseKey:
-        Boolean(workspace.licenseKey) ||
-        (this.environmentService.isCloud() && workspace.plan === 'business'),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
     };
   }
 }

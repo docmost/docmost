@@ -18,6 +18,10 @@ export interface CalloutAttributes {
    * The type of callout.
    */
   type: CalloutType;
+  /**
+   * The custom icon name for the callout.
+   */
+  icon?: string;
 }
 
 declare module "@tiptap/core" {
@@ -27,6 +31,7 @@ declare module "@tiptap/core" {
       unsetCallout: () => ReturnType;
       toggleCallout: (attributes?: CalloutAttributes) => ReturnType;
       updateCalloutType: (type: CalloutType) => ReturnType;
+      updateCalloutIcon: (icon: string) => ReturnType;
     };
   }
 }
@@ -56,6 +61,13 @@ export const Callout = Node.create<CalloutOptions>({
         parseHTML: (element) => element.getAttribute("data-callout-type"),
         renderHTML: (attributes) => ({
           "data-callout-type": attributes.type,
+        }),
+      },
+      icon: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-callout-icon"),
+        renderHTML: (attributes) => ({
+          "data-callout-icon": attributes.icon,
         }),
       },
     };
@@ -106,6 +118,13 @@ export const Callout = Node.create<CalloutOptions>({
         ({ commands }) =>
           commands.updateAttributes("callout", {
             type: getValidCalloutType(type),
+          }),
+
+      updateCalloutIcon:
+        (icon: string) =>
+        ({ commands }) =>
+          commands.updateAttributes("callout", {
+            icon: icon || null,
           }),
     };
   },

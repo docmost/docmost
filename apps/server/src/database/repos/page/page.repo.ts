@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
-import { dbOrTx } from '../../utils';
+import { dbOrTx, executeTx } from '../../utils';
 import {
   InsertablePage,
   Page,
@@ -183,14 +183,20 @@ export class PageRepo {
 
     const pageIds = descendants.map((d) => d.id);
 
-    await this.db
-      .updateTable('pages')
-      .set({
-        deletedById: deletedById,
-        deletedAt: currentDate,
-      })
-      .where('id', 'in', pageIds)
-      .execute();
+    if (pageIds.length > 0) {
+      await executeTx(this.db, async (trx) => {
+        await trx
+          .updateTable('pages')
+          .set({
+            deletedById: deletedById,
+            deletedAt: currentDate,
+          })
+          .where('id', 'in', pageIds)
+          .execute();
+
+        await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+      });
+    }
   }
 
   async restorePage(pageId: string): Promise<void> {
@@ -393,6 +399,7 @@ export class PageRepo {
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
+          .where('deletedAt', 'is', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -407,7 +414,8 @@ export class PageRepo {
                 'p.workspaceId',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
-              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id'),
+              .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
+              .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_hierarchy')
