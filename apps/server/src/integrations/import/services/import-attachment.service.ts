@@ -617,19 +617,53 @@ export class ImportAttachmentService {
       const candidatePngs = pngByBaseName.get(baseName) || [];
       let matchingPng: AttachmentInfo | undefined;
 
-      for (const png of candidatePngs) {
-        // Cloud format: "name.drawio.png"
-        if (png.fileName === `${baseName}.drawio.png`) {
-          matchingPng = png;
-          break;
+      // Extract the attachment ID from the Draw.io href
+      // Format: attachments/16941088/36044817.png -> ID is 36044817
+      const drawioIdMatch = drawio.href.match(/\/(\d+)\.\w+$/);
+      const drawioId = drawioIdMatch ? drawioIdMatch[1] : null;
+
+      if (drawioId) {
+        // Look for PNG with adjacent ID (usually PNG ID = Draw.io ID + small increment)
+        // In Confluence, related files often have sequential or near-sequential IDs
+        for (const png of candidatePngs) {
+          const pngIdMatch = png.href.match(/\/(\d+)\.png$/);
+          const pngId = pngIdMatch ? pngIdMatch[1] : null;
+
+          //TODO: should revisit this
+          // but seem to be the best option for now
+          // to prevent reusing the first drawio preview image if there are more with the same name
+          if (pngId && drawioId) {
+            const idDiff = Math.abs(parseInt(pngId) - parseInt(drawioId));
+            // PNG is usually within ~30 IDs of the Draw.io file
+            if (idDiff <= 30) {
+              // Verify filename match
+              if (
+                png.fileName === `${baseName}.drawio.png` ||
+                (!drawio.fileName.endsWith('.drawio') &&
+                  png.fileName === `${baseName}.png`)
+              ) {
+                matchingPng = png;
+                break;
+              }
+            }
+          }
         }
-        // Server format: "name.png" where drawio has no extension
-        if (
-          !drawio.fileName.endsWith('.drawio') &&
-          png.fileName === `${baseName}.png`
-        ) {
-          matchingPng = png;
-          break;
+      }
+
+      // Fallback to name-only matching if ID-based matching fails
+      if (!matchingPng) {
+        for (const png of candidatePngs) {
+          if (png.fileName === `${baseName}.drawio.png`) {
+            matchingPng = png;
+            break;
+          }
+          if (
+            !drawio.fileName.endsWith('.drawio') &&
+            png.fileName === `${baseName}.png`
+          ) {
+            matchingPng = png;
+            break;
+          }
         }
       }
 
@@ -651,6 +685,15 @@ export class ImportAttachmentService {
       skipFiles.add(drawio.href);
       if (matchingPng) {
         skipFiles.add(matchingPng.href);
+        // Remove the matched PNG from the candidates to prevent reuse
+        const remainingPngs = pngByBaseName
+          .get(baseName)
+          ?.filter((png) => png.href !== matchingPng.href);
+        if (remainingPngs && remainingPngs.length > 0) {
+          pngByBaseName.set(baseName, remainingPngs);
+        } else {
+          pngByBaseName.delete(baseName);
+        }
       }
     }
 
@@ -671,6 +714,7 @@ export class ImportAttachmentService {
         try {
           const pngBuffer = await fs.readFile(pngPath);
           const pngBase64 = pngBuffer.toString('base64');
+
           imageElement = `<image href="data:image/png;base64,${pngBase64}" width="100%" height="100%"/>`;
         } catch (error) {
           this.logger.warn(
@@ -681,12 +725,14 @@ export class ImportAttachmentService {
       }
 
       // Create the SVG with embedded Draw.io data and image
+      // Default dimensions for Draw.io diagrams if no image is provided
       const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" 
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     content="${drawioBase64}">
-  ${imageElement}
-</svg>`;
+      <svg xmlns="http://www.w3.org/2000/svg" 
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      width="600"
+      height="400"
+      viewBox="0 0 600 400"
+      content="${drawioBase64}">${imageElement}</svg>`;
 
       return Buffer.from(svgContent, 'utf-8');
     } catch (error) {
