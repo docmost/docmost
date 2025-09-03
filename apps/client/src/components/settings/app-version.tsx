@@ -50,7 +50,7 @@ export default function AppVersion() {
             href="https://github.com/docmost/docmost/releases"
             target="_blank"
           >
-            v{APP_VERSION}
+            {appVersion?.currentVersion && <>v{appVersion?.currentVersion}</>}
           </Text>
         </Indicator>
       </Tooltip>
