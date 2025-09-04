@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.22.2",
+  "version": "0.23.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
