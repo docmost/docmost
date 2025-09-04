@@ -16,6 +16,9 @@ import { unwrapFromParagraph } from '../utils/import-formatter';
 import { resolveRelativeAttachmentPath } from '../utils/import.utils';
 import { load } from 'cheerio';
 import pLimit from 'p-limit';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QueueJob, QueueName } from '../../queue/constants';
 
 interface AttachmentInfo {
   href: string;
@@ -39,6 +42,7 @@ export class ImportAttachmentService {
   constructor(
     private readonly storageService: StorageService,
     @InjectKysely() private readonly db: KyselyDB,
+    @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
 
   async processAttachments(opts: {
@@ -579,7 +583,7 @@ export class ImportAttachmentService {
         if (!nonDrawioExtensions.has(ext)) {
           drawioFiles.push(attachment);
         } else {
-          //Skipped non-Draw.io file with mxfile MIME.}`,
+          //Skipped non-Draw.io file with mxfile MIME.
         }
       }
 
@@ -791,6 +795,36 @@ export class ImportAttachmentService {
             spaceId: fileTask.spaceId,
           })
           .execute();
+
+        // Queue PDF and DOCX files for indexing
+        const supportedExtensions = ['.pdf', '.docx'];
+        if (supportedExtensions.includes(ext.toLowerCase())) {
+          try {
+            await this.attachmentQueue.add(
+              QueueJob.ATTACHMENT_INDEX_CONTENT,
+              { attachmentId },
+              {
+                attempts: 2,
+                backoff: {
+                  type: 'exponential',
+                  delay: 30 * 1000,
+                },
+                deduplication: {
+                  id: attachmentId,
+                },
+                removeOnComplete: true,
+                removeOnFail: false,
+              },
+            );
+            this.logger.debug(
+              `Queued ${fileNameWithExt} for indexing (attachment ID: ${attachmentId})`,
+            );
+          } catch (err) {
+            this.logger.error(
+              `Failed to queue indexing for imported attachment ${attachmentId}: ${err}`,
+            );
+          }
+        }
 
         uploadStats.completed++;
 
