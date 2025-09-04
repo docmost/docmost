@@ -1,5 +1,13 @@
 import React from "react";
-import { Group, Center, Text, Badge, ActionIcon, Tooltip } from "@mantine/core";
+import {
+  Group,
+  Center,
+  Text,
+  Badge,
+  ActionIcon,
+  Tooltip,
+  getDefaultZIndex,
+} from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { Link } from "react-router-dom";
 import { IconFile, IconDownload } from "@tabler/icons-react";
@@ -24,7 +32,7 @@ export function SearchResultItem({
   showSpace,
 }: SearchResultItemProps) {
   const { t } = useTranslation();
-  
+
   if (isAttachmentResult) {
     const attachmentResult = result as IAttachmentSearch;
 
@@ -48,7 +56,7 @@ export function SearchResultItem({
       >
         <Group wrap="nowrap" w="100%">
           <Center>
-            <IconFile size={20} />
+            <IconFile size={16} />
           </Center>
 
           <div style={{ flex: 1 }}>
@@ -64,19 +72,19 @@ export function SearchResultItem({
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(attachmentResult.highlight, {
                     ALLOWED_TAGS: ["mark", "em", "strong", "b"],
-                    ALLOWED_ATTR: []
+                    ALLOWED_ATTR: [],
                   }),
                 }}
               />
             )}
           </div>
 
-          <Tooltip label={t("Download attachment")} withArrow>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              onClick={handleDownload}
-            >
+          <Tooltip
+            label={t("Download attachment")}
+            zIndex={getDefaultZIndex("max")}
+            withArrow
+          >
+            <ActionIcon variant="subtle" color="gray" onClick={handleDownload}>
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
@@ -115,7 +123,7 @@ export function SearchResultItem({
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(pageResult.highlight, {
                     ALLOWED_TAGS: ["mark", "em", "strong", "b"],
-                    ALLOWED_ATTR: []
+                    ALLOWED_ATTR: [],
                   }),
                 }}
               />

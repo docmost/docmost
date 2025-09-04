@@ -23,6 +23,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useLicense } from "@/ee/hooks/use-license";
 import classes from "./search-spotlight-filters.module.css";
+import { isCloud } from "@/lib/config.ts";
 
 interface SearchSpotlightFiltersProps {
   onFiltersChange?: (filters: any) => void;
@@ -79,7 +80,7 @@ export function SearchSpotlightFilters({
     {
       value: "attachment",
       label: t("Attachments"),
-      disabled: !hasLicenseKey,
+      disabled: !isCloud() && !hasLicenseKey,
     },
   ];
 
