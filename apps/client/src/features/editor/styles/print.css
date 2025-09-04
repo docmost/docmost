@@ -1,12 +1,23 @@
 @media print {
-    .mantine-AppShell-header,
-    .mantine-AppShell-navbar,
-    .mantine-AppShell-aside{
-        display: none !important;
-    }
+  .mantine-AppShell-header,
+  .mantine-AppShell-navbar,
+  .mantine-AppShell-aside,
+  .print-hide,
+  .drag-handle {
+    display: none !important;
+  }
 
-    .mantine-AppShell-main {
-        padding-top: 0 !important;
-        min-height: auto !important;
-    }
+  .mantine-AppShell-main {
+    padding-top: 0 !important;
+    min-height: auto !important;
+  }
+
+  .ProseMirror-selectednode {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .tableWrapper {
+    overflow: hidden !important;
+  }
 }
