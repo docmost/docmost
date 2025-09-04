@@ -804,7 +804,7 @@ export class ImportAttachmentService {
               QueueJob.ATTACHMENT_INDEX_CONTENT,
               { attachmentId },
               {
-                attempts: 2,
+                attempts: 1,
                 backoff: {
                   type: 'exponential',
                   delay: 30 * 1000,
