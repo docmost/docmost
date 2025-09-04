@@ -102,7 +102,7 @@ export class ImportAttachmentService {
       }
     >();
 
-    this.logger.debug(`Found ${drawioPairs.size} Draw.io pairs to process`);
+    //this.logger.debug(`Found ${drawioPairs.size} Draw.io pairs to process`);
 
     // Process Draw.io pairs and create combined SVG files
     for (const [drawioHref, pair] of drawioPairs) {
