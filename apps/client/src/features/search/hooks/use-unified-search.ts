@@ -9,6 +9,7 @@ import {
   IPageSearchParams,
 } from "@/features/search/types/search.types";
 import { useLicense } from "@/ee/hooks/use-license";
+import { isCloud } from "@/lib/config";
 
 export type UnifiedSearchResult = IPageSearch | IAttachmentSearch;
 
@@ -22,7 +23,7 @@ export function useUnifiedSearch(
   const { hasLicenseKey } = useLicense();
 
   const isAttachmentSearch =
-    params.contentType === "attachment" && hasLicenseKey;
+    params.contentType === "attachment" && (isCloud() || hasLicenseKey);
   const searchType = isAttachmentSearch ? "attachment" : "page";
 
   return useQuery({
