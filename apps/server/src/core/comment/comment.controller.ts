@@ -43,7 +43,7 @@ export class CommentController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     const page = await this.pageRepo.findById(createCommentDto.pageId);
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -90,7 +90,10 @@ export class CommentController {
       throw new NotFoundException('Comment not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, comment.spaceId);
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      comment.spaceId,
+    );
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }

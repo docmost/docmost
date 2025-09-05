@@ -29,19 +29,22 @@ export default function ExportModal({
 }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
-  const [includeAttachments, setIncludeAttachments] = useState<boolean>(true);
+  const [includeAttachments, setIncludeAttachments] = useState<boolean>(false);
   const { t } = useTranslation();
 
   const handleExport = async () => {
     try {
       if (type === "page") {
-        await exportPage({ pageId: id, format, includeChildren });
+        await exportPage({
+          pageId: id,
+          format,
+          includeChildren,
+          includeAttachments,
+        });
       }
       if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
       }
-      setIncludeChildren(false);
-      setIncludeAttachments(true);
       onClose();
     } catch (err) {
       notifications.show({
@@ -94,6 +97,18 @@ export default function ExportModal({
                     setIncludeChildren(event.currentTarget.checked)
                   }
                   checked={includeChildren}
+                />
+              </Group>
+
+              <Group justify="space-between" wrap="nowrap" mt="md">
+                <div>
+                  <Text size="md">{t("Include attachments")}</Text>
+                </div>
+                <Switch
+                  onChange={(event) =>
+                    setIncludeAttachments(event.currentTarget.checked)
+                  }
+                  checked={includeAttachments}
                 />
               </Group>
             </>

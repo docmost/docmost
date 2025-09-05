@@ -7,6 +7,11 @@ settings:
 overrides:
   jsdom: 25.0.1
 
+patchedDependencies:
+  react-arborist@3.4.0:
+    hash: 419b3b02e24afe928cc006a006f6e906666aff19aa6fd7daaa788ccc2202678a
+    path: patches/react-arborist@3.4.0.patch
+
 importers:
 
   .:
@@ -225,12 +230,6 @@ importers:
       '@excalidraw/excalidraw':
         specifier: 0.18.0-864353b
         version: 0.18.0-864353b(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@headless-tree/core':
-        specifier: 0.0.0-20250829160803
-        version: 0.0.0-20250829160803
-      '@headless-tree/react':
-        specifier: 0.0.0-20250829160803
-        version: 0.0.0-20250829160803(@headless-tree/core@0.0.0-20250829160803)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mantine/core':
         specifier: ^8.1.3
         version: 8.1.3(@mantine/hooks@8.1.3(react@18.3.1))(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -315,6 +314,9 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      react-arborist:
+        specifier: 3.4.0
+        version: 3.4.0(patch_hash=419b3b02e24afe928cc006a006f6e906666aff19aa6fd7daaa788ccc2202678a)(@types/node@22.10.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-clear-modal:
         specifier: ^2.0.15
         version: 2.0.15(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2205,16 +2207,6 @@ packages:
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
 
-  '@headless-tree/core@0.0.0-20250829160803':
-    resolution: {integrity: sha512-cIsbXOAth9Yjjpqt0PZuDtL6gawst7UUoZMLVJxPLZH+txT7ZWFJHOZkYWjPXgOuHQ7/BhxUScpRqfUcXVp/VQ==}
-
-  '@headless-tree/react@0.0.0-20250829160803':
-    resolution: {integrity: sha512-P+igQKD8PCv7sKMPft27BJYM63zfFM+nuwQPPYujoowzQUkLS7WOjf5gaE7xzgqg5UaCqEaAiHoxV+n/WwcdRw==}
-    peerDependencies:
-      '@headless-tree/core': 0.0.0-20250829160803
-      react: '*'
-      react-dom: '*'
-
   '@hocuspocus/common@2.15.2':
     resolution: {integrity: sha512-wU1wxXNnQQMXyeL3mdSDYiQsm/r/QyJVjjQhF7sUBrLnjdsN7bA1cvfcSvJBr1ymrMSeYRmUL3UlQmEHEOaP7w==}
 
@@ -3244,6 +3236,15 @@ packages:
 
   '@radix-ui/rect@1.1.0':
     resolution: {integrity: sha512-A9+lCBZoaMJlVKcRBz2YByCG+Cp2t6nAnMnNba+XiWxnj6r4JUFqfsgwocMBZU9LPtdxC6wB56ySYpc7LQIoJg==}
+
+  '@react-dnd/asap@4.0.1':
+    resolution: {integrity: sha512-kLy0PJDDwvwwTXxqTFNAAllPHD73AycE9ypWeln/IguoGBEbvFcPDbCV03G52bEcC5E+YgupBE0VzHGdC8SIXg==}
+
+  '@react-dnd/invariant@2.0.0':
+    resolution: {integrity: sha512-xL4RCQBCBDJ+GRwKTFhGUW8GXa4yoDfJrPbLblc3U09ciS+9ZJXJ3Qrcs/x2IODOdIE5kQxvMmE2UKyqUictUw==}
+
+  '@react-dnd/shallowequal@2.0.0':
+    resolution: {integrity: sha512-Pc/AFTdwZwEKJxFJvlxrSmGe/di+aAOBn60sremrpLo6VI/6cmiUYNNwlI5KNYttg7uypzA3ILPMPgxB2GYZEg==}
 
   '@react-email/body@0.0.10':
     resolution: {integrity: sha512-dMJyL9aU25ieatdPtVjCyQ/WHZYHwNc+Hy/XpF8Cc18gu21cUynVEeYQzFSeigDRMeBQ3PGAyjVDPIob7YlGwA==}
@@ -5657,6 +5658,9 @@ packages:
   dijkstrajs@1.0.3:
     resolution: {integrity: sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA==}
 
+  dnd-core@14.0.1:
+    resolution: {integrity: sha512-+PVS2VPTgKFPYWo3vAFEA8WPbTf7/xo43TifH9G8S1KqnrQu0o77A3unrF5yOugy4mIz7K5wAVFHUcha7wsz6A==}
+
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
@@ -6325,6 +6329,9 @@ packages:
 
   highlightjs-sap-abap@0.3.0:
     resolution: {integrity: sha512-nSiUvEOCycjtFA3pHaTowrbAAk5+lciBHyoVkDsd6FTRBtW9sT2dt42o2jAKbXjZVUidtacdk+j0Y2xnd233Mw==}
+
+  hoist-non-react-statics@3.3.2:
+    resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
   hosted-git-info@7.0.1:
     resolution: {integrity: sha512-+K84LB1DYwMHoHSgaOY/Jfhw3ucPmSET5v98Ke/HdNSw4a0UktWzyW1mjhjpuxxTqOOsfWT/7iVshHmVZ4IpOA==}
@@ -7238,6 +7245,9 @@ packages:
   memfs@3.5.3:
     resolution: {integrity: sha512-UERzLsxzllchadvbPs5aolHh65ISpKpM+ccLbOJ8/vvpBKmAWf+la7dXFy7Mr0ySHbdHrFv5kGFCUHHe6GFEmw==}
     engines: {node: '>= 4.0.0'}
+
+  memoize-one@5.2.1:
+    resolution: {integrity: sha512-zYiwtZUcYyXKo/np96AGZAckk+FWWsUdJ3cHGGmld7+AhvcWmQyGCYUh1hc4Q/pkOhb65dQR/pqCyK0cOaHz4Q==}
 
   merge-stream@2.0.0:
     resolution: {integrity: sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==}
@@ -8181,6 +8191,12 @@ packages:
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
+  react-arborist@3.4.0:
+    resolution: {integrity: sha512-QI46oRGXJr0oaQfqqVobIiIoqPp5Y5gM69D2A2P7uHVif+X75XWnScR5drC7YDKgJ4CXVaDeFwnYKOWRRfncMg==}
+    peerDependencies:
+      react: '>= 16.14'
+      react-dom: '>= 16.14'
+
   react-clear-modal@2.0.15:
     resolution: {integrity: sha512-6sPKNECL/rZiOSroT5RQuJkmW10LUM8sPHJSOL4Q/VcgxZG7HAYoUJwpV+vQPEfK7bksaoRUAm/e+1mvE+2qhA==}
     peerDependencies:
@@ -8188,6 +8204,24 @@ packages:
       react: ^16.8 || ^17 || ^18 || ^19
       react-dom: ^16.8 || ^17 || ^18 || ^19
     peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  react-dnd-html5-backend@14.1.0:
+    resolution: {integrity: sha512-6ONeqEC3XKVf4eVmMTe0oPds+c5B9Foyj8p/ZKLb7kL2qh9COYxiBHv3szd6gztqi/efkmriywLUVlPotqoJyw==}
+
+  react-dnd@14.0.5:
+    resolution: {integrity: sha512-9i1jSgbyVw0ELlEVt/NkCUkxy1hmhJOkePoCH713u75vzHGyXhPDm28oLfc2NMSBjZRM1Y+wRjHXJT3sPrTy+A==}
+    peerDependencies:
+      '@types/hoist-non-react-statics': '>= 3.3.1'
+      '@types/node': '>= 12'
+      '@types/react': '>= 16'
+      react: '>= 16.14'
+    peerDependenciesMeta:
+      '@types/hoist-non-react-statics':
+        optional: true
+      '@types/node':
+        optional: true
       '@types/react':
         optional: true
 
@@ -8310,6 +8344,13 @@ packages:
       react: '>=16.6.0'
       react-dom: '>=16.6.0'
 
+  react-window@1.8.10:
+    resolution: {integrity: sha512-Y0Cx+dnU6NLa5/EvoHukUD0BklJ8qITCtVEPY1C/nL8wwoZ0b5aEw8Ff1dOVHw7fCzMt55XfJDd8S8W8LCaUCg==}
+    engines: {node: '>8.0.0'}
+    peerDependencies:
+      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+
   react@18.3.1:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
     engines: {node: '>=0.10.0'}
@@ -8355,6 +8396,12 @@ packages:
   redlock@4.2.0:
     resolution: {integrity: sha512-j+oQlG+dOwcetUt2WJWttu4CZVeRzUrcVcISFmEmfyuwCVSJ93rDT7YSgg7H7rnxwoRyk/jU46kycVka5tW7jA==}
     engines: {node: '>=8.0.0'}
+
+  redux@4.2.1:
+    resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
+
+  redux@5.0.1:
+    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
@@ -8799,12 +8846,10 @@ packages:
   superagent@9.0.2:
     resolution: {integrity: sha512-xuW7dzkUpcJq7QnhOsnNUgtYp3xRwpt2F7abdRYIpCsAt0hhUqia0EdxyXZQQpNmGtsCzYHryaKSV3q3GJnq7w==}
     engines: {node: '>=14.18.0'}
-    deprecated: Please upgrade to superagent v10.2.2+, see release notes at https://github.com/forwardemail/superagent/releases/tag/v10.2.2 - maintenance is supported by Forward Email @ https://forwardemail.net
 
   supertest@7.0.0:
     resolution: {integrity: sha512-qlsr7fIC0lSddmA3tzojvzubYxvlGtzumcdHgPwbFWMISQwL22MhM2Y3LNt+6w9Yyx7559VW5ab70dgphm8qQA==}
     engines: {node: '>=14.18.0'}
-    deprecated: Please upgrade to supertest v7.1.3+, see release notes at https://github.com/forwardemail/supertest/releases/tag/v7.1.3 - maintenance is supported by Forward Email @ https://forwardemail.net
 
   supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
@@ -11824,14 +11869,6 @@ snapshots:
 
   '@floating-ui/utils@0.2.8': {}
 
-  '@headless-tree/core@0.0.0-20250829160803': {}
-
-  '@headless-tree/react@0.0.0-20250829160803(@headless-tree/core@0.0.0-20250829160803)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@headless-tree/core': 0.0.0-20250829160803
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
   '@hocuspocus/common@2.15.2':
     dependencies:
       lib0: 0.2.98
@@ -12962,6 +12999,12 @@ snapshots:
       '@types/react': 18.3.12
 
   '@radix-ui/rect@1.1.0': {}
+
+  '@react-dnd/asap@4.0.1': {}
+
+  '@react-dnd/invariant@2.0.0': {}
+
+  '@react-dnd/shallowequal@2.0.0': {}
 
   '@react-email/body@0.0.10(react@18.3.1)':
     dependencies:
@@ -15707,6 +15750,12 @@ snapshots:
 
   dijkstrajs@1.0.3: {}
 
+  dnd-core@14.0.1:
+    dependencies:
+      '@react-dnd/asap': 4.0.1
+      '@react-dnd/invariant': 2.0.0
+      redux: 4.2.1
+
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
@@ -16576,6 +16625,10 @@ snapshots:
   highlight.js@11.11.1: {}
 
   highlightjs-sap-abap@0.3.0: {}
+
+  hoist-non-react-statics@3.3.2:
+    dependencies:
+      react-is: 16.13.1
 
   hosted-git-info@7.0.1:
     dependencies:
@@ -17686,6 +17739,8 @@ snapshots:
     dependencies:
       fs-monkey: 1.0.5
 
+  memoize-one@5.2.1: {}
+
   merge-stream@2.0.0: {}
 
   merge2@1.4.1: {}
@@ -18777,11 +18832,41 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  react-arborist@3.4.0(patch_hash=419b3b02e24afe928cc006a006f6e906666aff19aa6fd7daaa788ccc2202678a)(@types/node@22.10.0)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dnd: 14.0.5(@types/node@22.10.0)(@types/react@18.3.12)(react@18.3.1)
+      react-dnd-html5-backend: 14.1.0
+      react-dom: 18.3.1(react@18.3.1)
+      react-window: 1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      redux: 5.0.1
+      use-sync-external-store: 1.2.2(react@18.3.1)
+    transitivePeerDependencies:
+      - '@types/hoist-non-react-statics'
+      - '@types/node'
+      - '@types/react'
+
   react-clear-modal@2.0.15(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     optionalDependencies:
+      '@types/react': 18.3.12
+
+  react-dnd-html5-backend@14.1.0:
+    dependencies:
+      dnd-core: 14.0.1
+
+  react-dnd@14.0.5(@types/node@22.10.0)(@types/react@18.3.12)(react@18.3.1):
+    dependencies:
+      '@react-dnd/invariant': 2.0.0
+      '@react-dnd/shallowequal': 2.0.0
+      dnd-core: 14.0.1
+      fast-deep-equal: 3.1.3
+      hoist-non-react-statics: 3.3.2
+      react: 18.3.1
+    optionalDependencies:
+      '@types/node': 22.10.0
       '@types/react': 18.3.12
 
   react-dom@18.3.1(react@18.3.1):
@@ -18920,6 +19005,13 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
+  react-window@1.8.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@babel/runtime': 7.25.6
+      memoize-one: 5.2.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   react@18.3.1:
     dependencies:
       loose-envify: 1.4.0
@@ -18971,6 +19063,12 @@ snapshots:
   redlock@4.2.0:
     dependencies:
       bluebird: 3.7.2
+
+  redux@4.2.1:
+    dependencies:
+      '@babel/runtime': 7.25.6
+
+  redux@5.0.1: {}
 
   reflect-metadata@0.2.2: {}
 

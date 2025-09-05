@@ -124,8 +124,9 @@ export function useUpdatePageMutation() {
 export function useRemovePageMutation() {
   return useMutation({
     mutationFn: (pageId: string) => deletePage(pageId, false),
-    onSuccess: () => {
+    onSuccess: (_, pageId) => {
       notifications.show({ message: "Page moved to trash" });
+      invalidateOnDeletePage(pageId);
       queryClient.invalidateQueries({
         predicate: (item) =>
           ["trash-list"].includes(item.queryKey[0] as string),
@@ -209,6 +210,7 @@ export function useGetSidebarPagesQuery(
 ): UseInfiniteQueryResult<InfiniteData<IPagination<IPage>, unknown>> {
   return useInfiniteQuery({
     queryKey: ["sidebar-pages", data],
+    enabled: !!data?.pageId || !!data?.spaceId,
     queryFn: ({ pageParam }) => getSidebarPages({ ...data, page: pageParam }),
     initialPageParam: 1,
     getPreviousPageParam: (firstPage) =>

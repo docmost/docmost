@@ -19,7 +19,6 @@ import {
 import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
-import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -41,7 +40,6 @@ import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-to
 import { searchSpotlight } from "@/features/search/constants";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation";
-import { string } from "zod";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -198,8 +196,6 @@ export function SpaceSidebar() {
         onClose={closeSettings}
         spaceId={space?.slug}
       />
-
-      <SearchSpotlight spaceId={space.id} />
     </>
   );
 }

@@ -32,7 +32,7 @@ import { UserInfo } from "@/components/common/user-info.tsx";
 import Paginate from "@/components/common/paginate.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
 
-export default function SpaceTrash() {
+export default function Trash() {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const { page, setPage } = usePaginateAndSearch();

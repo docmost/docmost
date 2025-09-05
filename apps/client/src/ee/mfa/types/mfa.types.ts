@@ -46,7 +46,7 @@ export interface MfaEnableResponse {
 }
 
 export interface MfaDisableRequest {
-  confirmPassword: string;
+  confirmPassword?: string;
 }
 
 export interface MfaBackupCodesResponse {

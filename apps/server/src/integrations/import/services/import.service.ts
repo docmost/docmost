@@ -178,7 +178,7 @@ export class ImportService {
       .selectFrom('pages')
       .select(['id', 'position'])
       .where('spaceId', '=', spaceId)
-      .orderBy('position', 'desc')
+      .orderBy('position', (ob) => ob.collate('C').desc())
       .limit(1)
       .where('parentPageId', 'is', null)
       .executeTakeFirst();
