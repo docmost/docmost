@@ -1,5 +1,6 @@
 import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import type { ItemInstance } from "@headless-tree/core";
 
 export function sortPositionKeys(keys: any[]) {
   return keys.sort((a, b) => {
@@ -33,6 +34,16 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
   });
 
   return sortPositionKeys(tree);
+}
+
+export function findBreadcrumbPathNew(item: ItemInstance<SpaceTreeNode>): SpaceTreeNode[] | null {
+  const path: SpaceTreeNode[] = [];
+  let parent: ItemInstance<SpaceTreeNode> | null = item;
+  while (parent && parent.getId() !== "root") {
+    path.unshift(parent.getItemData());
+    parent = parent.getParent();
+  }
+  return path.length > 0 ? path : null;
 }
 
 export function findBreadcrumbPath(
