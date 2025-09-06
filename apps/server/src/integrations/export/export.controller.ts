@@ -46,7 +46,7 @@ export class ExportController {
       includeContent: true,
     });
 
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 

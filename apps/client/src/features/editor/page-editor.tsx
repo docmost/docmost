@@ -33,6 +33,7 @@ import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import AudioMenu from "@/features/editor/components/audio/audio-menu.tsx";
+import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -51,6 +52,7 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
+import { searchSpotlight } from '@/features/search/constants.ts';
 import { useAnchorScroll } from "./components/heading/use-anchor-scroll";
 
 interface PageEditorProps {
@@ -233,6 +235,10 @@ export default function PageEditor({
               debouncedSendSaveCommand();
               return true;
             }
+            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
+              searchSpotlight.open();
+              return true;
+            }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
               const slashCommand = document.querySelector("#slash-command");
               if (slashCommand) {
@@ -386,10 +392,11 @@ export default function PageEditor({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
 
         <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
+
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
@@ -404,6 +411,7 @@ export default function PageEditor({
             <VideoMenu editor={editor} />
             <AudioMenu editor={editor} />
             <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />

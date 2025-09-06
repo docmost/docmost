@@ -6,26 +6,28 @@ import classes from "./code-block.module.css";
 import { useTranslation } from "react-i18next";
 import { useComputedColorScheme } from "@mantine/core";
 
-const computedColorScheme = useComputedColorScheme();
-
-mermaid.initialize({
-  startOnLoad: false,
-  suppressErrorRendering: true,
-  theme: computedColorScheme === "light" ? "default" : "dark",
-});
-
 interface MermaidViewProps {
   props: NodeViewProps;
 }
 
 export default function MermaidView({ props }: MermaidViewProps) {
   const { t } = useTranslation();
+  const computedColorScheme = useComputedColorScheme();
   const { node } = props;
   const [preview, setPreview] = useState<string>("");
 
+  // Update Mermaid config when theme changes.
+  useEffect(() => {
+    mermaid.initialize({
+      startOnLoad: false,
+      suppressErrorRendering: true,
+      theme: computedColorScheme === "light" ? "default" : "dark",
+    });
+  }, [computedColorScheme]);
+
+  // Re-render the diagram whenever the node content or theme changes.
   useEffect(() => {
     const id = `mermaid-${uuidv4()}`;
-
     if (node.textContent.length > 0) {
       mermaid
         .render(id, node.textContent)
@@ -44,7 +46,7 @@ export default function MermaidView({ props }: MermaidViewProps) {
           }
         });
     }
-  }, [node.textContent]);
+  }, [node.textContent, computedColorScheme]);
 
   return (
     <div

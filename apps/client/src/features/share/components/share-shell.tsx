@@ -1,11 +1,10 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   ActionIcon,
-  Affix,
   AppShell,
-  Button,
   Group,
-  ScrollArea, Text,
+  ScrollArea,
+  Text,
   Tooltip
 } from "@mantine/core";
 import { useGetSharedPageTreeQuery } from "@/features/share/queries/share-query.ts";
@@ -14,8 +13,10 @@ import SharedTree from "@/features/share/components/shared-tree.tsx";
 import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { ThemeToggle } from "@/components/ui/theme-toggle.tsx";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useAtom } from "jotai";
+import { sharedPageTreeAtom, sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
+import { buildSharedPageTree } from "@/features/share/utils";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
@@ -34,7 +35,7 @@ import {
   SearchControl,
   SearchMobileControl,
 } from "@/features/search/components/search-control.tsx";
-import { ShareSearchSpotlight } from "@/features/search/share-search-spotlight";
+import { ShareSearchSpotlight } from "@/features/search/components/share-search-spotlight.tsx";
 import { shareSearchSpotlight } from "@/features/search/constants";
 import { FullWidthToggle } from "@/components/ui/full-width-toggle";
 
@@ -60,6 +61,22 @@ export default function ShareShell({
   const sessionPassword = shareId ? sessionStorage.getItem(`share-password-${shareId}`) : null;
   const { data } = useGetSharedPageTreeQuery(shareId, sessionPassword || undefined);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
+
+  // @ts-ignore
+  const setSharedPageTree = useSetAtom(sharedPageTreeAtom);
+  // @ts-ignore
+  const setSharedTreeData = useSetAtom(sharedTreeDataAtom);
+
+  // Build and set the tree data when it changes
+  const treeData = useMemo(() => {
+    if (!data?.pageTree) return null;
+    return buildSharedPageTree(data.pageTree);
+  }, [data?.pageTree]);
+
+  useEffect(() => {
+    setSharedPageTree(data || null);
+    setSharedTreeData(treeData);
+  }, [data, treeData, setSharedPageTree, setSharedTreeData]);
 
   return (
     <AppShell

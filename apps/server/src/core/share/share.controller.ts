@@ -37,6 +37,7 @@ import { comparePasswordHash } from '../../common/helpers';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from 'src/common/helpers/types/permission';
+import { hasLicenseOrEE } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('shares')
@@ -72,9 +73,11 @@ export class ShareController {
 
     return {
       ...(await this.shareService.getSharedPage(dto, workspace.id)),
-      hasLicenseKey:
-        Boolean(workspace.licenseKey) ||
-        (this.environmentService.isCloud() && workspace.plan === 'business'),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
     };
   }
 
@@ -192,10 +195,12 @@ export class ShareController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     return {
-      ...(await this.shareService.getShareTreeWithPassword(dto.shareId, dto.password, workspace.id)),
-      hasLicenseKey:
-        Boolean(workspace.licenseKey) ||
-        (this.environmentService.isCloud() && workspace.plan === 'business'),
+      ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
     };
   }
 

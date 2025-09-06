@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   forkmost:
     image: ghcr.io/vito0912/forkmost:latest

@@ -61,7 +61,7 @@ export interface ICopyPageToSpace {
 }
 
 export interface SidebarPagesParams {
-  spaceId: string;
+  spaceId?: string;
   pageId?: string;
   page?: number; // pagination
 }

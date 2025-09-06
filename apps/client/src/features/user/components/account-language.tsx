@@ -25,7 +25,7 @@ function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
   const [language, setLanguage] = useState(
-    user?.locale === "en" ? "en-US" : user.locale,
+    user?.locale === "en" ? "en-US" : user?.locale,
   );
 
   const handleChange = async (value: string) => {

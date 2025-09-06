@@ -145,6 +145,7 @@ export default function DrawioView(props: NodeViewProps) {
               variant="default"
               color="gray"
               mx="xs"
+              className="print-hide"
               style={{
                 position: "absolute",
                 top: 8,

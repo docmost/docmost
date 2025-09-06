@@ -23,7 +23,7 @@ import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
-  
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -173,7 +173,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             actionIconProps={{
               size: "lg",
               variant: "default",
-              c: undefined
+              c: undefined,
             }}
           />
         </Tooltip>

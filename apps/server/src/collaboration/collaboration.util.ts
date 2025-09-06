@@ -33,6 +33,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  Subpages,
   ColumnContainer,
   Column
 } from '@docmost/editor-ext';
@@ -84,7 +85,8 @@ export const tiptapExtensions = [
   Embed,
   Mention,
   ColumnContainer,
-  Column
+  Column,
+  Subpages,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
