@@ -6,6 +6,7 @@ export interface IShare {
   pageId: string;
   includeSubPages: boolean;
   searchIndexing: boolean;
+  passwordHash?: string;
   creatorId: string;
   spaceId: string;
   workspaceId: string;
@@ -60,12 +61,19 @@ export interface ICreateShare {
   pageId?: string;
   includeSubPages?: boolean;
   searchIndexing?: boolean;
+  password?: string;
 }
 
-export type IUpdateShare = ICreateShare & { shareId: string; pageId?: string };
+export type IUpdateShare = ICreateShare & { shareId: string; pageId?: string; password?: string; };
 
 export interface IShareInfoInput {
   pageId: string;
+  password?: string;
+}
+
+export interface ISharePassword {
+  shareId: string;
+  password: string;
 }
 
 export interface ISharedPageTree {

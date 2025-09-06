@@ -10,11 +10,13 @@ import Paginate from "@/components/common/paginate.tsx";
 import { queryClient } from "@/main.tsx";
 import { getSpaces } from "@/features/space/services/space-service.ts";
 import { getGroupMembers } from "@/features/group/services/group-service.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function GroupList() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetGroupsQuery({ page });
+  const { isAdmin } = useUserRole();
 
   const prefetchGroupMembers = (groupId: string) => {
     queryClient.prefetchQuery({
@@ -35,49 +37,63 @@ export default function GroupList() {
           </Table.Thead>
 
           <Table.Tbody>
-            {data?.items.map((group: IGroup, index: number) => (
-              <Table.Tr key={index}>
-                <Table.Td onMouseEnter={() => prefetchGroupMembers(group.id)}>
-                  <Anchor
-                    size="sm"
-                    underline="never"
-                    style={{
-                      cursor: "pointer",
-                      color: "var(--mantine-color-text)",
-                    }}
-                    component={Link}
-                    to={`/settings/groups/${group.id}`}
-                  >
-                    <Group gap="sm" wrap="nowrap">
-                      <IconGroupCircle />
-                      <div>
-                        <Text fz="sm" fw={500} lineClamp={1}>
-                          {group.name}
-                        </Text>
-                        <Text fz="xs" c="dimmed" lineClamp={2}>
-                          {group.description}
-                        </Text>
-                      </div>
-                    </Group>
-                  </Anchor>
-                </Table.Td>
-                <Table.Td>
-                  <Anchor
-                    size="sm"
-                    underline="never"
-                    style={{
-                      cursor: "pointer",
-                      color: "var(--mantine-color-text)",
-                      whiteSpace: "nowrap",
-                    }}
-                    component={Link}
-                    to={`/settings/groups/${group.id}`}
-                  >
-                    {formatMemberCount(group.memberCount, t)}
-                  </Anchor>
-                </Table.Td>
-              </Table.Tr>
-            ))}
+            {data?.items.map((group: IGroup, index: number) => {
+              const groupDisplay = (
+                <Group gap="sm" wrap="nowrap">
+                  <IconGroupCircle />
+                  <div>
+                    <Text fz="sm" fw={500} lineClamp={1}>
+                      {group.name}
+                    </Text>
+                    <Text fz="xs" c="dimmed" lineClamp={2}>
+                      {group.description}
+                    </Text>
+                  </div>
+                </Group>
+              );
+
+              return (
+                <Table.Tr key={index}>
+                  <Table.Td onMouseEnter={() => prefetchGroupMembers(group.id)}>
+                    {isAdmin ? (
+                      <Anchor
+                        size="sm"
+                        underline="never"
+                        style={{
+                          cursor: "pointer",
+                          color: "var(--mantine-color-text)",
+                        }}
+                        component={Link}
+                        to={`/settings/groups/${group.id}`}
+                      >
+                        {groupDisplay}
+                      </Anchor>
+                    ) : (
+                      groupDisplay
+                    )}
+                  </Table.Td>
+                  <Table.Td>
+                    {isAdmin ? (
+                      <Anchor
+                        size="sm"
+                        underline="never"
+                        style={{
+                          cursor: "pointer",
+                          color: "var(--mantine-color-text)",
+                          whiteSpace: "nowrap",
+                        }}
+                        component={Link}
+                        to={`/settings/groups/${group.id}`}
+                      >
+                        {formatMemberCount(group.memberCount, t)}
+                      </Anchor>
+                    ) : (
+                      formatMemberCount(group.memberCount, t)
+                    )}
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>

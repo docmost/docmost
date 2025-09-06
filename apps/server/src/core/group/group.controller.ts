@@ -105,7 +105,7 @@ export class GroupController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     const ability = this.workspaceAbility.createForUser(user, workspace);
-    if (ability.cannot(WorkspaceCaslAction.Read, WorkspaceCaslSubject.Group)) {
+    if (ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Group)) {
       throw new ForbiddenException();
     }
 

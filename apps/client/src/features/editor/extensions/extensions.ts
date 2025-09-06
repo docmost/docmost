@@ -29,6 +29,7 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  Audio,
   LinkExtension,
   Selection,
   Attachment,
@@ -40,6 +41,9 @@ import {
   Mention,
   Subpages,
   TableDndExtension,
+  ExtraLigatures,
+  ColumnContainer,
+  Column,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -54,6 +58,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
@@ -77,7 +82,11 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
+import Heading from "@tiptap/extension-heading";
+import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
+import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
+import ColumnView from "@/features/editor/components/column-layout/column-view";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -94,6 +103,7 @@ lowlight.register("scala", scala);
 export const mainExtensions = [
   StarterKit.configure({
     history: false,
+    heading: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -104,6 +114,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading.extend({
+    addNodeView() {
+      return ReactNodeViewRenderer(HeadingView);
+    }
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -135,6 +150,7 @@ export const mainExtensions = [
     multicolor: true,
   }),
   Typography,
+  ExtraLigatures,
   TrailingNode,
   GlobalDragHandle,
   TextStyle,
@@ -169,7 +185,10 @@ export const mainExtensions = [
     allowTableNodeSelection: true,
   }),
   TableRow,
-  TableCell,
+  // Full credit for this change goes to https://github.com/docmost/docmost/pull/679/commits/8014e0876bb5baa8f7c4b6b7c280224609dd393c. Fore more infos see https://prosemirror.net/docs/guide/#schema.content_expressions
+  TableCell.extend({
+    content: "block+",
+  }),
   TableHeader,
   TableDndExtension,
   MathInline.configure({
@@ -192,6 +211,9 @@ export const mainExtensions = [
   }),
   TiptapVideo.configure({
     view: VideoView,
+  }),
+  Audio.configure({
+    view: AudioView,
   }),
   Callout.configure({
     view: CalloutView,
@@ -225,11 +247,27 @@ export const mainExtensions = [
   CharacterCount.configure({
     wordCounter: (text) => countWords(text),
   }),
+  ColumnContainer.configure({
+    view: ColumnContainerView,
+  }),
+  Column.configure({
+    view: ColumnView,
+  }),
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
         'Mod-f': () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+        'Mod-h': () => {
+          const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+          document.dispatchEvent(event);
+          return true;
+        },
+        'Alt-c': () => {
+          const event = new CustomEvent("matchCaseToggle", {});
           document.dispatchEvent(event);
           return true;
         },
