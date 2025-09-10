@@ -183,6 +183,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
               variant="default"
               color="gray"
               mx="xs"
+              className="print-hide"
               style={{
                 position: "absolute",
                 top: 8,

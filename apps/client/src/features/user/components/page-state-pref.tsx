@@ -1,25 +1,28 @@
-import { Group, Text, MantineSize, SegmentedControl } from "@mantine/core";
+import { Text, MantineSize, SegmentedControl } from "@mantine/core";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
 
 export default function PageStatePref() {
   const { t } = useTranslation();
 
   return (
-    <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div>
+    <ResponsiveSettingsRow>
+      <ResponsiveSettingsContent>
         <Text size="md">{t("Default page edit mode")}</Text>
         <Text size="sm" c="dimmed">
           {t("Choose your preferred page edit mode. Avoid accidental edits.")}
         </Text>
-      </div>
+      </ResponsiveSettingsContent>
 
-      <PageStateSegmentedControl />
-    </Group>
+      <ResponsiveSettingsControl>
+        <PageStateSegmentedControl />
+      </ResponsiveSettingsControl>
+    </ResponsiveSettingsRow>
   );
 }
 

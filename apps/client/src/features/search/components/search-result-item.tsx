@@ -1,5 +1,13 @@
 import React from "react";
-import { Group, Center, Text, Badge, ActionIcon } from "@mantine/core";
+import {
+  Group,
+  Center,
+  Text,
+  Badge,
+  ActionIcon,
+  Tooltip,
+  getDefaultZIndex,
+} from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { Link } from "react-router-dom";
 import { IconFile, IconDownload } from "@tabler/icons-react";
@@ -10,6 +18,7 @@ import {
   IPageSearch,
 } from "@/features/search/types/search.types";
 import DOMPurify from "dompurify";
+import { useTranslation } from "react-i18next";
 
 interface SearchResultItemProps {
   result: IPageSearch | IAttachmentSearch;
@@ -22,6 +31,8 @@ export function SearchResultItem({
   isAttachmentResult,
   showSpace,
 }: SearchResultItemProps) {
+  const { t } = useTranslation();
+
   if (isAttachmentResult) {
     const attachmentResult = result as IAttachmentSearch;
 
@@ -45,7 +56,7 @@ export function SearchResultItem({
       >
         <Group wrap="nowrap" w="100%">
           <Center>
-            <IconFile size={20} />
+            <IconFile size={16} />
           </Center>
 
           <div style={{ flex: 1 }}>
@@ -61,21 +72,22 @@ export function SearchResultItem({
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(attachmentResult.highlight, {
                     ALLOWED_TAGS: ["mark", "em", "strong", "b"],
-                    ALLOWED_ATTR: []
+                    ALLOWED_ATTR: [],
                   }),
                 }}
               />
             )}
           </div>
 
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            onClick={handleDownload}
-            title="Download attachment"
+          <Tooltip
+            label={t("Download attachment")}
+            zIndex={getDefaultZIndex("max")}
+            withArrow
           >
-            <IconDownload size={18} />
-          </ActionIcon>
+            <ActionIcon variant="subtle" color="gray" onClick={handleDownload}>
+              <IconDownload size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Spotlight.Action>
     );
@@ -111,7 +123,7 @@ export function SearchResultItem({
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(pageResult.highlight, {
                     ALLOWED_TAGS: ["mark", "em", "strong", "b"],
-                    ALLOWED_ATTR: []
+                    ALLOWED_ATTR: [],
                   }),
                 }}
               />

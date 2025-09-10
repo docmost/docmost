@@ -83,7 +83,7 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
           <TextInput
-            label="Display name"
+            label={t("Display name")}
             placeholder="e.g Google SSO"
             data-autofocus
             {...form.getInputProps("name")}
