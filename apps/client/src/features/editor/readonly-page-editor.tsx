@@ -55,6 +55,7 @@ export default function ReadonlyPageEditor({
         onCreate={({ editor }) => {
           if (editor) {
             if (pageId) {
+              // @ts-ignore
               editor.storage.pageId = pageId;
             }
             // @ts-ignore

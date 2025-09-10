@@ -1,13 +1,7 @@
 import { StarterKit } from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
-import {
-  TaskList,
-  TaskItem,
-} from "@tiptap/extension-list";
-import {
-  Placeholder,
-  CharacterCount,
-} from "@tiptap/extensions";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { Placeholder, CharacterCount } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -17,6 +11,7 @@ import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
+
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
   Comment,
@@ -42,8 +37,8 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
-  Subpages,
   TableDndExtension,
+  Subpages,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -63,7 +58,6 @@ import CodeBlockView from "@/features/editor/components/code-block/code-block-vi
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
-import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import abap from "highlightjs-sap-abap";
@@ -81,6 +75,7 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
+import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -97,6 +92,8 @@ lowlight.register("scala", scala);
 export const mainExtensions = [
   StarterKit.configure({
     undoRedo: false,
+    link: false,
+    trailingNode: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -107,8 +104,6 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
-    link: false,
-    trailingNode: false,
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
