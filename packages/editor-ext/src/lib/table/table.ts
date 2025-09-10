@@ -1,5 +1,6 @@
 import { Table } from "@tiptap/extension-table";
 import { Editor } from "@tiptap/core";
+import { DOMOutputSpec } from "@tiptap/pm/model";
 
 const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
 
@@ -65,5 +66,16 @@ export const CustomTable = Table.extend({
         return this.editor.commands.goToPreviousCell();
       },
     };
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    // https://github.com/ueberdosis/tiptap/issues/4872#issuecomment-2717554498
+    const originalRender = this.parent?.({ node, HTMLAttributes });
+    const wrapper: DOMOutputSpec = [
+      "div",
+      { class: "tableWrapper" },
+      originalRender,
+    ];
+    return wrapper;
   },
 });

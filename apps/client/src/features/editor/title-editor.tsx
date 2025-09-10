@@ -26,6 +26,7 @@ import { UpdateEvent } from "@/features/websocket/types";
 import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { searchSpotlight } from "@/features/search/constants.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -86,6 +87,20 @@ export function TitleEditor({
     content: title,
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
+    editorProps: {
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+            event.preventDefault();
+            return true;
+          }
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+            searchSpotlight.open();
+            return true;
+          }
+        },
+      },
+    },
   });
 
   useEffect(() => {
@@ -193,7 +208,7 @@ export function TitleEditor({
       onKeyDown={(event) => {
         // First handle the search hotkey
         getHotkeyHandler([["mod+F", openSearchDialog]])(event);
-        
+
         // Then handle other key events
         handleTitleKeyDown(event);
       }}

@@ -23,6 +23,10 @@ export class ExportPageDto {
   @IsOptional()
   @IsBoolean()
   includeChildren?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includeAttachments?: boolean;
 }
 
 export class ExportSpaceDto {

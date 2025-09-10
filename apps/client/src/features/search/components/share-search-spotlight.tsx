@@ -4,23 +4,24 @@ import { IconSearch } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDebouncedValue } from "@mantine/hooks";
-import { usePageSearchQuery } from "@/features/search/queries/search-query";
-import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { useShareSearchQuery } from "@/features/search/queries/search-query";
+import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
-import { searchSpotlightStore } from "./constants";
+import { shareSearchSpotlightStore } from "@/features/search/constants.ts";
+import DOMPurify from "dompurify";
 
-interface SearchSpotlightProps {
-  spaceId?: string;
+interface ShareSearchSpotlightProps {
+  shareId?: string;
 }
-export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
+export function ShareSearchSpotlight({ shareId }: ShareSearchSpotlightProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
 
-  const { data: searchResults } = usePageSearchQuery({
+  const { data: searchResults } = useShareSearchQuery({
     query: debouncedSearchQuery,
-    spaceId,
+    shareId,
   });
 
   const pages = (
@@ -30,7 +31,11 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
       key={page.id}
       component={Link}
       //@ts-ignore
-      to={buildPageUrl(page.space.slug, page.slugId, page.title)}
+      to={buildSharedPageUrl({
+        shareId: shareId,
+        pageTitle: page.title,
+        pageSlugId: page.slugId,
+      })}
       style={{ userSelect: "none" }}
     >
       <Group wrap="nowrap" w="100%">
@@ -43,7 +48,12 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
             <Text
               opacity={0.6}
               size="xs"
-              dangerouslySetInnerHTML={{ __html: page.highlight }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(page.highlight, {
+                  ALLOWED_TAGS: ["mark", "em", "strong", "b"],
+                  ALLOWED_ATTR: []
+                }),
+              }}
             />
           )}
         </div>
@@ -54,7 +64,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   return (
     <>
       <Spotlight.Root
-        store={searchSpotlightStore}
+        store={shareSearchSpotlightStore}
         query={query}
         onQueryChange={setQuery}
         scrollable

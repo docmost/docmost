@@ -34,7 +34,7 @@ import { useTrackOrigin } from "@/hooks/use-track-origin";
 import SpacesPage from "@/pages/spaces/spaces.tsx";
 import { MfaChallengePage } from "@/ee/mfa/pages/mfa-challenge-page";
 import { MfaSetupRequiredPage } from "@/ee/mfa/pages/mfa-setup-required-page";
-import SpaceTrash from "@/pages/space/trash.tsx";
+import SpaceTrash from "@/pages/space/space-trash.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -50,10 +50,7 @@ export default function App() {
         <Route path={"/forgot-password"} element={<ForgotPassword />} />
         <Route path={"/password-reset"} element={<PasswordReset />} />
         <Route path={"/login/mfa"} element={<MfaChallengePage />} />
-        <Route
-          path={"/login/mfa/setup"}
-          element={<MfaSetupRequiredPage />}
-        />
+        <Route path={"/login/mfa/setup"} element={<MfaSetupRequiredPage />} />
 
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />

@@ -30,6 +30,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  Subpages,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -78,6 +79,7 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  Subpages,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

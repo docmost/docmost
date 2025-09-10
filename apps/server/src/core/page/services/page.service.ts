@@ -109,7 +109,8 @@ export class PageService {
       .selectFrom('pages')
       .select(['position'])
       .where('spaceId', '=', spaceId)
-      .orderBy('position', 'desc')
+      .where('deletedAt', 'is', null)
+      .orderBy('position', (ob) => ob.collate('C').desc())
       .limit(1);
 
     if (parentPageId) {
@@ -190,7 +191,7 @@ export class PageService {
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
-      .orderBy('position', 'asc')
+      .orderBy('position', (ob) => ob.collate('C').asc())
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 

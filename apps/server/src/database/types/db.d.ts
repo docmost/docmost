@@ -5,8 +5,6 @@
 
 import type { ColumnType } from "kysely";
 
-export type AuthProviderType = "google" | "oidc" | "saml";
-
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -39,6 +37,8 @@ export interface Attachments {
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  textContent: string | null;
+  tsv: string | null;
   type: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
@@ -62,13 +62,24 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  groupSync: Generated<boolean>;
+  ldapBaseDn: string | null;
+  ldapBindDn: string | null;
+  ldapBindPassword: string | null;
+  ldapTlsCaCert: string | null;
+  ldapTlsEnabled: Generated<boolean | null>;
+  ldapUrl: string | null;
+  ldapUserAttributes: Json | null;
+  ldapUserSearchFilter: string | null;
+  ldapConfig: Json | null;
+  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
-  type: AuthProviderType;
+  type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -275,6 +286,7 @@ export interface Users {
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;

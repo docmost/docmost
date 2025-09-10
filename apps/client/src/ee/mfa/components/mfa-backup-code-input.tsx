@@ -45,6 +45,7 @@ export function MfaBackupCodeInput({
         onChange={(e) => onChange(e.currentTarget.value.toUpperCase())}
         error={error}
         autoFocus
+        data-autofocus
         maxLength={8}
         styles={{
           input: {

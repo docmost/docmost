@@ -15,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { disableMfa } from "@/ee/mfa";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
 
 interface MfaDisableModalProps {
   opened: boolean;
@@ -22,16 +23,22 @@ interface MfaDisableModalProps {
   onComplete: () => void;
 }
 
-const formSchema = z.object({
-  confirmPassword: z.string().min(1, { message: "Password is required" }),
-});
-
 export function MfaDisableModal({
   opened,
   onClose,
   onComplete,
 }: MfaDisableModalProps) {
   const { t } = useTranslation();
+  const { data: currentUser } = useCurrentUser();
+  const requiresPassword = !currentUser?.user?.hasGeneratedPassword;
+
+  const formSchema = requiresPassword
+    ? z.object({
+        confirmPassword: z.string().min(1, { message: "Password is required" }),
+      })
+    : z.object({
+        confirmPassword: z.string().optional(),
+      });
 
   const form = useForm({
     validate: zodResolver(formSchema),
@@ -54,8 +61,12 @@ export function MfaDisableModal({
     },
   });
 
-  const handleSubmit = async (values: { confirmPassword: string }) => {
-    await disableMutation.mutateAsync(values);
+  const handleSubmit = async (values: { confirmPassword?: string }) => {
+    // Only send confirmPassword if it's required (non-SSO users)
+    const payload = requiresPassword 
+      ? { confirmPassword: values.confirmPassword }
+      : {};
+    await disableMutation.mutateAsync(payload);
   };
 
   const handleClose = () => {
@@ -85,18 +96,23 @@ export function MfaDisableModal({
             </Text>
           </Alert>
 
-          <Text size="sm">
-            {t(
-              "Please enter your password to disable two-factor authentication:",
-            )}
-          </Text>
+          {requiresPassword && (
+            <>
+              <Text size="sm">
+                {t(
+                  "Please enter your password to disable two-factor authentication:",
+                )}
+              </Text>
 
-          <PasswordInput
-            label={t("Password")}
-            placeholder={t("Enter your password")}
-            {...form.getInputProps("confirmPassword")}
-            autoFocus
-          />
+              <PasswordInput
+                label={t("Password")}
+                placeholder={t("Enter your password")}
+                {...form.getInputProps("confirmPassword")}
+                autoFocus
+                data-autofocus
+              />
+            </>
+          )}
 
           <Stack gap="sm">
             <Button
