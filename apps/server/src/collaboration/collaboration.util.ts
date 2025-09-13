@@ -35,7 +35,8 @@ import {
   Mention,
   Subpages,
   ColumnContainer,
-  Column
+  Column,
+  TiptapPdf,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -87,6 +88,7 @@ export const tiptapExtensions = [
   ColumnContainer,
   Column,
   Subpages,
+  TiptapPdf,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

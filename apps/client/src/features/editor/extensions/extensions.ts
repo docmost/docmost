@@ -27,6 +27,7 @@ import {
   CustomTable,
   TrailingNode,
   TiptapImage,
+  TiptapPdf,
   Callout,
   TiptapVideo,
   Audio,
@@ -87,6 +88,7 @@ import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
 import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
 import ColumnView from "@/features/editor/components/column-layout/column-view";
+import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -214,6 +216,9 @@ export const mainExtensions = [
   }),
   Audio.configure({
     view: AudioView,
+  }),
+  TiptapPdf.configure({
+    view: PdfView,
   }),
   Callout.configure({
     view: CalloutView,

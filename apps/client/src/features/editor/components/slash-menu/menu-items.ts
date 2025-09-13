@@ -25,6 +25,7 @@ import {
   IconSitemap,
   IconColumns,
   IconHeadphones,
+  IconFileText,
 } from "@tabler/icons-react";
 
 import {
@@ -34,6 +35,7 @@ import {
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
+import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action.tsx";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
@@ -274,6 +276,31 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             const file = input.files[0];
             const pos = editor.view.state.selection.from;
             uploadAudioAction(file, editor.view, pos, pageId);
+          }
+        };
+        input.click();
+      },
+    },
+    {
+      title: "PDF",
+      description: "Upload any PDF document.",
+      searchTerms: ["pdf", "document", "file"],
+      icon: IconFileText,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).run();
+
+        const pageId = editor.storage?.pageId;
+        if (!pageId) return;
+
+        // upload pdf
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/pdf";
+        input.onchange = async () => {
+          if (input.files?.length) {
+            const file = input.files[0];
+            const pos = editor.view.state.selection.from;
+            uploadPdfAction(file, editor.view, pos, pageId);
           }
         };
         input.click();
