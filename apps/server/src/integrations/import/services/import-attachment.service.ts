@@ -35,7 +35,7 @@ interface DrawioPair {
 @Injectable()
 export class ImportAttachmentService {
   private readonly logger = new Logger(ImportAttachmentService.name);
-  private readonly CONCURRENT_UPLOADS = 3;
+  private readonly CONCURRENT_UPLOADS = 5;
   private readonly MAX_RETRIES = 2;
   private readonly RETRY_DELAY = 2000;
 
@@ -53,6 +53,7 @@ export class ImportAttachmentService {
     fileTask: FileTask;
     attachmentCandidates: Map<string, string>;
     pageAttachments?: AttachmentInfo[];
+    isConfluenceImport?: boolean;
   }): Promise<string> {
     const {
       html,
@@ -62,6 +63,7 @@ export class ImportAttachmentService {
       fileTask,
       attachmentCandidates,
       pageAttachments = [],
+      isConfluenceImport,
     } = opts;
 
     const attachmentTasks: (() => Promise<void>)[] = [];
@@ -90,7 +92,10 @@ export class ImportAttachmentService {
     >();
 
     // Analyze attachments to identify Draw.io pairs
-    const { drawioPairs, skipFiles } = this.analyzeAttachments(pageAttachments);
+    const { drawioPairs, skipFiles } = this.analyzeAttachments(
+      pageAttachments,
+      isConfluenceImport,
+    );
 
     // Map to store processed Draw.io SVGs
     const drawioSvgMap = new Map<
@@ -235,202 +240,197 @@ export class ImportAttachmentService {
     const pageDir = path.dirname(pageRelativePath);
     const $ = load(html);
 
-    // Cache for resolved paths to avoid repeated lookups
-    const resolvedPathCache = new Map<string, string | null>();
+    // image
+    for (const imgEl of $('img').toArray()) {
+      const $img = $(imgEl);
+      const src = cleanUrlString($img.attr('src') ?? '')!;
+      if (!src || src.startsWith('http')) continue;
 
-    const getCachedResolvedPath = (rawPath: string): string | null => {
-      if (resolvedPathCache.has(rawPath)) {
-        return resolvedPathCache.get(rawPath)!;
-      }
-      const resolved = resolveRelativeAttachmentPath(
-        rawPath,
+      const relPath = resolveRelativeAttachmentPath(
+        src,
         pageDir,
         attachmentCandidates,
       );
-      resolvedPathCache.set(rawPath, resolved);
-      return resolved;
-    };
+      if (!relPath) continue;
 
-    // Cache for file stats to avoid repeated file system calls
-    const statCache = new Map<string, any>();
+      // Check if this image is part of a Draw.io pair
+      const drawioSvg = drawioSvgMap.get(relPath);
+      if (drawioSvg) {
+        const $drawio = $('<div>')
+          .attr('data-type', 'drawio')
+          .attr('data-src', drawioSvg.apiFilePath)
+          .attr('data-title', 'diagram')
+          .attr('data-width', '100%')
+          .attr('data-align', 'center')
+          .attr('data-attachment-id', drawioSvg.attachmentId);
 
-    const getCachedStat = async (absPath: string) => {
-      if (statCache.has(absPath)) {
-        return statCache.get(absPath);
+        $img.replaceWith($drawio);
+        unwrapFromParagraph($, $drawio);
+        continue;
       }
-      const stat = await fs.stat(absPath);
-      statCache.set(absPath, stat);
-      return stat;
-    };
 
-    // Single DOM traversal for all attachment elements
-    const selector =
-      'img, video, div[data-type="attachment"], a, div[data-type="excalidraw"], div[data-type="drawio"]';
-    const elements = $(selector).toArray();
+      const { attachmentId, apiFilePath } = processFile(relPath);
 
-    for (const element of elements) {
-      const $el = $(element);
-      const tagName = element.tagName.toLowerCase();
+      const width = $img.attr('width') ?? '100%';
+      const align = $img.attr('data-align') ?? 'center';
 
-      // Process based on element type
-      if (tagName === 'img') {
-        const src = cleanUrlString($el.attr('src') ?? '');
-        if (!src || src.startsWith('http')) continue;
+      $img
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId)
+        .attr('width', width)
+        .attr('data-align', align);
 
-        const relPath = getCachedResolvedPath(src);
-        if (!relPath) continue;
+      unwrapFromParagraph($, $img);
+    }
 
-        // Check if this image is part of a Draw.io pair
-        const drawioSvg = drawioSvgMap.get(relPath);
-        if (drawioSvg) {
-          const $drawio = $('<div>')
-            .attr('data-type', 'drawio')
-            .attr('data-src', drawioSvg.apiFilePath)
-            .attr('data-title', 'diagram')
-            .attr('data-width', '100%')
-            .attr('data-align', 'center')
-            .attr('data-attachment-id', drawioSvg.attachmentId);
+    // video
+    for (const vidEl of $('video').toArray()) {
+      const $vid = $(vidEl);
+      const src = cleanUrlString($vid.attr('src') ?? '')!;
+      if (!src || src.startsWith('http')) continue;
 
-          $el.replaceWith($drawio);
-          unwrapFromParagraph($, $drawio);
-          continue;
-        }
+      const relPath = resolveRelativeAttachmentPath(
+        src,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
 
-        const { attachmentId, apiFilePath, abs } = processFile(relPath);
-        const stat = await getCachedStat(abs);
+      const { attachmentId, apiFilePath } = processFile(relPath);
 
-        $el
+      const width = $vid.attr('width') ?? '100%';
+      const align = $vid.attr('data-align') ?? 'center';
+
+      $vid
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId)
+        .attr('width', width)
+        .attr('data-align', align);
+
+      unwrapFromParagraph($, $vid);
+    }
+
+    // <div data-type="attachment">
+    for (const el of $('div[data-type="attachment"]').toArray()) {
+      const $oldDiv = $(el);
+      const rawUrl = cleanUrlString($oldDiv.attr('data-attachment-url') ?? '')!;
+      if (!rawUrl || rawUrl.startsWith('http')) continue;
+
+      const relPath = resolveRelativeAttachmentPath(
+        rawUrl,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
+      const fileName = path.basename(abs);
+      const mime = getMimeType(abs);
+
+      const $newDiv = $('<div>')
+        .attr('data-type', 'attachment')
+        .attr('data-attachment-url', apiFilePath)
+        .attr('data-attachment-name', fileName)
+        .attr('data-attachment-mime', mime)
+        .attr('data-attachment-id', attachmentId);
+
+      $oldDiv.replaceWith($newDiv);
+      unwrapFromParagraph($, $newDiv);
+    }
+
+    // rewrite other attachments via <a>
+    for (const aEl of $('a').toArray()) {
+      const $a = $(aEl);
+      const href = cleanUrlString($a.attr('href') ?? '')!;
+      if (!href || href.startsWith('http')) continue;
+
+      const relPath = resolveRelativeAttachmentPath(
+        href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      // Check if this is a Draw.io file
+      const drawioSvg = drawioSvgMap.get(relPath);
+      if (drawioSvg) {
+        const $drawio = $('<div>')
+          .attr('data-type', 'drawio')
+          .attr('data-src', drawioSvg.apiFilePath)
+          .attr('data-title', 'diagram')
+          .attr('data-width', '100%')
+          .attr('data-align', 'center')
+          .attr('data-attachment-id', drawioSvg.attachmentId);
+
+        $a.replaceWith($drawio);
+        unwrapFromParagraph($, $drawio);
+        continue;
+      }
+
+      // Skip files that should be ignored
+      if (skipFiles.has(relPath)) {
+        $a.remove();
+        continue;
+      }
+
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
+      const ext = path.extname(relPath).toLowerCase();
+
+      if (ext === '.mp4') {
+        const $video = $('<video>')
           .attr('src', apiFilePath)
           .attr('data-attachment-id', attachmentId)
-          .attr('data-size', stat.size.toString())
-          .attr('width', $el.attr('width') ?? '100%')
-          .attr('data-align', $el.attr('data-align') ?? 'center');
+          .attr('width', '100%')
+          .attr('data-align', 'center');
+        $a.replaceWith($video);
+        unwrapFromParagraph($, $video);
+      } else {
+        const confAliasName = $a.attr('data-linked-resource-default-alias');
+        let attachmentName = path.basename(abs);
+        if (confAliasName) attachmentName = confAliasName;
 
-        unwrapFromParagraph($, $el);
-      } else if (tagName === 'video') {
-        const src = cleanUrlString($el.attr('src') ?? '');
-        if (!src || src.startsWith('http')) continue;
+        const $div = $('<div>')
+          .attr('data-type', 'attachment')
+          .attr('data-attachment-url', apiFilePath)
+          .attr('data-attachment-name', attachmentName)
+          .attr('data-attachment-mime', getMimeType(abs))
+          .attr('data-attachment-id', attachmentId);
 
-        const relPath = getCachedResolvedPath(src);
+        $a.replaceWith($div);
+        unwrapFromParagraph($, $div);
+      }
+    }
+
+    // excalidraw and drawio
+    for (const type of ['excalidraw', 'drawio'] as const) {
+      for (const el of $(`div[data-type="${type}"]`).toArray()) {
+        const $oldDiv = $(el);
+        const rawSrc = cleanUrlString($oldDiv.attr('data-src') ?? '')!;
+        if (!rawSrc || rawSrc.startsWith('http')) continue;
+
+        const relPath = resolveRelativeAttachmentPath(
+          rawSrc,
+          pageDir,
+          attachmentCandidates,
+        );
         if (!relPath) continue;
 
         const { attachmentId, apiFilePath, abs } = processFile(relPath);
-        const stat = await getCachedStat(abs);
+        const fileName = path.basename(abs);
 
-        $el
-          .attr('src', apiFilePath)
-          .attr('data-attachment-id', attachmentId)
-          .attr('data-size', stat.size.toString())
-          .attr('width', $el.attr('width') ?? '100%')
-          .attr('data-align', $el.attr('data-align') ?? 'center');
+        const width = $oldDiv.attr('data-width') || '100%';
+        const align = $oldDiv.attr('data-align') || 'center';
 
-        unwrapFromParagraph($, $el);
-      } else if (tagName === 'div') {
-        const dataType = $el.attr('data-type');
+        const $newDiv = $('<div>')
+          .attr('data-type', type)
+          .attr('data-src', apiFilePath)
+          .attr('data-title', fileName)
+          .attr('data-width', width)
+          .attr('data-align', align)
+          .attr('data-attachment-id', attachmentId);
 
-        if (dataType === 'attachment') {
-          const rawUrl = cleanUrlString($el.attr('data-attachment-url') ?? '');
-          if (!rawUrl || rawUrl.startsWith('http')) continue;
-
-          const relPath = getCachedResolvedPath(rawUrl);
-          if (!relPath) continue;
-
-          const { attachmentId, apiFilePath, abs } = processFile(relPath);
-          const stat = await getCachedStat(abs);
-          const fileName = path.basename(abs);
-          const mime = getMimeType(abs);
-
-          const $newDiv = $('<div>')
-            .attr('data-type', 'attachment')
-            .attr('data-attachment-url', apiFilePath)
-            .attr('data-attachment-name', fileName)
-            .attr('data-attachment-mime', mime)
-            .attr('data-attachment-size', stat.size.toString())
-            .attr('data-attachment-id', attachmentId);
-
-          $el.replaceWith($newDiv);
-          unwrapFromParagraph($, $newDiv);
-        } else if (dataType === 'excalidraw' || dataType === 'drawio') {
-          const rawSrc = cleanUrlString($el.attr('data-src') ?? '');
-          if (!rawSrc || rawSrc.startsWith('http')) continue;
-
-          const relPath = getCachedResolvedPath(rawSrc);
-          if (!relPath) continue;
-
-          const { attachmentId, apiFilePath, abs } = processFile(relPath);
-          const stat = await getCachedStat(abs);
-          const fileName = path.basename(abs);
-
-          const $newDiv = $('<div>')
-            .attr('data-type', dataType)
-            .attr('data-src', apiFilePath)
-            .attr('data-title', fileName)
-            .attr('data-width', $el.attr('data-width') || '100%')
-            .attr('data-size', stat.size.toString())
-            .attr('data-align', $el.attr('data-align') || 'center')
-            .attr('data-attachment-id', attachmentId);
-
-          $el.replaceWith($newDiv);
-          unwrapFromParagraph($, $newDiv);
-        }
-      } else if (tagName === 'a') {
-        const href = cleanUrlString($el.attr('href') ?? '');
-        if (!href || href.startsWith('http')) continue;
-
-        const relPath = getCachedResolvedPath(href);
-        if (!relPath) continue;
-
-        // Check if this is a Draw.io file
-        const drawioSvg = drawioSvgMap.get(relPath);
-        if (drawioSvg) {
-          const $drawio = $('<div>')
-            .attr('data-type', 'drawio')
-            .attr('data-src', drawioSvg.apiFilePath)
-            .attr('data-title', 'diagram')
-            .attr('data-width', '100%')
-            .attr('data-align', 'center')
-            .attr('data-attachment-id', drawioSvg.attachmentId);
-
-          $el.replaceWith($drawio);
-          unwrapFromParagraph($, $drawio);
-          continue;
-        }
-
-        // Skip files that should be ignored
-        if (skipFiles.has(relPath)) {
-          $el.remove();
-          continue;
-        }
-
-        const { attachmentId, apiFilePath, abs } = processFile(relPath);
-        const stat = await getCachedStat(abs);
-        const ext = path.extname(relPath).toLowerCase();
-
-        if (ext === '.mp4') {
-          const $video = $('<video>')
-            .attr('src', apiFilePath)
-            .attr('data-attachment-id', attachmentId)
-            .attr('data-size', stat.size.toString())
-            .attr('width', '100%')
-            .attr('data-align', 'center');
-          $el.replaceWith($video);
-          unwrapFromParagraph($, $video);
-        } else {
-          const confAliasName = $el.attr('data-linked-resource-default-alias');
-          let attachmentName = path.basename(abs);
-          if (confAliasName) attachmentName = confAliasName;
-
-          const $div = $('<div>')
-            .attr('data-type', 'attachment')
-            .attr('data-attachment-url', apiFilePath)
-            .attr('data-attachment-name', attachmentName)
-            .attr('data-attachment-mime', getMimeType(abs))
-            .attr('data-attachment-size', stat.size.toString())
-            .attr('data-attachment-id', attachmentId);
-
-          $el.replaceWith($div);
-          unwrapFromParagraph($, $div);
-        }
+        $oldDiv.replaceWith($newDiv);
+        unwrapFromParagraph($, $newDiv);
       }
     }
 
@@ -492,24 +492,17 @@ export class ImportAttachmentService {
 
       // This attachment was in the list but not referenced in HTML - add it
       const { attachmentId, apiFilePath, abs } = processFile(href);
+      const mime = mimeType || getMimeType(abs);
 
-      try {
-        const stat = await fs.stat(abs);
-        const mime = mimeType || getMimeType(abs);
+      // Add as attachment node at the end
+      const $attachmentDiv = $('<div>')
+        .attr('data-type', 'attachment')
+        .attr('data-attachment-url', apiFilePath)
+        .attr('data-attachment-name', fileName)
+        .attr('data-attachment-mime', mime)
+        .attr('data-attachment-id', attachmentId);
 
-        // Add as attachment node at the end
-        const $attachmentDiv = $('<div>')
-          .attr('data-type', 'attachment')
-          .attr('data-attachment-url', apiFilePath)
-          .attr('data-attachment-name', fileName)
-          .attr('data-attachment-mime', mime)
-          .attr('data-attachment-size', stat.size.toString())
-          .attr('data-attachment-id', attachmentId);
-
-        $.root().append($attachmentDiv);
-      } catch (error) {
-        this.logger.error(`Failed to process attachment ${fileName}:`, error);
-      }
+      $.root().append($attachmentDiv);
     }
 
     // wait for all uploads & DB inserts
@@ -534,15 +527,48 @@ export class ImportAttachmentService {
       }
     }
 
+    // Post-process DOM elements to add file sizes after uploads complete
+    // This avoids blocking file operations during initial DOM processing
+    const elementsNeedingSize = $('[data-attachment-id]:not([data-size])');
+    for (const element of elementsNeedingSize.toArray()) {
+      const $el = $(element);
+      const attachmentId = $el.attr('data-attachment-id');
+      if (!attachmentId) continue;
+
+      // Find the corresponding processed file info
+      const processedEntry = Array.from(processed.values()).find(
+        (entry) => entry.attachmentId === attachmentId,
+      );
+
+      if (processedEntry) {
+        try {
+          const stat = await fs.stat(processedEntry.abs);
+          $el.attr('data-size', stat.size.toString());
+        } catch (error) {
+          this.logger.debug(
+            `Could not get size for ${processedEntry.abs}:`,
+            error,
+          );
+        }
+      }
+    }
+
     return $.root().html() || '';
   }
 
-  private analyzeAttachments(attachments: AttachmentInfo[]): {
+  private analyzeAttachments(
+    attachments: AttachmentInfo[],
+    isConfluenceImport?: boolean,
+  ): {
     drawioPairs: Map<string, DrawioPair>;
     skipFiles: Set<string>;
   } {
     const drawioPairs = new Map<string, DrawioPair>();
     const skipFiles = new Set<string>();
+
+    if (!isConfluenceImport) {
+      return { drawioPairs, skipFiles };
+    }
 
     // Group attachments by type
     const drawioFiles: AttachmentInfo[] = [];
@@ -807,7 +833,7 @@ export class ImportAttachmentService {
                 attempts: 1,
                 backoff: {
                   type: 'exponential',
-                  delay: 30 * 1000,
+                  delay: 3 * 60 * 1000,
                 },
                 deduplication: {
                   id: attachmentId,

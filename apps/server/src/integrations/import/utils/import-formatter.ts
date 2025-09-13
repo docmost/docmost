@@ -4,6 +4,11 @@ import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 
+// Check if text contains Unicode characters (for emojis/icons)
+function isUnicodeCharacter(text: string): boolean {
+  return text.length > 0 && text.codePointAt(0)! > 127; // Non-ASCII characters
+}
+
 export async function formatImportHtml(opts: {
   html: string;
   currentFilePath: string;
@@ -16,7 +21,11 @@ export async function formatImportHtml(opts: {
   workspaceId: string;
   pageDir?: string;
   attachmentCandidates?: string[];
-}): Promise<{ html: string; backlinks: InsertableBacklink[] }> {
+}): Promise<{
+  html: string;
+  backlinks: InsertableBacklink[];
+  pageIcon?: string;
+}> {
   const {
     html,
     currentFilePath,
@@ -27,6 +36,17 @@ export async function formatImportHtml(opts: {
   } = opts;
   const $: CheerioAPI = load(html);
   const $root: Cheerio<any> = $.root();
+
+  let pageIcon: string | null = null;
+  // extract notion page icon
+  const headerIconSpan = $root.find('header .page-header-icon .icon');
+
+  if (headerIconSpan.length > 0) {
+    const iconText = headerIconSpan.text().trim();
+    if (iconText && isUnicodeCharacter(iconText)) {
+      pageIcon = iconText;
+    }
+  }
 
   notionFormatter($, $root);
   defaultHtmlFormatter($, $root);
@@ -44,6 +64,7 @@ export async function formatImportHtml(opts: {
   return {
     html: $root.html() || '',
     backlinks,
+    pageIcon: pageIcon || undefined,
   };
 }
 
@@ -69,6 +90,10 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  // remove page header icon and cover image
+  $root.find('.page-header-icon').remove();
+  $root.find('.page-cover-image').remove();
+
   // remove empty description paragraphs
   $root.find('p.page-description').each((_, el) => {
     if (!$(el).text().trim()) $(el).remove();
