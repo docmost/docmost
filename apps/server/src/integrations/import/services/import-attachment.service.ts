@@ -833,7 +833,7 @@ export class ImportAttachmentService {
                 attempts: 1,
                 backoff: {
                   type: 'exponential',
-                  delay: 5 * 60 * 1000,
+                  delay: 3 * 60 * 1000,
                 },
                 deduplication: {
                   id: attachmentId,
