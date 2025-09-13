@@ -67,9 +67,15 @@ export class AttachmentProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('failed')
   onError(job: Job) {
-    this.logger.error(
-      `Error processing ${job.name} job. Reason: ${job.failedReason}`,
-    );
+    if (job.name === QueueJob.ATTACHMENT_INDEX_CONTENT) {
+      this.logger.debug(
+        `Error processing ${job.name} job for attachment ${job.data?.attachmentId}. Reason: ${job.failedReason}`,
+      );
+    } else {
+      this.logger.error(
+        `Error processing ${job.name} job. Reason: ${job.failedReason}`,
+      );
+    }
   }
 
   @OnWorkerEvent('completed')

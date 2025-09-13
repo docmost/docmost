@@ -94,8 +94,7 @@
 
   hr {
     border: none;
-    border-top: 2px solid #ced4da;
-    margin: 2rem 0;
+    border-top: 1px solid #ced4da;
 
     &:hover {
       cursor: pointer;
