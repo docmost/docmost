@@ -15,6 +15,7 @@ import {
   ISharedPageTree,
   IShareForPage,
   IShareInfoInput,
+  ISharePassword,
   IUpdateShare,
 } from "@/features/share/types/share.types.ts";
 import {
@@ -26,6 +27,8 @@ import {
   getSharePageInfo,
   getShares,
   updateShare,
+  setSharePassword,
+  removeSharePassword,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -43,10 +46,11 @@ export function useGetSharesQuery(
 
 export function useGetShareByIdQuery(
   shareId: string,
+  password?: string,
 ): UseQueryResult<IShare, Error> {
   const query = useQuery({
-    queryKey: ["share-by-id", shareId],
-    queryFn: () => getShareInfo(shareId),
+    queryKey: ["share-by-id", shareId, password],
+    queryFn: () => getShareInfo(shareId, password),
     enabled: !!shareId,
   });
 
@@ -168,12 +172,61 @@ export function useDeleteShareMutation() {
 
 export function useGetSharedPageTreeQuery(
   shareId: string,
+  password?: string,
 ): UseQueryResult<ISharedPageTree, Error> {
   return useQuery({
-    queryKey: ["shared-page-tree", shareId],
-    queryFn: () => getSharedPageTree(shareId),
+    queryKey: ["shared-page-tree", shareId, password],
+    queryFn: () => getSharedPageTree(shareId, password),
     enabled: !!shareId,
     placeholderData: keepPreviousData,
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useSetSharePasswordMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, ISharePassword>({
+    mutationFn: (data) => setSharePassword(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["share-for-page", "share-list"].includes(item.queryKey[0] as string),
+      });
+      notifications.show({ 
+        message: t("Password set successfully") 
+      });
+    },
+    onError: (error) => {
+      notifications.show({ 
+        message: t("Failed to set password"), 
+        color: "red" 
+      });
+    },
+  });
+}
+
+export function useRemoveSharePasswordMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (shareId) => removeSharePassword(shareId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["share-for-page", "share-list"].includes(item.queryKey[0] as string),
+      });
+      notifications.show({ 
+        message: t("Password removed successfully") 
+      });
+    },
+    onError: (error) => {
+      notifications.show({ 
+        message: t("Failed to remove password"), 
+        color: "red" 
+      });
+    },
   });
 }
