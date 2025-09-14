@@ -30,6 +30,7 @@ const migrator = new Migrator({
     path,
     migrationFolder,
   }),
+  allowUnorderedMigrations: true,
 });
 
 run(db, migrator, migrationFolder);
