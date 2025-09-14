@@ -214,6 +214,9 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
       $fig.replaceWith($newAnchor);
     });
 
+  // remove user icons
+  $root.find('span.user img.user-icon').remove();
+
   // remove toc
   $root.find('nav.table_of_contents').remove();
 }
