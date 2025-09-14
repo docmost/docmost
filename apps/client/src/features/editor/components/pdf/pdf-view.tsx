@@ -86,8 +86,30 @@ export default function PdfView(props: PdfViewProps) {
   const [isFloating, setIsFloating] = useState<boolean>(floating);
 
   useEffect(() => {
+    setCurrentPage(pageNum);
+  }, [pageNum]);
+
+  useEffect(() => {
+    setCurrentScale(scale);
+  }, [scale]);
+
+  useEffect(() => {
+    setIsLocked(locked);
+  }, [locked]);
+
+  useEffect(() => {
+    setPageRangeValue(pageRange || "");
+  }, [pageRange]);
+
+  useEffect(() => {
     setIsFloating(floating);
   }, [floating]);
+
+  useEffect(() => {
+    if (totalPages !== numPages && totalPages) {
+      setNumPages(totalPages);
+    }
+  }, [totalPages]);
 
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
