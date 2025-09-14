@@ -56,9 +56,19 @@ export function getSpaceGraphUrl(spaceSlug: string) {
   return "/s/" + spaceSlug + "/graph";
 }
 
-export function getFileUrl(src: string) {
+export function getFileUrl(src: string, shareId?: string) {
   if (!src) return src;
   if (src.startsWith("http")) return src;
+  
+  if (shareId) {
+    if (src.startsWith("/api/")) {
+      return getBackendUrl() + src.substring(4) + `?shareId=${shareId}`;
+    }
+    if (src.startsWith("/files/")) {
+      return getBackendUrl() + src + `?shareId=${shareId}`;
+    }
+  }
+  
   if (src.startsWith("/api/")) {
     // Remove the '/api' prefix
     return getBackendUrl() + src.substring(4);

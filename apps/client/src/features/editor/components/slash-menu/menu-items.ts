@@ -25,7 +25,7 @@ import {
   IconSitemap,
   IconColumns,
   IconHeadphones,
-  IconFileText,
+  IconFileTypePdf,
 } from "@tabler/icons-react";
 
 import {
@@ -34,8 +34,8 @@ import {
 } from "@/features/editor/components/slash-menu/types";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
-import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
 import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action.tsx";
+import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
@@ -283,9 +283,9 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "PDF",
-      description: "Upload any PDF document.",
+      description: "Upload and view PDF files directly.",
       searchTerms: ["pdf", "document", "file"],
-      icon: IconFileText,
+      icon: IconFileTypePdf,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 

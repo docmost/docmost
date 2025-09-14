@@ -26,6 +26,7 @@ import {
   CustomTable,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
   Audio,
   TrailingNode,
   Attachment,
@@ -35,8 +36,7 @@ import {
   Mention,
   Subpages,
   ColumnContainer,
-  Column,
-  TiptapPdf,
+  Column
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -77,6 +77,7 @@ export const tiptapExtensions = [
   Youtube,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
   Audio,
   Callout,
   Attachment,
@@ -88,7 +89,6 @@ export const tiptapExtensions = [
   ColumnContainer,
   Column,
   Subpages,
-  TiptapPdf,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

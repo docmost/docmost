@@ -20,6 +20,7 @@ export interface PdfAttributes {
   totalPages?: number;
   locked?: boolean;
   scale?: number;
+  floating?: boolean;
 }
 
 declare module "@tiptap/core" {
@@ -35,6 +36,7 @@ declare module "@tiptap/core" {
       setPdfPageRange: (pageRange: string) => ReturnType;
       setPdfLocked: (locked: boolean) => ReturnType;
       setPdfScale: (scale: number) => ReturnType;
+      setPdfFloating: (floating: boolean) => ReturnType;
     };
   }
 }
@@ -141,6 +143,13 @@ export const TiptapPdf = Node.create<PdfOptions>({
           "data-scale": attributes.scale,
         }),
       },
+      floating: {
+        default: false,
+        parseHTML: (element) => element.getAttribute("data-floating") === "true",
+        renderHTML: (attributes: PdfAttributes) => ({
+          "data-floating": attributes.floating,
+        }),
+      },
     };
   },
 
@@ -220,6 +229,11 @@ export const TiptapPdf = Node.create<PdfOptions>({
         (scale) =>
         ({ commands }) =>
           commands.updateAttributes("pdf", { scale }),
+
+      setPdfFloating:
+        (floating) =>
+        ({ commands }) =>
+          commands.updateAttributes("pdf", { floating }),
     };
   },
 

@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
 import { Document, Page, pdfjs } from "react-pdf";
+import { useLocation } from "react-router-dom";
 import { 
   ActionIcon, 
   Group, 
@@ -23,11 +24,13 @@ import {
   IconZoomOut,
   IconLock,
   IconLockOpen,
-  IconMaximize,
+  IconAlignLeft,
+  IconAlignCenter,
+  IconAlignRight,
+  IconLayout,
 } from "@tabler/icons-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
 interface PdfViewProps extends NodeViewProps {
   node: NodeViewProps['node'] & {
     attrs: {
@@ -41,23 +44,37 @@ interface PdfViewProps extends NodeViewProps {
       totalPages?: number;
       locked?: boolean;
       scale?: number;
+      floating?: boolean;
     };
   };
 }
 
 export default function PdfView(props: PdfViewProps) {
   const { node, selected, updateAttributes } = props;
+  const location = useLocation();
+  
+  const shareId = useMemo(() => {
+    const path = location.pathname;
+    const shareMatch = path.match(/\/share\/([^/]+)/);
+    return shareMatch ? shareMatch[1] : undefined;
+  }, [location.pathname]);
+  
+  const isSharedPage = useMemo(() => {
+    return location.pathname.includes('/share/');
+  }, [location.pathname]);
+  
   const { 
     src, 
     width, 
     height, 
-    align, 
+    align = "center", 
     title, 
     pageNum = 1, 
     pageRange, 
     totalPages, 
     locked = false,
-    scale = 1.0 
+    scale = 1.0,
+    floating = false
   } = node.attrs;
 
   const [numPages, setNumPages] = useState<number>(totalPages || 0);
@@ -66,6 +83,12 @@ export default function PdfView(props: PdfViewProps) {
   const [isLocked, setIsLocked] = useState<boolean>(locked);
   const [pageRangeValue, setPageRangeValue] = useState<string>(pageRange || "");
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(selected);
+  const [isFloating, setIsFloating] = useState<boolean>(floating);
+
+  useEffect(() => {
+    setIsFloating(floating);
+  }, [floating]);
+
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -88,7 +111,7 @@ export default function PdfView(props: PdfViewProps) {
     if (!totalPages) {
       updateAttributes({ totalPages: loadedPages });
     }
-  }, [totalPages, updateAttributes, src]);
+  }, [totalPages, updateAttributes, src, shareId]);
 
   const handlePageChange = useCallback((newPage: number) => {
     if (isLocked) return;
@@ -100,8 +123,9 @@ export default function PdfView(props: PdfViewProps) {
 
   const handleScaleChange = useCallback((newScale: number) => {
     if (isLocked) return;
-    
-    const validScale = Math.max(0.5, Math.min(3.0, newScale));
+
+    const roundedScale = Math.round(newScale / 0.05) * 0.05;
+    const validScale = Math.max(0.35, Math.min(1.5, Number(roundedScale.toFixed(2))));
     setCurrentScale(validScale);
     updateAttributes({ scale: validScale });
   }, [isLocked, updateAttributes]);
@@ -118,6 +142,20 @@ export default function PdfView(props: PdfViewProps) {
     setPageRangeValue(range);
     updateAttributes({ pageRange: range });
   }, [isLocked, updateAttributes]);
+
+  const handleAlignmentChange = useCallback((newAlign: string) => {
+    if (isLocked) return;
+    
+    updateAttributes({ align: newAlign });
+  }, [isLocked, updateAttributes]);
+
+  const handleFloatingToggle = useCallback(() => {
+    if (isLocked) return;
+    
+    const newFloating = !isFloating;
+    setIsFloating(newFloating);
+    updateAttributes({ floating: newFloating });
+  }, [isLocked, isFloating, updateAttributes]);
 
   const parsePageRange = useCallback((range: string): number[] => {
     if (!range) return [];
@@ -153,7 +191,57 @@ export default function PdfView(props: PdfViewProps) {
   }, [pageRangeValue, currentPage, parsePageRange]);
 
   const renderControls = () => {
-    if (!isControlsVisible && isLocked) return null;
+    if (!selected) return null;
+
+    if (isSharedPage) {
+      if (isLocked || pageRangeValue) return null;
+
+      return (
+        <Paper 
+          p="xs" 
+          shadow="sm" 
+          style={{ 
+            position: "absolute", 
+            top: 8, 
+            right: 8, 
+            zIndex: 10,
+            backgroundColor: "rgba(255, 255, 255, 0.95)"
+          }}
+        >
+          <Group gap="xs">
+            <ActionIcon
+              variant="light"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              size="sm"
+            >
+              <IconChevronLeft size={14} />
+            </ActionIcon>
+            
+            <NumberInput
+              value={currentPage}
+              onChange={(value) => handlePageChange(Number(value) || 1)}
+              min={1}
+              max={numPages}
+              size="xs"
+              w={60}
+              hideControls
+            />
+            
+            <Text size="xs">/ {numPages}</Text>
+            
+            <ActionIcon
+              variant="light"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= numPages}
+              size="sm"
+            >
+              <IconChevronRight size={14} />
+            </ActionIcon>
+          </Group>
+        </Paper>
+      );
+    }
 
     return (
       <Paper 
@@ -185,7 +273,7 @@ export default function PdfView(props: PdfViewProps) {
                 <ActionIcon
                   variant="light"
                   onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
+                  disabled={currentPage <= 1 || !!pageRangeValue}
                   size="sm"
                 >
                   <IconChevronLeft size={14} />
@@ -199,6 +287,7 @@ export default function PdfView(props: PdfViewProps) {
                   size="xs"
                   w={60}
                   hideControls
+                  disabled={!!pageRangeValue}
                 />
                 
                 <Text size="xs">/ {numPages}</Text>
@@ -206,7 +295,7 @@ export default function PdfView(props: PdfViewProps) {
                 <ActionIcon
                   variant="light"
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= numPages}
+                  disabled={currentPage >= numPages || !!pageRangeValue}
                   size="sm"
                 >
                   <IconChevronRight size={14} />
@@ -220,8 +309,8 @@ export default function PdfView(props: PdfViewProps) {
               <Group gap="xs">
                 <ActionIcon
                   variant="light"
-                  onClick={() => handleScaleChange(currentScale - 0.1)}
-                  disabled={currentScale <= 0.5}
+                  onClick={() => handleScaleChange(currentScale - 0.05)}
+                  disabled={currentScale <= 0.35}
                   size="sm"
                 >
                   <IconZoomOut size={14} />
@@ -230,17 +319,17 @@ export default function PdfView(props: PdfViewProps) {
                 <Slider
                   value={currentScale}
                   onChange={handleScaleChange}
-                  min={0.5}
-                  max={3.0}
-                  step={0.1}
+                  min={0.35}
+                  max={1.0}
+                  step={0.05}
                   w={80}
                   size="sm"
                 />
                 
                 <ActionIcon
                   variant="light"
-                  onClick={() => handleScaleChange(currentScale + 0.1)}
-                  disabled={currentScale >= 3.0}
+                  onClick={() => handleScaleChange(currentScale + 0.05)}
+                  disabled={currentScale >= 1.0}
                   size="sm"
                 >
                   <IconZoomIn size={14} />
@@ -254,6 +343,41 @@ export default function PdfView(props: PdfViewProps) {
                 size="xs"
                 style={{ width: 200 }}
               />
+              
+              <Group gap="xs">
+                <Button.Group>
+                  <Button
+                    size="xs"
+                    variant={align === 'left' ? 'filled' : 'light'}
+                    onClick={() => handleAlignmentChange('left')}
+                  >
+                    <IconAlignLeft size={14} />
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant={align === 'center' ? 'filled' : 'light'}
+                    onClick={() => handleAlignmentChange('center')}
+                  >
+                    <IconAlignCenter size={14} />
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant={align === 'right' ? 'filled' : 'light'}
+                    onClick={() => handleAlignmentChange('right')}
+                  >
+                    <IconAlignRight size={14} />
+                  </Button>
+                </Button.Group>
+                
+                <ActionIcon
+                  variant={isFloating ? 'filled' : 'light'}
+                  onClick={handleFloatingToggle}
+                  size="sm"
+                  title="Toggle floating"
+                >
+                  <IconLayout size={14} />
+                </ActionIcon>
+              </Group>
             </>
           )}
         </Stack>
@@ -270,22 +394,30 @@ export default function PdfView(props: PdfViewProps) {
           "pdf-wrapper"
         )}
         style={{ 
-          display: "block",
-          width: width || "100%",
+          display: isFloating && (align === 'left' || align === 'right') ? "inline-block" : "flex",
+          flexDirection: "column",
+          alignItems: align === "left" ? "flex-start" : align === "right" ? "flex-end" : "center",
+          width: isFloating && (align === 'left' || align === 'right') ? `${scale * 100}%` : "100%",
+          maxWidth: "100%",
+          float: isFloating && (align === 'left' || align === 'right') ? align as 'left' | 'right' : 'none',
+          margin: isFloating && (align === 'left' || align === 'right') 
+            ? (align === 'left' ? '0 1rem 1rem 0' : '0 0 1rem 1rem')
+            : align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto',
           position: "relative",
         }}
-        onMouseEnter={() => !isLocked && setIsControlsVisible(true)}
-        onMouseLeave={() => !selected && setIsControlsVisible(false)}
+        onMouseEnter={() => !isLocked && !isSharedPage && setIsControlsVisible(true)}
+        onMouseLeave={() => !selected && !isSharedPage && setIsControlsVisible(false)}
       >
         {renderControls()}
         
         <Document
-          file={getFileUrl(src)}
+          file={getFileUrl(src, shareId)}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={(error) => {
             console.error("PDF load error:", error);
             console.log("Failed PDF src:", src);
-            console.log("Failed PDF URL:", getFileUrl(src));
+            console.log("Failed PDF URL:", getFileUrl(src, shareId));
+            console.log("ShareId:", shareId);
           }}
           loading={
             <div style={{ 
@@ -314,6 +446,16 @@ export default function PdfView(props: PdfViewProps) {
             </div>
           }
         >
+        
+        <div style={{
+          width: "fit-content",
+          maxWidth: `${scale * 100}%`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          overflow: "hidden",
+          margin: isFloating ? '0' : (align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto'),
+        }}>
           {pagesToRender.map((pageNumber) => (
             <div
               key={pageNumber}
@@ -321,6 +463,9 @@ export default function PdfView(props: PdfViewProps) {
                 marginBottom: pagesToRender.length > 1 ? 16 : 0,
                 border: "1px solid #ddd",
                 borderRadius: "4px",
+                display: "flex",
+                justifyContent: "center",
+                overflow: "hidden",
               }}
             >
               <Page
@@ -328,9 +473,12 @@ export default function PdfView(props: PdfViewProps) {
                 scale={currentScale}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
+                width={10000}
+                height={10000}
               />
             </div>
           ))}
+        </div>
         </Document>
         
         {title && (

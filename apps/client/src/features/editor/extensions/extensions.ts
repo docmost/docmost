@@ -27,9 +27,9 @@ import {
   CustomTable,
   TrailingNode,
   TiptapImage,
-  TiptapPdf,
   Callout,
   TiptapVideo,
+  TiptapPdf,
   Audio,
   LinkExtension,
   Selection,
@@ -59,6 +59,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
@@ -88,7 +89,6 @@ import HeadingView from "../components/heading/heading-view";
 import { countWords } from "alfaaz";
 import ColumnContainerView from "@/features/editor/components/column-layout/column-container-view";
 import ColumnView from "@/features/editor/components/column-layout/column-view";
-import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -214,11 +214,11 @@ export const mainExtensions = [
   TiptapVideo.configure({
     view: VideoView,
   }),
-  Audio.configure({
-    view: AudioView,
-  }),
   TiptapPdf.configure({
     view: PdfView,
+  }),
+  Audio.configure({
+    view: AudioView,
   }),
   Callout.configure({
     view: CalloutView,

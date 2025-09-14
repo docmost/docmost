@@ -35,6 +35,10 @@ For Docker, these tags are available:
 - `vX.Y.Z.W` - A specific version of Forkmost.
 - `vX.Y.Z` - The newest version of Forkmost for the upstream version `X.Y.Z`. This matches `vX.Y.Z.latest`.
 
+> [!IMPORTANT]  
+> Rolling back to Docmost is not supported and has not been tested. It is unclear if the migrations will work if you try to return to Docmost. Even if they do work, all blocks that were added in Forkmost but do not exist in Docmost will be lost and cannot be recovered.  
+> This includes, but is not limited to, the following blocks: Highlight, Audio, Column layout, and more.
+
 ## Features
 
 ### Core Features
@@ -47,7 +51,7 @@ For Docker, these tags are available:
 - Comments
 - Page history
 - Search
-- File attachments (Video, audio, images)
+- File attachments (Video, audio, images, PDF)
 - Embeds (Airtable, Loom, Miro, and more)
 - Translations (10+ languages)
 - public sharing (with optional password protection)
@@ -73,6 +77,7 @@ For Docker, these tags are available:
 - PWA support ([based on](https://github.com/docmost/docmost/pull/1298))
 - Anchor link support for page mentions
 - Password-protected pages
+- PDF embedding support. Allows to set PDFs for all participants to view
 
 </details>
 
