@@ -1,10 +1,10 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useLocation } from "react-router-dom";
-import { 
+import {
   ActionIcon, 
   Group, 
   NumberInput, 
@@ -16,6 +16,7 @@ import {
   TextInput,
   Switch,
   Slider,
+  useMantineColorScheme,
 } from "@mantine/core";
 import {
   IconChevronLeft,
@@ -28,6 +29,8 @@ import {
   IconAlignCenter,
   IconAlignRight,
   IconLayout,
+  IconBrowser,
+  IconFileText,
 } from "@tabler/icons-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -45,12 +48,14 @@ interface PdfViewProps extends NodeViewProps {
       locked?: boolean;
       scale?: number;
       floating?: boolean;
+      browserView?: boolean;
     };
   };
 }
 
 export default function PdfView(props: PdfViewProps) {
   const { node, selected, updateAttributes } = props;
+  const { colorScheme } = useMantineColorScheme();
   const location = useLocation();
   
   const shareId = useMemo(() => {
@@ -74,7 +79,8 @@ export default function PdfView(props: PdfViewProps) {
     totalPages, 
     locked = false,
     scale = 1.0,
-    floating = false
+    floating = false,
+    browserView = false
   } = node.attrs;
 
   const [numPages, setNumPages] = useState<number>(totalPages || 0);
@@ -84,6 +90,9 @@ export default function PdfView(props: PdfViewProps) {
   const [pageRangeValue, setPageRangeValue] = useState<string>(pageRange || "");
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(selected);
   const [isFloating, setIsFloating] = useState<boolean>(floating);
+  const [isBrowserView, setIsBrowserView] = useState<boolean>(browserView);
+  const [browserHeight, setBrowserHeight] = useState<string>(height || "600px");
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setCurrentPage(pageNum);
@@ -104,6 +113,10 @@ export default function PdfView(props: PdfViewProps) {
   useEffect(() => {
     setIsFloating(floating);
   }, [floating]);
+
+  useEffect(() => {
+    setIsBrowserView(browserView);
+  }, [browserView]);
 
   useEffect(() => {
     if (totalPages !== numPages && totalPages) {
@@ -128,6 +141,14 @@ export default function PdfView(props: PdfViewProps) {
     }
   }, [numPages, totalPages, updateAttributes]);
 
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const onDocumentLoadSuccess = useCallback(({ numPages: loadedPages }: { numPages: number }) => {
     setNumPages(loadedPages);
     if (!totalPages) {
@@ -147,8 +168,21 @@ export default function PdfView(props: PdfViewProps) {
     if (isLocked) return;
 
     const roundedScale = Math.round(newScale / 0.05) * 0.05;
-    const validScale = Math.max(0.35, Math.min(1.5, Number(roundedScale.toFixed(2))));
+    const validScale = Math.max(0.35, Math.min(1.0, Number(roundedScale.toFixed(2))));
     setCurrentScale(validScale);
+    updateAttributes({ scale: validScale });
+  }, [isLocked, updateAttributes]);
+
+  const handleScaleChangeEnd = useCallback((newScale: number) => {
+    if (isLocked) return;
+
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = null;
+    }
+
+    const roundedScale = Math.round(newScale / 0.05) * 0.05;
+    const validScale = Math.max(0.35, Math.min(1.0, Number(roundedScale.toFixed(2))));
     updateAttributes({ scale: validScale });
   }, [isLocked, updateAttributes]);
 
@@ -178,6 +212,21 @@ export default function PdfView(props: PdfViewProps) {
     setIsFloating(newFloating);
     updateAttributes({ floating: newFloating });
   }, [isLocked, isFloating, updateAttributes]);
+
+  const handleBrowserViewToggle = useCallback(() => {
+    if (isLocked) return;
+    
+    const newBrowserView = !isBrowserView;
+    setIsBrowserView(newBrowserView);
+    updateAttributes({ browserView: newBrowserView });
+  }, [isLocked, isBrowserView, updateAttributes]);
+
+  const handleBrowserHeightChange = useCallback((newHeight: string) => {
+    if (isLocked) return;
+    
+    setBrowserHeight(newHeight);
+    updateAttributes({ height: newHeight });
+  }, [isLocked, updateAttributes]);
 
   const parsePageRange = useCallback((range: string): number[] => {
     if (!range) return [];
@@ -227,7 +276,8 @@ export default function PdfView(props: PdfViewProps) {
             top: 8, 
             right: 8, 
             zIndex: 10,
-            backgroundColor: "rgba(255, 255, 255, 0.95)"
+            backgroundColor: colorScheme === 'dark' ? 'rgba(37, 38, 43, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(8px)'
           }}
         >
           <Group gap="xs">
@@ -274,7 +324,8 @@ export default function PdfView(props: PdfViewProps) {
           top: 8, 
           right: 8, 
           zIndex: 10,
-          backgroundColor: "rgba(255, 255, 255, 0.95)"
+          backgroundColor: colorScheme === 'dark' ? 'rgba(37, 38, 43, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)'
         }}
       >
         <Stack gap="xs">
@@ -290,7 +341,7 @@ export default function PdfView(props: PdfViewProps) {
               </ActionIcon>
             </Tooltip>
             
-            {!isLocked && (
+            {!isLocked && !isBrowserView && (
               <>
                 <ActionIcon
                   variant="light"
@@ -325,6 +376,19 @@ export default function PdfView(props: PdfViewProps) {
               </>
             )}
           </Group>
+
+          {
+            !isLocked && isBrowserView && (
+                  <TextInput
+                    placeholder="Height (e.g., 600px, 80vh)"
+                    value={browserHeight}
+                    onChange={(e) => handleBrowserHeightChange(e.target.value)}
+                    size="xs"
+                    style={{ width: 200 }}
+                    label="Height"
+                  />
+                )
+          }
           
           {!isLocked && (
             <>
@@ -337,17 +401,17 @@ export default function PdfView(props: PdfViewProps) {
                 >
                   <IconZoomOut size={14} />
                 </ActionIcon>
-                
+
                 <Slider
                   value={currentScale}
-                  onChange={handleScaleChange}
+                  onChangeEnd={handleScaleChangeEnd}
                   min={0.35}
                   max={1.0}
                   step={0.05}
                   w={80}
                   size="sm"
                 />
-                
+
                 <ActionIcon
                   variant="light"
                   onClick={() => handleScaleChange(currentScale + 0.05)}
@@ -357,16 +421,19 @@ export default function PdfView(props: PdfViewProps) {
                   <IconZoomIn size={14} />
                 </ActionIcon>
               </Group>
-              
-              <TextInput
-                placeholder="Page range (e.g., 1-3,5,7)"
-                value={pageRangeValue}
-                onChange={(e) => handlePageRangeChange(e.target.value)}
-                size="xs"
-                style={{ width: 200 }}
-              />
-              
+
+              {!isBrowserView && (
+                <TextInput
+                  placeholder="Page range (e.g., 1-3,5,7)"
+                  value={pageRangeValue}
+                  onChange={(e) => handlePageRangeChange(e.target.value)}
+                  size="xs"
+                  style={{ width: 200 }}
+                />
+              )}
+
               <Group gap="xs">
+                {/* Alignment buttons and floating toggle remain available in browser view */}
                 <Button.Group>
                   <Button
                     size="xs"
@@ -390,7 +457,7 @@ export default function PdfView(props: PdfViewProps) {
                     <IconAlignRight size={14} />
                   </Button>
                 </Button.Group>
-                
+
                 <ActionIcon
                   variant={isFloating ? 'filled' : 'light'}
                   onClick={handleFloatingToggle}
@@ -398,6 +465,15 @@ export default function PdfView(props: PdfViewProps) {
                   title="Toggle floating"
                 >
                   <IconLayout size={14} />
+                </ActionIcon>
+
+                <ActionIcon
+                  variant={isBrowserView ? 'filled' : 'light'}
+                  onClick={handleBrowserViewToggle}
+                  size="sm"
+                  title="Toggle browser view"
+                >
+                  {isBrowserView ? <IconFileText size={14} /> : <IconBrowser size={14} />}
                 </ActionIcon>
               </Group>
             </>
@@ -432,6 +508,20 @@ export default function PdfView(props: PdfViewProps) {
       >
         {renderControls()}
         
+        {isBrowserView ? (
+          <iframe
+            src={getFileUrl(src, shareId)}
+            style={{
+              width: width || '100%',
+              height: browserHeight,
+              border: colorScheme === 'dark' ? '1px solid #373A40' : '1px solid #ddd',
+              borderRadius: '4px',
+              backgroundColor: colorScheme === 'dark' ? '#2C2E33' : '#ffffff'
+            }}
+            title={title || 'PDF Document'}
+          />
+        ) : (
+          <>
         <Document
           file={getFileUrl(src, shareId)}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -447,9 +537,9 @@ export default function PdfView(props: PdfViewProps) {
               display: "flex", 
               alignItems: "center", 
               justifyContent: "center",
-              border: "1px solid #ddd",
+              border: colorScheme === 'dark' ? '1px solid #373A40' : '1px solid #ddd',
               borderRadius: "4px",
-              backgroundColor: "#f8f9fa"
+              backgroundColor: colorScheme === 'dark' ? '#25262B' : '#f8f9fa'
             }}>
               <Text>Loading PDF...</Text>
             </div>
@@ -460,9 +550,9 @@ export default function PdfView(props: PdfViewProps) {
               display: "flex", 
               alignItems: "center", 
               justifyContent: "center",
-              border: "1px solid #ddd",
+              border: colorScheme === 'dark' ? '1px solid #373A40' : '1px solid #ddd',
               borderRadius: "4px",
-              backgroundColor: "#fff5f5"
+              backgroundColor: colorScheme === 'dark' ? '#2C2E33' : '#fff5f5'
             }}>
               <Text color="red">Failed to load PDF</Text>
             </div>
@@ -483,11 +573,13 @@ export default function PdfView(props: PdfViewProps) {
               key={pageNumber}
               style={{
                 marginBottom: pagesToRender.length > 1 ? 16 : 0,
-                border: "1px solid #ddd",
+                border: colorScheme === 'dark' ? '1px solid #373A40' : '1px solid #ddd',
                 borderRadius: "4px",
                 display: "block",
                 justifyContent: !isFloating && (align === "left" || align === "right") ? "flex-start" : !isFloating && align === "right" ? "flex-end" : "center",
                 overflow: "hidden",
+                backgroundColor: colorScheme === 'dark' ? '#2C2E33' : '#ffffff',
+                boxShadow: colorScheme === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
             >
               <Page
@@ -500,12 +592,14 @@ export default function PdfView(props: PdfViewProps) {
           ))}
         </div>
         </Document>
+        </>
+        )}
         
         {title && (
           <div
             style={{
               fontSize: "0.875rem",
-              color: "#666",
+              color: colorScheme === 'dark' ? '#909296' : '#666',
               textAlign: "center",
               marginTop: "8px",
             }}
