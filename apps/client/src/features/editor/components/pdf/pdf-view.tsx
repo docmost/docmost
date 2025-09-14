@@ -448,11 +448,11 @@ export default function PdfView(props: PdfViewProps) {
         >
         
         <div style={{
-          width: "fit-content",
-          maxWidth: `${scale * 100}%`,
+          width: "100%",
+          maxWidth: '100%',
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
+          alignItems: !isFloating && (align === "left" || align === "right") ? "flex-start" : !isFloating && align === "right" ? "flex-end" : "center",
           overflow: "hidden",
           margin: isFloating ? '0' : (align === 'left' ? '0 auto 0 0' : align === 'right' ? '0 0 0 auto' : '0 auto'),
         }}>
@@ -463,8 +463,8 @@ export default function PdfView(props: PdfViewProps) {
                 marginBottom: pagesToRender.length > 1 ? 16 : 0,
                 border: "1px solid #ddd",
                 borderRadius: "4px",
-                display: "flex",
-                justifyContent: "center",
+                display: "block",
+                justifyContent: !isFloating && (align === "left" || align === "right") ? "flex-start" : !isFloating && align === "right" ? "flex-end" : "center",
                 overflow: "hidden",
               }}
             >
@@ -473,8 +473,6 @@ export default function PdfView(props: PdfViewProps) {
                 scale={currentScale}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
-                width={10000}
-                height={10000}
               />
             </div>
           ))}
