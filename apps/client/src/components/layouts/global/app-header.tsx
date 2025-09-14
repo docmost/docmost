@@ -12,7 +12,6 @@ import {
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
-import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
 import {
   SearchControl,
@@ -32,7 +31,6 @@ export function AppHeader() {
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
-  const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
   const isSpacesRoute = location.pathname === "/spaces";
@@ -79,7 +77,7 @@ export function AppHeader() {
             component={Link}
             to="/home"
           >
-            Docmost
+            {import.meta.env.VITE_APP_NAME || "Forkmost"}
           </Text>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
@@ -97,19 +95,6 @@ export function AppHeader() {
         </div>
 
         <Group px={"xl"} wrap="nowrap">
-          {isCloud() && isTrial && trialDaysLeft !== 0 && (
-            <Badge
-              variant="light"
-              style={{ cursor: "pointer" }}
-              component={Link}
-              to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
-              visibleFrom="xs"
-            >
-              {trialDaysLeft === 1
-                ? "1 day left"
-                : `${trialDaysLeft} days left`}
-            </Badge>
-          )}
           <TopMenu />
         </Group>
       </Group>

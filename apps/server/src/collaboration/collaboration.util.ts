@@ -26,6 +26,8 @@ import {
   CustomTable,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   TrailingNode,
   Attachment,
   Drawio,
@@ -33,6 +35,8 @@ import {
   Embed,
   Mention,
   Subpages,
+  ColumnContainer,
+  Column
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
@@ -73,6 +77,8 @@ export const tiptapExtensions = [
   Youtube,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   Callout,
   Attachment,
   CustomCodeBlock,
@@ -80,6 +86,8 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column,
   Subpages,
 ] as any;
 

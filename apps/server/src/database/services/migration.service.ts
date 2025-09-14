@@ -19,6 +19,7 @@ export class MigrationService {
         path,
         migrationFolder: path.join(__dirname, '..', 'migrations'),
       }),
+      allowUnorderedMigrations: true,
     });
 
     const { error, results } = await migrator.migrateToLatest();

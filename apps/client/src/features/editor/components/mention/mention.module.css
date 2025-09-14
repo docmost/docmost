@@ -56,3 +56,21 @@
     background: var(--mantine-color-gray-light);
   }
 }
+
+.anchorText {
+  color: light-dark(
+    var(--mantine-color-gray-6),
+    var(--mantine-color-gray-5)
+  );
+  font-weight: 400;
+}
+
+.mentionPanel {
+  position: relative;
+  z-index: 1000;
+}
+
+.anchorSelector {
+  position: relative;
+  z-index: 1001;
+}

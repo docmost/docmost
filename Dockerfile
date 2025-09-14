@@ -1,11 +1,13 @@
 FROM node:22-alpine AS base
-LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
+LABEL org.opencontainers.image.source="https://github.com/vito0912/forkmost"
 
 FROM base AS builder
 
 WORKDIR /app
 
 COPY . .
+
+ENV NX_SOCKET_DIR=/tmp/nx-tmp
 
 RUN npm install -g pnpm@10.4.0
 RUN pnpm install --frozen-lockfile

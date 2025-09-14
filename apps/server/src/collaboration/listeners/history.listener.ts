@@ -6,6 +6,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 export class UpdatedPageEvent {
   page: Page;
+  forceHistorySave: boolean;
 }
 
 @Injectable()
@@ -16,13 +17,12 @@ export class HistoryListener {
 
   @OnEvent('collab.page.updated')
   async handleCreatePageHistory(event: UpdatedPageEvent) {
-    const { page } = event;
-
+    const { page, forceHistorySave } = event;
     const pageCreationTime = new Date(page.createdAt).getTime();
     const currentTime = Date.now();
     const FIVE_MINUTES = 5 * 60 * 1000;
 
-    if (currentTime - pageCreationTime < FIVE_MINUTES) {
+    if (currentTime - pageCreationTime < FIVE_MINUTES && !forceHistorySave) {
       return;
     }
 
@@ -31,7 +31,11 @@ export class HistoryListener {
     if (
       !lastHistory ||
       (!isDeepStrictEqual(lastHistory.content, page.content) &&
-        currentTime - new Date(lastHistory.createdAt).getTime() >= FIVE_MINUTES)
+        (
+          forceHistorySave ||
+          currentTime - new Date(lastHistory.createdAt).getTime() >= FIVE_MINUTES
+        )
+      )
     ) {
       try {
         await this.pageHistoryRepo.saveHistory(page);
