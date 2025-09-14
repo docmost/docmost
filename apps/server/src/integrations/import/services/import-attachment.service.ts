@@ -35,7 +35,7 @@ interface DrawioPair {
 @Injectable()
 export class ImportAttachmentService {
   private readonly logger = new Logger(ImportAttachmentService.name);
-  private readonly CONCURRENT_UPLOADS = 5;
+  private readonly CONCURRENT_UPLOADS = 1;
   private readonly MAX_RETRIES = 2;
   private readonly RETRY_DELAY = 2000;
 
@@ -139,7 +139,9 @@ export class ImportAttachmentService {
             const stream = Readable.from(svgBuffer);
 
             // Upload to storage
-            await this.storageService.uploadStream(storageFilePath, stream);
+            await this.storageService.uploadStream(storageFilePath, stream, {
+              recreateClient: true,
+            });
 
             // Insert into database
             await this.db
@@ -802,7 +804,10 @@ export class ImportAttachmentService {
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         const fileStream = createReadStream(abs);
-        await this.storageService.uploadStream(storageFilePath, fileStream);
+        await this.storageService.uploadStream(storageFilePath, fileStream, {
+          recreateClient: true,
+        });
+
         const stat = await fs.stat(abs);
 
         await this.db
