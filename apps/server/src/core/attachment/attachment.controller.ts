@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   ForbiddenException,
   Get,
@@ -51,6 +52,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
+import { RemoveIconDto } from './dto/attachment.dto';
 
 @Controller()
 export class AttachmentController {
@@ -302,7 +304,7 @@ export class AttachmentController {
       throw new BadRequestException('Invalid image attachment type');
     }
 
-    if (attachmentType === AttachmentType.WorkspaceLogo) {
+    if (attachmentType === AttachmentType.WorkspaceIcon) {
       const ability = this.workspaceAbility.createForUser(user, workspace);
       if (
         ability.cannot(
@@ -314,7 +316,7 @@ export class AttachmentController {
       }
     }
 
-    if (attachmentType === AttachmentType.SpaceLogo) {
+    if (attachmentType === AttachmentType.SpaceIcon) {
       if (!spaceId) {
         throw new BadRequestException('spaceId is required');
       }
@@ -374,6 +376,61 @@ export class AttachmentController {
     } catch (err) {
       this.logger.error(err);
       throw new NotFoundException('File not found');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('attachments/remove-icon')
+  async removeIcon(
+    @Body() dto: RemoveIconDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const { type, spaceId } = dto;
+
+    if (!type || !validAttachmentTypes.includes(type)) {
+      throw new BadRequestException('Valid attachment type is required');
+    }
+
+    // remove current user avatar
+    if (type === AttachmentType.Avatar) {
+      await this.attachmentService.removeUserAvatar(user);
+      return;
+    }
+
+    // remove space icon
+    if (type === AttachmentType.SpaceIcon) {
+      if (!spaceId) {
+        throw new BadRequestException(
+          'spaceId is required to change space icons',
+        );
+      }
+
+      const spaceAbility = await this.spaceAbility.createForUser(user, spaceId);
+      if (
+        spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)
+      ) {
+        throw new ForbiddenException();
+      }
+
+      await this.attachmentService.removeSpaceIcon(spaceId, workspace.id);
+      return;
+    }
+
+    // remove workspace icon
+    if (type === AttachmentType.WorkspaceIcon) {
+      const ability = this.workspaceAbility.createForUser(user, workspace);
+      if (
+        ability.cannot(
+          WorkspaceCaslAction.Manage,
+          WorkspaceCaslSubject.Settings,
+        )
+      ) {
+        throw new ForbiddenException();
+      }
+      await this.attachmentService.removeWorkspaceIcon(workspace);
+      return;
     }
   }
 }

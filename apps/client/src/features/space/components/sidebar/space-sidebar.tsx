@@ -74,7 +74,11 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <SwitchSpace spaceName={space?.name} spaceSlug={space?.slug} />
+          <SwitchSpace
+            spaceName={space?.name}
+            spaceSlug={space?.slug}
+            spaceIcon={space?.logo}
+          />
         </div>
 
         <div className={classes.section}>

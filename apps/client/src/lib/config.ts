@@ -41,11 +41,11 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
-export function getAvatarUrl(avatarUrl: string) {
+export function getAvatarUrl(avatarUrl: string, type: string = "avatar") {
   if (!avatarUrl) return null;
   if (avatarUrl?.startsWith("http")) return avatarUrl;
 
-  return getBackendUrl() + "/attachments/img/avatar/" + avatarUrl;
+  return getBackendUrl() + `/attachments/img/${type}/` + avatarUrl;
 }
 
 export function getSpaceUrl(spaceSlug: string) {
