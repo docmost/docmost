@@ -6,6 +6,7 @@ export * from "./lib/details";
 export * from "./lib/table";
 export * from "./lib/image";
 export * from "./lib/video";
+export * from "./lib/pdf";
 export * from "./lib/callout";
 export * from "./lib/media-utils";
 export * from "./lib/link";
