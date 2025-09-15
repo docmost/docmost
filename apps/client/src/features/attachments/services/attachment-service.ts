@@ -42,7 +42,7 @@ async function removeIcon(
   type: AvatarIconType,
   spaceId?: string,
 ): Promise<void> {
-  const payload: any = { type };
+  const payload: { spaceId?: string; type: string } = { type };
 
   if (spaceId) {
     payload.spaceId = spaceId;

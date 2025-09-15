@@ -1,16 +1,17 @@
 import React, { useRef } from "react";
-import { Menu, Box } from "@mantine/core";
+import { Menu, Box, Loader } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IconTrash, IconUpload } from "@tabler/icons-react";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import { getAvatarUrl } from "@/lib/config.ts";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { notifications } from "@mantine/notifications";
 
 interface AvatarUploaderProps {
   currentImageUrl?: string | null;
   fallbackName?: string;
+  radius?: string | number;
   size?: string | number;
+  variant?: string;
   type: AvatarIconType;
   onUpload: (file: File) => Promise<void>;
   onRemove: () => Promise<void>;
@@ -21,6 +22,8 @@ interface AvatarUploaderProps {
 export default function AvatarUploader({
   currentImageUrl,
   fallbackName,
+  radius,
+  variant,
   size,
   type,
   onUpload,
@@ -36,6 +39,20 @@ export default function AvatarUploader({
   ) => {
     const file = event.target.files?.[0];
     if (!file || disabled) {
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSizeInBytes = 10 * 1024 * 1024;
+    if (file.size > maxSizeInBytes) {
+      notifications.show({
+        message: t("Image exceeds 10MB limit."),
+        color: "red",
+      });
+      // Reset the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       return;
     }
 
@@ -96,15 +113,36 @@ export default function AvatarUploader({
         style={{ display: "none" }}
       />
 
-      <Menu shadow="md" width={200} withArrow disabled={disabled}>
+      <Menu shadow="md" width={200} withArrow disabled={disabled || isLoading}>
         <Menu.Target>
-          <CustomAvatar
-            component="button"
-            size={size}
-            avatarUrl={getAvatarUrl(currentImageUrl, type)}
-            name={fallbackName}
-            style={{ cursor: disabled ? "default" : "pointer" }}
-          />
+          <Box style={{ position: "relative", display: "inline-block" }}>
+            <CustomAvatar
+              component="button"
+              size={size}
+              avatarUrl={currentImageUrl}
+              name={fallbackName}
+              style={{
+                cursor: disabled || isLoading ? "default" : "pointer",
+                opacity: isLoading ? 0.6 : 1
+              }}
+              radius={radius}
+              variant={variant}
+              type={type}
+            />
+            {isLoading && (
+              <Box
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 1000,
+                }}
+              >
+                <Loader size="sm" />
+              </Box>
+            )}
+          </Box>
         </Menu.Target>
 
         <Menu.Dropdown>

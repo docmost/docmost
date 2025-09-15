@@ -1,5 +1,7 @@
-import { focusAtom } from "jotai-optics";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import {
+  currentUserAtom,
+  userAtom,
+} from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
 import { useAtom } from "jotai";
 import AvatarUploader from "@/components/common/avatar-uploader.tsx";
@@ -8,8 +10,6 @@ import {
   removeAvatar,
 } from "@/features/attachments/services/attachment-service.ts";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
-
-const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
 
 export default function AccountAvatar() {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +20,9 @@ export default function AccountAvatar() {
     setIsLoading(true);
     try {
       const avatar = await uploadUserAvatar(selectedFile);
-      setUser((prev) => ({ ...prev, avatarUrl: avatar.fileName }));
+      if (currentUser?.user) {
+        setUser({ ...currentUser.user, avatarUrl: avatar.fileName });
+      }
     } catch (err) {
       // skip
     } finally {
@@ -32,7 +34,9 @@ export default function AccountAvatar() {
     setIsLoading(true);
     try {
       await removeAvatar();
-      setUser((prev) => ({ ...prev, avatarUrl: null }));
+      if (currentUser?.user) {
+        setUser({ ...currentUser.user, avatarUrl: null });
+      }
     } catch (err) {
       // skip
     } finally {

@@ -3,7 +3,6 @@ import * as path from 'path';
 import { AttachmentType } from './attachment.constants';
 import { sanitizeFileName } from '../../common/helpers';
 import * as sharp from 'sharp';
-import { Logger } from '@nestjs/common';
 
 export interface PreparedFile {
   buffer: Buffer;
@@ -58,7 +57,7 @@ export function getAttachmentFolderPath(
     case AttachmentType.Avatar:
       return `${workspaceId}/avatars`;
     case AttachmentType.WorkspaceIcon:
-      return `${workspaceId}/workspace-icons`;
+      return `${workspaceId}/workspace-logos`;
     case AttachmentType.SpaceIcon:
       return `${workspaceId}/space-icons`;
     case AttachmentType.File:
@@ -86,13 +85,25 @@ export async function compressAndResizeIcon(buffer: Buffer): Promise<Buffer> {
       });
     }
 
-    return await sharpInstance
-      .jpeg({
-        quality: 80,
-        progressive: true,
-        mozjpeg: true,
-      })
-      .toBuffer();
+    // Handle based on original format
+    if (metadata.format === 'png') {
+      return await sharpInstance
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .png({
+          quality: 85,
+          compressionLevel: 6,
+        })
+        .toBuffer();
+    } else {
+      return await sharpInstance
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .jpeg({
+          quality: 85,
+          progressive: true,
+          mozjpeg: true,
+        })
+        .toBuffer();
+    }
   } catch (err) {
     throw err;
   }

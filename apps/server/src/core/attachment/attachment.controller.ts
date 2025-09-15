@@ -374,7 +374,7 @@ export class AttachmentController {
       });
       return res.send(fileStream);
     } catch (err) {
-      this.logger.error(err);
+     // this.logger.error(err);
       throw new NotFoundException('File not found');
     }
   }
@@ -388,10 +388,6 @@ export class AttachmentController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     const { type, spaceId } = dto;
-
-    if (!type || !validAttachmentTypes.includes(type)) {
-      throw new BadRequestException('Valid attachment type is required');
-    }
 
     // remove current user avatar
     if (type === AttachmentType.Avatar) {

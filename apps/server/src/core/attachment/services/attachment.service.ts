@@ -145,9 +145,7 @@ export class AttachmentService {
     const processedBuffer = await compressAndResizeIcon(preparedFile.buffer);
     preparedFile.buffer = processedBuffer;
     preparedFile.fileSize = processedBuffer.length;
-    preparedFile.fileExtension = '.jpg';
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;
-    preparedFile.mimeType = 'image/jpeg';
 
     const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${preparedFile.fileName}`;
 
