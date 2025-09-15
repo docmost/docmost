@@ -58,14 +58,10 @@ export default function AvatarUploader({
 
     try {
       await onUpload(file);
-      notifications.show({
-        message: t("Image uploaded successfully"),
-      });
     } catch (error) {
-      const errorMessage =
-        error?.response?.data?.message || t("Failed to upload image");
+      console.error(error);
       notifications.show({
-        message: errorMessage,
+        message: t("Failed to upload image"),
         color: "red",
       });
     }
@@ -93,10 +89,9 @@ export default function AvatarUploader({
         message: t("Image removed successfully"),
       });
     } catch (error) {
-      const errorMessage =
-        error?.response?.data?.message || t("Failed to remove image");
+      console.error(error);
       notifications.show({
-        message: errorMessage,
+        message: t("Failed to remove image"),
         color: "red",
       });
     }
@@ -104,7 +99,6 @@ export default function AvatarUploader({
 
   return (
     <Box>
-      {/* Hidden file input - outside of Menu to prevent unmounting issues */}
       <input
         type="file"
         ref={fileInputRef}
@@ -123,7 +117,7 @@ export default function AvatarUploader({
               name={fallbackName}
               style={{
                 cursor: disabled || isLoading ? "default" : "pointer",
-                opacity: isLoading ? 0.6 : 1
+                opacity: isLoading ? 0.6 : 1,
               }}
               radius={radius}
               variant={variant}
