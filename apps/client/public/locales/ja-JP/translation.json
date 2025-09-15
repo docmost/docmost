@@ -527,5 +527,11 @@
   "Delete SSO provider": "SSOプロバイダーを削除する",
   "Are you sure you want to delete this SSO provider?": "このSSOプロバイダーを削除してもよろしいですか？",
   "Action": "アクション",
-  "{{ssoProviderType}} configuration": "{{ssoProviderType}}の構成"
+  "{{ssoProviderType}} configuration": "{{ssoProviderType}}の構成",
+  "Icon": "Icon",
+  "Upload image": "Upload image",
+  "Remove image": "Remove image",
+  "Failed to remove image": "Failed to remove image",
+  "Image exceeds 10MB limit.": "Image exceeds 10MB limit.",
+  "Image removed successfully": "Image removed successfully"
 }
