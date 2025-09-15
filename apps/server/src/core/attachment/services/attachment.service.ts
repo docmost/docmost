@@ -142,7 +142,7 @@ export class AttachmentService {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
 
-    const processedBuffer = await compressAndResizeIcon(preparedFile.buffer);
+    const processedBuffer = await compressAndResizeIcon(preparedFile.buffer, type);
     preparedFile.buffer = processedBuffer;
     preparedFile.fileSize = processedBuffer.length;
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;
@@ -209,7 +209,6 @@ export class AttachmentService {
       });
     } catch (err) {
       // delete uploaded file on db update failure
-      this.logger.error('Image upload error:', err);
       await this.deleteRedundantFile(filePath);
       throw new BadRequestException('Failed to upload image');
     }

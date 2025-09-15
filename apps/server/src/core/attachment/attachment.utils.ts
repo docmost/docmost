@@ -59,7 +59,7 @@ export function getAttachmentFolderPath(
     case AttachmentType.WorkspaceIcon:
       return `${workspaceId}/workspace-logos`;
     case AttachmentType.SpaceIcon:
-      return `${workspaceId}/space-icons`;
+      return `${workspaceId}/space-logos`;
     case AttachmentType.File:
       return `${workspaceId}/files`;
     default:
@@ -69,7 +69,10 @@ export function getAttachmentFolderPath(
 
 export const validAttachmentTypes = Object.values(AttachmentType);
 
-export async function compressAndResizeIcon(buffer: Buffer): Promise<Buffer> {
+export async function compressAndResizeIcon(
+  buffer: Buffer,
+  attachmentType?: AttachmentType,
+): Promise<Buffer> {
   try {
     let sharpInstance = sharp(buffer);
     const metadata = await sharpInstance.metadata();
@@ -87,8 +90,14 @@ export async function compressAndResizeIcon(buffer: Buffer): Promise<Buffer> {
 
     // Handle based on original format
     if (metadata.format === 'png') {
+      // Only flatten avatars to remove transparency
+      if (attachmentType === AttachmentType.Avatar) {
+        sharpInstance = sharpInstance.flatten({
+          background: { r: 255, g: 255, b: 255 },
+        });
+      }
+
       return await sharpInstance
-        .flatten({ background: { r: 255, g: 255, b: 255 } })
         .png({
           quality: 85,
           compressionLevel: 6,
@@ -96,7 +105,6 @@ export async function compressAndResizeIcon(buffer: Buffer): Promise<Buffer> {
         .toBuffer();
     } else {
       return await sharpInstance
-        .flatten({ background: { r: 255, g: 255, b: 255 } })
         .jpeg({
           quality: 85,
           progressive: true,

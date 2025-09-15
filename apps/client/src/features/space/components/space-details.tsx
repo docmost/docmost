@@ -70,7 +70,7 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
 
           <div style={{ marginBottom: "20px" }}>
             <Text size="sm" fw={500} mb="xs">
-              {t("Space icon")}
+              {t("Icon")}
             </Text>
             <AvatarUploader
               currentImageUrl={space.logo}
