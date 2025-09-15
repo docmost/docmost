@@ -34,6 +34,7 @@ import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import AudioMenu from "@/features/editor/components/audio/audio-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import EmbedMenu from "@/features/editor/components/embed/embed-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -404,6 +405,7 @@ export default function PageEditor({
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
+            <EmbedMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
             <ColumnLayoutMenu editor={editor} appendTo={menuContainerRef} />

@@ -1,4 +1,14 @@
+.embedContainer {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
 .embedWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  
   @mixin light {
     background-color: var(--mantine-color-gray-0);
   }
@@ -6,6 +16,14 @@
   @mixin dark {
     background-color: var(--mantine-color-dark-7);
   }
+}
+
+.nonResizable {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .embedIframe {
