@@ -1,6 +1,7 @@
 import React from "react";
 import { Avatar } from "@mantine/core";
 import { getAvatarUrl } from "@/lib/config.ts";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 interface CustomAvatarProps {
   avatarUrl: string;
@@ -11,13 +12,15 @@ interface CustomAvatarProps {
   variant?: string;
   style?: any;
   component?: any;
+  type?: AvatarIconType;
+  mt?: string | number;
 }
 
 export const CustomAvatar = React.forwardRef<
   HTMLInputElement,
   CustomAvatarProps
->(({ avatarUrl, name, ...props }: CustomAvatarProps, ref) => {
-  const avatarLink = getAvatarUrl(avatarUrl);
+>(({ avatarUrl, name, type, ...props }: CustomAvatarProps, ref) => {
+  const avatarLink = getAvatarUrl(avatarUrl, type);
 
   return (
     <Avatar

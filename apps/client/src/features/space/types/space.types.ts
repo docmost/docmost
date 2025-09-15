@@ -9,7 +9,7 @@ export interface ISpace {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  logo?: string;
   slug: string;
   hostname: string;
   creatorId: string;

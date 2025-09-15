@@ -1,4 +1,4 @@
-import { Table, Group, Text, Avatar } from "@mantine/core";
+import { Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
@@ -6,6 +6,8 @@ import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 export default function SpaceList() {
   const { t } = useTranslation();
@@ -39,8 +41,10 @@ export default function SpaceList() {
               >
                 <Table.Td>
                   <Group gap="sm" wrap="nowrap">
-                    <Avatar
+                    <CustomAvatar
                       color="initials"
+                      avatarUrl={space.logo}
+                      type={AvatarIconType.SPACE_ICON}
                       variant="filled"
                       name={space.name}
                     />

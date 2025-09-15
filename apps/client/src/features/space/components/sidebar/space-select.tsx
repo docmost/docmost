@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { Avatar, Group, Select, SelectProps, Text } from "@mantine/core";
+import { Group, Select, SelectProps, Text } from "@mantine/core";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import { ISpace } from "../../types/space.types";
 import { useTranslation } from "react-i18next";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 interface SpaceSelectProps {
   onChange: (value: ISpace) => void;
@@ -16,7 +18,14 @@ interface SpaceSelectProps {
 
 const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
   <Group gap="sm" wrap="nowrap">
-    <Avatar color="initials" variant="filled" name={option.label} size={20} />
+    <CustomAvatar
+      name={option.label}
+      avatarUrl={option?.["icon"]}
+      type={AvatarIconType.SPACE_ICON}
+      color="initials"
+      variant="filled"
+      size={20}
+    />
     <div>
       <Text size="sm" lineClamp={1}>
         {option.label}
@@ -50,6 +59,7 @@ export function SpaceSelect({
           return {
             label: space.name,
             value: space.slug,
+            icon: space.logo,
           };
         });
 
@@ -76,7 +86,6 @@ export function SpaceSelect({
       onChange={(slug) =>
         onChange(spaces.items?.find((item) => item.slug === slug))
       }
-      // duct tape
       onClick={(e) => e.stopPropagation()}
       nothingFoundMessage={t("No space found")}
       limit={50}

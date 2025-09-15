@@ -72,7 +72,9 @@ export function extractDateFromUuid7(uuid7: string) {
 }
 
 export function sanitizeFileName(fileName: string): string {
-  const sanitizedFilename = sanitize(fileName).replace(/ /g, '_');
+  const sanitizedFilename = sanitize(fileName)
+    .replace(/ /g, '_')
+    .replace(/#/g, '_');
   return sanitizedFilename.slice(0, 255);
 }
 
