@@ -3,7 +3,11 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { AuthProviders } from '@docmost/db/types/db';
 import { dbOrTx } from '@docmost/db/utils';
-import { InsertableAuthProvider, UpdatableAuthProvider, AuthProvider } from '@docmost/db/types/entity.types';
+import {
+  InsertableAuthProvider,
+  UpdatableAuthProvider,
+  AuthProvider,
+} from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class AuthProviderRepo {
@@ -19,6 +23,7 @@ export class AuthProviderRepo {
     'oidcClientId',
     'oidcClientSecret',
     'allowSignup',
+    'scope',
     'isEnabled',
     'creatorId',
     'workspaceId',
@@ -27,7 +32,10 @@ export class AuthProviderRepo {
     'deletedAt',
   ];
 
-  async findOidcProvider(workspaceId: string, trx?: KyselyTransaction): Promise<AuthProvider | null> {
+  async findOidcProvider(
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<AuthProvider | null> {
     const db = dbOrTx(this.db, trx);
     return db
       .selectFrom('authProviders')
@@ -39,7 +47,11 @@ export class AuthProviderRepo {
       .executeTakeFirst();
   }
 
-  async findById(id: string, workspaceId: string, trx?: KyselyTransaction): Promise<AuthProvider | null> {
+  async findById(
+    id: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<AuthProvider | null> {
     const db = dbOrTx(this.db, trx);
     return db
       .selectFrom('authProviders')
@@ -50,7 +62,10 @@ export class AuthProviderRepo {
       .executeTakeFirst();
   }
 
-  async create(data: InsertableAuthProvider, trx?: KyselyTransaction): Promise<AuthProvider> {
+  async create(
+    data: InsertableAuthProvider,
+    trx?: KyselyTransaction,
+  ): Promise<AuthProvider> {
     const db = dbOrTx(this.db, trx);
     return db
       .insertInto('authProviders')
@@ -59,7 +74,12 @@ export class AuthProviderRepo {
       .executeTakeFirstOrThrow();
   }
 
-  async update(id: string, workspaceId: string, data: UpdatableAuthProvider, trx?: KyselyTransaction): Promise<AuthProvider> {
+  async update(
+    id: string,
+    workspaceId: string,
+    data: UpdatableAuthProvider,
+    trx?: KyselyTransaction,
+  ): Promise<AuthProvider> {
     const db = dbOrTx(this.db, trx);
     return db
       .updateTable('authProviders')
@@ -71,7 +91,11 @@ export class AuthProviderRepo {
       .executeTakeFirstOrThrow();
   }
 
-  async delete(id: string, workspaceId: string, trx?: KyselyTransaction): Promise<void> {
+  async delete(
+    id: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
       .updateTable('authProviders')
@@ -89,7 +113,10 @@ export class AuthProviderRepo {
       .execute();
   }
 
-  async findByWorkspace(workspaceId: string, trx?: KyselyTransaction): Promise<AuthProvider[]> {
+  async findByWorkspace(
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<AuthProvider[]> {
     const db = dbOrTx(this.db, trx);
     return db
       .selectFrom('authProviders')

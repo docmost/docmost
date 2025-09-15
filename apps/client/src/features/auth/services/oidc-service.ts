@@ -15,6 +15,7 @@ export interface IOidcProvider {
   type: string;
   oidcIssuer: string;
   oidcClientId: string;
+  scope: string;
   allowSignup: boolean;
   isEnabled: boolean;
   createdAt: string;
@@ -26,6 +27,7 @@ export interface ICreateOidcProvider {
   oidcIssuer: string;
   oidcClientId: string;
   oidcClientSecret: string;
+  scope: string;
   allowSignup?: boolean;
   isEnabled?: boolean;
   enforceSso?: boolean;
@@ -36,6 +38,7 @@ export interface IUpdateOidcProvider {
   oidcIssuer?: string;
   oidcClientId?: string;
   oidcClientSecret?: string;
+  scope?: string;
   allowSignup?: boolean;
   isEnabled?: boolean;
   enforceSso?: boolean;
@@ -56,12 +59,17 @@ export async function getOidcProvider(): Promise<IOidcProvider> {
   return req.data;
 }
 
-export async function createOidcProvider(data: ICreateOidcProvider): Promise<IOidcProvider> {
+export async function createOidcProvider(
+  data: ICreateOidcProvider
+): Promise<IOidcProvider> {
   const req = await api.post<IOidcProvider>("/auth/oidc/provider", data);
   return req.data;
 }
 
-export async function updateOidcProvider(id: string, data: IUpdateOidcProvider): Promise<IOidcProvider> {
+export async function updateOidcProvider(
+  id: string,
+  data: IUpdateOidcProvider
+): Promise<IOidcProvider> {
   const req = await api.put<IOidcProvider>(`/auth/oidc/provider/${id}`, data);
   return req.data;
 }

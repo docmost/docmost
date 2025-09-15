@@ -30,6 +30,7 @@ const createSchema = z.object({
   oidcIssuer: z.string().url({ message: "Valid issuer URL is required" }),
   oidcClientId: z.string().min(1, { message: "Client ID is required" }),
   oidcClientSecret: z.string().min(1, { message: "Client secret is required" }),
+  scope: z.string().optional(),
   allowSignup: z.boolean().optional(),
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
@@ -40,6 +41,7 @@ const updateSchema = z.object({
   oidcIssuer: z.string().url({ message: "Valid issuer URL is required" }),
   oidcClientId: z.string().min(1, { message: "Client ID is required" }),
   oidcClientSecret: z.string().optional(),
+  scope: z.string().optional().default("openid email profile"),
   allowSignup: z.boolean().optional(),
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
@@ -59,7 +61,8 @@ export function OidcProviderForm() {
       name: "",
       oidcIssuer: "",
       oidcClientId: "",
-      oidcClientSecret: "",
+      oidcClientSecret: undefined,
+      scope: "openid email profile",
       allowSignup: true,
       isEnabled: true,
       enforceSso: false,
@@ -73,7 +76,8 @@ export function OidcProviderForm() {
         name: provider.name,
         oidcIssuer: provider.oidcIssuer,
         oidcClientId: provider.oidcClientId,
-        oidcClientSecret: "",
+        oidcClientSecret: undefined,
+        scope: provider.scope,
         allowSignup: provider.allowSignup,
         isEnabled: provider.isEnabled,
         enforceSso: workspaceData?.enforceSso || false,
@@ -90,7 +94,7 @@ export function OidcProviderForm() {
       }
       form.reset();
     } catch (error) {
-      // 
+      //
     }
   };
 
@@ -101,7 +105,9 @@ export function OidcProviderForm() {
       title: t("Delete OIDC Provider"),
       children: (
         <Text size="sm">
-          {t("Are you sure you want to delete this OIDC provider? This action cannot be undone.")}
+          {t(
+            "Are you sure you want to delete this OIDC provider? This action cannot be undone."
+          )}
         </Text>
       ),
       labels: { confirm: t("Delete"), cancel: t("Cancel") },
@@ -134,7 +140,9 @@ export function OidcProviderForm() {
 
         <Alert icon={<IconInfoCircle size={16} />} title={t("Information")}>
           <Text size="sm">
-            {t("Configure your OIDC provider to enable single sign-on. The redirect URI should be: ")}
+            {t(
+              "Configure your OIDC provider to enable single sign-on. The redirect URI should be: "
+            )}
             <code>{window.location.origin}/auth/oidc/callback</code>
           </Text>
         </Alert>
@@ -154,6 +162,12 @@ export function OidcProviderForm() {
             />
 
             <TextInput
+              label={t("Scope (optional)")}
+              placeholder={t("Enter scope")}
+              {...form.getInputProps("scope")}
+            />
+
+            <TextInput
               label={t("Client ID")}
               placeholder={t("Enter client ID")}
               {...form.getInputProps("oidcClientId")}
@@ -161,8 +175,16 @@ export function OidcProviderForm() {
 
             <PasswordInput
               label={t("Client Secret")}
-              placeholder={provider ? t("Leave empty to keep current secret") : t("Enter client secret")}
-              description={provider ? t("Only enter a new secret if you want to change it") : undefined}
+              placeholder={
+                provider
+                  ? t("Leave empty to keep current secret")
+                  : t("Enter client secret")
+              }
+              description={
+                provider
+                  ? t("Only enter a new secret if you want to change it")
+                  : undefined
+              }
               {...form.getInputProps("oidcClientSecret")}
             />
 
@@ -180,7 +202,9 @@ export function OidcProviderForm() {
 
             <Switch
               label={t("Force SSO")}
-              description={t("Force all users to use SSO for login (disables regular login)")}
+              description={t(
+                "Force all users to use SSO for login (disables regular login)"
+              )}
               {...form.getInputProps("enforceSso", { type: "checkbox" })}
             />
 
