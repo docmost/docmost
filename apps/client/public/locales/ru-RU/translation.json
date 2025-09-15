@@ -527,5 +527,11 @@
   "Delete SSO provider": "Удалить поставщика SSO",
   "Are you sure you want to delete this SSO provider?": "Вы уверены, что хотите удалить этого поставщика SSO?",
   "Action": "Действие",
-  "{{ssoProviderType}} configuration": "Настройка {{ssoProviderType}}"
+  "{{ssoProviderType}} configuration": "Настройка {{ssoProviderType}}",
+  "Icon": "Icon",
+  "Upload image": "Upload image",
+  "Remove image": "Remove image",
+  "Failed to remove image": "Failed to remove image",
+  "Image exceeds 10MB limit.": "Image exceeds 10MB limit.",
+  "Image removed successfully": "Image removed successfully"
 }
