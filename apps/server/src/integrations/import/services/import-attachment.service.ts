@@ -35,7 +35,7 @@ interface DrawioPair {
 @Injectable()
 export class ImportAttachmentService {
   private readonly logger = new Logger(ImportAttachmentService.name);
-  private readonly CONCURRENT_UPLOADS = 1;
+  private readonly CONCURRENT_UPLOADS = 3;
   private readonly MAX_RETRIES = 2;
   private readonly RETRY_DELAY = 2000;
 
