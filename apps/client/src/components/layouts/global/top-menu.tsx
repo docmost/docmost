@@ -1,8 +1,8 @@
 import {
   Group,
   Menu,
-  UnstyledButton,
   Text,
+  UnstyledButton,
   useMantineColorScheme,
 } from "@mantine/core";
 import {
@@ -10,7 +10,6 @@ import {
   IconBrush,
   IconCheck,
   IconChevronDown,
-  IconChevronRight,
   IconDeviceDesktop,
   IconLogout,
   IconMoon,
@@ -26,6 +25,7 @@ import APP_ROUTE from "@/lib/app-route.ts";
 import useAuth from "@/features/auth/hooks/use-auth.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { useTranslation } from "react-i18next";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 export default function TopMenu() {
   const { t } = useTranslation();
@@ -50,6 +50,7 @@ export default function TopMenu() {
               name={workspace?.name}
               variant="filled"
               size="sm"
+              type={AvatarIconType.WORKSPACE_ICON}
             />
             <Text fw={500} size="sm" lh={1} mr={3} lineClamp={1}>
               {workspace?.name}

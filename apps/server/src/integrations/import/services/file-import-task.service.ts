@@ -33,8 +33,8 @@ import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 
 @Injectable()
-export class FileTaskService {
-  private readonly logger = new Logger(FileTaskService.name);
+export class FileImportTaskService {
+  private readonly logger = new Logger(FileImportTaskService.name);
 
   constructor(
     private readonly storageService: StorageService,
@@ -266,7 +266,7 @@ export class FileTaskService {
             attachmentCandidates,
           });
 
-        const { html, backlinks } = await formatImportHtml({
+        const { html, backlinks, pageIcon } = await formatImportHtml({
           html: htmlContent,
           currentFilePath: page.filePath,
           filePathToPageMetaMap: filePathToPageMetaMap,
@@ -286,6 +286,7 @@ export class FileTaskService {
           id: page.id,
           slugId: page.slugId,
           title: title || page.name,
+          icon: pageIcon || null,
           content: prosemirrorJson,
           textContent: jsonToText(prosemirrorJson),
           ydoc: await this.importService.createYdoc(prosemirrorJson),
