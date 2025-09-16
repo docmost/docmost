@@ -122,6 +122,6 @@ export type InsertableUserMFA = Insertable<_UserMFA>;
 export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
 
 // Page Embedding
-export type PageEmbedding = Selectable<Embeddings>;
-export type InsertablePageEmbedding = Insertable<Embeddings>;
-export type UpdatablePageEmbedding = Updateable<Omit<Embeddings, 'id'>>;
+export type Embedding = Selectable<Embeddings>;
+export type InsertableEmbedding = Insertable<Embeddings>;
+export type UpdatableEmbedding = Updateable<Omit<Embeddings, 'id'>>;

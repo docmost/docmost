@@ -1,11 +1,12 @@
 import { Json, Timestamp, Generated } from '@docmost/db/types/db';
 
-// page_embeddings type
+// embeddings type
 export interface Embeddings {
   id: Generated<string>;
   pageId: string;
   spaceId: string;
   workspaceId: string;
+  attachmentId: string;
   embedding: number[] | Buffer | string;
   chunkIndex: Generated<number>;
   chunkStart: Generated<number>;

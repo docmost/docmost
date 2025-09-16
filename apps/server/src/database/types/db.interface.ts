@@ -31,7 +31,7 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
-  pageEmbeddings: Embeddings;
+  embeddings: Embeddings;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;

@@ -7,7 +7,6 @@ import {
 import {
   generateAiContent,
   generateAiContentStream,
-  getAiConfig,
 } from "@/ee/ai/services/ai-service.ts";
 import {
   AiConfigResponse,

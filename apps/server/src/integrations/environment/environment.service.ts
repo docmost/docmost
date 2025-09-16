@@ -225,4 +225,12 @@ export class EnvironmentService {
   getOpenAiModel(): string {
     return this.configService.get<string>('OPENAI_MODEL');
   }
+
+  isAIEnabled(): string {
+    return this.configService.get<string>('ENABLE_AI');
+  }
+
+  isAIVectorSearchEnabled(): string {
+    return this.configService.get<string>('AI_VECTOR_SEARCH');
+  }
 }
