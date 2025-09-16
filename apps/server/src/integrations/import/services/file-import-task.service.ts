@@ -24,6 +24,7 @@ import { formatImportHtml } from '../utils/import-formatter';
 import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
+  stripNotionID,
 } from '../utils/import.utils';
 import { executeTx } from '@docmost/db/utils';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
@@ -163,7 +164,7 @@ export class FileImportTaskService {
       pagesMap.set(relPath, {
         id: v7(),
         slugId: generateSlugId(),
-        name: path.basename(relPath, ext),
+        name: stripNotionID(path.basename(relPath, ext)),
         content: '',
         parentPageId: null,
         fileExtension: ext,
@@ -272,7 +273,10 @@ export class FileImportTaskService {
 
         // Find children of current page
         for (const [childFilePath, childPage] of pagesMap.entries()) {
-          if (childPage.parentPageId === currentPage.id && !pageLevel.has(childFilePath)) {
+          if (
+            childPage.parentPageId === currentPage.id &&
+            !pageLevel.has(childFilePath)
+          ) {
             pageLevel.set(childFilePath, level + 1);
             queue.push({ filePath: childFilePath, level: level + 1 });
           }
