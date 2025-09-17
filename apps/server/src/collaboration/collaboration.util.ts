@@ -33,6 +33,7 @@ import {
   Excalidraw,
   Embed,
   Mention,
+  Subpages,
   HeadingAnchors
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
@@ -83,6 +84,7 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  Subpages,
   UniqueID.configure({
     types: ['heading'],
     attributeName: 'nodeId',

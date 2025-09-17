@@ -33,8 +33,8 @@
   }
 
   p {
-    margin-top: 0.65em;
-    margin-bottom: 0.65em;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
   }
 
   ul,
@@ -57,6 +57,7 @@
   h5,
   h6 {
     line-height: 1.1;
+    margin-bottom: 10px;
   }
 
   code {
@@ -93,8 +94,12 @@
 
   hr {
     border: none;
-    border-top: 2px solid #ced4da;
-    margin: 2rem 0;
+    @mixin light {
+      border-top: 1px solid var(--mantine-color-gray-4);
+    }
+    @mixin dark {
+      border-top: 1px solid var(--mantine-color-dark-4);
+    }
 
     &:hover {
       cursor: pointer;
@@ -136,7 +141,7 @@
 
   .selection,
   *::selection {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-gray-7));
+    background-color: Highlight;
   }
 
   .comment-mark {

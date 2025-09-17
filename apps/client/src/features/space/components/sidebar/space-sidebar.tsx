@@ -19,7 +19,6 @@ import {
 import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
-import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
@@ -75,7 +74,11 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <SwitchSpace spaceName={space?.name} spaceSlug={space?.slug} />
+          <SwitchSpace
+            spaceName={space?.name}
+            spaceSlug={space?.slug}
+            spaceIcon={space?.logo}
+          />
         </div>
 
         <div className={classes.section}>
@@ -195,8 +198,6 @@ export function SpaceSidebar() {
         onClose={closeSettings}
         spaceId={space?.slug}
       />
-
-      <SearchSpotlight spaceId={space.id} />
     </>
   );
 }
