@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, IsBoolean, IsOptional, IsUrl, MaxLength, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsUrl,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateOidcProviderDto {
   @IsNotEmpty()
@@ -70,6 +78,11 @@ export class UpdateOidcProviderDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  scope?: string;
 
   @IsOptional()
   @IsBoolean()

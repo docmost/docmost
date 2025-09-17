@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { Client, Issuer, generators } from 'openid-client';
 import { isEmail } from 'class-validator';
@@ -26,15 +30,21 @@ export class OidcService {
     if (!userinfo.email || !isEmail(userinfo.email)) {
       throw new BadRequestException('Invalid email from OIDC provider');
     }
-    
-    if (!userinfo.sub || typeof userinfo.sub !== 'string' || userinfo.sub.length > 255) {
+
+    if (
+      !userinfo.sub ||
+      typeof userinfo.sub !== 'string' ||
+      userinfo.sub.length > 255
+    ) {
       throw new BadRequestException('Invalid subject from OIDC provider');
     }
-    
+
     return {
       email: userinfo.email.toLowerCase().trim(),
       sub: userinfo.sub,
-      name: userinfo.name ? String(userinfo.name).substring(0, 100) : userinfo.email.split('@')[0]
+      name: userinfo.name
+        ? String(userinfo.name).substring(0, 100)
+        : userinfo.preferred_username || userinfo.email.split('@')[0],
     };
   }
 
@@ -42,9 +52,8 @@ export class OidcService {
     workspaceId: string,
     redirectUri: string,
   ): Promise<{ url: string; state: string }> {
-    const authProvider = await this.authProviderRepo.findOidcProvider(
-      workspaceId,
-    );
+    const authProvider =
+      await this.authProviderRepo.findOidcProvider(workspaceId);
 
     if (!authProvider) {
       throw new BadRequestException('OIDC provider not found or not enabled');
@@ -54,7 +63,7 @@ export class OidcService {
     const state = generators.state();
 
     const url = client.authorizationUrl({
-      scope: 'openid email profile',
+      scope: authProvider.scope,
       state,
       redirect_uri: redirectUri,
     });
@@ -69,9 +78,8 @@ export class OidcService {
     iss: string,
     redirectUri: string,
   ): Promise<{ token: string; user: User }> {
-    const authProvider = await this.authProviderRepo.findOidcProvider(
-      workspaceId,
-    );
+    const authProvider =
+      await this.authProviderRepo.findOidcProvider(workspaceId);
 
     if (!authProvider) {
       throw new BadRequestException('OIDC provider not found or not enabled');
@@ -83,7 +91,7 @@ export class OidcService {
       const tokenSet = await client.callback(
         redirectUri,
         iss ? { code, state, iss } : { code, state },
-        { state }
+        { state },
       );
 
       const userinfo = await client.userinfo(tokenSet.access_token);
@@ -112,7 +120,11 @@ export class OidcService {
       );
 
       if (user) {
-        await this.linkAccountIfNeeded(user, sanitizedUserinfo.sub, authProvider.id);
+        await this.linkAccountIfNeeded(
+          user,
+          sanitizedUserinfo.sub,
+          authProvider.id,
+        );
       } else {
         if (!authProvider.allowSignup) {
           throw new UnauthorizedException(
@@ -125,20 +137,29 @@ export class OidcService {
           authProvider.id,
           workspaceId,
         );
-        
+
         if (existingAccount) {
-          throw new BadRequestException('Account already exists for this provider user ID');
+          throw new BadRequestException(
+            'Account already exists for this provider user ID',
+          );
         }
 
-        user = await this.createUserFromOidc(sanitizedUserinfo, authProvider, workspaceId);
+        user = await this.createUserFromOidc(
+          sanitizedUserinfo,
+          authProvider,
+          workspaceId,
+        );
       }
 
       const token = await this.tokenService.generateAccessToken(user);
 
       return { token, user };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new UnauthorizedException('OIDC authentication failed: ' + errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      throw new UnauthorizedException(
+        'OIDC authentication failed: ' + errorMessage,
+      );
     }
   }
 
@@ -169,7 +190,11 @@ export class OidcService {
     let user: User;
 
     await executeTx(this.db, async (trx) => {
-      const existingUser = await this.userRepo.findByEmail(userinfo.email, workspaceId, { trx });
+      const existingUser = await this.userRepo.findByEmail(
+        userinfo.email,
+        workspaceId,
+        { trx },
+      );
       if (existingUser) {
         throw new BadRequestException('User with this email already exists');
       }
