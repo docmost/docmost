@@ -533,5 +533,8 @@
   "Remove image": "Remove image",
   "Failed to remove image": "Failed to remove image",
   "Image exceeds 10MB limit.": "Image exceeds 10MB limit.",
-  "Image removed successfully": "Image removed successfully"
+  "Image removed successfully": "Image removed successfully",
+  "Added successfully": "Added successfully",
+  "Removed successfully": "Removed successfully",
+  "Failed to add group members": "Failed to add group members"
 }

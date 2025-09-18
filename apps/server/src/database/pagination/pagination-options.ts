@@ -23,4 +23,8 @@ export class PaginationOptions {
   @IsOptional()
   @IsString()
   query: string;
+
+  @IsOptional()
+  @IsString()
+  groupId?: string;
 }

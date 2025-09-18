@@ -162,6 +162,15 @@ export class UserRepo {
       );
     }
 
+    if (pagination.groupId) {
+      query = query.where('users.id', 'not in', (eb) =>
+        eb
+          .selectFrom('groupUsers')
+          .select('userId')
+          .where('groupId', '=', pagination.groupId),
+      );
+    }
+
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,

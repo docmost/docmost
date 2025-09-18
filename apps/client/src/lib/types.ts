@@ -2,6 +2,7 @@ export interface QueryParams {
   query?: string;
   page?: number;
   limit?: number;
+  groupId?: string;
 }
 
 export enum UserRole {

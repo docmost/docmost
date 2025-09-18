@@ -55,7 +55,7 @@ export default function AddSpaceMembersModal({
         <Divider size="xs" mb="xs" />
 
         <Stack>
-          <MultiMemberSelect onChange={handleMultiSelectChange} />
+          <MultiMemberSelect onChange={handleMultiSelectChange} spaceId={spaceId} />
           <SpaceMemberRole
             onSelect={handleRoleSelection}
             defaultRole={role}

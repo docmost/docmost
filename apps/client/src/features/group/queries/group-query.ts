@@ -22,6 +22,7 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import { useEffect } from "react";
 import { validate as isValidUuid } from "uuid";
 import { queryClient } from "@/main.tsx";
+import { useTranslation } from "react-i18next";
 
 export function useGetGroupsQuery(
   params?: QueryParams,
@@ -119,18 +120,24 @@ export function useGroupMembersQuery(
 
 export function useAddGroupMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<void, Error, { groupId: string; userIds: string[] }>({
     mutationFn: (data) => addGroupMember(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Added successfully" });
+      notifications.show({ message: t("Added successfully") });
       queryClient.invalidateQueries({
         queryKey: ["groupMembers", variables.groupId],
+      });
+
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["workspaceMembers"].includes(item.queryKey[0] as string),
       });
     },
     onError: () => {
       notifications.show({
-        message: "Failed to add group members",
+        message: t("Failed to add group members"),
         color: "red",
       });
     },
@@ -139,6 +146,7 @@ export function useAddGroupMemberMutation() {
 
 export function useRemoveGroupMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<
     void,
@@ -150,9 +158,14 @@ export function useRemoveGroupMemberMutation() {
   >({
     mutationFn: (data) => removeGroupMember(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Removed successfully" });
+      notifications.show({ message: t("Removed successfully") });
       queryClient.invalidateQueries({
         queryKey: ["groupMembers", variables.groupId],
+      });
+
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["workspaceMembers"].includes(item.queryKey[0] as string),
       });
     },
     onError: (error) => {

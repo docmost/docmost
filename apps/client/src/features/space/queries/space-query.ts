@@ -190,6 +190,28 @@ export function useAddSpaceMemberMutation() {
       queryClient.invalidateQueries({
         queryKey: ["spaceMembers", variables.spaceId],
       });
+
+      // Optimistically update search suggestions cache by filtering out added users and groups
+      queryClient.setQueriesData(
+        { queryKey: ["search-suggestion"], exact: false },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+
+          const filteredUsers = oldData.users?.filter((user: any) =>
+            !variables.userIds?.includes(user.id)
+          ) || [];
+
+          const filteredGroups = oldData.groups?.filter((group: any) =>
+            !variables.groupIds?.includes(group.id)
+          ) || [];
+
+          return {
+            ...oldData,
+            users: filteredUsers,
+            groups: filteredGroups,
+          };
+        }
+      );
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -208,6 +230,16 @@ export function useRemoveSpaceMemberMutation() {
       notifications.show({ message: t("Member removed successfully") });
       queryClient.invalidateQueries({
         queryKey: ["spaceMembers", variables.spaceId],
+      });
+
+      // For remove operations, invalidate to get fresh data
+      // since adding the user/group back requires fetching their current data
+      queryClient.invalidateQueries({
+        queryKey: ["search-suggestion"],
+        predicate: (query) => {
+          const queryKey = query.queryKey as any[];
+          return queryKey[1]?.spaceId === variables.spaceId;
+        },
       });
     },
     onError: (error) => {

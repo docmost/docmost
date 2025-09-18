@@ -37,6 +37,7 @@ export default function AddGroupMemberModal() {
         <MultiUserSelect
           label={t("Add group members")}
           onChange={handleMultiSelectChange}
+          groupId={groupId}
         />
 
         <Group justify="flex-end" mt="md">

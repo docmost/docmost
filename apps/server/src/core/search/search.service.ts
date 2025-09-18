@@ -145,7 +145,7 @@ export class SearchService {
     const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
-      const userQuery = this.db
+      let userQuery = this.db
         .selectFrom('users')
         .select(['id', 'name', 'email', 'avatarUrl'])
         .where('workspaceId', '=', workspaceId)
@@ -159,14 +159,25 @@ export class SearchService {
             ),
             eb(sql`users.email`, 'ilike', sql`f_unaccent(${`%${query}%`})`),
           ]),
-        )
-        .limit(limit);
+        );
 
+      // Filter out users who are already members of the space
+      if (suggestion.spaceId) {
+        userQuery = userQuery.where('users.id', 'not in', (eb) =>
+          eb
+            .selectFrom('spaceMembers')
+            .select('userId')
+            .where('spaceId', '=', suggestion.spaceId)
+            .where('userId', 'is not', null),
+        );
+      }
+
+      userQuery = userQuery.limit(limit);
       users = await userQuery.execute();
     }
 
     if (suggestion.includeGroups) {
-      groups = await this.db
+      let groupQuery = this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
         .where((eb) =>
@@ -176,9 +187,21 @@ export class SearchService {
             sql`LOWER(f_unaccent(${`%${query}%`}))`,
           ),
         )
-        .where('workspaceId', '=', workspaceId)
-        .limit(limit)
-        .execute();
+        .where('workspaceId', '=', workspaceId);
+
+      // Filter out groups that are already members of the space
+      if (suggestion.spaceId) {
+        groupQuery = groupQuery.where('groups.id', 'not in', (eb) =>
+          eb
+            .selectFrom('spaceMembers')
+            .select('groupId')
+            .where('spaceId', '=', suggestion.spaceId)
+            .where('groupId', 'is not', null),
+        );
+      }
+
+      groupQuery = groupQuery.limit(limit);
+      groups = await groupQuery.execute();
     }
 
     if (suggestion.includePages) {

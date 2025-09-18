@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 interface MultiUserSelectProps {
   onChange: (value: string[]) => void;
   label?: string;
+  groupId?: string;
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -21,7 +22,9 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
       size={36}
     />
     <div>
-      <Text size="sm" lineClamp={1}>{option.label}</Text>
+      <Text size="sm" lineClamp={1}>
+        {option.label}
+      </Text>
       <Text size="xs" opacity={0.5}>
         {option?.["email"]}
       </Text>
@@ -29,14 +32,20 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
   </Group>
 );
 
-export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
+export function MultiUserSelect({
+  onChange,
+  label,
+  groupId,
+}: MultiUserSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
   const { data: users, isLoading } = useWorkspaceMembersQuery({
     query: debouncedQuery,
     limit: 50,
+    ...(groupId && { groupId }),
   });
+
   const [data, setData] = useState([]);
 
   useEffect(() => {

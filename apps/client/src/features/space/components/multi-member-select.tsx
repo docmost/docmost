@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 interface MultiMemberSelectProps {
   onChange: (value: string[]) => void;
+  spaceId?: string;
 }
 
 const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
@@ -25,23 +26,38 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     )}
     {option["type"] === "group" && <IconGroupCircle />}
     <div>
-      <Text size="sm" lineClamp={1}>{option.label}</Text>
+      <Text size="sm" lineClamp={1}>
+        {option.label}
+      </Text>
       {option["type"] === "user" && option["email"] && (
-        <Text size="xs" c="dimmed" lineClamp={1}>{option["email"]}</Text>
+        <Text size="xs" c="dimmed" lineClamp={1}>
+          {option["email"]}
+        </Text>
       )}
     </div>
   </Group>
 );
 
-export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
+export function MultiMemberSelect({
+  onChange,
+  spaceId,
+}: MultiMemberSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
-  const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
-    query: debouncedQuery,
+
+  console.log("vacant", spaceId);
+
+  // Filter out empty parameters to avoid duplicate cache keys
+  const queryParams = {
+    ...(debouncedQuery && { query: debouncedQuery }),
     includeUsers: true,
     includeGroups: true,
-  });
+    ...(spaceId && { spaceId }),
+  };
+
+  const { data: suggestion, isLoading } =
+    useSearchSuggestionsQuery(queryParams);
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -63,14 +79,14 @@ export function MultiMemberSelect({ onChange }: MultiMemberSelectProps) {
 
       // Create fresh data structure based on current search results
       const newData = [];
-      
+
       if (userItems && userItems.length > 0) {
         newData.push({
           group: t("Select a user"),
           items: userItems,
         });
       }
-      
+
       if (groupItems && groupItems.length > 0) {
         newData.push({
           group: t("Select a group"),
