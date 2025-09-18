@@ -1,4 +1,4 @@
-import { Text, Avatar, SimpleGrid, Card, rem, Button, Group } from "@mantine/core";
+import { Text, SimpleGrid, Card, rem, Button, Group } from "@mantine/core";
 import React, { useEffect, useState } from 'react';
 import {
   prefetchSpace,
@@ -11,6 +11,8 @@ import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate";
 import { IconArrowRight } from "@tabler/icons-react";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 export default function SpaceGrid() {
   const { t } = useTranslation();
@@ -29,8 +31,10 @@ export default function SpaceGrid() {
       withBorder
     >
       <Card.Section className={classes.cardSection} h={40}></Card.Section>
-      <Avatar
+      <CustomAvatar
         name={space.name}
+        avatarUrl={space.logo}
+        type={AvatarIconType.SPACE_ICON}
         color="initials"
         variant="filled"
         size="md"

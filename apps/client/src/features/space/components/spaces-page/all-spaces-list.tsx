@@ -6,13 +6,12 @@ import {
   Box,
   Space,
   Menu,
-  Avatar,
   Anchor,
 } from "@mantine/core";
 import { IconDots, IconSettings } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useDisclosure } from "@mantine/hooks";
 import { formatMemberCount } from "@/lib";
 import { getSpaceUrl } from "@/lib/config";
@@ -22,6 +21,8 @@ import Paginate from "@/components/common/paginate";
 import NoTableResults from "@/components/common/no-table-results";
 import SpaceSettingsModal from "@/features/space/components/settings-modal";
 import classes from "./all-spaces-list.module.css";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 interface AllSpacesListProps {
   spaces: any[];
@@ -87,11 +88,13 @@ export default function AllSpacesList({
                         className={classes.spaceLink}
                         onMouseEnter={() => prefetchSpace(space.slug, space.id)}
                       >
-                        <Avatar
+                        <CustomAvatar
+                          name={space.name}
+                          avatarUrl={space.logo}
+                          type={AvatarIconType.SPACE_ICON}
                           color="initials"
                           variant="filled"
-                          name={space.name}
-                          size={40}
+                          size="md"
                         />
                         <div>
                           <Text fz="sm" fw={500} lineClamp={1}>

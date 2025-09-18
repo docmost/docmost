@@ -22,11 +22,11 @@ import {
   useSetSharePasswordMutation,
   useRemoveSharePasswordMutation,
 } from "@/features/share/queries/share-query.ts";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { extractPageSlugId, getPageIcon } from "@/lib";
 import { useTranslation } from "react-i18next";
 import CopyTextButton from "@/components/common/copy.tsx";
-import { getAppUrl } from "@/lib/config.ts";
+import { getAppUrl, isCloud } from "@/lib/config.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import classes from "@/features/share/components/share.module.css";
 
@@ -35,6 +35,7 @@ interface ShareModalProps {
 }
 export default function ShareModal({ readOnly }: ShareModalProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { pageSlug } = useParams();
   const pageId = extractPageSlugId(pageSlug);
   const { data: share } = useShareForPageQuery(pageId);
@@ -44,7 +45,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
   const deleteShareMutation = useDeleteShareMutation();
   const setPasswordMutation = useSetSharePasswordMutation();
   const removePasswordMutation = useRemoveSharePasswordMutation();
-  
+
   // pageIsShared means that the share exists and its level equals zero.
   const pageIsShared = share && share.level === 0;
   // if level is greater than zero, then it is a descendant page from a shared page
@@ -73,7 +74,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
       createShareMutation.mutateAsync({
         pageId: pageId,
         includeSubPages: true,
-        searchIndexing: true,
+        searchIndexing: false,
       });
       setIsPagePublic(value);
     } else {
@@ -115,26 +116,29 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     }
   };
 
-  const shareLink = useMemo(() => (
-    <Group my="sm" gap={4} wrap="nowrap">
-      <TextInput
-        variant="filled"
-        value={publicLink}
-        readOnly
-        rightSection={<CopyTextButton text={publicLink} />}
-        style={{ width: "100%" }}
-      />
-      <ActionIcon
-        component="a"
-        variant="default"
-        target="_blank"
-        href={publicLink}
-        size="sm"
-      >
-        <IconExternalLink size={16} />
-      </ActionIcon>
-    </Group>
-  ), [publicLink]);
+  const shareLink = useMemo(
+    () => (
+      <Group my="sm" gap={4} wrap="nowrap">
+        <TextInput
+          variant="filled"
+          value={publicLink}
+          readOnly
+          rightSection={<CopyTextButton text={publicLink} />}
+          style={{ width: "100%" }}
+        />
+        <ActionIcon
+          component="a"
+          variant="default"
+          target="_blank"
+          href={publicLink}
+          size="sm"
+        >
+          <IconExternalLink size={16} />
+        </ActionIcon>
+      </Group>
+    ),
+    [publicLink],
+  );
 
   return (
     <Popover width={350} position="bottom" withArrow shadow="md">
@@ -240,9 +244,9 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
                     disabled={readOnly}
                   />
                 </Group>
-                
+
                 <Divider my="sm" />
-                
+
                 <Group justify="space-between" wrap="nowrap" gap="xl">
                   <div>
                     <Text size="sm">{t("Password protection")}</Text>
@@ -263,7 +267,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
                       variant="subtle"
                       color="red"
                       onClick={() => removePasswordMutation.mutateAsync(share.id)}
-                      disabled={readOnly} 
+                      disabled={readOnly}
                     > {/* TODO: canManage */}
                       {t("Remove password")}
                     </Button>

@@ -94,7 +94,12 @@
 
   hr {
     border: none;
-    border-top: 1px solid #ced4da;
+    @mixin light {
+      border-top: 1px solid var(--mantine-color-gray-4);
+    }
+    @mixin dark {
+      border-top: 1px solid var(--mantine-color-dark-4);
+    }
 
     &:hover {
       cursor: pointer;

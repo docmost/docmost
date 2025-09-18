@@ -24,6 +24,7 @@ import { formatImportHtml } from '../utils/import-formatter';
 import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
+  stripNotionID,
 } from '../utils/import.utils';
 import { executeTx } from '@docmost/db/utils';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
@@ -138,17 +139,12 @@ export class FileImportTaskService {
         .split(path.sep)
         .join('/'); // normalize to forward-slashes
       const ext = path.extname(relPath).toLowerCase();
-      let content = await fs.readFile(absPath, 'utf-8');
-
-      if (ext.toLowerCase() === '.md') {
-        content = await markdownToHtml(content);
-      }
 
       pagesMap.set(relPath, {
         id: v7(),
         slugId: generateSlugId(),
-        name: path.basename(relPath, ext),
-        content,
+        name: stripNotionID(path.basename(relPath, ext)),
+        content: '',
         parentPageId: null,
         fileExtension: ext,
         filePath: relPath,
@@ -240,89 +236,160 @@ export class FileImportTaskService {
       });
     });
 
-    const pageResults = await Promise.all(
-      Array.from(pagesMap.values()).map(async (page) => {
-        if( page.filePath === null ) {
-          const insertablePage: InsertablePage = {
-            id: page.id,
-            slugId: page.slugId,
-            title: page.name,
-            content: null,
-            textContent: null,
-            ydoc: null,
-            position: page.position!,
-            spaceId: fileTask.spaceId,
-            workspaceId: fileTask.workspaceId,
-            creatorId: fileTask.creatorId,
-            lastUpdatedById: fileTask.creatorId,
-            parentPageId: page.parentPageId,
-          };
-          return { insertablePage, backlinks: [] };
+    // Group pages by level (topological sort for parent-child relationships)
+    const pagesByLevel = new Map<number, Array<[string, ImportPageNode]>>();
+    const pageLevel = new Map<string, number>();
+
+    // Calculate levels using BFS
+    const calculateLevels = () => {
+      const queue: Array<{ filePath: string; level: number }> = [];
+
+      // Start with root pages (no parent)
+      for (const [filePath, page] of pagesMap.entries()) {
+        if (!page.parentPageId) {
+          queue.push({ filePath, level: 0 });
+          pageLevel.set(filePath, 0);
         }
-        
-        const htmlContent =
-          await this.importAttachmentService.processAttachments({
-            html: page.content,
-            pageRelativePath: page.filePath,
-            extractDir,
-            pageId: page.id,
-            fileTask,
-            attachmentCandidates,
-          });
+      }
 
-        const { html, backlinks, pageIcon } = await formatImportHtml({
-          html: htmlContent,
-          currentFilePath: page.filePath,
-          filePathToPageMetaMap: filePathToPageMetaMap,
-          creatorId: fileTask.creatorId,
-          sourcePageId: page.id,
-          workspaceId: fileTask.workspaceId,
-        });
+      // BFS to assign levels
+      while (queue.length > 0) {
+        const { filePath, level } = queue.shift()!;
+        const currentPage = pagesMap.get(filePath)!;
 
-        const pmState = getProsemirrorContent(
-          await this.importService.processHTML(html),
+        // Find children of current page
+        for (const [childFilePath, childPage] of pagesMap.entries()) {
+          if (
+            childPage.parentPageId === currentPage.id &&
+            !pageLevel.has(childFilePath)
+          ) {
+            pageLevel.set(childFilePath, level + 1);
+            queue.push({ filePath: childFilePath, level: level + 1 });
+          }
+        }
+      }
+
+      // Group pages by level
+      for (const [filePath, page] of pagesMap.entries()) {
+        const level = pageLevel.get(filePath) || 0;
+        if (!pagesByLevel.has(level)) {
+          pagesByLevel.set(level, []);
+        }
+        pagesByLevel.get(level)!.push([filePath, page]);
+      }
+    };
+
+    calculateLevels();
+
+    if (pagesMap.size < 1) return;
+
+    // Process pages level by level sequentially to respect foreign key constraints
+    const allBacklinks: any[] = [];
+    const validPageIds = new Set<string>();
+    let totalPagesProcessed = 0;
+
+    // Sort levels to process in order
+    const sortedLevels = Array.from(pagesByLevel.keys()).sort((a, b) => a - b);
+
+    try {
+      await executeTx(this.db, async (trx) => {
+        // Process pages level by level sequentially within the transaction
+        for (const level of sortedLevels) {
+          const levelPages = pagesByLevel.get(level)!;
+
+          for (const [filePath, page] of levelPages) {
+            const absPath = path.join(extractDir, filePath);
+            let content = await fs.readFile(absPath, 'utf-8');
+
+            if (page.fileExtension.toLowerCase() === '.md') {
+              content = await markdownToHtml(content);
+            }
+
+            const htmlContent =
+              await this.importAttachmentService.processAttachments({
+                html: content,
+                pageRelativePath: page.filePath,
+                extractDir,
+                pageId: page.id,
+                fileTask,
+                attachmentCandidates,
+              });
+
+            const { html, backlinks, pageIcon } = await formatImportHtml({
+              html: htmlContent,
+              currentFilePath: page.filePath,
+              filePathToPageMetaMap: filePathToPageMetaMap,
+              creatorId: fileTask.creatorId,
+              sourcePageId: page.id,
+              workspaceId: fileTask.workspaceId,
+            });
+
+            const pmState = getProsemirrorContent(
+              await this.importService.processHTML(html),
+            );
+
+            const { title, prosemirrorJson } =
+              this.importService.extractTitleAndRemoveHeading(pmState);
+
+            const insertablePage: InsertablePage = {
+              id: page.id,
+              slugId: page.slugId,
+              title: title || page.name,
+              icon: pageIcon || null,
+              content: prosemirrorJson,
+              textContent: jsonToText(prosemirrorJson),
+              ydoc: await this.importService.createYdoc(prosemirrorJson),
+              position: page.position!,
+              spaceId: fileTask.spaceId,
+              workspaceId: fileTask.workspaceId,
+              creatorId: fileTask.creatorId,
+              lastUpdatedById: fileTask.creatorId,
+              parentPageId: page.parentPageId,
+            };
+
+            await trx.insertInto('pages').values(insertablePage).execute();
+
+            // Track valid page IDs and collect backlinks
+            validPageIds.add(insertablePage.id);
+            allBacklinks.push(...backlinks);
+            totalPagesProcessed++;
+
+            // Log progress periodically
+            if (totalPagesProcessed % 50 === 0) {
+              this.logger.debug(`Processed ${totalPagesProcessed} pages...`);
+            }
+          }
+        }
+
+        const filteredBacklinks = allBacklinks.filter(
+          ({ sourcePageId, targetPageId }) =>
+            validPageIds.has(sourcePageId) && validPageIds.has(targetPageId),
         );
 
-        const { title, prosemirrorJson } =
-          this.importService.extractTitleAndRemoveHeading(pmState);
+        // Insert backlinks in batches
+        if (filteredBacklinks.length > 0) {
+          const BACKLINK_BATCH_SIZE = 100;
+          for (
+            let i = 0;
+            i < filteredBacklinks.length;
+            i += BACKLINK_BATCH_SIZE
+          ) {
+            const backlinkChunk = filteredBacklinks.slice(
+              i,
+              Math.min(i + BACKLINK_BATCH_SIZE, filteredBacklinks.length),
+            );
+            await this.backlinkRepo.insertBacklink(backlinkChunk, trx);
+          }
+        }
 
-        const insertablePage: InsertablePage = {
-          id: page.id,
-          slugId: page.slugId,
-          title: title || page.name,
-          icon: pageIcon || null,
-          content: prosemirrorJson,
-          textContent: jsonToText(prosemirrorJson),
-          ydoc: await this.importService.createYdoc(prosemirrorJson),
-          position: page.position!,
-          spaceId: fileTask.spaceId,
-          workspaceId: fileTask.workspaceId,
-          creatorId: fileTask.creatorId,
-          lastUpdatedById: fileTask.creatorId,
-          parentPageId: page.parentPageId,
-        };
-
-        return { insertablePage, backlinks };
-      }),
-    );
-
-    const insertablePages = pageResults.map((r) => r.insertablePage);
-    const insertableBacklinks = pageResults.flatMap((r) => r.backlinks);
-
-    if (insertablePages.length < 1) return;
-    const validPageIds = new Set(insertablePages.map((row) => row.id));
-    const filteredBacklinks = insertableBacklinks.filter(
-      ({ sourcePageId, targetPageId }) =>
-        validPageIds.has(sourcePageId) && validPageIds.has(targetPageId),
-    );
-
-    await executeTx(this.db, async (trx) => {
-      await trx.insertInto('pages').values(insertablePages).execute();
-
-      if (filteredBacklinks.length > 0) {
-        await this.backlinkRepo.insertBacklink(filteredBacklinks, trx);
-      }
-    });
+        this.logger.log(
+          `Successfully imported ${totalPagesProcessed} pages with ${filteredBacklinks.length} backlinks`,
+        );
+      });
+    } catch (error) {
+      this.logger.error('Failed to import files:', error);
+      throw new Error(`File import failed: ${error?.['message']}`);
+    }
   }
 
   async getFileTask(fileTaskId: string) {
