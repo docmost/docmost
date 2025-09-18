@@ -26,12 +26,15 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import ColumnLayoutMenu from "@/features/editor/components/column-layout/column-layout-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import AudioMenu from "@/features/editor/components/audio/audio-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import EmbedMenu from "@/features/editor/components/embed/embed-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -51,6 +54,7 @@ import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from '@/features/search/constants.ts';
+import { useAnchorScroll } from "./components/heading/use-anchor-scroll";
 
 interface PageEditorProps {
   pageId: string;
@@ -87,8 +91,11 @@ export default function PageEditor({
   const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
+  useAnchorScroll();
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+
+  const userSpellcheckPref = currentUser?.user?.settings?.preferences?.spellcheck ?? true;
 
   // Providers only created once per pageId
   const providersRef = useRef<{
@@ -208,6 +215,11 @@ export default function PageEditor({
     ];
   }, [remoteProvider, currentUser?.user]);
 
+  const debouncedSendSaveCommand = useDebouncedCallback(() => {
+    const payload = 'forceSave';
+    remoteProvider.sendStateless(payload);
+  }, 300);
+
   const editor = useEditor(
     {
       extensions,
@@ -221,6 +233,7 @@ export default function PageEditor({
           keydown: (_view, event) => {
             if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
               event.preventDefault();
+              debouncedSendSaveCommand();
               return true;
             }
             if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
@@ -314,7 +327,6 @@ export default function PageEditor({
   useEffect(() => {
     setActiveCommentId(null);
     setShowCommentPopup(false);
-    setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
   useEffect(() => {
@@ -383,7 +395,8 @@ export default function PageEditor({
   return (
     <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+
+        <EditorContent editor={editor} spellCheck={userSpellcheckPref} />
 
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
@@ -392,10 +405,13 @@ export default function PageEditor({
         {editor && editor.isEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
+            <EmbedMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
+            <ColumnLayoutMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
+            <AudioMenu editor={editor} />
             <CalloutMenu editor={editor} />
             <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />

@@ -4,14 +4,15 @@ import {
   AppShell,
   Group,
   ScrollArea,
-  Tooltip,
+  Text,
+  Tooltip
 } from "@mantine/core";
 import { useGetSharedPageTreeQuery } from "@/features/share/queries/share-query.ts";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import SharedTree from "@/features/share/components/shared-tree.tsx";
 import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
-import { ThemeToggle } from "@/components/theme-toggle.tsx";
+import { ThemeToggle } from "@/components/ui/theme-toggle.tsx";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useAtom } from "jotai";
 import { sharedPageTreeAtom, sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
@@ -36,7 +37,7 @@ import {
 } from "@/features/search/components/search-control.tsx";
 import { ShareSearchSpotlight } from "@/features/search/components/share-search-spotlight.tsx";
 import { shareSearchSpotlight } from "@/features/search/constants";
-import ShareBranding from '@/features/share/components/share-branding.tsx';
+import { FullWidthToggle } from "@/components/ui/full-width-toggle";
 
 const MemoizedSharedTree = React.memo(SharedTree);
 
@@ -57,7 +58,8 @@ export default function ShareShell({
   const toggleToc = useToggleToc(tableOfContentAsideAtom);
 
   const { shareId } = useParams();
-  const { data } = useGetSharedPageTreeQuery(shareId);
+  const sessionPassword = shareId ? sessionStorage.getItem(`share-password-${shareId}`) : null;
+  const { data } = useGetSharedPageTreeQuery(shareId, sessionPassword || undefined);
   const readOnlyEditor = useAtomValue(readOnlyEditorAtom);
 
   // @ts-ignore
@@ -125,6 +127,12 @@ export default function ShareShell({
                 </Tooltip>
               </>
             )}
+            <Text
+              size="lg"
+              fw={600}
+            >
+              {import.meta.env.VITE_APP_NAME || "Forkmost"}
+            </Text>
           </Group>
 
           {shareId && (
@@ -166,6 +174,7 @@ export default function ShareShell({
               </Tooltip>
             </>
 
+            <FullWidthToggle />
             <ThemeToggle />
           </Group>
         </Group>
@@ -179,8 +188,6 @@ export default function ShareShell({
 
       <AppShell.Main>
         {children}
-
-        {data && shareId && !data.hasLicenseKey && <ShareBranding />}
       </AppShell.Main>
 
       <AppShell.Aside

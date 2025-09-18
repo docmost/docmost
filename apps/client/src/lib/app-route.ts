@@ -10,6 +10,7 @@ const APP_ROUTE = {
     PASSWORD_RESET: "/password-reset",
     CREATE_WORKSPACE: "/create",
     SELECT_WORKSPACE: "/select",
+    OIDC_CALLBACK: "/auth/oidc/callback",
     MFA_CHALLENGE: "/login/mfa",
     MFA_SETUP_REQUIRED: "/login/mfa/setup",
   },
@@ -25,6 +26,7 @@ const APP_ROUTE = {
       SPACES: "/settings/spaces",
       BILLING: "/settings/billing",
       SECURITY: "/settings/security",
+      OIDC: "/settings/oidc",
     },
   },
 };

@@ -8,9 +8,24 @@
     }
   }
 
-  .node-image, .node-video, .node-excalidraw, .node-drawio {
+  .node-image, .node-video, .node-audio, .node-excalidraw, .node-drawio {
     &.ProseMirror-selectednode {
       outline: none;
+    }
+  }
+
+  .node-audio {
+    margin: var(--mantine-spacing-sm) 0;
+
+    audio {
+      width: 100%;
+      max-width: 100%;
+      outline: none;
+      
+      &:focus {
+        outline: 2px solid var(--mantine-color-blue-5);
+        outline-offset: 2px;
+      }
     }
   }
 
@@ -36,6 +51,64 @@
   .uploading-text {
     font-size: var(--mantine-font-size-md);
     line-height: var(--mantine-line-height-md);
+  }
+
+}
+
+/* PDF specific styles for responsive design */
+.pdf-wrapper {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.pdf-wrapper .react-pdf__Page {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.pdf-wrapper .react-pdf__Page__canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+.pdf-wrapper .react-pdf__Document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Floating */
+.pdf-wrapper[style*="float: left"] {
+  clear: left;
+}
+
+.pdf-wrapper[style*="float: right"] {
+  clear: right;
+}
+
+.pdf-wrapper[style*="float: left"],
+.pdf-wrapper[style*="float: right"] {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.pdf-wrapper[style*="margin: 0 auto 0 0"] {
+  justify-self: start;
+}
+
+.pdf-wrapper[style*="margin: 0 0 0 auto"] {
+  justify-self: end;
+}
+
+@media (max-width: 768px) {
+  .pdf-wrapper[style*="float"] {
+    float: none !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
   }
 }
 

@@ -10,6 +10,7 @@ export interface EmbedAttributes {
   src?: string;
   provider: string;
   align?: string;
+  resizable?: boolean;
   width?: number;
   height?: number;
 }
@@ -68,6 +69,17 @@ export const Embed = Node.create<EmbedOptions>({
         parseHTML: (element) => element.getAttribute('data-width'),
         renderHTML: (attributes: EmbedAttributes) => ({
           'data-width': attributes.width,
+        }),
+      },
+      resizable: {
+        default: true,
+        parseHTML: (element) => {
+          const val = element.getAttribute('data-resizable');
+          if (val === null) return true;
+          return val === 'true';
+        },
+        renderHTML: (attributes: EmbedAttributes) => ({
+          'data-resizable': attributes.resizable,
         }),
       },
       height: {
