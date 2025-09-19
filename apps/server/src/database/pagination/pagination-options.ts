@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -23,4 +24,9 @@ export class PaginationOptions {
   @IsOptional()
   @IsString()
   query: string;
+
+  //for space endpoint workspace owners
+  @IsOptional()
+  @IsBoolean()
+  includeAllSpaces?: boolean;
 }

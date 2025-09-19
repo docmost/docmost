@@ -8,11 +8,20 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
+import { useAtom } from "jotai";
+import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { UserRole } from "@/lib/types.ts";
+import { useIsEEOnly } from "@/hooks/use-is-cloud-ee.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetSpacesQuery({ page });
+  const [user] = useAtom(userAtom);
+  const isEEOnly = useIsEEOnly();
+  const { data, isLoading } = useGetSpacesQuery({
+    page,
+    ...(isEEOnly && user.role === UserRole.OWNER && { includeAllSpaces: true }),
+  });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 

@@ -10,7 +10,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
-import { SpaceRole } from '../../common/helpers/types/permission';
+import { SpaceRole, UserRole } from '../../common/helpers/types/permission';
 import { getPageId } from '../collaboration.util';
 import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
 
@@ -63,7 +63,10 @@ export class AuthenticationExtension implements Extension {
 
     const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
 
-    if (!userSpaceRole) {
+    // if role not found but user is a workspace owner, grant them readonly permission
+    if (!userSpaceRole && user.role === UserRole.OWNER) {
+      data.connection.readOnly = true;
+    } else if (!userSpaceRole) {
       this.logger.warn(`User not authorized to access page: ${pageId}`);
       throw new UnauthorizedException();
     }

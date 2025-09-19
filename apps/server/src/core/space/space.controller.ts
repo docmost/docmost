@@ -34,6 +34,7 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { SpaceRole, UserRole } from '../../common/helpers/types/permission';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -52,7 +53,17 @@ export class SpaceController {
     @Body()
     pagination: PaginationOptions,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
+    if (pagination.includeAllSpaces) {
+      if (user.role !== UserRole.OWNER) {
+        throw new ForbiddenException('Only workspace owners view all spaces');
+      }
+      return this.spaceMemberService.getAllWorkspaceSpaces(
+        workspace.id,
+        pagination,
+      );
+    }
     return this.spaceMemberService.getUserSpaces(user.id, pagination);
   }
 
@@ -82,7 +93,10 @@ export class SpaceController {
       space.id,
     );
 
-    const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+    let userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+    if (!userSpaceRole && user.role === UserRole.OWNER) {
+      userSpaceRole = SpaceRole.READER;
+    }
 
     const membership = {
       userId: user.id,

@@ -263,4 +263,37 @@ export class SpaceMemberRepo {
 
     return result;
   }
+
+  async getAllWorkspaceSpaces(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    let query = this.db
+      .selectFrom('spaces')
+      .selectAll()
+      .select((eb) => [this.spaceRepo.withMemberCount(eb)])
+      .where('workspaceId', '=', workspaceId)
+      .orderBy('createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb(
+          sql`f_unaccent(name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`f_unaccent(description)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ),
+      );
+    }
+
+    const result = executeWithPagination(query, {
+      page: pagination.page,
+      perPage: pagination.limit,
+    });
+
+    return result;
+  }
 }

@@ -279,4 +279,14 @@ export class SpaceMemberService {
   ): Promise<PaginationResult<Space>> {
     return await this.spaceMemberRepo.getUserSpaces(userId, pagination);
   }
+
+  async getAllWorkspaceSpaces(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<PaginationResult<Space>> {
+    return await this.spaceMemberRepo.getAllWorkspaceSpaces(
+      workspaceId,
+      pagination,
+    );
+  }
 }
