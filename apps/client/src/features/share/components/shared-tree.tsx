@@ -1,14 +1,11 @@
 import { ISharedPageTree } from "@/features/share/types/share.types.ts";
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
 import {
   buildSharedPageTree,
   SharedPageTreeNode,
 } from "@/features/share/utils.ts";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useElementSize, useMergedRef } from "@mantine/hooks";
-import { SpaceTreeNode } from "@/features/page/tree/types.ts";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { atom, useAtom } from "jotai/index";
+import { useAtom } from "jotai/index";
 import { useTranslation } from "react-i18next";
 import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import clsx from "clsx";
@@ -20,135 +17,161 @@ import {
 } from "@tabler/icons-react";
 import { ActionIcon, Box } from "@mantine/core";
 import { extractPageSlugId } from "@/lib";
-import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import classes from "@/features/page/tree/styles/tree.module.css";
 import styles from "./share.module.css";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
+import { useTree as useHeadlessTree } from "@headless-tree/react/react17";
+import { 
+  selectionFeature,
+  hotkeysCoreFeature,
+  type FeatureImplementation,
+  type ItemInstance, 
+  syncDataLoaderFeature,
+  expandAllFeature
+} from "@headless-tree/core";
 
 interface SharedTree {
   sharedPageTree: ISharedPageTree;
 }
 
-const openSharedTreeNodesAtom = atom<OpenMap>({});
+declare module "@headless-tree/core" {
+  export interface TreeConfig<T> {
+    activeItemId?: string;
+  }
+  export interface ItemInstance<T> {
+    isActive: () => boolean;
+  }
+}
+
+const headlessTreeExtensions: FeatureImplementation<SharedPageTreeNode> = {
+  itemInstance: {
+    isActive: ({itemId, tree}) => tree.getConfig().activeItemId === itemId,
+  },
+};
 
 export default function SharedTree({ sharedPageTree }: SharedTree) {
-  const [tree, setTree] = useState<
-    TreeApi<SharedPageTreeNode> | null | undefined
-  >(null);
-  const rootElement = useRef<HTMLDivElement>();
-  const { ref: sizeRef, width, height } = useElementSize();
-  const mergedRef = useMergedRef(rootElement, sizeRef);
-  const { pageSlug } = useParams();
-  const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(
-    openSharedTreeNodesAtom,
-  );
+  const { pageSlug, shareId } = useParams();
+  const { t } = useTranslation();
+  const [, setMobileSidebarState] = useAtom(mobileSidebarAtom);
 
   const currentNodeId = extractPageSlugId(pageSlug);
 
   const treeData: SharedPageTreeNode[] = useMemo(() => {
-    if (!sharedPageTree?.pageTree) return;
+    if (!sharedPageTree?.pageTree) return [];
     return buildSharedPageTree(sharedPageTree.pageTree);
   }, [sharedPageTree?.pageTree]);
 
-  useEffect(() => {
-    const parentNodeId = treeData?.[0]?.slugId;
-
-    if (parentNodeId && tree) {
-      const parentNode = tree.get(parentNodeId);
-
-      setTimeout(() => {
-        if (parentNode) {
-          tree.openSiblings(parentNode);
+  const flatItemsMap = useMemo(() => {
+    const map: Record<string, SharedPageTreeNode> = {};
+    
+    function traverse(nodes: SharedPageTreeNode[]) {
+      for (const node of nodes) {
+        map[node.slugId] = node;
+        if (node.children && node.children.length > 0) {
+          traverse(node.children);
         }
-      });
-
-      // open direct children of parent node
-      parentNode?.children.forEach((node) => {
-        tree.openSiblings(node);
-      });
+      }
     }
-  }, [treeData, tree]);
+    
+    traverse(treeData);
+    return map;
+  }, [treeData]);
+
+  const tree = useHeadlessTree<SharedPageTreeNode>({
+    rootItemId: "root",
+    activeItemId: currentNodeId,
+    getItemName: item => item.getItemData()?.name ?? t("untitled"),
+    isItemFolder: item => {
+      const data = item.getItemData();
+      return data?.hasChildren || (data?.children && data.children.length > 0);
+    },
+    dataLoader: {
+      getItem: itemId => {
+        return flatItemsMap[itemId] || null;
+      },
+      getChildren: itemId => {
+        const children = itemId === "root" ? treeData : flatItemsMap[itemId]?.children || [];
+        return children.map(item => item.id);
+      }
+    },
+    indent: 20,
+    features: [
+      syncDataLoaderFeature,
+      selectionFeature,
+      hotkeysCoreFeature,
+      headlessTreeExtensions,
+      expandAllFeature
+    ]
+  });
 
   useEffect(() => {
-    if (currentNodeId && tree) {
-      setTimeout(() => {
-        // focus on node and open all parents
-        tree?.select(currentNodeId, { align: "auto" });
-      }, 200);
-    } else {
-      tree?.deselectAll();
-    }
-  }, [currentNodeId, tree]);
+    tree.expandAll();
+  }, [tree]);
 
   if (!sharedPageTree || !sharedPageTree?.pageTree) {
     return null;
   }
 
   return (
-    <div ref={mergedRef} className={classes.treeContainer}>
-      {rootElement.current && (
-        <Tree
-          data={treeData}
-          disableDrag={true}
-          disableDrop={true}
-          disableEdit={true}
-          width={width}
-          height={rootElement.current.clientHeight}
-          ref={(t) => setTree(t)}
-          openByDefault={false}
-          disableMultiSelection={true}
-          className={classes.tree}
-          rowClassName={classes.row}
-          rowHeight={30}
-          overscanCount={10}
-          dndRootElement={rootElement.current}
-          onToggle={() => {
-            setOpenTreeNodes(tree?.openState);
-          }}
-          initialOpenState={openTreeNodes}
-          onClick={(e) => {
-            if (tree && tree.focusedNode) {
-              tree.select(tree.focusedNode);
-            }
-          }}
-        >
-          {Node}
-        </Tree>
-      )}
+    <div className={classes.treeContainer}>
+      <div {...tree.getContainerProps()} className="tree">
+        {tree.getItems().map((item) => (
+          <Node
+            key={item.getId()}
+            item={item}
+            shareId={shareId}
+            onMobileSidebarClose={() => setMobileSidebarState(false)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-function Node({ node, style, tree }: NodeRendererProps<any>) {
-  const { shareId } = useParams();
+function Node({ item, shareId, onMobileSidebarClose }: {
+  item: ItemInstance<SharedPageTreeNode>;
+  shareId: string;
+  onMobileSidebarClose: () => void;
+}) {
   const { t } = useTranslation();
-  const [, setMobileSidebarState] = useAtom(mobileSidebarAtom);
+
+  const data = item.getItemData();
+  if (!data) {
+    console.warn("Item data is missing for item:", item.getId());
+    return null;
+  }
 
   const pageUrl = buildSharedPageUrl({
     shareId: shareId,
-    pageSlugId: node.data.slugId,
-    pageTitle: node.data.name,
+    pageSlugId: data.slugId,
+    pageTitle: data.name,
   });
 
   return (
     <>
       <Box
-        style={style}
-        className={clsx(classes.node, node.state, styles.treeNode)}
+        {...item.getProps()}
+        style={{ paddingLeft: `${item.getItemMeta().level * 20}px` }}
+        className={clsx(
+          classes.node, 
+          item.isActive() && classes.isSelected,
+          item.isFocused() && classes.isFocused,
+          styles.treeNode
+        )}
         component={Link}
         to={pageUrl}
         onClick={() => {
-          setMobileSidebarState(false);
+          onMobileSidebarClose();
         }}
       >
-        <PageArrow node={node} />
+        <PageArrow item={item} />
         <div style={{ marginRight: "4px" }}>
           <EmojiPicker
             onEmojiSelect={() => {}}
             icon={
-              node.data.icon ? (
-                node.data.icon
+              data.icon ? (
+                data.icon
               ) : (
                 <IconFileDescription size="18" />
               )
@@ -157,17 +180,25 @@ function Node({ node, style, tree }: NodeRendererProps<any>) {
             removeEmojiAction={() => {}}
           />
         </div>
-        <span className={classes.text}>{node.data.name || t("untitled")}</span>
+        <span className={classes.text}>{data.name || t("untitled")}</span>
       </Box>
     </>
   );
 }
 
 interface PageArrowProps {
-  node: NodeApi<SpaceTreeNode>;
+  item: ItemInstance<SharedPageTreeNode>;
 }
 
-function PageArrow({ node }: PageArrowProps) {
+function PageArrow({ item }: PageArrowProps) {
+  const [isFolder, setIsFolder] = useState(false);
+
+  useEffect(() => {
+    // isFolder() will dispatch retrieval of children if not loaded,
+    // so let's not call that during render
+    setIsFolder(item.isFolder());
+  });
+
   return (
     <ActionIcon
       size={20}
@@ -176,20 +207,23 @@ function PageArrow({ node }: PageArrowProps) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        node.toggle();
+        if (!isFolder) return;
+        if (item.isExpanded()) {
+          item.collapse();
+        } else {
+          item.expand();
+        }
       }}
     >
-      {node.isInternal ? (
-        node.children && (node.children.length > 0 || node.data.hasChildren) ? (
-          node.isOpen ? (
-            <IconChevronDown stroke={2} size={16} />
-          ) : (
-            <IconChevronRight stroke={2} size={16} />
-          )
+      {isFolder ? (
+        item.isExpanded() ? (
+          <IconChevronDown stroke={2} size={16} />
         ) : (
-          <IconPointFilled size={4} />
+          <IconChevronRight stroke={2} size={16} />
         )
-      ) : null}
+      ) : (
+        <IconPointFilled size={4} />
+      )}
     </ActionIcon>
   );
 }
