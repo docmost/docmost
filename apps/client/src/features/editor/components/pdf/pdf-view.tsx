@@ -58,12 +58,6 @@ export default function PdfView(props: PdfViewProps) {
   const { colorScheme } = useMantineColorScheme();
   const location = useLocation();
   
-  const shareId = useMemo(() => {
-    const path = location.pathname;
-    const shareMatch = path.match(/\/share\/([^/]+)/);
-    return shareMatch ? shareMatch[1] : undefined;
-  }, [location.pathname]);
-  
   const isSharedPage = useMemo(() => {
     return location.pathname.includes('/share/');
   }, [location.pathname]);
@@ -154,7 +148,7 @@ export default function PdfView(props: PdfViewProps) {
     if (!totalPages) {
       updateAttributes({ totalPages: loadedPages });
     }
-  }, [totalPages, updateAttributes, src, shareId]);
+  }, [totalPages, updateAttributes, src]);
 
   const handlePageChange = useCallback((newPage: number) => {
     if (isLocked) return;
@@ -510,7 +504,7 @@ export default function PdfView(props: PdfViewProps) {
         
         {isBrowserView ? (
           <iframe
-            src={getFileUrl(src, shareId)}
+            src={getFileUrl(src)}
             style={{
               width: width || '100%',
               height: browserHeight,
@@ -523,13 +517,12 @@ export default function PdfView(props: PdfViewProps) {
         ) : (
           <>
         <Document
-          file={getFileUrl(src, shareId)}
+          file={getFileUrl(src)}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={(error) => {
             console.error("PDF load error:", error);
             console.log("Failed PDF src:", src);
-            console.log("Failed PDF URL:", getFileUrl(src, shareId));
-            console.log("ShareId:", shareId);
+            console.log("Failed PDF URL:", getFileUrl(src));
           }}
           loading={
             <div style={{ 
