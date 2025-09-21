@@ -222,17 +222,40 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function unwrapFromParagraph($: CheerioAPI, $node: Cheerio<any>) {
-  // find the nearest <p> or <a> ancestor
-  let $wrapper = $node.closest('p, a');
+  // Keep track of processed wrappers to avoid infinite loops
+  const processedWrappers = new Set<any>();
 
+  let $wrapper = $node.closest('p, a');
   while ($wrapper.length) {
-    // if the wrapper has only our node inside, replace it entirely
-    if ($wrapper.contents().length === 1) {
+    const wrapperElement = $wrapper.get(0);
+
+    // If we've already processed this wrapper, break to avoid infinite loop
+    if (processedWrappers.has(wrapperElement)) {
+      break;
+    }
+
+    processedWrappers.add(wrapperElement);
+
+    // Check if the wrapper contains only whitespace and our target node
+    const hasOnlyTargetNode =
+      $wrapper.contents().filter((_, el) => {
+        const $el = $(el);
+        // Skip whitespace-only text nodes. NodeType 3 = text node
+        if (el.nodeType === 3 && !$el.text().trim()) {
+          return false;
+        }
+        // Return true if this is not our target node
+        return !$el.is($node) && !$node.is($el);
+      }).length === 0;
+
+    if (hasOnlyTargetNode) {
+      // Replace the wrapper entirely with our node
       $wrapper.replaceWith($node);
     } else {
-      // otherwise just move the node to before the wrapper
+      // Move the node to before the wrapper, preserving other content
       $wrapper.before($node);
     }
+
     // look again for any new wrapper around $node
     $wrapper = $node.closest('p, a');
   }
