@@ -46,7 +46,7 @@ export class ImportController {
   ) {
     const validFileExtensions = ['.md', '.html'];
 
-    const maxFileSize = bytes('10mb');
+    const maxFileSize = bytes(this.environmentService.getFileImportSizeLimit());
 
     let file = null;
     try {
