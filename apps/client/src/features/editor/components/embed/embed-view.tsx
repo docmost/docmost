@@ -10,8 +10,10 @@ import {
   Popover,
   Text,
   TextInput,
+  Center,
+  Stack,
 } from "@mantine/core";
-import { IconEdit, IconArrowsMove, IconArrowsMaximize, IconArrowsMinimize } from "@tabler/icons-react";
+import { IconEdit, IconArrowsMove, IconArrowsMaximize, IconArrowsMinimize, IconPlayerPlay } from "@tabler/icons-react";
 import { z } from "zod";
 import { useForm } from "@mantine/form";
 import { zodResolver } from "mantine-form-zod-resolver";
@@ -36,9 +38,10 @@ const schema = z.object({
 export default function EmbedView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, selected, updateAttributes, editor } = props;
-  const { src, provider, height: nodeHeight, width: nodeWidth, resizable = true } = node.attrs;
+  const { src, provider, height: nodeHeight, width: nodeWidth, resizable = true, lazyLoad = false } = node.attrs;
 
   const [isResizable, setIsResizable] = useState<boolean>(resizable);
+  const [shouldLoadIframe, setShouldLoadIframe] = useState<boolean>(!lazyLoad);
 
   const embedUrl = useMemo(() => {
     if (src) {
@@ -69,6 +72,14 @@ export default function EmbedView(props: NodeViewProps) {
     setIsResizable(!!resizable);
   }, [resizable]);
 
+  useEffect(() => {
+    setShouldLoadIframe(!lazyLoad);
+  }, [lazyLoad]);
+
+  const handleLoadIframe = useCallback(() => {
+    setShouldLoadIframe(true);
+  }, []);
+
   async function onSubmit(data: { url: string }) {
     if (!editor.isEditable) {
       return;
@@ -98,7 +109,45 @@ export default function EmbedView(props: NodeViewProps) {
     <NodeViewWrapper>
       {embedUrl ? (
         <div className={classes.embedContainer}>
-          {isResizable ? (
+          {!shouldLoadIframe ? (
+            <Card
+              radius="md"
+              p="lg"
+              withBorder
+              className={clsx(classes.embedPlaceholder, {
+                "ProseMirror-selectednode": selected,
+              })}
+              style={{ 
+                height: nodeHeight || 480,
+                width: nodeWidth || "100%"
+              }}
+            >
+              <Center style={{ height: "100%" }}>
+                <Stack align="center" gap="md">
+                  <ActionIcon
+                    variant="filled"
+                    size="xl"
+                    radius="xl"
+                    color="blue"
+                  >
+                    <IconPlayerPlay size={24} />
+                  </ActionIcon>
+                  <Text size="lg" fw={500} ta="center">
+                    {t("Click to load {{provider}}", {
+                      provider: getEmbedProviderById(provider)?.name || provider,
+                    })}
+                  </Text>
+                  <Button 
+                    onClick={handleLoadIframe}
+                    variant="filled"
+                    leftSection={<IconPlayerPlay size={16} />}
+                  >
+                    {t("Load Embed")}
+                  </Button>
+                </Stack>
+              </Center>
+            </Card>
+          ) : isResizable ? (
             <ResizableWrapper
               initialHeight={nodeHeight || 480}
               initialWidth={nodeWidth || "100%"}
