@@ -64,3 +64,9 @@ export async function collectMarkdownAndHtmlFiles(
   await walk(dir);
   return results;
 }
+
+export function stripNotionID(fileName: string): string {
+  // Handle optional separator (space or dash) + 32 alphanumeric chars at end
+  const notionIdPattern = /[ -]?[a-z0-9]{32}$/i;
+  return fileName.replace(notionIdPattern, '').trim();
+}
