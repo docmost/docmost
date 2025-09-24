@@ -10,19 +10,10 @@ export interface IRegister {
 }
 
 export interface ISetupWorkspace {
-  workspaceName: string;
+  workspaceName?: string;
   name: string;
   email: string;
   password: string;
-}
-
-export interface ITokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface ITokenResponse {
-  tokens: ITokens;
 }
 
 export interface IChangePassword {
@@ -42,4 +33,15 @@ export interface IPasswordReset {
 export interface IVerifyUserToken {
   token: string;
   type: string;
+}
+
+export interface ICollabToken {
+  token?: string;
+}
+
+export interface ILoginResponse {
+  userHasMfa?: boolean;
+  requiresMfaSetup?: boolean;
+  mfaToken?: string;
+  isMfaEnforced?: boolean;
 }

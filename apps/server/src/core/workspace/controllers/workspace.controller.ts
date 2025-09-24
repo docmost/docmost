@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { WorkspaceService } from '../services/workspace.service';
@@ -29,6 +30,10 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../../casl/interfaces/workspace-ability.type';
+import { FastifyReply } from 'fastify';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { CheckHostnameDto } from '../dto/check-hostname.dto';
+import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -37,6 +42,7 @@ export class WorkspaceController {
     private readonly workspaceService: WorkspaceService,
     private readonly workspaceInvitationService: WorkspaceInvitationService,
     private readonly workspaceAbility: WorkspaceAbilityFactory,
+    private environmentService: EnvironmentService,
   ) {}
 
   @Public()
@@ -55,7 +61,8 @@ export class WorkspaceController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async updateWorkspace(
-    @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() dto: UpdateWorkspaceDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
@@ -66,7 +73,21 @@ export class WorkspaceController {
       throw new ForbiddenException();
     }
 
-    return this.workspaceService.update(workspace.id, updateWorkspaceDto);
+    const updatedWorkspace = await this.workspaceService.update(
+      workspace.id,
+      dto,
+    );
+
+    if (
+      dto.hostname &&
+      dto.hostname === updatedWorkspace.hostname &&
+      workspace.hostname !== updatedWorkspace.hostname
+    ) {
+      // log user out of old hostname
+      res.clearCookie('authToken');
+    }
+
+    return updatedWorkspace;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -97,8 +118,22 @@ export class WorkspaceController {
     ) {
       throw new ForbiddenException();
     }
+  }
 
-    return this.workspaceService.deactivateUser();
+  @HttpCode(HttpStatus.OK)
+  @Post('members/delete')
+  async deleteWorkspaceMember(
+    @Body() dto: RemoveWorkspaceUserDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    await this.workspaceService.deleteUser(user, dto.userId, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -144,10 +179,13 @@ export class WorkspaceController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('invites/info')
-  async getInvitationById(@Body() dto: InvitationIdDto, @Req() req: any) {
+  async getInvitationById(
+    @Body() dto: InvitationIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     return this.workspaceInvitationService.getInvitationById(
       dto.invitationId,
-      req.raw.workspaceId,
+      workspace,
     );
   }
 
@@ -167,7 +205,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.createInvitation(
       inviteUserDto,
-      workspace.id,
+      workspace,
       user,
     );
   }
@@ -188,7 +226,7 @@ export class WorkspaceController {
 
     return this.workspaceInvitationService.resendInvitation(
       revokeInviteDto.invitationId,
-      workspace.id,
+      workspace,
     );
   }
 
@@ -217,11 +255,62 @@ export class WorkspaceController {
   @Post('invites/accept')
   async acceptInvite(
     @Body() acceptInviteDto: AcceptInviteDto,
-    @Req() req: any,
+    @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.workspaceInvitationService.acceptInvitation(
+    const result = await this.workspaceInvitationService.acceptInvitation(
       acceptInviteDto,
-      req.raw.workspaceId,
+      workspace,
     );
+
+    if (result.requiresLogin) {
+      return {
+        requiresLogin: true,
+      };
+    }
+
+    res.setCookie('authToken', result.authToken, {
+      httpOnly: true,
+      path: '/',
+      expires: this.environmentService.getCookieExpiresIn(),
+      secure: this.environmentService.isHttps(),
+    });
+
+    return {
+      requiresLogin: false,
+    };
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/check-hostname')
+  async checkHostname(@Body() checkHostnameDto: CheckHostnameDto) {
+    return this.workspaceService.checkHostname(checkHostnameDto.hostname);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('invites/link')
+  async getInviteLink(
+    @Body() inviteDto: InvitationIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (this.environmentService.isCloud()) {
+      throw new ForbiddenException();
+    }
+
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Member)
+    ) {
+      throw new ForbiddenException();
+    }
+    const inviteLink =
+      await this.workspaceInvitationService.getInvitationLinkById(
+        inviteDto.invitationId,
+        workspace,
+      );
+
+    return { inviteLink };
   }
 }

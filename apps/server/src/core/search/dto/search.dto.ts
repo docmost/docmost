@@ -7,12 +7,17 @@ import {
 } from 'class-validator';
 
 export class SearchDTO {
+  @IsNotEmpty()
   @IsString()
   query: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   spaceId: string;
+
+  @IsOptional()
+  @IsString()
+  shareId?: string;
 
   @IsOptional()
   @IsString()
@@ -27,15 +32,37 @@ export class SearchDTO {
   offset?: number;
 }
 
+export class SearchShareDTO extends SearchDTO {
+  @IsNotEmpty()
+  @IsString()
+  shareId: string;
+
+  @IsOptional()
+  @IsString()
+  spaceId: string;
+}
+
 export class SearchSuggestionDTO {
   @IsString()
   query: string;
 
   @IsOptional()
   @IsBoolean()
-  includeUsers?: string;
+  includeUsers?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  includeGroups?: number;
+  includeGroups?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includePages?: boolean;
+
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
 }

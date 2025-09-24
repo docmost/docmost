@@ -1,31 +1,46 @@
-import {Group, Text, Tooltip} from "@mantine/core";
+import { Badge, Group, Text, Tooltip } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
-import {useAtom} from "jotai/index";
+import { useAtom } from "jotai";
 import {
   desktopSidebarAtom,
   mobileSidebarAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
-import {useToggleSidebar} from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
+import { useTranslation } from "react-i18next";
+import useTrial from "@/ee/hooks/use-trial.tsx";
+import { isCloud } from "@/lib/config.ts";
+import {
+  SearchControl,
+  SearchMobileControl,
+} from "@/features/search/components/search-control.tsx";
+import {
+  searchSpotlight,
+  shareSearchSpotlight,
+} from "@/features/search/constants.ts";
 
-const links = [{link: APP_ROUTE.HOME, label: "Home"}];
+const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
 export function AppHeader() {
+  const { t } = useTranslation();
   const [mobileOpened] = useAtom(mobileSidebarAtom);
   const toggleMobile = useToggleSidebar(mobileSidebarAtom);
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
+  const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
+  const isSpacesRoute = location.pathname === "/spaces";
+  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
-      {link.label}
+      {t(link.label)}
     </Link>
   ));
 
@@ -33,12 +48,11 @@ export function AppHeader() {
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
         <Group wrap="nowrap">
-          {!isHomeRoute && (
+          {!hideSidebar && (
             <>
-              <Tooltip label="Sidebar toggle">
-
+              <Tooltip label={t("Sidebar toggle")}>
                 <SidebarToggle
-                  aria-label="Sidebar toggle"
+                  aria-label={t("Sidebar toggle")}
                   opened={mobileOpened}
                   onClick={toggleMobile}
                   hiddenFrom="sm"
@@ -46,9 +60,9 @@ export function AppHeader() {
                 />
               </Tooltip>
 
-              <Tooltip label="Sidebar toggle">
+              <Tooltip label={t("Sidebar toggle")}>
                 <SidebarToggle
-                  aria-label="Sidebar toggle"
+                  aria-label={t("Sidebar toggle")}
                   opened={desktopOpened}
                   onClick={toggleDesktop}
                   visibleFrom="sm"
@@ -61,7 +75,7 @@ export function AppHeader() {
           <Text
             size="lg"
             fw={600}
-            style={{cursor: "pointer", userSelect: "none"}}
+            style={{ cursor: "pointer", userSelect: "none" }}
             component={Link}
             to="/home"
           >
@@ -73,8 +87,30 @@ export function AppHeader() {
           </Group>
         </Group>
 
-        <Group px={"xl"}>
-          <TopMenu/>
+        <div>
+          <Group visibleFrom="sm">
+            <SearchControl onClick={searchSpotlight.open} />
+          </Group>
+          <Group hiddenFrom="sm">
+            <SearchMobileControl onSearch={searchSpotlight.open} />
+          </Group>
+        </div>
+
+        <Group px={"xl"} wrap="nowrap">
+          {isCloud() && isTrial && trialDaysLeft !== 0 && (
+            <Badge
+              variant="light"
+              style={{ cursor: "pointer" }}
+              component={Link}
+              to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
+              visibleFrom="xs"
+            >
+              {trialDaysLeft === 1
+                ? "1 day left"
+                : `${trialDaysLeft} days left`}
+            </Badge>
+          )}
+          <TopMenu />
         </Group>
       </Group>
     </>

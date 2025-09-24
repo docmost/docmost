@@ -12,6 +12,13 @@ import {
   SpaceMembers,
   WorkspaceInvitations,
   UserTokens,
+  Backlinks,
+  Billing as BillingSubscription,
+  AuthProviders,
+  AuthAccounts,
+  Shares,
+  FileTasks,
+  UserMfa as _UserMFA,
 } from './db';
 
 // Workspace
@@ -77,3 +84,38 @@ export type UpdatableAttachment = Updateable<Omit<Attachments, 'id'>>;
 export type UserToken = Selectable<UserTokens>;
 export type InsertableUserToken = Insertable<UserTokens>;
 export type UpdatableUserToken = Updateable<Omit<UserTokens, 'id'>>;
+
+// Backlink
+export type Backlink = Selectable<Backlinks>;
+export type InsertableBacklink = Insertable<Backlink>;
+export type UpdatableBacklink = Updateable<Omit<Backlink, 'id'>>;
+
+// Billing
+export type Billing = Selectable<BillingSubscription>;
+export type InsertableBilling = Insertable<BillingSubscription>;
+export type UpdatableBilling = Updateable<Omit<BillingSubscription, 'id'>>;
+
+// Auth Provider
+export type AuthProvider = Selectable<AuthProviders>;
+export type InsertableAuthProvider = Insertable<AuthProviders>;
+export type UpdatableAuthProvider = Updateable<Omit<AuthProviders, 'id'>>;
+
+// Auth Account
+export type AuthAccount = Selectable<AuthAccounts>;
+export type InsertableAuthAccount = Insertable<AuthAccounts>;
+export type UpdatableAuthAccount = Updateable<Omit<AuthAccounts, 'id'>>;
+
+// Share
+export type Share = Selectable<Shares>;
+export type InsertableShare = Insertable<Shares>;
+export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
+
+// File Task
+export type FileTask = Selectable<FileTasks>;
+export type InsertableFileTask = Insertable<FileTasks>;
+export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
+
+// UserMFA
+export type UserMFA = Selectable<_UserMFA>;
+export type InsertableUserMFA = Insertable<_UserMFA>;
+export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;

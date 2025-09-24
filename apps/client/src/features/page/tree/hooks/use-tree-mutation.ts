@@ -13,7 +13,7 @@ import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreatePageMutation,
-  useDeletePageMutation,
+  useRemovePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
 } from "@/features/page/queries/page-query.ts";
@@ -28,7 +28,7 @@ export function useTreeMutation<T>(spaceId: string) {
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
-  const deletePageMutation = useDeletePageMutation();
+  const removePageMutation = useRemovePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
   const { spaceSlug } = useParams();
@@ -75,24 +75,25 @@ export function useTreeMutation<T>(spaceId: string) {
     setTimeout(() => {
       emit({
         operation: "addTreeNode",
+        spaceId: spaceId,
         payload: {
           parentId,
           index,
-          data
-        }
+          data,
+        },
       });
     }, 50);
 
     const pageUrl = buildPageUrl(
       spaceSlug,
       createdPage.slugId,
-      createdPage.title,
+      createdPage.title
     );
     navigate(pageUrl);
     return data;
   };
 
-  const onMove: MoveHandler<T> = (args: {
+  const onMove: MoveHandler<T> = async (args: {
     dragIds: string[];
     dragNodes: NodeApi<T>[];
     parentId: string | null;
@@ -156,17 +157,15 @@ export function useTreeMutation<T>(spaceId: string) {
       // check if the previous still has children
       // if no children left, change 'hasChildren' to false, to make the page toggle arrows work properly
       const childrenCount = previousParent.children.filter(
-        (child) => child.id !== draggedNodeId,
+        (child) => child.id !== draggedNodeId
       ).length;
       if (childrenCount === 0) {
         tree.update({
           id: previousParent.id,
-          changes: { ... previousParent.data, hasChildren: false } as any,
+          changes: { ...previousParent.data, hasChildren: false } as any,
         });
       }
     }
-
-    //console.log()
 
     setData(tree.data);
 
@@ -177,12 +176,18 @@ export function useTreeMutation<T>(spaceId: string) {
     };
 
     try {
-      movePageMutation.mutateAsync(payload);
+      await movePageMutation.mutateAsync(payload);
 
       setTimeout(() => {
         emit({
           operation: "moveTreeNode",
-          payload: { id: draggedNodeId, parentId: args.parentId, index: args.index, position: newPosition },
+          spaceId: spaceId,
+          payload: {
+            id: draggedNodeId,
+            parentId: args.parentId,
+            index: args.index,
+            position: newPosition,
+          },
         });
       }, 50);
     } catch (error) {
@@ -201,9 +206,26 @@ export function useTreeMutation<T>(spaceId: string) {
     }
   };
 
+  const isPageInNode = (
+    node: { data: SpaceTreeNode; children?: any[] },
+    pageSlug: string
+  ): boolean => {
+    if (node.data.slugId === pageSlug) {
+      return true;
+    }
+    for (const item of node.children) {
+      if (item.data.slugId === pageSlug) {
+        return true;
+      } else {
+        return isPageInNode(item, pageSlug);
+      }
+    }
+    return false;
+  };
+
   const onDelete: DeleteHandler<T> = async (args: { ids: string[] }) => {
     try {
-      await deletePageMutation.mutateAsync(args.ids[0]);
+      await removePageMutation.mutateAsync(args.ids[0]);
 
       const node = tree.find(args.ids[0]);
       if (!node) {
@@ -213,18 +235,17 @@ export function useTreeMutation<T>(spaceId: string) {
       tree.drop({ id: args.ids[0] });
       setData(tree.data);
 
-      // navigate only if the current url is same as the deleted page
-      if (pageSlug && node.data.slugId === pageSlug.split('-')[1]) {
+      if (pageSlug && isPageInNode(node, pageSlug.split("-")[1])) {
         navigate(getSpaceUrl(spaceSlug));
       }
 
       setTimeout(() => {
         emit({
           operation: "deleteTreeNode",
-          payload: { node: node.data }
+          spaceId: spaceId,
+          payload: { node: node.data },
         });
       }, 50);
-
     } catch (error) {
       console.error("Failed to delete page:", error);
     }

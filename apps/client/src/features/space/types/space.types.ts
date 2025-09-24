@@ -3,12 +3,13 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { ExportFormat } from "@/features/page/types/page.types.ts";
 
 export interface ISpace {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  logo?: string;
   slug: string;
   hostname: string;
   creatorId: string;
@@ -68,3 +69,9 @@ export interface SpaceGroupInfo {
 }
 
 export type ISpaceMember = { role: string } & (SpaceUserInfo | SpaceGroupInfo);
+
+export interface IExportSpaceParams {
+  spaceId: string;
+  format: ExportFormat;
+  includeAttachments?: boolean;
+}

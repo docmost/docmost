@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Users } from '@docmost/db/types/db';
+import { DB, Users } from '@docmost/db/types/db';
 import { hashPassword } from '../../../common/helpers';
 import { dbOrTx } from '@docmost/db/utils';
 import {
@@ -11,7 +11,8 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { sql } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
 @Injectable()
 export class UserRepo {
@@ -33,6 +34,7 @@ export class UserRepo {
     'createdAt',
     'updatedAt',
     'deletedAt',
+    'hasGeneratedPassword',
   ];
 
   async findById(
@@ -40,6 +42,7 @@ export class UserRepo {
     workspaceId: string,
     opts?: {
       includePassword?: boolean;
+      includeUserMfa?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<User> {
@@ -48,6 +51,7 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .$if(opts?.includePassword, (qb) => qb.select('password'))
+      .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -56,12 +60,18 @@ export class UserRepo {
   async findByEmail(
     email: string,
     workspaceId: string,
-    includePassword?: boolean,
+    opts?: {
+      includePassword?: boolean;
+      includeUserMfa?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<User> {
-    return this.db
+    const db = dbOrTx(this.db, opts?.trx);
+    return db
       .selectFrom('users')
       .select(this.baseFields)
-      .$if(includePassword, (qb) => qb.select('password'))
+      .$if(opts?.includePassword, (qb) => qb.select('password'))
+      .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -99,7 +109,8 @@ export class UserRepo {
     trx?: KyselyTransaction,
   ): Promise<User> {
     const user: InsertableUser = {
-      name: insertableUser.name || insertableUser.email.toLowerCase(),
+      name:
+        insertableUser.name || insertableUser.email.split('@')[0].toLowerCase(),
       email: insertableUser.email.toLowerCase(),
       password: await hashPassword(insertableUser.password),
       locale: 'en-US',
@@ -110,8 +121,8 @@ export class UserRepo {
     const db = dbOrTx(this.db, trx);
     return db
       .insertInto('users')
-      .values(user)
-      .returningAll()
+      .values({ ...insertableUser, ...user })
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -134,14 +145,19 @@ export class UserRepo {
       .selectFrom('users')
       .select(this.baseFields)
       .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
       .orderBy('createdAt', 'asc');
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`).or(
-          'users.email',
+        eb(
+          sql`f_unaccent(users.name)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`users.email`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }
@@ -172,30 +188,17 @@ export class UserRepo {
       .executeTakeFirst();
   }
 
-  /*
-  async getSpaceIds(
-    workspaceId: string,
-    pagination: PaginationOptions,
-  ): Promise<PaginationResult<Space>> {
-    const spaces = await this.spaceRepo.getSpacesInWorkspace(
-      workspaceId,
-      pagination,
-    );
-
-    return spaces;
+  withUserMfa(eb: ExpressionBuilder<DB, 'users'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('userMfa')
+        .select([
+          'userMfa.id',
+          'userMfa.method',
+          'userMfa.isEnabled',
+          'userMfa.createdAt',
+        ])
+        .whereRef('userMfa.userId', '=', 'users.id'),
+    ).as('mfa');
   }
-
-  async getUserSpaces(
-    workspaceId: string,
-    pagination: PaginationOptions,
-  ): Promise<PaginationResult<Space>> {
-    const spaces = await this.spaceRepo.getSpacesInWorkspace(
-      workspaceId,
-      pagination,
-    );
-
-    return spaces;
-  }
-
-   */
 }

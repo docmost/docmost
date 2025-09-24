@@ -17,13 +17,15 @@ import {
   IconColumnRemove,
   IconRowInsertBottom,
   IconRowInsertTop,
-  IconRowRemove,
+  IconRowRemove, IconTableColumn, IconTableRow,
   IconTrashX,
-} from "@tabler/icons-react";
+} from '@tabler/icons-react';
 import { isCellSelection } from "@docmost/editor-ext";
+import { useTranslation } from "react-i18next";
 
 export const TableMenu = React.memo(
   ({ editor }: EditorMenuProps): JSX.Element => {
+    const { t } = useTranslation();
     const shouldShow = useCallback(
       ({ state }: ShouldShowProps) => {
         if (!state) {
@@ -46,6 +48,14 @@ export const TableMenu = React.memo(
       }
 
       return posToDOMRect(editor.view, selection.from, selection.to);
+    }, [editor]);
+
+    const toggleHeaderColumn = useCallback(() => {
+      editor.chain().focus().toggleHeaderColumn().run();
+    }, [editor]);
+
+    const toggleHeaderRow = useCallback(() => {
+      editor.chain().focus().toggleHeaderRow().run();
     }, [editor]);
 
     const addColumnLeft = useCallback(() => {
@@ -111,79 +121,104 @@ export const TableMenu = React.memo(
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
-          <Tooltip position="top" label="Add left column">
+          <Tooltip position="top" label={t("Add left column")}
+          >
             <ActionIcon
               onClick={addColumnLeft}
               variant="default"
               size="lg"
-              aria-label="Add left column"
+              aria-label={t("Add left column")}
             >
               <IconColumnInsertLeft size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Add right column">
+          <Tooltip position="top" label={t("Add right column")}>
             <ActionIcon
               onClick={addColumnRight}
               variant="default"
               size="lg"
-              aria-label="Add right column"
+              aria-label={t("Add right column")}
             >
               <IconColumnInsertRight size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Delete column">
+          <Tooltip position="top" label={t("Delete column")}>
             <ActionIcon
               onClick={deleteColumn}
               variant="default"
               size="lg"
-              aria-label="Delete column"
+              aria-label={t("Delete column")}
             >
               <IconColumnRemove size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Add row above">
+          <Tooltip position="top" label={t("Add row above")}>
             <ActionIcon
               onClick={addRowAbove}
               variant="default"
               size="lg"
-              aria-label="Add row above"
+              aria-label={t("Add row above")}
             >
               <IconRowInsertTop size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Add row below">
+          <Tooltip position="top" label={t("Add row below")}>
             <ActionIcon
               onClick={addRowBelow}
               variant="default"
               size="lg"
-              aria-label="Add row below"
+              aria-label={t("Add row below")}
             >
               <IconRowInsertBottom size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Delete row">
+          <Tooltip position="top" label={t("Delete row")}>
             <ActionIcon
               onClick={deleteRow}
               variant="default"
               size="lg"
-              aria-label="Delete row"
+              aria-label={t("Delete row")}
             >
               <IconRowRemove size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Delete table">
+          <Tooltip position="top" label={t("Toggle header row")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderRow}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header row")}
+            >
+              <IconTableRow size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header column")}
+          >
+            <ActionIcon
+              onClick={toggleHeaderColumn}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header column")}
+            >
+              <IconTableColumn size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Delete table")}>
             <ActionIcon
               onClick={deleteTable}
               variant="default"
               size="lg"
               color="red"
-              aria-label="Delete table"
+              aria-label={t("Delete table")}
             >
               <IconTrashX size={18} />
             </ActionIcon>

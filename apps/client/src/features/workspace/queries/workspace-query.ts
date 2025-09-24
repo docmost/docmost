@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -14,14 +15,20 @@ import {
   revokeInvitation,
   getWorkspace,
   getWorkspacePublicData,
+  getAppVersion,
+  deleteWorkspaceMember,
 } from "@/features/workspace/services/workspace-service";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 import { notifications } from "@mantine/notifications";
 import {
   ICreateInvite,
   IInvitation,
+  IPublicWorkspace,
+  IVersion,
   IWorkspace,
 } from "@/features/workspace/types/workspace.types.ts";
+import { IUser } from "@/features/user/types/user.types.ts";
+import { useTranslation } from "react-i18next";
 
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
@@ -31,7 +38,7 @@ export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
 }
 
 export function useWorkspacePublicDataQuery(): UseQueryResult<
-  IWorkspace,
+  IPublicWorkspace,
   Error
 > {
   return useQuery({
@@ -40,10 +47,37 @@ export function useWorkspacePublicDataQuery(): UseQueryResult<
   });
 }
 
-export function useWorkspaceMembersQuery(params?: QueryParams) {
+export function useWorkspaceMembersQuery(
+  params?: QueryParams,
+): UseQueryResult<IPagination<IUser>, Error> {
   return useQuery({
     queryKey: ["workspaceMembers", params],
     queryFn: () => getWorkspaceMembers(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDeleteWorkspaceMemberMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    {
+      userId: string;
+    }
+  >({
+    mutationFn: (data) => deleteWorkspaceMember(data),
+    onSuccess: (data, variables) => {
+      notifications.show({ message: "Member deleted successfully" });
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceMembers"],
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage, color: "red" });
+    },
   });
 }
 
@@ -53,7 +87,6 @@ export function useChangeMemberRoleMutation() {
   return useMutation<any, Error, any>({
     mutationFn: (data) => changeMemberRole(data),
     onSuccess: (data, variables) => {
-      // TODO: change in cache instead
       notifications.show({ message: "Member role updated successfully" });
       queryClient.refetchQueries({
         queryKey: ["workspaceMembers"],
@@ -72,17 +105,18 @@ export function useWorkspaceInvitationsQuery(
   return useQuery({
     queryKey: ["invitations", params],
     queryFn: () => getPendingInvitations(params),
+    placeholderData: keepPreviousData,
   });
 }
 
 export function useCreateInvitationMutation() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, ICreateInvite>({
     mutationFn: (data) => createInvitation(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Invitation sent" });
-      // TODO: mutate cache
+      notifications.show({ message: t("Invitation sent") });
       queryClient.refetchQueries({
         queryKey: ["invitations"],
       });
@@ -139,11 +173,22 @@ export function useRevokeInvitationMutation() {
 
 export function useGetInvitationQuery(
   invitationId: string,
-): UseQueryResult<any, Error> {
+): UseQueryResult<IInvitation, Error> {
   return useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ["invitations", invitationId],
     queryFn: () => getInvitationById({ invitationId }),
     enabled: !!invitationId,
+  });
+}
+
+export function useAppVersion(
+  isEnabled: boolean,
+): UseQueryResult<IVersion, Error> {
+  return useQuery({
+    queryKey: ["version"],
+    queryFn: () => getAppVersion(),
+    staleTime: 60 * 60 * 1000, // 1 hr
+    enabled: isEnabled,
+    refetchOnMount: true,
   });
 }

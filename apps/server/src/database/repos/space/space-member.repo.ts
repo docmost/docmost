@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
+import { sql } from 'kysely';
 import {
   InsertableSpaceMember,
   SpaceMember,
@@ -97,7 +98,7 @@ export class SpaceMemberRepo {
     spaceId: string,
     pagination: PaginationOptions,
   ) {
-    const query = this.db
+    let query = this.db
       .selectFrom('spaceMembers')
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
@@ -114,7 +115,28 @@ export class SpaceMemberRepo {
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
       .where('spaceId', '=', spaceId)
+      .orderBy((eb) => eb('groups.id', 'is not', null), 'desc')
       .orderBy('spaceMembers.createdAt', 'asc');
+
+    if (pagination.query) {
+      query = query.where((eb) =>
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        )
+          .or(
+            sql`users.email`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          )
+          .or(
+            sql`f_unaccent(groups.name)`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          ),
+      );
+    }
 
     const result = await executeWithPagination(query, {
       page: pagination.page,
@@ -211,7 +233,7 @@ export class SpaceMemberRepo {
 
     let query = this.db
       .selectFrom('spaces')
-      .selectAll('spaces')
+      .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       //.where('workspaceId', '=', workspaceId)
       .where('id', 'in', userSpaceIds)
@@ -219,17 +241,24 @@ export class SpaceMemberRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('name', 'ilike', `%${pagination.query}%`).or(
-          'description',
+        eb(
+          sql`f_unaccent(name)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`f_unaccent(description)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }
 
+    const hasEmptyIds = userSpaceIds.length === 0;
+
     const result = executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
+      hasEmptyIds,
     });
 
     return result;

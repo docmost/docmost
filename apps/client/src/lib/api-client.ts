@@ -1,39 +1,21 @@
 import axios, { AxiosInstance } from "axios";
-import Cookies from "js-cookie";
-import Routes from "@/lib/app-route.ts";
+import APP_ROUTE from "@/lib/app-route.ts";
+import { isCloud } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
   withCredentials: true,
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const tokenData = Cookies.get("authTokens");
-
-    let accessToken: string;
-    try {
-      accessToken = tokenData && JSON.parse(tokenData)?.accessToken;
-    } catch (err) {
-      console.log("invalid authTokens:", err.message);
-      Cookies.remove("authTokens");
-    }
-
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
 api.interceptors.response.use(
   (response) => {
-    // we need the response headers
-    if (response.request.responseURL.includes("/api/pages/export")) {
-      return response;
+    // we need the response headers for these endpoints
+    const exemptEndpoints = ["/api/pages/export", "/api/spaces/export"];
+    if (response.request.responseURL) {
+      const path = new URL(response.request.responseURL)?.pathname;
+      if (path && exemptEndpoints.includes(path)) {
+        return response;
+      }
     }
 
     return response.data;
@@ -41,11 +23,15 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       switch (error.response.status) {
-        case 401:
+        case 401: {
+          const url = new URL(error.request.responseURL)?.pathname;
+          if (url === "/api/auth/collab-token") return;
+          if (window.location.pathname.startsWith("/share/")) return;
+
           // Handle unauthorized error
-          Cookies.remove("authTokens");
           redirectToLogin();
           break;
+        }
         case 403:
           // Handle forbidden error
           break;
@@ -57,10 +43,11 @@ api.interceptors.response.use(
               .includes("workspace not found")
           ) {
             console.log("workspace not found");
-            Cookies.remove("authTokens");
-
-            if (window.location.pathname != Routes.AUTH.SETUP) {
-              window.location.href = Routes.AUTH.SETUP;
+            if (
+              !isCloud() &&
+              window.location.pathname != APP_ROUTE.AUTH.SETUP
+            ) {
+              window.location.href = APP_ROUTE.AUTH.SETUP;
             }
           }
           break;
@@ -76,11 +63,15 @@ api.interceptors.response.use(
 );
 
 function redirectToLogin() {
-  if (
-    window.location.pathname != Routes.AUTH.LOGIN &&
-    window.location.pathname != Routes.AUTH.SIGNUP
-  ) {
-    window.location.href = Routes.AUTH.LOGIN;
+  const exemptPaths = [
+    APP_ROUTE.AUTH.LOGIN,
+    APP_ROUTE.AUTH.SIGNUP,
+    APP_ROUTE.AUTH.FORGOT_PASSWORD,
+    APP_ROUTE.AUTH.PASSWORD_RESET,
+    "/invites",
+  ];
+  if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
+    window.location.href = APP_ROUTE.AUTH.LOGIN;
   }
 }
 

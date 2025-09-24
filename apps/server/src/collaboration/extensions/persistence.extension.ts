@@ -1,5 +1,7 @@
 import {
+  afterUnloadDocumentPayload,
   Extension,
+  onChangePayload,
   onLoadDocumentPayload,
   onStoreDocumentPayload,
 } from '@hocuspocus/server';
@@ -12,15 +14,27 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { Queue } from 'bullmq';
+import {
+  extractMentions,
+  extractPageMentions,
+} from '../../common/helpers/prosemirror/utils';
+import { isDeepStrictEqual } from 'node:util';
+import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
+import { Page } from '@docmost/db/types/entity.types';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
+  private contributors: Map<string, Set<string>> = new Map();
 
   constructor(
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private eventEmitter: EventEmitter2,
+    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -85,12 +99,13 @@ export class PersistenceExtension implements Extension {
       this.logger.warn('jsonToText' + err?.['message']);
     }
 
-    try {
-      let page = null;
+    let page: Page = null;
 
+    try {
       await executeTx(this.db, async (trx) => {
         page = await this.pageRepo.findById(pageId, {
           withLock: true,
+          includeContent: true,
           trx,
         });
 
@@ -99,28 +114,77 @@ export class PersistenceExtension implements Extension {
           return;
         }
 
+        if (isDeepStrictEqual(tiptapJson, page.content)) {
+          page = null;
+          return;
+        }
+
+        let contributorIds = undefined;
+        try {
+          const existingContributors = page.contributorIds || [];
+          const contributorSet = this.contributors.get(documentName);
+          contributorSet.add(page.creatorId);
+          const newContributors = [...contributorSet];
+          contributorIds = Array.from(
+            new Set([...existingContributors, ...newContributors]),
+          );
+          this.contributors.delete(documentName);
+        } catch (err) {
+          //this.logger.debug('Contributors error:' + err?.['message']);
+        }
+
         await this.pageRepo.updatePage(
           {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
             lastUpdatedById: context.user.id,
+            contributorIds: contributorIds,
           },
           pageId,
           trx,
         );
-      });
 
-      this.eventEmitter.emit('collab.page.updated', {
-        page: {
-          ...page,
-          lastUpdatedById: context.user.id,
-          content: tiptapJson,
-          textContent: textContent,
-        },
+        this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
     }
+
+    if (page) {
+      this.eventEmitter.emit('collab.page.updated', {
+        page: {
+          ...page,
+          content: tiptapJson,
+          lastUpdatedById: context.user.id,
+        },
+      });
+
+      const mentions = extractMentions(tiptapJson);
+      const pageMentions = extractPageMentions(mentions);
+
+      await this.generalQueue.add(QueueJob.PAGE_BACKLINKS, {
+        pageId: pageId,
+        workspaceId: page.workspaceId,
+        mentions: pageMentions,
+      } as IPageBacklinkJob);
+    }
+  }
+
+  async onChange(data: onChangePayload) {
+    const documentName = data.documentName;
+    const userId = data.context?.user.id;
+    if (!userId) return;
+
+    if (!this.contributors.has(documentName)) {
+      this.contributors.set(documentName, new Set());
+    }
+
+    this.contributors.get(documentName).add(userId);
+  }
+
+  async afterUnloadDocument(data: afterUnloadDocumentPayload) {
+    const documentName = data.documentName;
+    this.contributors.delete(documentName);
   }
 }

@@ -18,14 +18,16 @@ import classes from "./bubble-menu.module.css";
 import { ActionIcon, rem, Tooltip } from "@mantine/core";
 import { ColorSelector } from "./color-selector";
 import { NodeSelector } from "./node-selector";
+import { TextAlignmentSelector } from "./text-alignment-selector";
 import {
   draftCommentIdAtom,
   showCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
 import { useAtom } from "jotai";
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
+import { useTranslation } from "react-i18next";
 
 export interface BubbleMenuItem {
   name: string;
@@ -39,6 +41,7 @@ type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
+  const { t } = useTranslation();
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
@@ -49,31 +52,31 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const items: BubbleMenuItem[] = [
     {
-      name: "bold",
+      name: "Bold",
       isActive: () => props.editor.isActive("bold"),
       command: () => props.editor.chain().focus().toggleBold().run(),
       icon: IconBold,
     },
     {
-      name: "italic",
+      name: "Italic",
       isActive: () => props.editor.isActive("italic"),
       command: () => props.editor.chain().focus().toggleItalic().run(),
       icon: IconItalic,
     },
     {
-      name: "underline",
+      name: "Underline",
       isActive: () => props.editor.isActive("underline"),
       command: () => props.editor.chain().focus().toggleUnderline().run(),
       icon: IconUnderline,
     },
     {
-      name: "strike",
+      name: "Strike",
       isActive: () => props.editor.isActive("strike"),
       command: () => props.editor.chain().focus().toggleStrike().run(),
       icon: IconStrikethrough,
     },
     {
-      name: "code",
+      name: "Code",
       isActive: () => props.editor.isActive("code"),
       command: () => props.editor.chain().focus().toggleCode().run(),
       icon: IconCode,
@@ -81,10 +84,10 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   ];
 
   const commentItem: BubbleMenuItem = {
-    name: "comment",
+    name: "Comment",
     isActive: () => props.editor.isActive("comment"),
     command: () => {
-      const commentId = uuidv4();
+      const commentId = uuid7();
 
       props.editor.chain().focus().setCommentDecoration().run();
       setDraftCommentId(commentId);
@@ -113,8 +116,15 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     },
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",
+      onCreate: (instance) => {
+        instance.popper.firstChild?.addEventListener("blur", (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        });
+      },
       onHide: () => {
         setIsNodeSelectorOpen(false);
+        setIsTextAlignmentOpen(false);
         setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
       },
@@ -122,6 +132,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   };
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
+  const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
@@ -133,18 +144,32 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isNodeSelectorOpen}
           setIsOpen={() => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsLinkSelectorOpen(false);
+          }}
+        />
+
+        <TextAlignmentSelector
+          editor={props.editor}
+          isOpen={isTextAlignmentSelectorOpen}
+          setIsOpen={() => {
+            setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsColorSelectorOpen(false);
+            setIsLinkSelectorOpen(false);
           }}
         />
 
         <ActionIcon.Group>
           {items.map((item, index) => (
-            <Tooltip key={index} label={item.name} withArrow>
+            <Tooltip key={index} label={t(item.name)} withArrow>
               <ActionIcon
                 key={index}
                 variant="default"
                 size="lg"
                 radius="0"
-                aria-label={item.name}
+                aria-label={t(item.name)}
                 className={clsx({ [classes.active]: item.isActive() })}
                 style={{ border: "none" }}
                 onClick={item.command}
@@ -158,8 +183,11 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         <LinkSelector
           editor={props.editor}
           isOpen={isLinkSelectorOpen}
-          setIsOpen={() => {
-            setIsLinkSelectorOpen(!isLinkSelectorOpen);
+          setIsOpen={(value) => {
+            setIsLinkSelectorOpen(value);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 
@@ -168,6 +196,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           isOpen={isColorSelectorOpen}
           setIsOpen={() => {
             setIsColorSelectorOpen(!isColorSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsLinkSelectorOpen(false);
           }}
         />
 
@@ -175,7 +206,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           variant="default"
           size="lg"
           radius="0"
-          aria-label={commentItem.name}
+          aria-label={t(commentItem.name)}
           style={{ border: "none" }}
           onClick={commentItem.command}
         >

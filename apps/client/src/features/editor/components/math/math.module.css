@@ -7,6 +7,7 @@
     transition: background-color 0.2s;
     padding: 0 0.25rem;
     margin: 0 0.1rem;
+    user-select: none;
 
     &.empty {
         color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
@@ -30,6 +31,7 @@
     transition: background-color 0.2s;
     margin: 0 0.1rem;
     overflow-x: auto;
+    user-select: none;
 
     .textInput {
         width: 400px;

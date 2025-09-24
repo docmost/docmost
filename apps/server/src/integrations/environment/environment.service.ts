@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
 
 @Injectable()
 export class EnvironmentService {
@@ -10,10 +11,26 @@ export class EnvironmentService {
   }
 
   getAppUrl(): string {
-    return (
+    const rawUrl =
       this.configService.get<string>('APP_URL') ||
-      'http://localhost:' + this.getPort()
-    );
+      `http://localhost:${this.getPort()}`;
+
+    const { origin } = new URL(rawUrl);
+    return origin;
+  }
+
+  isHttps(): boolean {
+    const appUrl = this.configService.get<string>('APP_URL');
+    try {
+      const url = new URL(appUrl);
+      return url.protocol === 'https:';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  getSubdomainHost(): string {
+    return this.configService.get<string>('SUBDOMAIN_HOST');
   }
 
   getPort(): number {
@@ -28,6 +45,10 @@ export class EnvironmentService {
     return this.configService.get<string>('DATABASE_URL');
   }
 
+  getDatabaseMaxPool(): number {
+    return parseInt(this.configService.get<string>('DATABASE_MAX_POOL', '10'));
+  }
+
   getRedisUrl(): string {
     return this.configService.get<string>(
       'REDIS_URL',
@@ -36,7 +57,18 @@ export class EnvironmentService {
   }
 
   getJwtTokenExpiresIn(): string {
-    return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '30d');
+    return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '90d');
+  }
+
+  getCookieExpiresIn(): Date {
+    const expiresInStr = this.getJwtTokenExpiresIn();
+    let msUntilExpiry: number;
+    try {
+      msUntilExpiry = ms(expiresInStr as StringValue);
+    } catch (err) {
+      msUntilExpiry = ms('90d');
+    }
+    return new Date(Date.now() + msUntilExpiry);
   }
 
   getStorageDriver(): string {
@@ -44,8 +76,11 @@ export class EnvironmentService {
   }
 
   getFileUploadSizeLimit(): string {
-
     return this.configService.get<string>('FILE_UPLOAD_SIZE_LIMIT', '50mb');
+  }
+
+  getFileImportSizeLimit(): string {
+    return this.configService.get<string>('FILE_IMPORT_SIZE_LIMIT', '200mb');
   }
 
   getAwsS3AccessKeyId(): string {
@@ -122,6 +157,10 @@ export class EnvironmentService {
     return this.configService.get<string>('POSTMARK_TOKEN');
   }
 
+  getDrawioUrl(): string {
+    return this.configService.get<string>('DRAWIO_URL');
+  }
+
   isCloud(): boolean {
     const cloudConfig = this.configService
       .get<string>('CLOUD', 'false')
@@ -131,5 +170,47 @@ export class EnvironmentService {
 
   isSelfHosted(): boolean {
     return !this.isCloud();
+  }
+
+  getStripePublishableKey(): string {
+    return this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
+  }
+
+  getStripeSecretKey(): string {
+    return this.configService.get<string>('STRIPE_SECRET_KEY');
+  }
+
+  getStripeWebhookSecret(): string {
+    return this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+  }
+
+  getBillingTrialDays(): number {
+    return parseInt(this.configService.get<string>('BILLING_TRIAL_DAYS', '14'));
+  }
+
+  getCollabUrl(): string {
+    return this.configService.get<string>('COLLAB_URL');
+  }
+
+  isCollabDisableRedis(): boolean {
+    const isStandalone = this.configService
+      .get<string>('COLLAB_DISABLE_REDIS', 'false')
+      .toLowerCase();
+    return isStandalone === 'true';
+  }
+
+  isDisableTelemetry(): boolean {
+    const disable = this.configService
+      .get<string>('DISABLE_TELEMETRY', 'false')
+      .toLowerCase();
+    return disable === 'true';
+  }
+
+  getPostHogHost(): string {
+    return this.configService.get<string>('POSTHOG_HOST');
+  }
+
+  getPostHogKey(): string {
+    return this.configService.get<string>('POSTHOG_KEY');
   }
 }

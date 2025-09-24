@@ -12,6 +12,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from '../../common/helpers/types/permission';
 import { getPageId } from '../collaboration.util';
+import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
@@ -28,12 +29,12 @@ export class AuthenticationExtension implements Extension {
     const { documentName, token } = data;
     const pageId = getPageId(documentName);
 
-    let jwtPayload = null;
+    let jwtPayload: JwtCollabPayload;
 
     try {
-      jwtPayload = await this.tokenService.verifyJwt(token);
+      jwtPayload = await this.tokenService.verifyJwt(token, JwtType.COLLAB);
     } catch (error) {
-      throw new UnauthorizedException('Could not verify jwt token');
+      throw new UnauthorizedException('Invalid collab token');
     }
 
     const userId = jwtPayload.sub;
@@ -42,6 +43,10 @@ export class AuthenticationExtension implements Extension {
     const user = await this.userRepo.findById(userId, workspaceId);
 
     if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    if (user.deactivatedAt || user.deletedAt) {
       throw new UnauthorizedException();
     }
 

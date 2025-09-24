@@ -1,5 +1,6 @@
 import * as TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
+import * as path from 'path';
 
 export function turndown(html: string): string {
   const turndownService = new TurndownService({
@@ -23,6 +24,7 @@ export function turndown(html: string): string {
     mathInline,
     mathBlock,
     iframeEmbed,
+    video,
   ]);
   return turndownService.turndown(html).replaceAll('<br>', ' ');
 }
@@ -67,8 +69,17 @@ function taskList(turndownService: TurndownService) {
         'input[type="checkbox"]',
       ) as HTMLInputElement;
       const isChecked = checkbox.checked;
-
-      return `- ${isChecked ? '[x]' : '[ ]'}  ${content.trim()} \n`;
+      
+      // Process content like regular list items
+      content = content
+        .replace(/^\n+/, '') // remove leading newlines
+        .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
+        .replace(/\n/gm, '\n  '); // indent nested content with 2 spaces
+      
+      // Create the checkbox prefix
+      const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
+      
+      return prefix + content + (node.nextSibling && !/\n$/.test(content) ? '\n' : '');
     },
   });
 }
@@ -79,16 +90,22 @@ function preserveDetail(turndownService: TurndownService) {
       return node.nodeName === 'DETAILS';
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      // TODO: preserve summary of nested details
       const summary = node.querySelector(':scope > summary');
       let detailSummary = '';
 
       if (summary) {
         detailSummary = `<summary>${turndownService.turndown(summary.innerHTML)}</summary>`;
-        summary.remove();
       }
 
-      const detailsContent = turndownService.turndown(node.innerHTML);
+      const detailsContent = Array.from(node.childNodes)
+        .filter((child) => child.nodeName !== 'SUMMARY')
+        .map((child) =>
+          child.nodeType === 1
+            ? turndownService.turndown((child as HTMLElement).outerHTML)
+            : child.textContent,
+        )
+        .join('');
+
       return `\n<details>\n${detailSummary}\n\n${detailsContent}\n\n</details>\n`;
     },
   });
@@ -117,7 +134,7 @@ function mathBlock(turndownService: TurndownService) {
       );
     },
     replacement: function (content: any, node: HTMLInputElement) {
-      return `\n$$${content}$$\n`;
+      return `\n$$\n${content}\n$$\n`;
     },
   });
 }
@@ -130,6 +147,19 @@ function iframeEmbed(turndownService: TurndownService) {
     replacement: function (content: any, node: HTMLInputElement) {
       const src = node.getAttribute('src');
       return '[' + src + '](' + src + ')';
+    },
+  });
+}
+
+function video(turndownService: TurndownService) {
+  turndownService.addRule('video', {
+    filter: function (node: HTMLInputElement) {
+      return node.tagName === 'VIDEO';
+    },
+    replacement: function (content: any, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      const name = path.basename(src);
+      return '[' + name + '](' + src + ')';
     },
   });
 }

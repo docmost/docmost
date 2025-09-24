@@ -25,19 +25,39 @@ export class StaticModule implements OnModuleInit {
       'client/dist',
     );
 
-    if (fs.existsSync(clientDistPath)) {
-      const indexFilePath = join(clientDistPath, 'index.html');
+    const indexFilePath = join(clientDistPath, 'index.html');
+
+    if (fs.existsSync(clientDistPath) && fs.existsSync(indexFilePath)) {
+      const indexTemplateFilePath = join(clientDistPath, 'index-template.html');
       const windowVar = '<!--window-config-->';
 
       const configString = {
         ENV: this.environmentService.getNodeEnv(),
         APP_URL: this.environmentService.getAppUrl(),
-        IS_CLOUD: this.environmentService.isCloud(),
-        FILE_UPLOAD_SIZE_LIMIT: this.environmentService.getFileUploadSizeLimit()
+        CLOUD: this.environmentService.isCloud(),
+        FILE_UPLOAD_SIZE_LIMIT:
+          this.environmentService.getFileUploadSizeLimit(),
+        FILE_IMPORT_SIZE_LIMIT:
+          this.environmentService.getFileImportSizeLimit(),
+        DRAWIO_URL: this.environmentService.getDrawioUrl(),
+        SUBDOMAIN_HOST: this.environmentService.isCloud()
+          ? this.environmentService.getSubdomainHost()
+          : undefined,
+        COLLAB_URL: this.environmentService.getCollabUrl(),
+        BILLING_TRIAL_DAYS: this.environmentService.isCloud()
+          ? this.environmentService.getBillingTrialDays()
+          : undefined,
+        POSTHOG_HOST: this.environmentService.getPostHogHost(),
+        POSTHOG_KEY: this.environmentService.getPostHogKey(),
       };
 
       const windowScriptContent = `<script>window.CONFIG=${JSON.stringify(configString)};</script>`;
-      const html = fs.readFileSync(indexFilePath, 'utf8');
+
+      if (!fs.existsSync(indexTemplateFilePath)) {
+        fs.copyFileSync(indexFilePath, indexTemplateFilePath);
+      }
+
+      const html = fs.readFileSync(indexTemplateFilePath, 'utf8');
       const transformedHtml = html.replace(windowVar, windowScriptContent);
 
       fs.writeFileSync(indexFilePath, transformedHtml);

@@ -16,12 +16,21 @@ import {
 } from "@/features/editor/atoms/editor-atoms";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
+import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
+import { useParams } from "react-router-dom";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type.ts";
 
 interface Props {
   pageId: string;
 }
 
 function HistoryList({ pageId }: Props) {
+  const { t } = useTranslation();
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const {
     data: pageHistoryList,
@@ -34,16 +43,22 @@ function HistoryList({ pageId }: Props) {
   const [mainEditorTitle] = useAtom(titleEditorAtom);
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
 
+  const { spaceSlug } = useParams();
+  const { data: space } = useSpaceQuery(spaceSlug);
+  const spaceRules = space?.membership?.permissions;
+  const spaceAbility = useSpaceAbility(spaceRules);
+
   const confirmModal = () =>
     modals.openConfirmModal({
-      title: "Please confirm your action",
+      title: t("Please confirm your action"),
       children: (
         <Text size="sm">
-          Are you sure you want to restore this version? Any changes not
-          versioned will be lost.
+          {t(
+            "Are you sure you want to restore this version? Any changes not versioned will be lost.",
+          )}
         </Text>
       ),
-      labels: { confirm: "Confirm", cancel: "Cancel" },
+      labels: { confirm: t("Confirm"), cancel: t("Cancel") },
       onConfirm: handleRestore,
     });
 
@@ -60,7 +75,7 @@ function HistoryList({ pageId }: Props) {
         .setContent(activeHistoryData.content)
         .run();
       setHistoryModalOpen(false);
-      notifications.show({ message: "Successfully restored" });
+      notifications.show({ message: t("Successfully restored") });
     }
   }, [activeHistoryData]);
 
@@ -79,11 +94,11 @@ function HistoryList({ pageId }: Props) {
   }
 
   if (isError) {
-    return <div>Error loading page history.</div>;
+    return <div>{t("Error loading page history.")}</div>;
   }
 
   if (!pageHistoryList || pageHistoryList.items.length === 0) {
-    return <>No page history saved yet.</>;
+    return <>{t("No page history saved yet.")}</>;
   }
 
   return (
@@ -100,20 +115,26 @@ function HistoryList({ pageId }: Props) {
           ))}
       </ScrollArea>
 
-      <Divider />
-
-      <Group p="xs" wrap="nowrap">
-        <Button size="compact-md" onClick={confirmModal}>
-          Restore
-        </Button>
-        <Button
-          variant="default"
-          size="compact-md"
-          onClick={() => setHistoryModalOpen(false)}
-        >
-          Cancel
-        </Button>
-      </Group>
+      {spaceAbility.cannot(
+        SpaceCaslAction.Manage,
+        SpaceCaslSubject.Page,
+      ) ? null : (
+        <>
+          <Divider />
+          <Group p="xs" wrap="nowrap">
+            <Button size="compact-md" onClick={confirmModal}>
+              {t("Restore")}
+            </Button>
+            <Button
+              variant="default"
+              size="compact-md"
+              onClick={() => setHistoryModalOpen(false)}
+            >
+              {t("Cancel")}
+            </Button>
+          </Group>
+        </>
+      )}
     </div>
   );
 }

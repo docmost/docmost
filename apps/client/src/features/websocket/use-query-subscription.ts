@@ -1,8 +1,19 @@
 import React from "react";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom.ts";
 import { useAtom } from "jotai";
-import { useQueryClient } from "@tanstack/react-query";
+import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { WebSocketEvent } from "@/features/websocket/types";
+import { IPage } from "../page/types/page.types";
+import { IPagination } from "@/lib/types";
+import {
+  invalidateOnCreatePage,
+  invalidateOnDeletePage,
+  invalidateOnMovePage,
+  invalidateOnUpdatePage,
+} from "../page/queries/page-query";
+import { RQ_KEY } from "../comment/queries/comment-query";
+import { queryClient } from "@/main.tsx";
+import { IComment } from "@/features/comment/types/comment.types";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -21,6 +32,20 @@ export const useQuerySubscription = () => {
             queryKey: [...data.entity, data.id].filter(Boolean),
           });
           break;
+        case "invalidateComment":
+          queryClient.invalidateQueries({
+            queryKey: RQ_KEY(data.pageId),
+          });
+          break;
+        case "addTreeNode":
+          invalidateOnCreatePage(data.payload.data);
+          break;
+        case "moveTreeNode":
+          invalidateOnMovePage();
+          break;
+        case "deleteTreeNode":
+          invalidateOnDeletePage(data.payload.node.id);
+          break;
         case "updateOne":
           entity = data.entity[0];
           if (entity === "pages") {
@@ -31,11 +56,21 @@ export const useQuerySubscription = () => {
           }
 
           // only update if data was already in cache
-          if(queryClient.getQueryData([...data.entity, queryKeyId])){
+          if (queryClient.getQueryData([...data.entity, queryKeyId])) {
             queryClient.setQueryData([...data.entity, queryKeyId], {
               ...queryClient.getQueryData([...data.entity, queryKeyId]),
               ...data.payload,
             });
+          }
+
+          if (entity === "pages") {
+            invalidateOnUpdatePage(
+              data.spaceId,
+              data.payload.parentPageId,
+              data.id,
+              data.payload.title,
+              data.payload.icon,
+            );
           }
 
           /*
@@ -51,6 +86,41 @@ export const useQuerySubscription = () => {
           );
       */
           break;
+        case "refetchRootTreeNodeEvent": {
+          const spaceId = data.spaceId;
+          queryClient.refetchQueries({
+            queryKey: ["root-sidebar-pages", spaceId],
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: ["recent-changes", spaceId],
+          });
+          break;
+        }
+        case "resolveComment": {
+          const currentComments = queryClient.getQueryData(
+            RQ_KEY(data.pageId),
+          ) as IPagination<IComment>;
+
+          if (currentComments && currentComments.items) {
+            const updatedComments = currentComments.items.map((comment) =>
+              comment.id === data.commentId
+                ? { 
+                    ...comment, 
+                    resolvedAt: data.resolvedAt, 
+                    resolvedById: data.resolvedById, 
+                    resolvedBy: data.resolvedBy 
+                  }
+                : comment,
+            );
+            
+            queryClient.setQueryData(RQ_KEY(data.pageId), {
+              ...currentComments,
+              items: updatedComments,
+            });
+          }
+          break;
+        }
       }
     });
   }, [queryClient, socket]);

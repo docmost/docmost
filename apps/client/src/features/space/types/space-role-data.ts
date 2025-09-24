@@ -4,7 +4,7 @@ export const spaceRoleData: IRoleData[] = [
   {
     label: "Full access",
     value: SpaceRole.ADMIN,
-    description: "Has full access to space settings and pages",
+    description: "Has full access to space settings and pages.",
   },
   {
     label: "Can edit",
@@ -14,7 +14,7 @@ export const spaceRoleData: IRoleData[] = [
   {
     label: "Can view",
     value: SpaceRole.READER,
-    description: "Can view pages in space but not edit",
+    description: "Can view pages in space but not edit.",
   },
 ];
 

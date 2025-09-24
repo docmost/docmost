@@ -26,4 +26,14 @@ export class PageInfoDto extends PageIdDto {
   @IsOptional()
   @IsBoolean()
   includeSpace: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  includeContent: boolean;
+}
+
+export class DeletePageDto extends PageIdDto {
+  @IsOptional()
+  @IsBoolean()
+  permanentlyDelete?: boolean;
 }

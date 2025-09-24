@@ -7,7 +7,6 @@ import {
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
-import { TokensDto } from '../dto/tokens.dto';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -23,13 +22,13 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import ForgotPasswordEmail from '@docmost/transactional/emails/forgot-password-email';
 import { UserTokenRepo } from '@docmost/db/repos/user-token/user-token.repo';
 import { PasswordResetDto } from '../dto/password-reset.dto';
-import { UserToken } from '@docmost/db/types/entity.types';
+import { User, UserToken, Workspace } from '@docmost/db/types/entity.types';
 import { UserTokenType } from '../auth.constants';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
-import { EnvironmentService } from 'src/integrations/environment/environment.service';
+import { DomainService } from '../../../integrations/environment/domain.service';
 
 @Injectable()
 export class AuthService {
@@ -39,45 +38,46 @@ export class AuthService {
     private userRepo: UserRepo,
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
-    private environmentService: EnvironmentService,
+    private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
-    const user = await this.userRepo.findByEmail(
-      loginDto.email,
-      workspaceId,
-      true,
+    const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
+      includePassword: true,
+    });
+
+    const errorMessage = 'Email or password does not match';
+    if (!user || user?.deletedAt) {
+      throw new UnauthorizedException(errorMessage);
+    }
+
+    const isPasswordMatch = await comparePasswordHash(
+      loginDto.password,
+      user.password,
     );
 
-    if (
-      !user ||
-      !(await comparePasswordHash(loginDto.password, user.password))
-    ) {
-      throw new UnauthorizedException('email or password does not match');
+    if (!isPasswordMatch) {
+      throw new UnauthorizedException(errorMessage);
     }
 
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
     const user = await this.signupService.signup(createUserDto, workspaceId);
-
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-
-    return { tokens };
+    return this.tokenService.generateAccessToken(user);
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    const user = await this.signupService.initialSetup(createAdminUserDto);
+    const { workspace, user } =
+      await this.signupService.initialSetup(createAdminUserDto);
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
-
-    return { tokens };
+    const authToken = await this.tokenService.generateAccessToken(user);
+    return { workspace, authToken };
   }
 
   async changePassword(
@@ -89,7 +89,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
@@ -106,6 +106,7 @@ export class AuthService {
     await this.userRepo.updateUser(
       {
         password: newPasswordHash,
+        hasGeneratedPassword: false,
       },
       userId,
       workspaceId,
@@ -121,19 +122,20 @@ export class AuthService {
 
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
-    workspaceId: string,
+    workspace: Workspace,
   ): Promise<void> {
     const user = await this.userRepo.findByEmail(
       forgotPasswordDto.email,
-      workspaceId,
+      workspace.id,
     );
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       return;
     }
 
     const token = nanoIdGen(16);
-    const resetLink = `${this.environmentService.getAppUrl()}/password-reset?token=${token}`;
+
+    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
 
     await this.userTokenRepo.insertUserToken({
       token: token,
@@ -155,10 +157,13 @@ export class AuthService {
     });
   }
 
-  async passwordReset(passwordResetDto: PasswordResetDto, workspaceId: string) {
+  async passwordReset(
+    passwordResetDto: PasswordResetDto,
+    workspace: Workspace,
+  ) {
     const userToken = await this.userTokenRepo.findById(
       passwordResetDto.token,
-      workspaceId,
+      workspace.id,
     );
 
     if (
@@ -169,8 +174,10 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired token');
     }
 
-    const user = await this.userRepo.findById(userToken.userId, workspaceId);
-    if (!user) {
+    const user = await this.userRepo.findById(userToken.userId, workspace.id, {
+      includeUserMfa: true,
+    });
+    if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
     }
 
@@ -180,13 +187,14 @@ export class AuthService {
       await this.userRepo.updateUser(
         {
           password: newPasswordHash,
+          hasGeneratedPassword: false,
         },
         user.id,
-        workspaceId,
+        workspace.id,
         trx,
       );
 
-      trx
+      await trx
         .deleteFrom('userTokens')
         .where('userId', '=', user.id)
         .where('type', '=', UserTokenType.FORGOT_PASSWORD)
@@ -200,16 +208,25 @@ export class AuthService {
       template: emailTemplate,
     });
 
-    const tokens: TokensDto = await this.tokenService.generateTokens(user);
+    // Check if user has MFA enabled or workspace enforces MFA
+    const userHasMfa = user?.['mfa']?.isEnabled || false;
+    const workspaceEnforcesMfa = workspace.enforceMfa || false;
 
-    return { tokens };
+    if (userHasMfa || workspaceEnforcesMfa) {
+      return {
+        requiresLogin: true,
+      };
+    }
+
+    const authToken = await this.tokenService.generateAccessToken(user);
+    return { authToken };
   }
 
   async verifyUserToken(
     userTokenDto: VerifyUserTokenDto,
     workspaceId: string,
   ): Promise<void> {
-    const userToken = await this.userTokenRepo.findById(
+    const userToken: UserToken = await this.userTokenRepo.findById(
       userTokenDto.token,
       workspaceId,
     );
@@ -221,5 +238,13 @@ export class AuthService {
     ) {
       throw new BadRequestException('Invalid or expired token');
     }
+  }
+
+  async getCollabToken(user: User, workspaceId: string) {
+    const token = await this.tokenService.generateCollabToken(
+      user,
+      workspaceId,
+    );
+    return { token };
   }
 }

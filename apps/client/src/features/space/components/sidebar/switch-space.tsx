@@ -1,19 +1,27 @@
-import classes from './switch-space.module.css';
-import { useNavigate } from 'react-router-dom';
-import { SpaceSelect } from './space-select';
-import { getSpaceUrl } from '@/lib/config';
-import { Avatar, Button, Popover, Text } from '@mantine/core';
-import { IconChevronDown } from '@tabler/icons-react';
-import { useDisclosure } from '@mantine/hooks';
+import classes from "./switch-space.module.css";
+import { useNavigate } from "react-router-dom";
+import { SpaceSelect } from "./space-select";
+import { getSpaceUrl } from "@/lib/config";
+import { Button, Popover, Text } from "@mantine/core";
+import { IconChevronDown } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
+import React from "react";
 
 interface SwitchSpaceProps {
   spaceName: string;
   spaceSlug: string;
+  spaceIcon?: string;
 }
 
-export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
-  const [opened, { close, open, toggle }] = useDisclosure(false);
+export function SwitchSpace({
+  spaceName,
+  spaceSlug,
+  spaceIcon,
+}: SwitchSpaceProps) {
   const navigate = useNavigate();
+  const [opened, { close, open, toggle }] = useDisclosure(false);
 
   const handleSelect = (value: string) => {
     if (value) {
@@ -29,6 +37,7 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
       withArrow
       shadow="md"
       opened={opened}
+      onChange={toggle}
     >
       <Popover.Target>
         <Button
@@ -37,13 +46,15 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
           justify="space-between"
           rightSection={<IconChevronDown size={18} />}
           color="gray"
-          onClick={toggle}
+          onClick={open}
         >
-          <Avatar
-            size={20}
+          <CustomAvatar
+            name={spaceName}
+            avatarUrl={spaceIcon}
+            type={AvatarIconType.SPACE_ICON}
             color="initials"
             variant="filled"
-            name={spaceName}
+            size={20}
           />
           <Text className={classes.spaceName} size="md" fw={500} lineClamp={1}>
             {spaceName}
@@ -54,7 +65,9 @@ export function SwitchSpace({ spaceName, spaceSlug }: SwitchSpaceProps) {
         <SpaceSelect
           label={spaceName}
           value={spaceSlug}
-          onChange={handleSelect}
+          onChange={(space) => handleSelect(space.slug)}
+          width={300}
+          opened={true}
         />
       </Popover.Dropdown>
     </Popover>

@@ -12,6 +12,23 @@ import {
 export class AttachmentRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof Attachment> = [
+    'id',
+    'fileName',
+    'filePath',
+    'fileSize',
+    'fileExt',
+    'mimeType',
+    'type',
+    'creatorId',
+    'pageId',
+    'spaceId',
+    'workspaceId',
+    'createdAt',
+    'updatedAt',
+    'deletedAt',
+  ];
+
   async findById(
     attachmentId: string,
     opts?: {
@@ -22,7 +39,7 @@ export class AttachmentRepo {
 
     return db
       .selectFrom('attachments')
-      .selectAll()
+      .select(this.baseFields)
       .where('id', '=', attachmentId)
       .executeTakeFirst();
   }
@@ -36,7 +53,7 @@ export class AttachmentRepo {
     return db
       .insertInto('attachments')
       .values(insertableAttachment)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -50,9 +67,22 @@ export class AttachmentRepo {
 
     return db
       .selectFrom('attachments')
-      .selectAll()
+      .select(this.baseFields)
       .where('spaceId', '=', spaceId)
       .execute();
+  }
+
+  updateAttachmentsByPageId(
+    updatableAttachment: UpdatableAttachment,
+    pageIds: string[],
+    trx?: KyselyTransaction,
+  ) {
+    return dbOrTx(this.db, trx)
+      .updateTable('attachments')
+      .set(updatableAttachment)
+      .where('pageId', 'in', pageIds)
+      .returning(this.baseFields)
+      .executeTakeFirst();
   }
 
   async updateAttachment(
@@ -63,7 +93,7 @@ export class AttachmentRepo {
       .updateTable('attachments')
       .set(updatableAttachment)
       .where('id', '=', attachmentId)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 

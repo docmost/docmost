@@ -3,23 +3,31 @@ import { useEffect, useState } from "react";
 import mermaid from "mermaid";
 import { v4 as uuidv4 } from "uuid";
 import classes from "./code-block.module.css";
-
-mermaid.initialize({
-  startOnLoad: false,
-  suppressErrorRendering: true,
-});
+import { useTranslation } from "react-i18next";
+import { useComputedColorScheme } from "@mantine/core";
 
 interface MermaidViewProps {
   props: NodeViewProps;
 }
 
 export default function MermaidView({ props }: MermaidViewProps) {
+  const { t } = useTranslation();
+  const computedColorScheme = useComputedColorScheme();
   const { node } = props;
   const [preview, setPreview] = useState<string>("");
 
+  // Update Mermaid config when theme changes.
+  useEffect(() => {
+    mermaid.initialize({
+      startOnLoad: false,
+      suppressErrorRendering: true,
+      theme: computedColorScheme === "light" ? "default" : "dark",
+    });
+  }, [computedColorScheme]);
+
+  // Re-render the diagram whenever the node content or theme changes.
   useEffect(() => {
     const id = `mermaid-${uuidv4()}`;
-
     if (node.textContent.length > 0) {
       mermaid
         .render(id, node.textContent)
@@ -29,16 +37,16 @@ export default function MermaidView({ props }: MermaidViewProps) {
         .catch((err) => {
           if (props.editor.isEditable) {
             setPreview(
-              `<div class="${classes.error}">Mermaid diagram error: ${err}</div>`,
+              `<div class="${classes.error}">${t("Mermaid diagram error:")} ${err}</div>`,
             );
           } else {
             setPreview(
-              `<div class="${classes.error}">Invalid Mermaid Diagram</div>`,
+              `<div class="${classes.error}">${t("Invalid Mermaid diagram")}</div>`,
             );
           }
         });
     }
-  }, [node.textContent]);
+  }, [node.textContent, computedColorScheme]);
 
   return (
     <div

@@ -16,6 +16,7 @@ export interface IComment {
   editedAt?: Date;
   deletedAt?: Date;
   creator: IUser;
+  resolvedBy?: IUser;
 }
 
 export interface ICommentData {
@@ -28,6 +29,7 @@ export interface ICommentData {
 
 export interface IResolveComment {
   commentId: string;
+  pageId: string;
   resolved: boolean;
 }
 

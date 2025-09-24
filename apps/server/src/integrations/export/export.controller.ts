@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ExportService } from './export.service';
-import { ExportPageDto } from './dto/export-dto';
+import { ExportPageDto, ExportSpaceDto } from './dto/export-dto';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User } from '@docmost/db/types/entity.types';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
@@ -24,9 +24,10 @@ import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
 import { getMimeType } from '../../common/helpers';
+import * as path from 'path';
 
 @Controller()
-export class ImportController {
+export class ExportController {
   constructor(
     private readonly exportService: ExportService,
     private readonly pageRepo: PageRepo,
@@ -45,7 +46,7 @@ export class ImportController {
       includeContent: true,
     });
 
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 
@@ -54,17 +55,51 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    const rawContent = await this.exportService.exportPage(dto.format, page);
+    const zipFileBuffer = await this.exportService.exportPages(
+      dto.pageId,
+      dto.format,
+      dto.includeAttachments,
+      dto.includeChildren,
+    );
 
-    const fileExt = getExportExtension(dto.format);
-    const fileName = sanitize(page.title || 'Untitled') + fileExt;
+    const fileName = sanitize(page.title || 'untitled') + '.zip';
 
     res.headers({
-      'Content-Type': getMimeType(fileExt),
+      'Content-Type': 'application/zip',
       'Content-Disposition':
         'attachment; filename="' + encodeURIComponent(fileName) + '"',
     });
 
-    res.send(rawContent);
+    res.send(zipFileBuffer);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('spaces/export')
+  async exportSpace(
+    @Body() dto: ExportSpaceDto,
+    @AuthUser() user: User,
+    @Res() res: FastifyReply,
+  ) {
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const exportFile = await this.exportService.exportSpace(
+      dto.spaceId,
+      dto.format,
+      dto.includeAttachments,
+    );
+
+    res.headers({
+      'Content-Type': 'application/zip',
+      'Content-Disposition':
+        'attachment; filename="' +
+        encodeURIComponent(sanitize(exportFile.fileName)) +
+        '"',
+    });
+
+    res.send(exportFile.fileBuffer);
   }
 }

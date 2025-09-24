@@ -12,10 +12,15 @@ import {
   IconColumnRemove,
   IconRowRemove,
   IconSquareToggle,
+  IconTableRow,
 } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import { TableBackgroundColor } from "./table-background-color";
+import { TableTextAlignment } from "./table-text-alignment";
 
 export const TableCellMenu = React.memo(
   ({ editor, appendTo }: EditorMenuProps): JSX.Element => {
+    const { t } = useTranslation();
     const shouldShow = useCallback(
       ({ view, state, from }: ShouldShowProps) => {
         if (!state) {
@@ -43,6 +48,10 @@ export const TableCellMenu = React.memo(
       editor.chain().focus().deleteRow().run();
     }, [editor]);
 
+    const toggleHeaderCell = useCallback(() => {
+      editor.chain().focus().toggleHeaderCell().run();
+    }, [editor]);
+
     return (
       <BaseBubbleMenu
         editor={editor}
@@ -58,47 +67,61 @@ export const TableCellMenu = React.memo(
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
-          <Tooltip position="top" label="Merge cells">
+          <TableBackgroundColor editor={editor} />
+          <TableTextAlignment editor={editor} />
+          
+          <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}
               variant="default"
               size="lg"
-              aria-label="Merge cells"
+              aria-label={t("Merge cells")}
             >
               <IconBoxMargin size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Split cell">
+          <Tooltip position="top" label={t("Split cell")}>
             <ActionIcon
               onClick={splitCell}
               variant="default"
               size="lg"
-              aria-label="Split cell"
+              aria-label={t("Split cell")}
             >
               <IconSquareToggle size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Delete column">
+          <Tooltip position="top" label={t("Delete column")}>
             <ActionIcon
               onClick={deleteColumn}
               variant="default"
               size="lg"
-              aria-label="Delete column"
+              aria-label={t("Delete column")}
             >
               <IconColumnRemove size={18} />
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label="Delete row">
+          <Tooltip position="top" label={t("Delete row")}>
             <ActionIcon
               onClick={deleteRow}
               variant="default"
               size="lg"
-              aria-label="Delete row"
+              aria-label={t("Delete row")}
             >
               <IconRowRemove size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header cell")}>
+            <ActionIcon
+              onClick={toggleHeaderCell}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header cell")}
+            >
+              <IconTableRow size={18} />
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>

@@ -1,5 +1,5 @@
-import { Group, Text, Box } from "@mantine/core";
-import React, { useState } from "react";
+import { Group, Text, Box, Badge } from "@mantine/core";
+import React, { useEffect, useState } from "react";
 import classes from "./comment.module.css";
 import { useAtom, useAtomValue } from "jotai";
 import { timeAgo } from "@/lib/time";
@@ -7,29 +7,49 @@ import CommentEditor from "@/features/comment/components/comment-editor";
 import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
 import CommentActions from "@/features/comment/components/comment-actions";
 import CommentMenu from "@/features/comment/components/comment-menu";
+import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import ResolveComment from "@/ee/comment/components/resolve-comment";
 import { useHover } from "@mantine/hooks";
 import {
   useDeleteCommentMutation,
   useUpdateCommentMutation,
 } from "@/features/comment/queries/comment-query";
+import { useResolveCommentMutation } from "@/ee/comment/queries/comment-query";
 import { IComment } from "@/features/comment/types/comment.types";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { useQueryEmit } from "@/features/websocket/use-query-emit";
+import { useTranslation } from "react-i18next";
 
 interface CommentListItemProps {
   comment: IComment;
+  pageId: string;
+  canComment: boolean;
+  userSpaceRole?: string;
 }
 
-function CommentListItem({ comment }: CommentListItemProps) {
+function CommentListItem({
+  comment,
+  pageId,
+  canComment,
+  userSpaceRole,
+}: CommentListItemProps) {
+  const { t } = useTranslation();
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const editor = useAtomValue(pageEditorAtom);
   const [content, setContent] = useState<string>(comment.content);
   const updateCommentMutation = useUpdateCommentMutation();
   const deleteCommentMutation = useDeleteCommentMutation(comment.pageId);
+  const resolveCommentMutation = useResolveCommentMutation();
   const [currentUser] = useAtom(currentUserAtom);
+  const emit = useQueryEmit();
+  const isCloudEE = useIsCloudEE();
+
+  useEffect(() => {
+    setContent(comment.content);
+  }, [comment]);
 
   async function handleUpdateComment() {
     try {
@@ -40,6 +60,11 @@ function CommentListItem({ comment }: CommentListItemProps) {
       };
       await updateCommentMutation.mutateAsync(commentToUpdate);
       setIsEditing(false);
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
+      });
     } catch (error) {
       console.error("Failed to update comment:", error);
     } finally {
@@ -51,13 +76,59 @@ function CommentListItem({ comment }: CommentListItemProps) {
     try {
       await deleteCommentMutation.mutateAsync(comment.id);
       editor?.commands.unsetComment(comment.id);
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
+      });
     } catch (error) {
       console.error("Failed to delete comment:", error);
     }
   }
 
+  async function handleResolveComment() {
+    if (!isCloudEE) return;
+    
+    try {
+      const isResolved = comment.resolvedAt != null;
+      
+      await resolveCommentMutation.mutateAsync({
+        commentId: comment.id,
+        pageId: comment.pageId,
+        resolved: !isResolved,
+      });
+
+      if (editor) {
+        editor.commands.setCommentResolved(comment.id, !isResolved);
+      }
+
+      emit({
+        operation: "invalidateComment",
+        pageId: pageId,
+      });
+    } catch (error) {
+      console.error("Failed to toggle resolved state:", error);
+    }
+  }
+
+  function handleCommentClick(comment: IComment) {
+    const el = document.querySelector(
+      `.comment-mark[data-comment-id="${comment.id}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("comment-highlight");
+      setTimeout(() => {
+        el.classList.remove("comment-highlight");
+      }, 3000);
+    }
+  }
+
   function handleEditToggle() {
     setIsEditing(true);
+  }
+  function cancelEdit() {
+    setIsEditing(false);
   }
 
   return (
@@ -76,28 +147,42 @@ function CommentListItem({ comment }: CommentListItemProps) {
             </Text>
 
             <div style={{ visibility: hovered ? "visible" : "hidden" }}>
-              {/*!comment.parentCommentId && (
-                <ResolveComment commentId={comment.id} pageId={comment.pageId} resolvedAt={comment.resolvedAt} />
-              )*/}
+              {!comment.parentCommentId && canComment && isCloudEE && (
+                <ResolveComment
+                  editor={editor}
+                  commentId={comment.id}
+                  pageId={comment.pageId}
+                  resolvedAt={comment.resolvedAt}
+                />
+              )}
 
-              {currentUser?.user?.id === comment.creatorId && (
+              {(currentUser?.user?.id === comment.creatorId || userSpaceRole === 'admin') && (
                 <CommentMenu
                   onEditComment={handleEditToggle}
                   onDeleteComment={handleDeleteComment}
+                  onResolveComment={handleResolveComment}
+                  canEdit={currentUser?.user?.id === comment.creatorId}
+                  isResolved={comment.resolvedAt != null}
+                  isParentComment={!comment.parentCommentId}
                 />
               )}
             </div>
           </Group>
 
-          <Text size="xs" fw={500} c="dimmed">
-            {timeAgo(comment.createdAt)}
-          </Text>
+          <Group gap="xs">
+            <Text size="xs" fw={500} c="dimmed">
+              {timeAgo(comment.createdAt)}
+            </Text>
+          </Group>
         </div>
       </Group>
 
       <div>
         {!comment.parentCommentId && comment?.selection && (
-          <Box className={classes.textSelection}>
+          <Box
+            className={classes.textSelection}
+            onClick={() => handleCommentClick(comment)}
+          >
             <Text size="sm">{comment?.selection}</Text>
           </Box>
         )}
@@ -110,12 +195,15 @@ function CommentListItem({ comment }: CommentListItemProps) {
               defaultContent={content}
               editable={true}
               onUpdate={(newContent: any) => setContent(newContent)}
+              onSave={handleUpdateComment}
               autofocus={true}
             />
 
             <CommentActions
               onSave={handleUpdateComment}
               isLoading={isLoading}
+              onCancel={cancelEdit}
+              isCommentEditor={true}
             />
           </>
         )}

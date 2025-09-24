@@ -1,8 +1,8 @@
 import { MultipartFile } from '@fastify/multipart';
-import { randomBytes } from 'crypto';
-import { sanitize } from 'sanitize-filename-ts';
 import * as path from 'path';
 import { AttachmentType } from './attachment.constants';
+import { sanitizeFileName } from '../../common/helpers';
+import * as sharp from 'sharp';
 
 export interface PreparedFile {
   buffer: Buffer;
@@ -22,10 +22,8 @@ export async function prepareFile(
   }
 
   try {
-    const rand = randomBytes(8).toString('hex');
-
     const buffer = await file.toBuffer();
-    const sanitizedFilename = sanitize(file.filename).replace(/ /g, '_');
+    const sanitizedFilename = sanitizeFileName(file.filename);
     const fileName = sanitizedFilename.slice(0, 255);
     const fileSize = buffer.length;
     const fileExtension = path.extname(file.filename).toLowerCase();
@@ -58,9 +56,9 @@ export function getAttachmentFolderPath(
   switch (type) {
     case AttachmentType.Avatar:
       return `${workspaceId}/avatars`;
-    case AttachmentType.WorkspaceLogo:
-      return `${workspaceId}/workspace-logo`;
-    case AttachmentType.SpaceLogo:
+    case AttachmentType.WorkspaceIcon:
+      return `${workspaceId}/workspace-logos`;
+    case AttachmentType.SpaceIcon:
       return `${workspaceId}/space-logos`;
     case AttachmentType.File:
       return `${workspaceId}/files`;
@@ -70,3 +68,51 @@ export function getAttachmentFolderPath(
 }
 
 export const validAttachmentTypes = Object.values(AttachmentType);
+
+export async function compressAndResizeIcon(
+  buffer: Buffer,
+  attachmentType?: AttachmentType,
+): Promise<Buffer> {
+  try {
+    let sharpInstance = sharp(buffer);
+    const metadata = await sharpInstance.metadata();
+
+    const targetWidth = 300;
+    const targetHeight = 300;
+
+    // Only resize if image is larger than target dimensions
+    if (metadata.width > targetWidth || metadata.height > targetHeight) {
+      sharpInstance = sharpInstance.resize(targetWidth, targetHeight, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    // Handle based on original format
+    if (metadata.format === 'png') {
+      // Only flatten avatars to remove transparency
+      if (attachmentType === AttachmentType.Avatar) {
+        sharpInstance = sharpInstance.flatten({
+          background: { r: 255, g: 255, b: 255 },
+        });
+      }
+
+      return await sharpInstance
+        .png({
+          quality: 85,
+          compressionLevel: 6,
+        })
+        .toBuffer();
+    } else {
+      return await sharpInstance
+        .jpeg({
+          quality: 85,
+          progressive: true,
+          mozjpeg: true,
+        })
+        .toBuffer();
+    }
+  } catch (err) {
+    throw err;
+  }
+}
