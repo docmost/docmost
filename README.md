@@ -36,7 +36,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 </p>
 
 ## API
-There is a [postman collection](https://www.postman.com/docmost-api/workspace/docmost-api-workspace) describing most of Docmost API endpoints
+There is a [Postman collection](https://www.postman.com/docmost-api/workspace/docmost-api-workspace) that describes most of Docmost's API endpoints.
 
 ### License
 Docmost core is licensed under the open-source AGPL 3.0 license.  
