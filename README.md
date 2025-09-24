@@ -28,7 +28,7 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 - Embeds (Airtable, Loom, Miro and more)
 - Translations (10+ languages)
 
-#### Screenshots
+### Screenshots
 
 <p align="center">
 <img alt="home" src="https://docmost.com/screenshots/home.png" width="70%">
