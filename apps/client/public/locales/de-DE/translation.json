@@ -529,9 +529,9 @@
   "Action": "Aktion",
   "{{ssoProviderType}} configuration": "{{ssoProviderType}}-Konfiguration",
   "Icon": "Icon",
-  "Upload image": "Upload image",
-  "Remove image": "Remove image",
-  "Failed to remove image": "Failed to remove image",
-  "Image exceeds 10MB limit.": "Image exceeds 10MB limit.",
-  "Image removed successfully": "Image removed successfully"
+  "Upload image": "Bild hochladen",
+  "Remove image": "Bild entfernen",
+  "Failed to remove image": "Fehler beim Entfernen des Bildes",
+  "Image exceeds 10MB limit.": "Bild überschreitet das Limit von 10 MB.",
+  "Image removed successfully": "Bild erfolgreich entfernt"
 }
