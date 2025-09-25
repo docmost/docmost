@@ -142,5 +142,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
