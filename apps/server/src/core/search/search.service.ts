@@ -21,19 +21,99 @@ export class SearchService {
   ) {}
 
   async searchPage(
-    query: string,
-    searchParams: SearchDTO,
-    opts: {
-      userId?: string;
-      workspaceId: string;
-    },
-  ): Promise<SearchResponseDto[]> {
-    if (query.length < 1) {
-      return;
-    }
-    const searchQuery = tsquery(query.trim() + '*');
+  query: string,
+  searchParams: SearchDTO,
+  opts: {
+    userId?: string;
+    workspaceId: string;
+  },
+): Promise<SearchResponseDto[]> {
+  if (query.length < 1) {
+    return;
+  }
+  const searchQuery = tsquery(query.trim() + '*');
 
-    let queryResults = this.db
+  let queryResults = this.db
+    .selectFrom('pages')
+    .select([
+      'id',
+      'slugId',
+      'title',
+      'icon',
+      'parentPageId',
+      'creatorId',
+      'createdAt',
+      'updatedAt',
+      sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+        'rank',
+      ),
+      sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+        'highlight',
+      ),
+    ])
+    .where(
+      'tsv',
+      '@@',
+      sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+    )
+    .$if(Boolean(searchParams.creatorId), (qb) =>
+      qb.where('creatorId', '=', searchParams.creatorId),
+    )
+    .where('deletedAt', 'is', null)
+    .orderBy('rank', 'desc')
+    .limit(searchParams.limit || 20)
+    .offset(searchParams.offset || 0);
+
+  if (!searchParams.shareId) {
+    queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
+  }
+
+  if (searchParams.spaceId) {
+    queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
+  } else if (opts.userId && !searchParams.spaceId) {
+    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(opts.userId);
+    if (userSpaceIds.length > 0) {
+      queryResults = queryResults
+        .where('spaceId', 'in', userSpaceIds)
+        .where('workspaceId', '=', opts.workspaceId);
+    } else {
+      return [];
+    }
+  } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
+    const shareId = searchParams.shareId;
+    const share = await this.shareRepo.findById(shareId);
+    if (!share || share.workspaceId !== opts.workspaceId) {
+      return [];
+    }
+
+    const pageIdsToSearch = [];
+    if (share.includeSubPages) {
+      const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
+        includeContent: false,
+      });
+      pageIdsToSearch.push(...pageList.map((page) => page.id));
+    } else {
+      pageIdsToSearch.push(share.pageId);
+    }
+
+    if (pageIdsToSearch.length > 0) {
+      queryResults = queryResults
+        .where('id', 'in', pageIdsToSearch)
+        .where('workspaceId', '=', opts.workspaceId);
+    } else {
+      return [];
+    }
+  } else {
+    return [];
+  }
+
+  // Run the main query
+  // @ts-ignore
+  let results = await queryResults.execute();
+
+  // Fallback to simple if no results
+  if (results.length === 0) {
+    let fallbackQuery = this.db
       .selectFrom('pages')
       .select([
         'id',
@@ -44,47 +124,38 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+        sql<number>`ts_rank(tsv_simple, to_tsquery('simple', f_unaccent(${searchQuery})))`.as(
           'rank',
         ),
-        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+        sql<string>`ts_headline('simple', text_content, to_tsquery('simple', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
         ),
       ])
       .where(
-        'tsv',
+        sql`tsv_simple`,
         '@@',
-        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
-      )
-      .$if(Boolean(searchParams.creatorId), (qb) =>
-        qb.where('creatorId', '=', searchParams.creatorId),
+        sql<string>`to_tsquery('simple', f_unaccent(${searchQuery}))`,
       )
       .where('deletedAt', 'is', null)
-      .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 20)
+      .limit(searchParams.limit || 20)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {
-      queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
+      fallbackQuery = fallbackQuery.select((eb) => this.pageRepo.withSpace(eb));
     }
 
     if (searchParams.spaceId) {
-      // search by spaceId
-      queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
+      fallbackQuery = fallbackQuery.where('spaceId', '=', searchParams.spaceId);
     } else if (opts.userId && !searchParams.spaceId) {
-      // only search spaces the user is a member of
-      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(
-        opts.userId,
-      );
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(opts.userId);
       if (userSpaceIds.length > 0) {
-        queryResults = queryResults
+        fallbackQuery = fallbackQuery
           .where('spaceId', 'in', userSpaceIds)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
         return [];
       }
     } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
-      // search in shares
       const shareId = searchParams.shareId;
       const share = await this.shareRepo.findById(shareId);
       if (!share || share.workspaceId !== opts.workspaceId) {
@@ -93,20 +164,16 @@ export class SearchService {
 
       const pageIdsToSearch = [];
       if (share.includeSubPages) {
-        const pageList = await this.pageRepo.getPageAndDescendants(
-          share.pageId,
-          {
-            includeContent: false,
-          },
-        );
-
+        const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
+          includeContent: false,
+        });
         pageIdsToSearch.push(...pageList.map((page) => page.id));
       } else {
         pageIdsToSearch.push(share.pageId);
       }
 
       if (pageIdsToSearch.length > 0) {
-        queryResults = queryResults
+        fallbackQuery = fallbackQuery
           .where('id', 'in', pageIdsToSearch)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
@@ -116,21 +183,21 @@ export class SearchService {
       return [];
     }
 
-    //@ts-ignore
-    queryResults = await queryResults.execute();
-
-    //@ts-ignore
-    const searchResults = queryResults.map((result: SearchResponseDto) => {
-      if (result.highlight) {
-        result.highlight = result.highlight
-          .replace(/\r\n|\r|\n/g, ' ')
-          .replace(/\s+/g, ' ');
-      }
-      return result;
-    });
-
-    return searchResults;
+    results = await fallbackQuery.execute();
   }
+
+  //@ts-ignore
+  const searchResults = results.map((result: SearchResponseDto) => {
+    if (result.highlight) {
+      result.highlight = result.highlight
+        .replace(/\r\n|\r|\n/g, ' ')
+        .replace(/\s+/g, ' ');
+    }
+    return result;
+  });
+
+  return searchResults;
+}
 
   async searchSuggestions(
     suggestion: SearchSuggestionDTO,
