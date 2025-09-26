@@ -17,7 +17,7 @@ import {
   EventExit,
   EventSave,
 } from "react-drawio";
-import { IAttachment } from "@/lib/types";
+import { IAttachment } from "@/features/attachments/types/attachment.types";
 import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";

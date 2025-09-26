@@ -28,7 +28,7 @@ export class LocalDriver implements StorageDriver {
     }
   }
 
-  async uploadStream(filePath: string, file: Readable): Promise<void> {
+  async uploadStream(filePath: string, file: Readable, options?: { recreateClient?: boolean }): Promise<void> {
     try {
       const fullPath = this._fullPath(filePath);
       await fs.mkdir(dirname(fullPath), { recursive: true });

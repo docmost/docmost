@@ -10,7 +10,10 @@ export const TableCell = TiptapTableCell.extend({
       ...this.parent?.(),
       backgroundColor: {
         default: null,
-        parseHTML: (element) => element.style.backgroundColor || null,
+        parseHTML: (element) =>
+          element.style.backgroundColor ||
+          element.getAttribute("data-background-color") ||
+          null,
         renderHTML: (attributes) => {
           if (!attributes.backgroundColor) {
             return {};
