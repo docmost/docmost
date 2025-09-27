@@ -34,10 +34,11 @@ import {
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML } from '../common/helpers/prosemirror/html';
+import { generateJSON } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
-import { generateJSON } from '@tiptap/html';
+//import { generateJSON } from '@tiptap/html';
 import { Node } from '@tiptap/pm/model';
 
 export const tiptapExtensions = [

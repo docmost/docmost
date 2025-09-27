@@ -62,7 +62,7 @@
     "class-validator": "^0.14.1",
     "cookie": "^1.0.2",
     "fs-extra": "^11.3.0",
-    "happy-dom": "^15.11.6",
+    "happy-dom": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
     "kysely": "^0.28.2",
     "kysely-migration-cli": "^0.4.2",
