@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { findParentNode, posToDOMRect } from "@tiptap/react";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -22,17 +22,40 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
-  const getReferenceClientRect = useCallback(() => {
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      const excalidrawAttr = ctx.editor.getAttributes("excalidraw");
+      return {
+        isExcalidraw: ctx.editor.isActive("excalidraw"),
+        width: excalidrawAttr?.width ? parseInt(excalidrawAttr.width) : null,
+      };
+    },
+  });
+
+  const getReferencedVirtualElement = useCallback(() => {
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "excalidraw";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const onWidthChange = useCallback(
@@ -45,27 +68,14 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`excalidraw-menu}`}
+      pluginKey={`excalidraw-menu`}
       updateDelay={0}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
-        //getReferenceClientRect,
-        placement: "bottom",
+        placement: "top",
         offset: 8,
-        // zIndex: 99,
-        // plugins: [sticky],
-        // sticky: 'popper',
         flip: false,
       }}
-      //  tippyOptions={{
-      //         getReferenceClientRect,
-      //         offset: [0, 8],
-      //         zIndex: 99,
-      //         popperOptions: {
-      //           modifiers: [{ name: 'flip', enabled: false }],
-      //         },
-      //         plugins: [sticky],
-      //         sticky: 'popper',
-      //       }}
       shouldShow={shouldShow}
     >
       <div
@@ -75,11 +85,8 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           alignItems: "center",
         }}
       >
-        {editor.getAttributes("excalidraw")?.width && (
-          <NodeWidthResize
-            onChange={onWidthChange}
-            value={parseInt(editor.getAttributes("excalidraw").width)}
-          />
+        {editorState?.width && (
+          <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
         )}
       </div>
     </BaseBubbleMenu>

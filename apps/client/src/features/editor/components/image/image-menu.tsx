@@ -20,7 +20,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!ctx.editor) {
         return null;
       }
@@ -32,7 +32,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignLeft: ctx.editor.isActive("image", { align: "left" }),
         isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
-        imageWidth: imageAttrs?.width ? parseInt(imageAttrs.width) : null,
+        width: imageAttrs?.width ? parseInt(imageAttrs.width) : null,
       };
     },
   });
@@ -48,17 +48,25 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
-  const getReferenceClientRect = useCallback(() => {
+  const getReferencedVirtualElement = useCallback(() => {
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "image";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const alignImageLeft = useCallback(() => {
@@ -99,25 +107,14 @@ export function ImageMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`image-menu}`}
+      pluginKey={`image-menu`}
       updateDelay={0}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
-       // getReferenceClientRect,
-        placement: "bottom",
+        placement: "top",
         offset: 8,
-        //zIndex: 99,
         flip: false,
       }}
-      //    tippyOptions={{
-      //         getReferenceClientRect,
-      //         offset: [0, 8],
-      //         zIndex: 99,
-      //         popperOptions: {
-      //           modifiers: [{ name: "flip", enabled: false }],
-      //         },
-      //         plugins: [sticky],
-      //         sticky: "popper",
-      //       }}
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
@@ -126,9 +123,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageLeft}
             size="lg"
             aria-label={t("Align left")}
-            variant={
-              editorState?.isAlignLeft ? "light" : "default"
-            }
+            variant={editorState?.isAlignLeft ? "light" : "default"}
           >
             <IconLayoutAlignLeft size={18} />
           </ActionIcon>
@@ -139,9 +134,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageCenter}
             size="lg"
             aria-label={t("Align center")}
-            variant={
-              editorState?.isAlignCenter ? "light" : "default"
-            }
+            variant={editorState?.isAlignCenter ? "light" : "default"}
           >
             <IconLayoutAlignCenter size={18} />
           </ActionIcon>
@@ -152,20 +145,15 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageRight}
             size="lg"
             aria-label={t("Align right")}
-            variant={
-              editorState?.isAlignRight ? "light" : "default"
-            }
+            variant={editorState?.isAlignRight ? "light" : "default"}
           >
             <IconLayoutAlignRight size={18} />
           </ActionIcon>
         </Tooltip>
       </ActionIcon.Group>
 
-      {editorState?.imageWidth && (
-        <NodeWidthResize
-          onChange={onWidthChange}
-          value={editorState.imageWidth}
-        />
+      {editorState?.width && (
+        <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
       )}
     </BaseBubbleMenu>
   );

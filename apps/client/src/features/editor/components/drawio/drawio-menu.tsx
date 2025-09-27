@@ -1,5 +1,5 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { findParentNode, posToDOMRect } from "@tiptap/react";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -20,17 +20,40 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
-  const getReferenceClientRect = useCallback(() => {
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      const drawioAttr = ctx.editor.getAttributes("drawio");
+      return {
+        isDrawio: ctx.editor.isActive("drawio"),
+        width: drawioAttr?.width ? parseInt(drawioAttr.width) : null,
+      };
+    },
+  });
+
+  const getReferencedVirtualElement = useCallback(() => {
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "drawio";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const onWidthChange = useCallback(
@@ -43,24 +66,14 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`drawio-menu}`}
+      pluginKey={`drawio-menu`}
       updateDelay={0}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
-        //getReferenceClientRect,
-        placement: "bottom",
+        placement: "top",
         offset: 8,
-        // zIndex: 99,
         flip: false,
       }}
-      //    tippyOptions={{
-      //         getReferenceClientRect,
-      //         offset: [0, 8],
-      //         zIndex: 99,
-      //         popperOptions: {
-      //           modifiers: [{ name: 'flip', enabled: false }],
-      //         },
-      //         plugins: [sticky],
-      //         sticky: 'popper',
       shouldShow={shouldShow}
     >
       <div
@@ -70,11 +83,8 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
           alignItems: "center",
         }}
       >
-        {editor.getAttributes("drawio")?.width && (
-          <NodeWidthResize
-            onChange={onWidthChange}
-            value={parseInt(editor.getAttributes("drawio").width)}
-          />
+        {editorState?.width && (
+          <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
         )}
       </div>
     </BaseBubbleMenu>

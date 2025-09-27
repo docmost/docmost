@@ -1,11 +1,9 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import React, { useCallback } from "react";
-
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, TiptapTippyBubbleMenu } from '@docmost/editor-ext';
 import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconBoxMargin,
@@ -53,19 +51,17 @@ export const TableCellMenu = React.memo(
     }, [editor]);
 
     return (
-      <BaseBubbleMenu
+      <TiptapTippyBubbleMenu
         editor={editor}
         pluginKey="table-cell-menu"
         updateDelay={0}
-        options={{
-          //appendTo: () => {
-          //  return appendTo?.current;
-          // },
-          placement: "bottom",
-          offset: 15,
-          //zIndex: 99,
+        tippyOptions={{
+          appendTo: () => {
+            return appendTo?.current;
+          },
+          offset: [0, 15],
+          zIndex: 99,
         }}
-
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
@@ -127,7 +123,7 @@ export const TableCellMenu = React.memo(
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
-      </BaseBubbleMenu>
+      </TiptapTippyBubbleMenu>
     );
   },
 );

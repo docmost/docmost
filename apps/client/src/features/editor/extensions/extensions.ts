@@ -197,6 +197,7 @@ export const mainExtensions = [
   }),
   CustomCodeBlock.configure({
     view: CodeBlockView,
+    //@ts-ignore
     lowlight,
     HTMLAttributes: {
       spellcheck: false,

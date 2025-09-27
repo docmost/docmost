@@ -147,7 +147,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   };
 
   return (
-    <BubbleMenu {...bubbleMenuProps}>
+    <BubbleMenu {...bubbleMenuProps} style={{ zIndex: 200, position: "relative"}}>
       <div className={classes.bubbleMenu}>
         <NodeSelector
           editor={props.editor}

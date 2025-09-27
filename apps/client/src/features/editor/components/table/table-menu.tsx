@@ -1,8 +1,6 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback } from "react";
-
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -19,7 +17,7 @@ import {
   IconTableRow,
   IconTrashX,
 } from "@tabler/icons-react";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, TiptapTippyBubbleMenu } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 
 export const TableMenu = React.memo(
@@ -86,42 +84,37 @@ export const TableMenu = React.memo(
     }, [editor]);
 
     return (
-      <BaseBubbleMenu
+      <TiptapTippyBubbleMenu
         editor={editor}
         pluginKey="table-menu"
         updateDelay={0}
-        options={{
-          placement: "bottom",
-          offset: 15,
-          //zIndex: 99,
+        tippyOptions={{
+          getReferenceClientRect: getReferenceClientRect,
+          offset: [0, 15],
+          zIndex: 99,
+          popperOptions: {
+            modifiers: [
+              {
+                name: "preventOverflow",
+                enabled: true,
+                options: {
+                  altAxis: true,
+                  boundary: "clippingParents",
+                  padding: 8,
+                },
+              },
+              {
+                name: "flip",
+                enabled: true,
+                options: {
+                  boundary: editor.options.element,
+                  fallbackPlacements: ["top", "bottom"],
+                  padding: { top: 35, left: 8, right: 8, bottom: -Infinity },
+                },
+              },
+            ],
+          },
         }}
-        //tippyOptions={{
-        //           getReferenceClientRect: getReferenceClientRect,
-        //           offset: [0, 15],
-        //           zIndex: 99,
-        //           popperOptions: {
-        //             modifiers: [
-        //               {
-        //                 name: "preventOverflow",
-        //                 enabled: true,
-        //                 options: {
-        //                   altAxis: true,
-        //                   boundary: "clippingParents",
-        //                   padding: 8,
-        //                 },
-        //               },
-        //               {
-        //                 name: "flip",
-        //                 enabled: true,
-        //                 options: {
-        //                   boundary: editor.options.element,
-        //                   fallbackPlacements: ["top", "bottom"],
-        //                   padding: { top: 35, left: 8, right: 8, bottom: -Infinity },
-        //                 },
-        //               },
-        //             ],
-        //           },
-        //         }}
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
@@ -225,7 +218,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
-      </BaseBubbleMenu>
+      </TiptapTippyBubbleMenu>
     );
   },
 );

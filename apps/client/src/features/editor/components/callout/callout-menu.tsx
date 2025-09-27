@@ -38,7 +38,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     },
   });
 
-
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -50,17 +49,28 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
-  const getReferenceClientRect = useCallback(() => {
+  const getReferencedVirtualElement = useCallback(() => {
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "callout";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    console.log('callout')
+
+
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const setCalloutType = useCallback(
@@ -109,21 +119,13 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       editor={editor}
       pluginKey={`callout-menu}`}
       updateDelay={0}
+      getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
-        // getReferenceClientRect,
-        placement: "right-end",
-        // offset: 233,
+        placement: "bottom",
+        // offset: 233, //      //         offset: [0, 10],
         // zIndex: 99,
         flip: false,
       }}
-      //tippyOptions={{
-      //         getReferenceClientRect,
-      //         offset: [0, 10],
-      //         placement: "bottom",
-      //         zIndex: 99,
-      //         popperOptions: {
-      //           modifiers: [{ name: "flip", enabled: false }],
-      //         },
       shouldShow={shouldShow}
     >
       <ActionIcon.Group className="actionIconGroup">
