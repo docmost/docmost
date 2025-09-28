@@ -1,21 +1,29 @@
-import { Extensions, getSchema, JSONContent } from '@tiptap/core';
-import { DOMSerializer, Node } from '@tiptap/pm/model';
-import { Window } from 'happy-dom';
+import { type Extensions, type JSONContent, getSchema } from '@tiptap/core';
+import { Node } from '@tiptap/pm/model';
+import { getHTMLFromFragment } from './getHTMLFromFragment';
 
+/**
+ * This function generates HTML from a ProseMirror JSON content object.
+ *
+ * @remarks **Important**: This function requires `happy-dom` to be installed in your project.
+ * @param doc - The ProseMirror JSON content object.
+ * @param extensions - The Tiptap extensions used to build the schema.
+ * @returns The generated HTML string.
+ * @example
+ * ```js
+ * const html = generateHTML(doc, extensions)
+ * console.log(html)
+ * ```
+ */
 export function generateHTML(doc: JSONContent, extensions: Extensions): string {
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      'generateHTML can only be used in a Node environment\nIf you want to use this in a browser environment, use the `@tiptap/html` import instead.',
+    );
+  }
+
   const schema = getSchema(extensions);
   const contentNode = Node.fromJSON(schema, doc);
 
-  const window = new Window();
-
-  const fragment = DOMSerializer.fromSchema(schema).serializeFragment(
-    contentNode.content,
-    {
-      document: window.document as unknown as Document,
-    },
-  );
-
-  const serializer = new window.XMLSerializer();
-  // @ts-ignore
-  return serializer.serializeToString(fragment as unknown as Node);
+  return getHTMLFromFragment(contentNode, schema);
 }
