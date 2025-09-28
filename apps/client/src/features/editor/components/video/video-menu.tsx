@@ -49,6 +49,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "video";
     const parent = findParentNode(predicate)(selection);

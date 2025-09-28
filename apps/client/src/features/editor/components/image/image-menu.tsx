@@ -49,6 +49,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "image";
     const parent = findParentNode(predicate)(selection);

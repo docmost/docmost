@@ -1,10 +1,10 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import { offset } from "@floating-ui/dom";
 import React, { useCallback, useState } from "react";
 import { EditorMenuProps } from "@/features/editor/components/table/types/types.ts";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { LinkPreviewPanel } from "@/features/editor/components/link/link-preview.tsx";
 import { Card } from "@mantine/core";
+import { useEditorState } from "@tiptap/react";
 
 export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
   const [showEdit, setShowEdit] = useState(false);
@@ -13,7 +13,19 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
     return editor.isActive("link");
   }, [editor]);
 
-  const { href: link } = editor.getAttributes("link");
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      const link = ctx.editor.getAttributes("link");
+      return {
+        href: link.href,
+      };
+    },
+  });
 
   const handleEdit = useCallback(() => {
     setShowEdit(true);
@@ -49,7 +61,7 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`link-menu}`}
+      pluginKey={`link-menu`}
       updateDelay={0}
       options={{
         onHide: () => {
@@ -57,7 +69,7 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
         },
         placement: "bottom",
         offset: 5,
-       // zIndex: 101,
+        // zIndex: 101,
       }}
       shouldShow={shouldShow}
     >
@@ -68,11 +80,14 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
           padding="xs"
           bg="var(--mantine-color-body)"
         >
-          <LinkEditorPanel initialUrl={link} onSetLink={onSetLink} />
+          <LinkEditorPanel
+            initialUrl={editorState.href}
+            onSetLink={onSetLink}
+          />
         </Card>
       ) : (
         <LinkPreviewPanel
-          url={link}
+          url={editorState.href}
           onClear={onUnsetLink}
           onEdit={handleEdit}
         />

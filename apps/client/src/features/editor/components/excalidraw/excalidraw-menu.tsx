@@ -38,6 +38,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   });
 
   const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "excalidraw";
     const parent = findParentNode(predicate)(selection);

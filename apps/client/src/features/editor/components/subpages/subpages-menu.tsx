@@ -58,7 +58,7 @@ export const SubpagesMenu = React.memo(
     return (
       <BaseBubbleMenu
         editor={editor}
-        pluginKey={`subpages-menu}`}
+        pluginKey={`subpages-menu`}
         updateDelay={0}
         /* tippyOptions={{
           getReferenceClientRect,

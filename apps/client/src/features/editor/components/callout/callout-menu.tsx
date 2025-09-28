@@ -50,6 +50,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
   );
 
   const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "callout";
     const parent = findParentNode(predicate)(selection);
@@ -62,9 +63,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
         getClientRects: () => [domRect],
       };
     }
-
-    console.log('callout')
-
 
     const domRect = posToDOMRect(editor.view, selection.from, selection.to);
     return {
@@ -117,7 +115,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`callout-menu}`}
+      pluginKey={`callout-menu`}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
