@@ -11,6 +11,7 @@ import { useAiSearch } from "../hooks/use-ai-search.ts";
 import { SearchResultItem } from "./search-result-item.tsx";
 import { AiSearchResult } from "./ai-search-result.tsx";
 import { useLicense } from "@/ee/hooks/use-license.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 interface SearchSpotlightProps {
   spaceId?: string;
@@ -55,7 +56,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
   // Determine result type for rendering
   const isAttachmentSearch =
-    filters.contentType === "attachment" && hasLicenseKey;
+    filters.contentType === "attachment" && (hasLicenseKey || isCloud());
 
   const resultItems = (searchResults || []).map((result) => (
     <SearchResultItem
