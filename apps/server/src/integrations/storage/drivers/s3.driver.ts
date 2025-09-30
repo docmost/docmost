@@ -41,12 +41,26 @@ export class S3Driver implements StorageDriver {
     }
   }
 
-  async uploadStream(filePath: string, file: Readable): Promise<void> {
+  async uploadStream(
+    filePath: string,
+    file: Readable,
+    options?: { recreateClient?: boolean },
+  ): Promise<void> {
+    let clientToUse = this.s3Client;
+    let shouldDestroyClient = false;
+
+    // optionally recreate client to avoid socket hang errors
+    // (during multi-attachments imports)
+    if (options?.recreateClient) {
+      clientToUse = new S3Client(this.config as any);
+      shouldDestroyClient = true;
+    }
+
     try {
       const contentType = getMimeType(filePath);
 
       const upload = new Upload({
-        client: this.s3Client,
+        client: clientToUse,
         params: {
           Bucket: this.config.bucket,
           Key: filePath,
@@ -58,6 +72,10 @@ export class S3Driver implements StorageDriver {
       await upload.done();
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
+    } finally {
+      if (shouldDestroyClient && clientToUse) {
+        clientToUse.destroy();
+      }
     }
   }
 

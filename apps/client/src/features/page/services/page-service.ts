@@ -9,10 +9,11 @@ import {
   SidebarPagesParams,
 } from '@/features/page/types/page.types';
 import { QueryParams } from "@/lib/types";
-import { IAttachment, IPagination } from "@/lib/types.ts";
+import { IPagination } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
+import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);

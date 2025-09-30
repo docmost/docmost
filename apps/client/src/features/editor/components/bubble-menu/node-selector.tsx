@@ -13,11 +13,12 @@ import {
   IconTypography,
 } from "@tabler/icons-react";
 import { Popover, Button, ScrollArea } from "@mantine/core";
-import { useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
+import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 
 interface NodeSelectorProps {
-  editor: ReturnType<typeof useEditor>;
+  editor: Editor | null;
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
 }
@@ -36,6 +37,27 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!editor) {
+        return null;
+      }
+
+      return {
+        isParagraph: ctx.editor.isActive("paragraph"),
+        isBulletList: ctx.editor.isActive("bulletList"),
+        isOrderedList: ctx.editor.isActive("orderedList"),
+        isHeading1: ctx.editor.isActive("heading", { level: 1 }),
+        isHeading2: ctx.editor.isActive("heading", { level: 2 }),
+        isHeading3: ctx.editor.isActive("heading", { level: 3 }),
+        isTaskItem: ctx.editor.isActive("taskItem"),
+        isBlockquote: ctx.editor.isActive("blockquote"),
+        isCodeBlock: ctx.editor.isActive("codeBlock"),
+      };
+    },
+  });
+
   const items: BubbleMenuItem[] = [
     {
       name: "Text",
@@ -43,45 +65,45 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       command: () =>
         editor.chain().focus().toggleNode("paragraph", "paragraph").run(),
       isActive: () =>
-        editor.isActive("paragraph") &&
-        !editor.isActive("bulletList") &&
-        !editor.isActive("orderedList"),
+        editorState?.isParagraph &&
+        !editorState?.isBulletList &&
+        !editorState?.isOrderedList,
     },
     {
       name: "Heading 1",
       icon: IconH1,
       command: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-      isActive: () => editor.isActive("heading", { level: 1 }),
+      isActive: () => editorState?.isHeading1,
     },
     {
       name: "Heading 2",
       icon: IconH2,
       command: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-      isActive: () => editor.isActive("heading", { level: 2 }),
+      isActive: () => editorState?.isHeading2,
     },
     {
       name: "Heading 3",
       icon: IconH3,
       command: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-      isActive: () => editor.isActive("heading", { level: 3 }),
+      isActive: () => editorState?.isHeading3,
     },
     {
       name: "To-do List",
       icon: IconCheckbox,
       command: () => editor.chain().focus().toggleTaskList().run(),
-      isActive: () => editor.isActive("taskItem"),
+      isActive: () => editorState?.isTaskItem,
     },
     {
       name: "Bullet List",
       icon: IconList,
       command: () => editor.chain().focus().toggleBulletList().run(),
-      isActive: () => editor.isActive("bulletList"),
+      isActive: () => editorState?.isBulletList,
     },
     {
       name: "Numbered List",
       icon: IconListNumbers,
       command: () => editor.chain().focus().toggleOrderedList().run(),
-      isActive: () => editor.isActive("orderedList"),
+      isActive: () => editorState?.isOrderedList,
     },
     {
       name: "Blockquote",
@@ -93,13 +115,13 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
           .toggleNode("paragraph", "paragraph")
           .toggleBlockquote()
           .run(),
-      isActive: () => editor.isActive("blockquote"),
+      isActive: () => editorState?.isBlockquote,
     },
     {
       name: "Code",
       icon: IconCode,
       command: () => editor.chain().focus().toggleCodeBlock().run(),
-      isActive: () => editor.isActive("codeBlock"),
+      isActive: () => editorState?.isCodeBlock,
     },
   ];
 

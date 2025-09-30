@@ -7,7 +7,12 @@ import {
   onAuthenticationFailedParameters,
   WebSocketStatus,
 } from "@hocuspocus/provider";
-import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  EditorProvider,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import {
   collabExtensions,
   mainExtensions,
@@ -50,7 +55,7 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
-import { searchSpotlight } from '@/features/search/constants.ts';
+import { searchSpotlight } from "@/features/search/constants.ts";
 
 interface PageEditorProps {
   pageId: string;
@@ -77,7 +82,7 @@ export default function PageEditor({
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom
+    yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -213,17 +218,17 @@ export default function PageEditor({
       extensions,
       editable,
       immediatelyRender: true,
-      shouldRerenderOnTransaction: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
               event.preventDefault();
               return true;
             }
-            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
               searchSpotlight.open();
               return true;
             }
@@ -268,8 +273,15 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider]
+    [pageId, editable, remoteProvider],
   );
+
+  const editorIsEditable = useEditorState({
+    editor,
+    selector: (ctx) => {
+      return ctx.editor?.isEditable ?? false;
+    },
+  });
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
@@ -306,7 +318,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent
+        handleActiveCommentEvent,
       );
     };
   }, []);
@@ -389,7 +401,7 @@ export default function PageEditor({
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
 
-        {editor && editor.isEditable && (
+        {editor && editorIsEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />

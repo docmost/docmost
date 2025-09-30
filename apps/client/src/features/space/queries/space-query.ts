@@ -152,13 +152,36 @@ export function useDeleteSpaceMutation() {
         });
       }
 
-      const spaces = queryClient.getQueryData(["spaces"]) as any;
+      // Remove space-specific queries
+      if (variables.id) {
+        queryClient.removeQueries({
+          queryKey: ["space", variables.id],
+          exact: true,
+        });
+
+        // Invalidate recent changes
+        queryClient.invalidateQueries({
+          queryKey: ["recent-changes"],
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: ["recent-changes", variables.id],
+        });
+      }
+
+      // Update spaces list cache
+      /* const spaces = queryClient.getQueryData(["spaces"]) as any;
       if (spaces) {
         spaces.items = spaces.items?.filter(
           (space: ISpace) => space.id !== variables.id,
         );
         queryClient.setQueryData(["spaces"], spaces);
-      }
+      }*/
+
+      // Invalidate all spaces queries to refresh lists
+      queryClient.invalidateQueries({
+        predicate: (item) => ["spaces"].includes(item.queryKey[0] as string),
+      });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
