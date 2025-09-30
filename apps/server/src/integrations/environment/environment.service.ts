@@ -229,8 +229,11 @@ export class EnvironmentService {
     );
   }
 
-  getOpenAiModel(): string {
-    return this.configService.get<string>('OPENAI_MODEL');
+  getOpenAiCompletionModel(): string {
+    return this.configService.get<string>(
+      'OPENAI_COMPLETION_MODEL',
+      'gpt-4o-mini',
+    );
   }
 
   isAIEnabled(): string {
