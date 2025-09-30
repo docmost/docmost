@@ -153,10 +153,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       </ActionIcon.Group>
 
       {editorState?.width && (
-        <NodeWidthResize
-          onChange={onWidthChange}
-          value={editorState.width}
-        />
+        <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
       )}
     </BaseBubbleMenu>
   );

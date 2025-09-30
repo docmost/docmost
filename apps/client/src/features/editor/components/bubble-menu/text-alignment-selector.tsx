@@ -55,25 +55,25 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
   const items: BubbleMenuItem[] = [
     {
       name: "Align left",
-      isActive: () => editorState.isAlignLeft,
+      isActive: () => editorState?.isAlignLeft,
       command: () => editor.chain().focus().setTextAlign("left").run(),
       icon: IconAlignLeft,
     },
     {
       name: "Align center",
-      isActive: () => editorState.isAlignCenter,
+      isActive: () => editorState?.isAlignCenter,
       command: () => editor.chain().focus().setTextAlign("center").run(),
       icon: IconAlignCenter,
     },
     {
       name: "Align right",
-      isActive: () => editorState.isAlignRight,
+      isActive: () => editorState?.isAlignRight,
       command: () => editor.chain().focus().setTextAlign("right").run(),
       icon: IconAlignRight,
     },
     {
       name: "Justify",
-      isActive: () => editorState.isAlignJustify,
+      isActive: () => editorState?.isAlignJustify,
       command: () => editor.chain().focus().setTextAlign("justify").run(),
       icon: IconAlignJustified,
     },

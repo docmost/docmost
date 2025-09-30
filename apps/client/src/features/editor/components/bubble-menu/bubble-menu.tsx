@@ -72,31 +72,31 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const items: BubbleMenuItem[] = [
     {
       name: "Bold",
-      isActive: () => editorState.isBold,
+      isActive: () => editorState?.isBold,
       command: () => props.editor.chain().focus().toggleBold().run(),
       icon: IconBold,
     },
     {
       name: "Italic",
-      isActive: () => editorState.isItalic,
+      isActive: () => editorState?.isItalic,
       command: () => props.editor.chain().focus().toggleItalic().run(),
       icon: IconItalic,
     },
     {
       name: "Underline",
-      isActive: () => editorState.isUnderline,
+      isActive: () => editorState?.isUnderline,
       command: () => props.editor.chain().focus().toggleUnderline().run(),
       icon: IconUnderline,
     },
     {
       name: "Strike",
-      isActive: () => editorState.isStrike,
+      isActive: () => editorState?.isStrike,
       command: () => props.editor.chain().focus().toggleStrike().run(),
       icon: IconStrikethrough,
     },
     {
       name: "Code",
-      isActive: () => editorState.isCode,
+      isActive: () => editorState?.isCode,
       command: () => props.editor.chain().focus().toggleCode().run(),
       icon: IconCode,
     },
@@ -104,7 +104,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const commentItem: BubbleMenuItem = {
     name: "Comment",
-    isActive: () => editorState.isComment,
+    isActive: () => editorState?.isComment,
     command: () => {
       const commentId = uuid7();
 
