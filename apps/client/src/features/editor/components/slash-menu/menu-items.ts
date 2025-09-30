@@ -11,6 +11,7 @@ import {
   IconListNumbers,
   IconMath,
   IconMathFunction,
+  IconMathSymbols,
   IconMovie,
   IconPaperclip,
   IconPhoto,
@@ -309,6 +310,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setMathBlock().run(),
     },
+      {
+        title: "Typst block",
+        description: "Insert Typst markup block.",
+        searchTerms: ["typst", "typeset", "markup", "document"],
+        icon: IconMathSymbols,
+        command: ({ editor, range }: CommandProps) =>
+          editor.chain().focus().deleteRange(range).setTypstBlock().run(),
+      },
     {
       title: "Mermaid diagram",
       description: "Insert mermaid diagram",
