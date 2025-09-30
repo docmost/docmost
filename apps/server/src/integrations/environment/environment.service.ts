@@ -222,6 +222,13 @@ export class EnvironmentService {
     return this.configService.get<string>('OPENAI_API_URL');
   }
 
+  getOpenAiEmbeddingModel(): string {
+    return this.configService.get<string>(
+      'OPENAI_EMBEDDING_MODEL',
+      'text-embedding-3-small',
+    );
+  }
+
   getOpenAiModel(): string {
     return this.configService.get<string>('OPENAI_MODEL');
   }
