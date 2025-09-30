@@ -9,7 +9,8 @@ import {
   Tooltip,
   UnstyledButton,
 } from "@mantine/core";
-import { useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
+import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 
 export interface TableColorItem {
@@ -18,7 +19,7 @@ export interface TableColorItem {
 }
 
 interface TableBackgroundColorProps {
-  editor: ReturnType<typeof useEditor>;
+  editor: Editor | null;
 }
 
 const TABLE_COLORS: TableColorItem[] = [
@@ -38,36 +39,49 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
   const { t } = useTranslation();
   const [opened, setOpened] = React.useState(false);
 
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      let currentColor = "";
+      if (ctx.editor.isActive("tableCell")) {
+        const attrs = ctx.editor.getAttributes("tableCell");
+        currentColor = attrs.backgroundColor || "";
+      } else if (ctx.editor.isActive("tableHeader")) {
+        const attrs = ctx.editor.getAttributes("tableHeader");
+        currentColor = attrs.backgroundColor || "";
+      }
+
+      return {
+        currentColor,
+        isTableCell: ctx.editor.isActive("tableCell"),
+        isTableHeader: ctx.editor.isActive("tableHeader"),
+      };
+    },
+  });
+
+  if (!editor || !editorState) {
+    return null;
+  }
+
   const setTableCellBackground = (color: string, colorName: string) => {
     editor
       .chain()
       .focus()
-      .updateAttributes("tableCell", { 
+      .updateAttributes("tableCell", {
         backgroundColor: color || null,
-        backgroundColorName: color ? colorName : null 
+        backgroundColorName: color ? colorName : null,
       })
-      .updateAttributes("tableHeader", { 
+      .updateAttributes("tableHeader", {
         backgroundColor: color || null,
-        backgroundColorName: color ? colorName : null 
+        backgroundColorName: color ? colorName : null,
       })
       .run();
     setOpened(false);
   };
-
-  // Get current cell's background color
-  const getCurrentColor = () => {
-    if (editor.isActive("tableCell")) {
-      const attrs = editor.getAttributes("tableCell");
-      return attrs.backgroundColor || "";
-    }
-    if (editor.isActive("tableHeader")) {
-      const attrs = editor.getAttributes("tableHeader");
-      return attrs.backgroundColor || "";
-    }
-    return "";
-  };
-
-  const currentColor = getCurrentColor();
 
   return (
     <Popover
@@ -123,7 +137,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
                     cursor: "pointer",
                   }}
                 >
-                  {currentColor === item.color && (
+                  {editorState.currentColor === item.color && (
                     <IconCheck
                       size={18}
                       style={{
