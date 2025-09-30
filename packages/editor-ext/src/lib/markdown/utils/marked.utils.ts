@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { calloutExtension } from "./callout.marked";
 import { mathBlockExtension } from "./math-block.marked";
 import { mathInlineExtension } from "./math-inline.marked";
+import { typstBlockExtension } from "./typst-block.marked";
 
 marked.use({
   renderer: {
@@ -29,9 +30,23 @@ marked.use({
 });
 
 marked.use({
-  extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
+  extensions: [
+    calloutExtension,
+    mathBlockExtension,
+    mathInlineExtension,
+    typstBlockExtension,
+  ],
 });
 
+/**
+ * Converts Markdown text to HTML.
+ *
+ * The function removes an optional leading YAML front matter block, trims leading whitespace,
+ * parses the remaining Markdown with line-breaks enabled, and returns the resulting HTML.
+ *
+ * @param markdownInput - Markdown source text; may include a leading YAML front matter section delimited by `---`.
+ * @returns The generated HTML string produced from the parsed Markdown.
+ */
 export function markdownToHtml(
   markdownInput: string,
 ): string | Promise<string> {

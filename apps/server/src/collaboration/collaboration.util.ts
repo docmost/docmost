@@ -33,12 +33,14 @@ import {
   Embed,
   Mention,
   Subpages,
+  TypstBlock,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
-import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
+import { generateHTML } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
+import { generateJSON } from '@tiptap/html';
 import { Node } from '@tiptap/pm/model';
 
 export const tiptapExtensions = [
@@ -80,8 +82,15 @@ export const tiptapExtensions = [
   Embed,
   Mention,
   Subpages,
+  TypstBlock,
 ] as any;
 
+/**
+ * Convert a Tiptap JSON document to HTML.
+ *
+ * @param tiptapJson - Tiptap-compatible JSON document (editor state/content)
+ * @returns An HTML string representing the provided document
+ */
 export function jsonToHtml(tiptapJson: any) {
   return generateHTML(tiptapJson, tiptapExtensions);
 }
