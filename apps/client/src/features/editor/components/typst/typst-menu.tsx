@@ -1,9 +1,9 @@
 import {
   BubbleMenu as BaseBubbleMenu,
-  findParentNode,
   posToDOMRect,
   useEditorState,
 } from "@tiptap/react";
+import { findParentNode } from "@tiptap/core";  
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { sticky } from "tippy.js";
 import { Node as PMNode } from "prosemirror-model";

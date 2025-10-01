@@ -1,5 +1,8 @@
 import { $typst } from "@myriaddreamin/typst.ts/dist/esm/contrib/snippet.mjs";
 
+import compilerWasmUrl from "@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm?url";
+import rendererWasmUrl from "@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm?url";
+
 let initPromise: Promise<void> | null = null;
 let isInitialized = false;
 
@@ -7,20 +10,16 @@ const ensureInitialized = async () => {
   if (isInitialized) {
     return;
   }
-
-  // TODO: Without online sources
   
   if (!initPromise) {
     initPromise = (async () => {
       try {
         $typst.setCompilerInitOptions({
-          getModule: () =>
-            "https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler@0.6.0/pkg/typst_ts_web_compiler_bg.wasm",
+          getModule: () => compilerWasmUrl,
         });
         
         $typst.setRendererInitOptions({
-          getModule: () =>
-            "https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-renderer@0.6.0/pkg/typst_ts_renderer_bg.wasm",
+          getModule: () => rendererWasmUrl,
         });
         
         isInitialized = true;
