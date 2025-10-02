@@ -103,7 +103,7 @@ const groupedData: DataGroup[] = [
       {
         label: "API management",
         icon: IconKey,
-        path: "/settings/workspace/api-keys",
+        path: "/settings/api-keys",
         isCloud: true,
         isEnterprise: true,
         isAdmin: true,

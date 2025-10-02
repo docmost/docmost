@@ -101,7 +101,7 @@ export default function App() {
             <Route path={"account/api-keys"} element={<UserApiKeys />} />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
-            <Route path={"workspace/api-keys"} element={<WorkspaceApiKeys />} />
+            <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
