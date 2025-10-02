@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { IApiKey } from "@/ee/api-key";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
+import NoTableResults from "@/components/common/no-table-results";
 
 interface ApiKeyTableProps {
   apiKeys: IApiKey[];
@@ -33,18 +34,6 @@ export function ApiKeyTable({
     return new Date(expiresAt) < new Date();
   };
 
-  if (isLoading) {
-    return <Text c="dimmed">{t("Loading")}...</Text>;
-  }
-
-  if (!apiKeys || apiKeys.length === 0) {
-    return (
-      <Text c="dimmed" ta="center" py="xl">
-        {t("No API keys found")}
-      </Text>
-    );
-  }
-
   return (
     <Table.ScrollContainer minWidth={500}>
       <Table highlightOnHover verticalSpacing="sm">
@@ -60,89 +49,93 @@ export function ApiKeyTable({
         </Table.Thead>
 
         <Table.Tbody>
-          {apiKeys.map((apiKey: IApiKey, index: number) => (
-            <Table.Tr key={index}>
-              <Table.Td>
-                <Text fz="sm" fw={500}>
-                  {apiKey.name}
-                </Text>
-              </Table.Td>
-
-              {showUserColumn && apiKey.creator && (
+          {apiKeys && apiKeys.length > 0 ? (
+            apiKeys.map((apiKey: IApiKey, index: number) => (
+              <Table.Tr key={index}>
                 <Table.Td>
-                  <Group gap="4" wrap="nowrap">
-                    <CustomAvatar
-                      avatarUrl={apiKey.creator?.avatarUrl}
-                      name={apiKey.creator.name}
-                      size="sm"
-                    />
-                    <Text fz="sm" lineClamp={1}>
-                      {apiKey.creator.name}
-                    </Text>
-                  </Group>
+                  <Text fz="sm" fw={500}>
+                    {apiKey.name}
+                  </Text>
                 </Table.Td>
-              )}
 
-              <Table.Td>
-                <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                  {formatDate(apiKey.lastUsedAt)}
-                </Text>
-              </Table.Td>
+                {showUserColumn && apiKey.creator && (
+                  <Table.Td>
+                    <Group gap="4" wrap="nowrap">
+                      <CustomAvatar
+                        avatarUrl={apiKey.creator?.avatarUrl}
+                        name={apiKey.creator.name}
+                        size="sm"
+                      />
+                      <Text fz="sm" lineClamp={1}>
+                        {apiKey.creator.name}
+                      </Text>
+                    </Group>
+                  </Table.Td>
+                )}
 
-              <Table.Td>
-                {apiKey.expiresAt ? (
-                  isExpired(apiKey.expiresAt) ? (
-                    <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                      {t("Expired")}
-                    </Text>
+                <Table.Td>
+                  <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                    {formatDate(apiKey.lastUsedAt)}
+                  </Text>
+                </Table.Td>
+
+                <Table.Td>
+                  {apiKey.expiresAt ? (
+                    isExpired(apiKey.expiresAt) ? (
+                      <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                        {t("Expired")}
+                      </Text>
+                    ) : (
+                      <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                        {formatDate(apiKey.expiresAt)}
+                      </Text>
+                    )
                   ) : (
                     <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                      {formatDate(apiKey.expiresAt)}
+                      {t("Never")}
                     </Text>
-                  )
-                ) : (
+                  )}
+                </Table.Td>
+
+                <Table.Td>
                   <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                    {t("Never")}
+                    {formatDate(apiKey.createdAt)}
                   </Text>
-                )}
-              </Table.Td>
+                </Table.Td>
 
-              <Table.Td>
-                <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
-                  {formatDate(apiKey.createdAt)}
-                </Text>
-              </Table.Td>
-
-              <Table.Td>
-                <Menu position="bottom-end" withinPortal>
-                  <Menu.Target>
-                    <ActionIcon variant="subtle" color="gray">
-                      <IconDots size={16} />
-                    </ActionIcon>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    {onUpdate && (
-                      <Menu.Item
-                        leftSection={<IconEdit size={16} />}
-                        onClick={() => onUpdate(apiKey)}
-                      >
-                        {t("Rename")}
-                      </Menu.Item>
-                    )}
-                    {onRevoke && (
-                      <Menu.Item
-                        leftSection={<IconTrash size={16} />}
-                        color="red"
-                        onClick={() => onRevoke(apiKey)}
-                      >
-                        {t("Revoke")}
-                      </Menu.Item>
-                    )}
-                  </Menu.Dropdown>
-                </Menu>
-              </Table.Td>
-            </Table.Tr>
-          ))}
+                <Table.Td>
+                  <Menu position="bottom-end" withinPortal>
+                    <Menu.Target>
+                      <ActionIcon variant="subtle" color="gray">
+                        <IconDots size={16} />
+                      </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      {onUpdate && (
+                        <Menu.Item
+                          leftSection={<IconEdit size={16} />}
+                          onClick={() => onUpdate(apiKey)}
+                        >
+                          {t("Rename")}
+                        </Menu.Item>
+                      )}
+                      {onRevoke && (
+                        <Menu.Item
+                          leftSection={<IconTrash size={16} />}
+                          color="red"
+                          onClick={() => onRevoke(apiKey)}
+                        >
+                          {t("Revoke")}
+                        </Menu.Item>
+                      )}
+                    </Menu.Dropdown>
+                  </Menu>
+                </Table.Td>
+              </Table.Tr>
+            ))
+          ) : (
+            <NoTableResults colSpan={showUserColumn ? 6 : 5} />
+          )}
         </Table.Tbody>
       </Table>
     </Table.ScrollContainer>
