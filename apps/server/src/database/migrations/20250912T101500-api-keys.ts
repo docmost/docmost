@@ -9,7 +9,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('name', 'text', (col) => col)
     .addColumn('token_suffix', 'text')
     .addColumn('expires_at', 'timestamptz')
-    .addColumn('user_id', 'uuid', (col) =>
+    .addColumn('creator_id', 'uuid', (col) =>
       col.notNull().references('users.id').onDelete('cascade'),
     )
     .addColumn('workspace_id', 'uuid', (col) =>

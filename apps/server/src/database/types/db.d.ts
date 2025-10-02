@@ -39,7 +39,7 @@ export interface ApiKeys {
   name: string | null;
   tokenSuffix: string | null;
   updatedAt: Generated<Timestamp>;
-  userId: string;
+  creatorId: string;
   workspaceId: string;
 }
 
