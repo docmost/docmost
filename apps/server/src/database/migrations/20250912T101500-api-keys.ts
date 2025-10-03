@@ -7,7 +7,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('name', 'text', (col) => col)
-    .addColumn('token_suffix', 'text')
     .addColumn('expires_at', 'timestamptz')
     .addColumn('creator_id', 'uuid', (col) =>
       col.notNull().references('users.id').onDelete('cascade'),

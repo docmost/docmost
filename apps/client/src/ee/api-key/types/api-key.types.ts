@@ -3,7 +3,6 @@ import { IUser } from "@/features/user/types/user.types.ts";
 export interface IApiKey {
   id: string;
   name: string;
-  tokenSuffix: string;
   token?: string;
   creatorId: string;
   workspaceId: string;
