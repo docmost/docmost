@@ -15,7 +15,7 @@
     "server:dev": "nx run server:start:dev",
     "server:start": "nx run server:start:prod",
     "email:dev": "nx run server:email:dev",
-    "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\""
+    "dev": "pnpm concurrently -n \"frontend,backend,email\" -c \"cyan,green,magenta\" \"pnpm run client:dev\" \"pnpm run server:dev\" \"pnpm run email:dev\""
   },
   "dependencies": {
     "@braintree/sanitize-url": "^7.1.0",

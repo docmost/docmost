@@ -41,3 +41,4 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+.pnpm-store

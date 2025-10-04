@@ -1,0 +1,46 @@
+services:
+  docmost:
+    build:
+      context: ..
+      dockerfile: dev-container/Dockerfile
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
+      REDIS_URL: 'redis://redis:6379'
+      NODE_OPTIONS: '--max-old-space-size=4096'
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+      - "5019:5019"
+    restart: unless-stopped
+    volumes:
+      - ..:/app:cached
+      - node_modules:/app/node_modules
+      - docmost:/app/data/storage
+    shm_size: '256mb'
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: docmost
+      POSTGRES_USER: docmost
+      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  docmost:
+  db_data:
+  redis_data:
+  node_modules:
