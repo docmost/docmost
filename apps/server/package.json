@@ -89,6 +89,7 @@
     "socket.io": "^4.8.1",
     "stripe": "^17.5.0",
     "tmp-promise": "^3.0.3",
+    "typesense": "^2.1.0",
     "ws": "^8.18.2",
     "yauzl": "^3.2.0"
   },

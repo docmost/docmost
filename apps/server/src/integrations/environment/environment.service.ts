@@ -215,7 +215,10 @@ export class EnvironmentService {
   }
 
   getTypesenseUrl(): string {
-    return this.configService.get<string>('TYPESENSE_URL');
+    return this.configService.get<string>(
+      'TYPESENSE_URL',
+      'http://localhost:8108',
+    );
   }
 
   getTypesenseApiKey(): string {
