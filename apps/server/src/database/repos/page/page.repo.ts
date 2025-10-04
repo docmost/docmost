@@ -22,24 +22,6 @@ export class PageRepo {
     private spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .where('child.deletedAt', 'is', null)
-      .limit(1)
-      .as('hasChildren');
-  }
-
   private baseFields: Array<keyof Page> = [
     'id',
     'slugId',
@@ -63,6 +45,7 @@ export class PageRepo {
     pageId: string,
     opts?: {
       includeContent?: boolean;
+      includeTextContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
       includeCreator?: boolean;
@@ -80,6 +63,7 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeTextContent, (qb) => qb.select('textContent'))
       .$if(opts?.includeHasChildren, (qb) =>
         qb.select((eb) => this.withHasChildren(eb)),
       );
@@ -377,6 +361,24 @@ export class PageRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', sql`ANY(${eb.ref('pages.contributorIds')})`),
     ).as('contributors');
+  }
+
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
   }
 
   async getPageAndDescendants(

@@ -213,4 +213,12 @@ export class EnvironmentService {
   getPostHogKey(): string {
     return this.configService.get<string>('POSTHOG_KEY');
   }
+
+  getTypesenseUrl(): string {
+    return this.configService.get<string>('TYPESENSE_URL');
+  }
+
+  getTypesenseApiKey(): string {
+    return this.configService.get<string>('TYPESENSE_API_KEY');
+  }
 }
