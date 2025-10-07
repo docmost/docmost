@@ -74,7 +74,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       isApiKeyModuleReady = true;
     } catch (err) {
       this.logger.debug(
-        'API Key module requested but EE module not bundled in this build',
+        'API Key module requested but enterprise module not bundled in this build',
       );
       isApiKeyModuleReady = false;
     }
