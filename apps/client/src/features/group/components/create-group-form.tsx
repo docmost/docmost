@@ -1,11 +1,12 @@
 import { Group, Box, Button, TextInput, Stack, Textarea } from "@mantine/core";
 import React, { useState } from "react";
 import { useCreateGroupMutation } from "@/features/group/queries/group-query.ts";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { MultiUserSelect } from "@/features/group/components/multi-user-select.tsx";
 import { useTranslation } from "react-i18next";
+import { zodResolver } from 'mantine-form-zod-resolver';
 
 const formSchema = z.object({
   name: z.string().trim().min(2).max(50),

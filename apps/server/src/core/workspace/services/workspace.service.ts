@@ -303,6 +303,15 @@ export class WorkspaceService {
       }
     }
 
+    if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
+      await this.workspaceRepo.updateApiSettings(
+        workspaceId,
+        'restrictToAdmins',
+        updateWorkspaceDto.restrictApiToAdmins,
+      );
+      delete updateWorkspaceDto.restrictApiToAdmins;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {

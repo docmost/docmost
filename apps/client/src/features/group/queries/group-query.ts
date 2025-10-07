@@ -22,6 +22,7 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import { useEffect } from "react";
 import { validate as isValidUuid } from "uuid";
 import { queryClient } from "@/main.tsx";
+import { useTranslation } from 'react-i18next';
 
 export function useGetGroupsQuery(
   params?: QueryParams,
@@ -73,11 +74,12 @@ export function useCreateGroupMutation() {
 
 export function useUpdateGroupMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<IGroup, Error, Partial<IGroup>>({
     mutationFn: (data) => updateGroup(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Group updated successfully" });
+      notifications.show({ message: t("Group updated successfully") });
       queryClient.invalidateQueries({
         queryKey: ["group", variables.groupId],
       });
@@ -91,11 +93,12 @@ export function useUpdateGroupMutation() {
 
 export function useDeleteGroupMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: (groupId: string) => deleteGroup({ groupId }),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Group deleted successfully" });
+      notifications.show({ message: t("Group deleted successfully") });
       queryClient.refetchQueries({ queryKey: ["groups"] });
     },
     onError: (error) => {
@@ -119,11 +122,12 @@ export function useGroupMembersQuery(
 
 export function useAddGroupMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<void, Error, { groupId: string; userIds: string[] }>({
     mutationFn: (data) => addGroupMember(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Added successfully" });
+      notifications.show({ message: t("Added successfully") });
       queryClient.invalidateQueries({
         queryKey: ["groupMembers", variables.groupId],
       });
@@ -139,6 +143,7 @@ export function useAddGroupMemberMutation() {
 
 export function useRemoveGroupMemberMutation() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation<
     void,
@@ -150,7 +155,7 @@ export function useRemoveGroupMemberMutation() {
   >({
     mutationFn: (data) => removeGroupMember(data),
     onSuccess: (data, variables) => {
-      notifications.show({ message: "Removed successfully" });
+      notifications.show({ message: t("Removed successfully") });
       queryClient.invalidateQueries({
         queryKey: ["groupMembers", variables.groupId],
       });

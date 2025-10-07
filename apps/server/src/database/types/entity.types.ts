@@ -19,6 +19,7 @@ import {
   Shares,
   FileTasks,
   UserMfa as _UserMFA,
+  ApiKeys,
 } from './db';
 
 // Workspace
@@ -119,3 +120,8 @@ export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
 export type UserMFA = Selectable<_UserMFA>;
 export type InsertableUserMFA = Insertable<_UserMFA>;
 export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
+
+// Api Keys
+export type ApiKey = Selectable<ApiKeys>;
+export type InsertableApiKey = Insertable<ApiKeys>;
+export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
