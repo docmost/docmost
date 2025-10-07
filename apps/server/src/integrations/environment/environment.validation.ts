@@ -1,12 +1,10 @@
 import {
   IsIn,
-  IsISO8601,
   IsNotEmpty,
   IsNotIn,
   IsOptional,
   IsString,
   IsUrl,
-  MaxLength,
   MinLength,
   ValidateIf,
   validateSync,
@@ -73,6 +71,8 @@ export class EnvironmentVariables {
   @ValidateIf((obj) => obj.CLOUD === 'true'.toLowerCase())
   SUBDOMAIN_HOST: string;
 
+  @IsOptional()
+  @IsIn(['database', 'typesense'])
   @IsString()
   SEARCH_DRIVER: string;
 

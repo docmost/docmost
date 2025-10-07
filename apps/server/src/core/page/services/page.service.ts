@@ -574,7 +574,7 @@ export class PageService {
   }
 
   async forceDelete(pageId: string): Promise<void> {
-    // Get all descendant IDs (including th  e page itself) using recursive CTE
+    // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
         db

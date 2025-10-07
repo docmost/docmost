@@ -231,6 +231,6 @@ export class EnvironmentService {
   }
 
   getTypesenseLocale(): string {
-    return this.configService.get<string>('TYPESENSE_LOCALE', 'en');
+    return this.configService.get<string>('TYPESENSE_LOCALE', 'en').toLowerCase();
   }
 }
