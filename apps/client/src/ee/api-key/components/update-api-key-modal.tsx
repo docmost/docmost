@@ -59,7 +59,7 @@ export function UpdateApiKeyModal({
       <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
         <Stack gap="md">
           <TextInput
-            label={t("Token name")}
+            label={t("Name")}
             placeholder={t("Enter a descriptive token name")}
             required
             {...form.getInputProps("name")}
