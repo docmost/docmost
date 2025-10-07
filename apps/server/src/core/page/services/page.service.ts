@@ -234,21 +234,28 @@ export class PageService {
         );
       }
 
-      // update spaceId in shares
       if (pageIds.length > 0) {
+        // update spaceId in shares
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIds)
           .execute();
-      }
 
-      // Update attachments
-      await this.attachmentRepo.updateAttachmentsByPageId(
-        { spaceId },
-        pageIds,
-        trx,
-      );
+        // Update comments
+        await trx
+          .updateTable('comments')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+
+        // Update attachments
+        await this.attachmentRepo.updateAttachmentsByPageId(
+          { spaceId },
+          pageIds,
+          trx,
+        );
+      }
     });
   }
 
