@@ -27,7 +27,6 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { ModuleRef } from '@nestjs/core';
-import { PageSearchService } from '@docmost/ee/typesense/services/page-search.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
