@@ -14,12 +14,15 @@ import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class PageRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   private baseFields: Array<keyof Page> = [
@@ -110,7 +113,7 @@ export class PageRepo {
     pageIds: string[],
     trx?: KyselyTransaction,
   ) {
-    return dbOrTx(this.db, trx)
+    const result = await dbOrTx(this.db, trx)
       .updateTable('pages')
       .set({ ...updatePageData, updatedAt: new Date() })
       .where(
@@ -119,6 +122,12 @@ export class PageRepo {
         pageIds,
       )
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: pageIds,
+    });
+
+    return result;
   }
 
   async insertPage(
@@ -126,11 +135,17 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ): Promise<Page> {
     const db = dbOrTx(this.db, trx);
-    return db
+    const result = await db
       .insertInto('pages')
       .values(insertablePage)
       .returning(this.baseFields)
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: [result.id],
+    });
+
+    return result;
   }
 
   async deletePage(pageId: string): Promise<void> {
@@ -179,6 +194,9 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+      });
+      this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
+        pageIds: pageIds,
       });
     }
   }
@@ -243,6 +261,9 @@ export class PageRepo {
         .where('id', '=', pageId)
         .execute();
     }
+    this.eventEmitter.emit(EventName.PAGE_RESTORED, {
+      pageIds: pageIds,
+    });
   }
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
