@@ -32,6 +32,8 @@ import { ImportAttachmentService } from './import-attachment.service';
 import { ModuleRef } from '@nestjs/core';
 import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class FileImportTaskService {
@@ -45,6 +47,7 @@ export class FileImportTaskService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -394,6 +397,12 @@ export class FileImportTaskService {
             );
             await this.backlinkRepo.insertBacklink(backlinkChunk, trx);
           }
+        }
+
+        if (validPageIds.size > 0) {
+          this.eventEmitter.emit(EventName.PAGE_CREATED, {
+            pageIds: Array.from(validPageIds),
+          });
         }
 
         this.logger.log(

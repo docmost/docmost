@@ -21,13 +21,14 @@ export class SearchService {
   ) {}
 
   async searchPage(
-    query: string,
     searchParams: SearchDTO,
     opts: {
       userId?: string;
       workspaceId: string;
     },
   ): Promise<SearchResponseDto[]> {
+    const { query } = searchParams;
+
     if (query.length < 1) {
       return;
     }

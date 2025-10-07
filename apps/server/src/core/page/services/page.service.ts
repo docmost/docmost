@@ -38,6 +38,8 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { EventName } from '../../../common/events/event.contants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class PageService {
@@ -49,6 +51,7 @@ export class PageService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async findById(
@@ -380,6 +383,11 @@ export class PageService {
 
     await this.db.insertInto('pages').values(insertablePages).execute();
 
+    const insertedPageIds = insertablePages.map((page) => page.id);
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: insertedPageIds,
+    });
+
     //TODO: best to handle this in a queue
     const attachmentsIds = Array.from(attachmentMap.keys());
     if (attachmentsIds.length > 0) {
@@ -606,6 +614,9 @@ export class PageService {
 
     if (pageIds.length > 0) {
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+      this.eventEmitter.emit(EventName.PAGE_DELETED, {
+        pageIds: pageIds,
+      });
     }
   }
 
