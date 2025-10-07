@@ -35,6 +35,8 @@ import SpacesPage from "@/pages/spaces/spaces.tsx";
 import { MfaChallengePage } from "@/ee/mfa/pages/mfa-challenge-page";
 import { MfaSetupRequiredPage } from "@/ee/mfa/pages/mfa-setup-required-page";
 import SpaceTrash from "@/pages/space/space-trash.tsx";
+import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
+import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 
 export default function App() {
   const { t } = useTranslation();
@@ -96,8 +98,10 @@ export default function App() {
               path={"account/preferences"}
               element={<AccountPreferences />}
             />
+            <Route path={"account/api-keys"} element={<UserApiKeys />} />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
+            <Route path={"api-keys"} element={<WorkspaceApiKeys />} />
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />

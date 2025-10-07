@@ -214,6 +214,26 @@ export class EnvironmentService {
     return this.configService.get<string>('POSTHOG_KEY');
   }
 
+  getSearchDriver(): string {
+    return this.configService
+      .get<string>('SEARCH_DRIVER', 'database')
+      .toLowerCase();
+  }
+
+  getTypesenseUrl(): string {
+    return this.configService
+      .get<string>('TYPESENSE_URL', 'http://localhost:8108')
+      .toLowerCase();
+  }
+
+  getTypesenseApiKey(): string {
+    return this.configService.get<string>('TYPESENSE_API_KEY');
+  }
+
+  getTypesenseLocale(): string {
+    return this.configService.get<string>('TYPESENSE_LOCALE', 'en').toLowerCase();
+  }
+
   getOpenAiApiKey(): string {
     return this.configService.get<string>('OPENAI_API_KEY');
   }

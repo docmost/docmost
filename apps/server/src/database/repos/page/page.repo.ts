@@ -14,31 +14,16 @@ import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class PageRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
+    private eventEmitter: EventEmitter2,
   ) {}
-
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .where('child.deletedAt', 'is', null)
-      .limit(1)
-      .as('hasChildren');
-  }
 
   private baseFields: Array<keyof Page> = [
     'id',
@@ -63,7 +48,7 @@ export class PageRepo {
     pageId: string,
     opts?: {
       includeContent?: boolean;
-      includeText?: boolean;
+      includeTextContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
       includeCreator?: boolean;
@@ -80,8 +65,8 @@ export class PageRepo {
       .selectFrom('pages')
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
-      .$if(opts?.includeText, (qb) => qb.select('textContent'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeTextContent, (qb) => qb.select('textContent'))
       .$if(opts?.includeHasChildren, (qb) =>
         qb.select((eb) => this.withHasChildren(eb)),
       );
@@ -128,7 +113,7 @@ export class PageRepo {
     pageIds: string[],
     trx?: KyselyTransaction,
   ) {
-    return dbOrTx(this.db, trx)
+    const result = await dbOrTx(this.db, trx)
       .updateTable('pages')
       .set({ ...updatePageData, updatedAt: new Date() })
       .where(
@@ -137,6 +122,12 @@ export class PageRepo {
         pageIds,
       )
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: pageIds,
+    });
+
+    return result;
   }
 
   async insertPage(
@@ -144,11 +135,17 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ): Promise<Page> {
     const db = dbOrTx(this.db, trx);
-    return db
+    const result = await db
       .insertInto('pages')
       .values(insertablePage)
       .returning(this.baseFields)
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: [result.id],
+    });
+
+    return result;
   }
 
   async deletePage(pageId: string): Promise<void> {
@@ -197,6 +194,9 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+      });
+      this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
+        pageIds: pageIds,
       });
     }
   }
@@ -261,6 +261,9 @@ export class PageRepo {
         .where('id', '=', pageId)
         .execute();
     }
+    this.eventEmitter.emit(EventName.PAGE_RESTORED, {
+      pageIds: pageIds,
+    });
   }
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
@@ -379,6 +382,24 @@ export class PageRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', sql`ANY(${eb.ref('pages.contributorIds')})`),
     ).as('contributors');
+  }
+
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
   }
 
   async getPageAndDescendants(

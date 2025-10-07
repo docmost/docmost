@@ -1,4 +1,5 @@
 import {
+  ApiKeys,
   Attachments,
   AuthAccounts,
   AuthProviders,
@@ -42,4 +43,5 @@ export interface DbInterface {
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
+  apiKeys: ApiKeys;
 }

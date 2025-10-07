@@ -58,6 +58,14 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
       },
     }),
     BullModule.registerQueue({
+      name: QueueName.SEARCH_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 2,
+      },
+    }),
+    BullModule.registerQueue({
       name: QueueName.AI_QUEUE,
       defaultJobOptions: {
         removeOnComplete: true,
