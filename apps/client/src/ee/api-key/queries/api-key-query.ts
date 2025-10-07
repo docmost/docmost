@@ -24,6 +24,8 @@ export function useGetApiKeysQuery(
   return useQuery({
     queryKey: ["api-key-list", params],
     queryFn: () => getApiKeys(params),
+    staleTime: 0,
+    gcTime: 0,
     placeholderData: keepPreviousData,
   });
 }

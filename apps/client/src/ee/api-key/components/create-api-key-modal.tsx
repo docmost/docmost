@@ -22,7 +22,7 @@ interface CreateApiKeyModalProps {
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  expiresAt: z.date().nullable().optional(),
+  expiresAt: z.string().optional(),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -39,7 +39,7 @@ export function CreateApiKeyModal({
     validate: zodResolver(formSchema),
     initialValues: {
       name: "",
-      expiresAt: null as Date | null,
+      expiresAt: "",
     },
   });
 
@@ -48,7 +48,7 @@ export function CreateApiKeyModal({
       return undefined;
     }
     if (expirationOption === "custom") {
-      return form.values.expiresAt?.toISOString();
+      return form.values.expiresAt;
     }
     const days = parseInt(expirationOption);
     const date = new Date();
@@ -113,6 +113,7 @@ export function CreateApiKeyModal({
           <TextInput
             label={t("Name")}
             placeholder={t("Enter a descriptive name")}
+            data-autofocus
             required
             {...form.getInputProps("name")}
           />

@@ -18,9 +18,9 @@ export function RevokeApiKeyModal({
   const { t } = useTranslation();
   const revokeApiKeyMutation = useRevokeApiKeyMutation();
 
-  const handleRevoke = () => {
+  const handleRevoke = async () => {
     if (!apiKey) return;
-    revokeApiKeyMutation.mutate({
+    await revokeApiKeyMutation.mutateAsync({
       apiKeyId: apiKey.id,
     });
     onClose();

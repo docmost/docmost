@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { useUpdateApiKeyMutation } from "@/ee/api-key/queries/api-key-query";
 import { IApiKey } from "@/ee/api-key";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -28,9 +29,15 @@ export function UpdateApiKeyModal({
   const form = useForm<FormValues>({
     validate: zodResolver(formSchema),
     initialValues: {
-      name: apiKey?.name,
+      name: "",
     },
   });
+
+  useEffect(() => {
+    if (opened && apiKey) {
+      form.setValues({ name: apiKey.name });
+    }
+  }, [opened, apiKey]);
 
   const handleSubmit = async (data: { name?: string }) => {
     const apiKeyData = {
@@ -38,12 +45,8 @@ export function UpdateApiKeyModal({
       name: data.name,
     };
 
-    try {
-      await updateApiKeyMutation.mutateAsync(apiKeyData);
-      onClose();
-    } catch (err) {
-      //
-    }
+    await updateApiKeyMutation.mutateAsync(apiKeyData);
+    onClose();
   };
 
   return (

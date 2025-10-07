@@ -554,5 +554,6 @@
   "Select expiration date": "Select expiration date",
   "This action cannot be undone. Any applications using this API key will stop working.": "This action cannot be undone. Any applications using this API key will stop working.",
   "Token name": "Token name",
-  "Update API key": "Update API key"
+  "Update API key": "Update API key",
+  "Manage API keys for all users in the workspace": "Manage API keys for all users in the workspace"
 }

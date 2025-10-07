@@ -31,9 +31,8 @@ export function ApiKeyCreatedModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={t("API ley created")}
+      title={t("API key created")}
       size="lg"
-      closeOnClickOutside={false}
     >
       <Stack gap="md">
         <Alert
@@ -62,17 +61,6 @@ export function ApiKeyCreatedModal({
 
             <CopyTextButton text={apiKey.token} />
           </Group>
-        </div>
-
-        <div>
-          <Text size="sm">
-            {t("Token name")}: {apiKey.name}
-          </Text>
-          {apiKey.expiresAt && (
-            <Text size="sm">
-              {t("Expires")}: {new Date(apiKey.expiresAt).toLocaleString()}
-            </Text>
-          )}
         </div>
 
         <Button fullWidth onClick={onClose} mt="md">
