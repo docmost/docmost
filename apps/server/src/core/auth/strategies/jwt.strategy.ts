@@ -7,9 +7,6 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { FastifyRequest } from 'fastify';
 import { extractBearerTokenFromHeader } from '../../../common/helpers';
-import { ApiKeyService } from '@docmost/ee/api-key/api-key.service';
-import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
@@ -20,7 +17,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private userRepo: UserRepo,
     private workspaceRepo: WorkspaceRepo,
     private readonly environmentService: EnvironmentService,
-    @InjectKysely() private readonly db: KyselyDB,
     private moduleRef: ModuleRef,
   ) {
     super({
