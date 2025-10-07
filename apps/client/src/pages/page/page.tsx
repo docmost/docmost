@@ -21,6 +21,7 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+  
   const {
     data: page,
     isLoading,
@@ -28,7 +29,9 @@ export default function Page() {
     error,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  
 
+  const isHomePage= space?.homePageId == page?.id
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
 
@@ -59,6 +62,9 @@ export default function Page() {
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
+          isHome={isHomePage}
+          spaceId={space.id}
+          pageId={page.id}
         />
 
         <MemoizedFullEditor

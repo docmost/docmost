@@ -35,7 +35,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
       description: space?.description || "",
       slug: space.slug,
     },
-  });
+  });  
 
   const handleSubmit = async (values: {
     name?: string;
