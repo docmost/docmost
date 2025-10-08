@@ -4,6 +4,8 @@ import { IconSparkles, IconFileText } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { IAiSearchResponse } from "../services/ai-search-service";
 import { buildPageUrl } from "@/features/page/page.utils";
+import { markdownToHtml } from "@docmost/editor-ext";
+import DOMPurify from "dompurify";
 
 interface AiSearchResultProps {
   result: IAiSearchResponse;
@@ -14,7 +16,7 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
   // Deduplicate sources by pageId, keeping the one with highest similarity
   const deduplicatedSources = useMemo(() => {
     if (!result?.sources) return [];
-    
+
     const pageMap = new Map();
     result.sources.forEach((source) => {
       const existing = pageMap.get(source.pageId);
@@ -22,7 +24,7 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
         pageMap.set(source.pageId, source);
       }
     });
-    
+
     return Array.from(pageMap.values());
   }, [result?.sources]);
 
@@ -46,11 +48,17 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
       <Paper p="md" radius="md" withBorder>
         <Group gap="xs" mb="sm">
           <IconSparkles size={20} color="var(--mantine-color-blue-6)" />
-          <Text fw={600} size="sm">AI Answer</Text>
+          <Text fw={600} size="sm">
+            AI Answer
+          </Text>
         </Group>
-        <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-          {result.answer}
-        </Text>
+        <Text
+          size="sm"
+          style={{ whiteSpace: "pre-wrap" }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(markdownToHtml(result.answer) as string),
+          }}
+        />
       </Paper>
 
       {deduplicatedSources.length > 0 && (
@@ -63,10 +71,10 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
               key={source.pageId}
               component={Link}
               to={buildPageUrl(source.spaceSlug, source.slugId, source.title)}
-              style={{ 
+              style={{
                 textDecoration: "none",
                 color: "inherit",
-                display: "block"
+                display: "block",
               }}
             >
               <Paper

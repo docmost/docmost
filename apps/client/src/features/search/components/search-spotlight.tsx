@@ -28,7 +28,6 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     contentType: "page",
   });
   const [isAiMode, setIsAiMode] = useState(false);
-  const [triggerAiSearch, setTriggerAiSearch] = useState(false);
 
   // Build unified search params
   const searchParams = useMemo(() => {
@@ -49,10 +48,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     searchParams,
     !isAiMode // Disable regular search when in AI mode
   );
-  const { data: aiSearchResult, isLoading: isAiLoading, refetch: refetchAiSearch } = useAiSearch(
-    searchParams,
-    isAiMode && triggerAiSearch
-  );
+  const { data: aiSearchResult, isPending: isAiLoading, mutate: triggerAiSearchMutation } = useAiSearch();
 
   // Determine result type for rendering
   const isAttachmentSearch =
@@ -72,16 +68,12 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   };
 
   const handleAskClick = () => {
-    const newMode = !isAiMode;
-    setIsAiMode(newMode);
-    // Reset AI search state when toggling modes
-    setTriggerAiSearch(false);
+    setIsAiMode(!isAiMode);
   };
 
   const handleAiSearchTrigger = () => {
     if (query.trim() && isAiMode) {
-      setTriggerAiSearch(true);
-      refetchAiSearch();
+      triggerAiSearchMutation(searchParams);
     }
   };
 
