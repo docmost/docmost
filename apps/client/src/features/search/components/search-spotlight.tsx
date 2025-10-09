@@ -48,7 +48,16 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     searchParams,
     !isAiMode // Disable regular search when in AI mode
   );
-  const { data: aiSearchResult, isPending: isAiLoading, mutate: triggerAiSearchMutation } = useAiSearch();
+  const {
+    //@ts-ignore
+    data: aiSearchResult,
+    //@ts-ignore
+    isPending: isAiLoading,
+    //@ts-ignore
+    mutate: triggerAiSearchMutation,
+    streamingAnswer,
+    streamingSources,
+  } = useAiSearch();
 
   // Determine result type for rendering
   const isAttachmentSearch =
@@ -134,10 +143,12 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               {query.length === 0 && (
                 <Spotlight.Empty>{t("Ask a question...")}</Spotlight.Empty>
               )}
-              {query.length > 0 && (isAiLoading || aiSearchResult) && (
+              {query.length > 0 && (isAiLoading || aiSearchResult || streamingAnswer) && (
                 <AiSearchResult
                   result={aiSearchResult}
                   isLoading={isAiLoading}
+                  streamingAnswer={streamingAnswer}
+                  streamingSources={streamingSources}
                 />
               )}
               {query.length > 0 && !isAiLoading && !aiSearchResult && (

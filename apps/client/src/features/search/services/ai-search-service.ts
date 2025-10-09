@@ -1,5 +1,5 @@
 import api from "@/lib/api-client";
-import { IPageSearchParams } from '@/features/search/types/search.types';
+import { IPageSearchParams } from "@/features/search/types/search.types";
 
 export interface IAiSearchResponse {
   answer: string;
@@ -17,7 +17,57 @@ export interface IAiSearchResponse {
 
 export async function askAi(
   params: IPageSearchParams,
+  onChunk?: (chunk: { content?: string; sources?: any[] }) => void,
 ): Promise<IAiSearchResponse> {
-  const req = await api.post<IAiSearchResponse>("/ai/ask", params);
-  return req.data;
+  const response = await fetch("/api/ai/ask", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  let answer = "";
+  let sources: any[] = [];
+
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              answer += parsed.content;
+              onChunk?.({ content: parsed.content });
+            }
+            if (parsed.sources) {
+              sources = parsed.sources;
+              onChunk?.({ sources: parsed.sources });
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  }
+
+  return { answer, sources };
 }

@@ -8,17 +8,29 @@ import { markdownToHtml } from "@docmost/editor-ext";
 import DOMPurify from "dompurify";
 
 interface AiSearchResultProps {
-  result: IAiSearchResponse;
+  result?: IAiSearchResponse;
   isLoading?: boolean;
+  streamingAnswer?: string;
+  streamingSources?: any[];
 }
 
-export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
+export function AiSearchResult({
+  result,
+  isLoading,
+  streamingAnswer = "",
+  streamingSources = [],
+}: AiSearchResultProps) {
+  // Use streaming data if available, otherwise fall back to result
+  const answer = streamingAnswer || result?.answer || "";
+  const sources =
+    streamingSources.length > 0 ? streamingSources : result?.sources || [];
+
   // Deduplicate sources by pageId, keeping the one with highest similarity
   const deduplicatedSources = useMemo(() => {
-    if (!result?.sources) return [];
+    if (!sources || sources.length === 0) return [];
 
     const pageMap = new Map();
-    result.sources.forEach((source) => {
+    sources.forEach((source) => {
       const existing = pageMap.get(source.pageId);
       if (!existing || source.similarity > existing.similarity) {
         pageMap.set(source.pageId, source);
@@ -26,9 +38,9 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
     });
 
     return Array.from(pageMap.values());
-  }, [result?.sources]);
+  }, [sources]);
 
-  if (isLoading) {
+  if (isLoading && !answer) {
     return (
       <Paper p="md" radius="md" withBorder>
         <Group>
@@ -39,7 +51,7 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
     );
   }
 
-  if (!result) {
+  if (!answer && !isLoading) {
     return null;
   }
 
@@ -51,12 +63,11 @@ export function AiSearchResult({ result, isLoading }: AiSearchResultProps) {
           <Text fw={600} size="sm">
             AI Answer
           </Text>
+          {isLoading && <Loader size="xs" />}
         </Group>
-        <Text
-          size="sm"
-          style={{ whiteSpace: "pre-wrap" }}
+        <div
           dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(markdownToHtml(result.answer) as string),
+            __html: DOMPurify.sanitize(markdownToHtml(answer) as string),
           }}
         />
       </Paper>
