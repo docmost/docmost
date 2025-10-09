@@ -20,6 +20,30 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
       };
     },
 
+    addAttributes() {
+      const parentAttrs = this.parent?.() || {};
+      const parentLanguage = (parentAttrs as any).language || {};
+
+      return {
+        ...parentAttrs,
+        language: {
+          ...parentLanguage,
+          parseHTML: (element) => {
+            // Fix for happy-dom compatibility: extract language from class attribute
+            // instead of using classList which may not work correctly in Node.js environment
+            const codeElement = element.firstElementChild;
+            if (!codeElement) {
+              return null;
+            }
+
+            const className = codeElement.getAttribute("class") || "";
+            const match = className.match(/language-(\S+)/);
+            return match ? match[1] : null;
+          },
+        },
+      };
+    },
+
     addKeyboardShortcuts() {
       return {
         ...this.parent?.(),
