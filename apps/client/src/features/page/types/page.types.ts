@@ -22,6 +22,7 @@ export interface IPage {
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
   space: Partial<ISpace>;
+  breadcrumbs: string[];
 }
 
 interface ICreator {
