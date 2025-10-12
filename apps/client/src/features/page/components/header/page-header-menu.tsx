@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
@@ -98,19 +86,17 @@ export default function PageHeaderMenu({
       ],
     ],
     []
-  );  
-  
+  );
 
   const handleUpdateHomePage = async () => {
-    const newHomePageValue = isHomePage ? null : pageId
+    const newHomePageValue = isHomePage ? null : pageId;
     const spaceData: Partial<ISpace> = {
       spaceId: spaceId,
       homePageId: newHomePageValue,
     };
-    
+
     await updateSpaceMutation.mutateAsync(spaceData);
     setIsHomePage(!isHomePage);
-    
   };
 
   return (
