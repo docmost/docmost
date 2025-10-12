@@ -1,3 +1,15 @@
+
+
+
+
+
+
+
+
+
+
+
+
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
@@ -14,7 +26,7 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -86,22 +98,20 @@ export default function PageHeaderMenu({
       ],
     ],
     []
-  );
+  );  
+  
 
   const handleUpdateHomePage = async () => {
-    const newHomePageValue = isHomePage ? null : pageId;
+    const newHomePageValue = isHomePage ? null : pageId
     const spaceData: Partial<ISpace> = {
       spaceId: spaceId,
       homePageId: newHomePageValue,
     };
-
+    
     await updateSpaceMutation.mutateAsync(spaceData);
     setIsHomePage(!isHomePage);
+    
   };
-
-  useEffect(() => {
-    setIsHomePage(isHome);
-  }, [isHome]);
 
   return (
     <>
