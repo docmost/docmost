@@ -21,6 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import "./style.css";
 import { getHotkeyHandler, useToggle } from "@mantine/hooks";
 import { useLocation } from "react-router-dom";
 import classes from "./search-replace.module.css";
@@ -36,16 +37,6 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
   const [replaceText, setReplaceText] = useState("");
   const [pageFindState, setPageFindState] = useAtom(searchAndReplaceStateAtom);
   const inputRef = useRef(null);
-
-  const [replaceButton, replaceButtonToggle] = useToggle([
-    { isReplaceShow: false, color: "gray" },
-    { isReplaceShow: true, color: "blue" },
-  ]);
-
-  const [caseSensitive, caseSensitiveToggle] = useToggle([
-    { isCaseSensitive: false, color: "gray" },
-    { isCaseSensitive: true, color: "blue" },
-  ]);
 
   const searchInputEvent = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
@@ -114,7 +105,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     editor.commands.selectCurrentItem();
   }, [searchText]);
 
-  const handleOpenEvent = (e) => {
+  const handleOpenEvent = (_) => {
     setPageFindState({ isOpen: true });
     const selectedText = editor.state.doc.textBetween(
       editor.state.selection.from,
@@ -127,24 +118,66 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     inputRef.current?.select();
   };
 
-  const handleCloseEvent = (e) => {
+  const handleCloseEvent = (_) => {
     closeDialog();
+  };
+
+  const matchCaseToggleEvent = (_) => {
+    caseSensitiveToggle();
+  };
+
+  const handleOpenWithReplaceEvent = (e: any) => {
+    if (!pageFindState.isOpen) {
+      handleOpenEvent(e);
+      setReplaceButton({ isReplaceShow: true, color: "blue" });
+    } else {
+      replaceButtonToggle();
+    }
   };
 
   useEffect(() => {
     !pageFindState.isOpen && closeDialog();
 
     document.addEventListener("openFindDialogFromEditor", handleOpenEvent);
+    document.addEventListener(
+      "openFindAndReplaceDialogFromEditor",
+      handleOpenWithReplaceEvent
+    );
     document.addEventListener("closeFindDialogFromEditor", handleCloseEvent);
+    if (pageFindState.isOpen) {
+      document.addEventListener("matchCaseToggle", matchCaseToggleEvent);
+    }
 
     return () => {
       document.removeEventListener("openFindDialogFromEditor", handleOpenEvent);
       document.removeEventListener(
+        "openFindAndReplaceDialogFromEditor",
+        handleOpenWithReplaceEvent
+      );
+      document.removeEventListener(
         "closeFindDialogFromEditor",
         handleCloseEvent,
       );
+      document.removeEventListener("matchCaseToggle", matchCaseToggleEvent);
     };
   }, [pageFindState.isOpen]);
+
+  const [replaceButton, setReplaceButton] = useState({
+    isReplaceShow: false,
+    color: "gray",
+  });
+
+  const replaceButtonToggle = () => {
+    setReplaceButton((prevState) => ({
+      isReplaceShow: !prevState.isReplaceShow,
+      color: prevState.isReplaceShow ? "gray" : "blue",
+    }));
+  };
+
+  const [caseSensitive, caseSensitiveToggle] = useToggle([
+    { isCaseSensitive: false, color: "gray" },
+    { isCaseSensitive: true, color: "blue" },
+  ]);
 
   useEffect(() => {
     editor.commands.setCaseSensitive(caseSensitive.isCaseSensitive);
@@ -178,7 +211,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     <Dialog
       className={classes.findDialog}
       opened={pageFindState.isOpen}
-
+      zIndex={299}
       size="lg"
       radius="md"
       w={"auto"}
@@ -269,10 +302,11 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
               placeholder={t("Replace")}
               leftSection={<IconReplace size={16} />}
               rightSection={<div></div>}
+              rightSectionWidth="70"
               rightSectionPointerEvents="all"
               size="xs"
               w={180}
-              autoFocus
+              // autoFocus
               onChange={replaceInputEvent}
               value={replaceText}
               onKeyDown={getHotkeyHandler([

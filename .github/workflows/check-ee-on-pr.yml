@@ -1,0 +1,73 @@
+name: Check for EE Folders on PR
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - '.github/workflows/check-ee-on-pr.yml'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+
+jobs:
+  check-ee:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Enterprise Edition (EE) folders
+        run: |
+          if [ -d "apps/server/src/ee" ] || [ -d "apps/client/src/ee" ] || [ -d "packages/ee" ]; then
+            echo "--- IMPORTANT: Enterprise Edition (EE) folders detected! ---"
+            echo "This fork is only allowed to use the open-source AGPL 3.0 version."
+            echo "Building with EE features is not permitted due to the License in these directories."
+            echo "Please remove the 'ee' directories to proceed."
+            exit 1
+          fi
+          echo "No Enterprise Edition (EE) folders found. PR check passed."
+
+  check-build:
+    runs-on: ubuntu-latest
+    needs: check-ee
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        with:
+          version: 10
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Nx cache
+        uses: actions/cache@v3
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-cache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-cache-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build project
+        run: pnpm build

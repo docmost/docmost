@@ -2,6 +2,7 @@ import CodeBlockLowlight, {
   CodeBlockLowlightOptions,
 } from "@tiptap/extension-code-block-lowlight";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
 
 export interface CustomCodeBlockOptions extends CodeBlockLowlightOptions {
   view: any;
@@ -11,12 +12,56 @@ const TAB_CHAR = "\u00A0\u00A0";
 
 export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
   {
+    name: 'codeBlock',
+    priority: 1000, // High priority to ensure our handlers run first
     selectable: true,
 
     addOptions() {
       return {
         ...this.parent?.(),
         view: null,
+      };
+    },
+
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        title: {
+          default: null,
+          parseHTML: element => element.getAttribute('data-title'),
+          renderHTML: attributes => {
+            if (!attributes.title) {
+              return {};
+            }
+            return {
+              'data-title': attributes.title,
+            };
+          },
+        },
+        wrapLines: {
+          default: true,
+          parseHTML: element => {
+            const value = element.getAttribute('data-wrap-lines');
+            return value === null || value === 'true';
+          },
+          renderHTML: attributes => {
+            return {
+              'data-wrap-lines': attributes.wrapLines.toString(),
+            };
+          },
+        },
+        hideHeader: {
+          default: false,
+          parseHTML: element => {
+            const value = element.getAttribute('data-hide-header');
+            return value === 'true';
+          },
+          renderHTML: attributes => {
+            return {
+              'data-hide-header': attributes.hideHeader.toString(),
+            };
+          },
+        },
       };
     },
 
@@ -34,6 +79,32 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
               .run();
             return true;
           }
+        },
+        Enter: () => {
+          if (this.editor.isActive("codeBlock")) {
+            this.editor
+              .chain()
+              .command(({ tr }) => {
+                tr.insertText("\n");
+                return true;
+              })
+              .run();
+            return true;
+          }
+          return false;
+        },
+        "Shift-Enter": () => {
+          if (this.editor.isActive("codeBlock")) {
+            this.editor
+              .chain()
+              .command(({ tr }) => {
+                tr.insertText("\n");
+                return true;
+              })
+              .run();
+            return true;
+          }
+          return false;
         },
         "Mod-a": () => {
           if (this.editor.isActive("codeBlock")) {
@@ -72,6 +143,76 @@ export const CustomCodeBlock = CodeBlockLowlight.extend<CustomCodeBlockOptions>(
           return false;
         },
       };
+    },
+
+    addProseMirrorPlugins() {
+      const parentPlugins = this.parent?.() || [];
+      
+      return [
+        new Plugin({
+          key: new PluginKey("codeBlockPasteHandler"),
+          props: {
+            handlePaste: (view, event, slice) => {
+              const { state } = view;
+              const { $from } = state.selection;
+              
+              let inCodeBlock = false;
+              for (let depth = $from.depth; depth >= 0; depth--) {
+                const node = $from.node(depth);
+                if (node.type.name === "codeBlock") {
+                  inCodeBlock = true;
+                  break;
+                }
+              }
+              
+              if (!inCodeBlock) {
+                return false;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+
+              const text = event.clipboardData?.getData("text/plain");
+              if (!text) {
+                return true;
+              }
+
+              const { tr } = state;
+              const { from, to } = state.selection;
+
+              tr.replaceWith(from, to, state.schema.text(text));
+              view.dispatch(tr);
+
+              return true;
+            },
+            
+            handleDOMEvents: {
+              paste: (view, event) => {
+                const { state } = view;
+                const { $from } = state.selection;
+                
+                let inCodeBlock = false;
+                for (let depth = $from.depth; depth >= 0; depth--) {
+                  const node = $from.node(depth);
+                  if (node.type.name === "codeBlock") {
+                    inCodeBlock = true;
+                    break;
+                  }
+                }
+                
+                if (inCodeBlock) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  return true;
+                }
+                
+                return false;
+              }
+            }
+          },
+        }),
+        ...parentPlugins,
+      ];
     },
 
     addNodeView() {

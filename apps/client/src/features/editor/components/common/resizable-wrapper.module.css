@@ -1,8 +1,10 @@
 .wrapper {
   position: relative;
   width: 100%;
+  max-width: 100%;
   overflow: hidden;
   border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .resizing {
@@ -86,6 +88,81 @@
 
 .resizeHandleBottom:hover .resizeBar,
 .resizing .resizeBar {
+  @mixin light {
+    background-color: var(--mantine-color-gray-7);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-gray-4);
+  }
+}
+
+.resizeHandleRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+  @mixin light {
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.05));
+  }
+
+  @mixin dark {
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.05)
+    );
+  }
+
+  &:hover {
+    @mixin light {
+      background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1));
+    }
+
+    @mixin dark {
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 255, 255, 0.1)
+      );
+    }
+  }
+}
+
+.wrapper:hover .resizeHandleRight,
+.resizing .resizeHandleRight {
+  opacity: 1;
+}
+
+.resizeBarVertical {
+  width: 4px;
+  height: 50px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+
+  @mixin light {
+    background-color: var(--mantine-color-gray-5);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-gray-6);
+  }
+}
+
+.resizeHandleRight:hover .resizeBarVertical,
+.resizing .resizeBarVertical {
   @mixin light {
     background-color: var(--mantine-color-gray-7);
   }

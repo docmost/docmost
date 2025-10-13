@@ -168,17 +168,19 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <EmojiPicker
-          onEmojiSelect={setCalloutIcon}
-          removeEmojiAction={removeCalloutIcon}
-          readOnly={false}
-          icon={currentIcon || <IconMoodSmile size={18} />}
-          actionIconProps={{
-            size: "lg",
-            variant: "default",
-            c: undefined,
-          }}
-        />
+        <Tooltip position="top" label={t("Custom emoji")}>
+          <EmojiPicker
+            onEmojiSelect={setCalloutIcon}
+            removeEmojiAction={removeCalloutIcon}
+            readOnly={false}
+            icon={currentIcon || <IconMoodSmile size={18} />}
+            actionIconProps={{
+              size: "lg",
+              variant: "default",
+              c: undefined,
+            }}
+          />
+        </Tooltip>
       </ActionIcon.Group>
     </BaseBubbleMenu>
   );
