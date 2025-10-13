@@ -231,7 +231,31 @@ export class EnvironmentService {
   }
 
   getTypesenseLocale(): string {
-    return this.configService.get<string>('TYPESENSE_LOCALE', 'en').toLowerCase();
+    return this.configService
+      .get<string>('TYPESENSE_LOCALE', 'en')
+      .toLowerCase();
+  }
+
+  getAiDriver(): string {
+    return this.configService.get<string>('AI_DRIVER', 'openai');
+  }
+
+  getAiEmbeddingModel(): string {
+    return this.configService.get<string>(
+      'AI_EMBEDDING_MODEL',
+      'text-embedding-3-small',
+    );
+  }
+
+  getAiCompletionModel(): string {
+    return this.configService.get<string>('AI_COMPLETION_MODEL', 'gpt-4o-mini');
+  }
+
+  getAiEmbeddingDimension(): number {
+    return parseInt(
+      this.configService.get<string>('AI_EMBEDDING_DIMENSION', '1536'),
+      10,
+    );
   }
 
   getOpenAiApiKey(): string {
@@ -242,18 +266,27 @@ export class EnvironmentService {
     return this.configService.get<string>('OPENAI_API_URL');
   }
 
-  getOpenAiEmbeddingModel(): string {
+  getGoogleAiApiKey(): string {
+    return this.configService.get<string>('GOOGLE_AI_API_KEY');
+  }
+
+  getOllamaApiUrl(): string {
     return this.configService.get<string>(
-      'OPENAI_EMBEDDING_MODEL',
-      'text-embedding-3-small',
+      'OLLAMA_API_URL',
+      'http://localhost:11434',
     );
   }
 
-  getOpenAiCompletionModel(): string {
-    return this.configService.get<string>(
-      'OPENAI_COMPLETION_MODEL',
-      'gpt-4o-mini',
-    );
+  getAwsAccessKeyId(): string {
+    return this.configService.get<string>('AWS_ACCESS_KEY_ID');
+  }
+
+  getAwsSecretAccessKey(): string {
+    return this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+  }
+
+  getAwsBedrockRegion(): string {
+    return this.configService.get<string>('AWS_BEDROCK_REGION');
   }
 
   isAIEnabled(): string {

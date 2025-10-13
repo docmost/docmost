@@ -20,7 +20,7 @@ import {
   WorkspaceInvitations,
   Workspaces,
 } from '@docmost/db/types/db';
-import { Embeddings } from '@docmost/db/types/embeddings.types';
+import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
 export interface DbInterface {
   attachments: Attachments;
@@ -32,7 +32,7 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
-  embeddings: Embeddings;
+  pageEmbeddings: PageEmbeddings;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;

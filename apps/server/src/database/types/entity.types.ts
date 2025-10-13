@@ -21,7 +21,7 @@ import {
   UserMfa as _UserMFA,
   ApiKeys,
 } from './db';
-import { Embeddings } from '@docmost/db/types/embeddings.types';
+import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;
@@ -128,6 +128,6 @@ export type InsertableApiKey = Insertable<ApiKeys>;
 export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 
 // Page Embedding
-export type Embedding = Selectable<Embeddings>;
-export type InsertableEmbedding = Insertable<Embeddings>;
-export type UpdatableEmbedding = Updateable<Omit<Embeddings, 'id'>>;
+export type PageEmbedding = Selectable<PageEmbeddings>;
+export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
+export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
