@@ -35,6 +35,7 @@ import {
   Embed,
   Mention,
   Subpages,
+  TypstBlock,
   ColumnContainer,
   Column
 } from '@docmost/editor-ext';
@@ -89,6 +90,7 @@ export const tiptapExtensions = [
   ColumnContainer,
   Column,
   Subpages,
+  TypstBlock,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

@@ -21,6 +21,7 @@ import {
   DetailsSummary,
   MathBlock,
   MathInline,
+  TypstBlock,
   TableCell,
   TableRow,
   TableHeader,
@@ -53,6 +54,7 @@ import {
 import { IUser } from "@/features/user/types/user.types.ts";
 import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
 import MathBlockView from "@/features/editor/components/math/math-block.tsx";
+import TypstBlockView from "@/features/editor/components/typst/typst-block.tsx";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
@@ -198,6 +200,9 @@ export const mainExtensions = [
   }),
   MathBlock.configure({
     view: MathBlockView,
+  }),
+  TypstBlock.configure({
+    view: TypstBlockView,
   }),
   Details,
   DetailsSummary,

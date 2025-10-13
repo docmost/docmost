@@ -24,3 +24,4 @@ export * from "./lib/embed-provider";
 export * from "./lib/subpages";
 export * from "./lib/extra-ligatures";
 export * from "./lib/audio";
+export * from "./lib/typst";
