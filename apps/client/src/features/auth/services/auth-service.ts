@@ -16,8 +16,9 @@ export async function login(data: ILogin): Promise<ILoginResponse> {
   return response.data;
 }
 
-export async function logout(): Promise<void> {
-  await api.post<void>("/auth/logout");
+export async function logout(): Promise<{ oidcLogoutUrl?: string }> {
+  const response = await api.post<{ oidcLogoutUrl?: string }>("/auth/logout");
+  return response.data || {};
 }
 
 export async function changePassword(

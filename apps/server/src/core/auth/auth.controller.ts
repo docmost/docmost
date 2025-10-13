@@ -171,6 +171,14 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: FastifyReply) {
     res.clearCookie('authToken');
+    
+    // Return OIDC logout URL if configured
+    const oidcLogoutUrl = this.environmentService.getOidcLogoutUrl();
+    if (oidcLogoutUrl) {
+      return { oidcLogoutUrl };
+    }
+    
+    return {};
   }
 
   setAuthCookie(res: FastifyReply, token: string) {

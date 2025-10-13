@@ -11,16 +11,21 @@ import {
   Box,
   Anchor,
   Group,
+  Alert,
+  Loader,
+  Center,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
+import { useOidcAutoRedirect } from "@/features/auth/hooks/use-oidc-auto-redirect";
+import { IconAlertCircle } from "@tabler/icons-react";
 
 const formSchema = z.object({
   email: z
@@ -33,7 +38,10 @@ const formSchema = z.object({
 export function LoginForm() {
   const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const errorParam = searchParams.get("error");
   useRedirectIfAuthenticated();
+  const { isChecking } = useOidcAutoRedirect();
   const {
     data,
     isLoading: isDataLoading,
@@ -53,8 +61,12 @@ export function LoginForm() {
     await signIn(data);
   }
 
-  if (isDataLoading) {
-   return null;
+  if (isDataLoading || isChecking) {
+    return (
+      <Center style={{ height: "100vh" }}>
+        <Loader size="lg" />
+      </Center>
+    );
   }
 
   if (isError && error?.["response"]?.status === 404) {
@@ -67,6 +79,17 @@ export function LoginForm() {
         <Title order={2} ta="center" fw={500} mb="md">
           {t("Login")}
         </Title>
+
+        {errorParam && (
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            title={t("Authentication Error")}
+            color="red"
+            mb="md"
+          >
+            {decodeURIComponent(errorParam)}
+          </Alert>
+        )}
 
         <SsoLogin />
 

@@ -145,8 +145,14 @@ export default function useAuth() {
 
   const handleLogout = async () => {
     setCurrentUser(RESET);
-    await logout();
-    window.location.replace(APP_ROUTE.AUTH.LOGIN);
+    const response = await logout();
+    
+    // If OIDC logout URL is provided, redirect to it
+    if (response?.oidcLogoutUrl) {
+      window.location.replace(response.oidcLogoutUrl);
+    } else {
+      window.location.replace(APP_ROUTE.AUTH.LOGIN);
+    }
   };
 
   const handleForgotPassword = async (data: IForgotPassword) => {

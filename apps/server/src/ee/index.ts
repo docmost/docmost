@@ -1,0 +1,1 @@
+// Enterprise Edition stub

@@ -214,6 +214,47 @@ export class EnvironmentService {
     return this.configService.get<string>('POSTHOG_KEY');
   }
 
+  // OIDC Configuration
+  getOidcIssuer(): string {
+    return this.configService.get<string>('OIDC_ISSUER');
+  }
+
+  getOidcClientId(): string {
+    return this.configService.get<string>('OIDC_CLIENT_ID');
+  }
+
+  getOidcClientSecret(): string {
+    return this.configService.get<string>('OIDC_CLIENT_SECRET');
+  }
+
+  getOidcRedirectUri(): string {
+    const configuredUri = this.configService.get<string>('OIDC_REDIRECT_URI');
+    if (configuredUri) {
+      return configuredUri;
+    }
+    // Default to APP_URL/api/auth/oidc/callback
+    return `${this.getAppUrl()}/api/auth/oidc/callback`;
+  }
+
+  isOidcAutoProvision(): boolean {
+    const autoProvision = this.configService
+      .get<string>('OIDC_AUTO_PROVISION', 'true')
+      .toLowerCase();
+    return autoProvision === 'true';
+  }
+
+  isOidcEnabled(): boolean {
+    return !!(
+      this.getOidcIssuer() &&
+      this.getOidcClientId() &&
+      this.getOidcClientSecret()
+    );
+  }
+
+  getOidcLogoutUrl(): string {
+    return this.configService.get<string>('OIDC_LOGOUT_URL');
+  }
+
   getSearchDriver(): string {
     return this.configService
       .get<string>('SEARCH_DRIVER', 'database')
