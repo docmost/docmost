@@ -15,6 +15,8 @@ import { TokenService } from './token.service';
 import { executeTx } from '@docmost/db/utils';
 import { validateAllowedEmail } from '../auth.util';
 import { UserRole } from '../../../common/helpers/types/permission';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { WorkspaceService } from '../../workspace/services/workspace.service';
 
 @Injectable()
 export class OidcService {
@@ -24,6 +26,8 @@ export class OidcService {
     private readonly userRepo: UserRepo,
     private readonly authAccountRepo: AuthAccountRepo,
     private readonly tokenService: TokenService,
+    private readonly groupUserRepo: GroupUserRepo,
+    private readonly workspaceService: WorkspaceService,
   ) {}
 
   private sanitizeUserInfo(userinfo: any) {
@@ -210,6 +214,17 @@ export class OidcService {
         },
         trx,
       );
+
+      // add user to workspace
+      await this.workspaceService.addUserToWorkspace(
+        user.id,
+        workspaceId,
+        undefined,
+        trx,
+      );
+
+      // add user to default group
+      await this.groupUserRepo.addUserToDefaultGroup(user.id, workspaceId, trx);
     });
 
     return user;
