@@ -293,7 +293,10 @@ export class EnvironmentService {
     return this.configService.get<string>('ENABLE_AI');
   }
 
-  isAIVectorSearchEnabled(): string {
-    return this.configService.get<string>('AI_VECTOR_SEARCH');
+  isAISearchEnabled(): boolean {
+    const config = this.configService
+      .get<string>('AI_SEARCH', 'false')
+      .toLowerCase();
+    return config === 'true';
   }
 }

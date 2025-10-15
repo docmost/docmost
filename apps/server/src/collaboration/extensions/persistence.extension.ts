@@ -169,6 +169,10 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
         mentions: pageMentions,
       } as IPageBacklinkJob);
+
+      await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
+        pageIds: [pageId],
+      });
     }
   }
 
@@ -182,22 +186,10 @@ export class PersistenceExtension implements Extension {
     }
 
     this.contributors.get(documentName).add(userId);
-
-    console.log('embedd me')
-    const pageId = getPageId(documentName);
-
-    await this.aiQueue.add(QueueJob.GENERATE_PAGE_EMBEDDINGS, {
-      pageId: pageId,
-    });
   }
 
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
-    const pageId = getPageId(documentName);
-
     this.contributors.delete(documentName);
-
-    // should only queue embed after unload// should delay so we dont embed always
-
   }
 }

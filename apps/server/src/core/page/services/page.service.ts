@@ -51,6 +51,7 @@ export class PageService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -255,6 +256,10 @@ export class PageService {
           pageIds,
           trx,
         );
+
+        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
+          pageId: pageIds,
+        });
       }
     });
   }
