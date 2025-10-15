@@ -11,6 +11,7 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
+import { TableOfContents as TiptapTableOfContents } from "@tiptap/extension-table-of-contents";
 import { Collaboration } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
@@ -40,6 +41,7 @@ import {
   Mention,
   Subpages,
   TableDndExtension,
+  TableOfContentsNode,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -78,6 +80,7 @@ import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboa
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { countWords } from "alfaaz";
+import { TableOfContentsNodeview } from "@/features/editor/components/table-of-contents/table-of-contents-nodeview.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -228,19 +231,23 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
+  TiptapTableOfContents,
+  TableOfContentsNode.configure({
+    view: TableOfContentsNodeview,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

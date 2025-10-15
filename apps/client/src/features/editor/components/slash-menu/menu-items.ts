@@ -20,6 +20,7 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconAlignLeft2,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -152,6 +153,14 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconMenu4,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+    },
+    {
+      title: "Table of contents",
+      description: "Insert table of contents",
+      searchTerms: ["toc"],
+      icon: IconAlignLeft2,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).insertTableOfContents().run(),
     },
     {
       title: "Image",
