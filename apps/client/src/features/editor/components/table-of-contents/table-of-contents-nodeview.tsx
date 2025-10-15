@@ -24,20 +24,22 @@ export const TableOfContentsNodeview = memo(
           <div className={classes.header}>Table of contents</div>
           {content.length > 0 ? (
             <div className={classes.container}>
-              {content.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  style={{ marginLeft: `${1 * item.level - 1}rem` }}
-                  onClick={onItemClick}
-                  className={clsx(
-                    classes.link,
-                    item.isActive && classes.linkActive,
-                  )}
-                >
-                  {item.itemIndex}. {item.textContent}
-                </a>
-              ))}
+              {content
+                .filter((item) => item.level <= 3)
+                .map((item) => (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    style={{ marginLeft: `${1 * item.level - 1}rem` }}
+                    onClick={onItemClick}
+                    className={clsx(
+                      classes.link,
+                      item.isActive && classes.linkActive,
+                    )}
+                  >
+                    {item.itemIndex}. {item.textContent}
+                  </a>
+                ))}
             </div>
           ) : (
             <div className={classes.emptyState}>
