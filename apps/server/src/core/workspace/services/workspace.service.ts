@@ -312,6 +312,30 @@ export class WorkspaceService {
       delete updateWorkspaceDto.restrictApiToAdmins;
     }
 
+    if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'aiSearch',
+        updateWorkspaceDto.aiSearch,
+      );
+
+      // to enable this
+      // we need to check if pgvector and embeddings table exists
+
+      delete updateWorkspaceDto.aiSearch;
+      // if true, send to ai queue
+      // if false, send to delete embeddings
+    }
+
+    if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'generativeAi',
+        updateWorkspaceDto.generativeAi,
+      );
+      delete updateWorkspaceDto.generativeAi;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {

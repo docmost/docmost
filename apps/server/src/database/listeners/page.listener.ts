@@ -26,18 +26,15 @@ export class PageListener {
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.PAGE_CREATED, { pageIds });
     }
-    if (this.environmentService.isAISearchEnabled()) {
-      await this.aiQueue.add(QueueJob.PAGE_CREATED, { pageIds });
-    }
+
+    await this.aiQueue.add(QueueJob.PAGE_CREATED, { pageIds });
   }
 
   @OnEvent(EventName.PAGE_UPDATED)
   async handlePageUpdated(event: PageEvent) {
     const { pageIds } = event;
 
-    if (this.isTypesense()) {
-      await this.searchQueue.add(QueueJob.PAGE_UPDATED, { pageIds });
-    }
+    await this.searchQueue.add(QueueJob.PAGE_UPDATED, { pageIds });
   }
 
   @OnEvent(EventName.PAGE_DELETED)
@@ -68,9 +65,7 @@ export class PageListener {
       await this.searchQueue.add(QueueJob.PAGE_RESTORED, { pageIds });
     }
 
-    if (this.environmentService.isAISearchEnabled()) {
-      await this.aiQueue.add(QueueJob.PAGE_RESTORED, { pageIds });
-    }
+    await this.aiQueue.add(QueueJob.PAGE_RESTORED, { pageIds });
   }
 
   isTypesense(): boolean {

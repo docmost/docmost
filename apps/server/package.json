@@ -30,7 +30,6 @@
     "test:e2e": "jest --config test/jest-e2e.json"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "^3.0.35",
     "@ai-sdk/azure": "^2.0.47",
     "@ai-sdk/google": "^2.0.18",
     "@ai-sdk/openai": "^2.0.46",

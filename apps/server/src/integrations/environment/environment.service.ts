@@ -10,6 +10,10 @@ export class EnvironmentService {
     return this.configService.get<string>('NODE_ENV', 'development');
   }
 
+  isDevelopment(): boolean {
+    return this.getNodeEnv() === 'development';
+  }
+
   getAppUrl(): string {
     const rawUrl =
       this.configService.get<string>('APP_URL') ||
@@ -237,23 +241,20 @@ export class EnvironmentService {
   }
 
   getAiDriver(): string {
-    return this.configService.get<string>('AI_DRIVER', 'openai');
+    return this.configService.get<string>('AI_DRIVER');
   }
 
   getAiEmbeddingModel(): string {
-    return this.configService.get<string>(
-      'AI_EMBEDDING_MODEL',
-      'text-embedding-3-small',
-    );
+    return this.configService.get<string>('AI_EMBEDDING_MODEL');
   }
 
   getAiCompletionModel(): string {
-    return this.configService.get<string>('AI_COMPLETION_MODEL', 'gpt-4o-mini');
+    return this.configService.get<string>('AI_COMPLETION_MODEL');
   }
 
   getAiEmbeddingDimension(): number {
     return parseInt(
-      this.configService.get<string>('AI_EMBEDDING_DIMENSION', '1536'),
+      this.configService.get<string>('AI_EMBEDDING_DIMENSION'),
       10,
     );
   }
@@ -266,8 +267,8 @@ export class EnvironmentService {
     return this.configService.get<string>('OPENAI_API_URL');
   }
 
-  getGoogleAiApiKey(): string {
-    return this.configService.get<string>('GOOGLE_AI_API_KEY');
+  getGeminiApiKey(): string {
+    return this.configService.get<string>('GEMINI_API_KEY');
   }
 
   getOllamaApiUrl(): string {
@@ -275,28 +276,5 @@ export class EnvironmentService {
       'OLLAMA_API_URL',
       'http://localhost:11434',
     );
-  }
-
-  getAwsAccessKeyId(): string {
-    return this.configService.get<string>('AWS_ACCESS_KEY_ID');
-  }
-
-  getAwsSecretAccessKey(): string {
-    return this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
-  }
-
-  getAwsBedrockRegion(): string {
-    return this.configService.get<string>('AWS_BEDROCK_REGION');
-  }
-
-  isAIEnabled(): string {
-    return this.configService.get<string>('ENABLE_AI');
-  }
-
-  isAISearchEnabled(): boolean {
-    const config = this.configService
-      .get<string>('AI_SEARCH', 'false')
-      .toLowerCase();
-    return config === 'true';
   }
 }

@@ -93,6 +93,7 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @ValidateIf((obj) => obj.SEARCH_DRIVER === 'typesense')
+  @IsNotEmpty()
   @IsString()
   TYPESENSE_API_KEY: string;
 
@@ -101,6 +102,53 @@ export class EnvironmentVariables {
   @IsISO6391()
   @IsString()
   TYPESENSE_LOCALE: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER)
+  @IsIn(['openai', 'gemini', 'ollama'])
+  @IsString()
+  AI_DRIVER: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER)
+  @IsString()
+  @IsNotEmpty()
+  AI_EMBEDDING_MODEL: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_EMBEDDING_DIMENSION)
+  @IsIn(['768', '1024', '1536'])
+  @IsString()
+  AI_EMBEDDING_DIMENSION: string;
+
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER)
+  @IsString()
+  @IsNotEmpty()
+  AI_COMPLETION_MODEL: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'openai')
+  @IsString()
+  @IsNotEmpty()
+  OPENAI_API_KEY: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER && obj.OPENAI_API_URL && obj.AI_DRIVER === 'openai')
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  OPENAI_API_URL: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'gemini')
+  @IsString()
+  @IsNotEmpty()
+  GEMINI_API_KEY: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'ollama')
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  OLLAMA_API_URL: string;
 }
 
 export function validate(config: Record<string, any>) {

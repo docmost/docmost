@@ -27,9 +27,7 @@ export class SpaceListener {
       await this.searchQueue.add(QueueJob.SPACE_DELETED, { spaceId });
     }
 
-    if (this.environmentService.isAISearchEnabled()) {
-      await this.aiQueue.add(QueueJob.SPACE_DELETED, { spaceId });
-    }
+    await this.aiQueue.add(QueueJob.SPACE_DELETED, { spaceId });
   }
 
   isTypesense(): boolean {
