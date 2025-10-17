@@ -50,6 +50,7 @@ export class WorkspaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
   ) {}
 
   async findById(workspaceId: string) {
@@ -315,22 +316,36 @@ export class WorkspaceService {
     if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
       await this.workspaceRepo.updateAiSettings(
         workspaceId,
-        'aiSearch',
+        'search',
         updateWorkspaceDto.aiSearch,
       );
 
-      // to enable this
-      // we need to check if pgvector and embeddings table exists
+      if (updateWorkspaceDto.aiSearch) {
+        await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
+          workspaceId,
+        });
+      } else {
+        // Schedule deletion after 24 hours
+        const deleteJobId = `ai-search-disabled-${workspaceId}`;
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_DELETE_EMBEDDINGS,
+          { workspaceId },
+          {
+            jobId: deleteJobId,
+            delay: 24 * 60 * 60 * 1000,
+            removeOnComplete: true,
+            removeOnFail: true,
+          },
+        );
+      }
 
       delete updateWorkspaceDto.aiSearch;
-      // if true, send to ai queue
-      // if false, send to delete embeddings
     }
 
     if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
       await this.workspaceRepo.updateAiSettings(
         workspaceId,
-        'generativeAi',
+        'generative',
         updateWorkspaceDto.generativeAi,
       );
       delete updateWorkspaceDto.generativeAi;

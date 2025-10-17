@@ -53,6 +53,7 @@ export enum QueueJob {
   WORKSPACE_CREATED = 'workspace-created',
   WORKSPACE_SPACE_UPDATED = 'workspace-updated',
   WORKSPACE_DELETED = 'workspace-deleted',
+  WORKSPACE_CREATE_EMBEDDINGS = 'workspace-create-embeddings',
   WORKSPACE_DELETE_EMBEDDINGS = 'workspace-delete-embeddings',
 
   GENERATE_PAGE_EMBEDDINGS = 'generate-page-embeddings',
