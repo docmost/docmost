@@ -172,6 +172,7 @@ export class PersistenceExtension implements Extension {
 
       await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
         pageIds: [pageId],
+        workspaceId: page.workspaceId,
       });
     }
   }

@@ -8,6 +8,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 
 export class PageEvent {
   pageIds: string[];
+  workspaceId: string;
 }
 
 @Injectable()
@@ -22,12 +23,14 @@ export class PageListener {
 
   @OnEvent(EventName.PAGE_CREATED)
   async handlePageCreated(event: PageEvent) {
-    const { pageIds } = event;
+    const { pageIds, workspaceId } = event;
     if (this.isTypesense()) {
-      await this.searchQueue.add(QueueJob.PAGE_CREATED, { pageIds });
+      await this.searchQueue.add(QueueJob.PAGE_CREATED, {
+        pageIds,
+      });
     }
 
-    await this.aiQueue.add(QueueJob.PAGE_CREATED, { pageIds });
+    await this.aiQueue.add(QueueJob.PAGE_CREATED, { pageIds, workspaceId });
   }
 
   @OnEvent(EventName.PAGE_UPDATED)
@@ -39,33 +42,36 @@ export class PageListener {
 
   @OnEvent(EventName.PAGE_DELETED)
   async handlePageDeleted(event: PageEvent) {
-    const { pageIds } = event;
+    const { pageIds, workspaceId } = event;
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.PAGE_DELETED, { pageIds });
     }
 
-    await this.aiQueue.add(QueueJob.PAGE_DELETED, { pageIds });
+    await this.aiQueue.add(QueueJob.PAGE_DELETED, { pageIds, workspaceId });
   }
 
   @OnEvent(EventName.PAGE_SOFT_DELETED)
   async handlePageSoftDeleted(event: PageEvent) {
-    const { pageIds } = event;
+    const { pageIds, workspaceId } = event;
 
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.PAGE_SOFT_DELETED, { pageIds });
     }
 
-    await this.aiQueue.add(QueueJob.PAGE_SOFT_DELETED, { pageIds });
+    await this.aiQueue.add(QueueJob.PAGE_SOFT_DELETED, {
+      pageIds,
+      workspaceId,
+    });
   }
 
   @OnEvent(EventName.PAGE_RESTORED)
   async handlePageRestored(event: PageEvent) {
-    const { pageIds } = event;
+    const { pageIds, workspaceId } = event;
     if (this.isTypesense()) {
       await this.searchQueue.add(QueueJob.PAGE_RESTORED, { pageIds });
     }
 
-    await this.aiQueue.add(QueueJob.PAGE_RESTORED, { pageIds });
+    await this.aiQueue.add(QueueJob.PAGE_RESTORED, { pageIds, workspaceId });
   }
 
   isTypesense(): boolean {
