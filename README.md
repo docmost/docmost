@@ -5,6 +5,23 @@
 >
 > I cannot promise that I will keep maintaining this fork forever as I primarily do it for myself, but I will do so as long as the license allows and I actively use Docmost. I have also taken out some features that others might find helpful, and I may have added some bugs. As per license this can be forked at any time
 
+> [!IMPORTANT]
+> Everything is my opinion!\
+> I am slowly looking for an alternative to Docmost/Forkmost.  
+The project is great and has many useful features. But I prefer open-source projects, and Docmost is becoming more closed-source, locking basic security features behind a paywall that hides behind a non-public pricing page.
+> 
+> Docmost is still great software, but I don't want to maintain and contribute to a project that is getting more and more closed-source in an open-source community.
+> 
+> When I started using Docmost, there were clear pricing structures for every plan. The pricing was transparent. The cost of the cloud version (non self-hosted) was visible (now it's completely gone - there isn't even any mention of the cloud version anymore. You have to sign up to see pricing). Now there's only one option that says "contact sales." No transparency, just "greedy" and unclear pricing that makes it impossible to compare. And remember, basic security features are locked behind this. Even for self-hosted....
+> 
+> In addition to this, the maintainer intentionally blocks community contributions. The only maintainer barely reviews any PRs or provides status updates. They often say a feature is planned for the Enterprise Edition (EE) after a PR is opened (which is fine, BUT he (my assumption!) intentionally does not say what will be in EE. So there is no way to know before). And for some , then sortly-later implement that same feature in EE (what is that supposed to be?). The maintainer also ignores questions related to EE. I asked multiple times if (in general or specific features) would be part of EE - silence every time. Even small PRs take months to be reviewed and merged even when stated otherwise.
+> 
+> The number of EE-only PRs has grown a lot, again including features that would benefit everyone, like APIs and API keys - all hidden behind the unclear paid version.
+> 
+> There is nothing wrong with paying for a product; developers need to earn money somehow. But hiding basic security features behind a paywall that isn't visible unless you contact the team to get some unclear pricing that could change anytime or differ between people is simply wrong, especially when you host it on your own servers.
+> 
+> This won't be an option for everyone, but I switched to Typst for regular document writing. I'm still searching for a better alternative for collab and will maintain this project until I find one. After that, I'll keep maintaining the fork for a few more months to support future releases. If someone wants to further maintain the project, please contact me.
+
 ## **For added and features merged ahead, see the note under Features.**
 
 <div align="center">
