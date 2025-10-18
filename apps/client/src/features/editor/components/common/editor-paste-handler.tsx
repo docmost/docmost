@@ -48,6 +48,39 @@ export const handlePaste = (
     }
     return true;
   }
+
+  // removing windows \r and last \n
+  if (clipboardData) {
+    const text = clipboardData
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '');
+
+    const lines = text.split('\n');
+
+    const { state } = view;
+    const { from, to } = state.selection;
+    let tr = state.tr;
+
+    tr = tr.delete(from, to);
+
+    let currentPos = from;
+
+    lines.forEach((line, index) => {
+      tr.insertText(line, currentPos);
+      currentPos += line.length;
+
+      if (index < lines.length -1) {
+        const hardBreakType = view.state.schema.nodes.hardBreak;
+
+        tr.insert(currentPos, hardBreakType.create());
+        currentPos += 1;
+      }
+    });
+
+    view.dispatch(tr);
+    return true;
+  }
+
   return false;
 };
 
