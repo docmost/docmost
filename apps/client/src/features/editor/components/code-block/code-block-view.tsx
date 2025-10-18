@@ -50,7 +50,7 @@ export default function CodeBlockView(props: NodeViewProps) {
 
   const changeLanguage = useCallback((newLanguage: string) => {
     updateAttributes({
-      language: newLanguage,
+      language: newLanguage ?? "",
     });
   }, [updateAttributes]);
 

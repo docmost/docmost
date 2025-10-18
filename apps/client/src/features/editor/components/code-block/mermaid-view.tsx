@@ -51,7 +51,7 @@ export default function MermaidView({
   const throttleRef = useRef(0);
   const isMountedRef = useRef(true);
   const touchMoveListenerRef = useRef<((e: Event) => void) | null>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInternalUpdateRef = useRef(false); // Prevent feedback loops
 
   // Initialize Mermaid
@@ -169,7 +169,7 @@ export default function MermaidView({
             pannedY = event.deltaY;
           };
 
-          hammer.get("pinch").set({ enable: true });
+          hammer.add(new Hammer.Pinch({ enable: true }));
 
           hammer.on("panstart panmove", function (event) {
             if (event.type === "panstart") {
