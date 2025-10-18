@@ -9,16 +9,49 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 10px 0;
 }
-
 .mermaid {
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+    border-radius: 4px;
+    min-height: 100px;
+    height: auto;
+    width: 100%;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.mermaid svg {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
 }
 
 .menuGroup {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+    padding: 8px;
+    border-radius: 4px 4px 0 0;
+
     @media print {
         display: none;
+        box-shadow: none;
     }
+}
+
+.mermaid svg {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    pointer-events: all;
+    touch-action: none;
 }
