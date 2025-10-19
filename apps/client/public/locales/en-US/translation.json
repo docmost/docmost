@@ -565,5 +565,7 @@
   "AI search uses vector embeddings to provide semantic search capabilities across your workspace content.": "AI search uses vector embeddings to provide semantic search capabilities across your workspace content.",
   "Toggle AI search": "Toggle AI search",
   "Sources": "Sources",
-  "Ask AI not available for attachments": "Ask AI not available for attachments"
+  "Ask AI not available for attachments": "Ask AI not available for attachments",
+  "No answer available": "No answer available",
+
 }
