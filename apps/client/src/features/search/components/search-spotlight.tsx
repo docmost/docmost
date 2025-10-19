@@ -7,9 +7,9 @@ import { useTranslation } from "react-i18next";
 import { searchSpotlightStore } from "../constants.ts";
 import { SearchSpotlightFilters } from "./search-spotlight-filters.tsx";
 import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
-import { useAiSearch } from "../hooks/use-ai-search.ts";
+import { useAiSearch } from "../../../ee/ai/hooks/use-ai-search.ts";
 import { SearchResultItem } from "./search-result-item.tsx";
-import { AiSearchResult } from "./ai-search-result.tsx";
+import { AiSearchResult } from "../../../ee/ai/components/ai-search-result.tsx";
 import { useLicense } from "@/ee/hooks/use-license.tsx";
 import { isCloud } from "@/lib/config.ts";
 

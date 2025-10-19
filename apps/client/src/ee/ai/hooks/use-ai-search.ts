@@ -1,7 +1,7 @@
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { useState } from "react";
-import { askAi, IAiSearchResponse } from "@/features/search/services/ai-search-service";
-import { IPageSearchParams } from "@/features/search/types/search.types";
+import { askAi, IAiSearchResponse } from "@/ee/ai/services/ai-search-service.ts";
+import { IPageSearchParams } from "@/features/search/types/search.types.ts";
 
 // @ts-ignore
 interface UseAiSearchResult extends UseMutationResult<IAiSearchResponse, Error, IPageSearchParams> {

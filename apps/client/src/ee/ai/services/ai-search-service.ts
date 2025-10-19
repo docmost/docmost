@@ -1,5 +1,5 @@
-import api from "@/lib/api-client";
-import { IPageSearchParams } from "@/features/search/types/search.types";
+import api from "@/lib/api-client.ts";
+import { IPageSearchParams } from "@/features/search/types/search.types.ts";
 
 export interface IAiSearchResponse {
   answer: string;

@@ -26,6 +26,8 @@ import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useLicense } from "@/ee/hooks/use-license";
 import classes from "./search-spotlight-filters.module.css";
 import { isCloud } from "@/lib/config.ts";
+import { useAtom } from "jotai/index";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface SearchSpotlightFiltersProps {
   onFiltersChange?: (filters: any) => void;
@@ -48,6 +50,7 @@ export function SearchSpotlightFilters({
   const [spaceSearchQuery, setSpaceSearchQuery] = useState("");
   const [debouncedSpaceQuery] = useDebouncedValue(spaceSearchQuery, 300);
   const [contentType, setContentType] = useState<string | null>("page");
+  const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({
     page: 1,
@@ -126,24 +129,26 @@ export function SearchSpotlightFilters({
 
   return (
     <div className={classes.filtersContainer}>
-      {hasLicenseKey && (
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center",
-          height: "32px",
-          paddingLeft: "8px",
-          paddingRight: "8px"
-        }}>
+      {workspace?.settings?.ai?.search === true && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            height: "32px",
+            paddingLeft: "8px",
+            paddingRight: "8px",
+          }}
+        >
           <Switch
             checked={isAiMode}
             onChange={(event) => onAskClick()}
-            label="Ask AI"
+            label={t("Ask AI")}
             size="sm"
             color="blue"
             labelPosition="left"
             styles={{
               root: { display: "flex", alignItems: "center" },
-              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 }
+              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 },
             }}
           />
         </div>
@@ -260,7 +265,7 @@ export function SearchSpotlightFilters({
                 contentType !== option.value &&
                 handleFilterChange("contentType", option.value)
               }
-              disabled={option.disabled}
+              disabled={option.disabled || (isAiMode && option.value === "attachment")}
             >
               <Group flex="1" gap="xs">
                 <div>
@@ -269,6 +274,11 @@ export function SearchSpotlightFilters({
                     <Badge size="xs" mt={4}>
                       {t("Enterprise")}
                     </Badge>
+                  )}
+                  {!option.disabled && isAiMode && option.value === "attachment" && (
+                    <Text size="xs" mt={4}>
+                      {t("Ask AI not available for attachments")}
+                    </Text>
                   )}
                 </div>
                 {contentType === option.value && <IconCheck size={20} />}

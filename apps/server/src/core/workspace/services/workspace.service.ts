@@ -33,6 +33,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { generateRandomSuffixNumbers } from '../../../common/helpers';
+import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 
 @Injectable()
 export class WorkspaceService {
@@ -321,6 +322,13 @@ export class WorkspaceService {
       );
 
       if (updateWorkspaceDto.aiSearch) {
+        const tableExists = await isPageEmbeddingsTableExists(this.db);
+        if (!tableExists) {
+          throw new BadRequestException(
+            'Failed to activate. Make sure pgvector postgres extension is installed.',
+          );
+        }
+
         await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
           workspaceId,
         });

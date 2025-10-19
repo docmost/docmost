@@ -2,10 +2,11 @@ import React, { useMemo } from "react";
 import { Paper, Text, Group, Stack, Loader, Box } from "@mantine/core";
 import { IconSparkles, IconFileText } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
-import { IAiSearchResponse } from "../services/ai-search-service";
-import { buildPageUrl } from "@/features/page/page.utils";
+import { IAiSearchResponse } from "../services/ai-search-service.ts";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { markdownToHtml } from "@docmost/editor-ext";
 import DOMPurify from "dompurify";
+import { useTranslation } from "react-i18next";
 
 interface AiSearchResultProps {
   result?: IAiSearchResponse;
@@ -20,6 +21,8 @@ export function AiSearchResult({
   streamingAnswer = "",
   streamingSources = [],
 }: AiSearchResultProps) {
+  const { t } = useTranslation();
+
   // Use streaming data if available, otherwise fall back to result
   const answer = streamingAnswer || result?.answer || "";
   const sources =
@@ -45,7 +48,7 @@ export function AiSearchResult({
       <Paper p="md" radius="md" withBorder>
         <Group>
           <Loader size="sm" />
-          <Text size="sm">AI is thinking...</Text>
+          <Text size="sm">{t("AI is thinking...")}</Text>
         </Group>
       </Paper>
     );
@@ -61,7 +64,7 @@ export function AiSearchResult({
         <Group gap="xs" mb="sm">
           <IconSparkles size={20} color="var(--mantine-color-blue-6)" />
           <Text fw={600} size="sm">
-            AI Answer
+            {t("AI Answer")}
           </Text>
           {isLoading && <Loader size="xs" />}
         </Group>
@@ -75,7 +78,7 @@ export function AiSearchResult({
       {deduplicatedSources.length > 0 && (
         <Stack gap="xs">
           <Text size="xs" fw={600} c="dimmed">
-            Sources
+            {t("Sources")}
           </Text>
           {deduplicatedSources.map((source) => (
             <Box
