@@ -19,7 +19,7 @@ export default function Security() {
   const { hasLicenseKey } = useLicense();
   const { isBusiness } = usePlan();
 
-  if (!isAdmin) {
+  if (!isAdmin || !hasLicenseKey) {
     return null;
   }
 
