@@ -62,7 +62,7 @@ export class SearchService {
       )
       .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 20)
+      .limit(searchParams.limit | 25)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {

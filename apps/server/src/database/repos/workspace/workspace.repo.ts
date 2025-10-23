@@ -175,4 +175,22 @@ export class WorkspaceRepo {
       .returning(this.baseFields)
       .executeTakeFirst();
   }
+
+  async updateAiSettings(
+    workspaceId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+  ) {
+    return this.db
+      .updateTable('workspaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('ai', COALESCE(settings->'ai', '{}'::jsonb) 
+                || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', workspaceId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
 }

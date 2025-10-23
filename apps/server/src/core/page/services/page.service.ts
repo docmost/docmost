@@ -51,6 +51,7 @@ export class PageService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -255,6 +256,11 @@ export class PageService {
           pageIds,
           trx,
         );
+
+        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
+          pageId: pageIds,
+          workspaceId: rootPage.workspaceId
+        });
       }
     });
   }
@@ -393,6 +399,7 @@ export class PageService {
     const insertedPageIds = insertablePages.map((page) => page.id);
     this.eventEmitter.emit(EventName.PAGE_CREATED, {
       pageIds: insertedPageIds,
+      workspaceId: authUser.workspaceId,
     });
 
     //TODO: best to handle this in a queue
@@ -580,7 +587,7 @@ export class PageService {
     return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
   }
 
-  async forceDelete(pageId: string): Promise<void> {
+  async forceDelete(pageId: string, workspaceId: string): Promise<void> {
     // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
@@ -623,11 +630,16 @@ export class PageService {
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
       this.eventEmitter.emit(EventName.PAGE_DELETED, {
         pageIds: pageIds,
+        workspaceId,
       });
     }
   }
 
-  async remove(pageId: string, userId: string): Promise<void> {
-    await this.pageRepo.removePage(pageId, userId);
+  async removePage(
+    pageId: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    await this.pageRepo.removePage(pageId, userId, workspaceId);
   }
 }
