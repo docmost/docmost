@@ -1,7 +1,7 @@
 import { Spotlight } from "@mantine/spotlight";
 import { IconSearch, IconSparkles } from "@tabler/icons-react";
 import { Group, Button } from "@mantine/core";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { searchSpotlightStore } from "../constants.ts";
@@ -55,9 +55,18 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     isPending: isAiLoading,
     //@ts-ignore
     mutate: triggerAiSearchMutation,
+    //@ts-ignore
+    reset: resetAiMutation,
     streamingAnswer,
     streamingSources,
+    clearStreaming,
   } = useAiSearch();
+
+  // Clear streaming state and mutation data when query changes (user is typing a new query)
+  useEffect(() => {
+    clearStreaming();
+    resetAiMutation();
+  }, [query, clearStreaming, resetAiMutation]);
 
   // Determine result type for rendering
   const isAttachmentSearch =
