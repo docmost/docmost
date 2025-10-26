@@ -53,6 +53,9 @@ export async function askAi(
 
           try {
             const parsed = JSON.parse(data);
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
             if (parsed.content) {
               answer += parsed.content;
               onChunk?.({ content: parsed.content });
@@ -62,6 +65,9 @@ export async function askAi(
               onChunk?.({ sources: parsed.sources });
             }
           } catch (e) {
+            if (e instanceof Error) {
+              throw e;
+            }
             // Skip invalid JSON
           }
         }

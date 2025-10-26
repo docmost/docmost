@@ -4,6 +4,7 @@ import { Group, Button } from "@mantine/core";
 import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
+import { notifications } from "@mantine/notifications";
 import { searchSpotlightStore } from "../constants.ts";
 import { SearchSpotlightFilters } from "./search-spotlight-filters.tsx";
 import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
@@ -57,6 +58,8 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     mutate: triggerAiSearchMutation,
     //@ts-ignore
     reset: resetAiMutation,
+    //@ts-ignore
+    error: aiSearchError,
     streamingAnswer,
     streamingSources,
     clearStreaming,
@@ -67,6 +70,17 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     clearStreaming();
     resetAiMutation();
   }, [query, clearStreaming, resetAiMutation]);
+
+  // Show error notification when AI search fails
+  useEffect(() => {
+    if (aiSearchError) {
+      notifications.show({
+        message: aiSearchError.message || t("AI search failed. Please try again."),
+        color: "red",
+        position: "top-center"
+      });
+    }
+  }, [aiSearchError, t]);
 
   // Determine result type for rendering
   const isAttachmentSearch =
