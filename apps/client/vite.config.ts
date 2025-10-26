@@ -40,6 +40,14 @@ export default defineConfig(({ mode }) => {
         "@": "/src",
       },
     },
+    assetsInclude: ["**/*.wasm"],
+    optimizeDeps: {
+      exclude: [
+        "@myriaddreamin/typst.ts",
+        "@myriaddreamin/typst-ts-web-compiler",
+        "@myriaddreamin/typst-ts-renderer",
+      ],
+    },
     server: {
       proxy: {
         "/api": {
