@@ -19,7 +19,7 @@ import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   prefetchApiKeyManagement,
@@ -115,6 +115,7 @@ const groupedData: DataGroup[] = [
         icon: IconSparkles,
         path: "/settings/ai",
         isAdmin: true,
+        isSelfhosted: true,
       },
     ],
   },
