@@ -12,7 +12,8 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
-import React from "react";
+import React, { useEffect } from "react";
+import { useEditorScroll } from "@/features/editor/hooks/use-editor-scroll";
 
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -21,6 +22,8 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+  const { scrollTo } = useEditorScroll();
+  
   const {
     data: page,
     isLoading,
@@ -72,6 +75,7 @@ export default function Page() {
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
+          scrollTo={scrollTo}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

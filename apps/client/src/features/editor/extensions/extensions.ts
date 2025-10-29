@@ -1,4 +1,6 @@
 import { StarterKit } from "@tiptap/starter-kit";
+import Heading from "./heading";
+import { UniqueID } from '@tiptap/extension-unique-id'
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-task-list";
@@ -93,6 +95,7 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
+    heading: false,
     history: false,
     dropcursor: {
       width: 3,
@@ -104,6 +107,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading,
+  UniqueID.configure({
+    types: ['heading'],
+    attributeName: 'uid',
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {

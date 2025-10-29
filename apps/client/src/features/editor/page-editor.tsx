@@ -56,17 +56,22 @@ import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
+import { usePublicLink } from "./hooks/use-public-link";
+import { useEditorLink } from "./hooks/use-editor-link";
+import { useEditorScroll } from "./hooks/use-editor-scroll";
 
 interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
+  scrollTo?: string;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
+  scrollTo,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
@@ -95,6 +100,9 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
+   const editorLink = useEditorLink();
+
+  const { handleScrollTo } = useEditorScroll();
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -264,6 +272,7 @@ export default function PageEditor({
           // @ts-ignore
           setEditor(editor);
           editor.storage.pageId = pageId;
+          handleScrollTo(editor, scrollTo);
         }
       },
       onUpdate({ editor }) {
@@ -275,6 +284,10 @@ export default function PageEditor({
     },
     [pageId, editable, remoteProvider],
   );
+
+  useEffect(() => {
+    if(editor) editor.storage.heading.baseURL = editorLink;
+  }, [editorLink]);
 
   const editorIsEditable = useEditorState({
     editor,
