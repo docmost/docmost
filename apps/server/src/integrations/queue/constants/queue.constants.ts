@@ -4,6 +4,7 @@ export enum QueueName {
   GENERAL_QUEUE = '{general-queue}',
   BILLING_QUEUE = '{billing-queue}',
   FILE_TASK_QUEUE = '{file-task-queue}',
+  SEARCH_QUEUE = '{search-queue}',
 }
 
 export enum QueueJob {
@@ -25,4 +26,21 @@ export enum QueueJob {
 
   IMPORT_TASK = 'import-task',
   EXPORT_TASK = 'export-task',
+
+  SEARCH_INDEX_PAGE = 'search-index-page',
+  SEARCH_INDEX_PAGES = 'search-index-pages',
+  SEARCH_INDEX_COMMENT = 'search-index-comment',
+  SEARCH_INDEX_COMMENTS = 'search-index-comments',
+  SEARCH_INDEX_ATTACHMENT = 'search-index-attachment',
+  SEARCH_INDEX_ATTACHMENTS = 'search-index-attachments',
+  SEARCH_REMOVE_PAGE = 'search-remove-page',
+  SEARCH_REMOVE_ASSET = 'search-remove-attachment',
+  SEARCH_REMOVE_FACE = 'search-remove-comment',
+  TYPESENSE_FLUSH = 'typesense-flush',
+
+  PAGE_CREATED = 'page-created',
+  PAGE_UPDATED = 'page-updated',
+  PAGE_SOFT_DELETED = 'page-soft-deleted',
+  PAGE_RESTORED = 'page-restored',
+  PAGE_DELETED = 'page-deleted',
 }

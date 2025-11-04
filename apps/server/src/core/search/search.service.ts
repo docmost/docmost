@@ -25,13 +25,14 @@ export class SearchService {
   ) {}
 
   async searchPage(
-    query: string,
     searchParams: SearchDTO,
     opts: {
       userId?: string;
       workspaceId: string;
     },
   ): Promise<SearchResponseDto[]> {
+    const { query } = searchParams;
+
     if (query.length < 1) {
       return;
     }
@@ -149,15 +150,14 @@ export class SearchService {
     const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
-      users = (await this.userRepo.getUsersInSpacesOfUser(
-        workspaceId,
-        userId,
-        {
+      users = (
+        await this.userRepo.getUsersInSpacesOfUser(workspaceId, userId, {
           query: query,
           limit: limit,
           page: 1,
-        },
-      )).items;
+          adminView: false,
+        })
+      ).items;
     }
 
     if (suggestion.includeGroups) {
@@ -206,11 +206,13 @@ export class SearchService {
               .where('workspaceId', '=', workspaceId)
               .where('deletedAt', 'is', null)
               .$if(
-                suggestion?.spaceId && userSpaceIds.includes(suggestion.spaceId),
+                suggestion?.spaceId &&
+                  userSpaceIds.includes(suggestion.spaceId),
                 (qb) => qb.where('spaceId', '=', suggestion.spaceId),
               )
               .$if(
-                !userSpaceIds.includes(suggestion.spaceId) || !suggestion?.spaceId,
+                !userSpaceIds.includes(suggestion.spaceId) ||
+                  !suggestion?.spaceId,
                 (qb) => qb.where('spaceId', 'in', userSpaceIds),
               )
               .unionAll((db) =>
@@ -244,7 +246,7 @@ export class SearchService {
                   ORDER BY pa.depth DESC
                 ) FILTER (WHERE pa.id != pa.rootid)`.as('breadcrumbs'),
               ])
-              .groupBy('pa.rootid')
+              .groupBy('pa.rootid'),
           )
           .selectFrom('pages')
           .innerJoin('page_data', 'page_data.rootid', 'pages.id')
@@ -276,7 +278,9 @@ export class SearchService {
           title: page.title,
           icon: page.icon,
           spaceId: page.spaceId,
-          breadcrumbs: (page.breadcrumbs as {title: string}[])?.map((v) => v.title) || [],
+          breadcrumbs:
+            (page.breadcrumbs as { title: string }[])?.map((v) => v.title) ||
+            [],
           headings: extractHeadingsFromContent(page.content),
         }));
       }
