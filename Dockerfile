@@ -5,25 +5,12 @@ FROM base AS builder
 
 WORKDIR /app
 
-# Copy dependency files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
-
-# Copy package.json files from all workspaces
-COPY apps/server/package.json ./apps/server/package.json
-COPY apps/client/package.json ./apps/client/package.json
-COPY packages/editor-ext/package.json ./packages/editor-ext/package.json
+COPY . .
 
 ENV NX_SOCKET_DIR=/tmp/nx-tmp
 
-# Install dependencies (this layer will be cached unless dependencies change)
 RUN npm install -g pnpm@10.4.0
 RUN pnpm install --frozen-lockfile
-
-# Copy source code after dependencies are installed
-COPY . .
-
-# Build the project
 RUN pnpm build
 
 FROM base AS installer
