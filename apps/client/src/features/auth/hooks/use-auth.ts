@@ -26,8 +26,6 @@ import {
 import APP_ROUTE from "@/lib/app-route.ts";
 import { RESET } from "jotai/utils";
 import { useTranslation } from "react-i18next";
-import { isCloud } from "@/lib/config.ts";
-import { exchangeTokenRedirectUrl } from "@/ee/utils.ts";
 
 export default function useAuth() {
   const { t } = useTranslation();
@@ -90,21 +88,9 @@ export default function useAuth() {
     setIsLoading(true);
 
     try {
-      if (isCloud()) {
-        const res = await createWorkspace(data);
-        const hostname = res?.workspace?.hostname;
-        const exchangeToken = res?.exchangeToken;
-        if (hostname && exchangeToken) {
-          window.location.href = exchangeTokenRedirectUrl(
-            hostname,
-            exchangeToken,
-          );
-        }
-      } else {
-        const res = await setupWorkspace(data);
-        setIsLoading(false);
-        navigate(APP_ROUTE.HOME);
-      }
+      const res = await setupWorkspace(data);
+      setIsLoading(false);
+      navigate(APP_ROUTE.HOME);
     } catch (err) {
       setIsLoading(false);
       notifications.show({

@@ -21,6 +21,7 @@ export interface IUser {
   fullPageWidth: boolean; // used for update
   pageEditMode: string; // used for update
   hasGeneratedPassword?: boolean;
+  spellcheck: boolean; // used for update
 }
 
 export interface ICurrentUser {
@@ -32,6 +33,7 @@ export interface IUserSettings {
   preferences: {
     fullPageWidth: boolean;
     pageEditMode: string;
+    spellcheck: boolean;
   };
 }
 

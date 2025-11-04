@@ -1,10 +1,17 @@
 import { Group, Text } from "@mantine/core";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import React from "react";
-import { IUser } from '@/features/user/types/user.types.ts';
+import { IUser } from "@/features/user/types/user.types";
+
+type UserInfoData = {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  email?: string;
+};
 
 interface UserInfoProps {
-  user: Partial<IUser>;
+  user: UserInfoData | IUser;
   size?: string;
 }
 export function UserInfo({ user, size }: UserInfoProps) {
@@ -15,9 +22,11 @@ export function UserInfo({ user, size }: UserInfoProps) {
         <Text fz="sm" fw={500} lineClamp={1}>
           {user?.name}
         </Text>
-        <Text fz="xs" c="dimmed">
-          {user?.email}
-        </Text>
+        {user?.email && (
+          <Text fz="xs" c="dimmed">
+            {user.email}
+          </Text>
+        )}
       </div>
     </Group>
   );

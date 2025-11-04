@@ -4,7 +4,6 @@ import WorkspaceIcon from "@/features/workspace/components/settings/components/w
 import { useTranslation } from "react-i18next";
 import { getAppName, isCloud } from "@/lib/config.ts";
 import { Helmet } from "react-helmet-async";
-import ManageHostname from "@/ee/components/manage-hostname.tsx";
 import { Divider } from "@mantine/core";
 
 export default function WorkspaceSettings() {
@@ -17,13 +16,6 @@ export default function WorkspaceSettings() {
       <SettingsTitle title={t("General")} />
       <WorkspaceIcon />
       <WorkspaceNameForm />
-
-      {isCloud() && (
-        <>
-          <Divider my="md" />
-          <ManageHostname />
-        </>
-      )}
     </>
   );
 }

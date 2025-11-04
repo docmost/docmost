@@ -10,8 +10,10 @@ export interface EmbedAttributes {
   src?: string;
   provider: string;
   align?: string;
+  resizable?: boolean;
   width?: number;
   height?: number;
+  lazyLoad?: boolean;
 }
 
 declare module '@tiptap/core' {
@@ -70,11 +72,33 @@ export const Embed = Node.create<EmbedOptions>({
           'data-width': attributes.width,
         }),
       },
+      resizable: {
+        default: true,
+        parseHTML: (element) => {
+          const val = element.getAttribute('data-resizable');
+          if (val === null) return true;
+          return val === 'true';
+        },
+        renderHTML: (attributes: EmbedAttributes) => ({
+          'data-resizable': String(attributes.resizable),
+        }),
+      },
       height: {
         default: 480,
         parseHTML: (element) => element.getAttribute('data-height'),
         renderHTML: (attributes: EmbedAttributes) => ({
           'data-height': attributes.height,
+        }),
+      },
+      lazyLoad: {
+        default: false,
+        parseHTML: (element) => {
+          const val = element.getAttribute('data-lazy-load');
+          if (val === null) return false;
+          return val === 'true';
+        },
+        renderHTML: (attributes: EmbedAttributes) => ({
+          'data-lazy-load': String(attributes.lazyLoad),
         }),
       },
     };
@@ -117,6 +141,8 @@ export const Embed = Node.create<EmbedOptions>({
         ({ commands }) => {
           // Validate the URL before inserting
           const validatedAttrs = {
+            resizable: true,
+            lazyLoad: false,
             ...attrs,
             src: sanitizeUrl(attrs.src),
           };

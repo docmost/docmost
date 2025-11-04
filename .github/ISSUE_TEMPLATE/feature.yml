@@ -1,0 +1,65 @@
+name: Feature Request
+title: "[Feature Request]"
+description: Request a feature/enhancement
+labels:
+  - enhancement
+assignees: Vito0912
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        This is mainly a personal project and fork. I will close bugs or issues that I consider out of scope or too complex and not relevant to my own use. This does not mean I do not allow PRs that add these complex features or fix bugs, as long as they are explained clearly and do not break existing functionality.
+  - type: markdown
+    attributes:
+      value: >-
+        
+        Please use this issue template if you have a request to add or change a feature. Only open a feature request issue here if at least one of the following applies:
+
+        * The feature request is directly related to a PR added in Forkmost but is not available in Docmost
+
+        * The feature request was already opened in the Docmost repo but was either closed or left without any response from the maintainers for more than 3 months
+
+        * The feature request is small and probably won't get fixed in Docmost
+
+        Otherwise, please do NOT open an issue here. Start by opening an issue in Docmost. If it is important to you, you can then open an issue here and link to the Docmost issue. I will also monitor Docmost issues myself.
+  - type: checkboxes
+    id: checkboxes-0
+    attributes:
+      label: Please tick the ones that fit best. You must tick at least one.
+      description: To make sure this issue is related to Forkmost, please tick at
+        least one of the following option
+      options:
+        - label: The feature request is directly related to a PR added in Forkmost but is not available in Docmost
+        - label: The feature request was already opened in the Docmost repo but was either closed or left without any response from the maintainers for more than 3 months  
+        - label: The feature request was opened in Docmost and I want to link it
+        - label: The feature request is small and probably won't get fixed in Docmost
+    validations:
+      required: true
+  - type: textarea
+    id: textarea-2
+    attributes:
+      label: Summary of your request
+      description: Please keep it short and simple. Do not use images here.
+    validations:
+      required: true
+  - type: textarea
+    id: textarea-3
+    attributes:
+      label: Detailed feature request
+      description: Please describe your issue in more detail. If possible, include images.
+    validations:
+      required: true
+  - type: textarea
+    id: textarea-5
+    attributes:
+      label: Why?
+      description: Why would this be helpful?
+    validations:
+      required: true
+  - type: input
+    id: input-1
+    attributes:
+      label: Forkmost version
+      placeholder: e.g. v0.23.1.1
+    validations:
+      required: true

@@ -1,0 +1,62 @@
+name: Bug Report
+title: "[Bug]"
+description: Report a bug
+labels:
+  - bug
+assignees: Vito0912
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        This is mainly a personal project and fork. I will close bugs or issues that I consider out of scope or too complex and not relevant to my own use. This does not mean I do not allow PRs that add these complex features or fix bugs, as long as they are explained clearly and do not break existing functionality.
+  - type: markdown
+    attributes:
+      value: >-
+        
+        Please use this issue template if you have a bug to report. Only open a bug report issue here if at least one of the following applies:
+
+        * The bug is directly related to a PR added in Forkmost but is not available in Docmost
+
+        * The bug was already opened in the Docmost repo but was either closed or left without any response from the maintainers for more than 3 months
+
+        * The bug is small and probably won't get fixed in Docmost
+
+        Otherwise, please do NOT open an issue here. Start by opening an issue in Docmost. If it is important to you, you can then open an issue here and link to the Docmost issue. I will also monitor Docmost issues myself.
+  - type: checkboxes
+    id: checkboxes-0
+    attributes:
+      label: Please tick the ones that fit best. You must tick at least one.
+      description: To make sure this issue is related to Forkmost, please tick at
+        least one of the following option
+      options:
+        - label: The bug is directly related to a PR added in Forkmost but is not available in Docmost
+        - label: The bug was already opened in the Docmost repo but was either closed or left without any response from the maintainers for more than 3 months
+        - label: The bug is small and probably won't get fixed in Docmost
+        - label: The bug was opened in Docmost and I want to link it
+    validations:
+      required: true
+  - type: textarea
+    id: textarea-3
+    attributes:
+      label: Explain your issue/bug in detail
+      description: Please describe your issue in more detail. If possible, include images.
+    validations:
+      required: true
+  - type: textarea
+    id: textarea-5
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: input-1
+    attributes:
+      label: Forkmost version
+      placeholder: e.g. v0.23.1.1
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: >-
+        Issues with outdated versions will be closed immediately, even if one thinks the bug is not related to the version!
