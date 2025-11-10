@@ -1,10 +1,13 @@
 import { NodeViewProps } from "@tiptap/react";
 import { useEffect, useState } from "react";
 import mermaid from "mermaid";
+import elkLayouts from '@mermaid-js/layout-elk';
 import { v4 as uuidv4 } from "uuid";
 import classes from "./code-block.module.css";
 import { useTranslation } from "react-i18next";
 import { useComputedColorScheme } from "@mantine/core";
+
+mermaid.registerLayoutLoaders(elkLayouts);
 
 interface MermaidViewProps {
   props: NodeViewProps;
