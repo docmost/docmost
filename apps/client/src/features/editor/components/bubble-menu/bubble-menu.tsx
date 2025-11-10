@@ -17,7 +17,7 @@ import {
 import clsx from "clsx";
 import classes from "./bubble-menu.module.css";
 import { ActionIcon, rem, Tooltip } from "@mantine/core";
-import { ColorSelector } from "./color-selector";
+import { ColorSelector, HighlightSelector } from "./color-selector";
 import { NodeSelector } from "./node-selector";
 import { TextAlignmentSelector } from "./text-alignment-selector";
 import {
@@ -145,6 +145,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
         setIsColorSelectorOpen(false);
+        setIsHighlightSelectorOpen(false);
         setIsLinkSelectorOpen(false);
       },
     },
@@ -153,6 +154,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
+  const [isHighlightSelectorOpen, setIsHighlightSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
 
   return (
@@ -165,6 +167,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
+            setIsHighlightSelectorOpen(false);
             setIsLinkSelectorOpen(false);
           }}
         />
@@ -176,6 +179,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
             setIsNodeSelectorOpen(false);
             setIsColorSelectorOpen(false);
+            setIsHighlightSelectorOpen(false);
             setIsLinkSelectorOpen(false);
           }}
         />
@@ -207,6 +211,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
             setIsColorSelectorOpen(false);
+            setIsHighlightSelectorOpen(false);
           }}
         />
 
@@ -217,6 +222,19 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             setIsColorSelectorOpen(!isColorSelectorOpen);
             setIsNodeSelectorOpen(false);
             setIsTextAlignmentOpen(false);
+            setIsHighlightSelectorOpen(false);
+            setIsLinkSelectorOpen(false);
+          }}
+        />
+
+        <HighlightSelector
+          editor={props.editor}
+          isOpen={isHighlightSelectorOpen}
+          setIsOpen={() => {
+            setIsHighlightSelectorOpen(!isHighlightSelectorOpen);
+            setIsNodeSelectorOpen(false);
+            setIsTextAlignmentOpen(false);
+            setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
           }}
         />

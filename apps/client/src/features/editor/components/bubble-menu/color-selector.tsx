@@ -1,5 +1,5 @@
 import { Dispatch, FC, SetStateAction } from "react";
-import { IconCheck, IconPalette } from "@tabler/icons-react";
+import { IconCheck, IconPalette, IconHighlight } from "@tabler/icons-react";
 import {
   ActionIcon,
   Button,
@@ -121,10 +121,6 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
       TEXT_COLORS.forEach(({ color }) => {
         activeColors[`text_${color}`] = ctx.editor.isActive("textStyle", { color });
       });
-      HIGHLIGHT_COLORS.forEach(({ color }) => {
-        activeColors[`highlight_${color}`] = ctx.editor.isActive("highlight", { color });
-      });
-
       return activeColors;
     },
   });
@@ -135,10 +131,6 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
 
   const activeColorItem = TEXT_COLORS.find(({ color }) =>
     editorState[`text_${color}`]
-  );
-
-  const activeHighlightItem = HIGHLIGHT_COLORS.find(({ color }) =>
-    editorState[`highlight_${color}`]
   );
 
   return (
@@ -185,6 +177,105 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                     editor.commands.unsetColor();
                   } else {
                     editor.chain().focus().setColor(color || "").run();
+                  }
+                  setIsOpen(false);
+                }}
+                style={{ border: "none" }}
+              >
+                {t(name)}
+              </Button>
+            ))}
+          </Button.Group>
+        </ScrollArea.Autosize>
+      </Popover.Dropdown>
+    </Popover>
+  );
+};
+
+export const HighlightSelector: FC<ColorSelectorProps> = ({
+  editor,
+  isOpen,
+  setIsOpen,
+}) => {
+  const { t } = useTranslation();
+
+  const editorState = useEditorState({
+    editor,
+    selector: ctx => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      const activeColors: Record<string, boolean> = {};
+      HIGHLIGHT_COLORS.forEach(({ color }) => {
+        activeColors[`highlight_${color}`] = ctx.editor.isActive("highlight", { color });
+      });
+
+      return activeColors;
+    },
+  });
+
+  if (!editor || !editorState) {
+    return null;
+  }
+
+  const activeHighlightItem = HIGHLIGHT_COLORS.find(({ color }) =>
+    editorState[`highlight_${color}`]
+  );
+
+  return (
+    <Popover width={200} opened={isOpen} withArrow>
+      <Popover.Target>
+        <Tooltip label={t("Highlight color")} withArrow>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            radius="0"
+            style={{
+              border: "none",
+              backgroundColor: activeHighlightItem?.color,
+            }}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <IconHighlight size={16} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
+
+      <Popover.Dropdown>
+        <ScrollArea.Autosize type="scroll" mah="400">
+          <Text span c="dimmed" tt="uppercase" inherit>
+            {t("Highlight")}
+          </Text>
+
+          <Button.Group orientation="vertical">
+            {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+              <Button
+                key={index}
+                variant="default"
+                leftSection={
+                  <span
+                    style={{
+                      display: "inline-block",
+                      backgroundColor: color || "transparent",
+                      width: rem(16),
+                      height: rem(16),
+                      borderRadius: rem(2),
+                    }}
+                  />
+                }
+                justify="left"
+                fullWidth
+                rightSection={
+                  editorState[`highlight_${color}`] && (
+                    <IconCheck style={{ width: rem(16) }} />
+                  )
+                }
+                onClick={() => {
+                  if (name === "Default") {
+                    editor.commands.unsetHighlight();
+                  } else {
+                    editor.chain().focus().setHighlight({ color: color || "" }).run();
                   }
                   setIsOpen(false);
                 }}
