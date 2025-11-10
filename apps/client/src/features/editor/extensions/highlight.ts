@@ -31,6 +31,12 @@ const normalizeColor = (color?: string | null) => {
   const rgbMatch = trimmed.match(RGB_REGEX);
   if (rgbMatch) {
     const [, r, g, b] = rgbMatch;
+    const rNum = parseInt(r, 10);
+    const gNum = parseInt(g, 10);
+    const bNum = parseInt(b, 10);
+    if (rNum > 255 || gNum > 255 || bNum > 255) {
+      return null;
+    }
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toLowerCase();
   }
 
