@@ -6,7 +6,6 @@ import { TaskItem } from "@tiptap/extension-task-item";
 import { Underline } from "@tiptap/extension-underline";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
-import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
@@ -45,6 +44,7 @@ import {
   randomElement,
   userColors,
 } from "@/features/editor/extensions/utils.ts";
+import { DocmostHighlight } from "@/features/editor/extensions/highlight";
 import { IUser } from "@/features/user/types/user.types.ts";
 import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
 import MathBlockView from "@/features/editor/components/math/math-block.tsx";
@@ -131,9 +131,7 @@ export const mainExtensions = [
   }),
   Superscript,
   SubScript,
-  Highlight.configure({
-    multicolor: true,
-  }),
+  DocmostHighlight,
   Typography,
   TrailingNode,
   GlobalDragHandle,
