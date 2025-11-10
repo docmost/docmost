@@ -210,3 +210,39 @@
   background: var(--mantine-color-body);
 }
 
+.docmost-highlight {
+  color: inherit;
+  background-color: light-dark(#f5e275, rgba(234, 179, 8, 0.35));
+}
+
+.docmost-highlight--blue {
+  background-color: light-dark(#98d8f2, rgba(37, 99, 235, 0.35));
+}
+
+.docmost-highlight--green {
+  background-color: light-dark(#7edb6c, rgba(0, 138, 0, 0.35));
+}
+
+.docmost-highlight--purple {
+  background-color: light-dark(#e0d6ed, rgba(147, 51, 234, 0.35));
+}
+
+.docmost-highlight--red {
+  background-color: light-dark(#ffc6c2, rgba(224, 0, 0, 0.35));
+}
+
+.docmost-highlight--yellow {
+  background-color: light-dark(#f5e275, rgba(234, 179, 8, 0.35));
+}
+
+.docmost-highlight--orange {
+  background-color: light-dark(#f5c8a9, rgba(255, 165, 0, 0.35));
+}
+
+.docmost-highlight--pink {
+  background-color: light-dark(#f5cfe0, rgba(186, 64, 129, 0.35));
+}
+
+.docmost-highlight--gray {
+  background-color: light-dark(#dfdfd7, rgba(168, 162, 158, 0.35));
+}

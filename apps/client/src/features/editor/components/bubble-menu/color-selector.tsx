@@ -12,6 +12,10 @@ import {
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import {
+  HIGHLIGHT_VARIANTS,
+  HIGHLIGHT_VARIANTS_WITH_VALUE,
+} from "@/features/editor/extensions/highlight-variants";
 
 export interface BubbleColorMenuItem {
   name: string;
@@ -63,45 +67,7 @@ const TEXT_COLORS: BubbleColorMenuItem[] = [
   },
 ];
 
-// TODO: handle dark mode
-const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
-  {
-    name: "Default",
-    color: "",
-  },
-  {
-    name: "Blue",
-    color: "#c1ecf9",
-  },
-  {
-    name: "Green",
-    color: "#acf79f",
-  },
-  {
-    name: "Purple",
-    color: "#f6f3f8",
-  },
-  {
-    name: "Red",
-    color: "#fdebeb",
-  },
-  {
-    name: "Yellow",
-    color: "#fbf4a2",
-  },
-  {
-    name: "Orange",
-    color: "#faebdd",
-  },
-  {
-    name: "Pink",
-    color: "#faf1f5",
-  },
-  {
-    name: "Gray",
-    color: "#f1f1ef",
-  },
-];
+const DEFAULT_HIGHLIGHT_KEY = "highlight_default";
 
 export const ColorSelector: FC<ColorSelectorProps> = ({
   editor,
@@ -207,8 +173,11 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
       }
 
       const activeColors: Record<string, boolean> = {};
-      HIGHLIGHT_COLORS.forEach(({ color }) => {
-        activeColors[`highlight_${color}`] = ctx.editor.isActive("highlight", { color });
+      activeColors[DEFAULT_HIGHLIGHT_KEY] = !ctx.editor.isActive("highlight");
+      HIGHLIGHT_VARIANTS_WITH_VALUE.forEach(({ variant }) => {
+        activeColors[`highlight_${variant}`] = ctx.editor.isActive("highlight", {
+          variant,
+        });
       });
 
       return activeColors;
@@ -219,8 +188,8 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
     return null;
   }
 
-  const activeHighlightItem = HIGHLIGHT_COLORS.find(({ color }) =>
-    editorState[`highlight_${color}`]
+  const activeHighlightItem = HIGHLIGHT_VARIANTS_WITH_VALUE.find(({ variant }) =>
+    editorState[`highlight_${variant}`]
   );
 
   return (
@@ -233,7 +202,7 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
             radius="0"
             style={{
               border: "none",
-              backgroundColor: activeHighlightItem?.color,
+              backgroundColor: activeHighlightItem?.swatchColor,
             }}
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -249,7 +218,7 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
           </Text>
 
           <Button.Group orientation="vertical">
-            {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+            {HIGHLIGHT_VARIANTS.map(({ name, variant, swatchColor }, index) => (
               <Button
                 key={index}
                 variant="default"
@@ -257,7 +226,7 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
                   <span
                     style={{
                       display: "inline-block",
-                      backgroundColor: color || "transparent",
+                      backgroundColor: swatchColor || "transparent",
                       width: rem(16),
                       height: rem(16),
                       borderRadius: rem(2),
@@ -267,15 +236,17 @@ export const HighlightSelector: FC<ColorSelectorProps> = ({
                 justify="left"
                 fullWidth
                 rightSection={
-                  editorState[`highlight_${color}`] && (
+                  (variant
+                    ? editorState[`highlight_${variant}`]
+                    : editorState[DEFAULT_HIGHLIGHT_KEY]) && (
                     <IconCheck style={{ width: rem(16) }} />
                   )
                 }
                 onClick={() => {
-                  if (name === "Default") {
+                  if (!variant) {
                     editor.commands.unsetHighlight();
                   } else {
-                    editor.chain().focus().setHighlight({ color: color || "" }).run();
+                    editor.chain().focus().setHighlight({ variant }).run();
                   }
                   setIsOpen(false);
                 }}
