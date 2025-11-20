@@ -101,11 +101,12 @@ CUSTOM_BLOCK_SYSTEM_ENABLED=false
 
 ### 新增依赖
 
-**后端**:
+**后端** (用于 OIDC SSO):
 ```json
 {
-  "openid-client": "^5.x.x",
-  "passport-openidconnect": "^0.x.x"
+  "@nestjs/passport": "^10.x.x",
+  "passport": "^0.7.0",
+  "openid-client": "^5.x.x"
 }
 ```
 
@@ -124,6 +125,7 @@ CUSTOM_BLOCK_SYSTEM_ENABLED=false
 
 | Migration | 描述 | 状态 |
 |-----------|------|------|
+| (无需新 migration) | 使用现有 auth_providers 表 | ✅ 已存在 |
 | `20251120T150000-page_blocks.ts` | 创建 page_blocks 表 | 待执行 |
 | `20251120T160000-migrate-pages-to-blocks.ts` | 迁移现有数据 | 待执行 |
 
@@ -132,8 +134,17 @@ CUSTOM_BLOCK_SYSTEM_ENABLED=false
 ## 版本信息
 
 - **基于 Docmost 版本**: v0.23.2
-- **自定义版本**: v1.0.0
+- **自定义版本**: v1.0.0-alpha
 - **最后同步日期**: 2025-11-20
+
+### 功能状态
+
+| 功能 | 状态 | 分支 |
+|------|------|------|
+| OIDC SSO | 🚧 开发中 | feature/oidc-sso |
+| Block 系统 | 📋 规划中 | - |
+| 引用块 | 📋 规划中 | - |
+| 同步块 | 📋 规划中 | - |
 
 ---
 

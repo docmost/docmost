@@ -33,6 +33,19 @@ try {
   }
 }
 
+// 🆕 Load custom modules
+const customModules = [];
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const CustomModule = require('./custom/custom.module')?.CustomModule;
+  if (CustomModule) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    customModules.push(CustomModule.forRoot());
+  }
+} catch (err) {
+  console.log('Custom modules not loaded:', err.message);
+}
+
 @Module({
   imports: [
     CoreModule,
@@ -58,8 +71,9 @@ try {
     SecurityModule,
     TelemetryModule,
     ...enterpriseModules,
+    ...customModules,  // 🆕 Custom modules (OIDC, etc.)
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
