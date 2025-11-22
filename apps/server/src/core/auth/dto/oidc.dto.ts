@@ -44,6 +44,10 @@ export class CreateOidcProviderDto {
   @IsOptional()
   @IsBoolean()
   enforceSso?: boolean;
+
+  @IsOptional()
+  @IsString()
+  oidcAllowedGroups?: string;
 }
 
 export class UpdateOidcProviderDto {
@@ -83,6 +87,10 @@ export class UpdateOidcProviderDto {
   @IsString()
   @MaxLength(255)
   scope?: string;
+
+  @IsOptional()
+  @IsString()
+  oidcAllowedGroups?: string;
 
   @IsOptional()
   @IsBoolean()
