@@ -22,6 +22,7 @@ export class AuthProviderRepo {
     'oidcIssuer',
     'oidcClientId',
     'oidcClientSecret',
+    'oidcAllowedGroups',
     'allowSignup',
     'scope',
     'isEnabled',

@@ -34,6 +34,7 @@ const createSchema = z.object({
   allowSignup: z.boolean().optional(),
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
+  oidcAllowedGroups: z.string().optional(),
 });
 
 const updateSchema = z.object({
@@ -45,6 +46,7 @@ const updateSchema = z.object({
   allowSignup: z.boolean().optional(),
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
+  oidcAllowedGroups: z.string().optional(),
 });
 
 export function OidcProviderForm() {
@@ -66,6 +68,7 @@ export function OidcProviderForm() {
       allowSignup: true,
       isEnabled: true,
       enforceSso: false,
+      oidcAllowedGroups: undefined,
     },
   });
 
@@ -81,6 +84,7 @@ export function OidcProviderForm() {
         allowSignup: provider.allowSignup,
         isEnabled: provider.isEnabled,
         enforceSso: workspaceData?.enforceSso || false,
+        oidcAllowedGroups: provider.oidcAllowedGroups || undefined,
       });
     }
   }, [provider, workspaceData?.enforceSso]);
@@ -165,6 +169,15 @@ export function OidcProviderForm() {
               label={t("Scope (optional)")}
               placeholder={t("Enter scope")}
               {...form.getInputProps("scope")}
+            />
+
+            <TextInput
+              label={t("Allowed Groups (optional)")}
+              description={t(
+                "Comma separated list of groups allowed to sign in. If empty, all groups are allowed."
+              )}
+              placeholder="group1, group2"
+              {...form.getInputProps("oidcAllowedGroups")}
             />
 
             <TextInput

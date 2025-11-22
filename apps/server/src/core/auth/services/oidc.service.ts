@@ -100,6 +100,33 @@ export class OidcService {
 
       const userinfo = await client.userinfo(tokenSet.access_token);
 
+      if (authProvider.oidcAllowedGroups) {
+        const allowedGroups = authProvider.oidcAllowedGroups
+          .split(',')
+          .map((g) => g.trim())
+          .filter((g) => g.length > 0);
+
+        if (allowedGroups.length > 0) {
+          const userGroups = (userinfo.groups as string[]) || [];
+
+          if (!Array.isArray(userGroups)) {
+            throw new UnauthorizedException(
+              'User has no groups or groups format is invalid from OIDC provider',
+            );
+          }
+
+          const hasAllowedGroup = userGroups.some((group) =>
+            allowedGroups.includes(group),
+          );
+
+          if (!hasAllowedGroup) {
+            throw new UnauthorizedException(
+              'User does not belong to any allowed group',
+            );
+          }
+        }
+      }
+
       const sanitizedUserinfo = this.sanitizeUserInfo(userinfo);
 
       if (!sanitizedUserinfo.email) {
