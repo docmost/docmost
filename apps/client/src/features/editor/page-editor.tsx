@@ -56,8 +56,6 @@ import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
-import { usePublicLink } from "./hooks/use-public-link";
-import { useEditorLink } from "./hooks/use-editor-link";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 
 interface PageEditorProps {
@@ -99,8 +97,6 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-
-   const editorLink = useEditorLink();
 
   const { handleScrollTo } = useEditorScroll();
   // Providers only created once per pageId
@@ -284,10 +280,6 @@ export default function PageEditor({
     },
     [pageId, editable, remoteProvider],
   );
-
-  useEffect(() => {
-    if(editor) editor.storage.heading.baseURL = editorLink;
-  }, [editorLink]);
 
   const editorIsEditable = useEditorState({
     editor,

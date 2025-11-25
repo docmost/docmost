@@ -2,8 +2,7 @@ import "@/features/editor/styles/index.css";
 import React, { useCallback, useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
-// import { Heading } from "@tiptap/extension-heading";
-import Heading from "@/features/editor/extensions/heading";
+import { Heading } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtomValue } from "jotai";
@@ -28,7 +27,6 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
-import { usePublicLink } from "./hooks/use-public-link";
 import UniqueID from "@tiptap/extension-unique-id";
 
 export interface TitleEditorProps {
@@ -58,8 +56,6 @@ export function TitleEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
-  const publicLink = usePublicLink();
-
   const titleEditor = useEditor({
     extensions: [
       Document.extend({
@@ -88,7 +84,6 @@ export function TitleEditor({
         setTitleEditor(editor);
         setActivePageId(pageId);
       }
-      editor.storage.heading.baseURL = publicLink;
     },
     onUpdate({ editor }) {
       debounceUpdate();
@@ -112,10 +107,6 @@ export function TitleEditor({
       },
     },
   });
-
-  useEffect(() => {
-    if(titleEditor)titleEditor.storage.heading.baseURL = publicLink;
-  }, [publicLink]);
 
   useEffect(() => {
     const pageSlug = buildPageUrl(spaceSlug, slugId, title);

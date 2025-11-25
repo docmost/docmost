@@ -12,6 +12,7 @@ import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
 import UniqueID from '@tiptap/extension-unique-id';
 import {
+  Heading,
   Callout,
   Comment,
   CustomCodeBlock,
@@ -45,7 +46,9 @@ import { Node } from '@tiptap/pm/model';
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+    heading: false,
   }),
+  Heading,
   UniqueID.configure({
     types: ['heading'],
     attributeName: 'uid',

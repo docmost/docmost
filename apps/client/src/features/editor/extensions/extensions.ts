@@ -1,5 +1,4 @@
 import { StarterKit } from "@tiptap/starter-kit";
-import Heading from "./heading";
 import { UniqueID } from '@tiptap/extension-unique-id'
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
@@ -42,6 +41,7 @@ import {
   Mention,
   Subpages,
   TableDndExtension,
+  Heading
 } from "@docmost/editor-ext";
 import {
   randomElement,
