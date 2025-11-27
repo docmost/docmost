@@ -1,5 +1,5 @@
 import { StarterKit } from "@tiptap/starter-kit";
-import { UniqueID } from '@tiptap/extension-unique-id'
+import { UniqueID } from "@tiptap/extension-unique-id";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-task-list";
@@ -12,7 +12,7 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
-import { Collaboration } from "@tiptap/extension-collaboration";
+import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
@@ -41,7 +41,7 @@ import {
   Mention,
   Subpages,
   TableDndExtension,
-  Heading
+  Heading,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -80,6 +80,7 @@ import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboa
 import EmojiCommand from "./emoji-command";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { countWords } from "alfaaz";
+import { generateEditorNodeId } from "@/features/editor/utils/node-id.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -110,8 +111,10 @@ export const mainExtensions = [
   }),
   Heading,
   UniqueID.configure({
-    types: ['heading'],
-    attributeName: 'uid',
+    types: ["heading"],
+    attributeName: "uid",
+    generateID: () => generateEditorNodeId(),
+    filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -236,17 +239,17 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
 ] as any;

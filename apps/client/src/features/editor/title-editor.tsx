@@ -2,7 +2,7 @@ import "@/features/editor/styles/index.css";
 import React, { useCallback, useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
-import { Heading } from "@docmost/editor-ext";
+import { Heading } from "@tiptap/extension-heading";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtomValue } from "jotai";
@@ -27,7 +27,6 @@ import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { searchSpotlight } from "@/features/search/constants.ts";
-import UniqueID from "@tiptap/extension-unique-id";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -60,10 +59,6 @@ export function TitleEditor({
     extensions: [
       Document.extend({
         content: "heading",
-      }),
-      UniqueID.configure({
-        types: ['heading'],
-        attributeName: 'uid',
       }),
       Heading.configure({
         levels: [1],
@@ -109,7 +104,10 @@ export function TitleEditor({
   });
 
   useEffect(() => {
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    const anchor = window.location.hash
+      ? window.location.hash.substring(1)
+      : undefined;
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchor);
     navigate(pageSlug, { replace: true });
   }, [title]);
 

@@ -23,7 +23,8 @@ export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { scrollTo } = useEditorScroll();
-  
+  console.log('scrollTo', scrollTo);
+
   const {
     data: page,
     isLoading,
@@ -75,7 +76,6 @@ export default function Page() {
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
-          scrollTo={scrollTo}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

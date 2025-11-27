@@ -62,14 +62,12 @@ interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
-  scrollTo?: string;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
-  scrollTo,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const [currentUser] = useAtom(currentUserAtom);
@@ -268,7 +266,7 @@ export default function PageEditor({
           // @ts-ignore
           setEditor(editor);
           editor.storage.pageId = pageId;
-          handleScrollTo(editor, scrollTo);
+          handleScrollTo(editor);
         }
       },
       onUpdate({ editor }) {

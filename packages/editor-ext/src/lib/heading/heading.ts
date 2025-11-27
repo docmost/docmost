@@ -39,7 +39,8 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
                       e.stopPropagation();
                       e.preventDefault();
                       const uid = node.attrs.uid;
-                      const url = `${window.location.href}#${uid}`;
+                      const baseUrl = window.location.href.split('#')[0];
+                      const url = `${baseUrl}#${uid}`;
                       navigator.clipboard.writeText(url);
                       linkBtnContent.innerHTML = successIcon;
                       setTimeout(
