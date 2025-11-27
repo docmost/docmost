@@ -103,6 +103,14 @@ function extractZipInternal(
         zipfile.on('entry', (entry) => {
           const name = entry.fileName.toString('utf8');
           const safe = name.replace(/^\/+/, '');
+
+          const validationError = yauzl.validateFileName(safe);
+          if (validationError) {
+            console.warn(`Skipping entry (${validationError})`);
+            zipfile.readEntry();
+            return;
+          }
+
           if (safe.startsWith('__MACOSX/')) {
             zipfile.readEntry();
             return;
