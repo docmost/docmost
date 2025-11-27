@@ -42,6 +42,7 @@ import {
   Subpages,
   TableDndExtension,
   TableOfContentsNode,
+  generateNodeId,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -244,7 +245,9 @@ export const mainExtensions = [
       };
     },
   }).configure(),
-  TiptapTableOfContents,
+  TiptapTableOfContents.configure({
+    getId: () => generateNodeId(),
+  }),
   TableOfContentsNode.configure({
     view: TableOfContentsNodeview,
   }),

@@ -34,7 +34,9 @@ import {
   Mention,
   Subpages,
   TableOfContentsNode,
+  generateNodeId,
 } from '@docmost/editor-ext';
+import { TableOfContents as TiptapTableOfContents } from '@tiptap/extension-table-of-contents';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
@@ -82,6 +84,9 @@ export const tiptapExtensions = [
   Mention,
   Subpages,
   TableOfContentsNode,
+  TiptapTableOfContents.configure({
+    getId: () => generateNodeId(),
+  }),
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
