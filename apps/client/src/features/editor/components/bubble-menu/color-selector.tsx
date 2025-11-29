@@ -156,11 +156,12 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
             radius="0"
             rightSection={<IconChevronDown size={16} />}
             onClick={() => setIsOpen(!isOpen)}
+            data-text-color={activeColorItem?.color || ""}
+            data-highlight-color={activeHighlightItem?.color || ""}
+            className="color-selector-trigger"
             style={{
               height: "34px",
               border: "none",
-              color: activeColorItem?.color || "inherit",
-              backgroundColor: activeHighlightItem?.color || null,
               fontWeight: 500,
               fontSize: rem(16),
               paddingLeft: rem(8),
