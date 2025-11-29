@@ -141,7 +141,7 @@
 
   .selection,
   *::selection {
-    background-color: Highlight;
+    background-color: light-dark(Highlight, var(--mantine-color-gray-7));
   }
 
   .comment-mark {
