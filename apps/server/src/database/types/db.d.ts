@@ -3,15 +3,18 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type AuthProviderType = "google" | "oidc" | "saml";
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
-
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -27,6 +30,18 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface ApiKeys {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  expiresAt: Timestamp | null;
+  id: Generated<string>;
+  lastUsedAt: Timestamp | null;
+  name: string | null;
+  updatedAt: Generated<Timestamp>;
+  creatorId: string;
+  workspaceId: string;
+}
+
 export interface Attachments {
   createdAt: Generated<Timestamp>;
   creatorId: string;
@@ -39,6 +54,8 @@ export interface Attachments {
   mimeType: string | null;
   pageId: string | null;
   spaceId: string | null;
+  textContent: string | null;
+  tsv: string | null;
   type: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
@@ -62,13 +79,24 @@ export interface AuthProviders {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  groupSync: Generated<boolean>;
+  ldapBaseDn: string | null;
+  ldapBindDn: string | null;
+  ldapBindPassword: string | null;
+  ldapTlsCaCert: string | null;
+  ldapTlsEnabled: Generated<boolean | null>;
+  ldapUrl: string | null;
+  ldapUserAttributes: Json | null;
+  ldapUserSearchFilter: string | null;
+  ldapConfig: Json | null;
+  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
-  type: AuthProviderType;
+  type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -84,6 +112,7 @@ export interface Backlinks {
 
 export interface Billing {
   amount: Int8 | null;
+  billingScheme: string | null;
   cancelAt: Timestamp | null;
   cancelAtPeriodEnd: boolean | null;
   canceledAt: Timestamp | null;
@@ -96,6 +125,7 @@ export interface Billing {
   metadata: Json | null;
   periodEndAt: Timestamp | null;
   periodStartAt: Timestamp;
+  planName: string | null;
   quantity: Int8 | null;
   status: string;
   stripeCustomerId: string | null;
@@ -103,6 +133,9 @@ export interface Billing {
   stripePriceId: string | null;
   stripeProductId: string | null;
   stripeSubscriptionId: string;
+  tieredFlatAmount: Int8 | null;
+  tieredUnitAmount: Int8 | null;
+  tieredUpTo: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -114,11 +147,33 @@ export interface Comments {
   deletedAt: Timestamp | null;
   editedAt: Timestamp | null;
   id: Generated<string>;
+  lastEditedById: string | null;
   pageId: string;
   parentCommentId: string | null;
   resolvedAt: Timestamp | null;
+  resolvedById: string | null;
   selection: string | null;
+  spaceId: string;
   type: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface FileTasks {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  errorMessage: string | null;
+  fileExt: string | null;
+  fileName: string;
+  filePath: string;
+  fileSize: Int8 | null;
+  id: Generated<string>;
+  source: string | null;
+  spaceId: string | null;
+  status: string | null;
+  type: string | null;
+  updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
 
@@ -224,6 +279,18 @@ export interface Spaces {
   workspaceId: string;
 }
 
+export interface UserMfa {
+  backupCodes: string[] | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  isEnabled: Generated<boolean | null>;
+  method: Generated<string>;
+  secret: string | null;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
+  workspaceId: string;
+}
+
 export interface Users {
   avatarUrl: string | null;
   createdAt: Generated<Timestamp>;
@@ -236,6 +303,7 @@ export interface Users {
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;
@@ -277,6 +345,7 @@ export interface Workspaces {
   deletedAt: Timestamp | null;
   description: string | null;
   emailDomains: Generated<string[] | null>;
+  enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
@@ -292,12 +361,14 @@ export interface Workspaces {
 }
 
 export interface DB {
+  apiKeys: ApiKeys;
   attachments: Attachments;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
+  fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
@@ -305,6 +376,7 @@ export interface DB {
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
   workspaceInvitations: WorkspaceInvitations;

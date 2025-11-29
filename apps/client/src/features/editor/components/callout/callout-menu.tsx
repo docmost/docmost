@@ -2,6 +2,7 @@ import {
   BubbleMenu as BaseBubbleMenu,
   findParentNode,
   posToDOMRect,
+  useEditorState,
 } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
@@ -15,12 +16,15 @@ import {
   IconCircleCheckFilled,
   IconCircleXFilled,
   IconInfoCircleFilled,
+  IconMoodSmile,
 } from "@tabler/icons-react";
 import { CalloutType } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
+import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) {
@@ -31,6 +35,23 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     },
     [editor],
   );
+
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      return {
+        isCallout: ctx.editor.isActive("callout"),
+        isInfo: ctx.editor.isActive("callout", { type: "info" }),
+        isSuccess: ctx.editor.isActive("callout", { type: "success" }),
+        isWarning: ctx.editor.isActive("callout", { type: "warning" }),
+        isDanger: ctx.editor.isActive("callout", { type: "danger" }),
+      };
+    },
+  });
 
   const getReferenceClientRect = useCallback(() => {
     const { selection } = editor.state;
@@ -56,10 +77,40 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
+  const setCalloutIcon = useCallback(
+    (emoji: any) => {
+      const emojiChar = emoji?.native || emoji?.emoji || emoji;
+      editor
+        .chain()
+        .focus(undefined, { scrollIntoView: false })
+        .updateCalloutIcon(emojiChar)
+        .run();
+    },
+    [editor],
+  );
+
+  const removeCalloutIcon = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .updateCalloutIcon("")
+      .run();
+  }, [editor]);
+
+  const getCurrentIcon = () => {
+    const { selection } = editor.state;
+    const predicate = (node: PMNode) => node.type.name === "callout";
+    const parent = findParentNode(predicate)(selection);
+    const icon = parent?.node.attrs.icon;
+    return icon || null;
+  };
+
+  const currentIcon = getCurrentIcon();
+
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`callout-menu}`}
+      pluginKey={`callout-menu`}
       updateDelay={0}
       tippyOptions={{
         getReferenceClientRect,
@@ -78,9 +129,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("info")}
             size="lg"
             aria-label={t("Info")}
-            variant={
-              editor.isActive("callout", { type: "info" }) ? "light" : "default"
-            }
+            variant={editorState?.isInfo ? "light" : "default"}
           >
             <IconInfoCircleFilled size={18} />
           </ActionIcon>
@@ -91,11 +140,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("success")}
             size="lg"
             aria-label={t("Success")}
-            variant={
-              editor.isActive("callout", { type: "success" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isSuccess ? "light" : "default"}
           >
             <IconCircleCheckFilled size={18} />
           </ActionIcon>
@@ -106,11 +151,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("warning")}
             size="lg"
             aria-label={t("Warning")}
-            variant={
-              editor.isActive("callout", { type: "warning" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isWarning ? "light" : "default"}
           >
             <IconAlertTriangleFilled size={18} />
           </ActionIcon>
@@ -121,15 +162,23 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("danger")}
             size="lg"
             aria-label={t("Danger")}
-            variant={
-              editor.isActive("callout", { type: "danger" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isDanger ? "light" : "default"}
           >
             <IconCircleXFilled size={18} />
           </ActionIcon>
         </Tooltip>
+
+        <EmojiPicker
+          onEmojiSelect={setCalloutIcon}
+          removeEmojiAction={removeCalloutIcon}
+          readOnly={false}
+          icon={currentIcon || <IconMoodSmile size={18} />}
+          actionIconProps={{
+            size: "lg",
+            variant: "default",
+            c: undefined,
+          }}
+        />
       </ActionIcon.Group>
     </BaseBubbleMenu>
   );

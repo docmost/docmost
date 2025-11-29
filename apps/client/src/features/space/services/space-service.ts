@@ -8,7 +8,6 @@ import {
   ISpaceMember,
 } from "@/features/space/types/space.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
-import { IUser } from "@/features/user/types/user.types.ts";
 import { saveAs } from "file-saver";
 
 export async function getSpaces(

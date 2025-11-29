@@ -11,6 +11,7 @@ export enum WorkspaceCaslSubject {
   Space = 'space',
   Group = 'group',
   Attachment = 'attachment',
+  API = 'api_key',
 }
 
 export type IWorkspaceAbility =
@@ -18,4 +19,5 @@ export type IWorkspaceAbility =
   | [WorkspaceCaslAction, WorkspaceCaslSubject.Member]
   | [WorkspaceCaslAction, WorkspaceCaslSubject.Space]
   | [WorkspaceCaslAction, WorkspaceCaslSubject.Group]
-  | [WorkspaceCaslAction, WorkspaceCaslSubject.Attachment];
+  | [WorkspaceCaslAction, WorkspaceCaslSubject.Attachment]
+  | [WorkspaceCaslAction, WorkspaceCaslSubject.API];

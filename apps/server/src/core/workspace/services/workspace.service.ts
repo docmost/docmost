@@ -32,6 +32,7 @@ import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { generateRandomSuffixNumbers } from '../../../common/helpers';
 
 @Injectable()
 export class WorkspaceService {
@@ -302,6 +303,15 @@ export class WorkspaceService {
       }
     }
 
+    if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
+      await this.workspaceRepo.updateApiSettings(
+        workspaceId,
+        'restrictToAdmins',
+        updateWorkspaceDto.restrictApiToAdmins,
+      );
+      delete updateWorkspaceDto.restrictApiToAdmins;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -377,24 +387,20 @@ export class WorkspaceService {
     name: string,
     trx?: KyselyTransaction,
   ): Promise<string> {
-    const generateRandomSuffix = (length: number) =>
-      Math.random()
-        .toFixed(length)
-        .substring(2, 2 + length);
-
     let subdomain = name
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 20);
+      .replace(/[^a-z0-9-]/g, '')
+      .substring(0, 20)
+      .replace(/^-+|-+$/g, ''); //remove any hyphen at the start or end
     // Ensure we leave room for a random suffix.
     const maxSuffixLength = 6;
 
     if (subdomain.length < 4) {
-      subdomain = `${subdomain}-${generateRandomSuffix(maxSuffixLength)}`;
+      subdomain = `${subdomain}-${generateRandomSuffixNumbers(maxSuffixLength)}`;
     }
 
     if (DISALLOWED_HOSTNAMES.includes(subdomain)) {
-      subdomain = `workspace-${generateRandomSuffix(maxSuffixLength)}`;
+      subdomain = `workspace-${generateRandomSuffixNumbers(maxSuffixLength)}`;
     }
 
     let uniqueHostname = subdomain;
@@ -408,7 +414,7 @@ export class WorkspaceService {
         break;
       }
       // Append a random suffix and retry.
-      const randomSuffix = generateRandomSuffix(maxSuffixLength);
+      const randomSuffix = generateRandomSuffixNumbers(maxSuffixLength);
       uniqueHostname = `${subdomain}-${randomSuffix}`.substring(0, 25);
     }
 

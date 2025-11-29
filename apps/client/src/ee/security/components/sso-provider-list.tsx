@@ -69,7 +69,7 @@ export default function SsoProviderList() {
   return (
     <>
       <Card shadow="sm" radius="sm">
-        <Table.ScrollContainer minWidth={500}>
+        <Table.ScrollContainer minWidth={600}>
           <Table verticalSpacing="sm">
             <Table.Thead>
               <Table.Tr>
@@ -104,7 +104,7 @@ export default function SsoProviderList() {
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Badge color={"gray"} variant="light">
+                      <Badge color={"gray"} variant="light" style={{ whiteSpace: "nowrap" }}>
                         {provider.type.toUpperCase()}
                       </Badge>
                     </Table.Td>
@@ -133,6 +133,7 @@ export default function SsoProviderList() {
                       )}
                     </Table.Td>
                     <Table.Td>
+                      <Group gap="xs" wrap="nowrap">
                       <ActionIcon
                         variant="subtle"
                         color="gray"
@@ -168,6 +169,7 @@ export default function SsoProviderList() {
                           </Menu.Item>
                         </Menu.Dropdown>
                       </Menu>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 ))}

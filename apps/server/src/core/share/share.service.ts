@@ -108,11 +108,11 @@ export class ShareService {
       includeCreator: true,
     });
 
-    page.content = await this.updatePublicAttachments(page);
-
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Shared page not found');
     }
+
+    page.content = await this.updatePublicAttachments(page);
 
     return { page, share };
   }
@@ -132,6 +132,7 @@ export class ShareService {
             sql`0`.as('level'),
           ])
           .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
+          .where('deletedAt', 'is', null)
           .unionAll((union) =>
             union
               .selectFrom('pages as p')
@@ -144,7 +145,8 @@ export class ShareService {
                 // Increase the level by 1 for each ancestor.
                 sql`ph.level + 1`.as('level'),
               ])
-              .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id'),
+              .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id')
+              .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_hierarchy')

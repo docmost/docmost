@@ -1,8 +1,14 @@
-import { NodeApi, NodeRendererProps, Tree, TreeApi } from "react-arborist";
+import {
+  NodeApi,
+  NodeRendererProps,
+  Tree,
+  TreeApi,
+  SimpleTree,
+} from "react-arborist";
 import { atom, useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import {
-  fetchAncestorChildren,
+  fetchAllAncestorChildren,
   useGetRootSidebarPagesQuery,
   usePageQuery,
   useUpdatePageMutation,
@@ -24,7 +30,10 @@ import {
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
+import {
+  appendNodeChildrenAtom,
+  treeDataAtom,
+} from "@/features/page/tree/atoms/tree-data-atom.ts";
 import clsx from "clsx";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
@@ -32,6 +41,7 @@ import {
   appendNodeChildren,
   buildTree,
   buildTreeWithChildren,
+  mergeRootTrees,
   updateTreeNodeIcon,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
@@ -62,6 +72,7 @@ import MovePageModal from "../../components/move-page-modal.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
+import { duplicatePage } from "../../services/page-service.ts";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -86,8 +97,14 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
+  const [isRootReady, setIsRootReady] = useState(false);
   const { ref: sizeRef, width, height } = useElementSize();
-  const mergedRef = useMergedRef(rootElement, sizeRef);
+  const mergedRef = useMergedRef((element) => {
+    rootElement.current = element;
+    if (element && !isRootReady) {
+      setIsRootReady(true);
+    }
+  }, sizeRef);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -104,17 +121,17 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       const allItems = pagesData.pages.flatMap((page) => page.items);
       const treeData = buildTree(allItems);
 
-      if (data.length < 1 || data?.[0].spaceId !== spaceId) {
-        //Thoughts
-        // don't reset if there is data in state
-        // we only expect to call this once on initial load
-        // even if we decide to refetch, it should only update
-        // and append root pages instead of resetting the entire tree
-        // which looses async loaded children too
-        setData(treeData);
-        setIsDataLoaded(true);
-        setOpenTreeNodes({});
-      }
+      setData((prev) => {
+        // fresh space; full reset
+        if (prev.length === 0 || prev[0]?.spaceId !== spaceId) {
+          setIsDataLoaded(true);
+          setOpenTreeNodes({});
+          return treeData;
+        }
+
+        // same space; append only missing roots
+        return mergeRootTrees(prev, treeData);
+      });
     }
   }, [pagesData, hasNextPage]);
 
@@ -140,7 +157,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             if (ancestor.id === currentPage.id) {
               return;
             }
-            const children = await fetchAncestorChildren({
+            const children = await fetchAllAncestorChildren({
               pageId: ancestor.id,
               spaceId: ancestor.spaceId,
             });
@@ -195,16 +212,17 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, [currentPage?.id]);
 
+  // Clean up tree API on unmount
   useEffect(() => {
-    if (treeApiRef.current) {
+    return () => {
       // @ts-ignore
-      setTreeApi(treeApiRef.current);
-    }
-  }, [treeApiRef.current]);
+      setTreeApi(null);
+    };
+  }, [setTreeApi]);
 
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
-      {rootElement.current && (
+      {isRootReady && rootElement.current && (
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
@@ -213,7 +231,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           {...controllers}
           width={width}
           height={rootElement.current.clientHeight}
-          ref={treeApiRef}
+          ref={(ref) => {
+            treeApiRef.current = ref;
+            if (ref) {
+              //@ts-ignore
+              setTreeApi(ref);
+            }
+          }}
           openByDefault={false}
           disableMultiSelection={true}
           className={classes.tree}
@@ -237,6 +261,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [, appendChildren] = useAtom(appendNodeChildrenAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
   const timerRef = useRef(null);
@@ -262,9 +287,10 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren) return;
-    if (node.data.children && node.data.children.length > 0) {
-      return;
-    }
+    // in conflict with use-query-subscription.ts => case "addTreeNode","moveTreeNode" etc with websocket
+    // if (node.data.children && node.data.children.length > 0) {
+    //   return;
+    // }
 
     try {
       const params: SidebarPagesParams = {
@@ -272,21 +298,12 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         spaceId: node.data.spaceId,
       };
 
-      const newChildren = await queryClient.fetchQuery({
-        queryKey: ["sidebar-pages", params],
-        queryFn: () => getSidebarPages(params),
-        staleTime: 10 * 60 * 1000,
+      const childrenTree = await fetchAllAncestorChildren(params);
+
+      appendChildren({
+        parentId: node.data.id,
+        children: childrenTree,
       });
-
-      const childrenTree = buildTree(newChildren.items);
-
-      const updatedTreeData = appendNodeChildren(
-        treeData,
-        node.data.id,
-        childrenTree,
-      );
-
-      setTreeData(updatedTreeData);
     } catch (error) {
       console.error("Failed to fetch children:", error);
     }
@@ -304,17 +321,19 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     handleUpdateNodeIcon(node.id, emoji.native);
-    updatePageMutation.mutateAsync({ pageId: node.id, icon: emoji.native });
-
-    setTimeout(() => {
-      emit({
-        operation: "updateOne",
-        spaceId: node.data.spaceId,
-        entity: ["pages"],
-        id: node.id,
-        payload: { icon: emoji.native },
+    updatePageMutation
+      .mutateAsync({ pageId: node.id, icon: emoji.native })
+      .then((data) => {
+        setTimeout(() => {
+          emit({
+            operation: "updateOne",
+            spaceId: node.data.spaceId,
+            entity: ["pages"],
+            id: node.id,
+            payload: { icon: emoji.native, parentPageId: data.parentPageId },
+          });
+        }, 50);
       });
-    }, 50);
   };
 
   const handleRemoveEmoji = () => {
@@ -384,7 +403,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
 
         <div className={classes.actions}>
-          <NodeMenu node={node} treeApi={tree} />
+          <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
 
           {!tree.props.disableEdit && (
             <CreateNode
@@ -437,13 +456,16 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
 interface NodeMenuProps {
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
+  spaceId: string;
 }
 
-function NodeMenu({ node, treeApi }: NodeMenuProps) {
+function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
   const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
+  const [data, setData] = useAtom(treeDataAtom);
+  const emit = useQueryEmit();
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -460,6 +482,68 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
       getAppUrl() + buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
+  };
+
+  const handleDuplicatePage = async () => {
+    try {
+      const duplicatedPage = await duplicatePage({
+        pageId: node.id,
+      });
+
+      // Find the index of the current node
+      const parentId =
+        node.parent?.id === "__REACT_ARBORIST_INTERNAL_ROOT__"
+          ? null
+          : node.parent?.id;
+      const siblings = parentId ? node.parent.children : treeApi?.props.data;
+      const currentIndex =
+        siblings?.findIndex((sibling) => sibling.id === node.id) || 0;
+      const newIndex = currentIndex + 1;
+
+      // Add the duplicated page to the tree
+      const treeNodeData: SpaceTreeNode = {
+        id: duplicatedPage.id,
+        slugId: duplicatedPage.slugId,
+        name: duplicatedPage.title,
+        position: duplicatedPage.position,
+        spaceId: duplicatedPage.spaceId,
+        parentPageId: duplicatedPage.parentPageId,
+        icon: duplicatedPage.icon,
+        hasChildren: duplicatedPage.hasChildren,
+        children: [],
+      };
+
+      // Update local tree
+      const simpleTree = new SimpleTree(data);
+      simpleTree.create({
+        parentId,
+        index: newIndex,
+        data: treeNodeData,
+      });
+      setData(simpleTree.data);
+
+      // Emit socket event
+      setTimeout(() => {
+        emit({
+          operation: "addTreeNode",
+          spaceId: spaceId,
+          payload: {
+            parentId,
+            index: newIndex,
+            data: treeNodeData,
+          },
+        });
+      }, 50);
+
+      notifications.show({
+        message: t("Page duplicated successfully"),
+      });
+    } catch (err) {
+      notifications.show({
+        message: err.response?.data.message || "An error occurred",
+        color: "red",
+      });
+    }
   };
 
   return (
@@ -507,6 +591,17 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
           {!(treeApi.props.disableEdit as boolean) && (
             <>
               <Menu.Item
+                leftSection={<IconCopy size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDuplicatePage();
+                }}
+              >
+                {t("Duplicate")}
+              </Menu.Item>
+
+              <Menu.Item
                 leftSection={<IconArrowRight size={16} />}
                 onClick={(e) => {
                   e.preventDefault();
@@ -525,7 +620,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                   openCopyPageModal();
                 }}
               >
-                {t("Copy")}
+                {t("Copy to space")}
               </Menu.Item>
 
               <Menu.Divider />
@@ -538,7 +633,7 @@ function NodeMenu({ node, treeApi }: NodeMenuProps) {
                   openDeleteModal({ onConfirm: () => treeApi?.delete(node) });
                 }}
               >
-                {t("Delete")}
+                {t("Move to trash")}
               </Menu.Item>
             </>
           )}
@@ -576,6 +671,12 @@ interface PageArrowProps {
 }
 
 function PageArrow({ node, onExpandTree }: PageArrowProps) {
+  useEffect(() => {
+    if (node.isOpen) {
+      onExpandTree();
+    }
+  }, []);
+
   return (
     <ActionIcon
       size={20}

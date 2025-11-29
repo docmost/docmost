@@ -1,24 +1,27 @@
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
-import { Group, MantineSize, Switch, Text } from "@mantine/core";
+import { MantineSize, Switch, Text } from "@mantine/core";
 import { useAtom } from "jotai/index";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
 
 export default function PageWidthPref() {
   const { t } = useTranslation();
 
   return (
-    <Group justify="space-between" wrap="nowrap" gap="xl">
-      <div>
+    <ResponsiveSettingsRow>
+      <ResponsiveSettingsContent>
         <Text size="md">{t("Full page width")}</Text>
         <Text size="sm" c="dimmed">
           {t("Choose your preferred page width.")}
         </Text>
-      </div>
+      </ResponsiveSettingsContent>
 
-      <PageWidthToggle />
-    </Group>
+      <ResponsiveSettingsControl>
+        <PageWidthToggle />
+      </ResponsiveSettingsControl>
+    </ResponsiveSettingsRow>
   );
 }
 

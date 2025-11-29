@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Group, Text, ScrollArea, ActionIcon } from "@mantine/core";
+import { Group, Text, ScrollArea, ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconUser,
   IconSettings,
@@ -21,6 +21,8 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai/index";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
+  prefetchApiKeyManagement,
+  prefetchApiKeys,
   prefetchBilling,
   prefetchGroups,
   prefetchLicense,
@@ -42,6 +44,7 @@ interface DataItem {
   isEnterprise?: boolean;
   isAdmin?: boolean;
   isSelfhosted?: boolean;
+  showDisabledInNonEE?: boolean;
 }
 
 interface DataGroup {
@@ -58,6 +61,14 @@ const groupedData: DataGroup[] = [
         label: "Preferences",
         icon: IconBrush,
         path: "/settings/account/preferences",
+      },
+      {
+        label: "API keys",
+        icon: IconKey,
+        path: "/settings/account/api-keys",
+        isCloud: true,
+        isEnterprise: true,
+        showDisabledInNonEE: true,
       },
     ],
   },
@@ -84,10 +95,20 @@ const groupedData: DataGroup[] = [
         isCloud: true,
         isEnterprise: true,
         isAdmin: true,
+        showDisabledInNonEE: true,
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
+      {
+        label: "API management",
+        icon: IconKey,
+        path: "/settings/api-keys",
+        isCloud: true,
+        isEnterprise: true,
+        isAdmin: true,
+        showDisabledInNonEE: true,
+      },
     ],
   },
   {
@@ -117,6 +138,11 @@ export default function SettingsSidebar() {
   }, [location.pathname]);
 
   const canShowItem = (item: DataItem) => {
+    if (item.showDisabledInNonEE && item.isEnterprise) {
+      // Check admin permission regardless of license
+      return item.isAdmin ? isAdmin : true;
+    }
+
     if (item.isCloud && item.isEnterprise) {
       if (!(isCloud() || workspace?.hasLicenseKey)) return false;
       return item.isAdmin ? isAdmin : true;
@@ -139,6 +165,13 @@ export default function SettingsSidebar() {
     }
 
     return true;
+  };
+
+  const isItemDisabled = (item: DataItem) => {
+    if (item.showDisabledInNonEE && item.isEnterprise) {
+      return !(isCloud() || workspace?.hasLicenseKey);
+    }
+    return false;
   };
 
   const menuItems = groupedData.map((group) => {
@@ -181,27 +214,58 @@ export default function SettingsSidebar() {
             case "Public sharing":
               prefetchHandler = prefetchShares;
               break;
+            case "API keys":
+              prefetchHandler = prefetchApiKeys;
+              break;
+            case "API management":
+              prefetchHandler = prefetchApiKeyManagement;
+              break;
             default:
               break;
           }
 
-          return (
+          const isDisabled = isItemDisabled(item);
+          const linkElement = (
             <Link
-              onMouseEnter={prefetchHandler}
+              onMouseEnter={!isDisabled ? prefetchHandler : undefined}
               className={classes.link}
               data-active={active.startsWith(item.path) || undefined}
+              data-disabled={isDisabled || undefined}
               key={item.label}
-              to={item.path}
-              onClick={() => {
+              to={isDisabled ? "#" : item.path}
+              onClick={(e) => {
+                if (isDisabled) {
+                  e.preventDefault();
+                  return;
+                }
                 if (mobileSidebarOpened) {
                   toggleMobileSidebar();
                 }
+              }}
+              style={{
+                opacity: isDisabled ? 0.5 : 1,
+                cursor: isDisabled ? "not-allowed" : "pointer",
               }}
             >
               <item.icon className={classes.linkIcon} stroke={2} />
               <span>{t(item.label)}</span>
             </Link>
           );
+
+          if (isDisabled) {
+            return (
+              <Tooltip
+                key={item.label}
+                label={t("Available in enterprise edition")}
+                position="right"
+                withArrow
+              >
+                {linkElement}
+              </Tooltip>
+            );
+          }
+
+          return linkElement;
         })}
       </div>
     );

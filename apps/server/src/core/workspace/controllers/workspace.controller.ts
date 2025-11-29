@@ -30,7 +30,6 @@ import {
   WorkspaceCaslAction,
   WorkspaceCaslSubject,
 } from '../../casl/interfaces/workspace-ability.type';
-import { addDays } from 'date-fns';
 import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
@@ -180,10 +179,13 @@ export class WorkspaceController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('invites/info')
-  async getInvitationById(@Body() dto: InvitationIdDto, @Req() req: any) {
+  async getInvitationById(
+    @Body() dto: InvitationIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     return this.workspaceInvitationService.getInvitationById(
       dto.invitationId,
-      req.raw.workspaceId,
+      workspace,
     );
   }
 
@@ -253,20 +255,30 @@ export class WorkspaceController {
   @Post('invites/accept')
   async acceptInvite(
     @Body() acceptInviteDto: AcceptInviteDto,
-    @Req() req: any,
+    @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const authToken = await this.workspaceInvitationService.acceptInvitation(
+    const result = await this.workspaceInvitationService.acceptInvitation(
       acceptInviteDto,
-      req.raw.workspaceId,
+      workspace,
     );
 
-    res.setCookie('authToken', authToken, {
+    if (result.requiresLogin) {
+      return {
+        requiresLogin: true,
+      };
+    }
+
+    res.setCookie('authToken', result.authToken, {
       httpOnly: true,
       path: '/',
-      expires: addDays(new Date(), 30),
+      expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
     });
+
+    return {
+      requiresLogin: false,
+    };
   }
 
   @Public()

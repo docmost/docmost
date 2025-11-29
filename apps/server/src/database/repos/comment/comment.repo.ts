@@ -20,12 +20,13 @@ export class CommentRepo {
   // todo, add workspaceId
   async findById(
     commentId: string,
-    opts?: { includeCreator: boolean },
+    opts?: { includeCreator: boolean; includeResolvedBy: boolean },
   ): Promise<Comment> {
     return await this.db
       .selectFrom('comments')
       .selectAll('comments')
       .$if(opts?.includeCreator, (qb) => qb.select(this.withCreator))
+      .$if(opts?.includeResolvedBy, (qb) => qb.select(this.withResolvedBy))
       .where('id', '=', commentId)
       .executeTakeFirst();
   }
@@ -35,6 +36,7 @@ export class CommentRepo {
       .selectFrom('comments')
       .selectAll('comments')
       .select((eb) => this.withCreator(eb))
+      .select((eb) => this.withResolvedBy(eb))
       .where('pageId', '=', pageId)
       .orderBy('createdAt', 'asc');
 
@@ -80,7 +82,37 @@ export class CommentRepo {
     ).as('creator');
   }
 
+  withResolvedBy(eb: ExpressionBuilder<DB, 'comments'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef('users.id', '=', 'comments.resolvedById'),
+    ).as('resolvedBy');
+  }
+
   async deleteComment(commentId: string): Promise<void> {
     await this.db.deleteFrom('comments').where('id', '=', commentId).execute();
+  }
+
+  async hasChildren(commentId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('comments')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('parentCommentId', '=', commentId)
+      .executeTakeFirst();
+
+    return Number(result?.count) > 0;
+  }
+
+  async hasChildrenFromOtherUsers(commentId: string, userId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('comments')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('parentCommentId', '=', commentId)
+      .where('creatorId', '!=', userId)
+      .executeTakeFirst();
+
+    return Number(result?.count) > 0;
   }
 }

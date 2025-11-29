@@ -4,7 +4,7 @@ import {
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import React, { useCallback, useRef, useState } from "react";
+import React from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getUserRoleLabel,
@@ -54,7 +54,7 @@ export default function WorkspaceMembersTable() {
   return (
     <>
       <SearchInput onSearch={handleSearch} />
-      <Table.ScrollContainer minWidth={500}>
+      <Table.ScrollContainer minWidth={600}>
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>

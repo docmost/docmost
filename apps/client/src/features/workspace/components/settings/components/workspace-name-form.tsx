@@ -5,13 +5,14 @@ import { useState } from "react";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { IWorkspace } from "@/features/workspace/types/workspace.types.ts";
 import { TextInput, Button } from "@mantine/core";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zodResolver } from "mantine-form-zod-resolver";
 import { notifications } from "@mantine/notifications";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(4),
+  name: z.string().min(1),
 });
 
 type FormValues = z.infer<typeof formSchema>;

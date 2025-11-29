@@ -71,4 +71,12 @@
   [data-type="details"][open] > [data-type="detailsButton"] .ProseMirror-icon{
     transform: rotateZ(90deg);
   }
+  
+  [data-type="details"]:has(.search-result) > [data-type="detailsContainer"] > [data-type="detailsContent"]{
+    display: block;
+  }
+
+  [data-type="details"]:has(.search-result) > [data-type="detailsButton"] .ProseMirror-icon{
+    transform: rotateZ(90deg);
+  }
 }

@@ -18,6 +18,8 @@ import {
   IconTypography,
   IconMenu4,
   IconCalendar,
+  IconAppWindow,
+  IconSitemap,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -354,6 +356,29 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertContent(currentDate)
+          .run();
+      },
+    },
+    {
+      title: "Subpages (Child pages)",
+      description: "List all subpages of the current page",
+      searchTerms: ["subpages", "child", "children", "nested", "hierarchy"],
+      icon: IconSitemap,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Iframe embed",
+      description: "Embed any Iframe",
+      searchTerms: ["iframe"],
+      icon: IconAppWindow,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setEmbed({ provider: "iframe" })
           .run();
       },
     },

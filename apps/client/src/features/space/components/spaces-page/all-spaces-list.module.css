@@ -1,0 +1,10 @@
+.spaceLink {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  width: 100%;
+  
+  &:hover {
+    text-decoration: none;
+  }
+}

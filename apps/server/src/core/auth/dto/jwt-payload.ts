@@ -3,6 +3,8 @@ export enum JwtType {
   COLLAB = 'collab',
   EXCHANGE = 'exchange',
   ATTACHMENT = 'attachment',
+  MFA_TOKEN = 'mfa_token',
+  API_KEY = 'api_key',
 }
 export type JwtPayload = {
   sub: string;
@@ -30,3 +32,15 @@ export type JwtAttachmentPayload = {
   type: 'attachment';
 };
 
+export interface JwtMfaTokenPayload {
+  sub: string;
+  workspaceId: string;
+  type: 'mfa_token';
+}
+
+export type JwtApiKeyPayload = {
+  sub: string;
+  workspaceId: string;
+  apiKeyId: string;
+  type: 'api_key';
+};

@@ -66,8 +66,9 @@ export async function createInvitation(data: ICreateInvite) {
   return req.data;
 }
 
-export async function acceptInvitation(data: IAcceptInvite): Promise<void> {
-  await api.post<void>("/workspace/invites/accept", data);
+export async function acceptInvitation(data: IAcceptInvite): Promise<{ requiresLogin?: boolean; }> {
+  const req = await api.post("/workspace/invites/accept", data);
+  return req.data;
 }
 
 export async function getInviteLink(data: {
@@ -108,15 +109,3 @@ export async function getAppVersion(): Promise<IVersion> {
   return req.data;
 }
 
-export async function uploadLogo(file: File) {
-  const formData = new FormData();
-  formData.append("type", "workspace-logo");
-  formData.append("image", file);
-
-  const req = await api.post("/attachments/upload-image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return req.data;
-}
