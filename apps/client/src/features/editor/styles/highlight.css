@@ -100,59 +100,59 @@
     color: #A8A29E !important;
 }
 
-/* Highlight background colors with light-dark support */
+/* Highlight background colors with light-dark support - solid colors for trigger button */
 .color-selector-trigger[data-highlight-color="#98d8f2"] {
     background-color: light-dark(
             rgb(224 242 254),
-            rgba(37, 99, 235, 0.35)
+            rgb(30 64 175)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#7edb6c"] {
     background-color: light-dark(
             rgb(220 252 231),
-            rgba(0, 138, 0, 0.35)
+            rgb(21 128 61)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#e0d6ed"] {
     background-color: light-dark(
             rgb(243 232 255),
-            rgba(147, 51, 234, 0.35)
+            rgb(107 33 168)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#ffc6c2"] {
     background-color: light-dark(
             rgb(255 228 230),
-            rgba(224, 0, 0, 0.35)
+            rgb(185 28 28)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#faf594"] {
     background-color: light-dark(
             rgb(254 249 195),
-            rgba(234, 179, 8, 0.35)
+            rgb(161 98 7)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#f5c8a9"] {
     background-color: light-dark(
-            rgb(251, 236, 221),
-            rgba(255, 165, 0, 0.45)
+            rgb(251 236 221),
+            rgb(194 65 12)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#f5cfe0"] {
     background-color: light-dark(
-            rgb(252, 241, 246),
-            rgba(186, 64, 129, 0.35)
+            rgb(252 241 246),
+            rgb(157 23 77)
     ) !important;
 }
 
 .color-selector-trigger[data-highlight-color="#dfdfd7"] {
     background-color: light-dark(
             rgb(238 238 235),
-            rgba(168, 162, 158, 0.35)
+            rgb(115 115 115)
     ) !important;
 }
