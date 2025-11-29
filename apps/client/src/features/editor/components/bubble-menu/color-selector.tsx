@@ -1,5 +1,5 @@
-import { Dispatch, FC, SetStateAction } from "react";
-import { IconCheck, IconPalette } from "@tabler/icons-react";
+import React, { Dispatch, FC, SetStateAction } from "react";
+import { IconCheck, IconChevronDown, IconPalette } from "@tabler/icons-react";
 import {
   ActionIcon,
   Button,
@@ -8,6 +8,9 @@ import {
   ScrollArea,
   Text,
   Tooltip,
+  SimpleGrid,
+  Box,
+  Stack,
 } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
@@ -63,7 +66,6 @@ const TEXT_COLORS: BubbleColorMenuItem[] = [
   },
 ];
 
-// TODO: handle dark mode
 const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   {
     name: "Default",
@@ -71,35 +73,35 @@ const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   },
   {
     name: "Blue",
-    color: "#A3BFFA",
+    color: "#98d8f2",
   },
   {
     name: "Green",
-    color: "#A8E6A2",
+    color: "#7edb6c",
   },
   {
     name: "Purple",
-    color: "#D3B8F6",
+    color: "#e0d6ed",
   },
   {
     name: "Red",
-    color: "#F4A1A1",
+    color: "#ffc6c2",
   },
   {
     name: "Yellow",
-    color: "#FAF3A3",
+    color: "#faf594",
   },
   {
     name: "Orange",
-    color: "#FFD8A8",
+    color: "#f5c8a9",
   },
   {
     name: "Pink",
-    color: "#F7B6D2",
+    color: "#f5cfe0",
   },
   {
     name: "Gray",
-    color: "#D4D4D4",
+    color: "#dfdfd7",
   },
 ];
 
@@ -112,17 +114,21 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
 
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!ctx.editor) {
         return null;
       }
 
       const activeColors: Record<string, boolean> = {};
       TEXT_COLORS.forEach(({ color }) => {
-        activeColors[`text_${color}`] = ctx.editor.isActive("textStyle", { color });
+        activeColors[`text_${color}`] = ctx.editor.isActive("textStyle", {
+          color,
+        });
       });
       HIGHLIGHT_COLORS.forEach(({ color }) => {
-        activeColors[`highlight_${color}`] = ctx.editor.isActive("highlight", { color });
+        activeColors[`highlight_${color}`] = ctx.editor.isActive("highlight", {
+          color,
+        });
       });
 
       return activeColors;
@@ -133,112 +139,151 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
     return null;
   }
 
-  const activeColorItem = TEXT_COLORS.find(({ color }) =>
-    editorState[`text_${color}`]
+  const activeColorItem = TEXT_COLORS.find(
+    ({ color }) => editorState[`text_${color}`],
   );
 
-  const activeHighlightItem = HIGHLIGHT_COLORS.find(({ color }) =>
-    editorState[`highlight_${color}`]
+  const activeHighlightItem = HIGHLIGHT_COLORS.find(
+    ({ color }) => editorState[`highlight_${color}`],
   );
 
   return (
     <Popover width={220} opened={isOpen} withArrow>
       <Popover.Target>
         <Tooltip label={t("Text color")} withArrow>
-          <ActionIcon
+          <Button
             variant="default"
-            size="lg"
             radius="0"
-            style={{
-              border: "none",
-              color: activeColorItem?.color,
-              backgroundColor: activeHighlightItem?.color,
-            }}
+            rightSection={<IconChevronDown size={16} />}
             onClick={() => setIsOpen(!isOpen)}
+            style={{
+              height: "34px",
+              border: "none",
+              color: activeColorItem?.color || "inherit",
+              backgroundColor: activeHighlightItem?.color || null,
+              fontWeight: 500,
+              fontSize: rem(16),
+              paddingLeft: rem(8),
+              paddingRight: rem(4),
+            }}
           >
-            <IconPalette size={16} stroke={2} />
-          </ActionIcon>
+            A
+          </Button>
         </Tooltip>
       </Popover.Target>
 
       <Popover.Dropdown>
-        {/* make mah responsive */}
         <ScrollArea.Autosize type="scroll" mah="400">
-          <Text span c="dimmed" tt="uppercase" inherit>
-            {t("Color")}
-          </Text>
+          <Stack gap="md">
+            <Box>
+              <Text size="sm" fw={600} mb="xs">
+                {t("Text color")}
+              </Text>
+              <SimpleGrid cols={5} spacing="xs">
+                {TEXT_COLORS.map(({ name, color }, index) => (
+                  <Tooltip key={index} label={t(name)} withArrow>
+                    <Box
+                      onClick={() => {
+                        if (name === "Default") {
+                          editor.commands.unsetColor();
+                        } else {
+                          editor
+                            .chain()
+                            .focus()
+                            .setColor(color || "")
+                            .run();
+                        }
+                        setIsOpen(false);
+                      }}
+                      style={{
+                        width: rem(28),
+                        height: rem(28),
+                        borderRadius: rem(6),
+                        border: editorState[`text_${color}`]
+                          ? "2px solid var(--mantine-color-gray-8)"
+                          : "1px solid var(--mantine-color-gray-4)",
+                        cursor: "pointer",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: rem(18),
+                        fontWeight: 600,
+                        color: color || "var(--mantine-color-gray-8)",
+                      }}
+                    >
+                      A
+                    </Box>
+                  </Tooltip>
+                ))}
+              </SimpleGrid>
+            </Box>
 
-          <Button.Group orientation="vertical">
-            {TEXT_COLORS.map(({ name, color }, index) => (
-              <Button
-                key={index}
-                variant="default"
-                leftSection={<span style={{ color }}>A</span>}
-                justify="left"
-                fullWidth
-                rightSection={
-                  editorState[`text_${color}`] && (
-                    <IconCheck style={{ width: rem(16) }} />
-                  )
-                }
-                onClick={() => {
-                  if (name === "Default") {
-                    editor.commands.unsetColor();
-                  } else {
-                    editor.chain().focus().setColor(color || "").run();
-                  }
-                  setIsOpen(false);
-                }}
-                style={{ border: "none" }}
-              >
-                {t(name)}
-              </Button>
-            ))}
-          </Button.Group>
+            <Box>
+              <Text size="sm" fw={600} mb="xs">
+                {t("Highlight color")}
+              </Text>
+              <SimpleGrid cols={5} spacing="xs">
+                {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+                  <Tooltip key={index} label={t(name)} withArrow>
+                    <Box
+                      onClick={() => {
+                        if (name === "Default") {
+                          editor.commands.unsetHighlight();
+                        } else {
+                          editor
+                            .chain()
+                            .focus()
+                            .toggleMark("highlight", {
+                              color: color || "",
+                              colorName: name.toLowerCase() || "",
+                            })
+                            .run();
+                        }
+                        setIsOpen(false);
+                      }}
+                      style={{
+                        width: rem(28),
+                        height: rem(28),
+                        borderRadius: rem(4),
+                        backgroundColor: color || "var(--mantine-color-gray-2)",
+                        border: "1px solid var(--mantine-color-gray-4)",
+                        cursor: "pointer",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: rem(14),
+                        fontWeight: 600,
+                        color: "var(--mantine-color-gray-8)",
+                      }}
+                    >
+                      {editorState[`highlight_${color}`] ? (
+                        <IconCheck
+                          size={16}
+                          color="var(--mantine-color-green-7)"
+                        />
+                      ) : (
+                        "A"
+                      )}
+                    </Box>
+                  </Tooltip>
+                ))}
+              </SimpleGrid>
+            </Box>
 
-          <Text size="xs" span c="dimmed" tt="uppercase" inherit>
-            {t("Background color")}
-          </Text>
-
-          <Button.Group orientation="vertical">
-            {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
-              <Button
-                key={index}
-                variant="default"
-                leftSection={
-                  <span
-                    style={{
-                      backgroundColor: color,
-                      paddingInline: rem(4),
-                      paddingBlock: rem(2),
-                    }}
-                  >
-                    A
-                  </span>
-                }
-                justify="left"
-                fullWidth
-                rightSection={
-                  editor.isActive("highlight", { color }) && (
-                    <IconCheck style={{ width: rem(16) }} />
-                  )
-                }
-                onClick={() => {
-                  editor.commands.unsetHighlight();
-                  name !== "Default" &&
-                    editor
-                      .chain()
-                      .focus()
-                      .toggleHighlight({ color: color || "" })
-                      .run();
-                  setIsOpen(false);
-                }}
-                style={{ border: "none" }}
-              >
-                {t(name)}
-              </Button>
-            ))}
-          </Button.Group>
+            <Button
+              variant="default"
+              fullWidth
+              onClick={() => {
+                editor.commands.unsetColor();
+                editor.commands.unsetHighlight();
+                setIsOpen(false);
+              }}
+            >
+              {t("Remove color")}
+            </Button>
+          </Stack>
         </ScrollArea.Autosize>
       </Popover.Dropdown>
     </Popover>
