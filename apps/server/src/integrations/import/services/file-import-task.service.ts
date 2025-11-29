@@ -176,7 +176,6 @@ export class FileImportTaskService {
     }
 
     // Create placeholder pages for folders without corresponding files
-    const allFolderPaths = new Set<string>();
     const foldersWithContent = new Set<string>();
 
     pagesMap.forEach((page) => {
@@ -187,7 +186,6 @@ export class FileImportTaskService {
       let currentPath = '';
       for (const segment of segments) {
         currentPath = currentPath ? `${currentPath}/${segment}` : segment;
-        allFolderPaths.add(currentPath);
         foldersWithContent.add(currentPath); // All ancestor folders have content
       }
     });
@@ -214,8 +212,7 @@ export class FileImportTaskService {
 
     // For each folder with content, create a placeholder page if no corresponding .md or .html exists
     foldersWithContent.forEach((folderPath) => {
-      // Skip the single root container folder
-      if (folderPath === skipRootFolder) {
+      if (folderPath.toLowerCase() === skipRootFolder.toLowerCase()) {
         return;
       }
 
@@ -387,10 +384,13 @@ export class FileImportTaskService {
               if (page.fileExtension.toLowerCase() === '.md') {
                 content = await markdownToHtml(content);
               }
-            } catch (err) {
-              // File doesn't exist - this is a placeholder page for a folder
-              // Use empty content, title will be the folder name
-              content = '';
+            } catch (err: any) {
+              if (err?.code === 'ENOENT') {
+                // Use empty content, title will be the folder name
+                content = '';
+              } else {
+                throw err;
+              }
             }
 
             const htmlContent =
