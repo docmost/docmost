@@ -106,7 +106,7 @@ function extractZipInternal(
 
           const validationError = yauzl.validateFileName(safe);
           if (validationError) {
-            console.warn(`Skipping entry (${validationError})`);
+            console.warn(`Skipping invalid entry (${validationError})`);
             zipfile.readEntry();
             return;
           }
@@ -117,6 +117,15 @@ function extractZipInternal(
           }
 
           const fullPath = path.join(target, safe);
+
+          const resolved = path.resolve(fullPath);
+          const targetResolved = path.resolve(target);
+
+          if (!resolved.startsWith(targetResolved + path.sep)) {
+            console.warn(`Skipping entry (path outside target): ${safe}`);
+            zipfile.readEntry();
+            return;
+          }
 
           // Handle directories
           if (/\/$/.test(name)) {
