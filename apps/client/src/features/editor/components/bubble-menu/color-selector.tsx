@@ -64,6 +64,10 @@ const TEXT_COLORS: BubbleColorMenuItem[] = [
     name: "Gray",
     color: "#A8A29E",
   },
+  {
+    name: "Brown",
+    color: "#92400E",
+  },
 ];
 
 const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
@@ -102,6 +106,10 @@ const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   {
     name: "Gray",
     color: "#dfdfd7",
+  },
+  {
+    name: "Brown",
+    color: "#D7C4B7",
   },
 ];
 
