@@ -5,7 +5,7 @@
   );
   color: light-dark(
     var(--mantine-color-default-color),
-    var(--mantine-color-dark-0)
+    var(--mantine-color-white)
   );
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
@@ -115,7 +115,7 @@
   }
 
   & > .react-renderer {
-    margin-top:  var(--mantine-spacing-sm);
+    margin-top: var(--mantine-spacing-sm);
     margin-bottom: var(--mantine-spacing-sm);
 
     &:first-child {
@@ -141,7 +141,7 @@
 
   .selection,
   *::selection {
-    background-color: Highlight;
+    background-color: light-dark(Highlight, var(--mantine-color-gray-7));
   }
 
   .comment-mark {
@@ -209,4 +209,3 @@
 .actionIconGroup {
   background: var(--mantine-color-body);
 }
-
