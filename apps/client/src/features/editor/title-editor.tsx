@@ -194,15 +194,41 @@ export function TitleEditor({
 
     if (key === "Enter") {
       event.preventDefault();
-      pageEditor.commands.createParagraphNear();
-      pageEditor.commands.insertContentAt(0, { type: "paragraph" });
-      pageEditor.commands.focus("start");
+
+      const { $from } = titleEditor.state.selection;
+      const titleText = titleEditor.getText();
+
+      // Get the text offset within the heading node (not document position)
+      const textOffset = $from.parentOffset;
+
+      const textAfterCursor = titleText.slice(textOffset);
+
+      // Delete text after cursor from title (this will be in undo history)
+      const endPos = titleEditor.state.doc.content.size;
+      if (textAfterCursor) {
+        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
+      }
+
+      // Don't add to history so undo in page editor won't remove this split
+      pageEditor
+        .chain()
+        .command(({ tr }) => {
+          tr.setMeta("addToHistory", false);
+          return true;
+        })
+        .insertContentAt(0, {
+          type: "paragraph",
+          content: textAfterCursor
+            ? [{ type: "text", text: textAfterCursor }]
+            : undefined,
+        })
+        .focus("start")
+        .run();
       return;
     }
 
     const shouldFocusEditor =
-      key === "ArrowDown" ||
-      (key === "ArrowRight" && !$head.nodeAfter);
+      key === "ArrowDown" || (key === "ArrowRight" && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
       pageEditor.commands.focus("start");
