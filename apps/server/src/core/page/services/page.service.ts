@@ -387,9 +387,9 @@ export class PageService {
           workspaceId: page.workspaceId,
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
-          parentPageId: page.parentPageId
-            ? pageMap.get(page.parentPageId)?.newPageId
-            : null,
+          parentPageId: page.id === rootPage.id
+            ? (isDuplicateInSameSpace ? rootPage.parentPageId : null)
+            : (page.parentPageId ? pageMap.get(page.parentPageId)?.newPageId : null),
         };
       }),
     );

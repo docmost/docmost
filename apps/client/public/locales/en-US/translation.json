@@ -567,5 +567,7 @@
   "Sources": "Sources",
   "Ask AI not available for attachments": "Ask AI not available for attachments",
   "No answer available": "No answer available",
-
+  "Background color": "Background color",
+  "Highlight color": "Highlight color",
+  "Remove color": "Remove color"
 }

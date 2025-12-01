@@ -175,6 +175,64 @@ export class FileImportTaskService {
       });
     }
 
+    // Create placeholder pages for folders without corresponding files
+    const foldersWithContent = new Set<string>();
+
+    pagesMap.forEach((page) => {
+      const segments = page.filePath.split('/');
+      segments.pop(); // remove filename
+
+      // Build up all folder paths and mark them as having content
+      let currentPath = '';
+      for (const segment of segments) {
+        currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+        foldersWithContent.add(currentPath); // All ancestor folders have content
+      }
+    });
+
+    // Determine if there's a single root container folder
+    const rootLevelItems = new Set<string>();
+    pagesMap.forEach((page) => {
+      const firstSegment = page.filePath.split('/')[0];
+      rootLevelItems.add(firstSegment);
+    });
+
+    // If all files are in a single root folder and no files at root level exist
+    let skipRootFolder: string | null = null;
+    if (rootLevelItems.size === 1) {
+      const onlyRootItem = Array.from(rootLevelItems)[0];
+      // Check if this is a folder (not a file at root)
+      const hasRootFiles = Array.from(pagesMap.keys()).some(
+        (filePath) => !filePath.includes('/'),
+      );
+      if (!hasRootFiles) {
+        skipRootFolder = onlyRootItem;
+      }
+    }
+
+    // For each folder with content, create a placeholder page if no corresponding .md or .html exists
+    foldersWithContent.forEach((folderPath) => {
+      if (folderPath.toLowerCase() === skipRootFolder.toLowerCase()) {
+        return;
+      }
+
+      const mdPath = `${folderPath}.md`;
+      const htmlPath = `${folderPath}.html`;
+
+      if (!pagesMap.has(mdPath) && !pagesMap.has(htmlPath)) {
+        const folderName = path.basename(folderPath);
+        pagesMap.set(mdPath, {
+          id: v7(),
+          slugId: generateSlugId(),
+          name: stripNotionID(folderName),
+          content: '',
+          parentPageId: null,
+          fileExtension: '.md',
+          filePath: mdPath,
+        });
+      }
+    });
+
     // parent/child linking
     pagesMap.forEach((page, filePath) => {
       const segments = filePath.split('/');
@@ -316,10 +374,23 @@ export class FileImportTaskService {
 
           for (const [filePath, page] of levelPages) {
             const absPath = path.join(extractDir, filePath);
-            let content = await fs.readFile(absPath, 'utf-8');
+            let content = '';
 
-            if (page.fileExtension.toLowerCase() === '.md') {
-              content = await markdownToHtml(content);
+            // Check if file exists (placeholder pages won't have physical files)
+            try {
+              await fs.access(absPath);
+              content = await fs.readFile(absPath, 'utf-8');
+
+              if (page.fileExtension.toLowerCase() === '.md') {
+                content = await markdownToHtml(content);
+              }
+            } catch (err: any) {
+              if (err?.code === 'ENOENT') {
+                // Use empty content, title will be the folder name
+                content = '';
+              } else {
+                throw err;
+              }
             }
 
             const htmlContent =
