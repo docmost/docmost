@@ -473,6 +473,7 @@ export class FileImportTaskService {
         if (validPageIds.size > 0) {
           this.eventEmitter.emit(EventName.PAGE_CREATED, {
             pageIds: Array.from(validPageIds),
+            workspaceId: fileTask.workspaceId,
           });
         }
 

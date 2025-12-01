@@ -5,6 +5,7 @@ export enum QueueName {
   BILLING_QUEUE = '{billing-queue}',
   FILE_TASK_QUEUE = '{file-task-queue}',
   SEARCH_QUEUE = '{search-queue}',
+  AI_QUEUE = '{ai-queue}',
 }
 
 export enum QueueJob {
@@ -13,7 +14,6 @@ export enum QueueJob {
   ATTACHMENT_INDEX_CONTENT = 'attachment-index-content',
   ATTACHMENT_INDEXING = 'attachment-indexing',
   DELETE_PAGE_ATTACHMENTS = 'delete-page-attachments',
-  PAGE_CONTENT_UPDATE = 'page-content-update',
 
   DELETE_USER_AVATARS = 'delete-user-avatars',
 
@@ -39,8 +39,23 @@ export enum QueueJob {
   TYPESENSE_FLUSH = 'typesense-flush',
 
   PAGE_CREATED = 'page-created',
+  PAGE_CONTENT_UPDATED = 'page-content-updated',
+  PAGE_MOVED_TO_SPACE = 'page-moved-to-space',
   PAGE_UPDATED = 'page-updated',
   PAGE_SOFT_DELETED = 'page-soft-deleted',
   PAGE_RESTORED = 'page-restored',
   PAGE_DELETED = 'page-deleted',
+
+  SPACE_CREATED = 'space-created',
+  SPACE_UPDATED = 'space-updated',
+  SPACE_DELETED = 'space-deleted',
+
+  WORKSPACE_CREATED = 'workspace-created',
+  WORKSPACE_SPACE_UPDATED = 'workspace-updated',
+  WORKSPACE_DELETED = 'workspace-deleted',
+  WORKSPACE_CREATE_EMBEDDINGS = 'workspace-create-embeddings',
+  WORKSPACE_DELETE_EMBEDDINGS = 'workspace-delete-embeddings',
+
+  GENERATE_PAGE_EMBEDDINGS = 'generate-page-embeddings',
+  DELETE_PAGE_EMBEDDINGS = 'delete-page-embeddings',
 }

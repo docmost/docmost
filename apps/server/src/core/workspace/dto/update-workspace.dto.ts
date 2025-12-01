@@ -22,4 +22,12 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsBoolean()
   restrictApiToAdmins: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  aiSearch: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  generativeAi: boolean;
 }
