@@ -554,5 +554,8 @@
   "Select expiration date": "만료일 선택",
   "This action cannot be undone. Any applications using this API key will stop working.": "이 작업은 되돌릴 수 없습니다. 이 API 키를 사용하는 모든 응용 프로그램이 작동을 멈출 것입니다.",
   "Update API key": "API 키 갱신",
-  "Manage API keys for all users in the workspace": "워크스페이스 내 모든 사용자의 API 키 관리"
+  "Manage API keys for all users in the workspace": "워크스페이스 내 모든 사용자의 API 키 관리",
+  "Background color": "Background color",
+  "Highlight color": "Highlight color",
+  "Remove color": "Remove color"
 }
