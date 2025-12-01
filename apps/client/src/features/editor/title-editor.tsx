@@ -192,8 +192,15 @@ export function TitleEditor({
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
+    if (key === "Enter") {
+      event.preventDefault();
+      pageEditor.commands.createParagraphNear();
+      pageEditor.commands.insertContentAt(0, { type: "paragraph" });
+      pageEditor.commands.focus("start");
+      return;
+    }
+
     const shouldFocusEditor =
-      key === "Enter" ||
       key === "ArrowDown" ||
       (key === "ArrowRight" && !$head.nodeAfter);
 
