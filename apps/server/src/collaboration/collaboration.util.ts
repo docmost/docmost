@@ -9,6 +9,7 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
+import UniqueID from '@tiptap/extension-unique-id';
 import {
   Callout,
   Comment,
@@ -44,6 +45,10 @@ import { Node } from '@tiptap/pm/model';
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+  }),
+  UniqueID.configure({
+    types: ['heading'],
+    attributeName: 'uid',
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
