@@ -66,7 +66,7 @@
   }
 
   /* Brown */
-  mark[data-color="#D7C4B7"] {
+  mark[data-color="#d7c4b7"] {
     background-color: light-dark(
       rgb(215 196 183),
       rgba(146, 64, 14, 0.35)
@@ -169,7 +169,7 @@
     ) !important;
 }
 
-.color-selector-trigger[data-highlight-color="#D7C4B7"] {
+.color-selector-trigger[data-highlight-color="#d7c4b7"] {
     background-color: light-dark(
             rgb(215 196 183),
             rgb(120 53 15)

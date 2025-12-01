@@ -109,7 +109,7 @@ const HIGHLIGHT_COLORS: BubbleColorMenuItem[] = [
   },
   {
     name: "Brown",
-    color: "#D7C4B7",
+    color: "#d7c4b7",
   },
 ];
 
@@ -216,7 +216,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: rem(18),
+                        fontSize: rem(16),
                         fontWeight: 600,
                         color: color || "var(--mantine-color-gray-8)",
                       }}
@@ -262,7 +262,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: rem(14),
+                        fontSize: rem(16),
                         fontWeight: 600,
                         color: "var(--mantine-color-gray-8)",
                       }}
