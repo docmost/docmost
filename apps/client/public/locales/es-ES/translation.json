@@ -554,5 +554,8 @@
   "Select expiration date": "Seleccionar fecha de vencimiento",
   "This action cannot be undone. Any applications using this API key will stop working.": "Esta acción no se puede deshacer. Las aplicaciones que utilicen esta clave API dejarán de funcionar.",
   "Update API key": "Actualizar clave API",
-  "Manage API keys for all users in the workspace": "Gestionar claves API para todos los usuarios en el espacio de trabajo"
+  "Manage API keys for all users in the workspace": "Gestionar claves API para todos los usuarios en el espacio de trabajo",
+  "Background color": "Background color",
+  "Highlight color": "Highlight color",
+  "Remove color": "Remove color"
 }
