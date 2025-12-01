@@ -554,5 +554,8 @@
   "Select expiration date": "Выберете срок действия",
   "This action cannot be undone. Any applications using this API key will stop working.": "Это действие необратимо. Любые приложения, использующие этот API ключ, перестанут работать.",
   "Update API key": "Обновить API ключ",
-  "Manage API keys for all users in the workspace": "Управлять API ключами для всех пользователей в рабочей области"
+  "Manage API keys for all users in the workspace": "Управлять API ключами для всех пользователей в рабочей области",
+  "Background color": "Background color",
+  "Highlight color": "Highlight color",
+  "Remove color": "Remove color"
 }
