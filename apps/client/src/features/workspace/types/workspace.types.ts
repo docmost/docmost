@@ -7,7 +7,7 @@ export interface IWorkspace {
   defaultSpaceId: string;
   customDomain: string;
   enableInvite: boolean;
-  settings: any;
+  settings: IWorkspaceSettings;
   status: string;
   enforceSso: boolean;
   stripeCustomerId: string;
@@ -20,6 +20,14 @@ export interface IWorkspace {
   plan?: string;
   hasLicenseKey?: boolean;
   enforceMfa?: boolean;
+}
+
+export interface IWorkspaceSettings {
+  ai?: IWorkspaceAiSettings;
+}
+
+export interface IWorkspaceAiSettings {
+  search?: boolean;
 }
 
 export interface ICreateInvite {

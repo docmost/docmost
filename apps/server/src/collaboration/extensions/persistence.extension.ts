@@ -37,6 +37,7 @@ export class PersistenceExtension implements Extension {
     @InjectKysely() private readonly db: KyselyDB,
     private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -191,6 +192,11 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
         mentions: pageMentions,
       } as IPageBacklinkJob);
+
+      await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
+        pageIds: [pageId],
+        workspaceId: page.workspaceId,
+      });
     }
   }
 

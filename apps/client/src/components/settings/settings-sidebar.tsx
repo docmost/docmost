@@ -12,6 +12,7 @@ import {
   IconLock,
   IconKey,
   IconWorld,
+  IconSparkles,
   IconShield,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
@@ -19,7 +20,7 @@ import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
   prefetchGroups,
@@ -199,7 +200,7 @@ export default function SettingsSidebar() {
             return (
               <Tooltip
                 key={item.label}
-                label={t("This is an enterprise feature that was forgotten to remove")}
+                label={t("This is an enterprise feature that was forgotten to remove. Thank Docmost maintainers for closing source most parts of the project")}
                 position="right"
                 withArrow
               >

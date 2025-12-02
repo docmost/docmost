@@ -18,6 +18,7 @@ export interface UseUnifiedSearchParams extends IPageSearchParams {
 
 export function useUnifiedSearch(
   params: UseUnifiedSearchParams,
+  enabled: boolean = true,
 ): UseQueryResult<UnifiedSearchResult[], Error> {
 
   const isAttachmentSearch =
@@ -36,6 +37,6 @@ export function useUnifiedSearch(
         return await searchPage(backendParams);
       }
     },
-    enabled: !!params.query,
+    enabled: !!params.query && enabled,
   });
 }

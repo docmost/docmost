@@ -34,7 +34,7 @@ root.render(
     <MantineProvider theme={theme} cssVariablesResolver={mantineCssResolver}>
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
-          <Notifications position="bottom-center" limit={3} />
+          <Notifications position="bottom-center" limit={3} zIndex={10000} />
           <HelmetProvider>
               <App />
           </HelmetProvider>

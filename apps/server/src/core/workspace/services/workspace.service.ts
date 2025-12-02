@@ -32,6 +32,7 @@ import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { comparePasswordHash, generateRandomSuffixNumbers, hashPassword } from '../../../common/helpers';
 import { ChangePasswordDto, ChangeWorkspaceMemberPasswordDto } from '../../auth/dto/change-password.dto';
 import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
@@ -56,6 +57,7 @@ export class WorkspaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
   ) {}
 
   async findById(workspaceId: string) {
@@ -318,6 +320,51 @@ export class WorkspaceService {
         updateWorkspaceDto.restrictApiToAdmins,
       );
       delete updateWorkspaceDto.restrictApiToAdmins;
+    }
+
+    if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'search',
+        updateWorkspaceDto.aiSearch,
+      );
+
+      if (updateWorkspaceDto.aiSearch) {
+        const tableExists = await isPageEmbeddingsTableExists(this.db);
+        if (!tableExists) {
+          throw new BadRequestException(
+            'Failed to activate. Make sure pgvector postgres extension is installed.',
+          );
+        }
+
+        await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
+          workspaceId,
+        });
+      } else {
+        // Schedule deletion after 24 hours
+        const deleteJobId = `ai-search-disabled-${workspaceId}`;
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_DELETE_EMBEDDINGS,
+          { workspaceId },
+          {
+            jobId: deleteJobId,
+            delay: 24 * 60 * 60 * 1000,
+            removeOnComplete: true,
+            removeOnFail: true,
+          },
+        );
+      }
+
+      delete updateWorkspaceDto.aiSearch;
+    }
+
+    if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'generative',
+        updateWorkspaceDto.generativeAi,
+      );
+      delete updateWorkspaceDto.generativeAi;
     }
 
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);

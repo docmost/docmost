@@ -14,10 +14,15 @@ import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { DB } from '@docmost/db/types/db';
 import { validate as isValidUUID } from 'uuid';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class SpaceRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async findById(
     spaceId: string,
@@ -138,7 +143,11 @@ export class SpaceRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb(sql`f_unaccent(name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`).or(
+        eb(
+          sql`f_unaccent(name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
           sql`f_unaccent(description)`,
           'ilike',
           sql`f_unaccent(${'%' + pagination.query + '%'})`,
@@ -183,5 +192,9 @@ export class SpaceRepo {
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+
+    this.eventEmitter.emit(EventName.SPACE_DELETED, {
+      spaceId,
+    });
   }
 }
