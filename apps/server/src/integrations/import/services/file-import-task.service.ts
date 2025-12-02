@@ -212,7 +212,10 @@ export class FileImportTaskService {
 
     // For each folder with content, create a placeholder page if no corresponding .md or .html exists
     foldersWithContent.forEach((folderPath) => {
-      if (folderPath.toLowerCase() === skipRootFolder.toLowerCase()) {
+      if (
+        skipRootFolder &&
+        folderPath?.toLowerCase() === skipRootFolder?.toLowerCase()
+      ) {
         return;
       }
 
