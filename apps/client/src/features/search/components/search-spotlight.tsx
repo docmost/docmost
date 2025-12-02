@@ -42,44 +42,11 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
   const { data: searchResults, isLoading } = useUnifiedSearch(
     searchParams,
-    !isAiMode // Disable regular search when in AI mode
+    !isAiMode, // Disable regular search when in AI mode
   );
-  const {
-    //@ts-ignore
-    data: aiSearchResult,
-    //@ts-ignore
-    isPending: isAiLoading,
-    //@ts-ignore
-    mutate: triggerAiSearchMutation,
-    //@ts-ignore
-    reset: resetAiMutation,
-    //@ts-ignore
-    error: aiSearchError,
-    streamingAnswer,
-    streamingSources,
-    clearStreaming,
-  } = useAiSearch();
-
-  // Clear streaming state and mutation data when query changes (user is typing a new query)
-  useEffect(() => {
-    clearStreaming();
-    resetAiMutation();
-  }, [query, clearStreaming, resetAiMutation]);
-
-  // Show error notification when AI search fails
-  useEffect(() => {
-    if (aiSearchError) {
-      notifications.show({
-        message: aiSearchError.message || t("AI search failed. Please try again."),
-        color: "red",
-        position: "top-center"
-      });
-    }
-  }, [aiSearchError, t]);
 
   // Determine result type for rendering
-  const isAttachmentSearch =
-    filters.contentType === "attachment";
+  const isAttachmentSearch = filters.contentType === "attachment";
 
   const resultItems = (searchResults || []).map((result) => (
     <SearchResultItem
@@ -98,12 +65,6 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     setIsAiMode(!isAiMode);
   };
 
-  const handleAiSearchTrigger = () => {
-    if (query.trim() && isAiMode) {
-      triggerAiSearchMutation(searchParams);
-    }
-  };
-
   return (
     <>
       <Spotlight.Root
@@ -119,27 +80,10 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
       >
         <Group gap="xs" px="sm" pt="sm" pb="xs">
           <Spotlight.Search
-            placeholder={isAiMode ? t("Ask a question...") : t("Search...")}
+            placeholder={t("Search...")}
             leftSection={<IconSearch size={20} stroke={1.5} />}
-            style={{ flex: 1 }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && isAiMode && query.trim() && !isAiLoading) {
-                e.preventDefault();
-                handleAiSearchTrigger();
-              }
-            }}
           />
-          {isAiMode && hasLicenseKey && (
-            <Button
-              size="xs"
-              leftSection={<IconSparkles size={16} />}
-              onClick={handleAiSearchTrigger}
-              disabled={!query.trim()}
-              loading={isAiLoading}
-            >
-              Ask
-            </Button>
-          )}
+          {isAiMode && <div></div>}
         </Group>
 
         <div
@@ -161,18 +105,17 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               {query.length === 0 && (
                 <Spotlight.Empty>{t("Ask a question...")}</Spotlight.Empty>
               )}
-              { /* Removed due to EE. Thank docmost maintainer for closing source the project for most parts now */ }
-              {query.length > 0 && !isAiLoading && !aiSearchResult && (
-                <Spotlight.Empty>{t("No answer available")}</Spotlight.Empty>
-              )}
+              {/* Removed due to EE. Thank docmost maintainer for closing source the project for most parts now */}
             </>
           ) : (
             <>
               {query.length === 0 && resultItems.length === 0 && (
-                <Spotlight.Empty>{t("Start typing to search...")}</Spotlight.Empty>
+                <Spotlight.Empty>
+                  {t("Start typing to search...")}
+                </Spotlight.Empty>
               )}
 
-              {query.length > 0 && !isLoading && resultItems.length === 0 && (
+              {query.length > 0 && resultItems.length === 0 && (
                 <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
               )}
 
