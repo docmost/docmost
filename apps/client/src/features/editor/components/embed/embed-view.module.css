@@ -1,11 +1,22 @@
-.embedWrapper {
-  @mixin light {
-    background-color: var(--mantine-color-gray-0);
-  }
+.embedContainer {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
 
-  @mixin dark {
-    background-color: var(--mantine-color-dark-7);
-  }
+.embedWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+}
+
+.nonResizable {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .embedIframe {
@@ -13,4 +24,19 @@
   height: 100%;
   border: none;
   border-radius: 8px;
+}
+
+.embedPlaceholder {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  border-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  }
 }

@@ -48,6 +48,7 @@ export const handlePaste = (
     }
     return true;
   }
+
   return false;
 };
 

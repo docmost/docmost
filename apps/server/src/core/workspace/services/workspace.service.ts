@@ -32,8 +32,13 @@ import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
-import { generateRandomSuffixNumbers } from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
+import { comparePasswordHash, generateRandomSuffixNumbers, hashPassword } from '../../../common/helpers';
+import { ChangePasswordDto, ChangeWorkspaceMemberPasswordDto } from '../../auth/dto/change-password.dto';
+import ChangePasswordEmail from '@docmost/transactional/emails/change-password-email';
+import ChangeUserPasswordEmail from '@docmost/transactional/emails/change-user-password-email';
+import { MailService } from '../../../integrations/mail/mail.service';
+import { AuthUser } from 'src/common/decorators/auth-user.decorator';
 
 @Injectable()
 export class WorkspaceService {
@@ -48,6 +53,7 @@ export class WorkspaceService {
     private userRepo: UserRepo,
     private environmentService: EnvironmentService,
     private domainService: DomainService,
+    private mailService: MailService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
@@ -81,6 +87,7 @@ export class WorkspaceService {
               'authProviders.type',
             ])
             .where('authProviders.isEnabled', '=', true)
+            .where('authProviders.deletedAt', 'is', null)
             .where('workspaceId', '=', workspaceId),
         ).as('authProviders'),
       )
@@ -275,6 +282,7 @@ export class WorkspaceService {
         .selectAll()
         .where('isEnabled', '=', true)
         .where('workspaceId', '=', workspaceId)
+        .where('authProviders.deletedAt', 'is', null)
         .execute();
 
       if (sso && sso?.length === 0) {
@@ -374,11 +382,17 @@ export class WorkspaceService {
   }
 
   async getWorkspaceUsers(
+    @AuthUser() user: User,
     workspaceId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersPaginated(
+    const users = (user.role === 'owner' || user.role === 'admin') ?
+      await this.userRepo.getUsersPaginated(
       workspaceId,
+      pagination,
+    ) : await this.userRepo.getUsersInSpacesOfUser(
+      workspaceId,
+      user.id,
       pagination,
     );
 
@@ -536,5 +550,55 @@ export class WorkspaceService {
     } catch (err) {
       // empty
     }
+  }
+
+  async changeUserPassword(
+    dto: ChangeWorkspaceMemberPasswordDto,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findById(dto.userId, workspaceId, {
+      includePassword: true,
+    });
+
+    const actorUser = await this.userRepo.findById(userId, workspaceId, {
+      includePassword: true,
+    });
+
+    if (!user || user.deletedAt || !actorUser || actorUser.deletedAt) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (
+      (actorUser.role === UserRole.ADMIN && user.role === UserRole.OWNER)
+    ) {
+      throw new ForbiddenException();
+    }
+
+    // Password from the user that wants to change the password to validate authorization. For ee this needs additional implementation.
+    const comparePasswords = await comparePasswordHash(
+      dto.actorPassword,
+      actorUser.password,
+    );
+
+    if (!comparePasswords) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const newPasswordHash = await hashPassword(dto.newPassword);
+    await this.userRepo.updateUser(
+      {
+        password: newPasswordHash,
+      },
+      dto.userId,
+      workspaceId,
+    );
+
+    const emailTemplate = ChangeUserPasswordEmail({ username: user.name, actorUsername: actorUser.name });
+    await this.mailService.sendToQueue({
+      to: user.email,
+      subject: 'Your password has been changed',
+      template: emailTemplate,
+    });
   }
 }

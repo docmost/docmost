@@ -1,0 +1,194 @@
+.typstBlock {
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    min-height: 2rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    caret-color: rgb(55, 53, 47);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    overflow: visible;
+    user-select: none;
+    position: relative;
+}
+
+.typstBlock .textInput {
+    width: 400px;
+}
+
+.typstBlock.empty {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+}
+
+.typstBlock.error {
+    color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-7));
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-gray-8));
+}
+
+.typstBlock.selected {
+    outline: 2px solid light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+    outline-offset: 1px;
+}
+
+.displayMode {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.displayContainer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.displayContent {
+    display: inline-block;
+    max-width: 100%;
+}
+
+.displayContent svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    width: auto !important;
+    margin: 0 auto;
+}
+
+.inlineEditor {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    border-radius: 8px;
+    margin: 0.75rem 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.inlineTextarea {
+    font-family: var(--mantine-font-family-monospace);
+    font-size: var(--mantine-font-size-sm);
+    width: 100%;
+    resize: vertical;
+}
+
+.splitView {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+    border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    border-radius: 8px;
+    margin: 0.75rem 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.splitContainer {
+    display: flex;
+    gap: 0;
+    min-height: 200px;
+    position: relative;
+}
+
+.splitEditor {
+    display: flex;
+    flex-direction: column;
+    min-width: 20%;
+    max-width: 80%;
+}
+
+.splitPreview {
+    display: flex;
+    flex-direction: column;
+    min-width: 20%;
+    max-width: 80%;
+}
+
+.splitResizer {
+    width: 6px;
+    background: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.splitResizer:hover {
+    background: light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-6));
+}
+
+.splitResizer:active {
+    background: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+}
+
+.splitResizer::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 20px;
+    background: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+    border-radius: 1px;
+}
+
+.splitTextarea {
+    font-family: var(--mantine-font-family-monospace);
+    font-size: var(--mantine-font-size-sm);
+    flex: 1;
+    resize: vertical;
+    width: 100%;
+}
+
+.previewContainer {
+    flex: 1;
+    border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    border-radius: 4px;
+    padding: 1rem;
+    background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-8));
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.previewContainer > div {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+}
+
+.previewContainer svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .splitContainer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .splitResizer {
+        display: none;
+    }
+
+    .splitEditor,
+    .splitPreview {
+        width: 100% !important;
+        min-width: unset;
+        max-width: unset;
+    }
+}

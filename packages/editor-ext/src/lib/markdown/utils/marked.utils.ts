@@ -2,6 +2,9 @@ import { marked } from "marked";
 import { calloutExtension } from "./callout.marked";
 import { mathBlockExtension } from "./math-block.marked";
 import { mathInlineExtension } from "./math-inline.marked";
+import { typstBlockExtension } from "./typst-block.marked";
+import { columnContainerExtension } from "./column-container.marked";
+import { columnExtension } from "./column.marked";
 
 marked.use({
   renderer: {
@@ -29,7 +32,14 @@ marked.use({
 });
 
 marked.use({
-  extensions: [calloutExtension, mathBlockExtension, mathInlineExtension],
+  extensions: [
+    calloutExtension,
+    mathBlockExtension,
+    mathInlineExtension,
+    typstBlockExtension,
+    columnContainerExtension,
+    columnExtension
+  ],
 });
 
 export function markdownToHtml(

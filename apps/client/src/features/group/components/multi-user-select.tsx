@@ -22,12 +22,35 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     />
     <div>
       <Text size="sm" lineClamp={1}>{option.label}</Text>
-      <Text size="xs" opacity={0.5}>
+      <Text size="xs" c="dimmed" lineClamp={1}>
         {option?.["email"]}
       </Text>
     </div>
   </Group>
 );
+
+const optionsFilter = ({ options, search }) => {
+  if (!search) {
+    return options;
+  }
+
+  const lowerCaseSearch = search.toLowerCase();
+
+  return options.filter(option => {
+    const label = option.label;
+    const email = option.email;
+
+    if (label && String(label).toLowerCase().includes(lowerCaseSearch)) {
+      return true;
+    }
+
+    if (email && String(email).toLowerCase().includes(lowerCaseSearch)) {
+      return true;
+    }
+
+    return false;
+  });
+};
 
 export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
   const { t } = useTranslation();
@@ -77,6 +100,7 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
       onChange={onChange}
       nothingFoundMessage={t("No user found")}
       maxValues={50}
+      filter={optionsFilter}
     />
   );
 }

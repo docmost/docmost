@@ -11,16 +11,20 @@ import {
   Box,
   Anchor,
   Group,
+  Divider,
+  Stack,
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
-import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import React from "react";
+import React, { useEffect } from "react";
+import { OidcButton } from "@/features/auth/components/oidc-button";
+import { useOidcConfigQuery } from "@/features/auth/queries/oidc-query";
+import { useOidcAuth } from "@/features/auth/hooks/use-oidc-auth";
 
 const formSchema = z.object({
   email: z
@@ -33,6 +37,7 @@ const formSchema = z.object({
 export function LoginForm() {
   const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
+  const { startOidcAuth } = useOidcAuth();
   useRedirectIfAuthenticated();
   const {
     data,
@@ -40,6 +45,7 @@ export function LoginForm() {
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+  const { data: oidcConfig } = useOidcConfigQuery();
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -53,6 +59,13 @@ export function LoginForm() {
     await signIn(data);
   }
 
+  // Auto-redirect to OIDC if enabled and enforced
+  useEffect(() => {
+    if (data?.enforceSso && data.authProviders?.length > 0 && oidcConfig?.autoRedirect) {
+      startOidcAuth();
+    }
+  }, [data, oidcConfig, startOidcAuth]);
+
   if (isDataLoading) {
    return null;
   }
@@ -61,6 +74,8 @@ export function LoginForm() {
     return <Error404 />;
   }
 
+  const hasOidcProvider = data?.authProviders?.some((provider: any) => provider.type === 'oidc');
+
   return (
     <Container size={420} className={classes.container}>
       <Box p="xl" className={classes.containerBox}>
@@ -68,10 +83,15 @@ export function LoginForm() {
           {t("Login")}
         </Title>
 
-        <SsoLogin />
+        <Stack gap="md">
+          {hasOidcProvider && (
+            <>
+              <OidcButton fullWidth />
+              {!data?.enforceSso && <Divider label={t("Or continue with")} />}
+            </>
+          )}
 
-        {!data?.enforceSso && (
-          <>
+          {!data?.enforceSso && (
             <form onSubmit={form.onSubmit(onSubmit)}>
               <TextInput
                 id="email"
@@ -105,8 +125,8 @@ export function LoginForm() {
                 {t("Sign In")}
               </Button>
             </form>
-          </>
-        )}
+          )}
+        </Stack>
       </Box>
     </Container>
   );

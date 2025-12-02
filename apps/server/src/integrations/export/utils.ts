@@ -5,6 +5,7 @@ import { validate as isValidUUID } from 'uuid';
 import * as path from 'path';
 import { Page } from '@docmost/db/types/entity.types';
 import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
+import { sanitize } from 'sanitize-filename-ts';
 
 export type PageExportTree = Record<string, Page[]>;
 
@@ -124,7 +125,7 @@ export function buildTree(pages: Page[]): PageExportTree {
       titleCount[parentPageId] = {};
     }
 
-    let title = getPageTitle(page.title);
+    let title = sanitize(getPageTitle(page.title), { replacement: '-'});
 
     if (titleCount[parentPageId][title]) {
       title = `${title} (${titleCount[parentPageId][title]})`;

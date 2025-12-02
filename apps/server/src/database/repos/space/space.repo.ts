@@ -3,6 +3,8 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
+  Graph,
+  GraphBacklink,
   InsertableSpace,
   Space,
   UpdatableSpace,
@@ -41,6 +43,32 @@ export class SpaceRepo {
       query = query.where(sql`LOWER(slug)`, '=', sql`LOWER(${spaceId})`);
     }
     return query.executeTakeFirst();
+  }
+
+  async getGraph(spaceId: string, workspaceId: string): Promise<Graph[]> {
+    const db = dbOrTx(this.db);
+
+    let query = db
+      .selectFrom('pages')
+      .leftJoin('backlinks', 'backlinks.sourcePageId', 'pages.id')
+      .select([
+        'pages.id',
+        'pages.slugId',
+        'pages.title',
+        'pages.parentPageId',
+        sql<GraphBacklink[]>`COALESCE(
+          JSON_AGG(JSON_BUILD_OBJECT(
+            'sourcePageId', backlinks.source_page_id,
+            'targetPageId', backlinks.target_page_id
+          )) FILTER (WHERE backlinks.source_page_id IS NOT NULL),
+          '[]'
+        )`.as('backlinks'),
+      ])
+      .where('pages.spaceId', '=', spaceId)
+      .where('pages.workspaceId', '=', workspaceId)
+      .groupBy('pages.id');
+
+    return query.execute();
   }
 
   async findBySlug(

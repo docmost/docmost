@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import {
   IconArrowDown,
+  IconChartDots3,
   IconDots,
   IconFileExport,
   IconHome,
@@ -25,7 +26,7 @@ import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { getSpaceUrl } from "@/lib/config.ts";
+import { getSpaceGraphUrl, getSpaceUrl } from "@/lib/config.ts";
 import SpaceTree from "@/features/page/tree/components/space-tree.tsx";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -100,6 +101,26 @@ export function SpaceSidebar() {
                   stroke={2}
                 />
                 <span>{t("Overview")}</span>
+              </div>
+            </UnstyledButton>
+
+            <UnstyledButton
+              component={Link}
+              to={getSpaceGraphUrl(spaceSlug)}
+              className={clsx(
+                classes.menu,
+                location.pathname.toLowerCase() === getSpaceGraphUrl(spaceSlug)
+                  ? classes.activeButton
+                  : "",
+              )}
+            >
+              <div className={classes.menuItemInner}>
+                <IconChartDots3
+                  size={18}
+                  className={classes.menuItemIcon}
+                  stroke={2}
+                />
+                <span>{t("Graph view")}</span>
               </div>
             </UnstyledButton>
 

@@ -3,7 +3,9 @@ import {
   Extension,
   onChangePayload,
   onLoadDocumentPayload,
+  onStatelessPayload,
   onStoreDocumentPayload,
+  Document,
 } from '@hocuspocus/server';
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
@@ -84,9 +86,19 @@ export class PersistenceExtension implements Extension {
     return new Y.Doc();
   }
 
-  async onStoreDocument(data: onStoreDocumentPayload) {
-    const { documentName, document, context } = data;
+  async onStateless(data: onStatelessPayload): Promise<any> {
+    const { documentName, document, payload, connection } = data;
 
+    switch (payload) {
+      case 'forceSave':
+        return await this.storeDocument(documentName, document, connection.context, true);
+      default:
+        this.logger.warn('statelessPayload: undefined payload');
+        return;
+    }
+  }
+
+  async storeDocument(documentName: string, document: Document, context: any, forceHistorySave: boolean){
     const pageId = getPageId(documentName);
 
     const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
@@ -116,6 +128,16 @@ export class PersistenceExtension implements Extension {
         }
 
         if (isDeepStrictEqual(tiptapJson, page.content)) {
+          if (forceHistorySave) {
+            this.eventEmitter.emit('collab.page.updated', {
+              page: {
+                ...page,
+                content: tiptapJson,
+                lastUpdatedById: context.user.id,
+              },
+              forceHistorySave: forceHistorySave,
+            });
+          }
           page = null;
           return;
         }
@@ -159,6 +181,7 @@ export class PersistenceExtension implements Extension {
           content: tiptapJson,
           lastUpdatedById: context.user.id,
         },
+        forceHistorySave: forceHistorySave,
       });
 
       const mentions = extractMentions(tiptapJson);
@@ -175,6 +198,11 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
       });
     }
+  }
+
+  async onStoreDocument(data: onStoreDocumentPayload) {
+    const { documentName, document, context } = data;
+    return await this.storeDocument(documentName, document, context, false);
   }
 
   async onChange(data: onChangePayload) {

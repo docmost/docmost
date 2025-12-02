@@ -5,6 +5,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { Underline } from '@tiptap/extension-underline';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
+import { Highlight } from '@tiptap/extension-highlight';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -25,6 +26,8 @@ import {
   CustomTable,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   TrailingNode,
   Attachment,
   Drawio,
@@ -32,7 +35,9 @@ import {
   Embed,
   Mention,
   Subpages,
-  Highlight
+  TypstBlock,
+  ColumnContainer,
+  Column
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -72,6 +77,8 @@ export const tiptapExtensions = [
   Youtube,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   Callout,
   Attachment,
   CustomCodeBlock,
@@ -79,7 +86,10 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column,
   Subpages,
+  TypstBlock,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

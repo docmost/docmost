@@ -3,6 +3,7 @@ import {
   IAddSpaceMember,
   IChangeSpaceMemberRole,
   IExportSpaceParams,
+  IGraph,
   IRemoveSpaceMember,
   ISpace,
   ISpaceMember,
@@ -70,4 +71,9 @@ export async function exportSpace(data: IExportSpaceParams): Promise<void> {
     .replace(/"/g, "");
 
   saveAs(req.data, decodeURIComponent(fileName));
+}
+
+export async function getSpaceGraph(spaceId: string): Promise<IGraph[]> {
+  const req = await api.post<IGraph[]>("/spaces/graph", { spaceId });
+  return req.data;
 }

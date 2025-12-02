@@ -8,18 +8,13 @@ import { notifications } from "@mantine/notifications";
 import { searchSpotlightStore } from "../constants.ts";
 import { SearchSpotlightFilters } from "./search-spotlight-filters.tsx";
 import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
-import { useAiSearch } from "../../../ee/ai/hooks/use-ai-search.ts";
 import { SearchResultItem } from "./search-result-item.tsx";
-import { AiSearchResult } from "../../../ee/ai/components/ai-search-result.tsx";
-import { useLicense } from "@/ee/hooks/use-license.tsx";
-import { isCloud } from "@/lib/config.ts";
 
 interface SearchSpotlightProps {
   spaceId?: string;
 }
 export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const { t } = useTranslation();
-  const { hasLicenseKey } = useLicense();
   const [query, setQuery] = useState("");
   const [debouncedSearchQuery] = useDebouncedValue(query, 300);
   const [filters, setFilters] = useState<{
@@ -84,7 +79,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
   // Determine result type for rendering
   const isAttachmentSearch =
-    filters.contentType === "attachment" && (hasLicenseKey || isCloud());
+    filters.contentType === "attachment";
 
   const resultItems = (searchResults || []).map((result) => (
     <SearchResultItem
@@ -166,14 +161,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               {query.length === 0 && (
                 <Spotlight.Empty>{t("Ask a question...")}</Spotlight.Empty>
               )}
-              {query.length > 0 && (isAiLoading || aiSearchResult || streamingAnswer) && (
-                <AiSearchResult
-                  result={aiSearchResult}
-                  isLoading={isAiLoading}
-                  streamingAnswer={streamingAnswer}
-                  streamingSources={streamingSources}
-                />
-              )}
+              { /* Removed due to EE. Thank docmost maintainer for closing source the project for most parts now */ }
               {query.length > 0 && !isAiLoading && !aiSearchResult && (
                 <Spotlight.Empty>{t("No answer available")}</Spotlight.Empty>
               )}

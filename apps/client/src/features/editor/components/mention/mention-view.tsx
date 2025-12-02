@@ -9,9 +9,14 @@ import {
 } from "@/features/page/page.utils.ts";
 import classes from "./mention.module.css";
 
+const truncateText = (text: string, maxLength: number = 30): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
 export default function MentionView(props: NodeViewProps) {
   const { node } = props;
-  const { label, entityType, entityId, slugId } = node.attrs;
+  const { label, entityType, entityId, slugId, anchorSlug, anchorText } = node.attrs;
   const { spaceSlug } = useParams();
   const { shareId } = useParams();
   const {
@@ -23,11 +28,15 @@ export default function MentionView(props: NodeViewProps) {
   const location = useLocation();
   const isShareRoute = location.pathname.startsWith("/share");
 
-  const shareSlugUrl = buildSharedPageUrl({
+  const baseShareSlugUrl = buildSharedPageUrl({
     shareId,
     pageSlugId: slugId,
     pageTitle: label,
   });
+
+  const shareSlugUrl = anchorSlug ? `${baseShareSlugUrl}#${anchorSlug}` : baseShareSlugUrl;
+  const pageUrl = buildPageUrl(spaceSlug, slugId, label);
+  const pageUrlWithAnchor = anchorSlug ? `${pageUrl}#${anchorSlug}` : pageUrl;
 
   return (
     <NodeViewWrapper style={{ display: "inline" }}>
@@ -42,7 +51,7 @@ export default function MentionView(props: NodeViewProps) {
           component={Link}
           fw={500}
           to={
-            isShareRoute ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label)
+            isShareRoute ? shareSlugUrl : pageUrlWithAnchor
           }
           underline="never"
           className={classes.pageMentionLink}
@@ -63,6 +72,11 @@ export default function MentionView(props: NodeViewProps) {
 
           <span className={classes.pageMentionText}>
             {page?.title || label}
+            {anchorText && (
+              <span className={classes.anchorText}>
+                {'#'}{truncateText(anchorText)}
+              </span>
+            )}
           </span>
         </Anchor>
       )}
