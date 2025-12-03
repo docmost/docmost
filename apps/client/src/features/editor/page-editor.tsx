@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -69,7 +69,16 @@ export default function PageEditor({
   editable,
   content,
 }: PageEditorProps) {
+
+  
   const collaborationURL = useCollaborationUrl();
+  const isComponentMounted = useRef(false);
+  const editorCreated = useRef(false);
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+  }, []);
+  
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -95,8 +104,9 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-
-  const { handleScrollTo } = useEditorScroll();
+  
+    const canScroll = useCallback(() => isComponentMounted.current && editorCreated.current, [isComponentMounted, editorCreated]);
+  const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -267,6 +277,7 @@ export default function PageEditor({
           setEditor(editor);
           editor.storage.pageId = pageId;
           handleScrollTo(editor);
+          editorCreated.current = true;
         }
       },
       onUpdate({ editor }) {

@@ -1,7 +1,18 @@
 import { Editor } from "@tiptap/react";
 import { useCallback, useEffect, useState } from "react";
 
-export const useEditorScroll = () => {
+function waitForState(checkFn: () => boolean): Promise<void> {
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (checkFn()) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 800);
+  });
+}
+
+export const useEditorScroll = ({ canScroll }: { canScroll: () => boolean }) => {
   const [scrollTo, setScrollTo] = useState<string>("");
 
   useEffect(() => {
@@ -9,6 +20,7 @@ export const useEditorScroll = () => {
   }, []);
 
   const handleScrollTo = useCallback(async (editor: Editor, _scrollTo: string | null = null, tryCount: number = 0) => {
+    await waitForState(() => canScroll());
     return new Promise((resolve) => {
       const MAX_TRY_COUNT = 10;
       if (tryCount >= MAX_TRY_COUNT) {
@@ -32,7 +44,7 @@ export const useEditorScroll = () => {
         }, 200);
       }
     });
-  }, [scrollTo]);
+  }, [scrollTo, canScroll]);
 
   return { scrollTo, handleScrollTo };
 };

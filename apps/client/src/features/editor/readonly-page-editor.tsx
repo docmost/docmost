@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
@@ -22,7 +22,15 @@ export default function ReadonlyPageEditor({
   pageId,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
-  const { handleScrollTo } = useEditorScroll();
+  const isComponentMounted = useRef(false);
+  const editorCreated = useRef(false);
+  
+  const canScroll = useCallback(() => isComponentMounted.current && editorCreated.current, [isComponentMounted, editorCreated]);
+  const { handleScrollTo } = useEditorScroll({ canScroll });
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+  }, []);
 
   const extensions = useMemo(() => {
     return [...mainExtensions];
@@ -63,6 +71,7 @@ export default function ReadonlyPageEditor({
             setReadOnlyEditor(editor);
 
             handleScrollTo(editor);
+            editorCreated.current = true;
           }
         }}
       ></EditorProvider>
