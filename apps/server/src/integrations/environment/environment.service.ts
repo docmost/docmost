@@ -10,6 +10,10 @@ export class EnvironmentService {
     return this.configService.get<string>('NODE_ENV', 'development');
   }
 
+  isDevelopment(): boolean {
+    return this.getNodeEnv() === 'development';
+  }
+
   getAppUrl(): string {
     const rawUrl =
       this.configService.get<string>('APP_URL') ||
@@ -231,6 +235,46 @@ export class EnvironmentService {
   }
 
   getTypesenseLocale(): string {
-    return this.configService.get<string>('TYPESENSE_LOCALE', 'en').toLowerCase();
+    return this.configService
+      .get<string>('TYPESENSE_LOCALE', 'en')
+      .toLowerCase();
+  }
+
+  getAiDriver(): string {
+    return this.configService.get<string>('AI_DRIVER');
+  }
+
+  getAiEmbeddingModel(): string {
+    return this.configService.get<string>('AI_EMBEDDING_MODEL');
+  }
+
+  getAiCompletionModel(): string {
+    return this.configService.get<string>('AI_COMPLETION_MODEL');
+  }
+
+  getAiEmbeddingDimension(): number {
+    return parseInt(
+      this.configService.get<string>('AI_EMBEDDING_DIMENSION'),
+      10,
+    );
+  }
+
+  getOpenAiApiKey(): string {
+    return this.configService.get<string>('OPENAI_API_KEY');
+  }
+
+  getOpenAiApiUrl(): string {
+    return this.configService.get<string>('OPENAI_API_URL');
+  }
+
+  getGeminiApiKey(): string {
+    return this.configService.get<string>('GEMINI_API_KEY');
+  }
+
+  getOllamaApiUrl(): string {
+    return this.configService.get<string>(
+      'OLLAMA_API_URL',
+      'http://localhost:11434',
+    );
   }
 }

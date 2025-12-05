@@ -65,6 +65,14 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
         attempts: 2,
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.AI_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 1,
+      },
+    }),
   ],
   exports: [BullModule],
   providers: [BacklinksProcessor],

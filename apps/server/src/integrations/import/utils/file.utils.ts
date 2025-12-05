@@ -103,12 +103,29 @@ function extractZipInternal(
         zipfile.on('entry', (entry) => {
           const name = entry.fileName.toString('utf8');
           const safe = name.replace(/^\/+/, '');
+
+          const validationError = yauzl.validateFileName(safe);
+          if (validationError) {
+            console.warn(`Skipping invalid entry (${validationError})`);
+            zipfile.readEntry();
+            return;
+          }
+
           if (safe.startsWith('__MACOSX/')) {
             zipfile.readEntry();
             return;
           }
 
           const fullPath = path.join(target, safe);
+
+          const resolved = path.resolve(fullPath);
+          const targetResolved = path.resolve(target);
+
+          if (!resolved.startsWith(targetResolved + path.sep)) {
+            console.warn(`Skipping entry (path outside target): ${safe}`);
+            zipfile.readEntry();
+            return;
+          }
 
           // Handle directories
           if (/\/$/.test(name)) {
