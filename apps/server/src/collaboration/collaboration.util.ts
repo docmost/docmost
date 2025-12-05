@@ -34,7 +34,8 @@ import {
   Embed,
   Mention,
   Subpages,
-  Highlight
+  Highlight,
+  generateNodeId,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -51,7 +52,7 @@ export const tiptapExtensions = [
   Heading,
   UniqueID.configure({
     types: ['heading'],
-    attributeName: 'uid',
+    generateID: () => generateNodeId(),
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),

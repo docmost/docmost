@@ -45,7 +45,8 @@ import {
   Subpages,
   TableDndExtension,
   Heading,
-  Highlight
+  Highlight,
+  generateNodeId,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -81,7 +82,6 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
-import { generateEditorNodeId } from "@/features/editor/utils/node-id.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -113,8 +113,7 @@ export const mainExtensions = [
   Heading,
   UniqueID.configure({
     types: ["heading"],
-    attributeName: "uid",
-    generateID: () => generateEditorNodeId(),
+    generateID: () => generateNodeId(),
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
@@ -251,7 +250,7 @@ export const mainExtensions = [
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
 ] as any;
