@@ -16,14 +16,15 @@ import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts
 export default function SpaceGrid() {
   const { t } = useTranslation();
   const { data, isLoading } = useGetSpacesQuery({ page: 1, limit: 10 });
-
+  
   const cards = data?.items.slice(0, 9).map((space, index) => (
+
     <Card
       key={space.id}
       p="xs"
       radius="md"
       component={Link}
-      to={getSpaceUrl(space.slug)}
+      to={space.homePageId? `/s/general/p/${space.homePageId}` : getSpaceUrl(space.slug)}
       onMouseEnter={() => prefetchSpace(space.slug, space.id)}
       className={classes.card}
       withBorder

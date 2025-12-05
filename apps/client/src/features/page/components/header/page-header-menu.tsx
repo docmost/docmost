@@ -5,6 +5,7 @@ import {
   IconDots,
   IconFileExport,
   IconHistory,
+  IconHome,
   IconLink,
   IconList,
   IconMessage,
@@ -13,7 +14,7 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useState } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -44,14 +45,28 @@ import { PageStateSegmentedControl } from "@/features/user/components/page-state
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import ShareModal from "@/features/share/components/share-modal.tsx";
+import { updateSpace } from "@/features/space/services/space-service";
+import { ISpace } from "@/features/space/types/space.types";
+import { useUpdateSpaceMutation } from "@/features/space/queries/space-query";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
+  isHome?: boolean;
+  spaceId?: string;
+  pageId?: string;
 }
-export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
+export default function PageHeaderMenu({
+  readOnly,
+  isHome,
+  spaceId,
+  pageId,
+}: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const [isHomePage, setIsHomePage] = useState<boolean>(isHome);
+
+  const updateSpaceMutation = useUpdateSpaceMutation();
 
   useHotkeys(
     [
@@ -70,8 +85,19 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         },
       ],
     ],
-    [],
+    []
   );
+
+  const handleUpdateHomePage = async () => {
+    const newHomePageValue = isHomePage ? null : pageId;
+    const spaceData: Partial<ISpace> = {
+      spaceId: spaceId,
+      homePageId: newHomePageValue,
+    };
+
+    await updateSpaceMutation.mutateAsync(spaceData);
+    setIsHomePage(!isHomePage);
+  };
 
   return (
     <>
@@ -90,6 +116,24 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       {!readOnly && <PageStateSegmentedControl size="xs" />}
 
       <ShareModal readOnly={readOnly} />
+
+      <Tooltip
+        label={isHomePage ? t("Unmark as home page") : t("Mark as home page")}
+        openDelay={250}
+        withArrow
+      >
+        <ActionIcon
+          variant="default"
+          style={{ border: "none" }}
+          onClick={handleUpdateHomePage}
+        >
+          <IconHome
+            size={20}
+            stroke={2}
+            {...(isHomePage ? { color: "lightblue" } : {})}
+          />
+        </ActionIcon>
+      </Tooltip>
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
