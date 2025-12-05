@@ -1,5 +1,4 @@
 import { StarterKit } from "@tiptap/starter-kit";
-import { UniqueID } from "@tiptap/extension-unique-id";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { CharacterCount } from "@tiptap/extension-character-count";
@@ -46,7 +45,7 @@ import {
   TableDndExtension,
   Heading,
   Highlight,
-  generateNodeId,
+  UniqueID,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -112,8 +111,7 @@ export const mainExtensions = [
   }),
   Heading,
   UniqueID.configure({
-    types: ["heading"],
-    generateID: () => generateNodeId(),
+    types: ["heading", "paragraph"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({

@@ -38,9 +38,9 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
                     icon.addEventListener("click", (e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      const uid = node.attrs.uid;
+                      const id = node.attrs.id;
                       const baseUrl = window.location.href.split('#')[0];
-                      const url = `${baseUrl}#${uid}`;
+                      const url = `${baseUrl}#${id}`;
                       navigator.clipboard.writeText(url);
                       linkBtnContent.innerHTML = successIcon;
                       setTimeout(
@@ -70,7 +70,7 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
     return [
       `h${level}`,
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        id: node.attrs.uid,
+        id: node.attrs.id,
       }),
       0,
     ];

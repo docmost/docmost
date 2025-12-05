@@ -9,7 +9,6 @@ import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
-import UniqueID from '@tiptap/extension-unique-id';
 import {
   Heading,
   Callout,
@@ -35,7 +34,7 @@ import {
   Mention,
   Subpages,
   Highlight,
-  generateNodeId,
+  UniqueID,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -51,8 +50,7 @@ export const tiptapExtensions = [
   }),
   Heading,
   UniqueID.configure({
-    types: ['heading'],
-    generateID: () => generateNodeId(),
+    types: ['heading', 'paragraph'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),

@@ -392,4 +392,4 @@ export function sanitizeUrl(url: string | undefined): string {
 }
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
-export const generateNodeId = customAlphabet(alphabet, 15);
+export const generateNodeId = customAlphabet(alphabet, 12);
