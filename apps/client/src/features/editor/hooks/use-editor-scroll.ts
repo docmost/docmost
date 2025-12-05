@@ -12,12 +12,20 @@ function waitForState(checkFn: () => boolean): Promise<void> {
   });
 }
 
-export const useEditorScroll = ({ canScroll }: { canScroll: () => boolean }) => {
-  const [scrollTo, setScrollTo] = useState<string>("");
+export const useEditorScroll = ({
+  canScroll,
+  initialScrollTo,
+}: {
+  canScroll: () => boolean;
+  initialScrollTo?: string;
+}) => {
+  const [scrollTo, setScrollTo] = useState<string>(initialScrollTo || "");
 
   useEffect(() => {
-    setScrollTo(window.location.hash ? window.location.hash.slice(1) : "");
-  }, []);
+    if (!initialScrollTo) {
+      setScrollTo(window.location.hash ? window.location.hash.slice(1) : "");
+    }
+  }, [initialScrollTo]);
 
   const handleScrollTo = useCallback(async (editor: Editor, _scrollTo: string | null = null, tryCount: number = 0) => {
     await waitForState(() => canScroll());
