@@ -33,6 +33,11 @@ export interface MentionNodeAttrs {
    * the id of the user who initiated the mention
    */
   creatorId?: string;
+
+  /**
+   * the anchor hash for page mentions (e.g., "heading-1")
+   */
+  anchorId?: string;
 }
 
 export type MentionOptions<
@@ -243,6 +248,20 @@ export const Mention = Node.create<MentionOptions>({
 
           return {
             "data-creator-id": attributes.creatorId,
+          };
+        },
+      },
+
+      anchorId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-anchor-id"),
+        renderHTML: (attributes) => {
+          if (!attributes.anchorId) {
+            return {};
+          }
+
+          return {
+            "data-anchor-id": attributes.anchorId,
           };
         },
       },

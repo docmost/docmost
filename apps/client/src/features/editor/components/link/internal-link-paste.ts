@@ -9,6 +9,7 @@ export type LinkFn = (
   view: EditorView,
   pos: number,
   creatorId: string,
+  anchorId?: string,
 ) => void;
 
 export interface InternalLinkOptions {
@@ -18,7 +19,7 @@ export interface InternalLinkOptions {
 
 export const handleInternalLink =
   ({ validateFn, onResolveLink }: InternalLinkOptions): LinkFn =>
-  async (url: string, view, pos, creatorId) => {
+  async (url: string, view, pos, creatorId, anchorId) => {
     const validated = validateFn(url, view);
     if (!validated) return;
 
@@ -35,6 +36,7 @@ export const handleInternalLink =
           entityId: page.id,
           slugId: page.slugId,
           creatorId: creatorId,
+          anchorId: anchorId,
         });
 
         if (!node) return;

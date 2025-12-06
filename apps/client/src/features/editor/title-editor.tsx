@@ -104,7 +104,10 @@ export function TitleEditor({
   });
 
   useEffect(() => {
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    const anchorId = window.location.hash
+      ? window.location.hash.substring(1)
+      : undefined;
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
     navigate(pageSlug, { replace: true });
   }, [title]);
 

@@ -21,6 +21,7 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+
   const {
     data: page,
     isLoading,

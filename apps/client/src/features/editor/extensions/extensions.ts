@@ -14,7 +14,7 @@ import { Color } from "@tiptap/extension-color";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand from "@/features/editor/extensions/slash-command";
-import { Collaboration } from "@tiptap/extension-collaboration";
+import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
@@ -43,7 +43,9 @@ import {
   Mention,
   Subpages,
   TableDndExtension,
-  Highlight
+  Heading,
+  Highlight,
+  UniqueID,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -94,6 +96,7 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
+    heading: false,
     history: false,
     dropcursor: {
       width: 3,
@@ -105,6 +108,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading,
+  UniqueID.configure({
+    types: ["heading", "paragraph"],
+    filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -230,17 +238,17 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
 ] as any;

@@ -11,7 +11,7 @@ import classes from "./mention.module.css";
 
 export default function MentionView(props: NodeViewProps) {
   const { node } = props;
-  const { label, entityType, entityId, slugId } = node.attrs;
+  const { label, entityType, entityId, slugId, anchorId } = node.attrs;
   const { spaceSlug } = useParams();
   const { shareId } = useParams();
   const {
@@ -27,6 +27,7 @@ export default function MentionView(props: NodeViewProps) {
     shareId,
     pageSlugId: slugId,
     pageTitle: label,
+    anchorId,
   });
 
   return (
@@ -42,7 +43,7 @@ export default function MentionView(props: NodeViewProps) {
           component={Link}
           fw={500}
           to={
-            isShareRoute ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label)
+            isShareRoute ? shareSlugUrl : buildPageUrl(spaceSlug, slugId, label, anchorId)
           }
           underline="never"
           className={classes.pageMentionLink}
