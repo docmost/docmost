@@ -34,7 +34,7 @@ export const handlePaste = (
       return false;
     }
 
-    const anchorId = match[6]; // Extract anchor from the regex match
+    const anchorId = match[6] ? match[6].split('#')[0] : undefined;
     const urlWithoutAnchor = anchorId ? url.substring(0, url.indexOf("#")) : url;
     createMentionAction(urlWithoutAnchor, view, pos, creatorId, anchorId);
     return true;
