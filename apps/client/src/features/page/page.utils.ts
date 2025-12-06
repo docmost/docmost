@@ -15,7 +15,7 @@ export const buildPageUrl = (
   spaceName: string,
   pageSlugId: string,
   pageTitle?: string,
-  anchor?: string,
+  anchorId?: string,
 ): string => {
   let url: string;
   if (spaceName === undefined) {
@@ -23,21 +23,21 @@ export const buildPageUrl = (
   } else {
     url = `/s/${spaceName}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
-  return anchor ? `${url}#${anchor}` : url;
+  return anchorId ? `${url}#${anchorId}` : url;
 };
 
 export const buildSharedPageUrl = (opts: {
   shareId: string;
   pageSlugId: string;
   pageTitle?: string;
-  anchor?: string;
+  anchorId?: string;
 }): string => {
-  const { shareId, pageSlugId, pageTitle, anchor } = opts;
+  const { shareId, pageSlugId, pageTitle, anchorId } = opts;
   let url: string;
   if (!shareId) {
     url = `/share/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   } else {
     url = `/share/${shareId}/p/${buildPageSlug(pageSlugId, pageTitle)}`;
   }
-  return anchor ? `${url}#${anchor}` : url;
+  return anchorId ? `${url}#${anchorId}` : url;
 };

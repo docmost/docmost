@@ -104,10 +104,10 @@ export function TitleEditor({
   });
 
   useEffect(() => {
-    const anchor = window.location.hash
+    const anchorId = window.location.hash
       ? window.location.hash.substring(1)
       : undefined;
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchor);
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
     navigate(pageSlug, { replace: true });
   }, [title]);
 

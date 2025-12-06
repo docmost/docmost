@@ -37,7 +37,7 @@ export interface MentionNodeAttrs {
   /**
    * the anchor hash for page mentions (e.g., "heading-1")
    */
-  anchor?: string;
+  anchorId?: string;
 }
 
 export type MentionOptions<
@@ -252,16 +252,16 @@ export const Mention = Node.create<MentionOptions>({
         },
       },
 
-      anchor: {
+      anchorId: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-anchor"),
+        parseHTML: (element) => element.getAttribute("data-anchor-id"),
         renderHTML: (attributes) => {
-          if (!attributes.anchor) {
+          if (!attributes.anchorId) {
             return {};
           }
 
           return {
-            "data-anchor": attributes.anchor,
+            "data-anchor-id": attributes.anchorId,
           };
         },
       },
