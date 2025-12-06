@@ -20,6 +20,7 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconPageBreak,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -152,6 +153,19 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconMenu4,
       command: ({ editor, range }: CommandProps) =>
         editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+    },
+    {
+      title: "Page break",
+      description: "Insert page break",
+      searchTerms: ["page break", "hr"],
+      icon: IconPageBreak,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertContent('<hr data-type="pagebreak" /><p></p>')
+          .run(),
     },
     {
       title: "Image",
