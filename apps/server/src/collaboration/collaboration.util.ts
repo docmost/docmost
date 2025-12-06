@@ -35,6 +35,7 @@ import {
   Subpages,
   Highlight,
   UniqueID,
+  addUniqueIdsToDoc,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -94,7 +95,14 @@ export function jsonToHtml(tiptapJson: any) {
 }
 
 export function htmlToJson(html: string) {
-  return generateJSON(html, tiptapExtensions);
+  const pmJson = generateJSON(html, tiptapExtensions);
+
+  try {
+    return addUniqueIdsToDoc(pmJson, tiptapExtensions);
+  } catch (error) {
+    console.warn('failed to add unique ids to doc', error);
+    return pmJson;
+  }
 }
 
 export function jsonToText(tiptapJson: JSONContent) {

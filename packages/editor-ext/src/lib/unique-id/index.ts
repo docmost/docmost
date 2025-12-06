@@ -1,5 +1,2 @@
-import { UniqueID } from './unique-id.js'
-
-export * from './unique-id.js'
-
-export default UniqueID
+export { UniqueID } from "./unique-id";
+export * from "./unique-id.util";
