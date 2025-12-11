@@ -15,7 +15,7 @@ export default function VideoView(props: NodeViewProps) {
   }, [align]);
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <video
         preload="metadata"
         width={width}

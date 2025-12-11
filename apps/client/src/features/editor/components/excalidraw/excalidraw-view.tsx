@@ -118,7 +118,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
   };
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <ReactClearModal
         style={{
           backgroundColor: "rgba(0, 0, 0, 0.5)",

@@ -31,7 +31,7 @@ export default function MentionView(props: NodeViewProps) {
   });
 
   return (
-    <NodeViewWrapper style={{ display: "inline" }}>
+    <NodeViewWrapper style={{ display: "inline" }} data-drag-handle>
       {entityType === "user" && (
         <Text className={classes.userMention} component="span">
           @{label}
