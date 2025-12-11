@@ -85,7 +85,7 @@ export default function EmbedView(props: NodeViewProps) {
   }
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       {embedUrl ? (
         <ResizableWrapper
           initialHeight={nodeHeight || 480}

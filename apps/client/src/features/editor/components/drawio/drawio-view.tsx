@@ -87,7 +87,7 @@ export default function DrawioView(props: NodeViewProps) {
   };
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <Modal.Root opened={opened} onClose={close} fullScreen>
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>

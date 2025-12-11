@@ -165,6 +165,7 @@ export const Mention = Node.create<MentionOptions>({
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
