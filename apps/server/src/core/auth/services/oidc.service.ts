@@ -114,7 +114,21 @@ export class OidcService {
         { state },
       );
 
-      const userinfo = await client.userinfo(tokenSet.access_token);
+      let userinfo;
+      try {
+        // Try to get claims from ID token first (faster).
+        if (tokenSet.id_token) {
+          const claims = tokenSet.claims();
+          userinfo = claims;
+        }
+
+        // Fall back to userinfo endpoint if no ID token or missing required fields.
+        if (!userinfo?.email) {
+          userinfo = await client.userinfo(tokenSet.access_token);
+        }
+      } catch (userinfoError) {
+        throw userinfoError;
+      }
 
       if (authProvider.oidcAllowedGroups) {
         const allowedGroups = authProvider.oidcAllowedGroups
