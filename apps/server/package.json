@@ -80,7 +80,7 @@
     "nanoid": "3.3.11",
     "nestjs-kysely": "^1.2.0",
     "nodemailer": "^7.0.11",
-    "openid-client": "^5.7.1",
+    "openid-client": "^6.8.1",
     "otpauth": "^9.4.0",
     "p-limit": "^6.2.0",
     "passport-google-oauth20": "^2.0.0",

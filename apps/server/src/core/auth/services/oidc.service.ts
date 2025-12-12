@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { Client, Issuer, generators } from 'openid-client';
+import * as client from 'openid-client';
 import { isEmail } from 'class-validator';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { User, InsertableUser } from '@docmost/db/types/entity.types';
@@ -28,9 +28,25 @@ import {
 import { v7 as uuid7 } from 'uuid';
 import { createHash } from 'crypto';
 
+interface CachedConfig {
+  config: client.Configuration;
+  expiresAt: number;
+}
+
+export interface OidcAuthSession {
+  workspaceId: string;
+  codeVerifier: string;
+  nonce: string;
+  expectedIssuer: string;
+  timestamp: number;
+}
+
 @Injectable()
 export class OidcService {
   private readonly logger = new Logger(OidcService.name);
+
+  private readonly configCache = new Map<string, CachedConfig>();
+  private readonly CONFIG_CACHE_TTL_MS = 60 * 60 * 1000;
 
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
@@ -43,6 +59,52 @@ export class OidcService {
     private readonly storageService: StorageService,
     private readonly attachmentRepo: AttachmentRepo,
   ) { }
+
+  private async getCachedConfig(
+    issuerUrl: string,
+    clientId: string,
+    clientSecret: string,
+  ): Promise<client.Configuration> {
+    const cacheKey = `${issuerUrl}:${clientId}`;
+    const cached = this.configCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.config;
+    }
+
+    try {
+      const config = await client.discovery(
+        new URL(issuerUrl),
+        clientId,
+        clientSecret,
+        client.ClientSecretPost(clientSecret)
+      );
+
+      const serverMetadata = config.serverMetadata();
+      if (!serverMetadata.issuer) {
+        throw new BadRequestException('Invalid OIDC issuer metadata');
+      }
+
+      this.configCache.set(cacheKey, {
+        config,
+        expiresAt: now + this.CONFIG_CACHE_TTL_MS,
+      });
+
+      return config;
+    } catch (error) {
+      this.configCache.delete(cacheKey);
+      throw error;
+    }
+  }
+
+  clearConfigCache(issuerUrl?: string, clientId?: string): void {
+    if (issuerUrl && clientId) {
+      this.configCache.delete(`${issuerUrl}:${clientId}`);
+    } else {
+      this.configCache.clear();
+    }
+  }
 
   private sanitizeUserInfo(userinfo: any, avatarAttribute?: string) {
     if (!userinfo.email || !isEmail(userinfo.email)) {
@@ -160,7 +222,13 @@ export class OidcService {
   async getAuthorizationUrl(
     workspaceId: string,
     redirectUri: string,
-  ): Promise<{ url: string; state: string }> {
+  ): Promise<{
+    url: string;
+    state: string;
+    codeVerifier: string;
+    nonce: string;
+    expectedIssuer: string;
+  }> {
     const authProvider =
       await this.authProviderRepo.findOidcProvider(workspaceId);
 
@@ -168,16 +236,34 @@ export class OidcService {
       throw new BadRequestException('OIDC provider not found or not enabled');
     }
 
-    const client = await this.createClient(authProvider);
-    const state = generators.state();
+    const config = await this.getCachedConfig(
+      authProvider.oidcIssuer,
+      authProvider.oidcClientId,
+      authProvider.oidcClientSecret,
+    );
 
-    const url = client.authorizationUrl({
+    const state = client.randomState();
+    const nonce = client.randomNonce();
+
+    const codeVerifier = client.randomPKCECodeVerifier();
+    const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
+
+    const authUrl = client.buildAuthorizationUrl(config, {
       scope: authProvider.scope,
       state,
+      nonce,
       redirect_uri: redirectUri,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
-    return { url, state };
+    return {
+      url: authUrl.href,
+      state,
+      codeVerifier,
+      nonce,
+      expectedIssuer: authProvider.oidcIssuer,
+    };
   }
 
   async handleCallback(
@@ -186,6 +272,9 @@ export class OidcService {
     state: string,
     iss: string,
     redirectUri: string,
+    codeVerifier: string,
+    expectedNonce: string,
+    expectedIssuer: string,
   ): Promise<{ token: string; user: User }> {
     const authProvider =
       await this.authProviderRepo.findOidcProvider(workspaceId);
@@ -194,27 +283,51 @@ export class OidcService {
       throw new BadRequestException('OIDC provider not found or not enabled');
     }
 
-    const client = await this.createClient(authProvider);
+    if (iss) {
+      const normalizedIss = iss.replace(/\/+$/, '');
+      const normalizedExpected = expectedIssuer.replace(/\/+$/, '');
+
+      if (normalizedIss !== normalizedExpected) {
+        this.logger.warn(
+          `Issuer mismatch: received ${iss}, expected ${expectedIssuer}`,
+        );
+        throw new UnauthorizedException('Authentication failed');
+      }
+    }
+
+    const config = await this.getCachedConfig(
+      authProvider.oidcIssuer,
+      authProvider.oidcClientId,
+      authProvider.oidcClientSecret,
+    );
 
     try {
-      const tokenSet = await client.callback(
-        redirectUri,
-        iss ? { code, state, iss } : { code, state },
-        { state },
+      const callbackUrl = new URL(redirectUri);
+      callbackUrl.searchParams.set('code', code);
+      callbackUrl.searchParams.set('state', state);
+      if (iss) {
+        callbackUrl.searchParams.set('iss', iss);
+      }
+
+      const tokens = await client.authorizationCodeGrant(
+        config,
+        callbackUrl,
+        {
+          expectedState: state,
+          expectedNonce: expectedNonce,
+          pkceCodeVerifier: codeVerifier,
+        },
       );
 
       let userinfo;
       try {
-        // Try to get claims from ID token first (faster).
-        if (tokenSet.id_token) {
-          const claims = tokenSet.claims();
-          userinfo = claims;
-        }
-
-        // Fall back to userinfo endpoint if no ID token or missing required fields.
-        if (!userinfo?.email) {
-          userinfo = await client.userinfo(tokenSet.access_token);
-        }
+        const expectedSub = userinfo?.sub as string | undefined;
+        userinfo = await client.fetchUserInfo(
+          config,
+          tokens.access_token,
+          // TODO: Do we want to force the need for `sub` to be present in the ID token (unique user identifier)? Not sure if there is any real security implications.
+          expectedSub ?? client.skipSubjectCheck,
+        );
       } catch (userinfoError) {
         throw userinfoError;
       }
@@ -332,22 +445,13 @@ export class OidcService {
 
       return { token, user };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      throw new UnauthorizedException(
-        'OIDC authentication failed: ' + errorMessage,
+      this.logger.error(
+        'OIDC authentication error',
+        error instanceof Error ? error.stack : String(error),
       );
+
+      throw new UnauthorizedException('Authentication failed');
     }
-  }
-
-  private async createClient(authProvider: any): Promise<Client> {
-    const issuer = await Issuer.discover(authProvider.oidcIssuer);
-
-    return new issuer.Client({
-      client_id: authProvider.oidcClientId,
-      client_secret: authProvider.oidcClientSecret,
-      response_types: ['code'],
-    });
   }
 
   private async createUserFromOidc(

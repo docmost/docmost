@@ -8,6 +8,9 @@ import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import api from "@/lib/api-client";
 
+const CODE_PATTERN = /^[A-Za-z0-9._~+-]+$/;
+const STATE_PATTERN = /^[A-Za-z0-9._~-]+$/;
+
 export default function OidcCallbackPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -27,67 +30,84 @@ export default function OidcCallbackPage() {
 
       if (error) {
         notifications.show({
-          message: t("OIDC authentication failed: ") + error,
+          message: t("Authentication failed. Please try again."),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
         return;
       }
 
+      // Validates that required parameters exist.
       if (!code || !state) {
         notifications.show({
-          message: t("Invalid OIDC callback parameters"),
+          message: t("Invalid callback parameters"),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
         return;
       }
 
-      if (code.length < 10 || code.length > 1000) {
+      if (code.length < 10 || code.length > 2048 || !CODE_PATTERN.test(code)) {
         notifications.show({
-          message: t("Invalid authentication code"),
+          message: t("Invalid authentication request"),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
         return;
       }
 
-      if (state.length < 10 || state.length > 255) {
+      if (state.length < 20 || state.length > 512 || !STATE_PATTERN.test(state)) {
         notifications.show({
-          message: t("Invalid state parameter"),
+          message: t("Invalid authentication request"),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
         return;
+      }
+
+      if (iss) {
+        try {
+          const issuerUrl = new URL(iss);
+          if (issuerUrl.protocol !== "https:" && issuerUrl.protocol !== "http:") {
+            throw new Error("Invalid issuer protocol");
+          }
+        } catch {
+          notifications.show({
+            message: t("Invalid authentication request"),
+            color: "red",
+          });
+          navigate(APP_ROUTE.AUTH.LOGIN);
+          return;
+        }
       }
 
       try {
         const response = await api.post("/auth/oidc/callback", {
-          code, 
+          code,
           state,
-          iss,
+          iss: iss || undefined, // Some older IdP might not include the issuer in the callback.
         });
 
         if (response.data.success) {
           try {
             const userResponse = await api.get("/auth/me");
             setCurrentUser(userResponse.data);
-          } catch (error) {
+          } catch {
             setCurrentUser(null);
           }
 
           notifications.show({
-            message: t("OIDC authentication successful"),
+            message: t("Successfully signed in"),
             color: "green",
           });
 
-        navigate(APP_ROUTE.HOME);
+          navigate(APP_ROUTE.HOME);
         } else {
           throw new Error("Authentication failed");
         }
-      } catch (error) {
+      } catch {
         notifications.show({
-          message: t("OIDC authentication failed"),
+          message: t("Authentication failed. Please try again."),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
