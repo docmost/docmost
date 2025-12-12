@@ -187,7 +187,7 @@ export function OidcProviderForm() {
             <TextInput
               label={t("Avatar Attribute (optional)")}
               description={t(
-                "OIDC claim containing the user's avatar URL (e.g., picture, avatar_url). Leave empty to let users manage their own."
+                "OIDC claim containing the user's avatar URL or base64 image. Leave empty to let users manage their own."
               )}
               placeholder="avatar_url"
               {...form.getInputProps("oidcAvatarAttribute")}

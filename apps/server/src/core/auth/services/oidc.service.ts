@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { Client, Issuer, generators } from 'openid-client';
@@ -17,9 +18,20 @@ import { validateAllowedEmail } from '../auth.util';
 import { UserRole } from '../../../common/helpers/types/permission';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
+import { StorageService } from '../../../integrations/storage/storage.service';
+import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
+import { AttachmentType } from '../../attachment/attachment.constants';
+import {
+  getAttachmentFolderPath,
+  compressAndResizeIcon,
+} from '../../attachment/attachment.utils';
+import { v7 as uuid7 } from 'uuid';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class OidcService {
+  private readonly logger = new Logger(OidcService.name);
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly authProviderRepo: AuthProviderRepo,
@@ -28,6 +40,8 @@ export class OidcService {
     private readonly tokenService: TokenService,
     private readonly groupUserRepo: GroupUserRepo,
     private readonly workspaceService: WorkspaceService,
+    private readonly storageService: StorageService,
+    private readonly attachmentRepo: AttachmentRepo,
   ) { }
 
   private sanitizeUserInfo(userinfo: any, avatarAttribute?: string) {
@@ -44,16 +58,22 @@ export class OidcService {
     }
 
     let avatarUrl: string | undefined;
+    let avatarBase64: string | undefined;
+
     if (avatarAttribute) {
       const avatarValue = userinfo[avatarAttribute];
       if (avatarValue && typeof avatarValue === 'string') {
-        try {
-          const url = new URL(avatarValue);
-          if (url.protocol === 'https:' || url.protocol === 'http:') {
-            avatarUrl = avatarValue;
+        if (avatarValue.startsWith('data:image/')) {
+          avatarBase64 = avatarValue;
+        } else {
+          try {
+            const url = new URL(avatarValue);
+            if (url.protocol === 'https:' || url.protocol === 'http:') {
+              avatarUrl = avatarValue;
+            }
+          } catch {
+            // Not a valid URL, ignore
           }
-        } catch {
-          throw new BadRequestException('Invalid avatar URL from OIDC provider');
         }
       }
     }
@@ -65,7 +85,76 @@ export class OidcService {
         ? String(userinfo.name).substring(0, 100)
         : userinfo.preferred_username || userinfo.email.split('@')[0],
       avatarUrl,
+      avatarBase64,
     };
+  }
+
+  private async processBase64Avatar(
+    base64Data: string,
+    userId: string,
+    workspaceId: string,
+    currentAvatarUrl?: string,
+  ): Promise<string | null> {
+    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      throw new BadRequestException('Invalid base64 image format');
+    }
+
+    const imageFormat = matches[1].toLowerCase();
+    const base64Content = matches[2];
+
+    const allowedFormats = ['png', 'jpeg', 'jpg', 'webp'];
+    if (!allowedFormats.includes(imageFormat)) {
+      throw new BadRequestException('Unsupported image format');
+    }
+
+    const buffer = Buffer.from(base64Content, 'base64');
+
+    // Limit size at 5MB (make it configurable?).
+    if (buffer.length > 5 * 1024 * 1024) {
+      throw new BadRequestException('Avatar image too large');
+    }
+
+    const processedBuffer = await compressAndResizeIcon(buffer, AttachmentType.Avatar);
+
+    // Hash the processed image to detect duplicates.
+    const contentHash = createHash('sha256').update(processedBuffer).digest('hex').substring(0, 16);
+
+    // Check if current avatar is the same by comparing with stored file.
+    if (currentAvatarUrl && !currentAvatarUrl.startsWith('http')) {
+      try {
+        const currentFilePath = `${getAttachmentFolderPath(AttachmentType.Avatar, workspaceId)}/${currentAvatarUrl}`;
+        const currentFile = await this.storageService.read(currentFilePath);
+        const currentBuffer = Buffer.isBuffer(currentFile) ? currentFile : Buffer.from(currentFile);
+        const currentHash = createHash('sha256').update(currentBuffer).digest('hex').substring(0, 16);
+        if (contentHash === currentHash) {
+          return null; // Same image, no update needed.
+        }
+      } catch {
+        // Current file not found or error reading, proceed with upload.
+      }
+    }
+
+    const fileId = uuid7();
+    const fileExtension = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
+    const fileName = `${fileId}.${fileExtension}`;
+    const filePath = `${getAttachmentFolderPath(AttachmentType.Avatar, workspaceId)}/${fileName}`;
+
+    await this.storageService.upload(filePath, processedBuffer);
+
+    await this.attachmentRepo.insertAttachment({
+      id: fileId,
+      type: AttachmentType.Avatar,
+      fileName,
+      filePath,
+      fileSize: processedBuffer.length,
+      fileExt: `.${fileExtension}`,
+      mimeType: `image/${fileExtension}`,
+      creatorId: userId,
+      workspaceId,
+    });
+
+    return fileName;
   }
 
   async getAuthorizationUrl(
@@ -189,13 +278,29 @@ export class OidcService {
           sanitizedUserinfo.sub,
           authProvider.id,
         );
-        if (sanitizedUserinfo.avatarUrl) {
+        let newAvatarUrl: string | undefined | null;
+        if (sanitizedUserinfo.avatarBase64) {
+          try {
+            newAvatarUrl = await this.processBase64Avatar(
+              sanitizedUserinfo.avatarBase64,
+              user.id,
+              workspaceId,
+              user.avatarUrl,
+            );
+          } catch (err) {
+            this.logger.warn(`Failed to process base64 avatar: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        } else if (sanitizedUserinfo.avatarUrl && sanitizedUserinfo.avatarUrl !== user.avatarUrl) {
+          newAvatarUrl = sanitizedUserinfo.avatarUrl;
+        }
+
+        if (newAvatarUrl) {
           await this.userRepo.updateUser(
-            { avatarUrl: sanitizedUserinfo.avatarUrl },
+            { avatarUrl: newAvatarUrl },
             user.id,
             workspaceId,
           );
-          user.avatarUrl = sanitizedUserinfo.avatarUrl;
+          user.avatarUrl = newAvatarUrl;
         }
       } else {
         if (!authProvider.allowSignup) {
@@ -295,6 +400,27 @@ export class OidcService {
       // add user to default group
       await this.groupUserRepo.addUserToDefaultGroup(user.id, workspaceId, trx);
     });
+
+    if (userinfo.avatarBase64) {
+      try {
+        const avatarFileName = await this.processBase64Avatar(
+          userinfo.avatarBase64,
+          user.id,
+          workspaceId,
+          undefined,
+        );
+        if (avatarFileName) {
+          await this.userRepo.updateUser(
+            { avatarUrl: avatarFileName },
+            user.id,
+            workspaceId,
+          );
+          user.avatarUrl = avatarFileName;
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to process base64 avatar for new user: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
 
     return user;
   }
