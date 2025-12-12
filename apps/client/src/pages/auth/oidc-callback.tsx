@@ -30,7 +30,7 @@ export default function OidcCallbackPage() {
 
       if (error) {
         notifications.show({
-          message: t("Authentication failed. Please try again."),
+          message: t("Authentication failed. Please try again!"),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);
@@ -97,7 +97,7 @@ export default function OidcCallbackPage() {
           }
 
           notifications.show({
-            message: t("Successfully signed in"),
+            message: t("Successfully signed in."),
             color: "green",
           });
 
@@ -107,7 +107,7 @@ export default function OidcCallbackPage() {
         }
       } catch {
         notifications.show({
-          message: t("Authentication failed. Please try again."),
+          message: t("Authentication failed. Please try again!"),
           color: "red",
         });
         navigate(APP_ROUTE.AUTH.LOGIN);

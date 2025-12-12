@@ -319,14 +319,19 @@ export class OidcService {
         },
       );
 
+      const claims = tokens.claims();
+      if (!claims?.sub) {
+        throw new UnauthorizedException(
+          'Missing sub claim in ID token from OIDC provider',
+        );
+      }
+
       let userinfo;
       try {
-        const expectedSub = userinfo?.sub as string | undefined;
         userinfo = await client.fetchUserInfo(
           config,
           tokens.access_token,
-          // TODO: Do we want to force the need for `sub` to be present in the ID token (unique user identifier)? Not sure if there is any real security implications.
-          expectedSub ?? client.skipSubjectCheck,
+          claims.sub,
         );
       } catch (userinfoError) {
         throw userinfoError;
