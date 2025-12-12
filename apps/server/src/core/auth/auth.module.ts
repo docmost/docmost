@@ -11,9 +11,10 @@ import { OidcController } from './controllers/oidc.controller';
 import { OidcProviderController } from './controllers/oidc-provider.controller';
 import { AuthProviderRepo } from '../../database/repos/auth-provider/auth-provider.repo';
 import { AuthAccountRepo } from '../../database/repos/auth-account/auth-account.repo';
+import { AttachmentModule } from '../attachment/attachment.module';
 
 @Module({
-  imports: [TokenModule, WorkspaceModule],
+  imports: [TokenModule, WorkspaceModule, AttachmentModule],
   controllers: [AuthController, OidcController, OidcProviderController],
   providers: [
     AuthService,
@@ -26,4 +27,4 @@ import { AuthAccountRepo } from '../../database/repos/auth-account/auth-account.
   ],
   exports: [SignupService, OidcService],
 })
-export class AuthModule {}
+export class AuthModule { }

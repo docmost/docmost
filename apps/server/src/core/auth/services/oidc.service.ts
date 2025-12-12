@@ -2,9 +2,10 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
-import { Client, Issuer, generators } from 'openid-client';
+import * as client from 'openid-client';
 import { isEmail } from 'class-validator';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { User, InsertableUser } from '@docmost/db/types/entity.types';
@@ -17,9 +18,29 @@ import { validateAllowedEmail } from '../auth.util';
 import { UserRole } from '../../../common/helpers/types/permission';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
+import { AttachmentType, MAX_AVATAR_SIZE_BYTES, validImageExtensions } from '../../attachment/attachment.constants';
+import { AttachmentService } from '../../attachment/services/attachment.service';
+
+interface CachedConfig {
+  config: client.Configuration;
+  expiresAt: number;
+}
+
+export interface OidcAuthSession {
+  workspaceId: string;
+  codeVerifier: string;
+  nonce: string;
+  expectedIssuer: string;
+  timestamp: number;
+}
 
 @Injectable()
 export class OidcService {
+  private readonly logger = new Logger(OidcService.name);
+
+  private readonly configCache = new Map<string, CachedConfig>();
+  private readonly CONFIG_CACHE_TTL_MS = 60 * 60 * 1000;
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly authProviderRepo: AuthProviderRepo,
@@ -28,9 +49,56 @@ export class OidcService {
     private readonly tokenService: TokenService,
     private readonly groupUserRepo: GroupUserRepo,
     private readonly workspaceService: WorkspaceService,
-  ) {}
+    private readonly attachmentService: AttachmentService,
+  ) { }
 
-  private sanitizeUserInfo(userinfo: any) {
+  private async getCachedConfig(
+    issuerUrl: string,
+    clientId: string,
+    clientSecret: string,
+  ): Promise<client.Configuration> {
+    const cacheKey = `${issuerUrl}:${clientId}`;
+    const cached = this.configCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.config;
+    }
+
+    try {
+      const config = await client.discovery(
+        new URL(issuerUrl),
+        clientId,
+        clientSecret,
+        client.ClientSecretPost(clientSecret)
+      );
+
+      const serverMetadata = config.serverMetadata();
+      if (!serverMetadata.issuer) {
+        throw new BadRequestException('Invalid OIDC issuer metadata');
+      }
+
+      this.configCache.set(cacheKey, {
+        config,
+        expiresAt: now + this.CONFIG_CACHE_TTL_MS,
+      });
+
+      return config;
+    } catch (error) {
+      this.configCache.delete(cacheKey);
+      throw error;
+    }
+  }
+
+  clearConfigCache(issuerUrl?: string, clientId?: string): void {
+    if (issuerUrl && clientId) {
+      this.configCache.delete(`${issuerUrl}:${clientId}`);
+    } else {
+      this.configCache.clear();
+    }
+  }
+
+  private sanitizeUserInfo(userinfo: any, avatarAttribute?: string) {
     if (!userinfo.email || !isEmail(userinfo.email)) {
       throw new BadRequestException('Invalid email from OIDC provider');
     }
@@ -43,19 +111,133 @@ export class OidcService {
       throw new BadRequestException('Invalid subject from OIDC provider');
     }
 
+    let avatarUrl: string | undefined;
+    let avatarBase64: string | undefined;
+
+    if (avatarAttribute) {
+      const avatarValue = userinfo[avatarAttribute];
+      if (avatarValue && typeof avatarValue === 'string') {
+        if (avatarValue.startsWith('data:image/')) {
+          avatarBase64 = avatarValue;
+        } else {
+          try {
+            const url = new URL(avatarValue);
+            if (url.protocol === 'https:' || url.protocol === 'http:') {
+              avatarUrl = avatarValue;
+            }
+          } catch {
+            // Not a valid URL, ignore
+          }
+        }
+      }
+    }
+
     return {
       email: userinfo.email.toLowerCase().trim(),
       sub: userinfo.sub,
       name: userinfo.name
         ? String(userinfo.name).substring(0, 100)
         : userinfo.preferred_username || userinfo.email.split('@')[0],
+      avatarUrl,
+      avatarBase64,
     };
+  }
+
+  private async processAvatarBase64(
+    base64Data: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<string | null> {
+    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      throw new BadRequestException('Invalid base64 image format');
+    }
+
+    const imageFormat = matches[1].toLowerCase();
+    const base64Content = matches[2];
+
+    if (!validImageExtensions.includes(`.${imageFormat}`)) {
+      throw new BadRequestException('Unsupported image format');
+    }
+
+    const buffer = Buffer.from(base64Content, 'base64');
+
+    if (buffer.length > MAX_AVATAR_SIZE_BYTES) {
+      throw new BadRequestException('Avatar image too large');
+    }
+
+    const fileExt = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
+    const fakeMultipartFile = {
+      toBuffer: async () => buffer,
+      filename: `avatar.${fileExt}`,
+      mimetype: `image/${fileExt}`,
+    };
+
+    const attachment = await this.attachmentService.uploadImage(
+      Promise.resolve(fakeMultipartFile) as any,
+      AttachmentType.Avatar,
+      userId,
+      workspaceId,
+    );
+
+    return attachment?.fileName ?? null;
+  }
+
+  private async processAvatarUrl(
+    avatarUrl: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<string | null> {
+    const response = await fetch(avatarUrl);
+    if (!response.ok) {
+      throw new BadRequestException('Failed to fetch avatar from URL');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    const mimeMatch = contentType.match(/^image\/(\w+)/);
+    if (!mimeMatch) {
+      throw new BadRequestException('URL does not point to a valid image');
+    }
+
+    const imageFormat = mimeMatch[1].toLowerCase();
+    if (!validImageExtensions.includes(`.${imageFormat}`)) {
+      throw new BadRequestException('Unsupported image format');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length > MAX_AVATAR_SIZE_BYTES) {
+      throw new BadRequestException('Avatar image too large');
+    }
+
+    const fileExt = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
+    const fakeMultipartFile = {
+      toBuffer: async () => buffer,
+      filename: `avatar.${fileExt}`,
+      mimetype: `image/${fileExt}`,
+    };
+
+    const attachment = await this.attachmentService.uploadImage(
+      Promise.resolve(fakeMultipartFile) as any,
+      AttachmentType.Avatar,
+      userId,
+      workspaceId,
+    );
+
+    return attachment?.fileName ?? null;
   }
 
   async getAuthorizationUrl(
     workspaceId: string,
     redirectUri: string,
-  ): Promise<{ url: string; state: string }> {
+  ): Promise<{
+    url: string;
+    state: string;
+    codeVerifier: string;
+    nonce: string;
+    expectedIssuer: string;
+  }> {
     const authProvider =
       await this.authProviderRepo.findOidcProvider(workspaceId);
 
@@ -63,16 +245,34 @@ export class OidcService {
       throw new BadRequestException('OIDC provider not found or not enabled');
     }
 
-    const client = await this.createClient(authProvider);
-    const state = generators.state();
+    const config = await this.getCachedConfig(
+      authProvider.oidcIssuer,
+      authProvider.oidcClientId,
+      authProvider.oidcClientSecret,
+    );
 
-    const url = client.authorizationUrl({
+    const state = client.randomState();
+    const nonce = client.randomNonce();
+
+    const codeVerifier = client.randomPKCECodeVerifier();
+    const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
+
+    const authUrl = client.buildAuthorizationUrl(config, {
       scope: authProvider.scope,
       state,
+      nonce,
       redirect_uri: redirectUri,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
-    return { url, state };
+    return {
+      url: authUrl.href,
+      state,
+      codeVerifier,
+      nonce,
+      expectedIssuer: authProvider.oidcIssuer,
+    };
   }
 
   async handleCallback(
@@ -81,6 +281,9 @@ export class OidcService {
     state: string,
     iss: string,
     redirectUri: string,
+    codeVerifier: string,
+    expectedNonce: string,
+    expectedIssuer: string,
   ): Promise<{ token: string; user: User }> {
     const authProvider =
       await this.authProviderRepo.findOidcProvider(workspaceId);
@@ -89,16 +292,59 @@ export class OidcService {
       throw new BadRequestException('OIDC provider not found or not enabled');
     }
 
-    const client = await this.createClient(authProvider);
+    if (iss) {
+      const normalizedIss = iss.replace(/\/+$/, '');
+      const normalizedExpected = expectedIssuer.replace(/\/+$/, '');
+
+      if (normalizedIss !== normalizedExpected) {
+        this.logger.warn(
+          `Issuer mismatch: received ${iss}, expected ${expectedIssuer}`,
+        );
+        throw new UnauthorizedException('Authentication failed');
+      }
+    }
+
+    const config = await this.getCachedConfig(
+      authProvider.oidcIssuer,
+      authProvider.oidcClientId,
+      authProvider.oidcClientSecret,
+    );
 
     try {
-      const tokenSet = await client.callback(
-        redirectUri,
-        iss ? { code, state, iss } : { code, state },
-        { state },
+      const callbackUrl = new URL(redirectUri);
+      callbackUrl.searchParams.set('code', code);
+      callbackUrl.searchParams.set('state', state);
+      if (iss) {
+        callbackUrl.searchParams.set('iss', iss);
+      }
+
+      const tokens = await client.authorizationCodeGrant(
+        config,
+        callbackUrl,
+        {
+          expectedState: state,
+          expectedNonce: expectedNonce,
+          pkceCodeVerifier: codeVerifier,
+        },
       );
 
-      const userinfo = await client.userinfo(tokenSet.access_token);
+      const claims = tokens.claims();
+      if (!claims?.sub) {
+        throw new UnauthorizedException(
+          'Missing sub claim in ID token from OIDC provider',
+        );
+      }
+
+      let userinfo;
+      try {
+        userinfo = await client.fetchUserInfo(
+          config,
+          tokens.access_token,
+          claims.sub,
+        );
+      } catch (userinfoError) {
+        throw userinfoError;
+      }
 
       if (authProvider.oidcAllowedGroups) {
         const allowedGroups = authProvider.oidcAllowedGroups
@@ -127,7 +373,10 @@ export class OidcService {
         }
       }
 
-      const sanitizedUserinfo = this.sanitizeUserInfo(userinfo);
+      const sanitizedUserinfo = this.sanitizeUserInfo(
+        userinfo,
+        authProvider.oidcAvatarAttribute,
+      );
 
       if (!sanitizedUserinfo.email) {
         throw new BadRequestException('Email not provided by OIDC provider');
@@ -182,26 +431,45 @@ export class OidcService {
         );
       }
 
+      if (sanitizedUserinfo.avatarBase64) {
+        try {
+          const avatarFileName = await this.processAvatarBase64(
+            sanitizedUserinfo.avatarBase64,
+            user.id,
+            workspaceId,
+          );
+          if (avatarFileName) {
+            user.avatarUrl = avatarFileName;
+          }
+        } catch (err) {
+          this.logger.warn(`Failed to process base64 avatar: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      } else if (sanitizedUserinfo.avatarUrl) {
+        try {
+          const avatarFileName = await this.processAvatarUrl(
+            sanitizedUserinfo.avatarUrl,
+            user.id,
+            workspaceId,
+          );
+          if (avatarFileName) {
+            user.avatarUrl = avatarFileName;
+          }
+        } catch (err) {
+          this.logger.warn(`Failed to process avatar URL: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+
       const token = await this.tokenService.generateAccessToken(user);
 
       return { token, user };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      throw new UnauthorizedException(
-        'OIDC authentication failed: ' + errorMessage,
+      this.logger.error(
+        'OIDC authentication error',
+        error instanceof Error ? error.stack : String(error),
       );
+
+      throw new UnauthorizedException('Authentication failed');
     }
-  }
-
-  private async createClient(authProvider: any): Promise<Client> {
-    const issuer = await Issuer.discover(authProvider.oidcIssuer);
-
-    return new issuer.Client({
-      client_id: authProvider.oidcClientId,
-      client_secret: authProvider.oidcClientSecret,
-      response_types: ['code'],
-    });
   }
 
   private async createUserFromOidc(
@@ -216,6 +484,7 @@ export class OidcService {
       role: UserRole.MEMBER,
       emailVerifiedAt: new Date(),
       workspaceId,
+      avatarUrl: userinfo.avatarUrl,
     };
 
     let user: User;

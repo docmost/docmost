@@ -1,0 +1,41 @@
+forkmost.local:443 {
+    tls internal {
+        on_demand
+    }
+
+    handle /api* {
+        reverse_proxy devcontainer:3000 {
+            header_down -Via
+        }
+    }
+
+    handle /socket.io* {
+        reverse_proxy devcontainer:3000 {
+            header_down -Via
+        }
+    }
+
+    handle /collab* {
+        reverse_proxy devcontainer:3000 {
+            header_down -Via
+        }
+    }
+
+    handle {
+        reverse_proxy devcontainer:5173 {
+            header_down -Via
+        }
+    }
+}
+
+healthcheck.caddy:80 {
+    tls internal {
+        on_demand
+    }
+
+    respond "OK" 200
+}
+
+:80 {
+    redir https://{host}{uri} permanent
+}

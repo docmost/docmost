@@ -7,7 +7,7 @@ export class VersionService {
   constructor() {}
 
   async getVersion() {
-    const url = `https://api.github.com/repos/docmost/docmost/releases/latest`;
+    const url = `https://api.github.com/repos/vito0912/forkmost/releases/latest`;
 
     let latestVersion = 0;
     try {
@@ -22,7 +22,7 @@ export class VersionService {
     return {
       currentVersion: packageJson?.version,
       latestVersion: latestVersion,
-      releaseUrl: 'https://github.com/docmost/docmost/releases',
+      releaseUrl: 'https://github.com/vito0912/forkmost/releases',
     };
   }
 }

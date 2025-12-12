@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { Menu, Box, Loader } from "@mantine/core";
+import { Menu, Box, Loader, Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { IconTrash, IconUpload } from "@tabler/icons-react";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -17,6 +17,7 @@ interface AvatarUploaderProps {
   onRemove: () => Promise<void>;
   isLoading?: boolean;
   disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 export default function AvatarUploader({
@@ -30,6 +31,7 @@ export default function AvatarUploader({
   onRemove,
   isLoading = false,
   disabled = false,
+  disabledTooltip = undefined,
 }: AvatarUploaderProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,7 +109,7 @@ export default function AvatarUploader({
         style={{ display: "none" }}
       />
 
-      <Menu shadow="md" width={200} withArrow disabled={disabled || isLoading}>
+      <Menu shadow="md" width={200} withArrow disabled={isLoading}>
         <Menu.Target>
           <Box style={{ position: "relative", display: "inline-block" }}>
             <CustomAvatar
@@ -116,7 +118,7 @@ export default function AvatarUploader({
               avatarUrl={currentImageUrl}
               name={fallbackName}
               style={{
-                cursor: disabled || isLoading ? "default" : "pointer",
+                cursor: isLoading ? "default" : "pointer",
                 opacity: isLoading ? 0.6 : 1,
               }}
               radius={radius}
@@ -138,27 +140,31 @@ export default function AvatarUploader({
             )}
           </Box>
         </Menu.Target>
-
-        <Menu.Dropdown>
-          <Menu.Item
-            leftSection={<IconUpload size={16} />}
-            disabled={isLoading || disabled}
-            onClick={handleUploadClick}
-          >
-            {t("Upload image")}
-          </Menu.Item>
-
-          {currentImageUrl && (
+        <Tooltip
+          label={disabledTooltip ?? t("Action disabled")}
+          disabled={!disabled}
+        >
+          <Menu.Dropdown>
             <Menu.Item
-              leftSection={<IconTrash size={16} />}
-              color="red"
-              onClick={handleRemove}
+              leftSection={<IconUpload size={16} />}
               disabled={isLoading || disabled}
+              onClick={handleUploadClick}
             >
-              {t("Remove image")}
+              {t("Upload image")}
             </Menu.Item>
-          )}
-        </Menu.Dropdown>
+
+            {currentImageUrl && (
+              <Menu.Item
+                leftSection={<IconTrash size={16} />}
+                color="red"
+                onClick={handleRemove}
+                disabled={isLoading || disabled}
+              >
+                {t("Remove image")}
+              </Menu.Item>
+            )}
+          </Menu.Dropdown>
+        </Tooltip>
       </Menu>
     </Box>
   );

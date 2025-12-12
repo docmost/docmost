@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { AuthProviderRepo } from '../../database/repos/auth-provider/auth-provider.repo';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -20,7 +21,8 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly workspaceRepo: WorkspaceRepo,
-  ) {}
+    private readonly authProviderRepo: AuthProviderRepo,
+  ) { }
 
   @HttpCode(HttpStatus.OK)
   @Post('me')
@@ -32,6 +34,9 @@ export class UserController {
       workspace.id,
     );
 
+    const oidcProvider = await this.authProviderRepo.findOidcProvider(workspace.id);
+    const isAvatarExternallyManaged = Boolean(oidcProvider?.oidcAvatarAttribute);
+
     const { licenseKey, ...rest } = workspace;
 
     const workspaceInfo = {
@@ -40,7 +45,10 @@ export class UserController {
       hasLicenseKey: Boolean(licenseKey),
     };
 
-    return { user: authUser, workspace: workspaceInfo };
+    return {
+      user: { ...authUser, isAvatarExternallyManaged },
+      workspace: workspaceInfo,
+    };
   }
 
   @HttpCode(HttpStatus.OK)

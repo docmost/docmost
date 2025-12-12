@@ -10,7 +10,7 @@ import {
 
 @Injectable()
 export class AttachmentRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(@InjectKysely() private readonly db: KyselyDB) { }
 
   private baseFields: Array<keyof Attachment> = [
     'id',
@@ -108,6 +108,14 @@ export class AttachmentRepo {
     await this.db
       .deleteFrom('attachments')
       .where('filePath', '=', attachmentFilePath)
+      .executeTakeFirst();
+  }
+
+  async findByFilePath(filePath: string): Promise<Attachment | undefined> {
+    return this.db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('filePath', '=', filePath)
       .executeTakeFirst();
   }
 }

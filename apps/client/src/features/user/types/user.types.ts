@@ -22,6 +22,7 @@ export interface IUser {
   pageEditMode: string; // used for update
   hasGeneratedPassword?: boolean;
   spellcheck: boolean; // used for update
+  isAvatarExternallyManaged?: boolean;
 }
 
 export interface ICurrentUser {

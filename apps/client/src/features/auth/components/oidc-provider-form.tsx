@@ -35,6 +35,7 @@ const createSchema = z.object({
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
   oidcAllowedGroups: z.string().optional(),
+  oidcAvatarAttribute: z.string().optional(),
 });
 
 const updateSchema = z.object({
@@ -47,6 +48,7 @@ const updateSchema = z.object({
   isEnabled: z.boolean().optional(),
   enforceSso: z.boolean().optional(),
   oidcAllowedGroups: z.string().optional(),
+  oidcAvatarAttribute: z.string().optional(),
 });
 
 export function OidcProviderForm() {
@@ -69,6 +71,7 @@ export function OidcProviderForm() {
       isEnabled: true,
       enforceSso: false,
       oidcAllowedGroups: undefined,
+      oidcAvatarAttribute: undefined,
     },
   });
 
@@ -85,6 +88,7 @@ export function OidcProviderForm() {
         isEnabled: provider.isEnabled,
         enforceSso: workspaceData?.enforceSso || false,
         oidcAllowedGroups: provider.oidcAllowedGroups || undefined,
+        oidcAvatarAttribute: provider.oidcAvatarAttribute || undefined,
       });
     }
   }, [provider, workspaceData?.enforceSso]);
@@ -178,6 +182,15 @@ export function OidcProviderForm() {
               )}
               placeholder="group1, group2"
               {...form.getInputProps("oidcAllowedGroups")}
+            />
+
+            <TextInput
+              label={t("Avatar Attribute (optional)")}
+              description={t(
+                "OIDC claim containing the user's avatar URL or base64 image. Leave empty to let users manage their own."
+              )}
+              placeholder="avatar_url"
+              {...form.getInputProps("oidcAvatarAttribute")}
             />
 
             <TextInput
