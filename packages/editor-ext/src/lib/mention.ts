@@ -30,6 +30,16 @@ export interface MentionNodeAttrs {
   slugId?: string | null;
 
   /**
+   * anchor slug for linking to a specific heading in a page
+   */
+  anchorSlug?: string | null;
+
+  /**
+   * the text of the heading being linked to
+   */
+  anchorText?: string | null;
+
+  /**
    * the id of the user who initiated the mention
    */
   creatorId?: string;
@@ -235,6 +245,34 @@ export const Mention = Node.create<MentionOptions>({
 
           return {
             "data-slug-id": attributes.slugId,
+          };
+        },
+      },
+
+      anchorSlug: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-anchor-slug"),
+        renderHTML: (attributes) => {
+          if (!attributes.anchorSlug) {
+            return {};
+          }
+
+          return {
+            "data-anchor-slug": attributes.anchorSlug,
+          };
+        },
+      },
+
+      anchorText: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-anchor-text"),
+        renderHTML: (attributes) => {
+          if (!attributes.anchorText) {
+            return {};
+          }
+
+          return {
+            "data-anchor-text": attributes.anchorText,
           };
         },
       },

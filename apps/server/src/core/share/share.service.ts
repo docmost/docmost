@@ -3,11 +3,12 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateShareDto, ShareInfoDto, UpdateShareDto } from './dto/share.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { nanoIdGen } from '../../common/helpers';
+import { nanoIdGen, hashPassword, comparePasswordHash } from '../../common/helpers';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TokenService } from '../auth/services/token.service';
 import { jsonToNode } from '../../collaboration/collaboration.util';
@@ -18,6 +19,7 @@ import {
   removeMarkTypeFromDoc,
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
+import { SharePasswordRequiredException } from './exceptions/share-password-required.exception';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
@@ -52,6 +54,26 @@ export class ShareService {
     }
   }
 
+  async getShareTreeWithPassword(shareId: string, password: string | undefined, workspaceId: string) {
+    const share = await this.shareRepo.findById(shareId);
+    if (!share || share.workspaceId !== workspaceId) {
+      throw new NotFoundException('Share not found');
+    }
+
+    if (share.passwordHash) {
+      if (!password) {
+        throw new SharePasswordRequiredException(share.key);
+      }
+
+      const isValidPassword = await comparePasswordHash(password, share.passwordHash);
+      if (!isValidPassword) {
+        throw new SharePasswordRequiredException(share.key);
+      }
+    }
+
+    return this.getShareTree(shareId, workspaceId);
+  }
+
   async createShare(opts: {
     authUserId: string;
     workspaceId: string;
@@ -66,9 +88,15 @@ export class ShareService {
         return shares;
       }
 
+      let passwordHash: string | null = null;
+      if (createShareDto.password) {
+        passwordHash = await hashPassword(createShareDto.password);
+      }
+
       return await this.shareRepo.insertShare({
         key: nanoIdGen().toLowerCase(),
         pageId: page.id,
+        passwordHash,
         includeSubPages: createShareDto.includeSubPages ?? false,
         searchIndexing: createShareDto.searchIndexing ?? false,
         creatorId: authUserId,
@@ -83,13 +111,22 @@ export class ShareService {
 
   async updateShare(shareId: string, updateShareDto: UpdateShareDto) {
     try {
-      return this.shareRepo.updateShare(
-        {
-          includeSubPages: updateShareDto.includeSubPages,
-          searchIndexing: updateShareDto.searchIndexing,
-        },
-        shareId,
-      );
+      const updateData: any = {
+        includeSubPages: updateShareDto.includeSubPages,
+        searchIndexing: updateShareDto.searchIndexing,
+      };
+
+      if (updateShareDto.password !== undefined) {
+        if (updateShareDto.password === null || updateShareDto.password === '') {
+          // Remove password
+          updateData.passwordHash = null;
+        } else {
+          // Set new password
+          updateData.passwordHash = await hashPassword(updateShareDto.password);
+        }
+      }
+
+      return this.shareRepo.updateShare(updateData, shareId);
     } catch (err) {
       this.logger.error(err);
       throw new BadRequestException('Failed to update share');
@@ -101,6 +138,17 @@ export class ShareService {
 
     if (!share) {
       throw new NotFoundException('Shared page not found');
+    }
+
+    if (share.passwordHash) {
+      if (!dto.password) {
+        throw new SharePasswordRequiredException(share.key);
+      }
+
+      const isValidPassword = await comparePasswordHash(dto.password, share.passwordHash);
+      if (!isValidPassword) {
+        throw new SharePasswordRequiredException(share.key);
+      }
     }
 
     const page = await this.pageRepo.findById(dto.pageId, {
@@ -162,6 +210,7 @@ export class ShareService {
         'shares.pageId',
         'shares.includeSubPages',
         'shares.searchIndexing',
+        'shares.passwordHash',
         'shares.creatorId',
         'shares.spaceId',
         'shares.workspaceId',
@@ -186,6 +235,7 @@ export class ShareService {
       key: share.key,
       includeSubPages: share.includeSubPages,
       searchIndexing: share.searchIndexing,
+      passwordHash: share.passwordHash,
       pageId: share.pageId,
       creatorId: share.creatorId,
       spaceId: share.spaceId,
@@ -293,5 +343,14 @@ export class ShareService {
 
     const removeCommentMarks = removeMarkTypeFromDoc(doc, 'comment');
     return removeCommentMarks.toJSON();
+  }
+
+  async setSharePassword(shareId: string, password: string): Promise<void> {
+    const passwordHash = await hashPassword(password);
+    await this.shareRepo.updateShare({ passwordHash }, shareId);
+  }
+
+  async removeSharePassword(shareId: string): Promise<void> {
+    await this.shareRepo.updateShare({ passwordHash: null }, shareId);
   }
 }

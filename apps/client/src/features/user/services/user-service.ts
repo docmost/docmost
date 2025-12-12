@@ -6,7 +6,7 @@ export async function getMyInfo(): Promise<ICurrentUser> {
   return req.data as ICurrentUser;
 }
 
-export async function updateUser(data: Partial<IUser>): Promise<IUser> {
+export async function updateUser(data: Partial<IUser> & { confirmPassword?: string }): Promise<IUser> {
   const req = await api.post<IUser>("/users/update", data);
   return req.data as IUser;
 }

@@ -11,5 +11,6 @@
 @import "./print.css";
 @import "./find.css";
 @import "./mention.css";
+@import "./column-layout.css";
 @import "./ordered-list.css";
 @import "./highlight.css";

@@ -5,6 +5,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { Underline } from '@tiptap/extension-underline';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
+import { Highlight } from '@tiptap/extension-highlight';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -26,6 +27,8 @@ import {
   CustomTable,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   TrailingNode,
   Attachment,
   Drawio,
@@ -33,9 +36,9 @@ import {
   Embed,
   Mention,
   Subpages,
-  Highlight,
-  UniqueID,
-  addUniqueIdsToDoc,
+  TypstBlock,
+  ColumnContainer,
+  Column
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -48,10 +51,6 @@ export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
     heading: false,
-  }),
-  Heading,
-  UniqueID.configure({
-    types: ['heading', 'paragraph'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -80,6 +79,8 @@ export const tiptapExtensions = [
   Youtube,
   TiptapImage,
   TiptapVideo,
+  TiptapPdf,
+  Audio,
   Callout,
   Attachment,
   CustomCodeBlock,
@@ -87,7 +88,10 @@ export const tiptapExtensions = [
   Excalidraw,
   Embed,
   Mention,
+  ColumnContainer,
+  Column,
   Subpages,
+  TypstBlock,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
@@ -95,14 +99,6 @@ export function jsonToHtml(tiptapJson: any) {
 }
 
 export function htmlToJson(html: string) {
-  const pmJson = generateJSON(html, tiptapExtensions);
-
-  try {
-    return addUniqueIdsToDoc(pmJson, tiptapExtensions);
-  } catch (error) {
-    console.warn('failed to add unique ids to doc', error);
-    return pmJson;
-  }
 }
 
 export function jsonToText(tiptapJson: JSONContent) {

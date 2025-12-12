@@ -187,6 +187,23 @@
     margin-right: auto;
   }
 
+  .floatLeft {
+    float: left;
+  }
+
+  .floatRight {
+    float: right;
+  }
+
+  @media (max-width: 575px) {
+    .react-renderer.node-image,
+    .react-renderer.node-image img {
+      float: none !important;
+      width: 100% !important;
+      padding: 0 !important;
+    }
+  }
+
 }
 
 .ProseMirror > h1,
@@ -195,13 +212,13 @@
 .ProseMirror > h4,
 .ProseMirror > h5,
 .ProseMirror > h6 {
-  
+
   > .link-btn {
     cursor: pointer;
     position: relative;
 
   }
-  
+
   > .link-btn > .link-btn-content {
     opacity: 0;
     position: absolute;
@@ -213,7 +230,7 @@
     justify-content: center;
     flex-direction: column;
   }
-  
+
   &:hover > .link-btn > .link-btn-content {
     opacity: 1;
   }

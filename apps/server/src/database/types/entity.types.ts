@@ -45,6 +45,19 @@ export type Space = Selectable<Spaces>;
 export type InsertableSpace = Insertable<Spaces>;
 export type UpdatableSpace = Updateable<Omit<Spaces, 'id'>>;
 
+// Graph
+export type Graph = {
+  id: string;
+  slugId: string;
+  title: string | null;
+  parentPageId: string | null;
+  backlinks: GraphBacklink[];
+}
+export type GraphBacklink = {
+  sourcePageId: string;
+  targetPageId: string;
+}
+
 // SpaceMember
 export type SpaceMember = Selectable<SpaceMembers>;
 export type InsertableSpaceMember = Insertable<SpaceMembers>;
