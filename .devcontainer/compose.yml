@@ -41,7 +41,6 @@ services:
       - ../.env.devcontainer
     volumes:
       - ..:/workspace:cached
-      - ~/.ssh:/home/vscode/.ssh:ro
     command: sleep infinity
     ports:
       - 3000:3000
