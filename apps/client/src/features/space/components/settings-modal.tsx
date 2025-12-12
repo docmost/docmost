@@ -62,14 +62,17 @@ export default function SpaceSettingsModal({
                 </Tabs.List>
 
                 <Tabs.Panel value="general">
-                  <ScrollArea h={550} scrollbarSize={4} pr={8}>
-                    <SpaceDetails
-                      spaceId={space?.id}
-                      readOnly={spaceAbility.cannot(
-                        SpaceCaslAction.Manage,
-                        SpaceCaslSubject.Settings,
-                      )}
-                    />
+                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
+                    <div style={{ paddingBottom: "100px"}}>
+                      <SpaceDetails
+                        spaceId={space?.id}
+                        readOnly={spaceAbility.cannot(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Settings,
+                        )}
+                      />
+                    </div>
+
                   </ScrollArea>
                 </Tabs.Panel>
 
