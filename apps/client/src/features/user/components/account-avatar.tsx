@@ -10,6 +10,7 @@ import {
   removeAvatar,
 } from "@/features/attachments/services/attachment-service.ts";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
+import { t } from "i18next";
 
 export default function AccountAvatar() {
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +57,9 @@ export default function AccountAvatar() {
       onRemove={handleRemove}
       isLoading={isLoading}
       disabled={isExternallyProvisioned}
+      disabledTooltip={t(
+        "Your avatar is managed externally and cannot be changed.",
+      )}
     />
   );
 }

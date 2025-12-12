@@ -3,18 +3,13 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -32,13 +27,13 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
+  creatorId: string;
   deletedAt: Timestamp | null;
   expiresAt: Timestamp | null;
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
   updatedAt: Generated<Timestamp>;
-  creatorId: string;
   workspaceId: string;
 }
 
@@ -90,11 +85,11 @@ export interface AuthProviders {
   ldapUserAttributes: Generated<Json | null>;
   ldapUserSearchFilter: string | null;
   name: string;
+  oidcAllowedGroups: string | null;
   oidcAvatarAttribute: string | null;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
-  oidcAllowedGroups: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
   scope: Generated<string>;
@@ -198,17 +193,6 @@ export interface GroupUsers {
   id: Generated<string>;
   updatedAt: Generated<Timestamp>;
   userId: string;
-}
-
-export interface Mfa {
-  backupCodes: Json | null;
-  createdAt: Generated<Timestamp>;
-  enabled: Generated<boolean>;
-  secret: string | null;
-  type: Generated<string>;
-  updatedAt: Generated<Timestamp>;
-  userId: string;
-  verified: Generated<boolean>;
 }
 
 export interface PageHistory {
@@ -386,7 +370,6 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
-  mfa: Mfa;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;
