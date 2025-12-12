@@ -18,15 +18,8 @@ import { validateAllowedEmail } from '../auth.util';
 import { UserRole } from '../../../common/helpers/types/permission';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { WorkspaceService } from '../../workspace/services/workspace.service';
-import { StorageService } from '../../../integrations/storage/storage.service';
-import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { AttachmentType } from '../../attachment/attachment.constants';
-import {
-  getAttachmentFolderPath,
-  compressAndResizeIcon,
-} from '../../attachment/attachment.utils';
-import { v7 as uuid7 } from 'uuid';
-import { createHash } from 'crypto';
+import { AttachmentType, MAX_AVATAR_SIZE_BYTES, validImageExtensions } from '../../attachment/attachment.constants';
+import { AttachmentService } from '../../attachment/services/attachment.service';
 
 interface CachedConfig {
   config: client.Configuration;
@@ -56,8 +49,7 @@ export class OidcService {
     private readonly tokenService: TokenService,
     private readonly groupUserRepo: GroupUserRepo,
     private readonly workspaceService: WorkspaceService,
-    private readonly storageService: StorageService,
-    private readonly attachmentRepo: AttachmentRepo,
+    private readonly attachmentService: AttachmentService,
   ) { }
 
   private async getCachedConfig(
@@ -151,11 +143,10 @@ export class OidcService {
     };
   }
 
-  private async processBase64Avatar(
+  private async processAvatarBase64(
     base64Data: string,
     userId: string,
     workspaceId: string,
-    currentAvatarUrl?: string,
   ): Promise<string | null> {
     const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!matches) {
@@ -165,58 +156,76 @@ export class OidcService {
     const imageFormat = matches[1].toLowerCase();
     const base64Content = matches[2];
 
-    const allowedFormats = ['png', 'jpeg', 'jpg', 'webp'];
-    if (!allowedFormats.includes(imageFormat)) {
+    if (!validImageExtensions.includes(`.${imageFormat}`)) {
       throw new BadRequestException('Unsupported image format');
     }
 
     const buffer = Buffer.from(base64Content, 'base64');
 
-    // Limit size at 5MB (make it configurable?).
-    if (buffer.length > 5 * 1024 * 1024) {
+    if (buffer.length > MAX_AVATAR_SIZE_BYTES) {
       throw new BadRequestException('Avatar image too large');
     }
 
-    const processedBuffer = await compressAndResizeIcon(buffer, AttachmentType.Avatar);
+    const fileExt = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
+    const fakeMultipartFile = {
+      toBuffer: async () => buffer,
+      filename: `avatar.${fileExt}`,
+      mimetype: `image/${fileExt}`,
+    };
 
-    // Hash the processed image to detect duplicates.
-    const contentHash = createHash('sha256').update(processedBuffer).digest('hex').substring(0, 16);
+    const attachment = await this.attachmentService.uploadImage(
+      Promise.resolve(fakeMultipartFile) as any,
+      AttachmentType.Avatar,
+      userId,
+      workspaceId,
+    );
 
-    // Check if current avatar is the same by comparing with stored file.
-    if (currentAvatarUrl && !currentAvatarUrl.startsWith('http')) {
-      try {
-        const currentFilePath = `${getAttachmentFolderPath(AttachmentType.Avatar, workspaceId)}/${currentAvatarUrl}`;
-        const currentFile = await this.storageService.read(currentFilePath);
-        const currentBuffer = Buffer.isBuffer(currentFile) ? currentFile : Buffer.from(currentFile);
-        const currentHash = createHash('sha256').update(currentBuffer).digest('hex').substring(0, 16);
-        if (contentHash === currentHash) {
-          return null; // Same image, no update needed.
-        }
-      } catch {
-        // Current file not found or error reading, proceed with upload.
-      }
+    return attachment?.fileName ?? null;
+  }
+
+  private async processAvatarUrl(
+    avatarUrl: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<string | null> {
+    const response = await fetch(avatarUrl);
+    if (!response.ok) {
+      throw new BadRequestException('Failed to fetch avatar from URL');
     }
 
-    const fileId = uuid7();
-    const fileExtension = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
-    const fileName = `${fileId}.${fileExtension}`;
-    const filePath = `${getAttachmentFolderPath(AttachmentType.Avatar, workspaceId)}/${fileName}`;
+    const contentType = response.headers.get('content-type') || '';
+    const mimeMatch = contentType.match(/^image\/(\w+)/);
+    if (!mimeMatch) {
+      throw new BadRequestException('URL does not point to a valid image');
+    }
 
-    await this.storageService.upload(filePath, processedBuffer);
+    const imageFormat = mimeMatch[1].toLowerCase();
+    if (!validImageExtensions.includes(`.${imageFormat}`)) {
+      throw new BadRequestException('Unsupported image format');
+    }
 
-    await this.attachmentRepo.insertAttachment({
-      id: fileId,
-      type: AttachmentType.Avatar,
-      fileName,
-      filePath,
-      fileSize: processedBuffer.length,
-      fileExt: `.${fileExtension}`,
-      mimeType: `image/${fileExtension}`,
-      creatorId: userId,
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length > MAX_AVATAR_SIZE_BYTES) {
+      throw new BadRequestException('Avatar image too large');
+    }
+
+    const fileExt = imageFormat === 'jpg' ? 'jpeg' : imageFormat;
+    const fakeMultipartFile = {
+      toBuffer: async () => buffer,
+      filename: `avatar.${fileExt}`,
+      mimetype: `image/${fileExt}`,
+    };
+
+    const attachment = await this.attachmentService.uploadImage(
+      Promise.resolve(fakeMultipartFile) as any,
+      AttachmentType.Avatar,
+      userId,
       workspaceId,
-    });
+    );
 
-    return fileName;
+    return attachment?.fileName ?? null;
   }
 
   async getAuthorizationUrl(
@@ -396,30 +405,6 @@ export class OidcService {
           sanitizedUserinfo.sub,
           authProvider.id,
         );
-        let newAvatarUrl: string | undefined | null;
-        if (sanitizedUserinfo.avatarBase64) {
-          try {
-            newAvatarUrl = await this.processBase64Avatar(
-              sanitizedUserinfo.avatarBase64,
-              user.id,
-              workspaceId,
-              user.avatarUrl,
-            );
-          } catch (err) {
-            this.logger.warn(`Failed to process base64 avatar: ${err instanceof Error ? err.message : 'Unknown error'}`);
-          }
-        } else if (sanitizedUserinfo.avatarUrl && sanitizedUserinfo.avatarUrl !== user.avatarUrl) {
-          newAvatarUrl = sanitizedUserinfo.avatarUrl;
-        }
-
-        if (newAvatarUrl) {
-          await this.userRepo.updateUser(
-            { avatarUrl: newAvatarUrl },
-            user.id,
-            workspaceId,
-          );
-          user.avatarUrl = newAvatarUrl;
-        }
       } else {
         if (!authProvider.allowSignup) {
           throw new UnauthorizedException(
@@ -444,6 +429,34 @@ export class OidcService {
           authProvider,
           workspaceId,
         );
+      }
+
+      if (sanitizedUserinfo.avatarBase64) {
+        try {
+          const avatarFileName = await this.processAvatarBase64(
+            sanitizedUserinfo.avatarBase64,
+            user.id,
+            workspaceId,
+          );
+          if (avatarFileName) {
+            user.avatarUrl = avatarFileName;
+          }
+        } catch (err) {
+          this.logger.warn(`Failed to process base64 avatar: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      } else if (sanitizedUserinfo.avatarUrl) {
+        try {
+          const avatarFileName = await this.processAvatarUrl(
+            sanitizedUserinfo.avatarUrl,
+            user.id,
+            workspaceId,
+          );
+          if (avatarFileName) {
+            user.avatarUrl = avatarFileName;
+          }
+        } catch (err) {
+          this.logger.warn(`Failed to process avatar URL: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
       }
 
       const token = await this.tokenService.generateAccessToken(user);
@@ -509,27 +522,6 @@ export class OidcService {
       // add user to default group
       await this.groupUserRepo.addUserToDefaultGroup(user.id, workspaceId, trx);
     });
-
-    if (userinfo.avatarBase64) {
-      try {
-        const avatarFileName = await this.processBase64Avatar(
-          userinfo.avatarBase64,
-          user.id,
-          workspaceId,
-          undefined,
-        );
-        if (avatarFileName) {
-          await this.userRepo.updateUser(
-            { avatarUrl: avatarFileName },
-            user.id,
-            workspaceId,
-          );
-          user.avatarUrl = avatarFileName;
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to process base64 avatar for new user: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      }
-    }
 
     return user;
   }

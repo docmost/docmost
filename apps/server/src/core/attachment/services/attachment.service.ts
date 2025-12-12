@@ -14,6 +14,7 @@ import {
   validateFileType,
 } from '../attachment.utils';
 import { v4 as uuid4, v7 as uuid7 } from 'uuid';
+import { createHash } from 'crypto';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { AttachmentType, validImageExtensions } from '../attachment.constants';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
@@ -38,7 +39,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-  ) {}
+  ) { }
 
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;
@@ -145,14 +146,42 @@ export class AttachmentService {
     const processedBuffer = await compressAndResizeIcon(preparedFile.buffer, type);
     preparedFile.buffer = processedBuffer;
     preparedFile.fileSize = processedBuffer.length;
-    preparedFile.fileName = uuid4() + preparedFile.fileExtension;
 
+    let oldFileName: string | null = null;
+    if (type === AttachmentType.Avatar) {
+      const user = await this.userRepo.findById(userId, workspaceId);
+      oldFileName = user?.avatarUrl;
+    } else if (type === AttachmentType.WorkspaceIcon) {
+      const workspace = await this.workspaceRepo.findById(workspaceId);
+      oldFileName = workspace?.logo;
+    } else if (type === AttachmentType.SpaceIcon && spaceId) {
+      const space = await this.spaceRepo.findById(spaceId, workspaceId);
+      oldFileName = space?.logo;
+    }
+
+    if (oldFileName && !oldFileName.toLowerCase().startsWith('http')) {
+      try {
+        const currentFilePath = `${getAttachmentFolderPath(type, workspaceId)}/${oldFileName}`;
+        const currentFile = await this.storageService.read(currentFilePath);
+        const currentBuffer = Buffer.isBuffer(currentFile) ? currentFile : Buffer.from(currentFile);
+
+        const newHash = createHash('sha256').update(processedBuffer).digest('hex').substring(0, 16);
+        const currentHash = createHash('sha256').update(currentBuffer).digest('hex').substring(0, 16);
+
+        if (newHash === currentHash) {
+          return await this.attachmentRepo.findByFilePath(currentFilePath);
+        }
+      } catch {
+        // Current file not found or error reading, proceed with upload
+      }
+    }
+
+    preparedFile.fileName = uuid4() + preparedFile.fileExtension;
     const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${preparedFile.fileName}`;
 
     await this.uploadToDrive(filePath, preparedFile.buffer);
 
     let attachment: Attachment = null;
-    let oldFileName: string = null;
 
     try {
       await executeTx(this.db, async (trx) => {
@@ -166,12 +195,6 @@ export class AttachmentService {
         });
 
         if (type === AttachmentType.Avatar) {
-          const user = await this.userRepo.findById(userId, workspaceId, {
-            trx,
-          });
-
-          oldFileName = user.avatarUrl;
-
           await this.userRepo.updateUser(
             { avatarUrl: preparedFile.fileName },
             userId,
@@ -179,24 +202,12 @@ export class AttachmentService {
             trx,
           );
         } else if (type === AttachmentType.WorkspaceIcon) {
-          const workspace = await this.workspaceRepo.findById(workspaceId, {
-            trx,
-          });
-
-          oldFileName = workspace.logo;
-
           await this.workspaceRepo.updateWorkspace(
             { logo: preparedFile.fileName },
             workspaceId,
             trx,
           );
         } else if (type === AttachmentType.SpaceIcon && spaceId) {
-          const space = await this.spaceRepo.findById(spaceId, workspaceId, {
-            trx,
-          });
-
-          oldFileName = space.logo;
-
           await this.spaceRepo.updateSpace(
             { logo: preparedFile.fileName },
             spaceId,
@@ -215,8 +226,7 @@ export class AttachmentService {
 
     if (oldFileName && !oldFileName.toLowerCase().startsWith('http')) {
       // delete old avatar or logo
-      const oldFilePath =
-        getAttachmentFolderPath(type, workspaceId) + '/' + oldFileName;
+      const oldFilePath = `${getAttachmentFolderPath(type, workspaceId)}/${oldFileName}`;
       await this.deleteRedundantFile(oldFilePath);
     }
 

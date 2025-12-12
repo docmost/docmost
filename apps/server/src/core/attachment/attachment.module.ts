@@ -6,10 +6,12 @@ import { UserModule } from '../user/user.module';
 import { WorkspaceModule } from '../workspace/workspace.module';
 import { AttachmentProcessor } from './processors/attachment.processor';
 import { TokenModule } from '../auth/token.module';
+import { AuthProviderRepo } from '../../database/repos/auth-provider/auth-provider.repo';
 
 @Module({
   imports: [StorageModule, UserModule, WorkspaceModule, TokenModule],
   controllers: [AttachmentController],
-  providers: [AttachmentService, AttachmentProcessor],
+  providers: [AttachmentService, AttachmentProcessor, AuthProviderRepo],
+  exports: [AttachmentService],
 })
-export class AttachmentModule {}
+export class AttachmentModule { }
