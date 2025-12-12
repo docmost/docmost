@@ -1,0 +1,19 @@
+{
+    "name": "forkmost_devcontainer",
+    "dockerComposeFile": "compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspace",
+    "remoteUser": "node",
+    "features": {
+        "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:2.0.0": {}
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "dev.containers.copyGitConfig": true,
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.shellIntegration.enabled": false
+            }
+        }
+    }
+}

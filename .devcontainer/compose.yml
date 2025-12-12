@@ -1,0 +1,84 @@
+services:
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    env_file:
+      - ../.env.devcontainer
+    ports:
+      - 6379:6379
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$${REDIS_PASSWORD}\" ]; then redis-cli -a \"$${REDIS_PASSWORD}\" PING; else redis-cli PING; fi | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    env_file:
+      - ../.env.devcontainer
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_root:/var/lib/postgresql
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    env_file:
+      - ../.env.devcontainer
+    volumes:
+      - ..:/workspace:cached
+      - ~/.ssh:/home/vscode/.ssh:ro
+    command: sleep infinity
+    ports:
+      - 3000:3000
+      - 5173:5173
+    hostname: devcontainer
+    networks:
+      - internal_network
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports:
+      - 443:443
+      - 80:80
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      internal_network:
+        aliases:
+          - forkmost.local
+          - healthcheck.caddy
+    depends_on:
+      - devcontainer
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --server-response http://healthcheck.caddy/ 2>&1 | grep -E '200' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  internal_network:
+
+volumes:
+  postgres_root:
