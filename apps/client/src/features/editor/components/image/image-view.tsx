@@ -46,7 +46,7 @@ export default function ImageView(props: NodeViewProps) {
   }, [align, width]);
 
   return (
-    <NodeViewWrapper ref={ref}>
+    <NodeViewWrapper data-drag-handle ref={ref}>
       <Image
         radius="md"
         fit="contain"

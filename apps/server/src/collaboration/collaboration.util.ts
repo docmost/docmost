@@ -37,7 +37,7 @@ import {
   Subpages,
   TypstBlock,
   ColumnContainer,
-  Column
+  Column,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -49,6 +49,7 @@ import { Node } from '@tiptap/pm/model';
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+    heading: false,
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -96,9 +97,7 @@ export function jsonToHtml(tiptapJson: any) {
   return generateHTML(tiptapJson, tiptapExtensions);
 }
 
-export function htmlToJson(html: string) {
-  return generateJSON(html, tiptapExtensions);
-}
+export function htmlToJson(html: string) {}
 
 export function jsonToText(tiptapJson: JSONContent) {
   return generateText(tiptapJson, tiptapExtensions);

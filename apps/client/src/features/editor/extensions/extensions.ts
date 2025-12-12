@@ -2,6 +2,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList } from "@tiptap/extension-task-list";
+import { ListKeymap } from "@tiptap/extension-list-keymap";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { Underline } from "@tiptap/extension-underline";
 import { Superscript } from "@tiptap/extension-superscript";
@@ -11,7 +12,7 @@ import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import SlashCommand from "@/features/editor/extensions/slash-command";
-import { Collaboration } from "@tiptap/extension-collaboration";
+import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
@@ -59,7 +60,6 @@ import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
-import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import AudioView from "@/features/editor/components/audio/audio-view.tsx";
@@ -69,6 +69,7 @@ import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import abap from "highlightjs-sap-abap";
@@ -106,8 +107,8 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
-    history: false,
     heading: false,
+    history: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -122,7 +123,7 @@ export const mainExtensions = [
   Heading.extend({
     addNodeView() {
       return ReactNodeViewRenderer(HeadingView);
-    }
+    },
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -144,6 +145,7 @@ export const mainExtensions = [
   TaskItem.configure({
     nested: true,
   }),
+  ListKeymap,
   Underline,
   LinkExtension.configure({
     openOnClick: false,
@@ -266,27 +268,30 @@ export const mainExtensions = [
   SearchAndReplace.extend({
     addKeyboardShortcuts() {
       return {
-        'Mod-f': () => {
+        "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Mod-h': () => {
-          const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+        "Mod-h": () => {
+          const event = new CustomEvent(
+            "openFindAndReplaceDialogFromEditor",
+            {},
+          );
           document.dispatchEvent(event);
           return true;
         },
-        'Alt-c': () => {
+        "Alt-c": () => {
           const event = new CustomEvent("matchCaseToggle", {});
           document.dispatchEvent(event);
           return true;
         },
-        'Escape': () => {
+        Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
           return true;
         },
-      }
+      };
     },
   }).configure(),
 ] as any;

@@ -194,7 +194,7 @@
   .floatRight {
     float: right;
   }
-  
+
   @media (max-width: 575px) {
     .react-renderer.node-image,
     .react-renderer.node-image img {
@@ -203,6 +203,39 @@
       padding: 0 !important;
     }
   }
+
+}
+
+.ProseMirror > h1,
+.ProseMirror > h2,
+.ProseMirror > h3,
+.ProseMirror > h4,
+.ProseMirror > h5,
+.ProseMirror > h6 {
+
+  > .link-btn {
+    cursor: pointer;
+    position: relative;
+
+  }
+
+  > .link-btn > .link-btn-content {
+    opacity: 0;
+    position: absolute;
+    left: 5px;
+    top: 0;
+    height: 100%;
+    transition: opacity 0.15s ease;
+    display: inline-flex;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  &:hover > .link-btn > .link-btn-content {
+    opacity: 1;
+  }
+
+  scroll-margin-top: 80px; /* match your header height */
 }
 
 .ProseMirror-icon {

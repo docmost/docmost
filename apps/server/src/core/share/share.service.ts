@@ -96,9 +96,9 @@ export class ShareService {
       return await this.shareRepo.insertShare({
         key: nanoIdGen().toLowerCase(),
         pageId: page.id,
-        includeSubPages: createShareDto.includeSubPages || true,
-        searchIndexing: createShareDto.searchIndexing || true,
         passwordHash,
+        includeSubPages: createShareDto.includeSubPages ?? false,
+        searchIndexing: createShareDto.searchIndexing ?? false,
         creatorId: authUserId,
         spaceId: page.spaceId,
         workspaceId,
