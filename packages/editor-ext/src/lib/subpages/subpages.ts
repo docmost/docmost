@@ -28,7 +28,7 @@ export const Subpages = Node.create<SubpagesOptions>({
 
   group: "block",
   atom: true,
-  draggable: false,
+  draggable: true,
 
   parseHTML() {
     return [

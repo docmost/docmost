@@ -38,6 +38,8 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { EventName } from '../../../common/events/event.contants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class PageService {
@@ -49,6 +51,8 @@ export class PageService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async findById(
@@ -231,21 +235,33 @@ export class PageService {
         );
       }
 
-      // update spaceId in shares
       if (pageIds.length > 0) {
+        // update spaceId in shares
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIds)
           .execute();
-      }
 
-      // Update attachments
-      await this.attachmentRepo.updateAttachmentsByPageId(
-        { spaceId },
-        pageIds,
-        trx,
-      );
+        // Update comments
+        await trx
+          .updateTable('comments')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+
+        // Update attachments
+        await this.attachmentRepo.updateAttachmentsByPageId(
+          { spaceId },
+          pageIds,
+          trx,
+        );
+
+        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
+          pageId: pageIds,
+          workspaceId: rootPage.workspaceId
+        });
+      }
     });
   }
 
@@ -371,14 +387,20 @@ export class PageService {
           workspaceId: page.workspaceId,
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
-          parentPageId: page.parentPageId
-            ? pageMap.get(page.parentPageId)?.newPageId
-            : null,
+          parentPageId: page.id === rootPage.id
+            ? (isDuplicateInSameSpace ? rootPage.parentPageId : null)
+            : (page.parentPageId ? pageMap.get(page.parentPageId)?.newPageId : null),
         };
       }),
     );
 
     await this.db.insertInto('pages').values(insertablePages).execute();
+
+    const insertedPageIds = insertablePages.map((page) => page.id);
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: insertedPageIds,
+      workspaceId: authUser.workspaceId,
+    });
 
     //TODO: best to handle this in a queue
     const attachmentsIds = Array.from(attachmentMap.keys());
@@ -565,7 +587,7 @@ export class PageService {
     return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
   }
 
-  async forceDelete(pageId: string): Promise<void> {
+  async forceDelete(pageId: string, workspaceId: string): Promise<void> {
     // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
@@ -606,10 +628,18 @@ export class PageService {
 
     if (pageIds.length > 0) {
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+      this.eventEmitter.emit(EventName.PAGE_DELETED, {
+        pageIds: pageIds,
+        workspaceId,
+      });
     }
   }
 
-  async remove(pageId: string, userId: string): Promise<void> {
-    await this.pageRepo.removePage(pageId, userId);
+  async removePage(
+    pageId: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    await this.pageRepo.removePage(pageId, userId, workspaceId);
   }
 }

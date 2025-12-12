@@ -5,7 +5,7 @@
   );
   color: light-dark(
     var(--mantine-color-default-color),
-    var(--mantine-color-dark-0)
+    var(--mantine-color-white)
   );
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
@@ -115,7 +115,7 @@
   }
 
   & > .react-renderer {
-    margin-top:  var(--mantine-spacing-sm);
+    margin-top: var(--mantine-spacing-sm);
     margin-bottom: var(--mantine-spacing-sm);
 
     &:first-child {
@@ -141,7 +141,7 @@
 
   .selection,
   *::selection {
-    background-color: Highlight;
+    background-color: light-dark(Highlight, var(--mantine-color-gray-7));
   }
 
   .comment-mark {
@@ -186,6 +186,39 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+}
+
+.ProseMirror > h1,
+.ProseMirror > h2,
+.ProseMirror > h3,
+.ProseMirror > h4,
+.ProseMirror > h5,
+.ProseMirror > h6 {
+  
+  > .link-btn {
+    cursor: pointer;
+    position: relative;
+
+  }
+  
+  > .link-btn > .link-btn-content {
+    opacity: 0;
+    position: absolute;
+    left: 5px;
+    top: 0;
+    height: 100%;
+    transition: opacity 0.15s ease;
+    display: inline-flex;
+    justify-content: center;
+    flex-direction: column;
+  }
+  
+  &:hover > .link-btn > .link-btn-content {
+    opacity: 1;
+  }
+
+  scroll-margin-top: 80px; /* match your header height */
 }
 
 .ProseMirror-icon {
@@ -209,4 +242,3 @@
 .actionIconGroup {
   background: var(--mantine-color-body);
 }
-

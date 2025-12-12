@@ -1,13 +1,14 @@
 import "@/features/editor/styles/index.css";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
-import { Heading } from "@tiptap/extension-heading";
+import { Heading, generateNodeId, UniqueID } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { useEditorScroll } from "./hooks/use-editor-scroll";
 
 interface PageEditorProps {
   title: string;
@@ -21,9 +22,34 @@ export default function ReadonlyPageEditor({
   pageId,
 }: PageEditorProps) {
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
+  const isComponentMounted = useRef(false);
+  const editorCreated = useRef(false);
+
+  const canScroll = useCallback(
+    () => isComponentMounted.current && editorCreated.current,
+    [isComponentMounted, editorCreated],
+  );
+  const initialScrollTo = window.location.hash
+    ? window.location.hash.slice(1)
+    : "";
+  const { handleScrollTo } = useEditorScroll({ canScroll, initialScrollTo });
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+  }, []);
 
   const extensions = useMemo(() => {
-    return [...mainExtensions];
+    const filteredExtensions = mainExtensions.filter(
+      (ext) => ext.name !== "uniqueID",
+    );
+
+    return [
+      ...filteredExtensions,
+      UniqueID.configure({
+        types: ["heading", "paragraph"],
+        updateDocument: false,
+      }),
+    ];
   }, []);
 
   const titleExtensions = [
@@ -59,6 +85,9 @@ export default function ReadonlyPageEditor({
             }
             // @ts-ignore
             setReadOnlyEditor(editor);
+
+            handleScrollTo(editor);
+            editorCreated.current = true;
           }
         }}
       ></EditorProvider>
