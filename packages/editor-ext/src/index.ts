@@ -3,7 +3,6 @@ export * from "./lib/comment/comment";
 export * from "./lib/utils";
 export * from "./lib/math";
 export * from "./lib/details";
-export * from "./lib/heading";
 export * from "./lib/table";
 export * from "./lib/image";
 export * from "./lib/video";
