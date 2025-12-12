@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
-import { Heading, generateNodeId, UniqueID } from "@docmost/editor-ext";
+import { generateNodeId } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
@@ -39,24 +39,13 @@ export default function ReadonlyPageEditor({
   }, []);
 
   const extensions = useMemo(() => {
-    const filteredExtensions = mainExtensions.filter(
-      (ext) => ext.name !== "uniqueID",
-    );
-
-    return [
-      ...filteredExtensions,
-      UniqueID.configure({
-        types: ["heading", "paragraph"],
-        updateDocument: false,
-      }),
-    ];
+    return [...mainExtensions];
   }, []);
 
   const titleExtensions = [
     Document.extend({
       content: "heading",
     }),
-    Heading,
     Text,
     Placeholder.configure({
       placeholder: "Untitled",

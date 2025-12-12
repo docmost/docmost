@@ -11,7 +11,6 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
 import {
-  Heading,
   Callout,
   Comment,
   CustomCodeBlock,
@@ -38,7 +37,7 @@ import {
   Subpages,
   TypstBlock,
   ColumnContainer,
-  Column
+  Column,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -98,8 +97,7 @@ export function jsonToHtml(tiptapJson: any) {
   return generateHTML(tiptapJson, tiptapExtensions);
 }
 
-export function htmlToJson(html: string) {
-}
+export function htmlToJson(html: string) {}
 
 export function jsonToText(tiptapJson: JSONContent) {
   return generateText(tiptapJson, tiptapExtensions);

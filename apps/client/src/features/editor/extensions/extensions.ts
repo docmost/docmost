@@ -1,7 +1,6 @@
 import { StarterKit } from "@tiptap/starter-kit";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { CharacterCount } from "@tiptap/extension-character-count";
 import { TaskList } from "@tiptap/extension-task-list";
 import { ListKeymap } from "@tiptap/extension-list-keymap";
 import { TaskItem } from "@tiptap/extension-task-item";
@@ -12,8 +11,6 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import GlobalDragHandle from "tiptap-extension-global-drag-handle";
-import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
@@ -126,7 +123,7 @@ export const mainExtensions = [
   Heading.extend({
     addNodeView() {
       return ReactNodeViewRenderer(HeadingView);
-    }
+    },
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -276,12 +273,15 @@ export const mainExtensions = [
           document.dispatchEvent(event);
           return true;
         },
-        'Mod-h': () => {
-          const event = new CustomEvent("openFindAndReplaceDialogFromEditor", {});
+        "Mod-h": () => {
+          const event = new CustomEvent(
+            "openFindAndReplaceDialogFromEditor",
+            {},
+          );
           document.dispatchEvent(event);
           return true;
         },
-        'Alt-c': () => {
+        "Alt-c": () => {
           const event = new CustomEvent("matchCaseToggle", {});
           document.dispatchEvent(event);
           return true;
