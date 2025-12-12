@@ -48,13 +48,13 @@ export class OidcController {
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
     const redirectUri = `${this.environmentService.getAppUrl()}/auth/oidc/callback`;
-    
+
     if (!this.validateRedirectUri(redirectUri)) {
       throw new BadRequestException('Invalid redirect URI');
     }
-    
+
     const { url, state } = await this.oidcService.getAuthorizationUrl(workspace.id, redirectUri);
-    
+
     stateStore.set(state, { workspaceId: workspace.id, timestamp: Date.now() });
 
     return { url };
@@ -86,15 +86,15 @@ export class OidcController {
 
     try {
       const redirectUri = `${this.environmentService.getAppUrl()}/auth/oidc/callback`;
-      
+
       if (!this.validateRedirectUri(redirectUri)) {
         throw new BadRequestException('Invalid redirect URI');
       }
-      
+
       const { token } = await this.oidcService.handleCallback(workspace.id, code, state, iss, redirectUri);
-      
+
       this.setAuthCookie(res, token);
-      
+
       return { success: true };
     } catch (error) {
       throw error;

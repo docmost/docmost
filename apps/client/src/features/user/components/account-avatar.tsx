@@ -16,6 +16,8 @@ export default function AccountAvatar() {
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);
 
+  const isExternallyProvisioned = currentUser?.user?.isAvatarExternallyManaged;
+
   const handleUpload = async (selectedFile: File) => {
     setIsLoading(true);
     try {
@@ -53,6 +55,7 @@ export default function AccountAvatar() {
       onUpload={handleUpload}
       onRemove={handleRemove}
       isLoading={isLoading}
+      disabled={isExternallyProvisioned}
     />
   );
 }

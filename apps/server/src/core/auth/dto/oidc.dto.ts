@@ -48,6 +48,11 @@ export class CreateOidcProviderDto {
   @IsOptional()
   @IsString()
   oidcAllowedGroups?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  oidcAvatarAttribute?: string;
 }
 
 export class UpdateOidcProviderDto {
@@ -95,4 +100,9 @@ export class UpdateOidcProviderDto {
   @IsOptional()
   @IsBoolean()
   enforceSso?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  oidcAvatarAttribute?: string;
 }

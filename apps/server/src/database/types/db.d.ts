@@ -7,8 +7,8 @@ import type { ColumnType } from 'kysely';
 
 export type Generated<T> =
   T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
 export type Int8 = ColumnType<
   string,
@@ -90,6 +90,7 @@ export interface AuthProviders {
   ldapUserAttributes: Generated<Json | null>;
   ldapUserSearchFilter: string | null;
   name: string;
+  oidcAvatarAttribute: string | null;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;

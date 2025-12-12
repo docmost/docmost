@@ -19,6 +19,7 @@ export interface IOidcProvider {
   allowSignup: boolean;
   isEnabled: boolean;
   oidcAllowedGroups?: string;
+  oidcAvatarAttribute?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +34,7 @@ export interface ICreateOidcProvider {
   isEnabled?: boolean;
   enforceSso?: boolean;
   oidcAllowedGroups?: string;
+  oidcAvatarAttribute?: string;
 }
 
 export interface IUpdateOidcProvider {
@@ -45,6 +47,7 @@ export interface IUpdateOidcProvider {
   isEnabled?: boolean;
   enforceSso?: boolean;
   oidcAllowedGroups?: string;
+  oidcAvatarAttribute?: string;
 }
 
 export async function getOidcConfig(): Promise<IOidcConfig> {

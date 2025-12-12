@@ -28,9 +28,9 @@ export class OidcService {
     private readonly tokenService: TokenService,
     private readonly groupUserRepo: GroupUserRepo,
     private readonly workspaceService: WorkspaceService,
-  ) {}
+  ) { }
 
-  private sanitizeUserInfo(userinfo: any) {
+  private sanitizeUserInfo(userinfo: any, avatarAttribute?: string) {
     if (!userinfo.email || !isEmail(userinfo.email)) {
       throw new BadRequestException('Invalid email from OIDC provider');
     }
@@ -43,12 +43,28 @@ export class OidcService {
       throw new BadRequestException('Invalid subject from OIDC provider');
     }
 
+    let avatarUrl: string | undefined;
+    if (avatarAttribute) {
+      const avatarValue = userinfo[avatarAttribute];
+      if (avatarValue && typeof avatarValue === 'string') {
+        try {
+          const url = new URL(avatarValue);
+          if (url.protocol === 'https:' || url.protocol === 'http:') {
+            avatarUrl = avatarValue;
+          }
+        } catch {
+          throw new BadRequestException('Invalid avatar URL from OIDC provider');
+        }
+      }
+    }
+
     return {
       email: userinfo.email.toLowerCase().trim(),
       sub: userinfo.sub,
       name: userinfo.name
         ? String(userinfo.name).substring(0, 100)
         : userinfo.preferred_username || userinfo.email.split('@')[0],
+      avatarUrl,
     };
   }
 
@@ -127,7 +143,10 @@ export class OidcService {
         }
       }
 
-      const sanitizedUserinfo = this.sanitizeUserInfo(userinfo);
+      const sanitizedUserinfo = this.sanitizeUserInfo(
+        userinfo,
+        authProvider.oidcAvatarAttribute,
+      );
 
       if (!sanitizedUserinfo.email) {
         throw new BadRequestException('Email not provided by OIDC provider');
@@ -156,6 +175,14 @@ export class OidcService {
           sanitizedUserinfo.sub,
           authProvider.id,
         );
+        if (sanitizedUserinfo.avatarUrl) {
+          await this.userRepo.updateUser(
+            { avatarUrl: sanitizedUserinfo.avatarUrl },
+            user.id,
+            workspaceId,
+          );
+          user.avatarUrl = sanitizedUserinfo.avatarUrl;
+        }
       } else {
         if (!authProvider.allowSignup) {
           throw new UnauthorizedException(
@@ -216,6 +243,7 @@ export class OidcService {
       role: UserRole.MEMBER,
       emailVerifiedAt: new Date(),
       workspaceId,
+      avatarUrl: userinfo.avatarUrl,
     };
 
     let user: User;

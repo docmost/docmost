@@ -11,7 +11,7 @@ import {
 
 @Injectable()
 export class AuthProviderRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(@InjectKysely() private readonly db: KyselyDB) { }
 
   public baseFields: Array<keyof AuthProviders> = [
     'id',
@@ -23,6 +23,7 @@ export class AuthProviderRepo {
     'oidcClientId',
     'oidcClientSecret',
     'oidcAllowedGroups',
+    'oidcAvatarAttribute',
     'allowSignup',
     'scope',
     'isEnabled',

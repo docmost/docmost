@@ -107,7 +107,7 @@ export default function AvatarUploader({
         style={{ display: "none" }}
       />
 
-      <Menu shadow="md" width={200} withArrow disabled={disabled || isLoading}>
+      <Menu shadow="md" width={200} withArrow disabled={isLoading}>
         <Menu.Target>
           <Box style={{ position: "relative", display: "inline-block" }}>
             <CustomAvatar
@@ -116,7 +116,7 @@ export default function AvatarUploader({
               avatarUrl={currentImageUrl}
               name={fallbackName}
               style={{
-                cursor: disabled || isLoading ? "default" : "pointer",
+                cursor: isLoading ? "default" : "pointer",
                 opacity: isLoading ? 0.6 : 1,
               }}
               radius={radius}
