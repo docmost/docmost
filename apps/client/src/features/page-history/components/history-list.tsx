@@ -67,7 +67,7 @@ function HistoryList({ pageId }: Props) {
       mainEditorTitle
         .chain()
         .clearContent()
-        .setContent(activeHistoryData.title, true)
+        .setContent(activeHistoryData.title, { emitUpdate: true })
         .run();
       mainEditor
         .chain()

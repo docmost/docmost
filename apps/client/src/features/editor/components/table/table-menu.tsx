@@ -1,11 +1,6 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  posToDOMRect,
-  findParentNode,
-} from "@tiptap/react";
+import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback } from "react";
-
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -17,10 +12,12 @@ import {
   IconColumnRemove,
   IconRowInsertBottom,
   IconRowInsertTop,
-  IconRowRemove, IconTableColumn, IconTableRow,
+  IconRowRemove,
+  IconTableColumn,
+  IconTableRow,
   IconTrashX,
-} from '@tabler/icons-react';
-import { isCellSelection } from "@docmost/editor-ext";
+} from "@tabler/icons-react";
+import { isCellSelection, TiptapTippyBubbleMenu } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 
 export const TableMenu = React.memo(
@@ -87,7 +84,7 @@ export const TableMenu = React.memo(
     }, [editor]);
 
     return (
-      <BaseBubbleMenu
+      <TiptapTippyBubbleMenu
         editor={editor}
         pluginKey="table-menu"
         updateDelay={0}
@@ -121,8 +118,7 @@ export const TableMenu = React.memo(
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
-          <Tooltip position="top" label={t("Add left column")}
-          >
+          <Tooltip position="top" label={t("Add left column")}>
             <ActionIcon
               onClick={addColumnLeft}
               variant="default"
@@ -188,8 +184,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Toggle header row")}
-          >
+          <Tooltip position="top" label={t("Toggle header row")}>
             <ActionIcon
               onClick={toggleHeaderRow}
               variant="default"
@@ -200,8 +195,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Toggle header column")}
-          >
+          <Tooltip position="top" label={t("Toggle header column")}>
             <ActionIcon
               onClick={toggleHeaderColumn}
               variant="default"
@@ -224,7 +218,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
-      </BaseBubbleMenu>
+      </TiptapTippyBubbleMenu>
     );
   },
 );
