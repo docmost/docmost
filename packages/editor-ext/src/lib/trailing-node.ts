@@ -64,6 +64,12 @@ export const TrailingNode = Extension.create<TrailingNodeExtensionOptions>({
               return value
             }
 
+            // Ignore transactions from UniqueID extension to prevent infinite loops
+            // when UniqueID adds IDs to newly inserted trailing nodes
+            if (tr.getMeta('__uniqueIDTransaction')) {
+              return value
+            }
+
             const lastNode = tr.doc.lastChild
             return !nodeEqualsType({ node: lastNode, types: disabledNodes })
           },

@@ -38,14 +38,14 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
 }) => {
   const { t } = useTranslation();
   const [opened, setOpened] = React.useState(false);
-  
+
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!ctx.editor) {
         return null;
       }
-      
+
       let currentColor = "";
       if (ctx.editor.isActive("tableCell")) {
         const attrs = ctx.editor.getAttributes("tableCell");
@@ -54,7 +54,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
         const attrs = ctx.editor.getAttributes("tableHeader");
         currentColor = attrs.backgroundColor || "";
       }
-      
+
       return {
         currentColor,
         isTableCell: ctx.editor.isActive("tableCell"),
@@ -62,7 +62,7 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
       };
     },
   });
-  
+
   if (!editor || !editorState) {
     return null;
   }
@@ -71,19 +71,17 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
     editor
       .chain()
       .focus()
-      .updateAttributes("tableCell", { 
+      .updateAttributes("tableCell", {
         backgroundColor: color || null,
-        backgroundColorName: color ? colorName : null 
+        backgroundColorName: color ? colorName : null,
       })
-      .updateAttributes("tableHeader", { 
+      .updateAttributes("tableHeader", {
         backgroundColor: color || null,
-        backgroundColorName: color ? colorName : null 
+        backgroundColorName: color ? colorName : null,
       })
       .run();
     setOpened(false);
   };
-
-  const currentColor = editorState.currentColor;
 
   return (
     <Popover

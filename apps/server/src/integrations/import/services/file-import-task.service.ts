@@ -32,6 +32,8 @@ import { ImportAttachmentService } from './import-attachment.service';
 import { ModuleRef } from '@nestjs/core';
 import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class FileImportTaskService {
@@ -45,6 +47,7 @@ export class FileImportTaskService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -171,6 +174,67 @@ export class FileImportTaskService {
         filePath: relPath,
       });
     }
+
+    // Create placeholder pages for folders without corresponding files
+    const foldersWithContent = new Set<string>();
+
+    pagesMap.forEach((page) => {
+      const segments = page.filePath.split('/');
+      segments.pop(); // remove filename
+
+      // Build up all folder paths and mark them as having content
+      let currentPath = '';
+      for (const segment of segments) {
+        currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+        foldersWithContent.add(currentPath); // All ancestor folders have content
+      }
+    });
+
+    // Determine if there's a single root container folder
+    const rootLevelItems = new Set<string>();
+    pagesMap.forEach((page) => {
+      const firstSegment = page.filePath.split('/')[0];
+      rootLevelItems.add(firstSegment);
+    });
+
+    // If all files are in a single root folder and no files at root level exist
+    let skipRootFolder: string | null = null;
+    if (rootLevelItems.size === 1) {
+      const onlyRootItem = Array.from(rootLevelItems)[0];
+      // Check if this is a folder (not a file at root)
+      const hasRootFiles = Array.from(pagesMap.keys()).some(
+        (filePath) => !filePath.includes('/'),
+      );
+      if (!hasRootFiles) {
+        skipRootFolder = onlyRootItem;
+      }
+    }
+
+    // For each folder with content, create a placeholder page if no corresponding .md or .html exists
+    foldersWithContent.forEach((folderPath) => {
+      if (
+        skipRootFolder &&
+        folderPath?.toLowerCase() === skipRootFolder?.toLowerCase()
+      ) {
+        return;
+      }
+
+      const mdPath = `${folderPath}.md`;
+      const htmlPath = `${folderPath}.html`;
+
+      if (!pagesMap.has(mdPath) && !pagesMap.has(htmlPath)) {
+        const folderName = path.basename(folderPath);
+        pagesMap.set(mdPath, {
+          id: v7(),
+          slugId: generateSlugId(),
+          name: stripNotionID(folderName),
+          content: '',
+          parentPageId: null,
+          fileExtension: '.md',
+          filePath: mdPath,
+        });
+      }
+    });
 
     // parent/child linking
     pagesMap.forEach((page, filePath) => {
@@ -313,10 +377,23 @@ export class FileImportTaskService {
 
           for (const [filePath, page] of levelPages) {
             const absPath = path.join(extractDir, filePath);
-            let content = await fs.readFile(absPath, 'utf-8');
+            let content = '';
 
-            if (page.fileExtension.toLowerCase() === '.md') {
-              content = await markdownToHtml(content);
+            // Check if file exists (placeholder pages won't have physical files)
+            try {
+              await fs.access(absPath);
+              content = await fs.readFile(absPath, 'utf-8');
+
+              if (page.fileExtension.toLowerCase() === '.md') {
+                content = await markdownToHtml(content);
+              }
+            } catch (err: any) {
+              if (err?.code === 'ENOENT') {
+                // Use empty content, title will be the folder name
+                content = '';
+              } else {
+                throw err;
+              }
             }
 
             const htmlContent =
@@ -394,6 +471,13 @@ export class FileImportTaskService {
             );
             await this.backlinkRepo.insertBacklink(backlinkChunk, trx);
           }
+        }
+
+        if (validPageIds.size > 0) {
+          this.eventEmitter.emit(EventName.PAGE_CREATED, {
+            pageIds: Array.from(validPageIds),
+            workspaceId: fileTask.workspaceId,
+          });
         }
 
         this.logger.log(

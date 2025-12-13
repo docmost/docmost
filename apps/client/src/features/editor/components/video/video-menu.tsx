@@ -124,9 +124,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             onClick={alignVideoLeft}
             size="lg"
             aria-label={t("Align left")}
-            variant={
-              editorState?.isAlignLeft ? "light" : "default"
-            }
+            variant={editorState?.isAlignLeft ? "light" : "default"}
           >
             <IconLayoutAlignLeft size={18} />
           </ActionIcon>
@@ -137,9 +135,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             onClick={alignVideoCenter}
             size="lg"
             aria-label={t("Align center")}
-            variant={
-              editorState?.isAlignCenter ? "light" : "default"
-            }
+            variant={editorState?.isAlignCenter ? "light" : "default"}
           >
             <IconLayoutAlignCenter size={18} />
           </ActionIcon>
@@ -150,9 +146,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             onClick={alignVideoRight}
             size="lg"
             aria-label={t("Align right")}
-            variant={
-              editorState?.isAlignRight ? "light" : "default"
-            }
+            variant={editorState?.isAlignRight ? "light" : "default"}
           >
             <IconLayoutAlignRight size={18} />
           </ActionIcon>
@@ -160,10 +154,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       </ActionIcon.Group>
 
       {editorState?.width && (
-        <NodeWidthResize
-          onChange={onWidthChange}
-          value={editorState.width}
-        />
+        <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
       )}
     </BaseBubbleMenu>
   );

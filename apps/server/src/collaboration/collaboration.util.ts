@@ -2,13 +2,13 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
-import { Highlight } from '@tiptap/extension-highlight';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import {
+  Heading,
   Callout,
   Comment,
   CustomCodeBlock,
@@ -31,10 +31,12 @@ import {
   Embed,
   Mention,
   Subpages,
+  Highlight,
+  UniqueID,
+  addUniqueIdsToDoc,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
-import { generateHTML } from '../common/helpers/prosemirror/html';
-import { generateJSON } from '../common/helpers/prosemirror/html';
+import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
@@ -46,6 +48,11 @@ export const tiptapExtensions = [
     codeBlock: false,
     link: false,
     trailingNode: false,
+    heading: false,
+  }),
+  Heading,
+  UniqueID.configure({
+    types: ['heading', 'paragraph'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -88,7 +95,14 @@ export function jsonToHtml(tiptapJson: any) {
 }
 
 export function htmlToJson(html: string) {
-  return generateJSON(html, tiptapExtensions);
+  const pmJson = generateJSON(html, tiptapExtensions);
+
+  try {
+    return addUniqueIdsToDoc(pmJson, tiptapExtensions);
+  } catch (error) {
+    console.warn('failed to add unique ids to doc', error);
+    return pmJson;
+  }
 }
 
 export function jsonToText(tiptapJson: JSONContent) {

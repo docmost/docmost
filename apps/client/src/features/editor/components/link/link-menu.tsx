@@ -19,7 +19,6 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
       if (!ctx.editor) {
         return null;
       }
-
       const link = ctx.editor.getAttributes("link");
       return {
         href: link.href,
@@ -81,13 +80,13 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
           bg="var(--mantine-color-body)"
         >
           <LinkEditorPanel
-            initialUrl={editorState.href}
+            initialUrl={editorState?.href}
             onSetLink={onSetLink}
           />
         </Card>
       ) : (
         <LinkPreviewPanel
-          url={editorState.href}
+          url={editorState?.href}
           onClear={onUnsetLink}
           onEdit={handleEdit}
         />

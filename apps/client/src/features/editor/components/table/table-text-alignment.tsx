@@ -9,7 +9,6 @@ import {
   ActionIcon,
   Button,
   Popover,
-  rem,
   ScrollArea,
   Tooltip,
 } from "@mantine/core";
@@ -32,14 +31,14 @@ interface AlignmentItem {
 export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
   const { t } = useTranslation();
   const [opened, setOpened] = React.useState(false);
-  
+
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!ctx.editor) {
         return null;
       }
-      
+
       return {
         isAlignLeft: ctx.editor.isActive({ textAlign: "left" }),
         isAlignCenter: ctx.editor.isActive({ textAlign: "center" }),
@@ -47,7 +46,7 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
       };
     },
   });
-  
+
   if (!editor || !editorState) {
     return null;
   }
@@ -56,21 +55,21 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
     {
       name: "Align left",
       value: "left",
-      isActive: () => editorState.isAlignLeft,
+      isActive: () => editorState?.isAlignLeft,
       command: () => editor.chain().focus().setTextAlign("left").run(),
       icon: IconAlignLeft,
     },
     {
       name: "Align center",
       value: "center",
-      isActive: () => editorState.isAlignCenter,
+      isActive: () => editorState?.isAlignCenter,
       command: () => editor.chain().focus().setTextAlign("center").run(),
       icon: IconAlignCenter,
     },
     {
       name: "Align right",
       value: "right",
-      isActive: () => editorState.isAlignRight,
+      isActive: () => editorState?.isAlignRight,
       command: () => editor.chain().focus().setTextAlign("right").run(),
       icon: IconAlignRight,
     },
@@ -84,7 +83,7 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
       onChange={setOpened}
       position="bottom"
       withArrow
-      transitionProps={{ transition: 'pop' }}
+      transitionProps={{ transition: "pop" }}
     >
       <Popover.Target>
         <Tooltip label={t("Text alignment")} withArrow>
@@ -107,9 +106,7 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
                 key={index}
                 variant="default"
                 leftSection={<item.icon size={16} />}
-                rightSection={
-                  item.isActive() && <IconCheck size={16} />
-                }
+                rightSection={item.isActive() && <IconCheck size={16} />}
                 justify="left"
                 fullWidth
                 onClick={() => {

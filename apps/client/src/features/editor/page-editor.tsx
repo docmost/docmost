@@ -1,5 +1,11 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -8,7 +14,12 @@ import {
   onAuthenticationFailedParameters,
   WebSocketStatus,
 } from "@hocuspocus/provider";
-import { EditorContent, EditorProvider, useEditor, useEditorState } from "@tiptap/react";
+import {
+  EditorContent,
+  EditorProvider,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import {
   collabExtensions,
   mainExtensions,
@@ -51,7 +62,8 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
-import { searchSpotlight } from '@/features/search/constants.ts';
+import { searchSpotlight } from "@/features/search/constants.ts";
+import { useEditorScroll } from "./hooks/use-editor-scroll";
 
 interface PageEditorProps {
   pageId: string;
@@ -65,6 +77,13 @@ export default function PageEditor({
   content,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
+  const isComponentMounted = useRef(false);
+  const editorCreated = useRef(false);
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+  }, []);
+
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -91,6 +110,11 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
+  const canScroll = useCallback(
+    () => isComponentMounted.current && editorCreated.current,
+    [isComponentMounted, editorCreated],
+  );
+  const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -215,7 +239,7 @@ export default function PageEditor({
               event.preventDefault();
               return true;
             }
-            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') {
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
               searchSpotlight.open();
               return true;
             }
@@ -252,6 +276,8 @@ export default function PageEditor({
           setEditor(editor);
           // @ts-ignore
           editor.storage.pageId = pageId;
+          handleScrollTo(editor);
+          editorCreated.current = true;
         }
       },
       onUpdate({ editor }) {
@@ -263,11 +289,10 @@ export default function PageEditor({
     },
     [pageId, editable, remoteProvider],
   );
-  
-  // Track editor's editable state since shouldRerenderOnTransaction is false
+
   const editorIsEditable = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       return ctx.editor?.isEditable ?? false;
     },
   });
@@ -369,20 +394,15 @@ export default function PageEditor({
   const [showStatic, setShowStatic] = useState(true);
 
   useEffect(() => {
-    // Wait for both connection and sync before switching from static editor
     if (
       !hasConnectedOnceRef.current &&
       remoteProvider?.configuration.websocketProvider.status ===
-        WebSocketStatus.Connected &&
-      isLocalSynced // Also wait for local sync to complete
+        WebSocketStatus.Connected
     ) {
       hasConnectedOnceRef.current = true;
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        setShowStatic(false);
-      }, 100);
+      setShowStatic(false);
     }
-  }, [remoteProvider?.configuration.websocketProvider.status, isLocalSynced]);
+  }, [remoteProvider?.configuration.websocketProvider.status]);
 
   if (showStatic) {
     return (

@@ -9,6 +9,6 @@ import { StorageModule } from '../../integrations/storage/storage.module';
   controllers: [PageController],
   providers: [PageService, PageHistoryService, TrashCleanupService],
   exports: [PageService, PageHistoryService],
-  imports: [StorageModule]
+  imports: [StorageModule],
 })
 export class PageModule {}

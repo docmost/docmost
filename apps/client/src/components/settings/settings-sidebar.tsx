@@ -12,15 +12,18 @@ import {
   IconLock,
   IconKey,
   IconWorld,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
 import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import {
+  prefetchApiKeyManagement,
+  prefetchApiKeys,
   prefetchBilling,
   prefetchGroups,
   prefetchLicense,
@@ -60,6 +63,14 @@ const groupedData: DataGroup[] = [
         icon: IconBrush,
         path: "/settings/account/preferences",
       },
+      {
+        label: "API keys",
+        icon: IconKey,
+        path: "/settings/account/api-keys",
+        isCloud: true,
+        isEnterprise: true,
+        showDisabledInNonEE: true,
+      },
     ],
   },
   {
@@ -90,6 +101,22 @@ const groupedData: DataGroup[] = [
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
       { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
+      {
+        label: "API management",
+        icon: IconKey,
+        path: "/settings/api-keys",
+        isCloud: true,
+        isEnterprise: true,
+        isAdmin: true,
+        showDisabledInNonEE: true,
+      },
+      {
+        label: "AI settings",
+        icon: IconSparkles,
+        path: "/settings/ai",
+        isAdmin: true,
+        isSelfhosted: true,
+      },
     ],
   },
   {
@@ -194,6 +221,12 @@ export default function SettingsSidebar() {
               break;
             case "Public sharing":
               prefetchHandler = prefetchShares;
+              break;
+            case "API keys":
+              prefetchHandler = prefetchApiKeys;
+              break;
+            case "API management":
+              prefetchHandler = prefetchApiKeyManagement;
               break;
             default:
               break;

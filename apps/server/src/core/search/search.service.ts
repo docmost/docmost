@@ -21,13 +21,14 @@ export class SearchService {
   ) {}
 
   async searchPage(
-    query: string,
     searchParams: SearchDTO,
     opts: {
       userId?: string;
       workspaceId: string;
     },
   ): Promise<SearchResponseDto[]> {
+    const { query } = searchParams;
+
     if (query.length < 1) {
       return;
     }
@@ -61,7 +62,7 @@ export class SearchService {
       )
       .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 20)
+      .limit(searchParams.limit | 25)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {

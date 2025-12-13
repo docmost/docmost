@@ -3,13 +3,18 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -24,6 +29,18 @@ export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface ApiKeys {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  expiresAt: Timestamp | null;
+  id: Generated<string>;
+  lastUsedAt: Timestamp | null;
+  name: string | null;
+  updatedAt: Generated<Timestamp>;
+  creatorId: string;
+  workspaceId: string;
+}
 
 export interface Attachments {
   createdAt: Generated<Timestamp>;
@@ -344,6 +361,7 @@ export interface Workspaces {
 }
 
 export interface DB {
+  apiKeys: ApiKeys;
   attachments: Attachments;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;

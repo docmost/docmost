@@ -6,7 +6,7 @@ import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { ActionIcon, Tooltip, Divider } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconAlertTriangleFilled,
   IconCircleCheckFilled,
@@ -20,6 +20,17 @@ import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+
+  const shouldShow = useCallback(
+    ({ state }: ShouldShowProps) => {
+      if (!state) {
+        return false;
+      }
+
+      return editor.isActive("callout");
+    },
+    [editor],
+  );
 
   const editorState = useEditorState({
     editor,
@@ -37,17 +48,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       };
     },
   });
-
-  const shouldShow = useCallback(
-    ({ state }: ShouldShowProps) => {
-      if (!state) {
-        return false;
-      }
-
-      return editor.isActive("callout");
-    },
-    [editor],
-  );
 
   const getReferencedVirtualElement = useCallback(() => {
     if (!editor) return;

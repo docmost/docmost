@@ -39,7 +39,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
 
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!editor) {
         return null;
       }
@@ -65,45 +65,45 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       command: () =>
         editor.chain().focus().toggleNode("paragraph", "paragraph").run(),
       isActive: () =>
-        editorState.isParagraph &&
-        !editorState.isBulletList &&
-        !editorState.isOrderedList,
+        editorState?.isParagraph &&
+        !editorState?.isBulletList &&
+        !editorState?.isOrderedList,
     },
     {
       name: "Heading 1",
       icon: IconH1,
       command: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-      isActive: () => editorState.isHeading1,
+      isActive: () => editorState?.isHeading1,
     },
     {
       name: "Heading 2",
       icon: IconH2,
       command: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-      isActive: () => editorState.isHeading2,
+      isActive: () => editorState?.isHeading2,
     },
     {
       name: "Heading 3",
       icon: IconH3,
       command: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-      isActive: () => editorState.isHeading3,
+      isActive: () => editorState?.isHeading3,
     },
     {
       name: "To-do List",
       icon: IconCheckbox,
       command: () => editor.chain().focus().toggleTaskList().run(),
-      isActive: () => editorState.isTaskItem,
+      isActive: () => editorState?.isTaskItem,
     },
     {
       name: "Bullet List",
       icon: IconList,
       command: () => editor.chain().focus().toggleBulletList().run(),
-      isActive: () => editorState.isBulletList,
+      isActive: () => editorState?.isBulletList,
     },
     {
       name: "Numbered List",
       icon: IconListNumbers,
       command: () => editor.chain().focus().toggleOrderedList().run(),
-      isActive: () => editorState.isOrderedList,
+      isActive: () => editorState?.isOrderedList,
     },
     {
       name: "Blockquote",
@@ -115,13 +115,13 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
           .toggleNode("paragraph", "paragraph")
           .toggleBlockquote()
           .run(),
-      isActive: () => editorState.isBlockquote,
+      isActive: () => editorState?.isBlockquote,
     },
     {
       name: "Code",
       icon: IconCode,
       command: () => editor.chain().focus().toggleCodeBlock().run(),
-      isActive: () => editorState.isCodeBlock,
+      isActive: () => editorState?.isCodeBlock,
     },
   ];
 

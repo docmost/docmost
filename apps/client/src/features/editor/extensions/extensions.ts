@@ -1,17 +1,17 @@
 import { StarterKit } from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { TaskList, TaskItem, ListKeymap } from "@tiptap/extension-list";
 import { Placeholder, CharacterCount } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
-import { Highlight } from "@tiptap/extension-highlight";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
+import GlobalDragHandle from "tiptap-extension-global-drag-handle";
+import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand from "@/features/editor/extensions/slash-command";
-import { Collaboration } from "@tiptap/extension-collaboration";
+import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
-
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
   Comment,
@@ -39,6 +39,9 @@ import {
   Mention,
   TableDndExtension,
   Subpages,
+  Heading,
+  Highlight,
+  UniqueID,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -47,17 +50,16 @@ import {
 import { IUser } from "@/features/user/types/user.types.ts";
 import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
 import MathBlockView from "@/features/editor/components/math/math-block.tsx";
-import GlobalDragHandle from "tiptap-extension-global-drag-handle";
-import { Youtube } from "@tiptap/extension-youtube";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
-import { common, createLowlight } from "lowlight";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
 import abap from "highlightjs-sap-abap";
@@ -75,7 +77,6 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
-import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -91,6 +92,7 @@ lowlight.register("scala", scala);
 
 export const mainExtensions = [
   StarterKit.configure({
+    heading: false,
     undoRedo: false,
     link: false,
     trailingNode: false,
@@ -104,6 +106,11 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+  }),
+  Heading,
+  UniqueID.configure({
+    types: ["heading", "paragraph"],
+    filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
     placeholder: ({ node }) => {
@@ -248,6 +255,7 @@ type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
 export const collabExtensions: CollabExtensions = (provider, user) => [
   Collaboration.configure({
     document: provider.document,
+    provider,
   }),
   CollaborationCaret.configure({
     provider,

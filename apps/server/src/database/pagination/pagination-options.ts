@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -23,4 +24,8 @@ export class PaginationOptions {
   @IsOptional()
   @IsString()
   query: string;
+
+  @IsOptional()
+  @IsBoolean()
+  adminView: boolean;
 }
