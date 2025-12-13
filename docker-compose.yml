@@ -16,7 +16,7 @@ services:
       - docmost:/app/data/storage
 
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
