@@ -117,7 +117,7 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @ValidateIf((obj) => obj.AI_EMBEDDING_DIMENSION)
-  @IsIn(['768', '1024', '1536'])
+  @IsIn(['768', '1024', '1536', '2000'])
   @IsString()
   AI_EMBEDDING_DIMENSION: string;
 

@@ -3,7 +3,6 @@ import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
 import { Selection, Transaction } from "@tiptap/pm/state";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
 import { Node, ResolvedPos } from "@tiptap/pm/model";
-import Table from "@tiptap/extension-table";
 import { sanitizeUrl as braintreeSanitizeUrl } from "@braintree/sanitize-url";
 import { customAlphabet } from "nanoid";
 
@@ -289,7 +288,7 @@ export const isColumnGripSelected = ({
   const node = nodeDOM || domAtPos;
 
   if (
-    !editor.isActive(Table.name) ||
+    !editor.isActive("table") ||
     !node ||
     isTableSelected(state.selection)
   ) {
