@@ -27,6 +27,7 @@ import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import SharedPage from "@/pages/share/shared-page.tsx";
+import SharedSpace from "@/pages/share/shared-space.tsx";
 import Shares from "@/pages/settings/shares/shares.tsx";
 import ShareLayout from "@/features/share/components/share-layout.tsx";
 import ShareRedirect from "@/pages/share/share-redirect.tsx";
@@ -72,6 +73,14 @@ export default function App() {
             element={<SharedPage />}
           />
           <Route path={"/share/p/:pageSlug"} element={<SharedPage />} />
+          <Route
+            path={"/share/:shareId/s/:spaceSlug"}
+            element={<SharedSpace />}
+          />
+          <Route
+            path={"/share/:shareId/s/:spaceSlug/p/:pageSlug"}
+            element={<SharedSpace />}
+          />
         </Route>
 
         <Route path={"/share/:shareId"} element={<ShareRedirect />} />

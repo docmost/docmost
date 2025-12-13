@@ -56,3 +56,33 @@ export class SharePageIdDto {
   @IsNotEmpty()
   pageId: string;
 }
+
+export class CreateSpaceShareDto {
+  @IsUUID()
+  @IsNotEmpty()
+  spaceId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  searchIndexing?: boolean;
+}
+
+export class UpdateSpaceShareDto {
+  @IsString()
+  @IsNotEmpty()
+  shareId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  searchIndexing?: boolean;
+}
+
+export class SpaceShareInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  shareId: string;
+
+  @IsString()
+  @IsOptional()
+  pageId?: string;
+}

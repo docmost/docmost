@@ -20,10 +20,14 @@ import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { ShareService } from './share.service';
 import {
   CreateShareDto,
+  CreateSpaceShareDto,
   ShareIdDto,
   ShareInfoDto,
   SharePageIdDto,
+  SpaceIdDto,
+  SpaceShareInfoDto,
   UpdateShareDto,
+  UpdateSpaceShareDto,
 } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -178,6 +182,117 @@ export class ShareController {
   ) {
     return {
       ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
+    };
+  }
+
+  // Space Share Endpoints
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/for-space')
+  async getShareForSpace(
+    @Body() dto: SpaceIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
+      throw new ForbiddenException();
+    }
+
+    return this.shareService.getSpaceShare(dto.spaceId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/create-space')
+  async createSpaceShare(
+    @Body() createSpaceShareDto: CreateSpaceShareDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      createSpaceShareDto.spaceId,
+    );
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+
+    return this.shareService.createSpaceShare({
+      spaceId: createSpaceShareDto.spaceId,
+      authUserId: user.id,
+      workspaceId: workspace.id,
+      createSpaceShareDto,
+    });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/update-space')
+  async updateSpaceShare(
+    @Body() updateSpaceShareDto: UpdateSpaceShareDto,
+    @AuthUser() user: User,
+  ) {
+    const share = await this.shareRepo.findById(updateSpaceShareDto.shareId);
+
+    if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+
+    return this.shareService.updateSpaceShare(share.id, updateSpaceShareDto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/delete-space')
+  async deleteSpaceShare(@Body() shareIdDto: ShareIdDto, @AuthUser() user: User) {
+    const share = await this.shareRepo.findById(shareIdDto.shareId);
+
+    if (!share || share.pageId !== null) {
+      throw new NotFoundException('Space share not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+      throw new ForbiddenException();
+    }
+
+    await this.shareRepo.deleteShare(share.id);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/space-tree')
+  async getSpaceShareTree(
+    @Body() dto: ShareIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return {
+      ...(await this.shareService.getSpaceShareTree(dto.shareId, workspace.id)),
+      hasLicenseKey: hasLicenseOrEE({
+        licenseKey: workspace.licenseKey,
+        isCloud: this.environmentService.isCloud(),
+        plan: workspace.plan,
+      }),
+    };
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('/space-page-info')
+  async getSharedSpacePageInfo(
+    @Body() dto: SpaceShareInfoDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return {
+      ...(await this.shareService.getSharedSpacePage(dto, workspace.id)),
       hasLicenseKey: hasLicenseOrEE({
         licenseKey: workspace.licenseKey,
         isCloud: this.environmentService.isCloud(),

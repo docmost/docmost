@@ -95,6 +95,32 @@ export class ShareRepo {
     return query.executeTakeFirst();
   }
 
+  async findSpaceShare(
+    spaceId: string,
+    opts?: {
+      includeCreator?: boolean;
+      withLock?: boolean;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Share> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('shares')
+      .select(this.baseFields)
+      .where('spaceId', '=', spaceId)
+      .where('pageId', 'is', null);
+
+    if (opts?.includeCreator) {
+      query = query.select((eb) => this.withCreator(eb));
+    }
+
+    if (opts?.withLock && opts?.trx) {
+      query = query.forUpdate();
+    }
+    return query.executeTakeFirst();
+  }
+
   async updateShare(
     updatableShare: UpdatableShare,
     shareId: string,

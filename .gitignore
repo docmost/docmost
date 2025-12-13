@@ -41,3 +41,6 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+
+# Claude Code
+.claude/

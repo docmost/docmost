@@ -9,6 +9,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import {
   ICreateShare,
+  ICreateSpaceShare,
   IShare,
   ISharedItem,
   ISharedPage,
@@ -16,16 +17,21 @@ import {
   IShareForPage,
   IShareInfoInput,
   IUpdateShare,
+  IUpdateSpaceShare,
 } from "@/features/share/types/share.types.ts";
 import {
   createShare,
+  createSpaceShare,
   deleteShare,
+  deleteSpaceShare,
   getSharedPageTree,
   getShareForPage,
+  getShareForSpace,
   getShareInfo,
   getSharePageInfo,
   getShares,
   updateShare,
+  updateSpaceShare,
 } from "@/features/share/services/share-service.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
 import { IPagination, QueryParams } from "@/lib/types.ts";
@@ -175,5 +181,86 @@ export function useGetSharedPageTreeQuery(
     enabled: !!shareId,
     placeholderData: keepPreviousData,
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+// Space Share Queries
+
+export function useSpaceShareQuery(
+  spaceId: string,
+): UseQueryResult<IShare | null, Error> {
+  return useQuery({
+    queryKey: ["share-for-space", spaceId],
+    queryFn: () => getShareForSpace(spaceId),
+    enabled: !!spaceId,
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+export function useCreateSpaceShareMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, ICreateSpaceShare>({
+    mutationFn: (data) => createSpaceShare(data),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["share-for-space", "share-list"].includes(item.queryKey[0] as string),
+      });
+    },
+    onError: (error) => {
+      notifications.show({ message: t("Failed to share space"), color: "red" });
+    },
+  });
+}
+
+export function useUpdateSpaceShareMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, IUpdateSpaceShare>({
+    mutationFn: (data) => updateSpaceShare(data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["share-for-space", "share-list"].includes(item.queryKey[0] as string),
+      });
+    },
+    onError: (error) => {
+      notifications.show({
+        message: t("Failed to update space share"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useDeleteSpaceShareMutation() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (shareId: string) => deleteSpaceShare(shareId),
+    onSuccess: (data) => {
+      queryClient.removeQueries({
+        predicate: (item) =>
+          ["share-for-space"].includes(item.queryKey[0] as string),
+      });
+
+      queryClient.invalidateQueries({
+        predicate: (item) =>
+          ["share-list"].includes(item.queryKey[0] as string),
+      });
+
+      notifications.show({ message: t("Space share deleted successfully") });
+    },
+    onError: (error) => {
+      notifications.show({
+        message: t("Failed to delete space share"),
+        color: "red",
+      });
+    },
   });
 }
