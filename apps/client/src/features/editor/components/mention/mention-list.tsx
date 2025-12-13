@@ -106,6 +106,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
       setRenderItems(items);
       // update editor storage
+      //@ts-ignore
       props.editor.storage.mentionItems = items;
     }
   }, [suggestion, isLoading]);

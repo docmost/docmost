@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SearchDTO, SearchSuggestionDTO } from './dto/search.dto';
 import { SearchResponseDto } from './dto/search-response.dto';
 import { InjectKysely } from 'nestjs-kysely';
@@ -13,6 +13,8 @@ const tsquery = require('pg-tsquery')();
 
 @Injectable()
 export class SearchService {
+  private readonly logger = new Logger(SearchService.name);
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private pageRepo: PageRepo,
@@ -131,6 +133,91 @@ export class SearchService {
     });
 
     return searchResults;
+  }
+
+  async searchAttachments(
+    searchParams: SearchDTO,
+    opts: {
+      userId: string;
+      workspaceId: string;
+    },
+  ): Promise<any[]> {
+    const { query } = searchParams;
+    this.logger.log(`searchAttachments called with query="${query}", userId=${opts.userId}, workspaceId=${opts.workspaceId}`);
+
+    if (query.length < 1) {
+      this.logger.log('Query too short, returning empty');
+      return [];
+    }
+
+    const searchQuery = tsquery(query.trim() + '*');
+    this.logger.log(`Transformed query: ${searchQuery}`);
+
+    // Get user's space IDs for permission filtering
+    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(opts.userId);
+    this.logger.log(`User space IDs: ${JSON.stringify(userSpaceIds)}`);
+    if (userSpaceIds.length === 0) {
+      this.logger.log('No space IDs found for user, returning empty');
+      return [];
+    }
+
+    let queryResults = this.db
+      .selectFrom('attachments')
+      .innerJoin('pages', 'attachments.pageId', 'pages.id')
+      .innerJoin('spaces', 'attachments.spaceId', 'spaces.id')
+      .select([
+        'attachments.id',
+        'attachments.fileName',
+        'attachments.pageId',
+        'attachments.creatorId',
+        'attachments.createdAt',
+        'attachments.updatedAt',
+        sql<number>`ts_rank(attachments.tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+          'rank',
+        ),
+        sql<string>`ts_headline('english', attachments.text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+          'highlight',
+        ),
+        sql<string>`json_build_object('id', spaces.id, 'name', spaces.name, 'slug', spaces.slug, 'logo', spaces.logo)`.as(
+          'space',
+        ),
+        sql<string>`json_build_object('id', pages.id, 'title', pages.title, 'slugId', pages.slug_id)`.as(
+          'page',
+        ),
+      ])
+      .where(
+        'attachments.tsv',
+        '@@',
+        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      )
+      .where('attachments.spaceId', 'in', userSpaceIds)
+      .where('attachments.workspaceId', '=', opts.workspaceId)
+      .where('pages.deletedAt', 'is', null)
+      .$if(Boolean(searchParams.spaceId), (qb) =>
+        qb.where('attachments.spaceId', '=', searchParams.spaceId),
+      )
+      .orderBy('rank', 'desc')
+      .limit(searchParams.limit || 25)
+      .offset(searchParams.offset || 0);
+
+    try {
+      const results = await queryResults.execute();
+      this.logger.log(`Query executed, found ${results.length} results`);
+
+      // Clean up highlight text
+      return results.map((result: any) => {
+        if (result.highlight) {
+          result.highlight = result.highlight
+            .replace(/\r\n|\r|\n/g, ' ')
+            .replace(/\s+/g, ' ');
+        }
+        return result;
+      });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`Search query failed: ${err.message}`, err.stack);
+      throw error;
+    }
   }
 
   async searchSuggestions(

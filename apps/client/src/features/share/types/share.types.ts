@@ -3,7 +3,7 @@ import { IPage } from "@/features/page/types/page.types.ts";
 export interface IShare {
   id: string;
   key: string;
-  pageId: string;
+  pageId: string | null;
   includeSubPages: boolean;
   searchIndexing: boolean;
   creatorId: string;
@@ -13,6 +13,8 @@ export interface IShare {
   updatedAt: string;
   deletedAt: string | null;
   sharedPage?: ISharePage;
+  isSpaceShare?: boolean;
+  sharedSpace?: IShareSpace;
 }
 
 export interface ISharedItem extends IShare {
@@ -56,6 +58,12 @@ interface ISharePage {
   icon: string;
 }
 
+interface IShareSpace {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface ICreateShare {
   pageId?: string;
   includeSubPages?: boolean;
@@ -72,4 +80,21 @@ export interface ISharedPageTree {
   share: IShare;
   pageTree: Partial<IPage[]>;
   hasLicenseKey: boolean;
+}
+
+// Space Share Types
+export interface ICreateSpaceShare {
+  spaceId: string;
+  searchIndexing?: boolean;
+}
+
+export interface IUpdateSpaceShare {
+  shareId: string;
+  searchIndexing?: boolean;
+}
+
+export interface ISpaceShareForPage extends IShare {
+  level: number;
+  isSpaceShare: boolean;
+  sharedSpace?: IShareSpace;
 }

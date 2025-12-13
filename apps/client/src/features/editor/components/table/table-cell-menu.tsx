@@ -1,11 +1,9 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react";
 import React, { useCallback } from "react";
-
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, TiptapTippyBubbleMenu } from '@docmost/editor-ext';
 import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconBoxMargin,
@@ -53,7 +51,7 @@ export const TableCellMenu = React.memo(
     }, [editor]);
 
     return (
-      <BaseBubbleMenu
+      <TiptapTippyBubbleMenu
         editor={editor}
         pluginKey="table-cell-menu"
         updateDelay={0}
@@ -69,7 +67,7 @@ export const TableCellMenu = React.memo(
         <ActionIcon.Group>
           <TableBackgroundColor editor={editor} />
           <TableTextAlignment editor={editor} />
-          
+
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}
@@ -125,7 +123,7 @@ export const TableCellMenu = React.memo(
             </ActionIcon>
           </Tooltip>
         </ActionIcon.Group>
-      </BaseBubbleMenu>
+      </TiptapTippyBubbleMenu>
     );
   },
 );

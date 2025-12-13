@@ -3,6 +3,7 @@ import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
+import SpaceSharing from "@/features/space/components/space-sharing.tsx";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -59,6 +60,9 @@ export default function SpaceSettingsModal({
                   <Tabs.Tab fw={500} value="members">
                     {t("Members")}
                   </Tabs.Tab>
+                  <Tabs.Tab fw={500} value="sharing">
+                    {t("Sharing")}
+                  </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="general">
@@ -89,6 +93,17 @@ export default function SpaceSettingsModal({
                     readOnly={spaceAbility.cannot(
                       SpaceCaslAction.Manage,
                       SpaceCaslSubject.Member,
+                    )}
+                  />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="sharing">
+                  <SpaceSharing
+                    spaceId={space?.id}
+                    spaceSlug={space?.slug}
+                    readOnly={spaceAbility.cannot(
+                      SpaceCaslAction.Manage,
+                      SpaceCaslSubject.Settings,
                     )}
                   />
                 </Tabs.Panel>

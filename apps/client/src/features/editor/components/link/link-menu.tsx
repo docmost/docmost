@@ -1,9 +1,10 @@
-import { BubbleMenu as BaseBubbleMenu, useEditorState } from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import React, { useCallback, useState } from "react";
 import { EditorMenuProps } from "@/features/editor/components/table/types/types.ts";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { LinkPreviewPanel } from "@/features/editor/components/link/link-preview.tsx";
 import { Card } from "@mantine/core";
+import { useEditorState } from "@tiptap/react";
 
 export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
   const [showEdit, setShowEdit] = useState(false);
@@ -59,18 +60,15 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`link-menu}`}
+      pluginKey={`link-menu`}
       updateDelay={0}
-      tippyOptions={{
-        appendTo: () => {
-          return appendTo?.current;
-        },
-        onHidden: () => {
+      options={{
+        onHide: () => {
           setShowEdit(false);
         },
         placement: "bottom",
-        offset: [0, 5],
-        zIndex: 101,
+        offset: 5,
+        // zIndex: 101,
       }}
       shouldShow={shouldShow}
     >

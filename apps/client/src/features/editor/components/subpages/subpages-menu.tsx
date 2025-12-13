@@ -1,15 +1,11 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  posToDOMRect,
-  findParentNode,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/core";
-import { sticky } from "tippy.js";
 
 interface SubpagesMenuProps {
   editor: Editor;
@@ -62,9 +58,9 @@ export const SubpagesMenu = React.memo(
     return (
       <BaseBubbleMenu
         editor={editor}
-        pluginKey={`subpages-menu}`}
+        pluginKey={`subpages-menu`}
         updateDelay={0}
-        tippyOptions={{
+        /* tippyOptions={{
           getReferenceClientRect,
           offset: [0, 8],
           zIndex: 99,
@@ -73,7 +69,7 @@ export const SubpagesMenu = React.memo(
           },
           plugins: [sticky],
           sticky: "popper",
-        }}
+        }}*/
         shouldShow={shouldShow}
       >
         <Tooltip position="top" label={t("Delete")}>

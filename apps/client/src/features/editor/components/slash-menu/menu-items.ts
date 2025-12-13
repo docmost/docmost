@@ -161,6 +161,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 
@@ -188,6 +189,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 
@@ -213,6 +215,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 

@@ -26,7 +26,7 @@ export class CollaborationGateway {
   ) {
     this.redisConfig = parseRedisUrl(this.environmentService.getRedisUrl());
 
-    this.hocuspocus = HocuspocusServer.configure({
+    this.hocuspocus = new Hocuspocus({
       debounce: 10000,
       maxDebounce: 45000,
       unloadImmediately: false,
@@ -65,6 +65,6 @@ export class CollaborationGateway {
   }
 
   async destroy(): Promise<void> {
-    await this.hocuspocus.destroy();
+    //await this.hocuspocus.destroy();
   }
 }

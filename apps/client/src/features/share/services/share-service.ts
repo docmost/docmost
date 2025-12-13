@@ -3,6 +3,7 @@ import { IPage } from "@/features/page/types/page.types";
 
 import {
   ICreateShare,
+  ICreateSpaceShare,
   IShare,
   ISharedItem,
   ISharedPage,
@@ -10,6 +11,7 @@ import {
   IShareForPage,
   IShareInfoInput,
   IUpdateShare,
+  IUpdateSpaceShare,
 } from "@/features/share/types/share.types.ts";
 import { IPagination, QueryParams } from "@/lib/types.ts";
 
@@ -56,4 +58,25 @@ export async function getSharedPageTree(
 ): Promise<ISharedPageTree> {
   const req = await api.post<ISharedPageTree>("/shares/tree", { shareId });
   return req.data;
+}
+
+// Space Share Functions
+
+export async function getShareForSpace(spaceId: string): Promise<IShare | null> {
+  const req = await api.post<IShare | null>("/shares/for-space", { spaceId });
+  return req.data;
+}
+
+export async function createSpaceShare(data: ICreateSpaceShare): Promise<IShare> {
+  const req = await api.post<IShare>("/shares/create-space", data);
+  return req.data;
+}
+
+export async function updateSpaceShare(data: IUpdateSpaceShare): Promise<IShare> {
+  const req = await api.post<IShare>("/shares/update-space", data);
+  return req.data;
+}
+
+export async function deleteSpaceShare(shareId: string): Promise<void> {
+  await api.post("/shares/delete-space", { shareId });
 }

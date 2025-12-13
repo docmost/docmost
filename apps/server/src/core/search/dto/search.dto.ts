@@ -13,7 +13,7 @@ export class SearchDTO {
 
   @IsOptional()
   @IsString()
-  spaceId: string;
+  spaceId?: string;
 
   @IsOptional()
   @IsString()

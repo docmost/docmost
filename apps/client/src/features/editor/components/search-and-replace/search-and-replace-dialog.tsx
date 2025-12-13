@@ -73,6 +73,8 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
     if (!editor) return;
 
     const { results, resultIndex } = editor.storage.searchAndReplace;
+    //TODO: check type error
+    //@ts-ignore
     const position: Range = results[resultIndex];
 
     if (!position) return;

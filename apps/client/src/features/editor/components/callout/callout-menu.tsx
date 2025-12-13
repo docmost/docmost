@@ -1,9 +1,5 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-  useEditorState,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
@@ -53,17 +49,26 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     },
   });
 
-  const getReferenceClientRect = useCallback(() => {
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "callout";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const setCalloutType = useCallback(
@@ -112,14 +117,12 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       editor={editor}
       pluginKey={`callout-menu`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 10],
+      getReferencedVirtualElement={getReferencedVirtualElement}
+      options={{
         placement: "bottom",
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
+        // offset: 233, //      //         offset: [0, 10],
+        // zIndex: 99,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >
