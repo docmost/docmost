@@ -240,13 +240,9 @@ export default function ShareTarget() {
 
             const blob = new Blob([finalContent], { type: "text/markdown" });
             const formData = new FormData();
-            formData.append("file", blob, "shared_page.md");
+            // Page import uses the filename as the title
+            formData.append("file", blob, `${finalTitle}.md`);
             formData.append("spaceId", selectedSpace);
-
-            // Append title if we have it
-            if (finalTitle) {
-                formData.append("title", finalTitle);
-            }
 
             if (selectedParentPage) {
                 formData.append("parentPageId", selectedParentPage);
