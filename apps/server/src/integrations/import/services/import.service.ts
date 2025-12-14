@@ -36,13 +36,14 @@ export class ImportService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
-  ) {}
+  ) { }
 
   async importPage(
     filePromise: Promise<MultipartFile>,
     userId: string,
     spaceId: string,
     workspaceId: string,
+    parentPageId?: string,
   ): Promise<void> {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
@@ -80,7 +81,7 @@ export class ImportService {
 
     if (prosemirrorJson) {
       try {
-        const pagePosition = await this.getNewPagePosition(spaceId);
+        const pagePosition = await this.getNewPagePosition(spaceId, parentPageId);
 
         createdPage = await this.pageRepo.insertPage({
           slugId: generateSlugId(),
@@ -93,6 +94,7 @@ export class ImportService {
           creatorId: userId,
           workspaceId: workspaceId,
           lastUpdatedById: userId,
+          parentPageId: parentPageId || null,
         });
 
         this.logger.debug(
@@ -173,15 +175,24 @@ export class ImportService {
     };
   }
 
-  async getNewPagePosition(spaceId: string): Promise<string> {
-    const lastPage = await this.db
+  async getNewPagePosition(
+    spaceId: string,
+    parentPageId?: string,
+  ): Promise<string> {
+    let query = this.db
       .selectFrom('pages')
       .select(['id', 'position'])
       .where('spaceId', '=', spaceId)
       .orderBy('position', (ob) => ob.collate('C').desc())
-      .limit(1)
-      .where('parentPageId', 'is', null)
-      .executeTakeFirst();
+      .limit(1);
+
+    if (parentPageId) {
+      query = query.where('parentPageId', '=', parentPageId);
+    } else {
+      query = query.where('parentPageId', 'is', null);
+    }
+
+    const lastPage = await query.executeTakeFirst();
 
     if (lastPage) {
       return generateJitteredKeyBetween(lastPage.position, null);

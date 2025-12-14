@@ -16,8 +16,8 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import { useGetRootSidebarPagesQuery } from "@/features/page/queries/page-query";
 import api from "@/lib/api-client"; // Direct axios usage for FormData
-import APP_ROUTE from "@/lib/app-route";
 
 export default function ShareTarget() {
     const { t } = useTranslation();
@@ -30,12 +30,18 @@ export default function ShareTarget() {
         url: string;
     } | null>(null);
     const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+    const [selectedParentPage, setSelectedParentPage] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(true);
     const [isImporting, setIsImporting] = useState(false);
 
     // Fetch spaces to allow selection
     const { data: spacesData, isLoading: isLoadingSpaces } = useGetSpacesQuery({
         limit: 100, // Fetch enough spaces
+    });
+
+    // Fetch potential parent pages when space is selected
+    const { data: pagesData } = useGetRootSidebarPagesQuery({
+        spaceId: selectedSpace || "",
     });
 
     useEffect(() => {
@@ -94,6 +100,9 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
             const formData = new FormData();
             formData.append("file", blob, "shared_page.md");
             formData.append("spaceId", selectedSpace);
+            if (selectedParentPage) {
+                formData.append("parentPageId", selectedParentPage);
+            }
 
             const response = await api.post("/pages/import", formData, {
                 headers: {
@@ -108,10 +117,8 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
             });
 
             // Redirect to the new page
-            // Assuming response structure has slugId or similar. Adjust based on API response.
-            // Based on typical Docmost API, it might return the page object.
-            if (newPage?.slug) {
-                navigate(`/s/${newPage.spaceId}/p/${newPage.slug}`);
+            if (newPage?.slugId) {
+                navigate(`/s/${newPage.spaceId}/p/${newPage.slugId}`);
             } else {
                 // Fallback redirect
                 navigate("/home");
@@ -158,6 +165,12 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
             label: space.name,
         })) || [];
 
+    const pageOptions =
+        pagesData?.pages?.flatMap(page => page.items)?.map((page) => ({
+            value: page.id,
+            label: page.title,
+        })) || [];
+
     return (
         <Container size="sm" mt="xl">
             <Paper withBorder p="xl" radius="md">
@@ -171,9 +184,23 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
                         placeholder={t("Choose a space")}
                         data={spaceOptions}
                         value={selectedSpace}
-                        onChange={setSelectedSpace}
+                        onChange={(val) => {
+                            setSelectedSpace(val);
+                            setSelectedParentPage(null);
+                        }}
                         required
                         searchable
+                    />
+
+                    <Select
+                        label={t("Select Parent Page (Optional)")}
+                        placeholder={t("Choose a parent page")}
+                        data={pageOptions}
+                        value={selectedParentPage}
+                        onChange={setSelectedParentPage}
+                        disabled={!selectedSpace}
+                        searchable
+                        clearable
                     />
 
                     <TextInput

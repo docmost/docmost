@@ -33,7 +33,7 @@ export class ImportController {
     private readonly importService: ImportService,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly environmentService: EnvironmentService,
-  ) {}
+  ) { }
 
   @UseInterceptors(FileInterceptor)
   @UseGuards(JwtAuthGuard)
@@ -73,6 +73,7 @@ export class ImportController {
     }
 
     const spaceId = file.fields?.spaceId?.value;
+    const parentPageId = file.fields?.parentPageId?.value;
 
     if (!spaceId) {
       throw new BadRequestException('spaceId is required');
@@ -83,7 +84,13 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    return this.importService.importPage(file, user.id, spaceId, workspace.id);
+    return this.importService.importPage(
+      file,
+      user.id,
+      spaceId,
+      workspace.id,
+      parentPageId,
+    );
   }
 
   @UseInterceptors(FileInterceptor)

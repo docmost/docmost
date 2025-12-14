@@ -1,4 +1,4 @@
-const VERSION = 'v1'; // Update this to trigger re-install
+const VERSION = 'v2'; // Update this to trigger re-install
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
