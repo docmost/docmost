@@ -89,9 +89,19 @@ export default function ShareTarget() {
 
         setIsImporting(true);
         try {
+            let contentBody = sharedData.text || "";
+            if (sharedData.title && contentBody) {
+                const lines = contentBody.split('\n');
+                // Check if first line (trimmed) matches title (trimmed)
+                if (lines.length > 0 && lines[0].trim() === sharedData.title.trim()) {
+                    lines.shift();
+                    contentBody = lines.join('\n').trim();
+                }
+            }
+
             const markdownContent = `
 ${sharedData.title ? `# ${sharedData.title}\n` : ""}
-${sharedData.text}
+${contentBody}
 
 ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
       `.trim();
