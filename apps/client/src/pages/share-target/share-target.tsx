@@ -203,40 +203,49 @@ export default function ShareTarget() {
 
         setIsImporting(true);
         try {
-            let contentBody = sharedData.text || "";
-            if (sharedData.title && contentBody) {
-                const lines = contentBody.split('\n');
-                // Removing first line if it matches title exactly
-                if (lines.length > 0 && lines[0].trim() === sharedData.title.trim()) {
-                    lines.shift();
-                    contentBody = lines.join('\n').trim();
+            const { title, text, url } = sharedData;
+            let finalTitle = "";
+            let finalContent = "";
+            let processedText = text || "";
+
+            // Title Logic
+            if (title && title.trim()) {
+                finalTitle = title.trim();
+            } else if (processedText && processedText.trim()) {
+                const lines = processedText.split('\n');
+                const firstNonEmptyIndex = lines.findIndex(l => l.trim().length > 0);
+
+                if (firstNonEmptyIndex !== -1) {
+                    const line = lines[firstNonEmptyIndex];
+                    // strip '#' and whitespace
+                    finalTitle = line.replace(/^[\s#]+/, '').trim();
+
+                    // use the remainder of the content as content
+                    processedText = lines.slice(firstNonEmptyIndex + 1).join('\n').trim();
+                } else if (url == null || url.trim() == '') {
+                    return; // Abort
                 }
+            } else if (url == null || url.trim() == '') {
+                return; // Abort
             }
 
-            // User requested to use contentBody specifically for the blob
-            const blob = new Blob([contentBody], { type: "text/markdown" });
+            // Content Logic
+            // If we modified processedText above (because title was derived), we use that remainder.
+            finalContent = processedText;
+
+            // if URL is not empty, prepend it as the first line of content with 'URL: [url](url)' prefix
+            if (url && url.trim()) {
+                finalContent = `URL: [${url}](${url})\n\n${finalContent}`;
+            }
+
+            const blob = new Blob([finalContent], { type: "text/markdown" });
             const formData = new FormData();
             formData.append("file", blob, "shared_page.md");
             formData.append("spaceId", selectedSpace);
 
-            // Append title separately so server uses it for the Page Title
-            if (sharedData.title) {
-                // The server import endpoint reads the file. 
-                // If the file lacks the title (because we stripped it), the server *might* default to 'Untitled' 
-                // unless we pass a title field?
-                // Checking standard docmost import: usually relies on H1.
-                // However, we can construct the contentBody to ensure it HAS the H1 if needed.
-                // But the user complained about "Duplicate identifier". 
-                // If I strip the line, and send just body, and server needs H1, we have a problem.
-                // BUT, if I follow user instructions: "blob should have the contentbody".
-                // I will assume the server handles it or user wants it this way.
-                // EDIT: Does the import endpoint accept 'title' in body? 
-                // The code below doesn't append 'title' to formData.
-                // I will add the H1 back to the contentBody just to be safe, IF I stripped it.
-                // Wait, if I stripped it, it's gone.
-                // If the user wants no duplicate, maybe they want ME to add the H1, and the body had it too?
-                // Let's trust the user's explicit request: "blob should have the contentbody".
-                // This implies `contentBody` variable.
+            // Append title if we have it
+            if (finalTitle) {
+                formData.append("title", finalTitle);
             }
 
             if (selectedParentPage) {
@@ -250,11 +259,6 @@ export default function ShareTarget() {
             });
 
             const newPage = response.data;
-
-            // If the user provided a title in the UI, we should probably ensure the page title is updated 
-            // if the import didn't catch it (e.g. if we stripped the H1).
-            // But imported page usually takes H1. 
-            // If we have access to update it, we could. But let's stick to import.
 
             notifications.show({
                 message: t("Page created successfully"),
