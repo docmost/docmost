@@ -51,7 +51,6 @@ export default function ShareTarget() {
     const [sharedData, setSharedData] = useState<{
         title: string;
         text: string;
-        url: string;
     } | null>(null);
 
     const [selectedSpace, setSelectedSpace] = useState<string | null>(lastSpaceId);
@@ -155,27 +154,61 @@ export default function ShareTarget() {
     useEffect(() => {
         const loadSharedContent = async () => {
             try {
+                let title = "";
+                let text = "";
+                let url = "";
                 const cache = await caches.open("share-target");
                 const cachedResponse = await cache.match("shared-content");
 
                 if (cachedResponse) {
                     const data = await cachedResponse.json();
-                    setSharedData({
-                        title: data.title || "",
-                        text: data.text || "",
-                        url: data.url || "",
-                    });
+                    title = data.title || "";
+                    text = data.text || "";
+                    url = data.url || "";
                     await cache.delete("shared-content");
                 } else {
                     const params = new URLSearchParams(location.search);
-                    const title = params.get("title") || "";
-                    const text = params.get("text") || "";
-                    const url = params.get("url") || "";
-
-                    if (title || text || url) {
-                        setSharedData({ title, text, url });
-                    }
+                    title = params.get("title") || "";
+                    text = params.get("text") || "";
+                    url = params.get("url") || "";
                 }
+                let finalTitle = "";
+                let finalContent = "";
+                let processedText = text || "";
+
+                // Title Logic
+                if (title && title.trim()) {
+                    finalTitle = title.trim();
+                } else if (processedText && processedText.trim()) {
+                    const lines = processedText.split('\n');
+                    const firstNonEmptyIndex = lines.findIndex(l => l.trim().length > 0);
+
+                    if (firstNonEmptyIndex !== -1) {
+                        const line = lines[firstNonEmptyIndex];
+                        // strip '#' and whitespace
+                        finalTitle = line.replace(/^[\s#]+/, '').trim();
+
+                        // use the remainder of the content as content
+                        processedText = lines.slice(firstNonEmptyIndex + 1).join('\n').trim();
+                    } else if (url == null || url.trim() == '') {
+                        return; // Abort
+                    }
+                } else if (url == null || url.trim() == '') {
+                    return; // Abort
+                }
+
+                // Content Logic
+                // If we modified processedText above (because title was derived), we use that remainder.
+                finalContent = processedText;
+
+                // if URL is not empty, prepend it as the first line of content with 'URL: [url](url)' prefix
+                if (url && url.trim()) {
+                    finalContent = `URL: [${url}](${url})\n\n${finalContent}`;
+                }
+                setSharedData({
+                    title: finalTitle,
+                    text: finalContent,
+                });
             } catch (error) {
                 console.error("Error loading shared content:", error);
                 notifications.show({
@@ -203,45 +236,12 @@ export default function ShareTarget() {
 
         setIsImporting(true);
         try {
-            const { title, text, url } = sharedData;
-            let finalTitle = "";
-            let finalContent = "";
-            let processedText = text || "";
+            const { title, text } = sharedData;
 
-            // Title Logic
-            if (title && title.trim()) {
-                finalTitle = title.trim();
-            } else if (processedText && processedText.trim()) {
-                const lines = processedText.split('\n');
-                const firstNonEmptyIndex = lines.findIndex(l => l.trim().length > 0);
-
-                if (firstNonEmptyIndex !== -1) {
-                    const line = lines[firstNonEmptyIndex];
-                    // strip '#' and whitespace
-                    finalTitle = line.replace(/^[\s#]+/, '').trim();
-
-                    // use the remainder of the content as content
-                    processedText = lines.slice(firstNonEmptyIndex + 1).join('\n').trim();
-                } else if (url == null || url.trim() == '') {
-                    return; // Abort
-                }
-            } else if (url == null || url.trim() == '') {
-                return; // Abort
-            }
-
-            // Content Logic
-            // If we modified processedText above (because title was derived), we use that remainder.
-            finalContent = processedText;
-
-            // if URL is not empty, prepend it as the first line of content with 'URL: [url](url)' prefix
-            if (url && url.trim()) {
-                finalContent = `URL: [${url}](${url})\n\n${finalContent}`;
-            }
-
-            const blob = new Blob([finalContent], { type: "text/markdown" });
+            const blob = new Blob([text], { type: "text/markdown" });
             const formData = new FormData();
             // Page import uses the filename as the title
-            formData.append("file", blob, `${finalTitle}.md`);
+            formData.append("file", blob, `${title}.md`);
             formData.append("spaceId", selectedSpace);
 
             if (selectedParentPage) {
@@ -486,15 +486,6 @@ export default function ShareTarget() {
                         minRows={4}
                         maxRows={10}
                     />
-
-                    {sharedData?.url && (
-                        <TextInput
-                            label={t("Source URL")}
-                            value={sharedData.url}
-                            readOnly
-                            variant="filled"
-                        />
-                    )}
 
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={() => navigate("/home", { replace: true })}>
