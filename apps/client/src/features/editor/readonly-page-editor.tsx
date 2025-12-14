@@ -9,6 +9,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
 import { readOnlyEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
+import Heading from "@tiptap/extension-heading";
 
 interface PageEditorProps {
   title: string;
@@ -47,6 +48,7 @@ export default function ReadonlyPageEditor({
       content: "heading",
     }),
     Text,
+    Heading,
     Placeholder.configure({
       placeholder: "Untitled",
       showOnlyWhenEditable: false,

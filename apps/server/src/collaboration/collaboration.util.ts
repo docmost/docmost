@@ -45,11 +45,22 @@ import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
 import { Node } from '@tiptap/pm/model';
+import Heading, { Level } from '@tiptap/extension-heading';
 
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
     heading: false,
+  }),
+  Heading.extend({
+    addOptions() {
+      return {
+        ...this.parent?.(),
+        levels: [1, 2, 3, 4, 5, 6] as Level[],
+      };
+    },
+  }).configure({
+    levels: [1, 2, 3, 4, 5, 6],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
