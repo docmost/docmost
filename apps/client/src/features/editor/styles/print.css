@@ -20,4 +20,10 @@
   .tableWrapper {
     overflow: hidden !important;
   }
+
+  hr[data-type="pagebreak"] {
+    break-before: always;
+    page-break-before: always;
+    visibility: hidden;
+  }
 }

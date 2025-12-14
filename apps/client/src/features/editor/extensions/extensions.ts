@@ -46,6 +46,7 @@ import {
   Heading,
   Highlight,
   UniqueID,
+  HorizontalRule,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -108,7 +109,9 @@ export const mainExtensions = [
         spellcheck: false,
       },
     },
+    horizontalRule: false,
   }),
+  HorizontalRule,
   Heading,
   UniqueID.configure({
     types: ["heading", "paragraph"],
