@@ -261,9 +261,9 @@ export default function ShareTarget() {
             });
 
             if (newPage?.slugId) {
-                navigate(`/s/${newPage.spaceId}/p/${newPage.slugId}`);
+                navigate(`/s/${newPage.spaceId}/p/${newPage.slugId}`, { replace: true });
             } else {
-                navigate("/home");
+                navigate("/home", { replace: true });
             }
 
         } catch (error: any) {
@@ -294,7 +294,7 @@ export default function ShareTarget() {
                 <Paper withBorder p="md" radius="md">
                     <Text ta="center">{t("No content to share found.")}</Text>
                     <Group justify="center" mt="md">
-                        <Button onClick={() => navigate("/home")}>{t("Go Home")}</Button>
+                        <Button onClick={() => navigate("/home", { replace: true })}>{t("Go Home")}</Button>
                     </Group>
                 </Paper>
             </Container>
@@ -497,7 +497,7 @@ export default function ShareTarget() {
                     )}
 
                     <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={() => navigate("/home")}>
+                        <Button variant="default" onClick={() => navigate("/home", { replace: true })}>
                             {t("Cancel")}
                         </Button>
                         <Button
