@@ -179,6 +179,14 @@ export default function ShareTarget() {
                 // Title Logic
                 if (title && title.trim()) {
                     finalTitle = title.trim();
+                    // If content starts with the title, strip it to avoid duplication
+                    if (processedText && processedText.trim()) {
+                        const lines = processedText.split('\n');
+                        // Check if first line (minus # and whitespace) matches title
+                        if (lines.length > 0 && lines[0].replace(/^[\s#]+/, '').trim() === finalTitle) {
+                            processedText = lines.slice(1).join('\n').trim();
+                        }
+                    }
                 } else if (processedText && processedText.trim()) {
                     const lines = processedText.split('\n');
                     const firstNonEmptyIndex = lines.findIndex(l => l.trim().length > 0);
