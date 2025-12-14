@@ -36,27 +36,26 @@ export default function ShareTarget() {
     const location = useLocation();
 
     // Persistent State
-    const [lastSpaceId, setLastSpaceId] = useLocalStorage<string | null>({
+    const [selectedSpace, setSelectedSpace] = useLocalStorage<string | null>({
         key: "share-target-space-id",
         defaultValue: null,
     });
 
-    // Note: We use a separate key for pageId, but validity depends on space. 
-    // Ideally we might clear pageId if space changes, but for now we just store it.
-    const [lastParentPageId, setLastParentPageId] = useLocalStorage<string | null>({
+    const [selectedParentPage, setSelectedParentPage] = useLocalStorage<string | null>({
         key: "share-target-parent-page-id",
         defaultValue: null,
+    });
+
+    // Also persist the label so we don't show UUID on reload
+    const [selectedParentPageLabel, setSelectedParentPageLabel] = useLocalStorage<string>({
+        key: 'share-target-parent-page-label',
+        defaultValue: ''
     });
 
     const [sharedData, setSharedData] = useState<{
         title: string;
         text: string;
     } | null>(null);
-
-    const [selectedSpace, setSelectedSpace] = useState<string | null>(lastSpaceId);
-    const [selectedParentPage, setSelectedParentPage] = useState<string | null>(lastParentPageId);
-    // Label for the selected page input
-    const [selectedParentPageLabel, setSelectedParentPageLabel] = useState<string>("");
 
     const [isProcessing, setIsProcessing] = useState(true);
     const [isImporting, setIsImporting] = useState(false);
@@ -68,28 +67,13 @@ export default function ShareTarget() {
     const [isSearching, setIsSearching] = useState(false);
 
     // Navigation State for Page Selector
-    const [currentNavParentId, setCurrentNavParentId] = useState<string | null>(selectedParentPage || null);
-    // If selectedParentPage is set on load, we start navigation there? 
-    // Code below will adjust currentNavParentId logic to support ".."
-
-    // Actually, let's start navigation at root for simplicity, unless we can easily resolve the path.
-    // Given the complexity of resolving path (fetching parents), let's start at ROOT for navigation, 
-    // but the VALUE is selected. The user can navigate to find another one.
-    // However, if the user requested "Automatically select last used page", they might assume they see it?
-    // Let's stick to: Select the value, but Selector opens at Root (or null).
-    // Override: If we wanted to open at the folder of the selected page, we'd need to fetch parents. 
-    // For now, let's init currentNavParentId to null (Root) to avoid complex pre-fetching.
-    // But wait, the user said "Automaticall select last used page". Done via state.
-
-    // Correction: Initialize currentNavParentId to null (Root) always to be safe.
-    // We only use useEffect to sync selectedParentPage -> label if possible (requires fetching).
+    const [currentNavParentId, setCurrentNavParentId] = useState<string | null>(null);
 
     const [breadcrumbs, setBreadcrumbs] = useState<{ id: string, title: string }[]>([]);
 
     const combobox = useCombobox({
         onDropdownClose: () => {
             combobox.resetSelectedOption();
-            // Optional: Reset navigation to root on close? Or keep it? keeping it is better UX.
         },
     });
 
@@ -111,20 +95,6 @@ export default function ShareTarget() {
         spaceId: selectedSpace || "",
         pageId: currentNavParentId || undefined,
     });
-
-    // Sync Space selection with LocalStorage
-    useEffect(() => {
-        if (selectedSpace) {
-            setLastSpaceId(selectedSpace);
-        }
-    }, [selectedSpace, setLastSpaceId]);
-
-    // Sync Page selection with LocalStorage
-    useEffect(() => {
-        if (selectedParentPage) {
-            setLastParentPageId(selectedParentPage);
-        }
-    }, [selectedParentPage, setLastParentPageId]);
 
     // Handle Search
     useEffect(() => {
