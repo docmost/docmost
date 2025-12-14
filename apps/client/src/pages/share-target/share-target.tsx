@@ -12,12 +12,16 @@ import {
     Stack,
     Textarea,
     TextInput,
+    ComboboxItem,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useGetRootSidebarPagesQuery } from "@/features/page/queries/page-query";
 import api from "@/lib/api-client"; // Direct axios usage for FormData
+import { useDebouncedValue } from "@mantine/hooks";
+import { searchPage } from "@/features/search/services/search-service";
+import { IPageSearch } from "@/features/search/types/search.types";
 
 export default function ShareTarget() {
     const { t } = useTranslation();
@@ -34,20 +38,50 @@ export default function ShareTarget() {
     const [isProcessing, setIsProcessing] = useState(true);
     const [isImporting, setIsImporting] = useState(false);
 
+    // Search state
+    const [searchValue, setSearchValue] = useState("");
+    const [debouncedSearchValue] = useDebouncedValue(searchValue, 300);
+    const [searchResults, setSearchResults] = useState<IPageSearch[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+
     // Fetch spaces to allow selection
     const { data: spacesData, isLoading: isLoadingSpaces } = useGetSpacesQuery({
-        limit: 100, // Fetch enough spaces
+        limit: 100,
     });
 
-    // Fetch potential parent pages when space is selected
-    const { data: pagesData } = useGetRootSidebarPagesQuery({
+    // Fetch root pages for default view
+    const { data: rootPagesData } = useGetRootSidebarPagesQuery({
         spaceId: selectedSpace || "",
     });
+
+    // Handle Search
+    useEffect(() => {
+        const fetchSearchResults = async () => {
+            if (debouncedSearchValue && selectedSpace) {
+                setIsSearching(true);
+                try {
+                    const results = await searchPage({
+                        query: debouncedSearchValue,
+                        spaceId: selectedSpace,
+                    });
+                    setSearchResults(results);
+                } catch (error) {
+                    console.error("Search failed", error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+            }
+        };
+
+        fetchSearchResults();
+    }, [debouncedSearchValue, selectedSpace]);
+
 
     useEffect(() => {
         const loadSharedContent = async () => {
             try {
-                // 1. Try to get data from SW Cache
                 const cache = await caches.open("share-target");
                 const cachedResponse = await cache.match("shared-content");
 
@@ -60,7 +94,6 @@ export default function ShareTarget() {
                     });
                     await cache.delete("shared-content");
                 } else {
-                    // 2. Fallback to URL query params (GET method support)
                     const params = new URLSearchParams(location.search);
                     const title = params.get("title") || "";
                     const text = params.get("text") || "";
@@ -92,7 +125,6 @@ export default function ShareTarget() {
             let contentBody = sharedData.text || "";
             if (sharedData.title && contentBody) {
                 const lines = contentBody.split('\n');
-                // Check if first line (trimmed) matches title (trimmed)
                 if (lines.length > 0 && lines[0].trim() === sharedData.title.trim()) {
                     lines.shift();
                     contentBody = lines.join('\n').trim();
@@ -126,11 +158,9 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
                 message: t("Page created successfully"),
             });
 
-            // Redirect to the new page
             if (newPage?.slugId) {
                 navigate(`/s/${newPage.spaceId}/p/${newPage.slugId}`);
             } else {
-                // Fallback redirect
                 navigate("/home");
             }
 
@@ -175,11 +205,33 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
             label: space.name,
         })) || [];
 
-    const pageOptions =
-        pagesData?.pages?.flatMap(page => page.items)?.map((page) => ({
+    // Use search results if searching, otherwise fallback to root pages
+    let pageOptions: ComboboxItem[] = [];
+
+    if (debouncedSearchValue && searchResults.length > 0) {
+        pageOptions = searchResults.map((page) => {
+            return {
+                value: page.id,
+                label: page.title,
+            };
+        });
+    } else if (!debouncedSearchValue && rootPagesData?.pages) {
+        pageOptions = rootPagesData.pages.flatMap(page => page.items).map((page) => ({
             value: page.id,
             label: page.title,
-        })) || [];
+        }));
+    }
+
+    // Limit to 10 items
+    const displayOptions = pageOptions.slice(0, 10);
+    if (pageOptions.length > 10) {
+        displayOptions.push({
+            value: "more",
+            label: "...",
+            disabled: true
+        });
+    }
+
 
     return (
         <Container size="sm" mt="xl">
@@ -197,6 +249,7 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
                         onChange={(val) => {
                             setSelectedSpace(val);
                             setSelectedParentPage(null);
+                            setSearchValue("");
                         }}
                         required
                         searchable
@@ -204,13 +257,24 @@ ${sharedData.url ? `\n---\nSource URL: ${sharedData.url}` : ""}
 
                     <Select
                         label={t("Select Parent Page (Optional)")}
-                        placeholder={t("Choose a parent page")}
-                        data={pageOptions}
+                        placeholder={t("Type to search pages...")}
+                        data={displayOptions}
                         value={selectedParentPage}
                         onChange={setSelectedParentPage}
                         disabled={!selectedSpace}
                         searchable
                         clearable
+                        nothingFoundMessage={isSearching ? t("Searching...") : t("No pages found")}
+                        searchValue={searchValue}
+                        onSearchChange={setSearchValue}
+                        filter={({ options, search }) => {
+                            // If we are searching via API, don't filter client side, just show options
+                            if (debouncedSearchValue) return options;
+                            // Client side filter for root pages (default behavior)
+                            return options.filter((option) =>
+                                option.label.toLowerCase().includes(search.toLowerCase().trim())
+                            );
+                        }}
                     />
 
                     <TextInput
