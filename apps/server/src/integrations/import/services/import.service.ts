@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, NotFoundException, Injectable, Logger } from '@nestjs/common';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
@@ -36,14 +36,16 @@ export class ImportService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
-  ) {}
+  ) { }
 
   async importPage(
     filePromise: Promise<MultipartFile>,
     userId: string,
     spaceId: string,
     workspaceId: string,
-  ): Promise<void> {
+    parentPageId?: string,
+    title?: string,
+  ): Promise<{ id: string; slugId: string } | null> {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
@@ -73,14 +75,29 @@ export class ImportService {
       throw new BadRequestException(message);
     }
 
-    const { title, prosemirrorJson } =
-      this.extractTitleAndRemoveHeading(prosemirrorState);
+    let contentTitle;
+    let prosemirrorJson;
+    if (title == null || title === "") {
+      const { title: extractedTitle, prosemirrorJson: normalizedJson } =
+        this.extractTitleAndRemoveHeading(prosemirrorState);
+      contentTitle = extractedTitle;
+      prosemirrorJson = normalizedJson;
+    } else {
+      contentTitle = title;
+      prosemirrorJson = prosemirrorState;
+    }
 
-    const pageTitle = title || fileName;
+    const pageTitle = contentTitle || fileName;
 
     if (prosemirrorJson) {
       try {
-        const pagePosition = await this.getNewPagePosition(spaceId);
+        if (parentPageId) {
+          const parentPage = await this.pageRepo.findById(parentPageId);
+          if (!parentPage || parentPage.spaceId !== spaceId) {
+            throw new NotFoundException('Parent page not found');
+          }
+        }
+        const pagePosition = await this.getNewPagePosition(spaceId, parentPageId);
 
         createdPage = await this.pageRepo.insertPage({
           slugId: generateSlugId(),
@@ -93,10 +110,11 @@ export class ImportService {
           creatorId: userId,
           workspaceId: workspaceId,
           lastUpdatedById: userId,
+          parentPageId: parentPageId ?? null,
         });
 
         this.logger.debug(
-          `Successfully imported "${title}${fileExtension}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
+          `Successfully imported "${file.filename}". ID: ${createdPage.id} - SlugId: ${createdPage.slugId}`,
         );
       } catch (err) {
         const message = 'Failed to create imported page';
@@ -105,7 +123,7 @@ export class ImportService {
       }
     }
 
-    return createdPage;
+    return createdPage ? { id: createdPage.id, slugId: createdPage.slugId } : null;
   }
 
   async processMarkdown(markdownInput: string): Promise<any> {
@@ -173,15 +191,24 @@ export class ImportService {
     };
   }
 
-  async getNewPagePosition(spaceId: string): Promise<string> {
-    const lastPage = await this.db
+  async getNewPagePosition(
+    spaceId: string,
+    parentPageId?: string,
+  ): Promise<string> {
+    let query = this.db
       .selectFrom('pages')
       .select(['id', 'position'])
       .where('spaceId', '=', spaceId)
       .orderBy('position', (ob) => ob.collate('C').desc())
-      .limit(1)
-      .where('parentPageId', 'is', null)
-      .executeTakeFirst();
+      .limit(1);
+
+    if (parentPageId) {
+      query = query.where('parentPageId', '=', parentPageId);
+    } else {
+      query = query.where('parentPageId', 'is', null);
+    }
+
+    const lastPage = await query.executeTakeFirst();
 
     if (lastPage) {
       return generateJitteredKeyBetween(lastPage.position, null);
