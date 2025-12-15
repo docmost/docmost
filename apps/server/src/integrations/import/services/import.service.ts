@@ -44,7 +44,8 @@ export class ImportService {
     spaceId: string,
     workspaceId: string,
     parentPageId?: string,
-  ): Promise<void> {
+    title?: string,
+  ): Promise<{ id: string; slugId: string } | null> {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
@@ -74,10 +75,17 @@ export class ImportService {
       throw new BadRequestException(message);
     }
 
-    const { title, prosemirrorJson } =
-      this.extractTitleAndRemoveHeading(prosemirrorState);
+    let contentTitle;
+    let prosemirrorJson;
+    if (title == null || title === "") {
+      const { title: contentTitle, prosemirrorJson } =
+        this.extractTitleAndRemoveHeading(prosemirrorState);
+    } else {
+      contentTitle = title;
+      prosemirrorJson = prosemirrorState;
+    }
 
-    const pageTitle = title || fileName;
+    const pageTitle = contentTitle || fileName;
 
     if (prosemirrorJson) {
       try {
@@ -107,7 +115,7 @@ export class ImportService {
       }
     }
 
-    return createdPage;
+    return createdPage ? { id: createdPage.id, slugId: createdPage.slugId } : null;
   }
 
   async processMarkdown(markdownInput: string): Promise<any> {
