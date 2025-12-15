@@ -73,7 +73,12 @@ export class ImportController {
     }
 
     const spaceId = file.fields?.spaceId?.value;
-    const parentPageId = file.fields?.parentPageId?.value;
+
+    const rawParentPageId = file.fields?.parentPageId?.value;
+    const parentPageId =
+      typeof rawParentPageId === 'string' && rawParentPageId.trim()
+        ? rawParentPageId.trim()
+        : undefined;
 
     if (!spaceId) {
       throw new BadRequestException('spaceId is required');

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, NotFoundException, Injectable, Logger } from '@nestjs/common';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { MultipartFile } from '@fastify/multipart';
 import { sanitize } from 'sanitize-filename-ts';
@@ -89,6 +89,12 @@ export class ImportService {
 
     if (prosemirrorJson) {
       try {
+        if (parentPageId) {
+          const parentPage = await this.pageRepo.findById(parentPageId);
+          if (!parentPage || parentPage.spaceId !== spaceId) {
+            throw new NotFoundException('Parent page not found');
+          }
+        }
         const pagePosition = await this.getNewPagePosition(spaceId, parentPageId);
 
         createdPage = await this.pageRepo.insertPage({
@@ -102,7 +108,7 @@ export class ImportService {
           creatorId: userId,
           workspaceId: workspaceId,
           lastUpdatedById: userId,
-          parentPageId: parentPageId || null,
+          parentPageId: parentPageId ?? null,
         });
 
         this.logger.debug(
