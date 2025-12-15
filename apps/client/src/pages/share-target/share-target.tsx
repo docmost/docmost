@@ -183,6 +183,14 @@ export default function ShareTarget() {
                 if (url && url.trim()) {
                     finalContent = `URL: [${url}](${url})\n\n${finalContent}`;
                 }
+                if (!finalTitle && url && url.trim()) {
+                    try {
+                        const u = new URL(url);
+                        finalTitle = u.hostname || "Shared link";
+                    } catch {
+                        finalTitle = "Shared link";
+                    }
+                }
                 setSharedData({
                     title: finalTitle,
                     text: finalContent,
@@ -216,21 +224,22 @@ export default function ShareTarget() {
         try {
             const { title, text } = sharedData;
 
+            const safeTitle = (title || "Shared page")
+                .replace(/[\\\/:*?"<>|]+/g, "-")
+                .trim()
+                .slice(0, 120);
             const blob = new Blob([text], { type: "text/markdown" });
             const formData = new FormData();
             // Page import uses the filename as the title
-            formData.append("file", blob, `${title}.md`);
             formData.append("spaceId", selectedSpace);
+            formData.append("title", title);
+            formData.append("file", blob, `${safeTitle}.md`);
 
             if (selectedParentPage) {
                 formData.append("parentPageId", selectedParentPage);
             }
 
-            const response = await api.post("/pages/import", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
+            const response = await api.post("/pages/import", formData);
 
             const newPage = response.data;
 
