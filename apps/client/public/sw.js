@@ -1,7 +1,7 @@
 const VERSION = 'v4'; // Update this to trigger re-install
 
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
+    event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
@@ -14,10 +14,14 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method === 'POST' && url.pathname === '/share-target') {
         event.respondWith(
             (async () => {
-                const formData = await event.request.formData();
-                const data = {};
-                for (const [key, value] of formData.entries()) {
-                    data[key] = value;
+                let data = { title: "", text: "", url: "" };
+                try {
+                    const formData = await event.request.formData();
+                    for (const [key, value] of formData.entries()) {
+                        if (key in data && typeof value === "string") data[key] = value;
+                    }
+                } catch (e) {
+                    // If parsing fails, still redirect to UI (which can show "no content").
                 }
 
                 // Store in Cache API
