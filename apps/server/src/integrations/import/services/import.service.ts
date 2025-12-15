@@ -114,7 +114,7 @@ export class ImportService {
         });
 
         this.logger.debug(
-          `Successfully imported "${file.filename}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
+          `Successfully imported "${file.filename}". ID: ${createdPage.id} - SlugId: ${createdPage.slugId}`,
         );
       } catch (err) {
         const message = 'Failed to create imported page';

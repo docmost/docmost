@@ -100,20 +100,23 @@ export default function ShareTarget() {
     useEffect(() => {
         const fetchSearchResults = async () => {
             if (debouncedSearchValue && selectedSpace) {
-                setIsSearching(true);
-                try {
-                    const results = await searchPage({
-                        query: debouncedSearchValue,
-                        spaceId: selectedSpace,
-                    });
-                    setSearchResults(results);
-                } catch (error) {
-                    console.error("Search failed", error);
-                } finally {
-                    setIsSearching(false);
+                const trimmed = debouncedSearchValue.trim();
+                if (trimmed && selectedSpace) {
+                    setIsSearching(true);
+                    try {
+                        const results = await searchPage({
+                            query: trimmed,
+                            spaceId: selectedSpace,
+                        });
+                        setSearchResults(results);
+                    } catch (error) {
+                        console.error("Search failed", error);
+                    } finally {
+                        setIsSearching(false);
+                    }
+                } else {
+                    setSearchResults([]);
                 }
-            } else {
-                setSearchResults([]);
             }
         };
 
@@ -218,7 +221,7 @@ export default function ShareTarget() {
 
     // Import Logic
     const handleImport = async () => {
-        if (!selectedSpace || !sharedData) return;
+        if (!selectedSpace || !sharedData || isImporting) return;
 
         setIsImporting(true);
         try {
@@ -414,13 +417,13 @@ export default function ShareTarget() {
                                         </Combobox.Option>
                                     )}
 
-                                    {isLoadingPages && (
+                                    {(isLoadingPages || isSearching) && (
                                         <Center p="md">
                                             <Loader size="sm" />
                                         </Center>
                                     )}
 
-                                    {!isLoadingPages && pageItems.length === 0 && (
+                                    {!isLoadingPages && !isSearching && pageItems.length === 0 && (
                                         <Combobox.Empty>{t("No pages found")}</Combobox.Empty>
                                     )}
 
@@ -481,7 +484,7 @@ export default function ShareTarget() {
                         <Button
                             onClick={handleImport}
                             loading={isImporting}
-                            disabled={!selectedSpace}
+                            disabled={!selectedSpace || isImporting}
                         >
                             {t("Save Page")}
                         </Button>
