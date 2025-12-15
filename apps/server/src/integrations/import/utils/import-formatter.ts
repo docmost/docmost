@@ -175,11 +175,39 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
 
   // toggle blocks
   $root
-    .find('ul.toggle details')
+    .find('details')
     .get()
     .reverse()
     .forEach((det) => {
       const $det = $(det);
+
+      const hasDetailsContent =
+        $det.children('div[data-type="detailsContent"]').length > 0;
+      if (!hasDetailsContent) {
+        let $summary: Cheerio<any> = $det.children('summary').first();
+
+        if (!$summary.length) {
+          $summary = $('<summary>').text('Toggle');
+          $det.prepend($summary);
+        } else {
+          $det.prepend($summary);
+        }
+
+        const $contentWrapper = $('<div>').attr('data-type', 'detailsContent');
+        $det
+          .children()
+          .filter((_, child) => child.tagName?.toLowerCase() !== 'summary')
+          .each((_, child) => {
+            $contentWrapper.append($(child));
+          });
+
+        if ($contentWrapper.children().length === 0) {
+          $contentWrapper.append($('<p>'));
+        }
+
+        $det.append($contentWrapper);
+      }
+
       const $li = $det.closest('li');
       if ($li.length) {
         $li.before($det);
@@ -191,6 +219,7 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
         if (!$ul.children().length) $ul.remove();
       }
     });
+
 
   // bookmarks
   $root
