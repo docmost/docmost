@@ -85,7 +85,7 @@ export class ImportController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -150,7 +150,7 @@ export class ImportController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
