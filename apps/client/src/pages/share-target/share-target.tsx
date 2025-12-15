@@ -248,7 +248,7 @@ export default function ShareTarget() {
             });
 
             if (newPage?.slugId) {
-                navigate(`/s/${newPage.spaceId}/p/${newPage.slugId}`, { replace: true });
+                navigate(`/s/${selectedSpace}/p/${newPage.slugId}`, { replace: true });
             } else {
                 navigate("/home", { replace: true });
             }

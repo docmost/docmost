@@ -78,8 +78,10 @@ export class ImportService {
     let contentTitle;
     let prosemirrorJson;
     if (title == null || title === "") {
-      const { title: contentTitle, prosemirrorJson } =
+      const { title: extractedTitle, prosemirrorJson: normalizedJson } =
         this.extractTitleAndRemoveHeading(prosemirrorState);
+      contentTitle = extractedTitle;
+      prosemirrorJson = normalizedJson;
     } else {
       contentTitle = title;
       prosemirrorJson = prosemirrorState;
@@ -112,7 +114,7 @@ export class ImportService {
         });
 
         this.logger.debug(
-          `Successfully imported "${title}${fileExtension}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
+          `Successfully imported "${file.filename}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
         );
       } catch (err) {
         const message = 'Failed to create imported page';
