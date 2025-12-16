@@ -285,6 +285,13 @@ function rgbToHsl(r: number, g: number, b: number): Hsl {
   return { h: h * 360, s, l };
 }
 
+// Weights
+// this is done especially for notions color palette which is more hue focused
+// change const names to better understand their purpose
+const WEIGHT_HUE = 4;
+const WEIGHT_SATURATION = 0.5; // Lower weight for saturation
+const WEIGHT_LIGHTNESS = 0.5; // Lower weight for lightness
+
 function getDistanceHsl(c1: Hsl, c2: Hsl): number {
   let hDiff = Math.abs(c1.h - c2.h);
   if (hDiff > 180) hDiff = 360 - hDiff;
@@ -296,12 +303,9 @@ function getDistanceHsl(c1: Hsl, c2: Hsl): number {
 
   // Weights
   // this is done especially for notions color palette which is more hue focused
-  const wH = 4;
-  const wS = 0.5; // Lower weight for saturation
-  const wL = 0.5; // Lower weight for lightness
 
   return Math.sqrt(
-    wH * Math.pow(hDist, 2) + wS * Math.pow(sDist, 2) + wL * Math.pow(lDist, 2),
+    WEIGHT_HUE * Math.pow(hDist, 2) + WEIGHT_SATURATION * Math.pow(sDist, 2) + WEIGHT_LIGHTNESS * Math.pow(lDist, 2),
   );
 }
 
@@ -313,6 +317,11 @@ function blendWithWhite(color: Rgba): Rgb {
     b: Math.round(color.b * alpha + 255 * (1 - alpha)),
   };
 }
+
+// Thresholds for grayscale penalty when mapping colored sources to grayscale targets
+const MIN_SOURCE_SATURATION_FOR_PENALTY = 0.15;
+const MAX_TARGET_SATURATION_FOR_GRAYSCALE = 0.1;
+const GRAYSCALE_MAPPING_PENALTY = 1.0;
 
 function findClosestColor(
   targetColor: string,
@@ -337,8 +346,8 @@ function findClosestColor(
     let distance = getDistanceHsl(targetHsl, itemHsl);
 
     // Penalty for mapping colored source to grayscale target
-    if (targetHsl.s > 0.15 && itemHsl.s < 0.1) {
-      distance += 1.0;
+    if (targetHsl.s > MIN_SOURCE_SATURATION_FOR_PENALTY && itemHsl.s < MAX_TARGET_SATURATION_FOR_GRAYSCALE) {
+      distance += GRAYSCALE_MAPPING_PENALTY;
     }
 
     if (distance < minDistance) {
@@ -578,7 +587,10 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
       } else {
         const $iconDiv = $divs.eq(0);
         if ($iconDiv.text().trim()) {
-          icon = $iconDiv.text().trim();
+          const iconText = $iconDiv.text().trim();
+          if (isUnicodeCharacter(iconText)) {
+            icon = iconText;
+          }
         }
         $content = $divs.eq(1);
       }
