@@ -165,7 +165,7 @@ function parseColor(input: string): Rgba | null {
   if (input.startsWith('#')) {
     const hex = input.substring(1);
     // Support 3, 4, 6, 8 digits
-    if (!/^[0-9a-fA-F]{3,8}$/.test(hex)) return null;
+    if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(hex)) return null;
 
     let r, g, b, a = 255;
 
@@ -388,6 +388,9 @@ function parseNotionStyles(
   return styleMap;
 }
 
+const escapeSelector = (name: string) =>
+  name.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+
 export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
   // Parse styles first
   const styleMap = parseNotionStyles($);
@@ -395,7 +398,7 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
   // Apply colors
   styleMap.forEach((style, className) => {
     // Select elements with this class (including block-level ones)
-    const selector = `.${className.replace(/:/g, '\\:')}`;
+    const selector = `.${escapeSelector(className)}`;
     const $elements = $root.find(selector);
 
     $elements.each((_, el) => {
@@ -438,18 +441,18 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
                   // Block elements inside toggle
                   const tag = (child as any).tagName?.toLowerCase();
                   if (tag === 'ul' || tag === 'ol') {
-                    $child.children('li').each((__, li) => {
-                      const $li = $(li);
+                    $child.children('li').each((__, nestedLi) => {
+                      const $nestedLi = $(nestedLi);
                       // Handle nested details in list
-                      if ($li.children('details').length) {
+                      if ($nestedLi.children('details').length) {
                         // Recurse or let standard generic handler do it?
                         // The standard handler runs on class selector. Here we are forcing color down.
                         // We must manually apply it.
-                        $li.children('details').children('summary').contents().wrapAll(createWrapper());
+                        $nestedLi.children('details').children('summary').contents().wrapAll(createWrapper());
                         // Support one level deep of content coloring for now or use recursion
                         // (For safety, we just allow the summary to be colored, deeper blocks might lose color but better than breaking)
                       } else {
-                        $li
+                        $nestedLi
                           .contents()
                           .filter((___, node: any) => !['ul', 'ol', 'details'].includes(node.tagName?.toLowerCase()))
                           .wrapAll(createWrapper());
