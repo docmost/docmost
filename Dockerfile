@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:22-slim AS base
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 FROM base AS builder
@@ -13,7 +13,9 @@ RUN pnpm build
 
 FROM base AS installer
 
-RUN apk add --no-cache curl bash
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl bash \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
