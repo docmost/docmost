@@ -569,12 +569,17 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
       const $fig = $(fig);
       const $divs = $fig.children('div');
       let $content: Cheerio<any>;
+      let icon: string | undefined;
 
       // if there is only one div, it's the content
       // if there are 2 divs, the first is the icon and the second is the content
       if ($divs.length === 1) {
         $content = $divs.eq(0);
       } else {
+        const $iconDiv = $divs.eq(0);
+        if ($iconDiv.text().trim()) {
+          icon = $iconDiv.text().trim();
+        }
         $content = $divs.eq(1);
       }
 
@@ -582,8 +587,26 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
       const $wrapper = $('<div>')
         .attr('data-type', 'callout')
         .attr('data-callout-type', 'info');
-      // @ts-ignore
-      $content.contents().each((_, child) => $wrapper.append(child));
+
+      if (icon) {
+        $wrapper.attr('data-callout-icon', icon);
+      }
+
+
+      $content.contents().each((_, child) => {
+        const $child = $(child);
+        // Unwrap divs (often used for display:contents wrappers in Notion exports)
+        // Check if it is a tag and is a div
+        if (
+          (child as any).type === 'tag' &&
+          (child as any).tagName?.toLowerCase() === 'div'
+        ) {
+          // @ts-ignore
+          $child.contents().each((__, subChild) => $wrapper.append(subChild));
+        } else {
+          $wrapper.append(child);
+        }
+      });
       $fig.replaceWith($wrapper);
     });
 
