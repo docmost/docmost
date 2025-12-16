@@ -295,6 +295,7 @@ function getDistanceHsl(c1: Hsl, c2: Hsl): number {
   const lDist = Math.abs(c1.l - c2.l);
 
   // Weights
+  // this is done especially for notions color palette which is more hue focused
   const wH = 4;
   const wS = 0.5; // Lower weight for saturation
   const wL = 0.5; // Lower weight for lightness
@@ -485,7 +486,7 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
 
       // BLOCK-LEVEL ELEMENTS (h1, p, div, etc - except lists)
       if (
-        ['h1', 'h2', 'h3', 'p', 'div', 'nav'].includes(tagName)
+        ['h1', 'h2', 'h3', 'p', 'div', 'nav', 'blockquote'].includes(tagName)
       ) {
         $el.contents().wrapAll(createWrapper());
         $el.removeClass(className);
