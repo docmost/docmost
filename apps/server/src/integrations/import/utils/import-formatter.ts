@@ -567,13 +567,23 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
     .reverse()
     .forEach((fig) => {
       const $fig = $(fig);
-      const $content = $fig.find('div').eq(1);
+      const $divs = $fig.children('div');
+      let $content: Cheerio<any>;
+
+      // if there is only one div, it's the content
+      // if there are 2 divs, the first is the icon and the second is the content
+      if ($divs.length === 1) {
+        $content = $divs.eq(0);
+      } else {
+        $content = $divs.eq(1);
+      }
+
       if (!$content.length) return;
       const $wrapper = $('<div>')
         .attr('data-type', 'callout')
         .attr('data-callout-type', 'info');
       // @ts-ignore
-      $content.children().each((_, child) => $wrapper.append(child));
+      $content.contents().each((_, child) => $wrapper.append(child));
       $fig.replaceWith($wrapper);
     });
 
