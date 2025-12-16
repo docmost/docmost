@@ -460,7 +460,7 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
                       }
                     });
                   } else if (
-                    ['p', 'h1', 'h2', 'h3', 'div', 'blockquote'].includes(tag || '')
+                    ['p', 'h1', 'h2', 'h3', 'div', 'nav', 'blockquote'].includes(tag || '')
                   ) {
                     $child.contents().wrapAll(createWrapper());
                   }
