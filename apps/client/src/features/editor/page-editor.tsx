@@ -1,5 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -7,7 +7,12 @@ import {
   onAuthenticationFailedParameters,
   WebSocketStatus,
 } from "@hocuspocus/provider";
-import { EditorContent, EditorProvider, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  EditorProvider,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react";
 import {
   collabExtensions,
   mainExtensions,
@@ -31,6 +36,7 @@ import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -49,6 +55,8 @@ import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
+import { searchSpotlight } from "@/features/search/constants.ts";
+import { useEditorScroll } from "./hooks/use-editor-scroll";
 
 interface PageEditorProps {
   pageId: string;
@@ -61,7 +69,16 @@ export default function PageEditor({
   editable,
   content,
 }: PageEditorProps) {
+
+  
   const collaborationURL = useCollaborationUrl();
+  const isComponentMounted = useRef(false);
+  const editorCreated = useRef(false);
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+  }, []);
+  
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -75,7 +92,7 @@ export default function PageEditor({
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom
+    yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
   const documentName = `page.${pageId}`;
@@ -87,7 +104,9 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-
+  
+    const canScroll = useCallback(() => isComponentMounted.current && editorCreated.current, [isComponentMounted, editorCreated]);
+  const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
@@ -211,14 +230,18 @@ export default function PageEditor({
       extensions,
       editable,
       immediatelyRender: true,
-      shouldRerenderOnTransaction: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
         handleDOMEvents: {
           keydown: (_view, event) => {
-            if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
               event.preventDefault();
+              return true;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+              searchSpotlight.open();
               return true;
             }
             if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
@@ -253,6 +276,8 @@ export default function PageEditor({
           // @ts-ignore
           setEditor(editor);
           editor.storage.pageId = pageId;
+          handleScrollTo(editor);
+          editorCreated.current = true;
         }
       },
       onUpdate({ editor }) {
@@ -262,8 +287,15 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider]
+    [pageId, editable, remoteProvider],
   );
+
+  const editorIsEditable = useEditorState({
+    editor,
+    selector: (ctx) => {
+      return ctx.editor?.isEditable ?? false;
+    },
+  });
 
   const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
@@ -300,7 +332,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent
+        handleActiveCommentEvent,
       );
     };
   }, []);
@@ -375,7 +407,7 @@ export default function PageEditor({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
         <EditorContent editor={editor} />
 
@@ -383,7 +415,7 @@ export default function PageEditor({
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
 
-        {editor && editor.isEditable && (
+        {editor && editorIsEditable && (
           <div>
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
@@ -391,6 +423,7 @@ export default function PageEditor({
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
             <CalloutMenu editor={editor} />
+            <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />

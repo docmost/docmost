@@ -9,6 +9,7 @@ import { MfaDisableModal } from "@/ee/mfa";
 import { MfaBackupCodesModal } from "@/ee/mfa";
 import { isCloud } from "@/lib/config.ts";
 import useLicense from "@/ee/hooks/use-license.tsx";
+import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
 
 export function MfaSettings() {
   const { t } = useTranslation();
@@ -53,8 +54,8 @@ export function MfaSettings() {
 
   return (
     <>
-      <Group justify="space-between" wrap="nowrap" gap="xl">
-        <div style={{ minWidth: 0, flex: 1 }}>
+      <ResponsiveSettingsRow>
+        <ResponsiveSettingsContent>
           <Text size="md">{t("2-step verification")}</Text>
           <Text size="sm" c="dimmed">
             {!isMfaEnabled
@@ -63,44 +64,46 @@ export function MfaSettings() {
                 )
               : t("Two-factor authentication is active on your account.")}
           </Text>
-        </div>
+        </ResponsiveSettingsContent>
 
-        {!isMfaEnabled ? (
-          <Tooltip
-            label={t("Available in enterprise edition")}
-            disabled={canUseMfa}
-          >
-            <Button
-              disabled={!canUseMfa}
-              variant="default"
-              onClick={() => setSetupModalOpen(true)}
-              style={{ whiteSpace: "nowrap" }}
+        <ResponsiveSettingsControl>
+          {!isMfaEnabled ? (
+            <Tooltip
+              label={t("Available in enterprise edition")}
+              disabled={canUseMfa}
             >
-              {t("Add 2FA method")}
-            </Button>
-          </Tooltip>
-        ) : (
-          <Group gap="sm" wrap="nowrap">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setBackupCodesModalOpen(true)}
-              style={{ whiteSpace: "nowrap" }}
-            >
-              {t("Backup codes")} ({mfaStatus?.backupCodesCount || 0})
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              color="red"
-              onClick={() => setDisableModalOpen(true)}
-              style={{ whiteSpace: "nowrap" }}
-            >
-              {t("Disable")}
-            </Button>
-          </Group>
-        )}
-      </Group>
+              <Button
+                disabled={!canUseMfa}
+                variant="default"
+                onClick={() => setSetupModalOpen(true)}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                {t("Add 2FA method")}
+              </Button>
+            </Tooltip>
+          ) : (
+            <Group gap="sm" wrap="nowrap">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setBackupCodesModalOpen(true)}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                {t("Backup codes")} ({mfaStatus?.backupCodesCount || 0})
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                color="red"
+                onClick={() => setDisableModalOpen(true)}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                {t("Disable")}
+              </Button>
+            </Group>
+          )}
+        </ResponsiveSettingsControl>
+      </ResponsiveSettingsRow>
 
       <MfaSetupModal
         opened={setupModalOpen}

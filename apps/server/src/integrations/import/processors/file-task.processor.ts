@@ -2,7 +2,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
-import { FileTaskService } from '../services/file-task.service';
+import { FileImportTaskService } from '../services/file-import-task.service';
 import { FileTaskStatus } from '../utils/file.utils';
 import { StorageService } from '../../storage/storage.service';
 
@@ -11,7 +11,7 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(FileTaskProcessor.name);
 
   constructor(
-    private readonly fileTaskService: FileTaskService,
+    private readonly fileTaskService: FileImportTaskService,
     private readonly storageService: StorageService,
   ) {
     super();
@@ -41,15 +41,40 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
   @OnWorkerEvent('failed')
   async onFailed(job: Job) {
     this.logger.error(
-      `Error processing ${job.name} job. Reason: ${job.failedReason}`,
+      `Error processing ${job.name} job. Import Task ID: ${job.data.fileTaskId}. Reason: ${job.failedReason}`,
+    );
+
+    await this.handleFailedJob(job);
+  }
+
+  @OnWorkerEvent('completed')
+  async onCompleted(job: Job) {
+    this.logger.log(
+      `Completed ${job.name} job for File task ID ${job.data.fileTaskId}`,
     );
 
     try {
+      const fileTask = await this.fileTaskService.getFileTask(
+        job.data.fileTaskId,
+      );
+      if (fileTask) {
+        await this.storageService.delete(fileTask.filePath);
+        this.logger.debug(`Deleted imported zip file: ${fileTask.filePath}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to delete imported zip file:`, err);
+    }
+  }
+
+  private async handleFailedJob(job: Job) {
+    try {
       const fileTaskId = job.data.fileTaskId;
+      const reason = job.failedReason || 'Unknown error';
+
       await this.fileTaskService.updateTaskStatus(
         fileTaskId,
         FileTaskStatus.Failed,
-        job.failedReason,
+        reason,
       );
 
       const fileTask = await this.fileTaskService.getFileTask(fileTaskId);
@@ -59,13 +84,6 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     } catch (err) {
       this.logger.error(err);
     }
-  }
-
-  @OnWorkerEvent('completed')
-  onCompleted(job: Job) {
-    this.logger.log(
-      `Completed ${job.name} job for File task ID ${job.data.fileTaskId}`,
-    );
   }
 
   async onModuleDestroy(): Promise<void> {

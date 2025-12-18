@@ -2,6 +2,7 @@ export interface QueryParams {
   query?: string;
   page?: number;
   limit?: number;
+  adminView?: boolean;
 }
 
 export enum UserRole {
@@ -36,20 +37,3 @@ export type IPagination<T> = {
   items: T[];
   meta: IPaginationMeta;
 };
-
-export interface IAttachment {
-  id: string;
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  fileExt: string;
-  mimeType: string;
-  type: string;
-  creatorId: string;
-  pageId: string | null;
-  spaceId: string | null;
-  workspaceId: string;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}

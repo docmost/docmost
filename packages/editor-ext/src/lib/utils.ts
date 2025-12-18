@@ -3,8 +3,8 @@ import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
 import { Selection, Transaction } from "@tiptap/pm/state";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
 import { Node, ResolvedPos } from "@tiptap/pm/model";
-import Table from "@tiptap/extension-table";
 import { sanitizeUrl as braintreeSanitizeUrl } from "@braintree/sanitize-url";
+import { customAlphabet } from "nanoid";
 
 export const isRectSelected = (rect: any) => (selection: CellSelection) => {
   const map = TableMap.get(selection.$anchorCell.node(-1));
@@ -288,7 +288,7 @@ export const isColumnGripSelected = ({
   const node = nodeDOM || domAtPos;
 
   if (
-    !editor.isActive(Table.name) ||
+    !editor.isActive("table") ||
     !node ||
     isTableSelected(state.selection)
   ) {
@@ -383,9 +383,12 @@ export function icon(name: string) {
 
 export function sanitizeUrl(url: string | undefined): string {
   if (!url) return "";
-  
+
   const sanitized = braintreeSanitizeUrl(url);
-  
+
   // Return empty string instead of "about:blank"
   return sanitized === "about:blank" ? "" : sanitized;
 }
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz";
+export const generateNodeId = customAlphabet(alphabet, 12);

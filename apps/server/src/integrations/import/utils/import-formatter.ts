@@ -4,6 +4,11 @@ import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 
+// Check if text contains Unicode characters (for emojis/icons)
+function isUnicodeCharacter(text: string): boolean {
+  return text.length > 0 && text.codePointAt(0)! > 127; // Non-ASCII characters
+}
+
 export async function formatImportHtml(opts: {
   html: string;
   currentFilePath: string;
@@ -16,7 +21,11 @@ export async function formatImportHtml(opts: {
   workspaceId: string;
   pageDir?: string;
   attachmentCandidates?: string[];
-}): Promise<{ html: string; backlinks: InsertableBacklink[] }> {
+}): Promise<{
+  html: string;
+  backlinks: InsertableBacklink[];
+  pageIcon?: string;
+}> {
   const {
     html,
     currentFilePath,
@@ -27,6 +36,17 @@ export async function formatImportHtml(opts: {
   } = opts;
   const $: CheerioAPI = load(html);
   const $root: Cheerio<any> = $.root();
+
+  let pageIcon: string | null = null;
+  // extract notion page icon
+  const headerIconSpan = $root.find('header .page-header-icon .icon');
+
+  if (headerIconSpan.length > 0) {
+    const iconText = headerIconSpan.text().trim();
+    if (iconText && isUnicodeCharacter(iconText)) {
+      pageIcon = iconText;
+    }
+  }
 
   notionFormatter($, $root);
   defaultHtmlFormatter($, $root);
@@ -44,6 +64,7 @@ export async function formatImportHtml(opts: {
   return {
     html: $root.html() || '',
     backlinks,
+    pageIcon: pageIcon || undefined,
   };
 }
 
@@ -69,6 +90,10 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  // remove page header icon and cover image
+  $root.find('.page-header-icon').remove();
+  $root.find('.page-cover-image').remove();
+
   // remove empty description paragraphs
   $root.find('p.page-description').each((_, el) => {
     if (!$(el).text().trim()) $(el).remove();
@@ -189,22 +214,48 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
       $fig.replaceWith($newAnchor);
     });
 
+  // remove user icons
+  $root.find('span.user img.user-icon').remove();
+
   // remove toc
   $root.find('nav.table_of_contents').remove();
 }
 
 export function unwrapFromParagraph($: CheerioAPI, $node: Cheerio<any>) {
-  // find the nearest <p> or <a> ancestor
-  let $wrapper = $node.closest('p, a');
+  // Keep track of processed wrappers to avoid infinite loops
+  const processedWrappers = new Set<any>();
 
+  let $wrapper = $node.closest('p, a');
   while ($wrapper.length) {
-    // if the wrapper has only our node inside, replace it entirely
-    if ($wrapper.contents().length === 1) {
+    const wrapperElement = $wrapper.get(0);
+
+    // If we've already processed this wrapper, break to avoid infinite loop
+    if (processedWrappers.has(wrapperElement)) {
+      break;
+    }
+
+    processedWrappers.add(wrapperElement);
+
+    // Check if the wrapper contains only whitespace and our target node
+    const hasOnlyTargetNode =
+      $wrapper.contents().filter((_, el) => {
+        const $el = $(el);
+        // Skip whitespace-only text nodes. NodeType 3 = text node
+        if (el.nodeType === 3 && !$el.text().trim()) {
+          return false;
+        }
+        // Return true if this is not our target node
+        return !$el.is($node) && !$node.is($el);
+      }).length === 0;
+
+    if (hasOnlyTargetNode) {
+      // Replace the wrapper entirely with our node
       $wrapper.replaceWith($node);
     } else {
-      // otherwise just move the node to before the wrapper
+      // Move the node to before the wrapper, preserving other content
       $wrapper.before($node);
     }
+
     // look again for any new wrapper around $node
     $wrapper = $node.closest('p, a');
   }

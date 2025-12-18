@@ -15,10 +15,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      ignoreTrailingSlash: true,
-      ignoreDuplicateSlashes: true,
-      maxParamLength: 1000,
       trustProxy: true,
+      routerOptions: {
+        maxParamLength: 1000,
+        ignoreTrailingSlash: true,
+        ignoreDuplicateSlashes: true,
+      },
     }),
     {
       rawBody: true,

@@ -26,6 +26,7 @@ import { UpdateEvent } from "@/features/websocket/types";
 import localEmitter from "@/lib/local-emitter.ts";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { searchSpotlight } from "@/features/search/constants.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -86,10 +87,27 @@ export function TitleEditor({
     content: title,
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
+    editorProps: {
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+            event.preventDefault();
+            return true;
+          }
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+            searchSpotlight.open();
+            return true;
+          }
+        },
+      },
+    },
   });
 
   useEffect(() => {
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    const anchorId = window.location.hash
+      ? window.location.hash.substring(1)
+      : undefined;
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
     navigate(pageSlug, { replace: true });
   }, [title]);
 
@@ -177,10 +195,43 @@ export function TitleEditor({
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
+    if (key === "Enter") {
+      event.preventDefault();
+
+      const { $from } = titleEditor.state.selection;
+      const titleText = titleEditor.getText();
+
+      // Get the text offset within the heading node (not document position)
+      const textOffset = $from.parentOffset;
+
+      const textAfterCursor = titleText.slice(textOffset);
+
+      // Delete text after cursor from title (this will be in undo history)
+      const endPos = titleEditor.state.doc.content.size;
+      if (textAfterCursor) {
+        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
+      }
+
+      // Don't add to history so undo in page editor won't remove this split
+      pageEditor
+        .chain()
+        .command(({ tr }) => {
+          tr.setMeta("addToHistory", false);
+          return true;
+        })
+        .insertContentAt(0, {
+          type: "paragraph",
+          content: textAfterCursor
+            ? [{ type: "text", text: textAfterCursor }]
+            : undefined,
+        })
+        .focus("start")
+        .run();
+      return;
+    }
+
     const shouldFocusEditor =
-      key === "Enter" ||
-      key === "ArrowDown" ||
-      (key === "ArrowRight" && !$head.nodeAfter);
+      key === "ArrowDown" || (key === "ArrowRight" && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
       pageEditor.commands.focus("start");
@@ -193,7 +244,7 @@ export function TitleEditor({
       onKeyDown={(event) => {
         // First handle the search hotkey
         getHotkeyHandler([["mod+F", openSearchDialog]])(event);
-        
+
         // Then handle other key events
         handleTitleKeyDown(event);
       }}

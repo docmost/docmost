@@ -3,6 +3,7 @@ import {
   BubbleMenuProps,
   isNodeSelection,
   useEditor,
+  useEditorState,
 } from "@tiptap/react";
 import { FC, useEffect, useRef, useState } from "react";
 import {
@@ -50,34 +51,52 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
     showCommentPopupRef.current = showCommentPopup;
   }, [showCommentPopup]);
 
+  const editorState = useEditorState({
+    editor: props.editor,
+    selector: (ctx) => {
+      if (!props.editor) {
+        return null;
+      }
+
+      return {
+        isBold: ctx.editor.isActive("bold"),
+        isItalic: ctx.editor.isActive("italic"),
+        isUnderline: ctx.editor.isActive("underline"),
+        isStrike: ctx.editor.isActive("strike"),
+        isCode: ctx.editor.isActive("code"),
+        isComment: ctx.editor.isActive("comment"),
+      };
+    },
+  });
+
   const items: BubbleMenuItem[] = [
     {
       name: "Bold",
-      isActive: () => props.editor.isActive("bold"),
+      isActive: () => editorState?.isBold,
       command: () => props.editor.chain().focus().toggleBold().run(),
       icon: IconBold,
     },
     {
       name: "Italic",
-      isActive: () => props.editor.isActive("italic"),
+      isActive: () => editorState?.isItalic,
       command: () => props.editor.chain().focus().toggleItalic().run(),
       icon: IconItalic,
     },
     {
       name: "Underline",
-      isActive: () => props.editor.isActive("underline"),
+      isActive: () => editorState?.isUnderline,
       command: () => props.editor.chain().focus().toggleUnderline().run(),
       icon: IconUnderline,
     },
     {
       name: "Strike",
-      isActive: () => props.editor.isActive("strike"),
+      isActive: () => editorState?.isStrike,
       command: () => props.editor.chain().focus().toggleStrike().run(),
       icon: IconStrikethrough,
     },
     {
       name: "Code",
-      isActive: () => props.editor.isActive("code"),
+      isActive: () => editorState?.isCode,
       command: () => props.editor.chain().focus().toggleCode().run(),
       icon: IconCode,
     },
@@ -85,7 +104,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const commentItem: BubbleMenuItem = {
     name: "Comment",
-    isActive: () => props.editor.isActive("comment"),
+    isActive: () => editorState?.isComment,
     command: () => {
       const commentId = uuid7();
 
@@ -125,16 +144,16 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       onHide: () => {
         setIsNodeSelectorOpen(false);
         setIsTextAlignmentOpen(false);
-        setIsColorSelectorOpen(false);
         setIsLinkSelectorOpen(false);
+        setIsColorSelectorOpen(false);
       },
     },
   };
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
-  const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
+  const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
 
   return (
     <BubbleMenu {...bubbleMenuProps}>
@@ -145,8 +164,8 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsNodeSelectorOpen(!isNodeSelectorOpen);
             setIsTextAlignmentOpen(false);
-            setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 
@@ -156,8 +175,8 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsOpen={() => {
             setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
             setIsNodeSelectorOpen(false);
-            setIsColorSelectorOpen(false);
             setIsLinkSelectorOpen(false);
+            setIsColorSelectorOpen(false);
           }}
         />
 

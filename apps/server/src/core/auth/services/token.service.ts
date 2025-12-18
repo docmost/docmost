@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
+  JwtApiKeyPayload,
   JwtAttachmentPayload,
   JwtCollabPayload,
   JwtExchangePayload,
@@ -88,6 +89,27 @@ export class TokenService {
       type: JwtType.MFA_TOKEN,
     };
     return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
+  async generateApiToken(opts: {
+    apiKeyId: string;
+    user: User;
+    workspaceId: string;
+    expiresIn?: string | number;
+  }): Promise<string> {
+    const { apiKeyId, user, workspaceId, expiresIn } = opts;
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new ForbiddenException();
+    }
+
+    const payload: JwtApiKeyPayload = {
+      sub: user.id,
+      apiKeyId: apiKeyId,
+      workspaceId,
+      type: JwtType.API_KEY,
+    };
+
+    return this.jwtService.sign(payload, expiresIn ? { expiresIn } : {});
   }
 
   async verifyJwt(token: string, tokenType: string) {

@@ -72,7 +72,9 @@ export function extractDateFromUuid7(uuid7: string) {
 }
 
 export function sanitizeFileName(fileName: string): string {
-  const sanitizedFilename = sanitize(fileName).replace(/ /g, '_');
+  const sanitizedFilename = sanitize(fileName)
+    .replace(/ /g, '_')
+    .replace(/#/g, '_');
   return sanitizedFilename.slice(0, 255);
 }
 
@@ -86,4 +88,13 @@ export function extractBearerTokenFromHeader(
 ): string | undefined {
   const [type, token] = request.headers.authorization?.split(' ') ?? [];
   return type === 'Bearer' ? token : undefined;
+}
+
+export function hasLicenseOrEE(opts: {
+  licenseKey: string;
+  plan: string;
+  isCloud: boolean;
+}): boolean {
+  const { licenseKey, plan, isCloud } = opts;
+  return Boolean(licenseKey) || (isCloud && plan === 'business');
 }

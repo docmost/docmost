@@ -26,7 +26,7 @@ export default function WorkspaceInvitesTable() {
         )}
       </Alert>
 
-      <Table.ScrollContainer minWidth={500}>
+      <Table.ScrollContainer minWidth={600}>
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>

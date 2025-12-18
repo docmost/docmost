@@ -2,6 +2,7 @@ import {
   BubbleMenu as BaseBubbleMenu,
   findParentNode,
   posToDOMRect,
+  useEditorState,
 } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { sticky } from "tippy.js";
@@ -31,6 +32,25 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     },
     [editor],
   );
+
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      const imageAttrs = ctx.editor.getAttributes("image");
+
+      return {
+        isImage: ctx.editor.isActive("image"),
+        isAlignLeft: ctx.editor.isActive("image", { align: "left" }),
+        isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
+        isAlignRight: ctx.editor.isActive("image", { align: "right" }),
+        width: imageAttrs?.width ? parseInt(imageAttrs.width) : null,
+      };
+    },
+  });
 
   const getReferenceClientRect = useCallback(() => {
     const { selection } = editor.state;
@@ -83,7 +103,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`image-menu}`}
+      pluginKey={`image-menu`}
       updateDelay={0}
       tippyOptions={{
         getReferenceClientRect,
@@ -103,9 +123,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageLeft}
             size="lg"
             aria-label={t("Align left")}
-            variant={
-              editor.isActive("image", { align: "left" }) ? "light" : "default"
-            }
+            variant={editorState?.isAlignLeft ? "light" : "default"}
           >
             <IconLayoutAlignLeft size={18} />
           </ActionIcon>
@@ -116,11 +134,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageCenter}
             size="lg"
             aria-label={t("Align center")}
-            variant={
-              editor.isActive("image", { align: "center" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isAlignCenter ? "light" : "default"}
           >
             <IconLayoutAlignCenter size={18} />
           </ActionIcon>
@@ -131,20 +145,15 @@ export function ImageMenu({ editor }: EditorMenuProps) {
             onClick={alignImageRight}
             size="lg"
             aria-label={t("Align right")}
-            variant={
-              editor.isActive("image", { align: "right" }) ? "light" : "default"
-            }
+            variant={editorState?.isAlignRight ? "light" : "default"}
           >
             <IconLayoutAlignRight size={18} />
           </ActionIcon>
         </Tooltip>
       </ActionIcon.Group>
 
-      {editor.getAttributes("image")?.width && (
-        <NodeWidthResize
-          onChange={onWidthChange}
-          value={parseInt(editor.getAttributes("image").width)}
-        />
+      {editorState?.width && (
+        <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
       )}
     </BaseBubbleMenu>
   );

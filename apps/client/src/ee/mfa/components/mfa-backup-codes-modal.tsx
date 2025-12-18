@@ -25,23 +25,30 @@ import { regenerateBackupCodes } from "@/ee/mfa";
 import { useForm } from "@mantine/form";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
 
 interface MfaBackupCodesModalProps {
   opened: boolean;
   onClose: () => void;
 }
 
-const formSchema = z.object({
-  confirmPassword: z.string().min(1, { message: "Password is required" }),
-});
-
 export function MfaBackupCodesModal({
   opened,
   onClose,
 }: MfaBackupCodesModalProps) {
   const { t } = useTranslation();
+  const { data: currentUser } = useCurrentUser();
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showNewCodes, setShowNewCodes] = useState(false);
+  const requiresPassword = !currentUser?.user?.hasGeneratedPassword;
+
+  const formSchema = requiresPassword
+    ? z.object({
+        confirmPassword: z.string().min(1, { message: "Password is required" }),
+      })
+    : z.object({
+        confirmPassword: z.string().optional(),
+      });
 
   const form = useForm({
     validate: zodResolver(formSchema),
@@ -51,7 +58,7 @@ export function MfaBackupCodesModal({
   });
 
   const regenerateMutation = useMutation({
-    mutationFn: (data: { confirmPassword: string }) =>
+    mutationFn: (data: { confirmPassword?: string }) =>
       regenerateBackupCodes(data),
     onSuccess: (data) => {
       setBackupCodes(data.backupCodes);
@@ -73,8 +80,12 @@ export function MfaBackupCodesModal({
     },
   });
 
-  const handleRegenerate = (values: { confirmPassword: string }) => {
-    regenerateMutation.mutate(values);
+  const handleRegenerate = (values: { confirmPassword?: string }) => {
+    // Only send confirmPassword if it's required (non-SSO users)
+    const payload = requiresPassword
+      ? { confirmPassword: values.confirmPassword }
+      : {};
+    regenerateMutation.mutate(payload);
   };
 
   const handleClose = () => {
@@ -114,12 +125,16 @@ export function MfaBackupCodesModal({
                 )}
               </Text>
 
-              <PasswordInput
-                label={t("Confirm password")}
-                placeholder={t("Enter your password")}
-                variant="filled"
-                {...form.getInputProps("confirmPassword")}
-              />
+              {requiresPassword && (
+                <PasswordInput
+                  label={t("Confirm password")}
+                  placeholder={t("Enter your password")}
+                  variant="filled"
+                  {...form.getInputProps("confirmPassword")}
+                  autoFocus
+                  data-autofocus
+                />
+              )}
 
               <Button
                 type="submit"
