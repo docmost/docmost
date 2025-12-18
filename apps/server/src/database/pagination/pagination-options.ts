@@ -27,5 +27,5 @@ export class PaginationOptions {
 
   @IsOptional()
   @IsBoolean()
-  adminView: boolean;
+  adminView?: boolean;
 }
