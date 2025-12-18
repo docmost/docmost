@@ -1,0 +1,123 @@
+.resize-cursor {
+    cursor: col-resize;
+}
+
+.prosemirror-column-container {
+    display: flex;
+    flex-direction: row;
+    width: calc(100% - 8px);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.prosemirror-column-container.has-focus .prosemirror-column,
+.prosemirror-column-container:hover .prosemirror-column {
+    background-color: rgba(100, 106, 115, 0.05);
+}
+
+.prosemirror-column-container .prosemirror-column {
+    position: relative;
+    border-radius: 8px;
+    min-width: 50px;
+    padding: 12px;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.prosemirror-column-container
+.prosemirror-column
+> :not(div.grid-resize-handle):nth-child(1),
+.prosemirror-column-container
+.prosemirror-column
+> div.grid-resize-handle
++ :nth-child(2) {
+    margin-top: 0;
+}
+
+.prosemirror-column-container .prosemirror-column > :nth-last-child(1) {
+    margin-bottom: 0;
+}
+
+.prosemirror-column-container .prosemirror-column .grid-resize-handle {
+    position: absolute;
+    right: -7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    z-index: 20;
+    background-color: #336df4;
+    pointer-events: none;
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button {
+    top: -8px;
+    left: -9px;
+    width: 12px;
+    height: 12px;
+    background-color: #007bff;
+    border: 4px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out;
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button:hover {
+    transform: scale(1.35);
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button
+.plus {
+    position: relative;
+    width: 8px;
+    height: 8px;
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button
+.plus::before,
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button
+.plus::after {
+    content: '';
+    position: absolute;
+    background-color: white;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button
+.plus::before {
+    width: 8px;
+    height: 2px;
+}
+
+.prosemirror-column-container
+.prosemirror-column
+.grid-resize-handle
+.circle-button
+.plus::after {
+    width: 24px;
+    height: 8px;
+}

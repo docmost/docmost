@@ -46,6 +46,7 @@ import {
   Heading,
   Highlight,
   UniqueID,
+  ColumnsExtension,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -229,6 +230,7 @@ export const mainExtensions = [
   Subpages.configure({
     view: SubpagesView,
   }),
+  ColumnsExtension,
   MarkdownClipboard.configure({
     transformPastedText: true,
   }),

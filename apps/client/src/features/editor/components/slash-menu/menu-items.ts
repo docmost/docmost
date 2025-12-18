@@ -20,6 +20,7 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconLayoutColumns,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -242,6 +243,51 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
           .run(),
+    },
+    {
+      title: "Columns",
+      description: "Insert 2 columns layout.",
+      searchTerms: ["columns", "layout", "grid", "side by side"],
+      icon: IconLayoutColumns,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertContent({
+            type: "column_container",
+            content: [
+              {
+                type: "column",
+                attrs: { colWidth: 200 },
+                content: [
+                  {
+                    type: "paragraph",
+                  },
+                ],
+              },
+              {
+                type: "column",
+                attrs: { colWidth: 200 },
+                content: [
+                  {
+                    type: "paragraph",
+                  },
+                ],
+              },
+              {
+                type: "column",
+                attrs: { colWidth: 200 },
+                content: [
+                  {
+                    type: "paragraph",
+                  },
+                ],
+              },
+            ],
+          })
+          .run();
+      },
     },
     {
       title: "Toggle block",
