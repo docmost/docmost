@@ -20,10 +20,11 @@ import { Queue } from 'bullmq';
 import {
   extractMentions,
   extractPageMentions,
-} from '../../common/helpers/prosemirror/utils';
+} from '../../common/helpers/prosemirror/mentions';
 import { isDeepStrictEqual } from 'node:util';
 import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import { MentionNotificationService } from '../../integrations/mentions/mentions.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -36,6 +37,7 @@ export class PersistenceExtension implements Extension {
     private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    private readonly mentionNotificationService: MentionNotificationService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -169,6 +171,14 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
         mentions: pageMentions,
       } as IPageBacklinkJob);
+
+      await this.mentionNotificationService.scheduleMentionEmails({
+        workspaceId: page.workspaceId,
+        actorUserId: context.user.id,
+        source: 'page',
+        prosemirrorJson: tiptapJson,
+        pageId,
+      });
 
       await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
         pageIds: [pageId],
