@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MAIL_DRIVER_TOKEN } from './mail.constants';
 import { MailDriver } from './drivers/interfaces/mail-driver.interface';
 import { MailMessage } from './interfaces/mail.message';
@@ -10,6 +10,7 @@ import { render } from '@react-email/render';
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   constructor(
     @Inject(MAIL_DRIVER_TOKEN) private mailDriver: MailDriver,
     private readonly environmentService: EnvironmentService,
@@ -46,5 +47,8 @@ export class MailService {
       delete message.template;
     }
     await this.emailQueue.add(QueueJob.SEND_EMAIL, message);
+    this.logger.debug(
+      `sendToQueue queued send-email to=${message.to} subject=${message.subject}`,
+    );
   }
 }

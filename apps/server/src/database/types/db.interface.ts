@@ -9,6 +9,7 @@ import {
   FileTasks,
   Groups,
   GroupUsers,
+  MentionEmailNotifications,
   PageHistory,
   Pages,
   Shares,
@@ -19,8 +20,8 @@ import {
   UserTokens,
   WorkspaceInvitations,
   Workspaces,
-} from '@docmost/db/types/db';
-import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
+} from './db';
+import { PageEmbeddings } from './embeddings.types';
 
 export interface DbInterface {
   attachments: Attachments;
@@ -32,6 +33,7 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  mentionEmailNotifications: MentionEmailNotifications;
   pageEmbeddings: PageEmbeddings;
   pageHistory: PageHistory;
   pages: Pages;

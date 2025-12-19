@@ -177,6 +177,19 @@ export interface FileTasks {
   workspaceId: string;
 }
 
+export interface MentionEmailNotifications {
+  actorUserId: string | null;
+  commentId: string | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  mentionId: string;
+  mentionedUserId: string;
+  pageId: string | null;
+  sentAt: Timestamp | null;
+  source: string;
+  workspaceId: string;
+}
+
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -371,6 +384,7 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  mentionEmailNotifications: MentionEmailNotifications;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;

@@ -9,6 +9,10 @@ import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command";
+import { Mention } from "@docmost/editor-ext";
+import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion.ts";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import MentionView from "@/features/editor/components/mention/mention-view.tsx";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -46,6 +50,23 @@ const CommentEditor = forwardRef(
         Underline,
         Link,
         EmojiCommand,
+        Mention.configure({
+          suggestion: {
+            allowSpaces: true,
+            items: () => {
+              return [];
+            },
+            // @ts-ignore
+            render: mentionRenderItems,
+          },
+          HTMLAttributes: {
+            class: "mention",
+          },
+        }).extend({
+          addNodeView() {
+            return ReactNodeViewRenderer(MentionView);
+          },
+        }),
       ],
       editorProps: {
         handleDOMEvents: {
@@ -73,6 +94,14 @@ const CommentEditor = forwardRef(
             }
           },
         },
+      },
+      onCreate({ editor }) {
+        // used by mention suggestion UI
+        // @ts-ignore
+        editor.storage.mentionItems = editor.storage.mentionItems ?? [];
+        // comments should suggest users only (no page mentions)
+        // @ts-ignore
+        editor.storage.mentionIncludePages = false;
       },
       onUpdate({ editor }) {
         if (onUpdate) onUpdate(editor.getJSON());

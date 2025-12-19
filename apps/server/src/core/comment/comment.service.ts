@@ -12,6 +12,7 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { MentionNotificationService } from '../../integrations/mentions/mentions.service';
 
 @Injectable()
 export class CommentService {
@@ -19,6 +20,7 @@ export class CommentService {
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
     private spaceMemberRepo: SpaceMemberRepo,
+    private readonly mentionNotificationService: MentionNotificationService,
   ) {}
 
   async findById(commentId: string) {
@@ -53,7 +55,7 @@ export class CommentService {
       }
     }
 
-    return await this.commentRepo.insertComment({
+    const created = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
       selection: createCommentDto?.selection?.substring(0, 250),
@@ -63,6 +65,17 @@ export class CommentService {
       workspaceId: workspaceId,
       spaceId: page.spaceId,
     });
+
+    await this.mentionNotificationService.scheduleMentionEmails({
+      workspaceId,
+      actorUserId: userId,
+      source: 'comment',
+      prosemirrorJson: commentContent,
+      pageId: page.id,
+      commentId: created.id,
+    });
+
+    return created;
   }
 
   async findByPageId(
@@ -102,6 +115,15 @@ export class CommentService {
     comment.content = commentContent;
     comment.editedAt = editedAt;
     comment.updatedAt = editedAt;
+
+    await this.mentionNotificationService.scheduleMentionEmails({
+      workspaceId: comment.workspaceId,
+      actorUserId: authUser.id,
+      source: 'comment',
+      prosemirrorJson: commentContent,
+      pageId: comment.pageId,
+      commentId: comment.id,
+    });
 
     return comment;
   }

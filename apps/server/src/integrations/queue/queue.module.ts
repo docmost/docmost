@@ -4,6 +4,7 @@ import { EnvironmentService } from '../environment/environment.service';
 import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
 import { BacklinksProcessor } from './processors/backlinks.processor';
+import { MentionEmailProcessor } from './processors/mention-email.processor';
 
 @Global()
 @Module({
@@ -75,6 +76,6 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
     }),
   ],
   exports: [BullModule],
-  providers: [BacklinksProcessor],
+  providers: [BacklinksProcessor, MentionEmailProcessor],
 })
 export class QueueModule {}
