@@ -343,19 +343,17 @@ export default function PageEditor({
   }, [userPageEditMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
-  const showStatic = useMemo(() => {
-    if (hasConnectedOnceRef.current) return false;
+  const [showStatic, setShowStatic] = useState(true);
+
+  useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
       yjsConnectionStatus === WebSocketStatus.Connected &&
       isSynced
     ) {
       hasConnectedOnceRef.current = true;
-
-      return false;
+      setShowStatic(false);
     }
-
-    return true;
   }, [yjsConnectionStatus, isSynced]);
 
   if (showStatic) {
