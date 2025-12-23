@@ -197,6 +197,12 @@ export interface GroupUsers {
   userId: string;
 }
 
+export interface PageHierarchy {
+  ancestorId: string;
+  descendantId: string;
+  depth: Generated<number>;
+}
+
 export interface PageHistory {
   content: Json | null;
   coverPhoto: string | null;
@@ -371,6 +377,7 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  pageHierarchy: PageHierarchy;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;

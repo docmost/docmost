@@ -3,6 +3,7 @@ import {
   Attachments,
   Comments,
   Groups,
+  PageHierarchy as _PageHierarchy,
   Pages,
   Spaces,
   Users,
@@ -131,3 +132,7 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
 export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
+
+// Page Hierarchy (closure table - composite primary key)
+export type PageHierarchy = Selectable<_PageHierarchy>;
+export type InsertablePageHierarchy = Insertable<_PageHierarchy>;
