@@ -366,20 +366,19 @@ export class PagePermissionService {
     }
   }
 
+  /**
+   * Check if user has writer permission on ALL restricted ancestors of a page.
+   * Used for permission management operations.
+   */
   async hasWritePermission(userId: string, pageId: string): Promise<boolean> {
-    const restrictedAncestor =
-      await this.pagePermissionRepo.findRestrictedAncestor(pageId);
+    const hasRestriction =
+      await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
 
-    if (!restrictedAncestor) {
-      return false;
+    if (!hasRestriction) {
+      return false; // no restrictions, defer to space permissions
     }
 
-    const permission = await this.pagePermissionRepo.getUserPagePermission(
-      userId,
-      restrictedAncestor.pageId,
-    );
-
-    return permission?.role === PagePermissionRole.WRITER;
+    return this.pagePermissionRepo.canUserEditPage(userId, pageId);
   }
 
   async hasPageAccess(pageId: string): Promise<boolean> {
@@ -402,46 +401,34 @@ export class PagePermissionService {
 
   /**
    * Check if user can view a page.
+   * User must have permission (reader or writer) on EVERY restricted ancestor.
    * Returns true if:
-   * - Page has no restricted ancestor: fall back to space permission
-   * - Page has restricted ancestor: user has reader or writer permission on that ancestor
+   * - No ancestors are restricted (defer to space permission)
+   * - User has permission on all restricted ancestors
    */
   async canViewPage(userId: string, pageId: string): Promise<boolean> {
-    const restrictedAncestor =
-      await this.pagePermissionRepo.findRestrictedAncestor(pageId);
-
-    if (!restrictedAncestor) {
-      return true; // no page-level restriction, defer to space permission
-    }
-
-    const permission = await this.pagePermissionRepo.getUserPagePermission(
-      userId,
-      restrictedAncestor.pageId,
-    );
-
-    return !!permission; // has any permission (reader or writer)
+    return this.pagePermissionRepo.canUserAccessPage(userId, pageId);
   }
 
   /**
    * Check if user can edit a page.
+   * User must have WRITER permission on EVERY restricted ancestor.
    * Returns true if:
-   * - Page has no restricted ancestor: fall back to space permission
-   * - Page has restricted ancestor: user has writer permission on that ancestor
+   * - No ancestors are restricted (defer to space permission)
+   * - User has writer permission on all restricted ancestors
    */
   async canEditPage(userId: string, pageId: string): Promise<boolean> {
-    const restrictedAncestor =
-      await this.pagePermissionRepo.findRestrictedAncestor(pageId);
+    return this.pagePermissionRepo.canUserEditPage(userId, pageId);
+  }
 
-    if (!restrictedAncestor) {
-      return true; // no page-level restriction, defer to space permission
-    }
-
-    const permission = await this.pagePermissionRepo.getUserPagePermission(
-      userId,
-      restrictedAncestor.pageId,
-    );
-
-    return permission?.role === PagePermissionRole.WRITER;
+  /**
+   * Filter page IDs to only those the user can access.
+   */
+  async filterAccessiblePages(
+    pageIds: string[],
+    userId: string,
+  ): Promise<string[]> {
+    return this.pagePermissionRepo.filterAccessiblePageIds(pageIds, userId);
   }
 
   /**

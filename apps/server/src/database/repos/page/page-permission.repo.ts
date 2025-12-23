@@ -267,4 +267,145 @@ export class PagePermissionRepo {
       .orderBy('pageHierarchy.depth', 'asc')
       .executeTakeFirst();
   }
+
+  /**
+   * Check if user can access a page by verifying they have permission on ALL restricted ancestors.
+   * Returns true if:
+   * - No ancestors are restricted, OR
+   * - User has permission (reader or writer) on every restricted ancestor
+   */
+  async canUserAccessPage(userId: string, pageId: string): Promise<boolean> {
+    // Find any restricted ancestor where user lacks permission
+    const deniedAncestor = await this.db
+      .selectFrom('pageHierarchy')
+      .innerJoin('pageAccess', 'pageAccess.pageId', 'pageHierarchy.ancestorId')
+      .leftJoin('pagePermissions', (join) =>
+        join
+          .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+          .on((eb) =>
+            eb.or([
+              eb('pagePermissions.userId', '=', userId),
+              eb(
+                'pagePermissions.groupId',
+                'in',
+                eb
+                  .selectFrom('groupUsers')
+                  .select('groupUsers.groupId')
+                  .where('groupUsers.userId', '=', userId),
+              ),
+            ]),
+          ),
+      )
+      .select('pageAccess.pageId')
+      .where('pageHierarchy.descendantId', '=', pageId)
+      .where('pagePermissions.id', 'is', null)
+      .executeTakeFirst();
+
+    return !deniedAncestor;
+  }
+
+  /**
+   * Check if user can edit a page by verifying they have WRITER permission on ALL restricted ancestors.
+   * Returns true if:
+   * - No ancestors are restricted, OR
+   * - User has writer permission on every restricted ancestor
+   */
+  async canUserEditPage(userId: string, pageId: string): Promise<boolean> {
+    // Find any restricted ancestor where user lacks writer permission
+    const deniedAncestor = await this.db
+      .selectFrom('pageHierarchy')
+      .innerJoin('pageAccess', 'pageAccess.pageId', 'pageHierarchy.ancestorId')
+      .leftJoin('pagePermissions', (join) =>
+        join
+          .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+          .on('pagePermissions.role', '=', 'writer')
+          .on((eb) =>
+            eb.or([
+              eb('pagePermissions.userId', '=', userId),
+              eb(
+                'pagePermissions.groupId',
+                'in',
+                eb
+                  .selectFrom('groupUsers')
+                  .select('groupUsers.groupId')
+                  .where('groupUsers.userId', '=', userId),
+              ),
+            ]),
+          ),
+      )
+      .select('pageAccess.pageId')
+      .where('pageHierarchy.descendantId', '=', pageId)
+      .where('pagePermissions.id', 'is', null)
+      .executeTakeFirst();
+
+    return !deniedAncestor;
+  }
+
+  /**
+   * Filter a list of page IDs to only those the user can access.
+   * Efficient single-query implementation for bulk filtering.
+   */
+  async filterAccessiblePageIds(
+    pageIds: string[],
+    userId: string,
+  ): Promise<string[]> {
+    if (pageIds.length === 0) return [];
+
+    // For each page, count restricted ancestors vs permitted ancestors
+    // A page is accessible if restrictedCount == permittedCount
+    const results = await this.db
+      .selectFrom('pages')
+      .select('pages.id')
+      .where('pages.id', 'in', pageIds)
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('pageHierarchy')
+              .innerJoin(
+                'pageAccess',
+                'pageAccess.pageId',
+                'pageHierarchy.ancestorId',
+              )
+              .leftJoin('pagePermissions', (join) =>
+                join
+                  .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+                  .on((eb) =>
+                    eb.or([
+                      eb('pagePermissions.userId', '=', userId),
+                      eb(
+                        'pagePermissions.groupId',
+                        'in',
+                        eb
+                          .selectFrom('groupUsers')
+                          .select('groupUsers.groupId')
+                          .where('groupUsers.userId', '=', userId),
+                      ),
+                    ]),
+                  ),
+              )
+              .select('pageAccess.pageId')
+              .whereRef('pageHierarchy.descendantId', '=', 'pages.id')
+              .where('pagePermissions.id', 'is', null),
+          ),
+        ),
+      )
+      .execute();
+
+    return results.map((r) => r.id);
+  }
+
+  /**
+   * Check if a page or any of its ancestors has restrictions.
+   * Used to determine if page-level permission checks are needed.
+   */
+  async hasRestrictedAncestor(pageId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('pageHierarchy')
+      .innerJoin('pageAccess', 'pageAccess.pageId', 'pageHierarchy.ancestorId')
+      .select('pageAccess.id')
+      .where('pageHierarchy.descendantId', '=', pageId)
+      .executeTakeFirst();
+
+    return !!result;
+  }
 }
