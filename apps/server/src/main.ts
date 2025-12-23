@@ -99,9 +99,10 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   const host = process.env.HOST || '0.0.0.0';
+  const displayHost = host.includes(':') ? `[${host}]` : host;
   await app.listen(port, host, () => {
     logger.log(
-      `Listening on http://${host}:${port} / ${process.env.APP_URL}`,
+      `Listening on http://${displayHost}:${port} and ${process.env.APP_URL}`,
     );
   });
 }

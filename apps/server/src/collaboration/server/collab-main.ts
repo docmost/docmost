@@ -33,8 +33,9 @@ async function bootstrap() {
 
   const port = process.env.COLLAB_PORT || 3001;
   const host = process.env.HOST || '0.0.0.0';
+  const displayHost = host.includes(':') ? `[${host}]` : host;
   await app.listen(port, host, () => {
-    logger.log(`Listening on http://${host}:${port}`);
+    logger.log(`Listening on http://${displayHost}:${port}`);
   });
 }
 
