@@ -9,8 +9,10 @@ import {
   FileTasks,
   Groups,
   GroupUsers,
+  PageAccess,
   PageHierarchy,
   PageHistory,
+  PagePermissions,
   Pages,
   Shares,
   SpaceMembers,
@@ -33,9 +35,11 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  pageAccess: PageAccess;
   pageHierarchy: PageHierarchy;
   pageEmbeddings: PageEmbeddings;
   pageHistory: PageHistory;
+  pagePermissions: PagePermissions;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

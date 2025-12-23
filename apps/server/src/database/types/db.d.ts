@@ -366,6 +366,27 @@ export interface Workspaces {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface PageAccess {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  accessLevel: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PagePermissions {
+  id: Generated<string>;
+  pageAccessId: string;
+  userId: string | null;
+  groupId: string | null;
+  role: string;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -377,8 +398,10 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  pageAccess: PageAccess;
   pageHierarchy: PageHierarchy;
   pageHistory: PageHistory;
+  pagePermissions: PagePermissions;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

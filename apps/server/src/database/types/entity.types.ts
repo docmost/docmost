@@ -3,7 +3,9 @@ import {
   Attachments,
   Comments,
   Groups,
+  PageAccess as _PageAccess,
   PageHierarchy as _PageHierarchy,
+  PagePermissions as _PagePermissions,
   Pages,
   Spaces,
   Users,
@@ -136,3 +138,13 @@ export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
 // Page Hierarchy (closure table - composite primary key)
 export type PageHierarchy = Selectable<_PageHierarchy>;
 export type InsertablePageHierarchy = Insertable<_PageHierarchy>;
+
+// Page Access
+export type PageAccess = Selectable<_PageAccess>;
+export type InsertablePageAccess = Insertable<_PageAccess>;
+export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
+
+// Page Permission
+export type PagePermission = Selectable<_PagePermissions>;
+export type InsertablePagePermission = Insertable<_PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
