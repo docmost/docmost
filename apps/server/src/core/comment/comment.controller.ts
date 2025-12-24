@@ -24,6 +24,7 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
+import { PagePermissionService } from '../page/services/page-permission.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -33,6 +34,7 @@ export class CommentController {
     private readonly commentRepo: CommentRepo,
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pagePermissionService: PagePermissionService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -51,6 +53,9 @@ export class CommentController {
     if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
+
+    // Check page-level edit permission (comments require edit access)
+    await this.pagePermissionService.validateCanEdit(page, user);
 
     return this.commentService.create(
       {
@@ -75,10 +80,11 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    //
+
+    // Checks both space-level and page-level permissions
+    await this.pagePermissionService.validateCanView(page, user);
+
     return this.commentService.findByPageId(page.id, pagination);
   }
 
@@ -90,13 +96,14 @@ export class CommentController {
       throw new NotFoundException('Comment not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      comment.spaceId,
-    );
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(comment.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // Checks both space-level and page-level permissions
+    await this.pagePermissionService.validateCanView(page, user);
+
     return comment;
   }
 
@@ -108,17 +115,13 @@ export class CommentController {
       throw new NotFoundException('Comment not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      comment.spaceId,
-    );
-
-    // must be a space member with edit permission
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException(
-        'You must have space edit permission to edit comments',
-      );
+    const page = await this.pageRepo.findById(comment.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // Checks both space-level and page-level edit permissions
+    await this.pagePermissionService.validateCanEdit(page, user);
 
     return this.commentService.update(comment, dto, user);
   }
@@ -131,37 +134,23 @@ export class CommentController {
       throw new NotFoundException('Comment not found');
     }
 
+    const page = await this.pageRepo.findById(comment.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    // Check page-level edit permission first
+    await this.pagePermissionService.validateCanEdit(page, user);
+
     const ability = await this.spaceAbility.createForUser(
       user,
       comment.spaceId,
     );
 
-    // must be a space member with edit permission
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;
 
     if (isOwner) {
-      /*
-      // Check if comment has children from other users
-      const hasChildrenFromOthers =
-        await this.commentRepo.hasChildrenFromOtherUsers(comment.id, user.id);
-
-      // Owner can delete if no children from other users
-      if (!hasChildrenFromOthers) {
-        await this.commentRepo.deleteComment(comment.id);
-        return;
-      }
-
-      // If has children from others, only space admin can delete
-      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
-        throw new ForbiddenException(
-          'Only space admins can delete comments with replies from other users',
-        );
-      }*/
       await this.commentRepo.deleteComment(comment.id);
       return;
     }

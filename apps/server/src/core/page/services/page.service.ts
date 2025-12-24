@@ -7,6 +7,7 @@ import {
 import { CreatePageDto } from '../dto/create-page.dto';
 import { UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
@@ -47,6 +48,7 @@ export class PageService {
 
   constructor(
     private pageRepo: PageRepo,
+    private pagePermissionRepo: PagePermissionRepo,
     private attachmentRepo: AttachmentRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
@@ -180,6 +182,7 @@ export class PageService {
     spaceId: string,
     pagination: PaginationOptions,
     pageId?: string,
+    userId?: string,
   ): Promise<any> {
     let query = this.db
       .selectFrom('pages')
@@ -194,7 +197,12 @@ export class PageService {
         'creatorId',
         'deletedAt',
       ])
-      .select((eb) => this.pageRepo.withHasChildren(eb))
+      .$if(Boolean(userId), (qb) =>
+        qb.select((eb) => this.pageRepo.withHasChildrenV2(eb, userId)),
+      )
+      //.$if(!userId, (qb) =>
+      //  qb.select((eb) => this.pageRepo.withHasChildren(eb)),
+     // )
       .orderBy('position', (ob) => ob.collate('C').asc())
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
@@ -205,10 +213,21 @@ export class PageService {
       query = query.where('parentPageId', 'is', null);
     }
 
-    const result = executeWithPagination(query, {
+    const result = await executeWithPagination(query, {
       page: pagination.page,
       perPage: 250,
     });
+
+    // Filter by page-level permissions
+    if (userId && result.items.length > 0) {
+      const pageIds = result.items.map((p: any) => p.id);
+      const accessiblePageIds = await this.pagePermissionRepo.filterAccessiblePageIds(
+        pageIds,
+        userId,
+      );
+      const accessibleSet = new Set(accessiblePageIds);
+      result.items = result.items.filter((p: any) => accessibleSet.has(p.id));
+    }
 
     return result;
   }
