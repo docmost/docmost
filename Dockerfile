@@ -24,12 +24,8 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy apps
-COPY --from=builder /app/apps/server/dist /app/apps/server/dist
-COPY --from=builder /app/apps/client/dist /app/apps/client/dist
-COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
-
 # Copy packages
+COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
 COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
 COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
 
@@ -40,7 +36,9 @@ COPY --from=builder /app/pnpm*.yaml /app/
 # Copy patches
 COPY --from=builder /app/patches /app/patches
 
-RUN npm install -g pnpm@10.4.0
+# Copy apps
+COPY --from=builder /app/apps/server/dist /app/apps/server/dist
+COPY --from=builder /app/apps/client/dist /app/apps/client/dist
 
 RUN chown -R node:node /app
 
