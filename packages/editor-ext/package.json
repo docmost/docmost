@@ -8,5 +8,9 @@
   },
   "main": "dist/index.js",
   "module": "./src/index.ts",
-  "types": "dist/index.d.ts"
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "prosemirror-state": "^1.4.3",
+    "prosemirror-view": "^1.40.0"
+  }
 }
