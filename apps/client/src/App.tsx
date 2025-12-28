@@ -38,7 +38,13 @@ import SpaceTrash from "@/pages/space/space-trash.tsx";
 import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
+import ShareTarget from "@/pages/share-target/share-target.tsx";
 
+/**
+ * Top-level application component that configures the application's routes, layouts, and error boundaries.
+ *
+ * @returns The React element representing the application's route tree, including authentication, share, workspace, settings, and fallback routes; some routes are conditionally included for cloud or non-cloud deployments.
+ */
 export default function App() {
   const { t } = useTranslation();
   useRedirectToCloudSelect();
@@ -58,6 +64,8 @@ export default function App() {
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
         )}
+
+        <Route path={"/share-target"} element={<ShareTarget />} />
 
         {isCloud() && (
           <>

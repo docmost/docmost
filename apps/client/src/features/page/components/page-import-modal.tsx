@@ -6,6 +6,7 @@ import {
   Group,
   Text,
   Tooltip,
+  Progress,
 } from "@mantine/core";
 import {
   IconBrandNotion,
@@ -77,6 +78,15 @@ interface ImportFormatSelection {
   spaceId: string;
   onClose: () => void;
 }
+/**
+ * Render the import format selection UI and manage import flows, progress notifications, and tree updates.
+ *
+ * This component provides file inputs and buttons for importing pages from Markdown, HTML, Notion, Confluence, or a generic ZIP file; it handles uploads, displays real-time progress notifications, polls long-running ZIP import tasks, updates the workspace page tree on completion, and resets file inputs after successful imports.
+ *
+ * @param spaceId - The ID of the space into which pages will be imported
+ * @param onClose - Callback invoked to close the parent modal when an import begins
+ * @returns A React element containing controls for importing pages and the associated upload/progress handling
+ */
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const { t } = useTranslation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
@@ -109,7 +119,28 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         autoClose: false,
       });
 
-      const importTask = await importZip(selectedFile, spaceId, source);
+      const importTask = await importZip(selectedFile, spaceId, source, (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / (progressEvent.total || selectedFile.size)
+        );
+
+        notifications.update({
+          id: "import",
+          title: t("Uploading import file"),
+          message: (
+            <div>
+              <Text size="xs" mb={5}>
+                {t("Please don't close this tab.")} ({percentCompleted}%)
+              </Text>
+              <Progress value={percentCompleted} size="sm" radius="xl" animated />
+            </div>
+          ),
+          loading: true,
+          withCloseButton: false,
+          autoClose: false,
+        });
+      });
+
       notifications.update({
         id: "import",
         title: t("Importing pages"),
@@ -163,7 +194,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             icon: <IconCheck size={18} />,
             loading: false,
             withCloseButton: true,
-            autoClose: false,
+            autoClose: 5000,
           });
           clearInterval(intervalId);
           setFileTaskId(null);
@@ -178,6 +209,23 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
               spaceId: spaceId,
             });
           }, 50);
+        } else if (status === "processing" || status === "pending") {
+          const progress = fileTask.progress || 0;
+          notifications.update({
+            id: "import",
+            title: t("Importing pages"),
+            message: (
+              <div>
+                <Text size="xs" mb={5}>
+                  {t("Processing import files...")} ({progress}%)
+                </Text>
+                <Progress value={progress} size="sm" radius="xl" animated />
+              </div>
+            ),
+            loading: true,
+            withCloseButton: true,
+            autoClose: false,
+          });
         }
 
         if (status === "failed") {
@@ -242,7 +290,32 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
     for (const file of selectedFiles) {
       try {
-        const page = await importPage(file, spaceId);
+        const page = await importPage(file, spaceId, (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / (progressEvent.total || file.size)
+          );
+
+          notifications.update({
+            id: alert,
+            title: t("Importing pages"),
+            message: (
+              <div>
+                <Text size="xs" mb={5}>
+                  {t("Importing {{fileName}}", { fileName: file.name })} (
+                  {percentCompleted}%)
+                </Text>
+                <Progress
+                  value={percentCompleted}
+                  size="sm"
+                  radius="xl"
+                  animated
+                />
+              </div>
+            ),
+            loading: true,
+            autoClose: false,
+          });
+        });
         pages.push(page);
         pageCount += 1;
       } catch (err) {

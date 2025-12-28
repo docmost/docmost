@@ -1,4 +1,5 @@
 import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
+import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
@@ -261,6 +262,20 @@ export function unwrapFromParagraph($: CheerioAPI, $node: Cheerio<any>) {
   }
 }
 
+/**
+ * Replace internal links that resolve to known pages with page-mention spans and collect resulting backlinks.
+ *
+ * Skips external links (hrefs starting with "http") and API links (starting with "/api/"). Attempts to decode and normalize each link relative to `currentFilePath`; when a matching entry is found in `filePathToPageMetaMap`, the anchor is replaced with a span element carrying page mention metadata and a backlink record is added. Malformed percent-encodings are handled gracefully.
+ *
+ * @param $ - The Cheerio API instance used to manipulate the document.
+ * @param $root - The root Cheerio element to search for anchors.
+ * @param currentFilePath - Path of the file containing the links being rewritten; used to resolve relative links.
+ * @param filePathToPageMetaMap - Map from normalized file paths to page metadata ({ id, title, slugId }) used to identify targets for mentions.
+ * @param creatorId - Identifier inserted into the mention's `data-creator-id` attribute.
+ * @param sourcePageId - Identifier of the page where the rewritten links originate; used as the backlink source.
+ * @param workspaceId - Workspace identifier included in each generated backlink.
+ * @returns An array of InsertableBacklink objects created for each rewritten internal link; each item links `sourcePageId` to a discovered target page `id` within `workspaceId`.
+ */
 export async function rewriteInternalLinksToMentionHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
@@ -280,8 +295,18 @@ export async function rewriteInternalLinksToMentionHtml(
     const $a = $(el);
     const raw = $a.attr('href')!;
     if (raw.startsWith('http') || raw.startsWith('/api/')) return;
+    let decodedRaw = raw;
+    try {
+      decodedRaw = decodeURIComponent(raw);
+    } catch (err) {
+      Logger.warn(
+        `URI malformed in page ${currentFilePath}: ${raw}. Falling back to raw path.`,
+        'ImportFormatter',
+      );
+    }
+
     const resolved = normalize(
-      path.join(path.dirname(currentFilePath), decodeURIComponent(raw)),
+      path.join(path.dirname(currentFilePath), decodedRaw),
     );
     const meta = filePathToPageMetaMap.get(resolved);
     if (!meta) return;

@@ -5,15 +5,25 @@ import { sanitizeFileName } from '../../common/helpers';
 import * as sharp from 'sharp';
 
 export interface PreparedFile {
-  buffer: Buffer;
+  buffer?: Buffer;
   fileName: string;
   fileSize: number;
   fileExtension: string;
   mimeType: string;
+  multiPartFile?: MultipartFile;
 }
 
+/**
+ * Prepare an uploaded multipart file for storage by sanitizing metadata and optionally reading its buffer.
+ *
+ * @param filePromise - Promise that resolves to the uploaded MultipartFile
+ * @param options.skipBuffer - If `true`, the file buffer is not read and `fileSize` will be `0`; otherwise the file is read into memory
+ * @returns A PreparedFile containing `fileName` (sanitized and truncated), `fileExtension` (lowercased), `mimeType`, `fileSize` (bytes), optional `buffer`, and the original `multiPartFile`
+ * @throws Error when no file is provided
+ */
 export async function prepareFile(
   filePromise: Promise<MultipartFile>,
+  options: { skipBuffer?: boolean } = {},
 ): Promise<PreparedFile> {
   const file = await filePromise;
 
@@ -22,10 +32,16 @@ export async function prepareFile(
   }
 
   try {
-    const buffer = await file.toBuffer();
+    let buffer: Buffer | undefined;
+    let fileSize = 0;
+
+    if (!options.skipBuffer) {
+      buffer = await file.toBuffer();
+      fileSize = buffer.length;
+    }
+
     const sanitizedFilename = sanitizeFileName(file.filename);
     const fileName = sanitizedFilename.slice(0, 255);
-    const fileSize = buffer.length;
     const fileExtension = path.extname(file.filename).toLowerCase();
 
     return {
@@ -34,6 +50,7 @@ export async function prepareFile(
       fileSize,
       fileExtension,
       mimeType: file.mimetype,
+      multiPartFile: file,
     };
   } catch (error) {
     throw error;

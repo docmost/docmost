@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
@@ -25,13 +26,28 @@ export async function buildAttachmentCandidates(
   return map;
 }
 
+/**
+ * Resolve a raw relative attachment reference to a candidate key in `attachmentCandidates`.
+ *
+ * Normalizes and attempts to decode `raw`, then checks for a direct match; if none, checks a normalized fallback path joined with `pageDir`.
+ *
+ * @param raw - The raw relative attachment path as found in content (may start with "./" or "/")
+ * @param pageDir - The directory of the page referencing the attachment; used to compute the fallback path
+ * @param attachmentCandidates - Map of candidate relative paths to absolute file paths
+ * @returns The matching key from `attachmentCandidates` (either the decoded relative path or the normalized fallback), or `null` if no candidate matches
+ */
 export function resolveRelativeAttachmentPath(
   raw: string,
   pageDir: string,
   attachmentCandidates: Map<string, string>,
 ): string | null {
-  const mainRel = decodeURIComponent(raw.replace(/^\.?\/+/, ''));
-  const fallback = path.normalize(path.join(pageDir, mainRel));
+  let mainRel = raw.replace(/^\.?\/+/, '');
+  try {
+    mainRel = decodeURIComponent(mainRel);
+  } catch (err) {
+    Logger.warn(`URI malformed for attachment path: ${mainRel}. Falling back to raw path.`, 'ImportUtils');
+  }
+  const fallback = path.normalize(path.join(pageDir, mainRel)).split(path.sep).join('/');
 
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;

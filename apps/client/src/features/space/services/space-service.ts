@@ -60,6 +60,15 @@ export async function changeMemberRole(
   await api.post("/spaces/members/change-role", data);
 }
 
+/**
+ * Initiates an export for a space and downloads the resulting file.
+ *
+ * Sends the provided export parameters to the server, extracts the filename from the
+ * response's `Content-Disposition` header (falls back to the raw header value if decoding fails),
+ * and triggers a browser download of the returned blob.
+ *
+ * @param data - Export request parameters (for example, the space ID and export options)
+ */
 export async function exportSpace(data: IExportSpaceParams): Promise<void> {
   const req = await api.post("/spaces/export", data, {
     responseType: "blob",
@@ -69,5 +78,12 @@ export async function exportSpace(data: IExportSpaceParams): Promise<void> {
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, decodeURIComponent(fileName));
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
 }
