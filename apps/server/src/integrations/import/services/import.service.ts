@@ -10,7 +10,7 @@ import {
 } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { generateSlugId, sanitizeFileName } from '../../../common/helpers';
+import { generateSlugId, sanitizeFileName, createByteCountingStream } from '../../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
@@ -90,13 +90,14 @@ export class ImportService {
     const pageTitle = contentTitle || fileName;
 
     if (prosemirrorJson) {
-      try {
-        if (parentPageId) {
-          const parentPage = await this.pageRepo.findById(parentPageId);
-          if (!parentPage || parentPage.spaceId !== spaceId) {
-            throw new NotFoundException('Parent page not found');
-          }
+      if (parentPageId) {
+        const parentPage = await this.pageRepo.findById(parentPageId);
+        if (!parentPage || parentPage.spaceId !== spaceId) {
+          throw new NotFoundException('Parent page not found');
         }
+      }
+
+      try {
         const pagePosition = await this.getNewPagePosition(spaceId, parentPageId);
 
         createdPage = await this.pageRepo.insertPage({
@@ -238,9 +239,12 @@ export class ImportService {
     const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileNameWithExt}`;
 
     // upload file
-    await this.storageService.upload(filePath, file.file);
+    const { stream, getBytesRead } = createByteCountingStream(file.file);
 
-    const fileSize = (file.file as any).bytesRead || 0;
+    // upload file
+    await this.storageService.upload(filePath, stream);
+
+    const fileSize = getBytesRead();
 
     const fileTask = await this.db
       .insertInto('fileTasks')

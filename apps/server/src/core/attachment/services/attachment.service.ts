@@ -27,6 +27,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { createByteCountingStream } from '../../../common/helpers/utils';
 
 @Injectable()
 export class AttachmentService {
@@ -82,10 +83,12 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.multiPartFile.file);
+    const { stream, getBytesRead } = createByteCountingStream(preparedFile.multiPartFile.file);
+
+    await this.uploadToDrive(filePath, stream);
 
     // Update fileSize from the consumed stream
-    preparedFile.fileSize = (preparedFile.multiPartFile.file as any).bytesRead || 0;
+    preparedFile.fileSize = getBytesRead();
 
     let attachment: Attachment = null;
     try {
