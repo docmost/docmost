@@ -24,14 +24,13 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy packages
-COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
-COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
-COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
-
 # Copy root package files
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm*.yaml /app/
+
+# Copy packages
+COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
+COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
 
 # Copy patches
 COPY --from=builder /app/patches /app/patches
@@ -39,6 +38,7 @@ COPY --from=builder /app/patches /app/patches
 # Copy apps
 COPY --from=builder /app/apps/server/dist /app/apps/server/dist
 COPY --from=builder /app/apps/client/dist /app/apps/client/dist
+COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
 
 RUN chown -R node:node /app
 
