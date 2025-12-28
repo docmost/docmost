@@ -35,7 +35,7 @@ interface DrawioPair {
 @Injectable()
 export class ImportAttachmentService {
   private readonly logger = new Logger(ImportAttachmentService.name);
-  private readonly CONCURRENT_UPLOADS = 3;
+  private readonly CONCURRENT_UPLOADS = 10;
   private readonly MAX_RETRIES = 2;
   private readonly RETRY_DELAY = 2000;
 
@@ -43,7 +43,7 @@ export class ImportAttachmentService {
     private readonly storageService: StorageService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-  ) {}
+  ) { }
 
   async processAttachments(opts: {
     html: string;

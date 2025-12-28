@@ -34,6 +34,7 @@ import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import pLimit from 'p-limit';
 
 @Injectable()
 export class FileImportTaskService {
@@ -374,14 +375,17 @@ export class FileImportTaskService {
 
     // Sort levels to process in order
     const sortedLevels = Array.from(pagesByLevel.keys()).sort((a, b) => a - b);
+    const preparedPagesByLevel = new Map<number, InsertablePage[]>();
 
     try {
-      await executeTx(this.db, async (trx) => {
-        // Process pages level by level sequentially within the transaction
-        for (const level of sortedLevels) {
-          const levelPages = pagesByLevel.get(level)!;
+      const processingLimit = pLimit(5); // Process up to 5 pages concurrently
 
-          for (const [filePath, page] of levelPages) {
+      for (const level of sortedLevels) {
+        const levelPages = pagesByLevel.get(level)!;
+        const levelPreparedPages: InsertablePage[] = [];
+
+        const tasks = levelPages.map(([filePath, page]) =>
+          processingLimit(async () => {
             const absPath = path.join(extractDir, filePath);
             let content = '';
 
@@ -444,10 +448,7 @@ export class FileImportTaskService {
               parentPageId: page.parentPageId,
             };
 
-            await trx.insertInto('pages').values(insertablePage).execute();
-
-            // Track valid page IDs and collect backlinks
-            validPageIds.add(insertablePage.id);
+            levelPreparedPages.push(insertablePage);
             allBacklinks.push(...backlinks);
             totalPagesProcessed++;
 
@@ -458,6 +459,26 @@ export class FileImportTaskService {
               95,
             );
             await this.updateTaskProgress(fileTask.id, progress);
+          }),
+        );
+
+        await Promise.all(tasks);
+        preparedPagesByLevel.set(level, levelPreparedPages);
+      }
+
+      await executeTx(this.db, async (trx) => {
+        // Insert prepared pages level by level within the transaction
+        for (const level of sortedLevels) {
+          const levelPages = preparedPagesByLevel.get(level) || [];
+
+          // Batch insert pages for this level
+          if (levelPages.length > 0) {
+            const PAGE_BATCH_SIZE = 50;
+            for (let i = 0; i < levelPages.length; i += PAGE_BATCH_SIZE) {
+              const chunk = levelPages.slice(i, i + PAGE_BATCH_SIZE);
+              await trx.insertInto('pages').values(chunk).execute();
+              chunk.forEach((p) => validPageIds.add(p.id));
+            }
           }
         }
 
