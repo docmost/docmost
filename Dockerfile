@@ -9,6 +9,7 @@ WORKDIR /app
 # This stage is heavily cached. It only runs when dependency files change.
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY patches ./patches
 COPY apps/server/package.json ./apps/server/
 COPY apps/client/package.json ./apps/client/
 COPY packages/editor-ext/package.json ./packages/editor-ext/
