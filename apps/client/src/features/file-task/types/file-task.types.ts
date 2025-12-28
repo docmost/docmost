@@ -3,6 +3,7 @@ export interface IFileTask {
   type: "import" | "export";
   source: string;
   status: string;
+  progress?: number;
   fileName: string;
   filePath: string;
   fileSize: number;

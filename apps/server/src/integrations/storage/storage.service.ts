@@ -8,9 +8,9 @@ export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   constructor(
     @Inject(STORAGE_DRIVER_TOKEN) private storageDriver: StorageDriver,
-  ) {}
+  ) { }
 
-  async upload(filePath: string, fileContent: Buffer | any) {
+  async upload(filePath: string, fileContent: Buffer | Readable) {
     await this.storageDriver.upload(filePath, fileContent);
     this.logger.debug(`File uploaded successfully. Path: ${filePath}`);
   }

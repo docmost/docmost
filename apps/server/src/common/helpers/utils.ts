@@ -98,3 +98,20 @@ export function hasLicenseOrEE(opts: {
   const { licenseKey, plan, isCloud } = opts;
   return Boolean(licenseKey) || (isCloud && plan === 'business');
 }
+
+import { Readable, Transform } from 'stream';
+
+export function createByteCountingStream(source: Readable) {
+  let bytesRead = 0;
+  const stream = new Transform({
+    transform(chunk, encoding, callback) {
+      bytesRead += chunk.length;
+      callback(null, chunk);
+    },
+  });
+
+  source.pipe(stream);
+  source.on('error', (err) => stream.emit('error', err));
+
+  return { stream, getBytesRead: () => bytesRead };
+}
