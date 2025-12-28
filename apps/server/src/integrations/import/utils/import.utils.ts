@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
@@ -30,8 +31,13 @@ export function resolveRelativeAttachmentPath(
   pageDir: string,
   attachmentCandidates: Map<string, string>,
 ): string | null {
-  const mainRel = decodeURIComponent(raw.replace(/^\.?\/+/, ''));
-  const fallback = path.normalize(path.join(pageDir, mainRel));
+  let mainRel = raw.replace(/^\.?\/+/, '');
+  try {
+    mainRel = decodeURIComponent(mainRel);
+  } catch (err) {
+    Logger.warn(`URI malformed for attachment path: ${mainRel}. Falling back to raw path.`, 'ImportUtils');
+  }
+  const fallback = path.normalize(path.join(pageDir, mainRel)).split(path.sep).join('/');
 
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;
