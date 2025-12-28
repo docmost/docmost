@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
@@ -38,7 +39,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-  ) {}
+  ) { }
 
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;
@@ -49,7 +50,7 @@ export class AttachmentService {
     attachmentId?: string;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
-    const preparedFile: PreparedFile = await prepareFile(filePromise);
+    const preparedFile: PreparedFile = await prepareFile(filePromise, { skipBuffer: true });
 
     let isUpdate = false;
     let attachmentId = null;
@@ -81,7 +82,10 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.buffer);
+    await this.uploadToDrive(filePath, preparedFile.multiPartFile.file);
+
+    // Update fileSize from the consumed stream
+    preparedFile.fileSize = (preparedFile.multiPartFile.file as any).bytesRead || 0;
 
     let attachment: Attachment = null;
     try {
@@ -232,9 +236,9 @@ export class AttachmentService {
     }
   }
 
-  async uploadToDrive(filePath: string, fileBuffer: any) {
+  async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {
     try {
-      await this.storageService.upload(filePath, fileBuffer);
+      await this.storageService.upload(filePath, fileContent);
     } catch (err) {
       this.logger.error('Error uploading file to drive:', err);
       throw new BadRequestException('Error uploading file to drive');
