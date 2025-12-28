@@ -7,8 +7,13 @@ WORKDIR /app
 
 FROM base AS builder
 
-COPY package.json pnpm*.yaml /app/
+COPY package.json pnpm*.yaml nx.json /app/
+COPY apps/client/package.json /app/apps/client/package.json
+COPY apps/server/package.json /app/apps/server/package.json
 COPY packages/editor-ext/package.json /app/packages/editor-ext/package.json
+
+COPY patches /app/patches
+
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 COPY . .
