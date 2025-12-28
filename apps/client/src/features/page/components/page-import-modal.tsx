@@ -6,6 +6,7 @@ import {
   Group,
   Text,
   Tooltip,
+  Progress,
 } from "@mantine/core";
 import {
   IconBrandNotion,
@@ -109,7 +110,28 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         autoClose: false,
       });
 
-      const importTask = await importZip(selectedFile, spaceId, source);
+      const importTask = await importZip(selectedFile, spaceId, source, (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / (progressEvent.total || selectedFile.size)
+        );
+
+        notifications.update({
+          id: "import",
+          title: t("Uploading import file"),
+          message: (
+            <div>
+              <Text size="xs" mb={5}>
+                {t("Please don't close this tab.")} ({percentCompleted}%)
+              </Text>
+              <Progress value={percentCompleted} size="sm" radius="xl" animated />
+            </div>
+          ),
+          loading: true,
+          withCloseButton: false,
+          autoClose: false,
+        });
+      });
+
       notifications.update({
         id: "import",
         title: t("Importing pages"),
@@ -242,7 +264,32 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
     for (const file of selectedFiles) {
       try {
-        const page = await importPage(file, spaceId);
+        const page = await importPage(file, spaceId, (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / (progressEvent.total || file.size)
+          );
+
+          notifications.update({
+            id: alert,
+            title: t("Importing pages"),
+            message: (
+              <div>
+                <Text size="xs" mb={5}>
+                  {t("Importing {{fileName}}", { fileName: file.name })} (
+                  {percentCompleted}%)
+                </Text>
+                <Progress
+                  value={percentCompleted}
+                  size="sm"
+                  radius="xl"
+                  animated
+                />
+              </div>
+            ),
+            loading: true,
+            autoClose: false,
+          });
+        });
         pages.push(page);
         pageCount += 1;
       } catch (err) {
