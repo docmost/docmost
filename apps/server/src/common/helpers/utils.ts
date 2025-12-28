@@ -90,6 +90,14 @@ export function extractBearerTokenFromHeader(
   return type === 'Bearer' ? token : undefined;
 }
 
+/**
+ * Determines if a license is present or the deployment qualifies for enterprise edition.
+ *
+ * @param opts.licenseKey - The license key string; a non-empty value indicates a license is present.
+ * @param opts.plan - The subscription plan name; `'business'` qualifies as enterprise when running in cloud.
+ * @param opts.isCloud - Whether the instance is running in a cloud environment.
+ * @returns `true` if a license is present or the instance is cloud-hosted with the `'business'` plan, `false` otherwise.
+ */
 export function hasLicenseOrEE(opts: {
   licenseKey: string;
   plan: string;
@@ -97,4 +105,27 @@ export function hasLicenseOrEE(opts: {
 }): boolean {
   const { licenseKey, plan, isCloud } = opts;
   return Boolean(licenseKey) || (isCloud && plan === 'business');
+}
+
+import { Readable, Transform } from 'stream';
+
+/**
+ * Wraps a Readable stream with a Transform that counts bytes passing through.
+ *
+ * @param source - The source Readable to pipe into the counting Transform; source errors are forwarded to the returned stream.
+ * @returns An object with `stream`, the Transform that re-emits the original data, and `getBytesRead()` which returns the total number of bytes that have passed through the stream.
+ */
+export function createByteCountingStream(source: Readable) {
+  let bytesRead = 0;
+  const stream = new Transform({
+    transform(chunk, encoding, callback) {
+      bytesRead += chunk.length;
+      callback(null, chunk);
+    },
+  });
+
+  source.pipe(stream);
+  source.on('error', (err) => stream.emit('error', err));
+
+  return { stream, getBytesRead: () => bytesRead };
 }

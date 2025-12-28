@@ -1,4 +1,5 @@
 import { jsonToNode } from 'src/collaboration/collaboration.util';
+import { Logger } from '@nestjs/common';
 import { ExportFormat } from './dto/export-dto';
 import { Node } from '@tiptap/pm/model';
 import { validate as isValidUUID } from 'uuid';
@@ -57,6 +58,14 @@ export function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any) {
   return doc.toJSON();
 }
 
+/**
+ * Rewrites internal page links in a ProseMirror document to relative local paths and adjusts link text to page names when the link text equals the original href.
+ *
+ * @param prosemirrorJson - ProseMirror document in JSON form
+ * @param slugIdToPath - Mapping from page slug ids to local export file paths (including extension)
+ * @param currentPagePath - Path of the current page used as the base when computing relative links
+ * @returns The transformed ProseMirror document as JSON with internal link hrefs replaced by computed relative paths
+ */
 export function replaceInternalLinks(
   prosemirrorJson: any,
   slugIdToPath: Record<string, string>,
@@ -88,7 +97,7 @@ export function replaceInternalLinks(
             // if link and text are same, use page title
             if (markLink === node.text) {
               //@ts-expect-error
-              node.text = getInternalLinkPageName(relativePath);
+              node.text = getInternalLinkPageName(relativePath, currentPagePath);
             }
           }
         }
@@ -99,12 +108,34 @@ export function replaceInternalLinks(
   return doc.toJSON();
 }
 
-export function getInternalLinkPageName(path: string): string {
-  return decodeURIComponent(
-    path?.split('/').pop().split('.').slice(0, -1).join('.'),
-  );
+/**
+ * Extracts the page name from a path by taking the final path segment and removing its extension.
+ *
+ * @param path - The path or URL to extract the page name from (e.g., "foo/bar/page.html").
+ * @param currentFilePath - Optional path of the current file; included in a warning log if percent-decoding fails.
+ * @returns The decoded page name (final path segment without its extension). If URI decoding fails, returns the raw segment. 
+ */
+export function getInternalLinkPageName(path: string, currentFilePath?: string): string {
+  const name = path?.split('/').pop().split('.').slice(0, -1).join('.');
+  try {
+    return decodeURIComponent(name);
+  } catch (err) {
+    if (currentFilePath) {
+      Logger.warn(
+        `URI malformed in page ${currentFilePath}: ${name}. Falling back to raw name.`,
+        'ExportUtils',
+      );
+    }
+    return name;
+  }
 }
 
+/**
+ * Extracts the slug identifier from a hyphen-separated slug string.
+ *
+ * @param input - A slug string (for example, "page-title-1234"). If falsy, the function returns `undefined`.
+ * @returns The last segment after the final hyphen (e.g., `"1234"`), or `undefined` when `input` is falsy.
+ */
 export function extractPageSlugId(input: string): string {
   if (!input) {
     return undefined;

@@ -109,6 +109,15 @@ export async function getRecentChanges(
   return req.data;
 }
 
+/**
+ * Export a page and save the resulting file to the user's device.
+ *
+ * The server response is expected as a binary blob; the filename is extracted from the
+ * `Content-Disposition` header and decoded with `decodeURIComponent` (falls back to the
+ * raw header filename if decoding fails).
+ *
+ * @param data - Parameters for the export request (e.g., page identifier and export options)
+ */
 export async function exportPage(data: IExportPageParams): Promise<void> {
   const req = await api.post("/pages/export", data, {
     responseType: "blob",
@@ -118,10 +127,27 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, decodeURIComponent(fileName));
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
 }
 
-export async function importPage(file: File, spaceId: string) {
+import { AxiosProgressEvent } from "axios";
+
+/**
+ * Imports a page from a file into the specified space.
+ *
+ * @param file - ZIP or export file containing the page to import
+ * @param spaceId - Identifier of the destination space for the imported page
+ * @param onUploadProgress - Optional callback invoked with upload progress events
+ * @returns The imported `IPage`
+ */
+export async function importPage(file: File, spaceId: string, onUploadProgress?: (progressEvent: AxiosProgressEvent) => void) {
   const formData = new FormData();
   formData.append("spaceId", spaceId);
   formData.append("file", file);
@@ -130,15 +156,26 @@ export async function importPage(file: File, spaceId: string) {
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req.data;
 }
 
+/**
+ * Uploads a ZIP file to import pages into a space and returns the resulting import task.
+ *
+ * @param file - The ZIP file to upload
+ * @param spaceId - The destination space's identifier
+ * @param source - Optional origin identifier to associate with the import
+ * @param onUploadProgress - Optional callback invoked with upload progress events
+ * @returns The created `IFileTask` representing the import job
+ */
 export async function importZip(
   file: File,
   spaceId: string,
   source?: string,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<IFileTask> {
   const formData = new FormData();
   formData.append("spaceId", spaceId);
@@ -149,15 +186,26 @@ export async function importZip(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req.data;
 }
 
+/**
+ * Uploads a file as an attachment to a page.
+ *
+ * @param file - The file to upload.
+ * @param pageId - ID of the page to attach the file to.
+ * @param attachmentId - Optional existing attachment ID to replace or update.
+ * @param onUploadProgress - Optional callback invoked with upload progress events.
+ * @returns The uploaded attachment metadata as an IAttachment.
+ */
 export async function uploadFile(
   file: File,
   pageId: string,
   attachmentId?: string,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<IAttachment> {
   const formData = new FormData();
   if (attachmentId) {
@@ -170,6 +218,7 @@ export async function uploadFile(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req as unknown as IAttachment;
