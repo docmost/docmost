@@ -50,12 +50,16 @@ export class FileImportTaskService {
     private eventEmitter: EventEmitter2,
   ) { }
 
-  async processZIpImport(fileTaskId: string): Promise<void> {
-    const fileTask = await this.db
+  async getFileTask(fileTaskId: string): Promise<FileTask | undefined> {
+    return await this.db
       .selectFrom('fileTasks')
       .selectAll()
       .where('id', '=', fileTaskId)
       .executeTakeFirst();
+  }
+
+  async processZipImport(fileTaskId: string): Promise<void> {
+    const fileTask = await this.getFileTask(fileTaskId);
 
     if (!fileTask) {
       this.logger.log(`Import file task with ID ${fileTaskId} not found`);
