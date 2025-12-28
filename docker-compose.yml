@@ -1,7 +1,6 @@
 services:
   docmost:
-    #    image: docmost/docmost:latest
-    image: my-custom-docmost:pwa-shareto
+    image: docmost/docmost:latest
     depends_on:
       db:
         condition: service_healthy
