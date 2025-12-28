@@ -7,9 +7,11 @@ WORKDIR /app
 
 FROM base AS builder
 
-COPY . .
-
+COPY package.json pnpm*.yaml /app/
+COPY packages/editor-ext/package.json /app/packages/editor-ext/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+COPY . .
 RUN pnpm build
 
 FROM base AS installer
