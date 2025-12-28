@@ -7,7 +7,7 @@ WORKDIR /app
 
 FROM base AS builder
 
-COPY package.json pnpm*.yaml nx.json /app/
+COPY .npmrc package.json pnpm*.yaml nx.json /app/
 COPY apps/client/package.json /app/apps/client/package.json
 COPY apps/server/package.json /app/apps/server/package.json
 COPY packages/editor-ext/package.json /app/packages/editor-ext/package.json
@@ -24,6 +24,8 @@ FROM base AS installer
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /app/data/storage && chown -R node:node /app
 
 # Copy root package files
 COPY --chown=node:node --from=builder /app/package.json /app/package.json
@@ -44,8 +46,6 @@ COPY --chown=node:node --from=builder /app/packages/editor-ext/package.json /app
 USER node
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod
-
-RUN mkdir -p /app/data/storage
 
 VOLUME ["/app/data/storage"]
 
