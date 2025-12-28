@@ -198,12 +198,12 @@ export class ImportService {
     workspaceId: string,
   ) {
     const file = await filePromise;
-    const fileBuffer = await file.toBuffer();
+    // const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
     const fileName = sanitizeFileName(
       path.basename(file.filename, fileExtension),
     );
-    const fileSize = fileBuffer.length;
+    // const fileSize = fileBuffer.length; // Removed to avoid RangeError
 
     const fileNameWithExt = fileName + fileExtension;
 
@@ -211,7 +211,9 @@ export class ImportService {
     const filePath = `${getFileTaskFolderPath(FileTaskType.Import, workspaceId)}/${fileTaskId}/${fileNameWithExt}`;
 
     // upload file
-    await this.storageService.upload(filePath, fileBuffer);
+    await this.storageService.upload(filePath, file.file);
+
+    const fileSize = (file.file as any).bytesRead || 0;
 
     const fileTask = await this.db
       .insertInto('fileTasks')
