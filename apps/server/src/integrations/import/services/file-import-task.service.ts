@@ -48,7 +48,7 @@ export class FileImportTaskService {
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async processZIpImport(fileTaskId: string): Promise<void> {
     const fileTask = await this.db
@@ -87,7 +87,9 @@ export class FileImportTaskService {
         fileTask.filePath,
       );
       await pipeline(fileStream, createWriteStream(tmpZipPath));
+      await this.updateTaskProgress(fileTaskId, 5);
       await extractZip(tmpZipPath, tmpExtractDir);
+      await this.updateTaskProgress(fileTaskId, 10);
     } catch (err) {
       await cleanupTmpFile();
       await cleanupTmpDir();
@@ -445,10 +447,13 @@ export class FileImportTaskService {
             allBacklinks.push(...backlinks);
             totalPagesProcessed++;
 
-            // Log progress periodically
-            if (totalPagesProcessed % 50 === 0) {
-              this.logger.debug(`Processed ${totalPagesProcessed} pages...`);
-            }
+            const totalPages = pagesMap.size;
+            // Update DB progress (mapping 10% - 95% for page processing)
+            const progress = Math.min(
+              10 + Math.round((totalPagesProcessed / totalPages) * 85),
+              95,
+            );
+            await this.updateTaskProgress(fileTask.id, progress);
           }
         }
 
@@ -490,14 +495,6 @@ export class FileImportTaskService {
     }
   }
 
-  async getFileTask(fileTaskId: string) {
-    return this.db
-      .selectFrom('fileTasks')
-      .selectAll()
-      .where('id', '=', fileTaskId)
-      .executeTakeFirst();
-  }
-
   async updateTaskStatus(
     fileTaskId: string,
     status: FileTaskStatus,
@@ -506,7 +503,24 @@ export class FileImportTaskService {
     try {
       await this.db
         .updateTable('fileTasks')
-        .set({ status: status, errorMessage, updatedAt: new Date() })
+        .set({
+          status: status,
+          errorMessage,
+          progress: status === FileTaskStatus.Success ? 100 : undefined,
+          updatedAt: new Date(),
+        })
+        .where('id', '=', fileTaskId)
+        .execute();
+    } catch (err) {
+      this.logger.error(err);
+    }
+  }
+
+  async updateTaskProgress(fileTaskId: string, progress: number) {
+    try {
+      await this.db
+        .updateTable('fileTasks')
+        .set({ progress, updatedAt: new Date() })
         .where('id', '=', fileTaskId)
         .execute();
     } catch (err) {

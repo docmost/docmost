@@ -185,7 +185,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             icon: <IconCheck size={18} />,
             loading: false,
             withCloseButton: true,
-            autoClose: false,
+            autoClose: 5000,
           });
           clearInterval(intervalId);
           setFileTaskId(null);
@@ -200,6 +200,23 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
               spaceId: spaceId,
             });
           }, 50);
+        } else if (status === "processing" || status === "pending") {
+          const progress = fileTask.progress || 0;
+          notifications.update({
+            id: "import",
+            title: t("Importing pages"),
+            message: (
+              <div>
+                <Text size="xs" mb={5}>
+                  {t("Processing import files...")} ({progress}%)
+                </Text>
+                <Progress value={progress} size="sm" radius="xl" animated />
+              </div>
+            ),
+            loading: true,
+            withCloseButton: true,
+            autoClose: false,
+          });
         }
 
         if (status === "failed") {
