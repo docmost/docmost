@@ -57,6 +57,61 @@ export class PageService {
     private eventEmitter: EventEmitter2,
   ) {}
 
+  /**
+   * Filters a list of pages to only those accessible to the user while maintaining tree integrity.
+   * A page is included only if:
+   * 1. The user has access to it
+   * 2. Its parent is also included (or it's the root page)
+   * This ensures that if a middle page is inaccessible, its entire subtree is excluded.
+   */
+  private async filterAccessibleTreePages<T extends { id: string; parentPageId: string | null }>(
+    pages: T[],
+    rootPageId: string,
+    userId: string,
+  ): Promise<T[]> {
+    if (pages.length === 0) return [];
+
+    const pageIds = pages.map((p) => p.id);
+    const accessiblePages =
+      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+        pageIds,
+        userId,
+      );
+    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+
+    // Build a map for quick lookup
+    const pageMap = new Map(pages.map((p) => [p.id, p]));
+
+    // Prune: include a page only if it's accessible AND its parent chain to root is included
+    const includedIds = new Set<string>();
+
+    // Process pages in a way that ensures parents are processed before children
+    // We do this by iterating until no more pages can be added
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const page of pages) {
+        if (includedIds.has(page.id)) continue;
+        if (!accessibleSet.has(page.id)) continue;
+
+        // Root page: include if accessible
+        if (page.id === rootPageId) {
+          includedIds.add(page.id);
+          changed = true;
+          continue;
+        }
+
+        // Non-root: include if parent is already included
+        if (page.parentPageId && includedIds.has(page.parentPageId)) {
+          includedIds.add(page.id);
+          changed = true;
+        }
+      }
+    }
+
+    return pages.filter((p) => includedIds.has(p.id));
+  }
+
   async findById(
     pageId: string,
     includeContent?: boolean,
@@ -169,7 +224,7 @@ export class PageService {
       page.id,
     );
 
-    return await this.pageRepo.findById(page.id, {
+    return this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
@@ -197,12 +252,7 @@ export class PageService {
         'creatorId',
         'deletedAt',
       ])
-      .$if(Boolean(userId), (qb) =>
-        qb.select((eb) => this.pageRepo.withHasChildrenV2(eb, userId)),
-      )
-      //.$if(!userId, (qb) =>
-      //  qb.select((eb) => this.pageRepo.withHasChildren(eb)),
-     // )
+      .select((eb) => this.pageRepo.withHasChildren(eb))
       .orderBy('position', (ob) => ob.collate('C').asc())
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
@@ -218,22 +268,78 @@ export class PageService {
       perPage: 250,
     });
 
-    // Filter by page-level permissions
     if (userId && result.items.length > 0) {
       const pageIds = result.items.map((p: any) => p.id);
-      const accessiblePageIds = await this.pagePermissionRepo.filterAccessiblePageIds(
-        pageIds,
-        userId,
+
+      // Single query to get accessible pages with their edit permissions
+      const accessiblePages =
+        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+          pageIds,
+          userId,
+        );
+
+      const permissionMap = new Map(
+        accessiblePages.map((p) => [p.id, p.canEdit]),
       );
-      const accessibleSet = new Set(accessiblePageIds);
-      result.items = result.items.filter((p: any) => accessibleSet.has(p.id));
+
+      // Filter and add canEdit flag in one pass
+      result.items = result.items
+        .filter((p: any) => permissionMap.has(p.id))
+        .map((p: any) => ({
+          ...p,
+          canEdit: permissionMap.get(p.id),
+        }));
+
+      // For pages with hasChildren: true, verify they have accessible children
+      const pagesWithChildren = result.items.filter((p: any) => p.hasChildren);
+      if (pagesWithChildren.length > 0) {
+        const parentIds = pagesWithChildren.map((p: any) => p.id);
+        const parentsWithAccessibleChildren =
+          await this.pagePermissionRepo.getParentIdsWithAccessibleChildren(
+            parentIds,
+            userId,
+          );
+        const hasAccessibleChildrenSet = new Set(parentsWithAccessibleChildren);
+
+        result.items = result.items.map((p: any) => ({
+          ...p,
+          hasChildren: p.hasChildren && hasAccessibleChildrenSet.has(p.id),
+        }));
+      }
     }
 
     return result;
   }
 
-  async movePageToSpace(rootPage: Page, spaceId: string) {
+  async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
+    const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+      includeContent: false,
+    });
+
+    // Filter to only accessible pages while maintaining tree integrity
+    const accessiblePages = await this.filterAccessibleTreePages(
+      allPages,
+      rootPage.id,
+      userId,
+    );
+    const accessibleIds = new Set(accessiblePages.map((p) => p.id));
+
+    // Find inaccessible pages whose parent is being moved - these need to be orphaned
+    const pagesToOrphan = allPages.filter(
+      (p) => !accessibleIds.has(p.id) && p.parentPageId && accessibleIds.has(p.parentPageId),
+    );
+
     await executeTx(this.db, async (trx) => {
+      // Orphan inaccessible child pages (make them root pages in original space)
+      for (const page of pagesToOrphan) {
+        const orphanPosition = await this.nextPagePosition(rootPage.spaceId, null);
+        await this.pageRepo.updatePage(
+          { parentPageId: null, position: orphanPosition },
+          page.id,
+          trx,
+        );
+      }
+
       // Update root page
       const nextPosition = await this.nextPagePosition(spaceId);
       await this.pageRepo.updatePage(
@@ -241,44 +347,50 @@ export class PageService {
         rootPage.id,
         trx,
       );
-      const pageIds = await this.pageRepo
-        .getPageAndDescendants(rootPage.id, { includeContent: false })
-        .then((pages) => pages.map((page) => page.id));
-      // The first id is the root page id
-      if (pageIds.length > 1) {
-        // Update sub pages
+
+      const pageIdsToMove = accessiblePages.map((p) => p.id);
+
+      if (pageIdsToMove.length > 1) {
+        // Update sub pages (all accessible pages except root)
         await this.pageRepo.updatePages(
           { spaceId },
-          pageIds.filter((id) => id !== rootPage.id),
+          pageIdsToMove.filter((id) => id !== rootPage.id),
           trx,
         );
       }
 
-      if (pageIds.length > 0) {
+      if (pageIdsToMove.length > 0) {
+        // Clear page-level permissions - moved pages inherit destination space permissions
+        // (page_permissions cascade deletes via foreign key)
+        await trx
+          .deleteFrom('pageAccess')
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
         // update spaceId in shares
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIds)
+          .where('pageId', 'in', pageIdsToMove)
           .execute();
 
         // Update comments
         await trx
           .updateTable('comments')
           .set({ spaceId: spaceId })
-          .where('pageId', 'in', pageIds)
+          .where('pageId', 'in', pageIdsToMove)
           .execute();
 
         // Update attachments
         await this.attachmentRepo.updateAttachmentsByPageId(
           { spaceId },
-          pageIds,
+          pageIdsToMove,
           trx,
         );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
-          pageId: pageIds,
-          workspaceId: rootPage.workspaceId
+          pageId: pageIdsToMove,
+          workspaceId: rootPage.workspaceId,
         });
       }
     });
@@ -303,9 +415,16 @@ export class PageService {
       nextPosition = await this.nextPagePosition(spaceId);
     }
 
-    const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
+    const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
     });
+
+    // Filter to only accessible pages while maintaining tree integrity
+    const pages = await this.filterAccessibleTreePages(
+      allPages,
+      rootPage.id,
+      authUser.id,
+    );
 
     const pageMap = new Map<string, CopyPageMapEntry>();
     pages.forEach((page) => {
@@ -406,9 +525,14 @@ export class PageService {
           workspaceId: page.workspaceId,
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
-          parentPageId: page.id === rootPage.id
-            ? (isDuplicateInSameSpace ? rootPage.parentPageId : null)
-            : (page.parentPageId ? pageMap.get(page.parentPageId)?.newPageId : null),
+          parentPageId:
+            page.id === rootPage.id
+              ? isDuplicateInSameSpace
+                ? rootPage.parentPageId
+                : null
+              : page.parentPageId
+                ? pageMap.get(page.parentPageId)?.newPageId
+                : null,
         };
       }),
     );
@@ -587,16 +711,43 @@ export class PageService {
 
   async getRecentSpacePages(
     spaceId: string,
+    userId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
+    const result = await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
+
+    if (result.items.length > 0) {
+      const pageIds = result.items.map((p) => p.id);
+      const accessiblePages =
+        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+          pageIds,
+          userId,
+        );
+      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+      result.items = result.items.filter((p) => accessibleSet.has(p.id));
+    }
+
+    return result;
   }
 
   async getRecentPages(
     userId: string,
     pagination: PaginationOptions,
   ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getRecentPages(userId, pagination);
+    const result = await this.pageRepo.getRecentPages(userId, pagination);
+
+    if (result.items.length > 0) {
+      const pageIds = result.items.map((p) => p.id);
+      const accessiblePages =
+        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+          pageIds,
+          userId,
+        );
+      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+      result.items = result.items.filter((p) => accessibleSet.has(p.id));
+    }
+
+    return result;
   }
 
   async getDeletedSpacePages(

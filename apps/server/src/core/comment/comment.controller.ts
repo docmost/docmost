@@ -24,7 +24,7 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
-import { PagePermissionService } from '../page/services/page-permission.service';
+import { PageAccessService } from '../page-access/page-access.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -34,7 +34,7 @@ export class CommentController {
     private readonly commentRepo: CommentRepo,
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
-    private readonly pagePermissionService: PagePermissionService,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -55,7 +55,7 @@ export class CommentController {
     }
 
     // Check page-level edit permission (comments require edit access)
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.commentService.create(
       {
@@ -83,7 +83,7 @@ export class CommentController {
     //
 
     // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return this.commentService.findByPageId(page.id, pagination);
   }
@@ -102,7 +102,7 @@ export class CommentController {
     }
 
     // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return comment;
   }
@@ -121,7 +121,7 @@ export class CommentController {
     }
 
     // Checks both space-level and page-level edit permissions
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.commentService.update(comment, dto, user);
   }
@@ -140,7 +140,7 @@ export class CommentController {
     }
 
     // Check page-level edit permission first
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     const ability = await this.spaceAbility.createForUser(
       user,

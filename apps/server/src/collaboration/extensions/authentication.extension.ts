@@ -70,36 +70,31 @@ export class AuthenticationExtension implements Extension {
       throw new UnauthorizedException();
     }
 
-    if (userSpaceRole === SpaceRole.READER) {
-      data.connection.readOnly = true;
-      this.logger.debug(`User granted readonly access to page: ${pageId}`);
-    }
+    // Check page-level permissions
+    const { hasRestriction, canAccess, canEdit } =
+      await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
 
-    // Check page-level permissions (in addition to space permissions)
-    const canAccessPage = await this.pagePermissionRepo.canUserAccessPage(
-      user.id,
-      page.id,
-    );
+    if (hasRestriction) {
+      // Page has restrictions - use page-level permissions
+      if (!canAccess) {
+        this.logger.warn(
+          `User ${user.id} denied page-level access to page: ${pageId}`,
+        );
+        throw new UnauthorizedException();
+      }
 
-    if (!canAccessPage) {
-      this.logger.warn(
-        `User ${user.id} denied page-level access to page: ${pageId}`,
-      );
-      throw new UnauthorizedException();
-    }
-
-    // Check if user can edit (has writer role on all restricted ancestors)
-    const canEditPage = await this.pagePermissionRepo.canUserEditPage(
-      user.id,
-      page.id,
-    );
-
-    // If user has space edit permission but lacks page-level write permission, force readonly
-    if (!canEditPage && !data.connection.readOnly) {
-      data.connection.readOnly = true;
-      this.logger.debug(
-        `User ${user.id} granted readonly access to restricted page: ${pageId}`,
-      );
+      if (!canEdit) {
+        data.connection.readOnly = true;
+        this.logger.debug(
+          `User ${user.id} granted readonly access to restricted page: ${pageId}`,
+        );
+      }
+    } else {
+      // No restrictions - use space-level permissions
+      if (userSpaceRole === SpaceRole.READER) {
+        data.connection.readOnly = true;
+        this.logger.debug(`User granted readonly access to page: ${pageId}`);
+      }
     }
 
     this.logger.debug(`Authenticated user ${user.id} on page ${pageId}`);

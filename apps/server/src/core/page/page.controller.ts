@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
-import { PagePermissionService } from './services/page-permission.service';
+import { PageAccessService } from '../page-access/page-access.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { MovePageDto, MovePageToSpaceDto } from './dto/move-page.dto';
@@ -45,7 +45,7 @@ export class PageController {
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
-    private readonly pagePermissionService: PagePermissionService,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -63,8 +63,7 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return page;
   }
@@ -76,19 +75,23 @@ export class PageController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      createPageDto.spaceId,
-    );
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    // If creating under a parent page, check page-level edit permission
     if (createPageDto.parentPageId) {
-      const parentPage = await this.pageRepo.findById(createPageDto.parentPageId);
-      if (parentPage) {
-        await this.pagePermissionService.validateCanEdit(parentPage, user);
+      // Creating under a parent page - check edit permission on parent
+      const parentPage = await this.pageRepo.findById(
+        createPageDto.parentPageId,
+      );
+      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId) {
+        throw new NotFoundException('Parent page not found');
+      }
+      await this.pageAccessService.validateCanEdit(parentPage, user);
+    } else {
+      // Creating at root level - require space-level permission
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        createPageDto.spaceId,
+      );
+      if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+        throw new ForbiddenException();
       }
     }
 
@@ -104,8 +107,7 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.pageService.update(page, updatePageDto, user.id);
   }
@@ -134,12 +136,8 @@ export class PageController {
       }
       await this.pageService.forceDelete(deletePageDto.pageId, workspace.id);
     } else {
-      // Soft delete requires page manage permissions at space level
-      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-        throw new ForbiddenException();
-      }
-      // Also check page-level edit permission
-      await this.pagePermissionService.validateCanEdit(page, user);
+      // User with edit permission can delete
+      await this.pageAccessService.validateCanEdit(page, user);
 
       await this.pageService.removePage(
         deletePageDto.pageId,
@@ -162,13 +160,17 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
+    //Todo: currently, this means if they are not admins, they need to add a space admin to the page, which is not possible as it was soft-deleted
+    // so page is virtually lost. Fix.
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
+    //TODO: can users with page level edit, but no space level edit restore pages they can edit?
+
     // Check page-level edit permission (if restoring to a restricted ancestor)
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     await this.pageRepo.restorePage(pageIdDto.pageId, workspace.id);
 
@@ -196,6 +198,7 @@ export class PageController {
 
       return this.pageService.getRecentSpacePages(
         recentPageDto.spaceId,
+        user.id,
         pagination,
       );
     }
@@ -210,6 +213,7 @@ export class PageController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
+    //TODO: should space admin see deleted pages they dont have access to?
     if (deletedPageDto.spaceId) {
       const ability = await this.spaceAbility.createForUser(
         user,
@@ -227,7 +231,6 @@ export class PageController {
     }
   }
 
-  // TODO: scope to workspaces
   @HttpCode(HttpStatus.OK)
   @Post('/history')
   async getPageHistory(
@@ -240,8 +243,7 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return this.pageHistoryService.findHistoryByPageId(page.id, pagination);
   }
@@ -263,8 +265,7 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return history;
   }
@@ -297,7 +298,12 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.getSidebarPages(spaceId, pagination, dto.pageId, user.id);
+    return this.pageService.getSidebarPages(
+      spaceId,
+      pagination,
+      dto.pageId,
+      user.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -328,9 +334,10 @@ export class PageController {
     }
 
     // Check page-level edit permission on the source page
-    await this.pagePermissionService.validateCanEdit(movedPage, user);
+    await this.pageAccessService.validateCanEdit(movedPage, user);
 
-    return this.pageService.movePageToSpace(movedPage, dto.spaceId);
+    // Moves only accessible pages; inaccessible child pages become root pages in original space
+    return this.pageService.movePageToSpace(movedPage, dto.spaceId, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -342,7 +349,8 @@ export class PageController {
     }
 
     // Check page-level view permission on the source page (need to read to copy)
-    await this.pagePermissionService.validateCanView(copiedPage, user);
+    // Inaccessible child branches are automatically skipped during duplication
+    await this.pageAccessService.validateCanView(copiedPage, user);
 
     // If spaceId is provided, it's a copy to different space
     if (dto.spaceId) {
@@ -382,22 +390,28 @@ export class PageController {
       throw new NotFoundException('Moved page not found');
     }
 
+    //TODO: CAN USERS MOVE PAGES IN PORTIONS WHERE THEY HAVE BEEN GRANTED ACCESS TO?
+    // WHAT HAPPENS IF A PAGE WHICH MODES THE PERMISSION IS MOVED TO A DIFFERENT ROOT?
+    // ALSO THE EDIT CHECK BELOW WILL NOT WORK FOR USERS GRANTED EDIT WHO INITIALLY HOLD SPACE LEVEL VIEW
+    // ALSO, SHOULD REALLY PUT IN MIND WHAT SUCH USERS CAN DO IN TERMS OF WHERE THEY MOVE THE PAGE TO
+
     const ability = await this.spaceAbility.createForUser(
       user,
       movedPage.spaceId,
     );
+
     if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
     // Check page-level edit permission
-    await this.pagePermissionService.validateCanEdit(movedPage, user);
+    await this.pageAccessService.validateCanEdit(movedPage, user);
 
     // If moving to a new parent, check permission on the target parent
     if (dto.parentPageId && dto.parentPageId !== movedPage.parentPageId) {
       const targetParent = await this.pageRepo.findById(dto.parentPageId);
       if (targetParent) {
-        await this.pagePermissionService.validateCanEdit(targetParent, user);
+        await this.pageAccessService.validateCanEdit(targetParent, user);
       }
     }
 
@@ -412,8 +426,7 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     return this.pageService.getPageBreadCrumbs(page.id);
   }

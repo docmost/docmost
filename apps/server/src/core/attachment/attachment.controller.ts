@@ -53,7 +53,7 @@ import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
 import { RemoveIconDto } from './dto/attachment.dto';
-import { PagePermissionService } from '../page/services/page-permission.service';
+import { PageAccessService } from '../page-access/page-access.service';
 
 @Controller()
 export class AttachmentController {
@@ -68,7 +68,7 @@ export class AttachmentController {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
-    private readonly pagePermissionService: PagePermissionService,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -114,7 +114,7 @@ export class AttachmentController {
     }
 
     // Checks both space-level and page-level edit permissions
-    await this.pagePermissionService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanEdit(page, user);
 
     const spaceId = page.spaceId;
 
@@ -174,7 +174,7 @@ export class AttachmentController {
     }
 
     // Checks both space-level and page-level view permissions
-    await this.pagePermissionService.validateCanView(page, user);
+    await this.pageAccessService.validateCanView(page, user);
 
     try {
       const fileStream = await this.storageService.read(attachment.filePath);

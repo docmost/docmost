@@ -411,62 +411,6 @@ export class PageRepo {
       .as('hasChildren');
   }
 
-  /**
-   * Permission-aware version of withHasChildren.
-   * Returns true only if there are children the user can access.
-   * Uses page_hierarchy closure table to check all restricted ancestors.
-   */
-  withHasChildrenV2(eb: ExpressionBuilder<DB, 'pages'>, userId: string) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .where('child.deletedAt', 'is', null)
-      // Only count children that the user can access
-      .where(({ not, exists, selectFrom }) =>
-        not(
-          exists(
-            selectFrom('pageHierarchy')
-              .innerJoin(
-                'pageAccess',
-                'pageAccess.pageId',
-                'pageHierarchy.ancestorId',
-              )
-              .leftJoin('pagePermissions', (join) =>
-                join
-                  .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
-                  .on((eb) =>
-                    eb.or([
-                      eb('pagePermissions.userId', '=', userId),
-                      eb(
-                        'pagePermissions.groupId',
-                        'in',
-                        eb
-                          .selectFrom('groupUsers')
-                          .select('groupUsers.groupId')
-                          .where('groupUsers.userId', '=', userId),
-                      ),
-                    ]),
-                  ),
-              )
-              .select('pageAccess.pageId')
-              .whereRef('pageHierarchy.descendantId', '=', 'child.id')
-              .where('pagePermissions.id', 'is', null),
-          ),
-        ),
-      )
-      .limit(1)
-      .as('hasChildren');
-  }
-
   async getPageAndDescendants(
     parentPageId: string,
     opts: { includeContent: boolean },

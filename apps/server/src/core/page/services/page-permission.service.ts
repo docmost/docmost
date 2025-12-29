@@ -428,38 +428,11 @@ export class PagePermissionService {
     pageIds: string[],
     userId: string,
   ): Promise<string[]> {
-    return this.pagePermissionRepo.filterAccessiblePageIds(pageIds, userId);
-  }
-
-  /**
-   * Validate user can view page, throws ForbiddenException if not.
-   * Checks both space-level and page-level permissions.
-   */
-  async validateCanView(page: Page, user: User): Promise<void> {
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    const canView = await this.canViewPage(user.id, page.id);
-    if (!canView) {
-      throw new ForbiddenException();
-    }
-  }
-
-  /**
-   * Validate user can edit page, throws ForbiddenException if not.
-   * Checks both space-level and page-level permissions.
-   */
-  async validateCanEdit(page: Page, user: User): Promise<void> {
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    const canEdit = await this.canEditPage(user.id, page.id);
-    if (!canEdit) {
-      throw new ForbiddenException();
-    }
+    const results =
+      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+        pageIds,
+        userId,
+      );
+    return results.map((r) => r.id);
   }
 }
