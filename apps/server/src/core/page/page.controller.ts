@@ -390,11 +390,6 @@ export class PageController {
       throw new NotFoundException('Moved page not found');
     }
 
-    //TODO: CAN USERS MOVE PAGES IN PORTIONS WHERE THEY HAVE BEEN GRANTED ACCESS TO?
-    // WHAT HAPPENS IF A PAGE WHICH MODES THE PERMISSION IS MOVED TO A DIFFERENT ROOT?
-    // ALSO THE EDIT CHECK BELOW WILL NOT WORK FOR USERS GRANTED EDIT WHO INITIALLY HOLD SPACE LEVEL VIEW
-    // ALSO, SHOULD REALLY PUT IN MIND WHAT SUCH USERS CAN DO IN TERMS OF WHERE THEY MOVE THE PAGE TO
-
     const ability = await this.spaceAbility.createForUser(
       user,
       movedPage.spaceId,

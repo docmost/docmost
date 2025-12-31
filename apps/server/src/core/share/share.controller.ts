@@ -26,6 +26,7 @@ import {
   UpdateShareDto,
 } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PageAccessService } from '../page-access/page-access.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
@@ -41,6 +42,7 @@ export class ShareController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly pageAccessService: PageAccessService,
     private readonly environmentService: EnvironmentService,
   ) {}
 
@@ -96,6 +98,7 @@ export class ShareController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    // TODO: look into permission
     const page = await this.pageRepo.findById(dto.pageId);
     if (!page) {
       throw new NotFoundException('Shared page not found');
@@ -122,10 +125,8 @@ export class ShareController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
-    }
+    // User must be able to edit the page to create a share
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.shareService.createShare({
       page,
@@ -144,10 +145,13 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(share.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // User must be able to edit the page to update its share
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.shareService.updateShare(share.id, updateShareDto);
   }
@@ -161,10 +165,13 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(share.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // User must be able to edit the page to delete its share
+    await this.pageAccessService.validateCanEdit(page, user);
 
     await this.shareRepo.deleteShare(share.id);
   }

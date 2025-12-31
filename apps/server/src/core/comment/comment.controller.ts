@@ -49,12 +49,6 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    // Check page-level edit permission (comments require edit access)
     await this.pageAccessService.validateCanEdit(page, user);
 
     return this.commentService.create(
@@ -80,9 +74,6 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    //
-
-    // Checks both space-level and page-level permissions
     await this.pageAccessService.validateCanView(page, user);
 
     return this.commentService.findByPageId(page.id, pagination);
@@ -101,7 +92,6 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level permissions
     await this.pageAccessService.validateCanView(page, user);
 
     return comment;
@@ -120,7 +110,6 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level edit permissions
     await this.pageAccessService.validateCanEdit(page, user);
 
     return this.commentService.update(comment, dto, user);
@@ -142,11 +131,6 @@ export class CommentController {
     // Check page-level edit permission first
     await this.pageAccessService.validateCanEdit(page, user);
 
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      comment.spaceId,
-    );
-
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;
 
@@ -154,6 +138,11 @@ export class CommentController {
       await this.commentRepo.deleteComment(comment.id);
       return;
     }
+
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      comment.spaceId,
+    );
 
     // Space admin can delete any comment
     if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
