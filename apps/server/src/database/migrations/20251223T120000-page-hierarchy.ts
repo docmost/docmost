@@ -46,6 +46,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     LANGUAGE plpgsql
     AS $$
     BEGIN
+      IF NOT pg_try_advisory_xact_lock(hashtext('rebuild_page_hierarchy')) THEN
+        RETURN;
+      END IF;
+
       TRUNCATE page_hierarchy;
 
       WITH RECURSIVE page_tree AS (
