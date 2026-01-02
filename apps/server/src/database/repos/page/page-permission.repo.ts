@@ -624,4 +624,31 @@ export class PagePermissionRepo {
 
     return results.map((r) => r.parentPageId);
   }
+
+  /**
+   * Get all page IDs within a subtree that are restricted OR are descendants of restricted pages.
+   * Used to filter pages from public shares - if a page is restricted, it and all its
+   * children should be hidden.
+   */
+  async getRestrictedSubtreeIds(rootPageId: string): Promise<string[]> {
+    const results = await this.db
+      .selectFrom('pageHierarchy as subtree')
+      .where('subtree.ancestorId', '=', rootPageId)
+      .innerJoin(
+        (eb) =>
+          eb
+            .selectFrom('pageHierarchy as inner')
+            .innerJoin('pageAccess', 'pageAccess.pageId', 'inner.ancestorId')
+            .select('inner.descendantId as restrictedDescendant')
+            .distinct()
+            .as('restricted'),
+        (join) =>
+          join.onRef('restricted.restrictedDescendant', '=', 'subtree.descendantId'),
+      )
+      .select('subtree.descendantId')
+      .distinct()
+      .execute();
+
+    return results.map((r) => r.descendantId);
+  }
 }
