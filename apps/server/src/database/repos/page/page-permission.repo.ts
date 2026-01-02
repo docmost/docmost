@@ -624,4 +624,69 @@ export class PagePermissionRepo {
 
     return results.map((r) => r.parentPageId);
   }
+
+  /**
+   * Check if any descendant of a page has restrictions that the user cannot access.
+   * Used to determine if includeSubPages can be enabled for sharing.
+   */
+  async hasInaccessibleDescendants(
+    pageId: string,
+    userId: string,
+  ): Promise<boolean> {
+    // Get all descendant page IDs (excluding the root page itself)
+    const descendants = await this.db
+      .selectFrom('pageHierarchy')
+      .select('descendantId')
+      .where('ancestorId', '=', pageId)
+      .where('depth', '>', 0)
+      .execute();
+
+    if (descendants.length === 0) {
+      return false;
+    }
+
+    const descendantIds = descendants.map((d) => d.descendantId);
+
+    // Check if any descendant has a restriction the user cannot access
+    const inaccessible = await this.db
+      .selectFrom('pageAccess')
+      .leftJoin('pagePermissions', (join) =>
+        join
+          .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+          .on((eb) =>
+            eb.or([
+              eb('pagePermissions.userId', '=', userId),
+              eb(
+                'pagePermissions.groupId',
+                'in',
+                eb
+                  .selectFrom('groupUsers')
+                  .select('groupUsers.groupId')
+                  .where('groupUsers.userId', '=', userId),
+              ),
+            ]),
+          ),
+      )
+      .select('pageAccess.pageId')
+      .where('pageAccess.pageId', 'in', descendantIds)
+      .where('pagePermissions.id', 'is', null)
+      .executeTakeFirst();
+
+    return !!inaccessible;
+  }
+
+  /**
+   * Get all descendant page IDs that have restrictions (page_access entries).
+   * Used to filter restricted pages from public share trees.
+   */
+  async getRestrictedDescendantIds(pageId: string): Promise<string[]> {
+    const results = await this.db
+      .selectFrom('pageHierarchy')
+      .innerJoin('pageAccess', 'pageAccess.pageId', 'pageHierarchy.descendantId')
+      .select('pageHierarchy.descendantId')
+      .where('pageHierarchy.ancestorId', '=', pageId)
+      .execute();
+
+    return results.map((r) => r.descendantId);
+  }
 }

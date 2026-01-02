@@ -26,6 +26,7 @@ import {
   UpdateShareDto,
 } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { PageAccessService } from '../page-access/page-access.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -42,6 +43,7 @@ export class ShareController {
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly pageAccessService: PageAccessService,
     private readonly environmentService: EnvironmentService,
   ) {}
@@ -128,6 +130,20 @@ export class ShareController {
     // User must be able to edit the page to create a share
     await this.pageAccessService.validateCanEdit(page, user);
 
+    // Block includeSubPages if user cannot access all descendants
+    if (createShareDto.includeSubPages) {
+      const hasInaccessible =
+        await this.pagePermissionRepo.hasInaccessibleDescendants(
+          page.id,
+          user.id,
+        );
+      if (hasInaccessible) {
+        throw new BadRequestException(
+          'Cannot share subpages: restricted pages found',
+        );
+      }
+    }
+
     return this.shareService.createShare({
       page,
       authUserId: user.id,
@@ -152,6 +168,20 @@ export class ShareController {
 
     // User must be able to edit the page to update its share
     await this.pageAccessService.validateCanEdit(page, user);
+
+    // Block includeSubPages if user cannot access all descendants
+    if (updateShareDto.includeSubPages) {
+      const hasInaccessible =
+        await this.pagePermissionRepo.hasInaccessibleDescendants(
+          page.id,
+          user.id,
+        );
+      if (hasInaccessible) {
+        throw new BadRequestException(
+          'Cannot share subpages: restricted pages found',
+        );
+      }
+    }
 
     return this.shareService.updateShare(share.id, updateShareDto);
   }

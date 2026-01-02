@@ -19,6 +19,7 @@ import {
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
@@ -31,6 +32,7 @@ export class ShareService {
   constructor(
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly tokenService: TokenService,
   ) {}
@@ -42,14 +44,112 @@ export class ShareService {
     }
 
     if (share.includeSubPages) {
-      const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
+      const allPages = await this.pageRepo.getPageAndDescendants(share.pageId, {
         includeContent: false,
       });
 
-      return { share, pageTree: pageList };
+      // Filter out restricted pages and maintain tree integrity
+      const filteredPages = await this.filterPublicPages(allPages, share.pageId);
+
+      return { share, pageTree: filteredPages };
     } else {
       return { share, pageTree: [] };
     }
+  }
+
+  /**
+   * Filter pages for public share - exclude restricted pages.
+   * A page is included only if:
+   * 1. It has no page_access restriction AND
+   * 2. Its parent is also included (or it's the root)
+   */
+  private async filterPublicPages<
+    T extends { id: string; parentPageId: string | null },
+  >(pages: T[], rootPageId: string): Promise<T[]> {
+    if (pages.length === 0) return [];
+
+    // Get all restricted page IDs
+    const restrictedIds =
+      await this.pagePermissionRepo.getRestrictedDescendantIds(rootPageId);
+    const restrictedSet = new Set(restrictedIds);
+
+    // Include pages that are NOT restricted and have valid parent chain
+    const includedIds = new Set<string>();
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const page of pages) {
+        if (includedIds.has(page.id)) continue;
+        if (restrictedSet.has(page.id)) continue;
+
+        // Root page: include if not restricted
+        if (page.id === rootPageId) {
+          includedIds.add(page.id);
+          changed = true;
+          continue;
+        }
+
+        // Non-root: include if parent is included
+        if (page.parentPageId && includedIds.has(page.parentPageId)) {
+          includedIds.add(page.id);
+          changed = true;
+        }
+      }
+    }
+
+    return pages.filter((p) => includedIds.has(p.id));
+  }
+
+  /**
+   * Check if a specific page is accessible within a public share.
+   * A page is accessible if no page in its ancestor chain
+   * (from the page up to and including the share root) has a page_access restriction.
+   */
+  private async isPagePubliclyAccessible(
+    pageId: string,
+    shareRootPageId: string,
+  ): Promise<boolean> {
+    if (pageId === shareRootPageId) {
+      const hasRestriction = await this.db
+        .selectFrom('pageAccess')
+        .select('id')
+        .where('pageId', '=', pageId)
+        .executeTakeFirst();
+      return !hasRestriction;
+    }
+
+    // Get the depth from share root to the requested page
+    const shareToPage = await this.db
+      .selectFrom('pageHierarchy')
+      .select('depth')
+      .where('ancestorId', '=', shareRootPageId)
+      .where('descendantId', '=', pageId)
+      .executeTakeFirst();
+
+    if (!shareToPage) {
+      return false;
+    }
+
+    // Get all ancestor IDs in the chain from pageId to shareRootPageId
+    const chainPageIds = await this.db
+      .selectFrom('pageHierarchy')
+      .select('ancestorId')
+      .where('descendantId', '=', pageId)
+      .where('depth', '<=', shareToPage.depth)
+      .where('depth', '>', 0)
+      .execute();
+
+    const idsToCheck = [pageId, ...chainPageIds.map((c) => c.ancestorId)];
+
+    // Check if any page in the chain has a restriction
+    const hasRestricted = await this.db
+      .selectFrom('pageAccess')
+      .select('pageId')
+      .where('pageId', 'in', idsToCheck)
+      .executeTakeFirst();
+
+    return !hasRestricted;
   }
 
   async createShare(opts: {
@@ -101,6 +201,17 @@ export class ShareService {
 
     if (!share) {
       throw new NotFoundException('Shared page not found');
+    }
+
+    // For descendant pages, verify the ancestor chain has no restrictions
+    if (share.level > 0) {
+      const isAccessible = await this.isPagePubliclyAccessible(
+        dto.pageId,
+        share.pageId,
+      );
+      if (!isAccessible) {
+        throw new NotFoundException('Shared page not found');
+      }
     }
 
     const page = await this.pageRepo.findById(dto.pageId, {
