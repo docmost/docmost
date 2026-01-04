@@ -4,6 +4,7 @@ import { EnvironmentService } from '../environment/environment.service';
 import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
 import { BacklinksProcessor } from './processors/backlinks.processor';
+import { HierarchyProcessor } from './processors/hierarchy.processor';
 
 @Global()
 @Module({
@@ -73,8 +74,22 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
         attempts: 1,
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.HIERARCHY_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: {
+          count: 50,
+        },
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 20 * 1000,
+        },
+      },
+    }),
   ],
   exports: [BullModule],
-  providers: [BacklinksProcessor],
+  providers: [BacklinksProcessor, HierarchyProcessor],
 })
 export class QueueModule {}

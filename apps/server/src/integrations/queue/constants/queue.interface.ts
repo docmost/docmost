@@ -10,3 +10,7 @@ export interface IPageBacklinkJob {
 export interface IStripeSeatsSyncJob {
   workspaceId: string;
 }
+
+export interface IRebuildHierarchyJob {
+  spaceId?: string;
+}

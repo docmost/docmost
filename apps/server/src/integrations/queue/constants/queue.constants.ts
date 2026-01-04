@@ -6,6 +6,7 @@ export enum QueueName {
   FILE_TASK_QUEUE = '{file-task-queue}',
   SEARCH_QUEUE = '{search-queue}',
   AI_QUEUE = '{ai-queue}',
+  HIERARCHY_QUEUE = '{hierarchy-queue}',
 }
 
 export enum QueueJob {
@@ -58,4 +59,8 @@ export enum QueueJob {
 
   GENERATE_PAGE_EMBEDDINGS = 'generate-page-embeddings',
   DELETE_PAGE_EMBEDDINGS = 'delete-page-embeddings',
+
+  REBUILD_HIERARCHY_ALL = 'rebuild-hierarchy-all',
+  REBUILD_HIERARCHY_ALL_BY_SPACE = 'rebuild-hierarchy-all-by-space',
+  REBUILD_HIERARCHY_SPACE = 'rebuild-hierarchy-space',
 }
