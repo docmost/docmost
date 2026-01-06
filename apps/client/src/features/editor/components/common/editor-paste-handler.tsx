@@ -3,8 +3,11 @@ import { uploadImageAction } from "@/features/editor/components/image/upload-ima
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
-import { Slice } from "@tiptap/pm/model";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
+import {
+  clipboardHasMeaningfulText,
+  tryHandleSpreadsheetPaste,
+} from "@/features/editor/components/common/spreadsheet-paste";
 
 export const handlePaste = (
   view: EditorView,
@@ -12,6 +15,12 @@ export const handlePaste = (
   pageId: string,
   creatorId?: string,
 ) => {
+  // Spreadsheet paste normalization (TSV/HTML tables) should win over file paste,
+  // because some spreadsheet apps include "files" in clipboard payloads.
+  if (tryHandleSpreadsheetPaste(view, event)) {
+    return true;
+  }
+
   const clipboardData = event.clipboardData.getData("text/plain");
 
   if (INTERNAL_LINK_REGEX.test(clipboardData)) {
@@ -41,6 +50,14 @@ export const handlePaste = (
   }
 
   if (event.clipboardData?.files.length) {
+    // Some spreadsheet apps include an image file in the clipboard
+    // even when a text representation is also available. We should only upload/insert
+    // clipboard files when there's no meaningful text/html to paste.
+    if (clipboardHasMeaningfulText(event)) {
+      // Let ProseMirror handle the textual paste (or our earlier spreadsheet handler).
+      return false;
+    }
+
     event.preventDefault();
     for (const file of event.clipboardData.files) {
       const pos = view.state.selection.from;
