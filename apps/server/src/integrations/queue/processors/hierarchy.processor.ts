@@ -8,12 +8,6 @@ import { IRebuildHierarchyJob } from '../constants/queue.interface';
 import { PageHierarchyRepo } from '@docmost/db/repos/page/page-hierarchy.repo';
 import { executeTx } from '@docmost/db/utils';
 
-const HIERARCHY_JOBS = [
-  QueueJob.REBUILD_HIERARCHY_ALL,
-  QueueJob.REBUILD_HIERARCHY_ALL_BY_SPACE,
-  QueueJob.REBUILD_HIERARCHY_SPACE,
-] as const;
-
 @Processor(QueueName.HIERARCHY_QUEUE)
 export class HierarchyProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(HierarchyProcessor.name);
@@ -117,25 +111,19 @@ export class HierarchyProcessor extends WorkerHost implements OnModuleDestroy {
 
   @OnWorkerEvent('active')
   onActive(job: Job) {
-    if (HIERARCHY_JOBS.includes(job.name as (typeof HIERARCHY_JOBS)[number])) {
-      this.logger.debug(`Processing ${job.name} job`);
-    }
+    this.logger.debug(`Processing ${job.name} job`);
   }
 
   @OnWorkerEvent('failed')
   onError(job: Job) {
-    if (HIERARCHY_JOBS.includes(job.name as (typeof HIERARCHY_JOBS)[number])) {
-      this.logger.error(
-        `Error processing ${job.name} job. Reason: ${job.failedReason}`,
-      );
-    }
+    this.logger.error(
+      `Error processing ${job.name} job. Reason: ${job.failedReason}`,
+    );
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    if (HIERARCHY_JOBS.includes(job.name as (typeof HIERARCHY_JOBS)[number])) {
-      this.logger.debug(`Completed ${job.name} job`);
-    }
+    this.logger.debug(`Completed ${job.name} job`);
   }
 
   async onModuleDestroy(): Promise<void> {
