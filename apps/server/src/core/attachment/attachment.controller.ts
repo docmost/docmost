@@ -113,7 +113,6 @@ export class AttachmentController {
       throw new NotFoundException('Page not found');
     }
 
-    // Checks both space-level and page-level edit permissions
     await this.pageAccessService.validateCanEdit(page, user);
 
     const spaceId = page.spaceId;
@@ -173,7 +172,6 @@ export class AttachmentController {
       throw new NotFoundException();
     }
 
-    // Checks both space-level and page-level view permissions
     await this.pageAccessService.validateCanView(page, user);
 
     try {
