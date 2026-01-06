@@ -18,6 +18,7 @@ import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
+import { MentionsModule } from './integrations/mentions/mentions.module';
 
 const enterpriseModules = [];
 try {
@@ -44,6 +45,7 @@ try {
     CollaborationModule,
     WsModule,
     QueueModule,
+    MentionsModule,
     StaticModule,
     HealthModule,
     ImportModule,

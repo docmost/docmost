@@ -60,6 +60,17 @@ export class EnvironmentService {
     );
   }
 
+  getMentionEmailCooldownMs(): number {
+    const raw = this.configService.get<string>('MENTION_EMAIL_COOLDOWN_MS');
+    if (raw != null && raw !== '') {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+    }
+
+    // Default: short in non-prod so it’s testable; longer in production.
+    return this.getNodeEnv() === 'production' ? 10 * 60 * 1000 : 30 * 1000;
+  }
+
   getJwtTokenExpiresIn(): string {
     return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '90d');
   }
