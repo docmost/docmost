@@ -45,13 +45,7 @@ export class PagePermissionService {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(authUser, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    // TODO: does this check if any of the page's ancestor's is restricted and the user don't have access to it?
-    // to have access to this page, they must already have access to the page if any of it's ancestor's is restricted
+    await this.validateWriteAccess(page, authUser);
 
     const existingAccess =
       await this.pagePermissionRepo.findPageAccessByPageId(pageId);
@@ -171,7 +165,7 @@ export class PagePermissionService {
     }
   }
 
-  async removePagePermission(
+  async removePagePermissions(
     dto: RemovePagePermissionDto,
     authUser: User,
   ): Promise<void> {
@@ -189,44 +183,28 @@ export class PagePermissionService {
       throw new BadRequestException('Page is not restricted');
     }
 
-    if (!dto.userId && !dto.groupId) {
-      throw new BadRequestException('Please provide a userId or groupId');
+    const userIds = dto.userIds ?? [];
+    const groupIds = dto.groupIds ?? [];
+
+    if (userIds.length > 0) {
+      await this.pagePermissionRepo.deletePagePermissionsByUserIds(
+        pageAccess.id,
+        userIds,
+      );
     }
 
-    if (dto.userId) {
-      const permission = await this.pagePermissionRepo.findPagePermissionByUserId(
+    if (groupIds.length > 0) {
+      await this.pagePermissionRepo.deletePagePermissionsByGroupIds(
         pageAccess.id,
-        dto.userId,
+        groupIds,
       );
-      if (!permission) {
-        throw new NotFoundException('Permission not found');
-      }
+    }
 
-      if (permission.role === PagePermissionRole.WRITER) {
-        await this.validateLastWriter(pageAccess.id);
-      }
-
-      await this.pagePermissionRepo.deletePagePermissionByUserId(
-        pageAccess.id,
-        dto.userId,
-      );
-    } else if (dto.groupId) {
-      const permission =
-        await this.pagePermissionRepo.findPagePermissionByGroupId(
-          pageAccess.id,
-          dto.groupId,
-        );
-      if (!permission) {
-        throw new NotFoundException('Permission not found');
-      }
-
-      if (permission.role === PagePermissionRole.WRITER) {
-        await this.validateLastWriter(pageAccess.id);
-      }
-
-      await this.pagePermissionRepo.deletePagePermissionByGroupId(
-        pageAccess.id,
-        dto.groupId,
+    const writerCount =
+      await this.pagePermissionRepo.countWritersByPageAccessId(pageAccess.id);
+    if (writerCount < 1) {
+      throw new BadRequestException(
+        'There must be at least one user with "Can edit" permission',
       );
     }
   }
@@ -329,8 +307,18 @@ export class PagePermissionService {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(authUser, page.spaceId);
+    const ability = await this.spaceAbility.createForUser(
+      authUser,
+      page.spaceId,
+    );
+    // user must be a space member
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    // user must not have any restriction to view this page
+    const canView = await this.canViewPage(authUser.id, pageId);
+    if (!canView) {
       throw new ForbiddenException();
     }
 
@@ -339,11 +327,9 @@ export class PagePermissionService {
     if (!pageAccess) {
       return {
         items: [],
-        pagination: {
+        meta: {
+          limit: pagination.limit,
           page: 1,
-          perPage: pagination.limit,
-          totalItems: 0,
-          totalPages: 0,
           hasNextPage: false,
           hasPrevPage: false,
         },
@@ -367,36 +353,38 @@ export class PagePermissionService {
   }
 
   /**
-   * Check if user has writer permission on ALL restricted ancestors of a page.
-   * Used for permission management operations.
+   * Validate if user can manage page permissions (restrict, add/remove members, etc.)
+   *
+   * Requirements:
+   * 1. User must have space-level Edit permission (minimum baseline)
+   * 2. For restricted pages, user must have one of:
+   *    - Page-level Writer permission on all restricted ancestors
+   *    - Space Admin role + at least page-level Reader permission (admin elevates)
    */
-  async hasWritePermission(userId: string, pageId: string): Promise<boolean> {
-    const hasRestriction =
-      await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
+  async validateWriteAccess(page: Page, user: User): Promise<void> {
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
 
-    if (!hasRestriction) {
-      return false; // no restrictions, defer to space permissions
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
     }
 
-    return this.pagePermissionRepo.canUserEditPage(userId, pageId);
-  }
-
-  async hasPageAccess(pageId: string): Promise<boolean> {
-    const pageAccess =
-      await this.pagePermissionRepo.findPageAccessByPageId(pageId);
-    return !!pageAccess;
-  }
-
-  async validateWriteAccess(page: Page, user: User): Promise<void> {
-    const hasWritePermission = await this.hasWritePermission(user.id, page.id);
-    if (hasWritePermission) {
+    const canEdit = await this.canEditPage(user.id, page.id);
+    if (canEdit) {
       return;
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
+    const isSpaceAdmin = ability.can(
+      SpaceCaslAction.Manage,
+      SpaceCaslSubject.Page,
+    );
+    if (isSpaceAdmin) {
+      const canView = await this.canViewPage(user.id, page.id);
+      if (canView) {
+        return;
+      }
     }
+
+    throw new ForbiddenException();
   }
 
   /**
@@ -422,17 +410,23 @@ export class PagePermissionService {
   }
 
   /**
-   * Filter page IDs to only those the user can access.
+   * Check if user has writer permission on ALL restricted ancestors of a page.
+   * Used for permission management operations.
    */
-  async filterAccessiblePages(
-    pageIds: string[],
-    userId: string,
-  ): Promise<string[]> {
-    const results =
-      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
-        pageIds,
-        userId,
-      );
-    return results.map((r) => r.id);
+  async hasWritePermission(userId: string, pageId: string): Promise<boolean> {
+    const hasRestriction =
+      await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
+
+    if (!hasRestriction) {
+      return false; // no restrictions, defer to space permissions
+    }
+
+    return this.pagePermissionRepo.canUserEditPage(userId, pageId);
+  }
+
+  async hasPageAccess(pageId: string): Promise<boolean> {
+    const pageAccess =
+      await this.pagePermissionRepo.findPageAccessByPageId(pageId);
+    return !!pageAccess;
   }
 }

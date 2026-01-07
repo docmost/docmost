@@ -117,6 +117,34 @@ export class PagePermissionRepo {
       .execute();
   }
 
+  async deletePagePermissionsByUserIds(
+    pageAccessId: string,
+    userIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('pagePermissions')
+      .where('pageAccessId', '=', pageAccessId)
+      .where('userId', 'in', userIds)
+      .execute();
+  }
+
+  async deletePagePermissionsByGroupIds(
+    pageAccessId: string,
+    groupIds: string[],
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    if (groupIds.length === 0) return;
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('pagePermissions')
+      .where('pageAccessId', '=', pageAccessId)
+      .where('groupId', 'in', groupIds)
+      .execute();
+  }
+
   async updatePagePermissionRole(
     pageAccessId: string,
     role: string,
