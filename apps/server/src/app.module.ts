@@ -50,6 +50,7 @@ try {
         const redisUrl = environmentService.getRedisUrl();
 
         return {
+          ttl: 5 * 1000,
           stores: [new KeyvRedis(redisUrl)],
         };
       },
