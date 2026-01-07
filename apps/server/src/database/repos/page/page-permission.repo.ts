@@ -10,7 +10,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithPagination } from '@docmost/db/pagination/pagination';
-import { sql } from 'kysely';
+import { sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 
@@ -46,7 +46,10 @@ export class PagePermissionRepo {
       .executeTakeFirst();
   }
 
-  async deletePageAccess(pageId: string, trx?: KyselyTransaction): Promise<void> {
+  async deletePageAccess(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db.deleteFrom('pageAccess').where('pageId', '=', pageId).execute();
   }
@@ -57,10 +60,7 @@ export class PagePermissionRepo {
   ): Promise<void> {
     if (permissions.length === 0) return;
     const db = dbOrTx(this.db, trx);
-    await db
-      .insertInto('pagePermissions')
-      .values(permissions)
-      .execute();
+    await db.insertInto('pagePermissions').values(permissions).execute();
   }
 
   async findPagePermissionByUserId(
@@ -236,15 +236,27 @@ export class PagePermissionRepo {
   ): Promise<{ role: string } | undefined> {
     const result = await this.db
       .selectFrom('pageAccess')
-      .innerJoin('pagePermissions', 'pagePermissions.pageAccessId', 'pageAccess.id')
+      .innerJoin(
+        'pagePermissions',
+        'pagePermissions.pageAccessId',
+        'pageAccess.id',
+      )
       .select(['pagePermissions.role'])
       .where('pageAccess.pageId', '=', pageId)
       .where('pagePermissions.userId', '=', userId)
       .unionAll(
         this.db
           .selectFrom('pageAccess')
-          .innerJoin('pagePermissions', 'pagePermissions.pageAccessId', 'pageAccess.id')
-          .innerJoin('groupUsers', 'groupUsers.groupId', 'pagePermissions.groupId')
+          .innerJoin(
+            'pagePermissions',
+            'pagePermissions.pageAccessId',
+            'pageAccess.id',
+          )
+          .innerJoin(
+            'groupUsers',
+            'groupUsers.groupId',
+            'pagePermissions.groupId',
+          )
           .select(['pagePermissions.role'])
           .where('pageAccess.pageId', '=', pageId)
           .where('groupUsers.userId', '=', userId),
@@ -256,7 +268,9 @@ export class PagePermissionRepo {
 
   async findRestrictedAncestor(
     pageId: string,
-  ): Promise<{ pageId: string; accessLevel: string; depth: number } | undefined> {
+  ): Promise<
+    { pageId: string; accessLevel: string; depth: number } | undefined
+  > {
     return this.db
       .selectFrom('pageHierarchy')
       .innerJoin('pageAccess', 'pageAccess.pageId', 'pageHierarchy.ancestorId')
@@ -345,7 +359,11 @@ export class PagePermissionRepo {
   async getUserPageAccessLevel(
     userId: string,
     pageId: string,
-  ): Promise<{ hasRestriction: boolean; canAccess: boolean; canEdit: boolean }> {
+  ): Promise<{
+    hasRestriction: boolean;
+    canAccess: boolean;
+    canEdit: boolean;
+  }> {
     const result = await this.db
       .selectFrom('pages')
       .select((eb) => [
@@ -384,7 +402,11 @@ export class PagePermissionRepo {
                   )
                   .leftJoin('pagePermissions', (join) =>
                     join
-                      .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+                      .onRef(
+                        'pagePermissions.pageAccessId',
+                        '=',
+                        'pageAccess.id',
+                      )
                       .on((eb2) =>
                         eb2.or([
                           eb2('pagePermissions.userId', '=', userId),
@@ -424,7 +446,11 @@ export class PagePermissionRepo {
                   )
                   .leftJoin('pagePermissions', (join) =>
                     join
-                      .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+                      .onRef(
+                        'pagePermissions.pageAccessId',
+                        '=',
+                        'pageAccess.id',
+                      )
                       .on('pagePermissions.role', '=', 'writer')
                       .on((eb2) =>
                         eb2.or([
@@ -491,7 +517,11 @@ export class PagePermissionRepo {
                   )
                   .leftJoin('pagePermissions', (join) =>
                     join
-                      .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
+                      .onRef(
+                        'pagePermissions.pageAccessId',
+                        '=',
+                        'pageAccess.id',
+                      )
                       .on('pagePermissions.role', '=', 'writer')
                       .on((eb2) =>
                         eb2.or([
@@ -518,7 +548,7 @@ export class PagePermissionRepo {
           .end()
           .as('canEdit'),
       )
-      .where('pages.id', 'in', pageIds)
+      .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
       // Filter: user must have access (any permission on all restricted ancestors)
       .where(({ not, exists, selectFrom }) =>
         not(
@@ -578,13 +608,20 @@ export class PagePermissionRepo {
    */
   async hasRestrictedPagesInSpace(spaceId: string): Promise<boolean> {
     const result = await this.db
-      .selectFrom('pageAccess')
-      .innerJoin('pages', 'pages.id', 'pageAccess.pageId')
-      .select('pageAccess.id')
-      .where('pages.spaceId', '=', spaceId)
+      .selectNoFrom((eb) =>
+        eb
+          .exists(
+            eb
+              .selectFrom('pageAccess')
+              .innerJoin('pages', 'pages.id', 'pageAccess.pageId')
+              .select(sql`1`.as('one'))
+              .where('pages.spaceId', '=', spaceId),
+          )
+          .as('exists'),
+      )
       .executeTakeFirst();
 
-    return !!result;
+    return Boolean(result?.exists);
   }
 
   /**
@@ -658,7 +695,11 @@ export class PagePermissionRepo {
             .distinct()
             .as('restricted'),
         (join) =>
-          join.onRef('restricted.restrictedDescendant', '=', 'subtree.descendantId'),
+          join.onRef(
+            'restricted.restrictedDescendant',
+            '=',
+            'subtree.descendantId',
+          ),
       )
       .select('subtree.descendantId')
       .distinct()
