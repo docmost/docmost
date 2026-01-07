@@ -26,6 +26,18 @@ import {
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 
+export type PageRestrictionInfo = {
+  id: string;
+  title: string;
+  hasDirectRestriction: boolean;
+  hasInheritedRestriction: boolean;
+  userAccess: {
+    canView: boolean;
+    canEdit: boolean;
+    canManage: boolean;
+  };
+};
+
 @Injectable()
 export class PagePermissionService {
   constructor(
@@ -340,6 +352,86 @@ export class PagePermissionService {
       pageAccess.id,
       pagination,
     );
+  }
+
+  /**
+   * Get page restriction info for the current user.
+   *
+   * Security: User must be a space member. Returns 404 for pages the user cannot view
+   * to avoid leaking existence of restricted pages.
+   */
+  async getPageRestrictionInfo(
+    pageId: string,
+    authUser: User,
+  ): Promise<PageRestrictionInfo> {
+    const page = await this.pageRepo.findById(pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(
+      authUser,
+      page.spaceId,
+    );
+
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const [hasDirectRestriction, hasAnyRestriction, canView, canEdit] =
+      await Promise.all([
+        this.pagePermissionRepo.findPageAccessByPageId(pageId).then((r) => !!r),
+        this.pagePermissionRepo.hasRestrictedAncestor(pageId),
+        this.canViewPage(authUser.id, pageId),
+        this.canEditPage(authUser.id, pageId),
+      ]);
+
+    // Security: return 404 to avoid leaking existence of restricted pages
+    if (!canView) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const hasInheritedRestriction = hasAnyRestriction && !hasDirectRestriction;
+
+    // Determine if user can manage permissions
+    const canManage = this.computeCanManage(ability, canEdit, canView);
+
+    return {
+      id: page.id,
+      title: page.title,
+      hasDirectRestriction,
+      hasInheritedRestriction,
+      userAccess: {
+        canView,
+        canEdit,
+        canManage,
+      },
+    };
+  }
+
+  /**
+   * Compute if user can manage page permissions based on precomputed access values.
+   * Mirrors validateWriteAccess logic without throwing.
+   */
+  private computeCanManage(
+    ability: Awaited<ReturnType<SpaceAbilityFactory['createForUser']>>,
+    canEdit: boolean,
+    canView: boolean,
+  ): boolean {
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      return false;
+    }
+
+    if (canEdit) {
+      return true;
+    }
+
+    const isSpaceAdmin = ability.can(
+      SpaceCaslAction.Manage,
+      SpaceCaslSubject.Page,
+    );
+
+    return isSpaceAdmin && canView;
   }
 
   async validateLastWriter(pageAccessId: string): Promise<void> {

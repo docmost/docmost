@@ -91,7 +91,7 @@ export class PagePermissionController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list')
+  @Post('members')
   async getPagePermissions(
     @Body() dto: PageIdDto,
     @Body() pagination: PaginationOptions,
@@ -102,6 +102,15 @@ export class PagePermissionController {
       user,
       pagination,
     );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('info')
+  async getPageRestrictionInfo(
+    @Body() dto: PageIdDto,
+    @AuthUser() user: User,
+  ) {
+    return this.pagePermissionService.getPageRestrictionInfo(dto.pageId, user);
   }
 }
 
