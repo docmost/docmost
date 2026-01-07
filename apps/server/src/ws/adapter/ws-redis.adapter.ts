@@ -1,27 +1,25 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
-import Redis, { RedisOptions } from 'ioredis';
-import {
-  createRetryStrategy,
-  parseRedisUrl,
-  RedisConfig,
-} from '../../common/helpers';
+import Redis from 'ioredis';
+import { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { RedisConfigService } from '../../integrations/redis/redis-config.service';
 
 export class WsRedisIoAdapter extends IoAdapter {
   private adapterConstructor: ReturnType<typeof createAdapter>;
-  private redisConfig: RedisConfig;
+
+  constructor(
+    private readonly redisConfigService: RedisConfigService,
+    app : NestFastifyApplication,
+  ) {
+    super(app);
+  }
 
   async connectToRedis(): Promise<void> {
-    this.redisConfig = parseRedisUrl(process.env.REDIS_URL);
+    const options = this.redisConfigService.getOptions();
 
-    const options: RedisOptions = {
-      family: this.redisConfig.family,
-      retryStrategy: createRetryStrategy(),
-    };
-
-    const pubClient = new Redis(process.env.REDIS_URL, options);
-    const subClient = new Redis(process.env.REDIS_URL, options);
+    const pubClient = new Redis(options);
+    const subClient = new Redis(options);
 
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }

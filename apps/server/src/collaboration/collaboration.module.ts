@@ -9,9 +9,11 @@ import { WebSocket } from 'ws';
 import { TokenModule } from '../core/auth/token.module';
 import { HistoryListener } from './listeners/history.listener';
 import { LoggerExtension } from './extensions/logger.extension';
+import { RedisConfigModule } from '../integrations/redis/redis-config-module';
 
 @Module({
   providers: [
+    RedisConfigModule,
     CollaborationGateway,
     AuthenticationExtension,
     PersistenceExtension,
@@ -19,7 +21,7 @@ import { LoggerExtension } from './extensions/logger.extension';
     HistoryListener,
   ],
   exports: [CollaborationGateway],
-  imports: [TokenModule],
+  imports: [TokenModule, RedisConfigModule]
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CollaborationModule.name);

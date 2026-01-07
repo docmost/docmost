@@ -17,6 +17,7 @@ import { ImportModule } from './integrations/import/import.module';
 import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
+import { RedisConfigModule } from './integrations/redis/redis-config-module';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 
 const enterpriseModules = [];
@@ -39,7 +40,12 @@ try {
     DatabaseModule,
     EnvironmentModule,
     RedisModule.forRootAsync({
-      useClass: RedisConfigService,
+      imports: [RedisConfigModule],
+      inject: [RedisConfigService],
+      useFactory: (redisConfig: RedisConfigService) => ({
+        readyLog: true,
+        config: redisConfig.getOptions(),
+      }),
     }),
     CollaborationModule,
     WsModule,
