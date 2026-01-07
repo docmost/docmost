@@ -573,6 +573,21 @@ export class PagePermissionRepo {
   }
 
   /**
+   * Check if any page in a space has restrictions.
+   * Used as a quick check to skip heavy permission filtering when no restrictions exist.
+   */
+  async hasRestrictedPagesInSpace(spaceId: string): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('pageAccess')
+      .innerJoin('pages', 'pages.id', 'pageAccess.pageId')
+      .select('pageAccess.id')
+      .where('pages.spaceId', '=', spaceId)
+      .executeTakeFirst();
+
+    return !!result;
+  }
+
+  /**
    * Given a list of parent page IDs, return which ones have at least one accessible child.
    * Efficient batch query for sidebar hasChildren calculation.
    */

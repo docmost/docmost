@@ -22,6 +22,7 @@ import {
   updateAttachmentUrlsToLocalPaths,
 } from './utils';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -38,6 +39,7 @@ export class ExportService {
 
   constructor(
     private readonly pageRepo: PageRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     private readonly environmentService: EnvironmentService,
@@ -94,6 +96,8 @@ export class ExportService {
     format: string,
     includeAttachments: boolean,
     includeChildren: boolean,
+    userId?: string,
+    ignorePermissions = false,
   ) {
     let pages: Page[];
 
@@ -107,7 +111,7 @@ export class ExportService {
       const page = await this.pageRepo.findById(pageId, {
         includeContent: true,
       });
-      if (page){
+      if (page) {
         pages = [page];
       }
     }
@@ -116,7 +120,24 @@ export class ExportService {
       throw new BadRequestException('No pages to export');
     }
 
+    if (!ignorePermissions && userId) {
+      pages = await this.filterPagesForExport(
+        pages,
+        pageId,
+        userId,
+        pages[0].spaceId,
+      );
+      if (pages.length === 0) {
+        throw new BadRequestException('No accessible pages to export');
+      }
+    }
+
     const parentPageIndex = pages.findIndex((obj) => obj.id === pageId);
+
+    //After filtering by permissions, if the root page itself is not accessible to the user, findIndex returns -1
+    if (parentPageIndex === -1) {
+      throw new BadRequestException('Root page is not accessible');
+    }
     // set to null to make export of pages with parentId work
     pages[parentPageIndex].parentPageId = null;
 
@@ -138,6 +159,8 @@ export class ExportService {
     spaceId: string,
     format: string,
     includeAttachments: boolean,
+    userId?: string,
+    ignorePermissions = false,
   ) {
     const space = await this.db
       .selectFrom('spaces')
@@ -149,7 +172,7 @@ export class ExportService {
       throw new NotFoundException('Space not found');
     }
 
-    const pages = await this.db
+    let pages = await this.db
       .selectFrom('pages')
       .select([
         'pages.id',
@@ -161,7 +184,20 @@ export class ExportService {
         'pages.workspaceId',
       ])
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
       .execute();
+
+    if (!ignorePermissions && userId) {
+      pages = await this.filterPagesForExport(
+        pages as Page[],
+        null,
+        userId,
+        spaceId,
+      );
+      if (pages.length === 0) {
+        throw new BadRequestException('No accessible pages to export');
+      }
+    }
 
     const tree = buildTree(pages as Page[]);
 
@@ -361,5 +397,58 @@ export class ExportService {
     const updatedDoc = editorState.doc;
 
     return updatedDoc.toJSON();
+  }
+
+  private async filterPagesForExport(
+    pages: Page[],
+    rootPageId: string | null,
+    userId: string,
+    spaceId: string,
+  ): Promise<Page[]> {
+    if (pages.length === 0) return [];
+
+    // skip heavy filtering if no restrictions exist in this space
+    const hasRestrictions =
+      await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
+    if (!hasRestrictions) {
+      return pages;
+    }
+
+    const pageIds = pages.map((p) => p.id);
+    const accessiblePages =
+      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+        pageIds,
+        userId,
+      );
+    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+
+    const includedIds = new Set<string>();
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const page of pages) {
+        if (includedIds.has(page.id)) continue;
+        if (!accessibleSet.has(page.id)) continue;
+
+        // Root page or top-level page in space export
+        if (
+          page.id === rootPageId ||
+          (rootPageId === null && page.parentPageId === null)
+        ) {
+          includedIds.add(page.id);
+          changed = true;
+          continue;
+        }
+
+        // Non-root: include if parent is already included
+        if (page.parentPageId && includedIds.has(page.parentPageId)) {
+          includedIds.add(page.id);
+          changed = true;
+        }
+      }
+    }
+
+    return pages.filter((p) => includedIds.has(p.id));
   }
 }

@@ -60,6 +60,7 @@ export class ExportController {
       dto.format,
       dto.includeAttachments,
       dto.includeChildren,
+      user.id,
     );
 
     const fileName = sanitize(page.title || 'untitled') + '.zip';
@@ -90,6 +91,7 @@ export class ExportController {
       dto.spaceId,
       dto.format,
       dto.includeAttachments,
+      user.id,
     );
 
     res.headers({
