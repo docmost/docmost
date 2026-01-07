@@ -144,7 +144,14 @@ export class ExportService {
     const tree = buildTree(pages as Page[]);
 
     const zip = new JSZip();
-    await this.zipPages(tree, format, zip, includeAttachments);
+    await this.zipPages(
+      tree,
+      format,
+      zip,
+      includeAttachments,
+      userId,
+      ignorePermissions,
+    );
 
     const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
@@ -203,7 +210,14 @@ export class ExportService {
 
     const zip = new JSZip();
 
-    await this.zipPages(tree, format, zip, includeAttachments);
+    await this.zipPages(
+      tree,
+      format,
+      zip,
+      includeAttachments,
+      userId,
+      ignorePermissions,
+    );
 
     const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
@@ -223,6 +237,8 @@ export class ExportService {
     format: string,
     zip: JSZip,
     includeAttachments: boolean,
+    userId?: string,
+    ignorePermissions = false,
   ): Promise<void> {
     const slugIdToPath: Record<string, string> = {};
 
@@ -242,6 +258,8 @@ export class ExportService {
         const prosemirrorJson = await this.turnPageMentionsToLinks(
           getProsemirrorContent(page.content),
           page.workspaceId,
+          userId,
+          ignorePermissions,
         );
 
         const currentPagePath = slugIdToPath[page.slugId];
@@ -303,10 +321,15 @@ export class ExportService {
     }
   }
 
-  async turnPageMentionsToLinks(prosemirrorJson: any, workspaceId: string) {
+  async turnPageMentionsToLinks(
+    prosemirrorJson: any,
+    workspaceId: string,
+    userId?: string,
+    ignorePermissions = false,
+  ) {
     const doc = jsonToNode(prosemirrorJson);
 
-    const pageMentionIds = [];
+    let pageMentionIds: string[] = [];
 
     doc.descendants((node: Node) => {
       if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
@@ -320,13 +343,33 @@ export class ExportService {
       return prosemirrorJson;
     }
 
-    const pages = await this.db
-      .selectFrom('pages')
-      .select(['id', 'slugId', 'title', 'creatorId', 'spaceId', 'workspaceId'])
-      .select((eb) => this.pageRepo.withSpace(eb))
-      .where('id', 'in', pageMentionIds)
-      .where('workspaceId', '=', workspaceId)
-      .execute();
+    // Filter to only accessible pages if permissions are enforced
+    if (!ignorePermissions && userId) {
+      const accessiblePages =
+        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+          pageMentionIds,
+          userId,
+        );
+      pageMentionIds = accessiblePages.map((p) => p.id);
+    }
+
+    const pages =
+      pageMentionIds.length > 0
+        ? await this.db
+            .selectFrom('pages')
+            .select([
+              'id',
+              'slugId',
+              'title',
+              'creatorId',
+              'spaceId',
+              'workspaceId',
+            ])
+            .select((eb) => this.pageRepo.withSpace(eb))
+            .where('id', 'in', pageMentionIds)
+            .where('workspaceId', '=', workspaceId)
+            .execute()
+        : [];
 
     const pageMap = new Map(pages.map((page) => [page.id, page]));
 
