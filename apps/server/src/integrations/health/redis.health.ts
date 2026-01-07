@@ -3,8 +3,8 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { Injectable, Logger } from '@nestjs/common';
-import { EnvironmentService } from '../environment/environment.service';
 import { Redis } from 'ioredis';
+import { RedisConfigService } from '../redis/redis-config.service';
 
 @Injectable()
 export class RedisHealthIndicator {
@@ -12,16 +12,16 @@ export class RedisHealthIndicator {
 
   constructor(
     private readonly healthIndicatorService: HealthIndicatorService,
-    private environmentService: EnvironmentService,
+    private redisConfigService: RedisConfigService,
   ) {}
 
   async pingCheck(key: string): Promise<HealthIndicatorResult> {
     const indicator = this.healthIndicatorService.check(key);
 
     try {
-      const redis = new Redis(this.environmentService.getRedisUrl(), {
-        maxRetriesPerRequest: 15,
-      });
+      const config = this.redisConfigService.getOptions();
+      config.maxRetriesPerRequest = 15;
+      const redis = new Redis(config);
 
       await redis.ping();
       redis.disconnect();
