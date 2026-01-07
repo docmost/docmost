@@ -71,10 +71,10 @@ export class AuthenticationExtension implements Extension {
     }
 
     // Check page-level permissions
-    const { hasRestriction, canAccess, canEdit } =
+    const { hasAnyRestriction, canAccess, canEdit } =
       await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
 
-    if (hasRestriction) {
+    if (hasAnyRestriction) {
       if (!canAccess) {
         this.logger.warn(
           `User ${user.id} denied page-level access to page: ${pageId}`,

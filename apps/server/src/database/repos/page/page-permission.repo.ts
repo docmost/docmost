@@ -380,7 +380,9 @@ export class PagePermissionRepo {
   /**
    * Get user's access level for a page, checking ALL restricted ancestors.
    * Returns:
-   * - hasRestriction: whether page or any ancestor has restrictions
+   * - hasDirectRestriction: whether this specific page has restrictions
+   * - hasInheritedRestriction: whether any ancestor (not self) has restrictions
+   * - hasAnyRestriction: hasDirectRestriction || hasInheritedRestriction
    * - canAccess: user has permission on all restricted ancestors (always true if no restrictions)
    * - canEdit: user has writer permission on all restricted ancestors (always true if no restrictions)
    */
@@ -388,14 +390,31 @@ export class PagePermissionRepo {
     userId: string,
     pageId: string,
   ): Promise<{
-    hasRestriction: boolean;
+    hasDirectRestriction: boolean;
+    hasInheritedRestriction: boolean;
+    hasAnyRestriction: boolean;
     canAccess: boolean;
     canEdit: boolean;
   }> {
     const result = await this.db
       .selectFrom('pages')
       .select((eb) => [
-        // hasRestriction: any ancestor has page_access entry
+        // hasDirectRestriction: this page itself has page_access entry
+        eb
+          .case()
+          .when(
+            eb.exists(
+              eb
+                .selectFrom('pageAccess')
+                .select('pageAccess.id')
+                .whereRef('pageAccess.pageId', '=', 'pages.id'),
+            ),
+          )
+          .then(true)
+          .else(false)
+          .end()
+          .as('hasDirectRestriction'),
+        // hasInheritedRestriction: any ancestor (depth > 0) has page_access entry
         eb
           .case()
           .when(
@@ -408,13 +427,14 @@ export class PagePermissionRepo {
                   'pageHierarchy.ancestorId',
                 )
                 .select('pageAccess.id')
-                .whereRef('pageHierarchy.descendantId', '=', 'pages.id'),
+                .whereRef('pageHierarchy.descendantId', '=', 'pages.id')
+                .where('pageHierarchy.depth', '>', 0),
             ),
           )
           .then(true)
           .else(false)
           .end()
-          .as('hasRestriction'),
+          .as('hasInheritedRestriction'),
         // canAccess: no restricted ancestor without ANY permission
         eb
           .case()
@@ -508,8 +528,13 @@ export class PagePermissionRepo {
       .where('pages.id', '=', pageId)
       .executeTakeFirst();
 
+    const hasDirectRestriction = Boolean(result?.hasDirectRestriction);
+    const hasInheritedRestriction = Boolean(result?.hasInheritedRestriction);
+
     return {
-      hasRestriction: Boolean(result?.hasRestriction),
+      hasDirectRestriction,
+      hasInheritedRestriction,
+      hasAnyRestriction: hasDirectRestriction || hasInheritedRestriction,
       canAccess: Boolean(result?.canAccess),
       canEdit: Boolean(result?.canEdit),
     };

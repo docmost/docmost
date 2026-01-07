@@ -28,10 +28,10 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
-    const { hasRestriction, canAccess } =
+    const { hasAnyRestriction, canAccess } =
       await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
 
-    if (hasRestriction) {
+    if (hasAnyRestriction) {
       // Page has restrictions - use page-level permission
       if (!canAccess) {
         throw new ForbiddenException();
@@ -53,10 +53,10 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
-    const { hasRestriction, canEdit } =
+    const { hasAnyRestriction, canEdit } =
       await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
 
-    if (hasRestriction) {
+    if (hasAnyRestriction) {
       // Page has restrictions - use page-level permission
       if (!canEdit) {
         throw new ForbiddenException();

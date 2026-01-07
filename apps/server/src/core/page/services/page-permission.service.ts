@@ -359,6 +359,8 @@ export class PagePermissionService {
    *
    * Security: User must be a space member. Returns 404 for pages the user cannot view
    * to avoid leaking existence of restricted pages.
+   *
+   * Performance: Uses single optimized query to get all restriction/access data.
    */
   async getPageRestrictionInfo(
     pageId: string,
@@ -378,23 +380,22 @@ export class PagePermissionService {
       throw new ForbiddenException();
     }
 
-    const [hasDirectRestriction, hasAnyRestriction, canView, canEdit] =
-      await Promise.all([
-        this.pagePermissionRepo.findPageAccessByPageId(pageId).then((r) => !!r),
-        this.pagePermissionRepo.hasRestrictedAncestor(pageId),
-        this.canViewPage(authUser.id, pageId),
-        this.canEditPage(authUser.id, pageId),
-      ]);
+    const {
+      hasDirectRestriction,
+      hasInheritedRestriction,
+      canAccess,
+      canEdit,
+    } = await this.pagePermissionRepo.getUserPageAccessLevel(
+      authUser.id,
+      pageId,
+    );
 
     // Security: return 404 to avoid leaking existence of restricted pages
-    if (!canView) {
-      throw new NotFoundException('Page not found');
+    if (!canAccess) {
+      throw new NotFoundException('Permission not found');
     }
 
-    const hasInheritedRestriction = hasAnyRestriction && !hasDirectRestriction;
-
-    // Determine if user can manage permissions
-    const canManage = this.computeCanManage(ability, canEdit, canView);
+    const canManage = this.computeCanManage(ability, canEdit, canAccess);
 
     return {
       id: page.id,
@@ -402,7 +403,7 @@ export class PagePermissionService {
       hasDirectRestriction,
       hasInheritedRestriction,
       userAccess: {
-        canView,
+        canView: canAccess,
         canEdit,
         canManage,
       },
