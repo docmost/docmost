@@ -5,6 +5,7 @@ import {
 import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,
+  activeHistoryPrevIdAtom,
   historyAtoms,
 } from "@/features/page-history/atoms/history-atoms";
 import { useAtom } from "jotai";
@@ -32,6 +33,7 @@ interface Props {
 function HistoryList({ pageId }: Props) {
   const { t } = useTranslation();
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
+  const [, setActiveHistoryPrevId] = useAtom(activeHistoryPrevIdAtom);
   const {
     data: pageHistoryList,
     isLoading,
@@ -86,8 +88,9 @@ function HistoryList({ pageId }: Props) {
       !activeHistoryId
     ) {
       setActiveHistoryId(pageHistoryList.items[0].id);
+      setActiveHistoryPrevId(pageHistoryList.items[1]?.id ?? "");
     }
-  }, [pageHistoryList]);
+  }, [pageHistoryList, activeHistoryId, setActiveHistoryId, setActiveHistoryPrevId]);
 
   if (isLoading) {
     return <></>;
@@ -107,9 +110,14 @@ function HistoryList({ pageId }: Props) {
         {pageHistoryList &&
           pageHistoryList.items.map((historyItem, index) => (
             <HistoryItem
-              key={index}
+              key={historyItem.id}
               historyItem={historyItem}
-              onSelect={setActiveHistoryId}
+              onSelect={(id) => {
+                setActiveHistoryId(id);
+                setActiveHistoryPrevId(
+                  pageHistoryList.items[index + 1]?.id ?? "",
+                );
+              }}
               isActive={historyItem.id === activeHistoryId}
             />
           ))}
