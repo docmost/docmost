@@ -4,24 +4,38 @@ import { useTranslation } from "react-i18next";
 
 interface HistoryProps {
   historyId: string;
+  prevHistoryId?: string;
 }
 
-function HistoryView({ historyId }: HistoryProps) {
+function HistoryView({ historyId, prevHistoryId }: HistoryProps) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = usePageHistoryQuery(historyId);
+  const {
+    data,
+    isLoading: isLoadingCurrent,
+    isError: isErrorCurrent,
+  } = usePageHistoryQuery(historyId);
+  const {
+    data: prevData,
+    isLoading: isLoadingPrev,
+    isError: isErrorPrev,
+  } = usePageHistoryQuery(prevHistoryId ?? "");
 
-  if (isLoading) {
+  if (isLoadingCurrent || isLoadingPrev) {
     return <></>;
   }
 
-  if (isError || !data) {
+  if (isErrorCurrent || !data) {
     return <div>{t("Error fetching page data.")}</div>;
   }
 
   return (
     data && (
       <div>
-        <HistoryEditor content={data.content} title={data.title} />
+        <HistoryEditor
+          content={data.content}
+          title={data.title}
+          previousContent={!isErrorPrev ? prevData?.content : undefined}
+        />
       </div>
     )
   );
