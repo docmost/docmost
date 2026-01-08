@@ -33,5 +33,5 @@
 
 .sidebarRightSection {
     flex: 1;
-    padding: rem(16px) rem(40px);
+    padding: rem(16px) rem(40px) rem(96px);
 }
