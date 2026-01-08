@@ -22,7 +22,7 @@ declare module "@tiptap/core" {
     imageBlock: {
       setImage: (attributes: ImageAttributes) => ReturnType;
       setImageAt: (
-        attributes: ImageAttributes & { pos: number | Range },
+        attributes: ImageAttributes & { pos: number | Range }
       ) => ReturnType;
       setImageAlign: (align: "left" | "center" | "right") => ReturnType;
       setImageWidth: (width: number) => ReturnType;
@@ -135,6 +135,9 @@ export const TiptapImage = Image.extend<ImageOptions>({
   },
 
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 

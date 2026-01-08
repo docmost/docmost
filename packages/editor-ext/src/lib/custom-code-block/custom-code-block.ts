@@ -1,14 +1,14 @@
-import type { CodeBlockOptions } from '@tiptap/extension-code-block'
-import CodeBlock from '@tiptap/extension-code-block'
+import type { CodeBlockOptions } from "@tiptap/extension-code-block";
+import CodeBlock from "@tiptap/extension-code-block";
 
-import { LowlightPlugin } from './lowlight-plugin.js'
-import { ReactNodeViewRenderer } from '@tiptap/react';
+import { LowlightPlugin } from "./lowlight-plugin.js";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 
 export interface CodeBlockLowlightOptions extends CodeBlockOptions {
   /**
    * The lowlight instance.
    */
-  lowlight: any,
+  lowlight: any;
   view: any;
 }
 
@@ -25,13 +25,13 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
     return {
       ...this.parent?.(),
       lowlight: {},
-      languageClassPrefix: 'language-',
+      languageClassPrefix: "language-",
       exitOnTripleEnter: true,
       exitOnArrowDown: true,
       defaultLanguage: null,
       HTMLAttributes: {},
       view: null,
-    }
+    };
   },
 
   addKeyboardShortcuts() {
@@ -88,8 +88,10 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
     };
   },
 
-
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 
@@ -101,6 +103,6 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
         lowlight: this.options.lowlight,
         defaultLanguage: this.options.defaultLanguage,
       }),
-    ]
+    ];
   },
-})
+});
