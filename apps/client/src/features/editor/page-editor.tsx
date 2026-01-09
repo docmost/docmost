@@ -11,8 +11,9 @@ import * as Y from "yjs";
 import {
   HocuspocusProvider,
   onStatusParameters,
-  onAuthenticationFailedParameters,
   WebSocketStatus,
+  HocuspocusProviderWebsocket,
+  onSyncedParameters,
 } from "@hocuspocus/provider";
 import {
   EditorContent,
@@ -89,140 +90,127 @@ export default function PageEditor({
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const ydocRef = useRef<Y.Doc | null>(null);
-  if (!ydocRef.current) {
-    ydocRef.current = new Y.Doc();
-  }
-  const ydoc = ydocRef.current;
   const [isLocalSynced, setIsLocalSynced] = useState(false);
-  const [isRemoteSynced, setRemoteSynced] = useState(false);
+  const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom,
+    yjsConnectionStatusAtom
   );
   const menuContainerRef = useRef(null);
-  const documentName = `page.${pageId}`;
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
   const { isIdle, resetIdle } = useIdle(FIVE_MINUTES, { initialState: false });
   const documentState = useDocumentVisibility();
-  const [isCollabReady, setIsCollabReady] = useState(false);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated],
+    [isComponentMounted, editorCreated]
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
     remote: HocuspocusProvider;
+    socket: HocuspocusProviderWebsocket;
   } | null>(null);
   const [providersReady, setProvidersReady] = useState(false);
 
-  const localProvider = providersRef.current?.local;
-  const remoteProvider = providersRef.current?.remote;
-
   useEffect(() => {
     if (!providersRef.current) {
+      const documentName = `page.${pageId}`;
+      const ydoc = new Y.Doc();
       const local = new IndexeddbPersistence(documentName, ydoc);
-      local.on("synced", () => setIsLocalSynced(true));
-      const remote = new HocuspocusProvider({
-        name: documentName,
+      const socket = new HocuspocusProviderWebsocket({
         url: collaborationURL,
-        document: ydoc,
-        token: collabQuery?.token,
-        onAuthenticationFailed: (auth: onAuthenticationFailedParameters) => {
-          const payload = jwtDecode(collabQuery?.token);
-          const now = Date.now().valueOf() / 1000;
-          const isTokenExpired = now >= payload.exp;
-          if (isTokenExpired) {
-            refetchCollabToken().then((result) => {
-              if (result.data?.token) {
-                remote.configuration.websocketProvider.disconnect();
-                setTimeout(() => {
-                  remote.configuration.token = result.data.token;
-                  remote.configuration.websocketProvider.connect();
-                }, 100);
-              }
-            });
-          }
-        },
       });
-
-      remote.on("synced", () => setRemoteSynced(true));
-
-      const handleSocketStatus = (status: onStatusParameters) => {
-        if (status.status === "connected") {
-          setYjsConnectionStatus(WebSocketStatus.Connected);
-        } else if (status.status === "disconnected") {
-          setYjsConnectionStatus(WebSocketStatus.Disconnected);
+      const onLocalSyncedHandler = () => {
+        setIsLocalSynced(true);
+      };
+      const onStatusHandler = (event: onStatusParameters) => {
+        setYjsConnectionStatus(event.status);
+      };
+      const onSyncedHandler = (event: onSyncedParameters) => {
+        setIsRemoteSynced(event.state);
+      };
+      const onAuthenticationFailedHandler = () => {
+        const payload = jwtDecode(collabQuery?.token);
+        const now = Date.now().valueOf() / 1000;
+        const isTokenExpired = now >= payload.exp;
+        if (isTokenExpired) {
+          refetchCollabToken().then((result) => {
+            if (result.data?.token) {
+              remote.disconnect();
+              setTimeout(() => {
+                remote.configuration.token = result.data.token;
+                remote.connect();
+              }, 100);
+            }
+          });
         }
       };
-      remote.configuration.websocketProvider.on("status", handleSocketStatus);
+      const remote = new HocuspocusProvider({
+        websocketProvider: socket,
+        name: documentName,
+        document: ydoc,
+        token: collabQuery?.token,
+        onAuthenticationFailed: onAuthenticationFailedHandler,
+        onStatus: onStatusHandler,
+        onSynced: onSyncedHandler,
+      });
 
-      providersRef.current = { local, remote };
+      local.on("synced", onLocalSyncedHandler);
+      providersRef.current = { socket, local, remote };
       setProvidersReady(true);
     } else {
       setProvidersReady(true);
     }
     // Only destroy on final unmount
     return () => {
+      providersRef.current?.socket.destroy();
       providersRef.current?.remote.destroy();
       providersRef.current?.local.destroy();
       providersRef.current = null;
     };
   }, [pageId]);
 
-  /*
-  useEffect(() => {
-    // Handle token updates by reconnecting with new token
-    if (providersRef.current?.remote && collabQuery?.token) {
-      const currentToken = providersRef.current.remote.configuration.token;
-      if (currentToken !== collabQuery.token) {
-        // Token has changed, need to reconnect with new token
-        providersRef.current.remote.disconnect();
-        providersRef.current.remote.configuration.token = collabQuery.token;
-        providersRef.current.remote.connect();
-      }
-    }
-  }, [collabQuery?.token]);
-   */
-
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
     if (!providersReady || !providersRef.current) return;
     const remoteProvider = providersRef.current.remote;
+
     if (
       isIdle &&
       documentState === "hidden" &&
-      remoteProvider.configuration.websocketProvider.status ===
-        WebSocketStatus.Connected
+      yjsConnectionStatus === WebSocketStatus.Connected
     ) {
-      remoteProvider.configuration.websocketProvider.disconnect();
-      setIsCollabReady(false);
+      remoteProvider.disconnect();
       return;
     }
     if (
       documentState === "visible" &&
-      remoteProvider.configuration.websocketProvider.status ===
-        WebSocketStatus.Disconnected
+      yjsConnectionStatus === WebSocketStatus.Disconnected
     ) {
       resetIdle();
-      remoteProvider.configuration.websocketProvider.connect();
-      setTimeout(() => setIsCollabReady(true), 500);
+      remoteProvider.connect();
     }
   }, [isIdle, documentState, providersReady, resetIdle]);
 
+  // Attach here, to make sure the connection gets properly established
+  providersRef.current?.remote.attach();
+
   const extensions = useMemo(() => {
-    if (!remoteProvider || !currentUser?.user) return mainExtensions;
+    if (!providersReady || !providersRef.current || !currentUser?.user) {
+      return mainExtensions;
+    }
+
+    const remoteProvider = providersRef.current.remote;
+
     return [
       ...mainExtensions,
       ...collabExtensions(remoteProvider, currentUser?.user),
     ];
-  }, [remoteProvider, currentUser?.user]);
+  }, [providersReady, currentUser?.user]);
 
   const editor = useEditor(
     {
@@ -287,7 +275,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, remoteProvider],
+    [pageId, editable, extensions]
   );
 
   const editorIsEditable = useEditorState({
@@ -332,7 +320,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent,
+        handleActiveCommentEvent
       );
     };
   }, []);
@@ -343,38 +331,17 @@ export default function PageEditor({
     setAsideState({ tab: "", isAsideOpen: false });
   }, [pageId]);
 
-  useEffect(() => {
-    if (
-      remoteProvider?.configuration.websocketProvider.status ===
-      WebSocketStatus.Connecting
-    ) {
-      const timeout = setTimeout(() => {
-        setYjsConnectionStatus(WebSocketStatus.Disconnected);
-      }, 5000);
-      return () => clearTimeout(timeout);
-    }
-  }, [remoteProvider?.configuration.websocketProvider.status]);
-
   const isSynced = isLocalSynced && isRemoteSynced;
 
   useEffect(() => {
-    const collabReadyTimeout = setTimeout(() => {
-      if (
-        !isCollabReady &&
-        isSynced &&
-        remoteProvider?.configuration.websocketProvider.status ===
-          WebSocketStatus.Connected
-      ) {
-        setIsCollabReady(true);
+    const timeout = setTimeout(() => {
+      if (yjsConnectionStatus === WebSocketStatus.Connecting || !isSynced) {
+        setYjsConnectionStatus(WebSocketStatus.Disconnected);
       }
-    }, 500);
-    return () => clearTimeout(collabReadyTimeout);
-  }, [
-    isRemoteSynced,
-    isLocalSynced,
-    remoteProvider?.configuration.websocketProvider.status,
-  ]);
+    }, 7500);
 
+    return () => clearTimeout(timeout);
+  }, [yjsConnectionStatus, isSynced]);
   useEffect(() => {
     // Only honor user default page edit mode preference and permissions
     if (editor) {
@@ -396,13 +363,13 @@ export default function PageEditor({
   useEffect(() => {
     if (
       !hasConnectedOnceRef.current &&
-      remoteProvider?.configuration.websocketProvider.status ===
-        WebSocketStatus.Connected
+      yjsConnectionStatus === WebSocketStatus.Connected &&
+      isSynced
     ) {
       hasConnectedOnceRef.current = true;
       setShowStatic(false);
     }
-  }, [remoteProvider?.configuration.websocketProvider.status]);
+  }, [yjsConnectionStatus, isSynced]);
 
   if (showStatic) {
     return (
