@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +15,11 @@ import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { PaginationResult } from '@docmost/db/pagination/pagination';
+import { AuditEvent } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class SpaceMemberService {
@@ -21,6 +27,7 @@ export class SpaceMemberService {
     private spaceMemberRepo: SpaceMemberRepo,
     private spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async addUserToSpace(
@@ -161,8 +168,43 @@ export class SpaceMemberService {
 
     if (membersToAdd.length > 0) {
       await this.spaceMemberRepo.insertSpaceMember(membersToAdd);
-    } else {
-      // either they are already members or do not exist on the workspace
+
+      // Audit log for each member added
+      for (const user of validUsers) {
+        this.auditService.log({
+          event: AuditEvent.SPACE_MEMBER_ADDED,
+          resourceType: 'space_members',
+          resourceId: dto.spaceId,
+          changes: {
+            after: { role: dto.role },
+          },
+          metadata: {
+            spaceId: dto.spaceId,
+            spaceName: space.name,
+            userId: user.id,
+            userName: user.name,
+            memberType: 'user',
+          },
+        });
+      }
+
+      for (const group of validGroups) {
+        this.auditService.log({
+          event: AuditEvent.SPACE_MEMBER_ADDED,
+          resourceType: 'space_members',
+          resourceId: dto.spaceId,
+          changes: {
+            after: { role: dto.role },
+          },
+          metadata: {
+            spaceId: dto.spaceId,
+            spaceName: space.name,
+            groupId: group.id,
+            groupName: group.name,
+            memberType: 'group',
+          },
+        });
+      }
     }
   }
 
@@ -209,6 +251,22 @@ export class SpaceMemberService {
       spaceMember.id,
       dto.spaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_MEMBER_REMOVED,
+      resourceType: 'space_member',
+      resourceId: dto.spaceId,
+      changes: {
+        before: { role: spaceMember.role },
+      },
+      metadata: {
+        spaceId: dto.spaceId,
+        spaceName: space.name,
+        userId: spaceMember.userId,
+        groupId: spaceMember.groupId,
+        memberType: spaceMember.userId ? 'user' : 'group',
+      },
+    });
   }
 
   async updateSpaceMemberRole(
@@ -259,6 +317,23 @@ export class SpaceMemberService {
       spaceMember.id,
       dto.spaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
+      resourceType: 'space_members',
+      resourceId: dto.spaceId,
+      changes: {
+        before: { role: spaceMember.role },
+        after: { role: dto.role },
+      },
+      metadata: {
+        spaceId: dto.spaceId,
+        spaceName: space.name,
+        userId: spaceMember.userId,
+        groupId: spaceMember.groupId,
+        memberType: spaceMember.userId ? 'user' : 'group',
+      },
+    });
   }
 
   async validateLastAdmin(spaceId: string): Promise<void> {

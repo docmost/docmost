@@ -20,6 +20,7 @@ import {
   FileTasks,
   UserMfa as _UserMFA,
   ApiKeys,
+  AuditLogs,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -131,3 +132,8 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
 export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
+
+// Audit Log
+export type AuditLog = Selectable<AuditLogs>;
+export type InsertableAuditLog = Insertable<AuditLogs>;
+export type UpdatableAuditLog = Updateable<Omit<AuditLogs, 'id'>>;

@@ -578,6 +578,9 @@ importers:
       nanoid:
         specifier: 3.3.11
         version: 3.3.11
+      nestjs-cls:
+        specifier: ^4.5.0
+        version: 4.5.0(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       nestjs-kysely:
         specifier: ^1.2.0
         version: 1.2.0(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.9)(kysely@0.28.2)(reflect-metadata@0.2.2)
@@ -7981,6 +7984,15 @@ packages:
 
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
+
+  nestjs-cls@4.5.0:
+    resolution: {integrity: sha512-oi3GNCc5pnsnVI5WJKMDwmg4NP+JyEw+edlwgepyUba5+RGGtJzpbVaaxXGW1iPbDuQde3/fA8Jdjq9j88BVcQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@nestjs/common': '> 7.0.0 < 11'
+      '@nestjs/core': '> 7.0.0 < 11'
+      reflect-metadata: '*'
+      rxjs: '>= 7'
 
   nestjs-kysely@1.2.0:
     resolution: {integrity: sha512-KseCGb0SXCzIYC+Hx3Z3d+kPAfSZCSK6j9UoqUV/gcBCPad9utC7itmoUw0/w5sV+Jf9pc1DKpgClP1IkflA4w==}
@@ -19130,6 +19142,13 @@ snapshots:
   negotiator@0.6.3: {}
 
   neo-async@2.6.2: {}
+
+  nestjs-cls@4.5.0(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2):
+    dependencies:
+      '@nestjs/common': 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.9(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/websockets@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
 
   nestjs-kysely@1.2.0(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.9)(kysely@0.28.2)(reflect-metadata@0.2.2):
     dependencies:

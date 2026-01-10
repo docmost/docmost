@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -34,6 +35,11 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { generateRandomSuffixNumbers } from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
+import { AuditEvent } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -52,6 +58,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async findById(workspaceId: string) {
@@ -428,6 +435,20 @@ export class WorkspaceService {
       user.id,
       workspaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.USER_ROLE_CHANGED,
+      resourceType: 'users',
+      resourceId: user.id,
+      changes: {
+        before: { role: user.role },
+        after: { role: newRole },
+      },
+      metadata: {
+        userName: user.name,
+        userEmail: user.email,
+      },
+    });
   }
 
   async generateHostname(
@@ -529,6 +550,19 @@ export class WorkspaceService {
         .deleteFrom('authAccounts')
         .where('userId', '=', userId)
         .execute();
+    });
+
+    this.auditService.log({
+      event: AuditEvent.USER_DELETED,
+      resourceType: 'users',
+      resourceId: user.id,
+      changes: {
+        before: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
     });
 
     try {

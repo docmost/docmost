@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
 import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './integrations/environment/environment.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
@@ -18,6 +20,7 @@ import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
+import { ClsModule } from 'nestjs-cls';
 
 const enterpriseModules = [];
 try {
@@ -35,6 +38,10 @@ try {
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
     CoreModule,
     DatabaseModule,
     EnvironmentModule,
@@ -60,6 +67,12 @@ try {
     ...enterpriseModules,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditActorInterceptor,
+    },
+  ],
 })
 export class AppModule {}

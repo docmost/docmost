@@ -3,18 +3,13 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -32,13 +27,13 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
+  creatorId: string;
   deletedAt: Timestamp | null;
   expiresAt: Timestamp | null;
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
   updatedAt: Generated<Timestamp>;
-  creatorId: string;
   workspaceId: string;
 }
 
@@ -61,6 +56,20 @@ export interface Attachments {
   workspaceId: string;
 }
 
+export interface AuditLogs {
+  actorId: string | null;
+  actorType: Generated<string>;
+  changes: Json | null;
+  createdAt: Generated<Timestamp>;
+  event: string;
+  id: Generated<string>;
+  ipAddress: string | null;
+  metadata: Json | null;
+  resourceId: string | null;
+  resourceType: string;
+  workspaceId: string;
+}
+
 export interface AuthAccounts {
   authProviderId: string | null;
   createdAt: Generated<Timestamp>;
@@ -77,25 +86,25 @@ export interface AuthProviders {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
+  groupSync: Generated<boolean>;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
-  groupSync: Generated<boolean>;
   ldapBaseDn: string | null;
   ldapBindDn: string | null;
   ldapBindPassword: string | null;
+  ldapConfig: Json | null;
   ldapTlsCaCert: string | null;
   ldapTlsEnabled: Generated<boolean | null>;
   ldapUrl: string | null;
   ldapUserAttributes: Json | null;
   ldapUserSearchFilter: string | null;
-  ldapConfig: Json | null;
-  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
+  settings: Json | null;
   type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
@@ -225,9 +234,11 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
+  isRestricted: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
+  restrictedById: string | null;
   slugId: string;
   spaceId: string;
   textContent: string | null;
@@ -298,12 +309,12 @@ export interface Users {
   deletedAt: Timestamp | null;
   email: string;
   emailVerifiedAt: Timestamp | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   id: Generated<string>;
   invitedById: string | null;
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
-  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;
@@ -363,6 +374,7 @@ export interface Workspaces {
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
+  auditLogs: AuditLogs;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
@@ -372,6 +384,7 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   pageHistory: PageHistory;
+  AuditLog: PagePermissions;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

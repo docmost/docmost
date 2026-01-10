@@ -44,6 +44,7 @@
     "@nestjs-labs/nestjs-ioredis": "^11.0.4",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.9",
+    "nestjs-cls": "^4.5.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.9",
     "@nestjs/event-emitter": "^3.0.1",

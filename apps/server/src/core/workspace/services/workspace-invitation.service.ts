@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -33,6 +34,11 @@ import {
   validateAllowedEmail,
   validateSsoEnforcement,
 } from '../../auth/auth.util';
+import { AuditEvent } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class WorkspaceInvitationService {
@@ -46,6 +52,7 @@ export class WorkspaceInvitationService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     private readonly environmentService: EnvironmentService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getInvitations(workspaceId: string, pagination: PaginationOptions) {
@@ -179,6 +186,24 @@ export class WorkspaceInvitationService {
           workspace.hostname,
         );
       });
+
+      // Audit log for each invitation created
+      for (const invitation of invites) {
+        this.auditService.log({
+          event: AuditEvent.WORKSPACE_INVITE_CREATED,
+          resourceType: 'workspace_invitation',
+          resourceId: invitation.id,
+          changes: {
+            after: {
+              email: invitation.email,
+              role: invitation.role,
+            },
+          },
+          metadata: {
+            groupIds: invitation.groupIds,
+          },
+        });
+      }
     }
   }
 
@@ -344,11 +369,32 @@ export class WorkspaceInvitationService {
     invitationId: string,
     workspaceId: string,
   ): Promise<void> {
+    const invitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['id', 'email', 'role'])
+      .where('id', '=', invitationId)
+      .where('workspaceId', '=', workspaceId)
+      .executeTakeFirst();
+
     await this.db
       .deleteFrom('workspaceInvitations')
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+
+    if (invitation) {
+      this.auditService.log({
+        event: AuditEvent.WORKSPACE_INVITE_REVOKED,
+        resourceType: 'workspace_invitation',
+        resourceId: invitation.id,
+        changes: {
+          before: {
+            email: invitation.email,
+            role: invitation.role,
+          },
+        },
+      });
+    }
   }
 
   async getInvitationLinkById(

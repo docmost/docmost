@@ -6,6 +6,7 @@ export enum QueueName {
   FILE_TASK_QUEUE = '{file-task-queue}',
   SEARCH_QUEUE = '{search-queue}',
   AI_QUEUE = '{ai-queue}',
+  AUDIT_QUEUE = '{audit-queue}',
 }
 
 export enum QueueJob {
@@ -58,4 +59,7 @@ export enum QueueJob {
 
   GENERATE_PAGE_EMBEDDINGS = 'generate-page-embeddings',
   DELETE_PAGE_EMBEDDINGS = 'delete-page-embeddings',
+
+  AUDIT_LOG = 'audit-log',
+  AUDIT_CLEANUP = 'audit-cleanup',
 }
