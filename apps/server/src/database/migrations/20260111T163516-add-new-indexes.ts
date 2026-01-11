@@ -181,7 +181,6 @@ export async function down(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema.dropIndex('idx_groups_workspace_id').ifExists().execute();
   await db.schema.dropIndex('idx_shares_page_id').ifExists().execute();
-  await db.schema.dropIndex('idx_shares_space_updated').ifExists().execute();
   await db.schema.dropIndex('idx_shares_key_lower').ifExists().execute();
   await db.schema.dropIndex('idx_attachments_page_id').ifExists().execute();
   await db.schema.dropIndex('idx_attachments_space_id').ifExists().execute();
