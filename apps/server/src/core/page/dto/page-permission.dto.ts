@@ -27,7 +27,6 @@ export class AddPagePermissionDto extends PageIdDto {
   @ArrayMaxSize(25, {
     message: 'userIds must be an array with no more than 25 elements',
   })
-  @ArrayMinSize(1)
   @IsUUID('all', { each: true })
   userIds?: string[];
 
@@ -36,7 +35,6 @@ export class AddPagePermissionDto extends PageIdDto {
   @ArrayMaxSize(25, {
     message: 'groupIds must be an array with no more than 25 elements',
   })
-  @ArrayMinSize(1)
   @IsUUID('all', { each: true })
   groupIds?: string[];
 }
@@ -47,7 +45,6 @@ export class RemovePagePermissionDto extends PageIdDto {
   @ArrayMaxSize(25, {
     message: 'userIds must be an array with no more than 25 elements',
   })
-  @ArrayMinSize(1)
   @IsUUID('all', { each: true })
   userIds?: string[];
 
@@ -56,7 +53,6 @@ export class RemovePagePermissionDto extends PageIdDto {
   @ArrayMaxSize(25, {
     message: 'groupIds must be an array with no more than 25 elements',
   })
-  @ArrayMinSize(1)
   @IsUUID('all', { each: true })
   groupIds?: string[];
 }

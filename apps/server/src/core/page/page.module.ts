@@ -4,7 +4,6 @@ import { PageController } from './page.controller';
 import { PageHistoryService } from './services/page-history.service';
 import { TrashCleanupService } from './services/trash-cleanup.service';
 import { PagePermissionService } from './services/page-permission.service';
-import { PageHierarchyService } from './services/page-hierarchy.service';
 import { PagePermissionController } from './page-permission.controller';
 import { StorageModule } from '../../integrations/storage/storage.module';
 
@@ -15,14 +14,8 @@ import { StorageModule } from '../../integrations/storage/storage.module';
     PageHistoryService,
     TrashCleanupService,
     PagePermissionService,
-    PageHierarchyService,
   ],
-  exports: [
-    PageService,
-    PageHistoryService,
-    PagePermissionService,
-    PageHierarchyService,
-  ],
+  exports: [PageService, PageHistoryService, PagePermissionService],
   imports: [StorageModule],
 })
 export class PageModule {}
