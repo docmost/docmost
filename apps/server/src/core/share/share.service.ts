@@ -43,18 +43,20 @@ export class ShareService {
       throw new NotFoundException('Share not found');
     }
 
+    const isRestricted =
+      await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+    if (isRestricted) {
+      throw new NotFoundException('Share not found');
+    }
+
     if (share.includeSubPages) {
-      const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
-        includeContent: false,
-      });
+      const pageTree =
+        await this.pageRepo.getPageAndDescendantsExcludingRestricted(
+          share.pageId,
+          { includeContent: false },
+        );
 
-      // Filter out restricted pages and their descendants
-      const restrictedIds =
-        await this.pagePermissionRepo.getRestrictedSubtreeIds(share.pageId);
-      const restrictedSet = new Set(restrictedIds);
-      const filteredPages = pageList.filter((page) => !restrictedSet.has(page.id));
-
-      return { share, pageTree: filteredPages };
+      return { share, pageTree };
     } else {
       return { share, pageTree: [] };
     }
