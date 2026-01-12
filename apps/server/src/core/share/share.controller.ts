@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -11,12 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { ShareService } from './share.service';
 import {
   CreateShareDto,
@@ -40,7 +34,6 @@ import { hasLicenseOrEE } from '../../common/helpers';
 export class ShareController {
   constructor(
     private readonly shareService: ShareService,
-    private readonly spaceAbility: SpaceAbilityFactory,
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
@@ -100,16 +93,12 @@ export class ShareController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    // TODO: look into permission
     const page = await this.pageRepo.findById(dto.pageId);
     if (!page) {
       throw new NotFoundException('Shared page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
     return this.shareService.getShareForPage(page.id, workspace.id);
   }
@@ -133,8 +122,9 @@ export class ShareController {
     await this.pageAccessService.validateCanEdit(page, user);
 
     // Prevent sharing restricted pages
-    const isRestricted =
-      await this.pagePermissionRepo.hasRestrictedAncestor(page.id);
+    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+      page.id,
+    );
     if (isRestricted) {
       throw new BadRequestException('Cannot share a restricted page');
     }
