@@ -3,7 +3,6 @@ ARG NODE_IMAGE=node:22-slim
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build-base
 
 RUN npm install -g pnpm@10.4.0
-
 FROM build-base AS builder
 
 WORKDIR /app
