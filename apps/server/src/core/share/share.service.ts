@@ -189,7 +189,7 @@ export class ShareService {
       .orderBy('page_hierarchy.level', 'asc')
       .executeTakeFirst();
 
-    if (!share || share.workspaceId != workspaceId) {
+    if (!share || share.workspaceId !== workspaceId) {
       return undefined;
     }
 
