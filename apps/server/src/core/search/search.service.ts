@@ -18,7 +18,7 @@ export class SearchService {
     private pageRepo: PageRepo,
     private shareRepo: ShareRepo,
     private spaceMemberRepo: SpaceMemberRepo,
-  ) {}
+  ) { }
 
   async searchPage(
     searchParams: SearchDTO,
@@ -62,7 +62,7 @@ export class SearchService {
       )
       .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 25)
+      .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {
