@@ -269,12 +269,15 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const prefetchPage = () => {
-    timerRef.current = setTimeout(() => {
-      queryClient.prefetchQuery({
-        queryKey: ["pages", node.data.slugId],
-        queryFn: () => getPageById({ pageId: node.data.slugId }),
+    timerRef.current = setTimeout(async () => {
+      const page = await queryClient.fetchQuery({
+        queryKey: ["pages", node.data.id],
+        queryFn: () => getPageById({ pageId: node.data.id }),
         staleTime: 5 * 60 * 1000,
       });
+      if (page?.slugId) {
+        queryClient.setQueryData(["pages", page.slugId], page);
+      }
     }, 150);
   };
 
