@@ -48,7 +48,7 @@ export default function SpaceList() {
                       variant="filled"
                       name={space.name}
                     />
-                    <div>
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
                       <Text fz="sm" fw={500} lineClamp={1}>
                         {space.name}
                       </Text>
