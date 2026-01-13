@@ -209,34 +209,33 @@ export class SpaceMemberRepo {
     return roles;
   }
 
-  async getUserSpaceIds(userId: string): Promise<string[]> {
-    const membership = await this.db
+  getUserSpaceIdsQuery(userId: string) {
+    return this.db
       .selectFrom('spaceMembers')
       .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
-      .select(['spaces.id'])
+      .select('spaces.id')
       .where('userId', '=', userId)
       .union(
         this.db
           .selectFrom('spaceMembers')
           .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
           .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
-          .select(['spaces.id'])
+          .select('spaces.id')
           .where('groupUsers.userId', '=', userId),
-      )
-      .execute();
+      );
+  }
 
+  async getUserSpaceIds(userId: string): Promise<string[]> {
+    const membership = await this.getUserSpaceIdsQuery(userId).execute();
     return membership.map((space) => space.id);
   }
 
   async getUserSpaces(userId: string, pagination: PaginationOptions) {
-    const userSpaceIds = await this.getUserSpaceIds(userId);
-
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
-      //.where('workspaceId', '=', workspaceId)
-      .where('id', 'in', userSpaceIds)
+      .where('id', 'in', this.getUserSpaceIdsQuery(userId))
       .orderBy('createdAt', 'asc');
 
     if (pagination.query) {
@@ -253,14 +252,9 @@ export class SpaceMemberRepo {
       );
     }
 
-    const hasEmptyIds = userSpaceIds.length === 0;
-
-    const result = executeWithPagination(query, {
+    return executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
-      hasEmptyIds,
     });
-
-    return result;
   }
 }

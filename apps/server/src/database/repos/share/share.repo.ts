@@ -137,25 +137,19 @@ export class ShareRepo {
   }
 
   async getShares(userId: string, pagination: PaginationOptions) {
-    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-
     const query = this.db
       .selectFrom('shares')
       .select(this.baseFields)
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb, userId))
       .select((eb) => this.withCreator(eb))
-      .where('spaceId', 'in', userSpaceIds)
+      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
       .orderBy('updatedAt', 'desc');
 
-    const hasEmptyIds = userSpaceIds.length === 0;
-    const result = executeWithPagination(query, {
+    return executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
-      hasEmptyIds,
     });
-
-    return result;
   }
 
   withPage(eb: ExpressionBuilder<DB, 'shares'>) {
