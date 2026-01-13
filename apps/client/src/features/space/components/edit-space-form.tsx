@@ -12,7 +12,7 @@ const formSchema = z.object({
   slug: z
     .string()
     .min(2)
-    .max(50)
+    .max(100)
     .regex(
       /^[a-zA-Z0-9]+$/,
       "Space slug must be alphanumeric. No special characters",
