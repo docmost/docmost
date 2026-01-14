@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@braintree/sanitize-url": "^7.1.0",
+    "@casl/ability": "^6.7.5",
     "@docmost/editor-ext": "workspace:*",
     "@floating-ui/dom": "^1.7.3",
     "@hocuspocus/extension-redis": "^2.15.3",
