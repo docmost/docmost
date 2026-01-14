@@ -293,24 +293,18 @@ export class PageRepo {
   }
 
   async getRecentPages(userId: string, pagination: PaginationOptions) {
-    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
-      .where('spaceId', 'in', userSpaceIds)
+      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
       .where('deletedAt', 'is', null)
       .orderBy('updatedAt', 'desc');
 
-    const hasEmptyIds = userSpaceIds.length === 0;
-    const result = executeWithPagination(query, {
+    return executeWithPagination(query, {
       page: pagination.page,
       perPage: pagination.limit,
-      hasEmptyIds,
     });
-
-    return result;
   }
 
   async getDeletedPagesInSpace(spaceId: string, pagination: PaginationOptions) {
