@@ -18,6 +18,10 @@ export class CreateShareDto {
   @IsOptional()
   @IsBoolean()
   searchIndexing: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowPublicPdfExport?: boolean;
 }
 
 export class UpdateShareDto extends CreateShareDto {

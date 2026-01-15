@@ -127,6 +127,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { data: page, isLoading } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
+  const share = (page as any)?.share;
+  const allowPublicPdfExport = !readOnly || share?.allowPublicPdfExport === true;
   const { openDeleteModal } = useDeletePageModal();
   const [tree] = useAtom(treeApiAtom);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -216,12 +218,15 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             {t("Export")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconPrinter size={16} />}
-            onClick={handlePrint}
-          >
-            {t("Print PDF")}
-          </Menu.Item>
+          {allowPublicPdfExport && (
+            <Menu.Item
+              leftSection={<IconPrinter size={16} />}
+              onClick={handlePrint}
+            >
+              {t("Print PDF")}
+            </Menu.Item>
+          )}
+
 
           {!readOnly && (
             <>
