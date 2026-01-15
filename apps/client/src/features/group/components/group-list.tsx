@@ -50,7 +50,7 @@ export default function GroupList() {
                   >
                     <Group gap="sm" wrap="nowrap">
                       <IconGroupCircle />
-                      <div>
+                      <div style={{ minWidth: 0, overflow: "hidden" }}>
                         <Text fz="sm" fw={500} lineClamp={1}>
                           {group.name}
                         </Text>

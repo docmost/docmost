@@ -123,80 +123,82 @@ export class ShareService {
       .withRecursive('page_hierarchy', (cte) =>
         cte
           .selectFrom('pages')
+          .leftJoin('shares', 'shares.pageId', 'pages.id')
           .select([
-            'id',
-            'slugId',
+            'pages.id',
+            'pages.slugId',
             'pages.title',
             'pages.icon',
-            'parentPageId',
+            'pages.parentPageId',
             sql`0`.as('level'),
+            'shares.id as shareId',
+            'shares.key as shareKey',
+            'shares.includeSubPages',
+            'shares.searchIndexing',
+            'shares.creatorId',
+            'shares.spaceId',
+            'shares.workspaceId',
+            'shares.createdAt',
           ])
-          .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
-          .where('deletedAt', 'is', null)
-          .unionAll((union) =>
-            union
-              .selectFrom('pages as p')
-              .select([
-                'p.id',
-                'p.slugId',
-                'p.title',
-                'p.icon',
-                'p.parentPageId',
-                // Increase the level by 1 for each ancestor.
-                sql`ph.level + 1`.as('level'),
-              ])
-              .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id')
-              .where('p.deletedAt', 'is', null),
+          .where(isValidUUID(pageId) ? 'pages.id' : 'pages.slugId', '=', pageId)
+          .where('pages.deletedAt', 'is', null)
+          .unionAll(
+            (union) =>
+              union
+                .selectFrom('pages as p')
+                .innerJoin('page_hierarchy as ph', 'ph.parentPageId', 'p.id')
+                .leftJoin('shares as s', 's.pageId', 'p.id')
+                .select([
+                  'p.id',
+                  'p.slugId',
+                  'p.title',
+                  'p.icon',
+                  'p.parentPageId',
+                  sql`ph.level + 1`.as('level'),
+                  's.id as shareId',
+                  's.key as shareKey',
+                  's.includeSubPages',
+                  's.searchIndexing',
+                  's.creatorId',
+                  's.spaceId',
+                  's.workspaceId',
+                  's.createdAt',
+                ])
+                .where('p.deletedAt', 'is', null)
+                .where(sql`ph.share_id`, 'is', null) // stop if share found
+                .where(sql`ph.level`, '<', sql`25`), // prevent loop
           ),
       )
       .selectFrom('page_hierarchy')
-      .leftJoin('shares', 'shares.pageId', 'page_hierarchy.id')
-      .select([
-        'page_hierarchy.id as sharedPageId',
-        'page_hierarchy.slugId as sharedPageSlugId',
-        'page_hierarchy.title as sharedPageTitle',
-        'page_hierarchy.icon as sharedPageIcon',
-        'page_hierarchy.level as level',
-        'shares.id',
-        'shares.key',
-        'shares.pageId',
-        'shares.includeSubPages',
-        'shares.searchIndexing',
-        'shares.creatorId',
-        'shares.spaceId',
-        'shares.workspaceId',
-        'shares.createdAt',
-        'shares.updatedAt',
-      ])
-      .where('shares.id', 'is not', null)
-      .orderBy('page_hierarchy.level', 'asc')
+      .selectAll()
+      .where('shareId', 'is not', null)
+      .limit(1)
       .executeTakeFirst();
 
-    if (!share || share.workspaceId != workspaceId) {
+    if (!share || share.workspaceId !== workspaceId) {
       return undefined;
     }
 
-    if (share.level === 1 && !share.includeSubPages) {
-      // we can only show a page if its shared ancestor permits it
+    if ((share.level as number) > 0 && !share.includeSubPages) {
       return undefined;
     }
 
     return {
-      id: share.id,
-      key: share.key,
+      id: share.shareId,
+      key: share.shareKey,
       includeSubPages: share.includeSubPages,
       searchIndexing: share.searchIndexing,
-      pageId: share.pageId,
+      pageId: share.id,
       creatorId: share.creatorId,
       spaceId: share.spaceId,
       workspaceId: share.workspaceId,
       createdAt: share.createdAt,
       level: share.level,
       sharedPage: {
-        id: share.sharedPageId,
-        slugId: share.sharedPageSlugId,
-        title: share.sharedPageTitle,
-        icon: share.sharedPageIcon,
+        id: share.id,
+        slugId: share.slugId,
+        title: share.title,
+        icon: share.icon,
       },
     };
   }
