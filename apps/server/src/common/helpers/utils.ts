@@ -98,3 +98,21 @@ export function hasLicenseOrEE(opts: {
   const { licenseKey, plan, isCloud } = opts;
   return Boolean(licenseKey) || (isCloud && plan === 'business');
 }
+
+/**
+ * Normalizes a database URL for postgres.js compatibility.
+ * - Removes only `sslmode=no-verify` (not supported by postgres.js), keeps other sslmode values
+ * - Rewrites `schema` to `search_path` (postgres.js uses `search_path`)
+ */
+export function normalizePostgresUrl(url: string): string {
+  const parsed = new URL(url);
+  const newParams = new URLSearchParams();
+
+  for (const [key, value] of parsed.searchParams) {
+    if (key === 'sslmode' && value === 'no-verify') continue;
+    newParams.append(key === 'schema' ? 'search_path' : key, value);
+  }
+
+  parsed.search = newParams.toString();
+  return parsed.toString();
+}
