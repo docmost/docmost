@@ -1,4 +1,5 @@
 import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
+import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
@@ -280,8 +281,18 @@ export async function rewriteInternalLinksToMentionHtml(
     const $a = $(el);
     const raw = $a.attr('href')!;
     if (raw.startsWith('http') || raw.startsWith('/api/')) return;
+    let decodedRaw = raw;
+    try {
+      decodedRaw = decodeURIComponent(raw);
+    } catch (err) {
+      Logger.warn(
+        `URI malformed in page ${currentFilePath}: ${raw}. Falling back to raw path.`,
+        'ImportFormatter',
+      );
+    }
+
     const resolved = normalize(
-      path.join(path.dirname(currentFilePath), decodeURIComponent(raw)),
+      path.join(path.dirname(currentFilePath), decodedRaw),
     );
     const meta = filePathToPageMetaMap.get(resolved);
     if (!meta) return;
