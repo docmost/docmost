@@ -6,6 +6,9 @@ import {
   IconH1,
   IconH2,
   IconH3,
+  IconH4,
+  IconH5,
+  IconH6,
   IconInfoCircle,
   IconList,
   IconListNumbers,
@@ -71,8 +74,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 1",
-      description: "Big section heading.",
-      searchTerms: ["title", "big", "large"],
+      description: "Use this for a top level heading",
+      searchTerms: ["title", "h1"],
       icon: IconH1,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -85,8 +88,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 2",
-      description: "Medium section heading.",
-      searchTerms: ["subtitle", "medium"],
+      description: "Use this for key sections.",
+      searchTerms: ["section", "h2"],
       icon: IconH2,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -99,8 +102,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Heading 3",
-      description: "Small section heading.",
-      searchTerms: ["subtitle", "small"],
+      description: "Use this for sub-sections.",
+      searchTerms: ["sub section", "h3"],
       icon: IconH3,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -108,6 +111,48 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setNode("heading", { level: 3 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 4",
+      description: "Use this for deep headings.",
+      searchTerms: ["deep heading", "h4"],
+      icon: IconH4,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 4 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 5",
+      description: "Use this for grouping list items.",
+      searchTerms: ["grouping", "h5"],
+      icon: IconH5,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 5 })
+          .run();
+      },
+    },
+    {
+      title: "Heading 6",
+      description: "Use this for low level headings.",
+      searchTerms: ["low level heading", "h6"],
+      icon: IconH6,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setNode("heading", { level: 6 })
           .run();
       },
     },
