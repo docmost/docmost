@@ -140,10 +140,10 @@ export default function PageEditor({
         if (isTokenExpired) {
           refetchCollabToken().then((result) => {
             if (result.data?.token) {
-              remote.disconnect();
+              socket.disconnect();
               setTimeout(() => {
                 remote.configuration.token = result.data.token;
-                remote.connect();
+                socket.connect();
               }, 100);
             }
           });
@@ -177,14 +177,14 @@ export default function PageEditor({
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
     if (!providersReady || !providersRef.current) return;
-    const remoteProvider = providersRef.current.remote;
+    const socket = providersRef.current.socket;
 
     if (
       isIdle &&
       documentState === "hidden" &&
       yjsConnectionStatus === WebSocketStatus.Connected
     ) {
-      remoteProvider.disconnect();
+      socket.disconnect();
       return;
     }
     if (
@@ -192,7 +192,7 @@ export default function PageEditor({
       yjsConnectionStatus === WebSocketStatus.Disconnected
     ) {
       resetIdle();
-      remoteProvider.connect();
+      socket.connect();
     }
   }, [isIdle, documentState, providersReady, resetIdle]);
 
