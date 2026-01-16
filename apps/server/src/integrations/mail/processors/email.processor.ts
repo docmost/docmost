@@ -14,6 +14,9 @@ export class EmailProcessor extends WorkerHost implements OnModuleDestroy {
 
   async process(job: Job<MailMessage, void>): Promise<void> {
     try {
+      this.logger.debug(
+        `start send-email jobId=${job.id ?? '-'} to=${job.data?.to} subject=${job.data?.subject}`,
+      );
       await this.mailService.sendEmail(job.data);
     } catch (err) {
       throw err;
