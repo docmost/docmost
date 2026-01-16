@@ -1,6 +1,6 @@
 import { StarterKit } from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList, TaskItem, ListKeymap } from "@tiptap/extension-list";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
 import { Placeholder, CharacterCount } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
@@ -129,7 +129,6 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
-  ListKeymap,
   TaskItem.configure({
     nested: true,
   }),
