@@ -30,9 +30,9 @@
     "test:e2e": "jest --config test/jest-e2e.json"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^2.0.47",
-    "@ai-sdk/google": "^2.0.18",
-    "@ai-sdk/openai": "^2.0.46",
+    "@ai-sdk/google": "^3.0.9",
+    "@ai-sdk/openai": "^3.0.11",
+    "@ai-sdk/openai-compatible": "^2.0.12",
     "@aws-sdk/client-s3": "3.701.0",
     "@aws-sdk/lib-storage": "3.701.0",
     "@aws-sdk/s3-request-presigner": "3.701.0",
@@ -59,8 +59,8 @@
     "@react-email/components": "0.0.28",
     "@react-email/render": "1.0.2",
     "@socket.io/redis-adapter": "^8.3.0",
-    "ai": "^5.0.65",
-    "ai-sdk-ollama": "^0.12.0",
+    "ai": "^6.0.37",
+    "ai-sdk-ollama": "^3.1.1",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.65.0",
     "cache-manager": "^6.4.3",
