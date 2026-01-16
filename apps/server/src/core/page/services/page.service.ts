@@ -4,8 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreatePageDto } from '../dto/create-page.dto';
-import { ContentMode, UpdatePageDto } from '../dto/update-page.dto';
+import { CreatePageDto, InputFormat } from '../dto/create-page.dto';
+import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
@@ -99,7 +99,42 @@ export class PageService {
       parentPageId = parentPage.id;
     }
 
-    const createdPage = await this.pageRepo.insertPage({
+    let content = undefined;
+    let textContent = undefined;
+    let ydoc = undefined;
+
+    if (createPageDto?.content && createPageDto?.input) {
+      let prosemirrorJson: any;
+
+      switch (createPageDto.input) {
+        case 'markdown': {
+          const html = await markdownToHtml(createPageDto.content as string);
+          prosemirrorJson = htmlToJson(html as string);
+          break;
+        }
+        case 'html': {
+          prosemirrorJson = htmlToJson(createPageDto.content as string);
+          break;
+        }
+        case 'json':
+        default: {
+          prosemirrorJson = createPageDto.content;
+          break;
+        }
+      }
+
+      try {
+        jsonToNode(prosemirrorJson);
+      } catch (err) {
+        throw new BadRequestException('Invalid content format');
+      }
+
+      content = prosemirrorJson;
+      textContent = jsonToText(prosemirrorJson);
+      ydoc = createYdocFromJson(prosemirrorJson);
+    }
+
+    return this.pageRepo.insertPage({
       slugId: generateSlugId(),
       title: createPageDto.title,
       position: await this.nextPagePosition(
@@ -112,9 +147,10 @@ export class PageService {
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
+      content,
+      textContent,
+      ydoc,
     });
-
-    return createdPage;
   }
 
   async nextPagePosition(spaceId: string, parentPageId?: string) {
@@ -178,11 +214,16 @@ export class PageService {
       page.id,
     );
 
-    if (updatePageDto.content && updatePageDto.contentMode) {
+    if (
+      updatePageDto.content &&
+      updatePageDto.operation &&
+      updatePageDto.input
+    ) {
       await this.updatePageContent(
         page.id,
         updatePageDto.content,
-        updatePageDto.contentMode,
+        updatePageDto.operation,
+        updatePageDto.input,
         userId,
       );
     }
@@ -198,12 +239,35 @@ export class PageService {
 
   async updatePageContent(
     pageId: string,
-    markdown: string,
-    mode: ContentMode,
+    content: string | object,
+    operation: ContentOperation,
+    input: InputFormat,
     userId: string,
   ): Promise<void> {
-    const html = await markdownToHtml(markdown);
-    const prosemirrorJson = htmlToJson(html as string);
+    let prosemirrorJson: any;
+
+    switch (input) {
+      case 'markdown': {
+        const html = await markdownToHtml(content as string);
+        prosemirrorJson = htmlToJson(html as string);
+        break;
+      }
+      case 'html': {
+        prosemirrorJson = htmlToJson(content as string);
+        break;
+      }
+      case 'json':
+      default: {
+        prosemirrorJson = content;
+        break;
+      }
+    }
+
+    try {
+      jsonToNode(prosemirrorJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid content format');
+    }
 
     const documentName = `page.${pageId}`;
     const connection = await this.collaborationGateway.openDirectConnection(
@@ -215,7 +279,7 @@ export class PageService {
       await connection.transact((doc) => {
         const fragment = doc.getXmlFragment('default');
 
-        if (mode === 'replace') {
+        if (operation === 'replace') {
           while (fragment.length > 0) {
             fragment.delete(0, 1);
           }

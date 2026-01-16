@@ -44,6 +44,7 @@ import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // see:https://github.com/ueberdosis/tiptap/issues/4089
 import { Node } from '@tiptap/pm/model';
 import * as Y from 'yjs';
+import { turndown } from '../integrations/export/turndown-utils';
 
 export const tiptapExtensions = [
   StarterKit.configure({
@@ -145,4 +146,9 @@ export function prosemirrorNodeToYElement(node: any): Y.XmlElement | Y.XmlText {
     element.insert(0, children);
   }
   return element;
+}
+
+export function jsonToMarkdown(tiptapJson: any): string {
+  const html = jsonToHtml(tiptapJson);
+  return turndown(html);
 }

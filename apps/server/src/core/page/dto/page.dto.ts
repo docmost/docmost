@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -22,14 +23,20 @@ export class PageHistoryIdDto {
   historyId: string;
 }
 
+export type OutputFormat = 'json' | 'markdown' | 'html';
+
 export class PageInfoDto extends PageIdDto {
   @IsOptional()
   @IsBoolean()
-  includeSpace: boolean;
+  includeSpace?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  includeContent: boolean;
+  includeContent?: boolean;
+
+  @IsOptional()
+  @IsIn(['json', 'markdown', 'html'])
+  output?: OutputFormat;
 }
 
 export class DeletePageDto extends PageIdDto {
