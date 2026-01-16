@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { zodResolver } from "mantine-form-zod-resolver";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().min(2).max(100),
   description: z.string().max(500),
 });
 

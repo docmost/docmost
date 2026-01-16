@@ -129,6 +129,7 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
+  ListKeymap,
   TaskItem.configure({
     nested: true,
   }),
