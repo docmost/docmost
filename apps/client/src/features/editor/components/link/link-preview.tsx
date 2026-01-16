@@ -34,7 +34,6 @@ export const LinkPreviewPanel = ({
               rel="noopener noreferrer"
               className={classes.link}
             >
-              ss
               {url}
             </Anchor>
           </Tooltip>
