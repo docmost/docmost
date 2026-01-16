@@ -71,6 +71,7 @@ export class ShareService {
         pageId: page.id,
         includeSubPages: createShareDto.includeSubPages ?? false,
         searchIndexing: createShareDto.searchIndexing ?? false,
+        allowPublicPdfExport: createShareDto.allowPublicPdfExport ?? false,
         creatorId: authUserId,
         spaceId: page.spaceId,
         workspaceId,
@@ -87,6 +88,7 @@ export class ShareService {
         {
           includeSubPages: updateShareDto.includeSubPages,
           searchIndexing: updateShareDto.searchIndexing,
+          allowPublicPdfExport: updateShareDto.allowPublicPdfExport,
         },
         shareId,
       );
@@ -135,6 +137,7 @@ export class ShareService {
             'shares.key as shareKey',
             'shares.includeSubPages',
             'shares.searchIndexing',
+            'shares.allowPublicPdfExport',
             'shares.creatorId',
             'shares.spaceId',
             'shares.workspaceId',
@@ -188,6 +191,7 @@ export class ShareService {
       key: share.shareKey,
       includeSubPages: share.includeSubPages,
       searchIndexing: share.searchIndexing,
+      allowPublicPdfExport: share.allowPublicPdfExport,
       pageId: share.id,
       creatorId: share.creatorId,
       spaceId: share.spaceId,
