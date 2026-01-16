@@ -31,17 +31,41 @@ function inferDelimitedGrid(
   const lines = normalized.replace(/\n+$/g, "").split("\n");
   if (lines.length === 0) return null;
 
-  // Avoid treating single-line prose as a grid.
-  const joined = lines.join("\n");
-  if (lines.length === 1 && joined.length > 200) return null;
+  // Be conservative: only infer non-TSV delimited grids when content has multiple rows.
+  // This prevents normal prose like "Hello, world" or "a, b, and c" from becoming a table.
+  if (lines.length < 2) return null;
 
-  const candidates = ["\t", ",", ";", "|"];
+  // TSV is handled separately (tabs are a strong signal for spreadsheet paste).
+  const candidates = [",", ";", "|"];
   let best: { delimiter: string; score: number; cols: number } | null = null;
 
   for (const delimiter of candidates) {
-    const colCounts = lines.map((l) => l.split(delimiter).length);
+    const nonEmptyLines = lines.filter((l) => l.length > 0);
+    if (nonEmptyLines.length < 2) continue;
+
+    const colCounts = nonEmptyLines.map((l) => l.split(delimiter).length);
     const maxCandidateCols = Math.max(...colCounts);
     if (maxCandidateCols < 2) continue;
+
+    // Prefer delimiters that produce a consistent column count across rows.
+    const counts = new Map<number, number>();
+    for (const c of colCounts) counts.set(c, (counts.get(c) ?? 0) + 1);
+    let modeCols = 0;
+    let modeCount = 0;
+    for (const [cols, count] of counts.entries()) {
+      if (count > modeCount) {
+        modeCols = cols;
+        modeCount = count;
+      }
+    }
+    const modeRatio = modeCount / nonEmptyLines.length;
+
+    // Require at least 2 rows with the same column count, and mostly-consistent rows overall.
+    if (modeCount < 2) continue;
+    if (modeRatio < 0.8) continue;
+
+    // Commas are very common in prose; require 3+ columns to avoid false positives.
+    if (delimiter === "," && modeCols < 3) continue;
 
     const avg =
       colCounts.reduce((sum, v) => sum + v, 0) / Math.max(colCounts.length, 1);
@@ -49,20 +73,18 @@ function inferDelimitedGrid(
       colCounts.reduce((sum, v) => sum + (v - avg) ** 2, 0) /
       Math.max(colCounts.length, 1);
 
-    // Prefer more columns, penalize raggedness.
-    const score = maxCandidateCols * 10 - variance;
+    // Prefer more columns and higher consistency, penalize raggedness.
+    const score = modeCols * 10 + modeRatio * 5 - variance;
 
     if (!best || score > best.score) {
-      best = { delimiter, score, cols: maxCandidateCols };
+      best = { delimiter, score, cols: modeCols };
     }
   }
 
   if (!best) return null;
 
-  // Require at least 2 columns and either multiple rows or 3+ columns,
-  // to avoid converting normal comma-separated prose.
+  // Require at least 2 columns.
   if (best.cols < 2) return null;
-  if (lines.length < 2 && best.cols < 3) return null;
 
   const cells = lines
     .slice(0, maxRows)
