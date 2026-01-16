@@ -13,7 +13,7 @@ import {
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import { useAtom } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
@@ -52,6 +52,16 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const [showConnectionWarning, setShowConnectionWarning] = useState(false);
+
+  useEffect(() => {
+    if (["disconnected", "connecting"].includes(yjsConnectionStatus)) {
+      const timeout = setTimeout(() => setShowConnectionWarning(true), 5000);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowConnectionWarning(false);
+    }
+  }, [yjsConnectionStatus]);
 
   useHotkeys(
     [
@@ -75,7 +85,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
   return (
     <>
-      {yjsConnectionStatus === "disconnected" && (
+      {showConnectionWarning && (
         <Tooltip
           label={t("Real-time editor connection lost. Retrying...")}
           openDelay={250}
