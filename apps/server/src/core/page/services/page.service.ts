@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePageDto } from '../dto/create-page.dto';
-import { UpdatePageDto } from '../dto/update-page.dto';
+import { ContentMode, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
@@ -28,7 +28,13 @@ import {
   isAttachmentNode,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
-import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
+import {
+  htmlToJson,
+  jsonToNode,
+  jsonToText,
+  prosemirrorNodeToYElement,
+  tiptapExtensions,
+} from 'src/collaboration/collaboration.util';
 import {
   CopyPageMapEntry,
   ICopyPageAttachment,
@@ -40,6 +46,10 @@ import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { markdownToHtml } from '@docmost/editor-ext';
+import { TiptapTransformer } from '@hocuspocus/transformer';
+import * as Y from 'yjs';
 
 @Injectable()
 export class PageService {
@@ -53,6 +63,7 @@ export class PageService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     private eventEmitter: EventEmitter2,
+    private collaborationGateway: CollaborationGateway,
   ) {}
 
   async findById(
@@ -167,6 +178,15 @@ export class PageService {
       page.id,
     );
 
+    if (updatePageDto.content && updatePageDto.contentMode) {
+      await this.updatePageContent(
+        page.id,
+        updatePageDto.content,
+        updatePageDto.contentMode,
+        userId,
+      );
+    }
+
     return await this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
@@ -174,6 +194,46 @@ export class PageService {
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+  }
+
+  async updatePageContent(
+    pageId: string,
+    markdown: string,
+    mode: ContentMode,
+    userId: string,
+  ): Promise<void> {
+    const html = await markdownToHtml(markdown);
+    const prosemirrorJson = htmlToJson(html as string);
+
+    const documentName = `page.${pageId}`;
+    const connection = await this.collaborationGateway.openDirectConnection(
+      documentName,
+      { user: { id: userId } },
+    );
+
+    try {
+      await connection.transact((doc) => {
+        const fragment = doc.getXmlFragment('default');
+
+        if (mode === 'replace') {
+          while (fragment.length > 0) {
+            fragment.delete(0, 1);
+          }
+          const newDoc = TiptapTransformer.toYdoc(
+            prosemirrorJson,
+            'default',
+            tiptapExtensions,
+          );
+          Y.applyUpdate(doc, Y.encodeStateAsUpdate(newDoc));
+        } else {
+          const newContent = prosemirrorJson.content || [];
+          const yElements = newContent.map(prosemirrorNodeToYElement);
+          fragment.insert(fragment.length, yElements);
+        }
+      });
+    } finally {
+      await connection.disconnect();
+    }
   }
 
   async getSidebarPages(
@@ -259,7 +319,7 @@ export class PageService {
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
           pageId: pageIds,
-          workspaceId: rootPage.workspaceId
+          workspaceId: rootPage.workspaceId,
         });
       }
     });
@@ -387,9 +447,14 @@ export class PageService {
           workspaceId: page.workspaceId,
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
-          parentPageId: page.id === rootPage.id
-            ? (isDuplicateInSameSpace ? rootPage.parentPageId : null)
-            : (page.parentPageId ? pageMap.get(page.parentPageId)?.newPageId : null),
+          parentPageId:
+            page.id === rootPage.id
+              ? isDuplicateInSameSpace
+                ? rootPage.parentPageId
+                : null
+              : page.parentPageId
+                ? pageMap.get(page.parentPageId)?.newPageId
+                : null,
         };
       }),
     );

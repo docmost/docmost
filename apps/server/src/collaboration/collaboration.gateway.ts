@@ -64,6 +64,10 @@ export class CollaborationGateway {
     return this.hocuspocus.getDocumentsCount();
   }
 
+  openDirectConnection(documentName: string, context?: any) {
+    return this.hocuspocus.openDirectConnection(documentName, context);
+  }
+
   async destroy(): Promise<void> {
     await this.hocuspocus.destroy();
   }
