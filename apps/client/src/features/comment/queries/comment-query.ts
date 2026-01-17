@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-query";
 import {
   createComment,
+  createReadOnlyComment,
+  CreateReadOnlyCommentData,
   deleteComment,
   getPageComments,
   updateComment,
@@ -100,6 +102,25 @@ export function useDeleteCommentMutation(pageId?: string) {
     onError: (error) => {
       notifications.show({
         message: t("Failed to delete comment"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useCreateReadOnlyCommentMutation() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation<IComment, Error, CreateReadOnlyCommentData>({
+    mutationFn: (data) => createReadOnlyComment(data),
+    onSuccess: (data) => {
+      queryClient.refetchQueries({ queryKey: RQ_KEY(data.pageId) });
+      notifications.show({ message: t("Comment created successfully") });
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Error creating comment"),
         color: "red",
       });
     },

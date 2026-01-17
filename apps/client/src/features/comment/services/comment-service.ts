@@ -40,3 +40,20 @@ export async function getPageComments(
 export async function deleteComment(commentId: string): Promise<void> {
   await api.post("/comments/delete", { commentId });
 }
+
+export type CreateReadOnlyCommentData = {
+  pageId: string;
+  content: string;
+  selection?: string;
+  yjsSelection: {
+    anchor: any;
+    head: any;
+  };
+};
+
+export async function createReadOnlyComment(
+  data: CreateReadOnlyCommentData,
+): Promise<IComment> {
+  const req = await api.post<IComment>("/comments/create-readonly", data);
+  return req.data;
+}

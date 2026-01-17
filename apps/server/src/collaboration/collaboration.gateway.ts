@@ -67,4 +67,8 @@ export class CollaborationGateway {
   async destroy(): Promise<void> {
     await this.hocuspocus.destroy();
   }
+
+  async openDirectConnection(documentName: string) {
+    return this.hocuspocus.openDirectConnection(documentName);
+  }
 }

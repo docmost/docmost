@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { CreateReadOnlyCommentDto } from './dto/create-readonly-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { PageIdDto, CommentIdDto } from './dto/comments.input';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
@@ -53,6 +54,28 @@ export class CommentController {
     }
 
     return this.commentService.create(
+      {
+        userId: user.id,
+        page,
+        workspaceId: workspace.id,
+      },
+      createCommentDto,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('create-readonly')
+  async createReadOnly(
+    @Body() createCommentDto: CreateReadOnlyCommentDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const page = await this.pageRepo.findById(createCommentDto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+
+    return this.commentService.createReadOnlyComment(
       {
         userId: user.id,
         page,

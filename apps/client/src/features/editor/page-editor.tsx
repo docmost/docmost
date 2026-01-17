@@ -28,9 +28,12 @@ import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-
 import {
   activeCommentIdAtom,
   showCommentPopupAtom,
+  showReadOnlyCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import { ReadOnlyBubbleMenu } from "@/features/editor/components/bubble-menu/read-only-bubble-menu";
+import ReadOnlyCommentDialog from "@/features/editor/components/bubble-menu/read-only-comment-dialog";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
@@ -70,7 +73,7 @@ export default function PageEditor({
   content,
 }: PageEditorProps) {
 
-  
+
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
@@ -78,12 +81,13 @@ export default function PageEditor({
   useEffect(() => {
     isComponentMounted.current = true;
   }, []);
-  
+
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const ydocRef = useRef<Y.Doc | null>(null);
   if (!ydocRef.current) {
     ydocRef.current = new Y.Doc();
@@ -104,7 +108,7 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-  
+
     const canScroll = useCallback(() => isComponentMounted.current && editorCreated.current, [isComponentMounted, editorCreated]);
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
@@ -429,7 +433,13 @@ export default function PageEditor({
             <LinkMenu editor={editor} appendTo={menuContainerRef} />
           </div>
         )}
+        {editor && !editorIsEditable && (
+          <ReadOnlyBubbleMenu key="readonly-bubble" editor={editor} />
+        )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
+        {showReadOnlyCommentPopup && (
+          <ReadOnlyCommentDialog editor={editor} pageId={pageId} />
+        )}
       </div>
       <div
         onClick={() => editor.commands.focus("end")}

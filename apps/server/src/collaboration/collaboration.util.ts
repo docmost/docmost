@@ -1,4 +1,12 @@
 import { StarterKit } from '@tiptap/starter-kit';
+import { EditorState, TextSelection } from '@tiptap/pm/state';
+import {
+  initProseMirrorDoc,
+  relativePositionToAbsolutePosition,
+  updateYFragment,
+} from 'y-prosemirror';
+import * as Y from 'yjs';
+import { Document } from '@hocuspocus/server';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
@@ -115,4 +123,97 @@ export function jsonToNode(tiptapJson: JSONContent) {
 
 export function getPageId(documentName: string) {
   return documentName.split('.')[1];
+}
+
+export type YjsSelection = {
+  anchor: any;
+  head: any;
+};
+
+export function setYjsMark(
+  doc: Document,
+  fragment: Y.XmlFragment,
+  yjsSelection: YjsSelection,
+  markName: string,
+  markAttributes: Record<string, any>,
+) {
+  const schema = getSchema(tiptapExtensions);
+  const { doc: pNode, mapping } = initProseMirrorDoc(fragment, schema);
+
+  // Convert JSON positions to Y.js RelativePosition objects
+  const anchorRelPos = Y.createRelativePositionFromJSON(yjsSelection.anchor);
+  const headRelPos = Y.createRelativePositionFromJSON(yjsSelection.head);
+
+  console.log(anchorRelPos, headRelPos);
+
+  const anchor = relativePositionToAbsolutePosition(
+    doc,
+    fragment,
+    anchorRelPos,
+    mapping,
+  );
+  const head = relativePositionToAbsolutePosition(
+    doc,
+    fragment,
+    headRelPos,
+    mapping,
+  );
+
+  console.log('second')
+  console.log(anchor, head);
+
+  if (anchor === null || head === null) {
+    throw new Error('Could not resolve Y.js relative positions to absolute positions');
+  }
+
+  const state = EditorState.create({
+    doc: pNode,
+    schema: schema,
+    selection: TextSelection.create(pNode, anchor, head),
+  });
+
+  const tr = setMarkInProsemirror(schema.marks[markName], markAttributes, state);
+
+  // Update the Y.js fragment with the modified ProseMirror document
+  // @ts-ignore
+  updateYFragment(doc, fragment, tr.doc, mapping);
+}
+
+function setMarkInProsemirror(
+  type: any,
+  attributes: Record<string, any>,
+  state: EditorState,
+) {
+  let tr = state.tr;
+  const { selection } = state;
+  const { ranges } = selection;
+
+  ranges.forEach((range) => {
+    const from = range.$from.pos;
+    const to = range.$to.pos;
+
+    state.doc.nodesBetween(from, to, (node, pos) => {
+      const trimmedFrom = Math.max(pos, from);
+      const trimmedTo = Math.min(pos + node.nodeSize, to);
+      const someHasMark = node.marks.find((mark) => mark.type === type);
+
+      if (someHasMark) {
+        node.marks.forEach((mark) => {
+          if (type === mark.type) {
+            tr = tr.addMark(
+              trimmedFrom,
+              trimmedTo,
+              type.create({
+                ...mark.attrs,
+                ...attributes,
+              }),
+            );
+          }
+        });
+      } else {
+        tr = tr.addMark(trimmedFrom, trimmedTo, type.create(attributes));
+      }
+    });
+  });
+  return tr;
 }
