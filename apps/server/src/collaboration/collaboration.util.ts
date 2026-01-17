@@ -209,3 +209,82 @@ function applyMarkToYFragment(
     if (!processItem(fragment.get(i))) break;
   }
 }
+
+/**
+ * Removes a mark from all text in the fragment that has the specified attribute value.
+ * Useful for deleting comments by commentId.
+ */
+export function removeYjsMarkByAttribute(
+  fragment: Y.XmlFragment,
+  markName: string,
+  attributeName: string,
+  attributeValue: string,
+) {
+  const processItem = (item: any) => {
+    if (item instanceof Y.XmlText) {
+      // Get all formatting deltas to find ranges with this mark
+      const deltas = item.toDelta();
+      let offset = 0;
+
+      for (const delta of deltas) {
+        const length = delta.insert?.length ?? 0;
+        const attributes = delta.attributes ?? {};
+        const markAttr = attributes[markName];
+
+        if (markAttr && markAttr[attributeName] === attributeValue) {
+          // Remove the mark by setting it to null
+          item.format(offset, length, { [markName]: null });
+        }
+        offset += length;
+      }
+    } else if (item instanceof Y.XmlElement) {
+      for (let i = 0; i < item.length; i++) {
+        processItem(item.get(i));
+      }
+    }
+  };
+
+  for (let i = 0; i < fragment.length; i++) {
+    processItem(fragment.get(i));
+  }
+}
+
+/**
+ * Updates a mark's attributes for all text that has the specified attribute value.
+ * Useful for resolving/unresolving comments by commentId.
+ */
+export function updateYjsMarkAttribute(
+  fragment: Y.XmlFragment,
+  markName: string,
+  findByAttribute: { name: string; value: string },
+  newAttributes: Record<string, any>,
+) {
+  const processItem = (item: any) => {
+    if (item instanceof Y.XmlText) {
+      const deltas = item.toDelta();
+      let offset = 0;
+
+      for (const delta of deltas) {
+        const length = delta.insert?.length ?? 0;
+        const attributes = delta.attributes ?? {};
+        const markAttr = attributes[markName];
+
+        if (markAttr && markAttr[findByAttribute.name] === findByAttribute.value) {
+          // Update the mark with new attributes (merge with existing)
+          item.format(offset, length, {
+            [markName]: { ...markAttr, ...newAttributes },
+          });
+        }
+        offset += length;
+      }
+    } else if (item instanceof Y.XmlElement) {
+      for (let i = 0; i < item.length; i++) {
+        processItem(item.get(i));
+      }
+    }
+  };
+
+  for (let i = 0; i < fragment.length; i++) {
+    processItem(fragment.get(i));
+  }
+}
