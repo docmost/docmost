@@ -1,6 +1,7 @@
 import {
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -11,17 +12,23 @@ import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
 import { OnModuleDestroy } from '@nestjs/common';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import * as cookie from 'cookie';
+import { ExcalidrawCollabService } from './services/excalidraw-collab.service';
+import { ExcalidrawFollowPayload } from './types/excalidraw.types';
 
 @WebSocketGateway({
   cors: { origin: '*' },
   transports: ['websocket'],
 })
-export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
+export class WsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
+{
   @WebSocketServer()
   server: Server;
+
   constructor(
     private tokenService: TokenService,
     private spaceMemberRepo: SpaceMemberRepo,
+    private excalidrawCollabService: ExcalidrawCollabService,
   ) {}
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
@@ -41,6 +48,8 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
       const spaceRooms = userSpaceIds.map((id) => this.getSpaceRoomName(id));
 
       client.join([workspaceRoom, ...spaceRooms]);
+
+      this.server.to(client.id).emit('init-room');
     } catch (err) {
       client.emit('Unauthorized');
       client.disconnect();
@@ -66,14 +75,62 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   }
 
   @SubscribeMessage('join-room')
-  handleJoinRoom(client: Socket, @MessageBody() roomName: string): void {
-    // if room is a space, check if user has permissions
-    //client.join(roomName);
+  async handleJoinRoom(
+    client: Socket,
+    @MessageBody() roomId: string,
+  ): Promise<void> {
+    await this.excalidrawCollabService.handleJoinRoom(
+      client,
+      this.server,
+      roomId,
+    );
   }
 
   @SubscribeMessage('leave-room')
   handleLeaveRoom(client: Socket, @MessageBody() roomName: string): void {
     client.leave(roomName);
+  }
+
+  @SubscribeMessage('server-broadcast')
+  handleServerBroadcast(
+    client: Socket,
+    [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
+  ): void {
+    this.excalidrawCollabService.handleServerBroadcast(
+      client,
+      roomId,
+      encryptedData,
+      iv,
+    );
+  }
+
+  @SubscribeMessage('server-volatile-broadcast')
+  handleServerVolatileBroadcast(
+    client: Socket,
+    [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
+  ): void {
+    this.excalidrawCollabService.handleServerVolatileBroadcast(
+      client,
+      roomId,
+      encryptedData,
+      iv,
+    );
+  }
+
+  @SubscribeMessage('user-follow')
+  async handleUserFollow(
+    client: Socket,
+    @MessageBody() payload: ExcalidrawFollowPayload,
+  ): Promise<void> {
+    await this.excalidrawCollabService.handleUserFollow(
+      client,
+      this.server,
+      payload,
+    );
+  }
+
+  async handleDisconnect(client: Socket): Promise<void> {
+    await this.excalidrawCollabService.handleDisconnecting(client, this.server);
   }
 
   onModuleDestroy() {
