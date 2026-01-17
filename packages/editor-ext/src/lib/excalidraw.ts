@@ -1,5 +1,5 @@
-import { Node, mergeAttributes } from '@tiptap/core';
-import { ReactNodeViewRenderer } from '@tiptap/react';
+import { Node, mergeAttributes } from "@tiptap/core";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 
 export interface ExcalidrawOptions {
   HTMLAttributes: Record<string, any>;
@@ -14,7 +14,7 @@ export interface ExcalidrawAttributes {
   attachmentId?: string;
 }
 
-declare module '@tiptap/core' {
+declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     excalidraw: {
       setExcalidraw: (attributes?: ExcalidrawAttributes) => ReturnType;
@@ -23,9 +23,9 @@ declare module '@tiptap/core' {
 }
 
 export const Excalidraw = Node.create<ExcalidrawOptions>({
-  name: 'excalidraw',
+  name: "excalidraw",
   inline: false,
-  group: 'block',
+  group: "block",
   isolating: true,
   atom: true,
   defining: true,
@@ -40,45 +40,45 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
   addAttributes() {
     return {
       src: {
-        default: '',
-        parseHTML: (element) => element.getAttribute('data-src'),
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-src"),
         renderHTML: (attributes) => ({
-          'data-src': attributes.src,
+          "data-src": attributes.src,
         }),
       },
       title: {
         default: undefined,
-        parseHTML: (element) => element.getAttribute('data-title'),
+        parseHTML: (element) => element.getAttribute("data-title"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
-          'data-title': attributes.title,
+          "data-title": attributes.title,
         }),
       },
       width: {
-        default: '100%',
-        parseHTML: (element) => element.getAttribute('data-width'),
+        default: "100%",
+        parseHTML: (element) => element.getAttribute("data-width"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
-          'data-width': attributes.width,
+          "data-width": attributes.width,
         }),
       },
       size: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-size'),
+        parseHTML: (element) => element.getAttribute("data-size"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
-          'data-size': attributes.size,
+          "data-size": attributes.size,
         }),
       },
       align: {
-        default: 'center',
-        parseHTML: (element) => element.getAttribute('data-align'),
+        default: "center",
+        parseHTML: (element) => element.getAttribute("data-align"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
-          'data-align': attributes.align,
+          "data-align": attributes.align,
         }),
       },
       attachmentId: {
         default: undefined,
-        parseHTML: (element) => element.getAttribute('data-attachment-id'),
+        parseHTML: (element) => element.getAttribute("data-attachment-id"),
         renderHTML: (attributes: ExcalidrawAttributes) => ({
-          'data-attachment-id': attributes.attachmentId,
+          "data-attachment-id": attributes.attachmentId,
         }),
       },
     };
@@ -94,13 +94,20 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
 
   renderHTML({ HTMLAttributes }) {
     return [
-      'div',
+      "div",
       mergeAttributes(
-        { 'data-type': this.name },
+        { "data-type": this.name },
         this.options.HTMLAttributes,
         HTMLAttributes
       ),
-      ['img', { src: HTMLAttributes['data-src'], alt: HTMLAttributes['data-title'], width: HTMLAttributes['data-width'] }],
+      [
+        "img",
+        {
+          src: HTMLAttributes["data-src"],
+          alt: HTMLAttributes["data-title"],
+          width: HTMLAttributes["data-width"],
+        },
+      ],
     ];
   },
 
@@ -110,7 +117,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
         (attrs: ExcalidrawAttributes) =>
         ({ commands }) => {
           return commands.insertContent({
-            type: 'excalidraw',
+            type: "excalidraw",
             attrs: attrs,
           });
         },
@@ -118,6 +125,9 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
   },
 
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 });

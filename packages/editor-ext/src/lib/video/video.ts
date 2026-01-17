@@ -20,7 +20,7 @@ declare module "@tiptap/core" {
     videoBlock: {
       setVideo: (attributes: VideoAttributes) => ReturnType;
       setVideoAt: (
-        attributes: VideoAttributes & { pos: number | Range },
+        attributes: VideoAttributes & { pos: number | Range }
       ) => ReturnType;
       setVideoAlign: (align: "left" | "center" | "right") => ReturnType;
       setVideoWidth: (width: number) => ReturnType;
@@ -87,9 +87,9 @@ export const TiptapVideo = Node.create<VideoOptions>({
   parseHTML() {
     return [
       {
-        tag: 'video',
+        tag: "video",
       },
-    ]
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -126,6 +126,9 @@ export const TiptapVideo = Node.create<VideoOptions>({
   },
 
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 

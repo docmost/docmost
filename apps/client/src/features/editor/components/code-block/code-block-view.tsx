@@ -90,6 +90,7 @@ export default function CodeBlockView(props: NodeViewProps) {
           node.textContent.length > 0
         }
       >
+        {/* @ts-ignore */}
         <NodeViewContent as="code" className={`language-${language}`} />
       </pre>
 
