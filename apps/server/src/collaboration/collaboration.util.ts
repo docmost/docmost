@@ -1,9 +1,7 @@
 import { StarterKit } from '@tiptap/starter-kit';
-import { EditorState, TextSelection } from '@tiptap/pm/state';
 import {
   initProseMirrorDoc,
   relativePositionToAbsolutePosition,
-  updateYFragment,
 } from 'y-prosemirror';
 import * as Y from 'yjs';
 import { Document } from '@hocuspocus/server';
@@ -138,13 +136,11 @@ export function setYjsMark(
   markAttributes: Record<string, any>,
 ) {
   const schema = getSchema(tiptapExtensions);
-  const { doc: pNode, mapping } = initProseMirrorDoc(fragment, schema);
+  const { mapping } = initProseMirrorDoc(fragment, schema);
 
   // Convert JSON positions to Y.js RelativePosition objects
   const anchorRelPos = Y.createRelativePositionFromJSON(yjsSelection.anchor);
   const headRelPos = Y.createRelativePositionFromJSON(yjsSelection.head);
-
-  console.log(anchorRelPos, headRelPos);
 
   const anchor = relativePositionToAbsolutePosition(
     doc,
@@ -159,61 +155,57 @@ export function setYjsMark(
     mapping,
   );
 
-  console.log('second')
-  console.log(anchor, head);
-
   if (anchor === null || head === null) {
-    throw new Error('Could not resolve Y.js relative positions to absolute positions');
+    throw new Error(
+      'Could not resolve Y.js relative positions to absolute positions',
+    );
   }
 
-  const state = EditorState.create({
-    doc: pNode,
-    schema: schema,
-    selection: TextSelection.create(pNode, anchor, head),
-  });
+  const from = Math.min(anchor, head);
+  const to = Math.max(anchor, head);
 
-  const tr = setMarkInProsemirror(schema.marks[markName], markAttributes, state);
-
-  // Update the Y.js fragment with the modified ProseMirror document
-  // @ts-ignore
-  updateYFragment(doc, fragment, tr.doc, mapping);
+  // Apply mark directly to Y.js XmlText nodes
+  // This bypasses updateYFragment which has compatibility issues
+  applyMarkToYFragment(fragment, from, to, markName, markAttributes);
 }
 
-function setMarkInProsemirror(
-  type: any,
-  attributes: Record<string, any>,
-  state: EditorState,
+function applyMarkToYFragment(
+  fragment: Y.XmlFragment,
+  from: number,
+  to: number,
+  markName: string,
+  markAttributes: Record<string, any>,
 ) {
-  let tr = state.tr;
-  const { selection } = state;
-  const { ranges } = selection;
+  let pos = 0;
 
-  ranges.forEach((range) => {
-    const from = range.$from.pos;
-    const to = range.$to.pos;
+  const processItem = (item: any): boolean => {
+    if (pos >= to) return false;
 
-    state.doc.nodesBetween(from, to, (node, pos) => {
-      const trimmedFrom = Math.max(pos, from);
-      const trimmedTo = Math.min(pos + node.nodeSize, to);
-      const someHasMark = node.marks.find((mark) => mark.type === type);
+    if (item instanceof Y.XmlText) {
+      const textLength = item.length;
+      const itemEnd = pos + textLength;
 
-      if (someHasMark) {
-        node.marks.forEach((mark) => {
-          if (type === mark.type) {
-            tr = tr.addMark(
-              trimmedFrom,
-              trimmedTo,
-              type.create({
-                ...mark.attrs,
-                ...attributes,
-              }),
-            );
-          }
-        });
-      } else {
-        tr = tr.addMark(trimmedFrom, trimmedTo, type.create(attributes));
+      if (itemEnd > from && pos < to) {
+        const formatFrom = Math.max(0, from - pos);
+        const formatTo = Math.min(textLength, to - pos);
+        const formatLength = formatTo - formatFrom;
+
+        if (formatLength > 0) {
+          item.format(formatFrom, formatLength, { [markName]: markAttributes });
+        }
       }
-    });
-  });
-  return tr;
+      pos = itemEnd;
+    } else if (item instanceof Y.XmlElement) {
+      pos++; // Opening tag
+      for (let i = 0; i < item.length; i++) {
+        if (!processItem(item.get(i))) return false;
+      }
+      pos++; // Closing tag
+    }
+    return true;
+  };
+
+  for (let i = 0; i < fragment.length; i++) {
+    if (!processItem(fragment.get(i))) break;
+  }
 }

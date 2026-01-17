@@ -139,7 +139,7 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: context.user.id,
+            lastUpdatedById: context?.user?.id,
             contributorIds: contributorIds,
           },
           pageId,
