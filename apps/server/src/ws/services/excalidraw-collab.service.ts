@@ -24,13 +24,13 @@ export class ExcalidrawCollabService {
     const sockets = await server.in(roomId).fetchSockets();
 
     if (sockets.length <= 1) {
-      server.to(client.id).emit('first-in-room');
+      server.to(client.id).emit('ex-first-in-room');
     } else {
-      client.broadcast.to(roomId).emit('new-user', client.id);
+      client.broadcast.to(roomId).emit('ex-new-user', client.id);
     }
 
     server.in(roomId).emit(
-      'room-user-change',
+      'ex-room-user-change',
       sockets.map((socket) => socket.id),
     );
   }
@@ -49,7 +49,7 @@ export class ExcalidrawCollabService {
     const sockets = await server.in(roomId).fetchSockets();
     if (sockets.length > 0) {
       server.in(roomId).emit(
-        'room-user-change',
+        'ex-room-user-change',
         sockets.map((socket) => socket.id),
       );
     }
@@ -61,7 +61,7 @@ export class ExcalidrawCollabService {
     encryptedData: ArrayBuffer,
     iv: Uint8Array,
   ): void {
-    client.broadcast.to(roomId).emit('client-broadcast', encryptedData, iv);
+    client.broadcast.to(roomId).emit('ex-client-broadcast', encryptedData, iv);
   }
 
   handleServerVolatileBroadcast(
@@ -72,7 +72,7 @@ export class ExcalidrawCollabService {
   ): void {
     client.volatile.broadcast
       .to(roomId)
-      .emit('client-broadcast', encryptedData, iv);
+      .emit('ex-client-broadcast', encryptedData, iv);
   }
 
   async handleUserFollow(
@@ -92,7 +92,7 @@ export class ExcalidrawCollabService {
     const followedBy = sockets.map((socket) => socket.id);
 
     server.to(payload.userToFollow.socketId).emit(
-      'user-follow-room-change',
+      'ex-user-follow-room-change',
       followedBy,
     );
   }
@@ -110,14 +110,14 @@ export class ExcalidrawCollabService {
 
       if (!isFollowRoom && otherClients.length > 0) {
         server.to(roomId).emit(
-          'room-user-change',
+          'ex-room-user-change',
           otherClients.map((socket) => socket.id),
         );
       }
 
       if (isFollowRoom && otherClients.length === 0) {
         const socketId = roomId.replace('follow@', '');
-        server.to(socketId).emit('broadcast-unfollow');
+        server.to(socketId).emit('ex-broadcast-unfollow');
       }
     }
 

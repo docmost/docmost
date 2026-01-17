@@ -73,7 +73,7 @@ export function useExcalidrawCollab(
           };
 
           const json = JSON.stringify(data);
-          socket.emit("server-volatile-broadcast", [roomId, json, null]);
+          socket.emit("ex-server-volatile-broadcast", [roomId, json, null]);
         },
         50,
       ),
@@ -114,7 +114,7 @@ export function useExcalidrawCollab(
       }
 
       const json = JSON.stringify(data);
-      socket.emit("server-broadcast", [roomId, json, null]);
+      socket.emit("ex-server-broadcast", [roomId, json, null]);
       lastBroadcastedVersion.current = sceneVersion;
     },
     [socket, roomId],
@@ -218,16 +218,16 @@ export function useExcalidrawCollab(
     }
 
     console.log("Joining room:", roomId);
-    socket.emit("join-room", roomId);
+    socket.emit("ex-join-room", roomId);
     isInitialized.current = true;
 
     // Set up listeners
-    socket.on("client-broadcast", handleClientBroadcast);
-    socket.on("room-user-change", handleRoomUserChange);
-    socket.on("first-in-room", () => {
+    socket.on("ex-client-broadcast", handleClientBroadcast);
+    socket.on("ex-room-user-change", handleRoomUserChange);
+    socket.on("ex-first-in-room", () => {
       console.log("First in excalidraw room");
     });
-    socket.on("new-user", (socketId: string) => {
+    socket.on("ex-new-user", (socketId: string) => {
       console.log("New user joined:", socketId);
       if (excalidrawAPI) {
         // Send full scene to new user (syncAll = true)
@@ -237,11 +237,11 @@ export function useExcalidrawCollab(
 
     return () => {
       console.log("Leaving room:", roomId);
-      socket.emit("leave-room", roomId);
-      socket.off("client-broadcast", handleClientBroadcast);
-      socket.off("room-user-change", handleRoomUserChange);
-      socket.off("first-in-room");
-      socket.off("new-user");
+      socket.emit("ex-leave-room", roomId);
+      socket.off("ex-client-broadcast", handleClientBroadcast);
+      socket.off("ex-room-user-change", handleRoomUserChange);
+      socket.off("ex-first-in-room");
+      socket.off("ex-new-user");
       isInitialized.current = false;
       lastBroadcastedVersion.current = -1;
       broadcastedElementVersions.current = new Map();

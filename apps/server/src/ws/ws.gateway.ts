@@ -76,7 +76,21 @@ export class WsGateway
   }
 
   @SubscribeMessage('join-room')
-  async handleJoinRoom(
+  handleJoinRoom(client: Socket, @MessageBody() roomName: string): void {
+    // if room is a space, check if user has permissions
+    //client.join(roomName);
+  }
+
+  @SubscribeMessage('leave-room')
+  handleLeaveRoom(client: Socket, @MessageBody() roomName: string): void {
+    client.leave(roomName);
+  }
+
+
+
+  // Excalidraw Sync
+  @SubscribeMessage('ex-join-room')
+  async handleExJoinRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: string,
   ): Promise<void> {
@@ -87,8 +101,8 @@ export class WsGateway
     );
   }
 
-  @SubscribeMessage('leave-room')
-  async handleLeaveRoom(
+  @SubscribeMessage('ex-leave-room')
+  async handleExLeaveRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: string,
   ): Promise<void> {
@@ -99,7 +113,7 @@ export class WsGateway
     );
   }
 
-  @SubscribeMessage('server-broadcast')
+  @SubscribeMessage('ex-server-broadcast')
   handleServerBroadcast(
     @ConnectedSocket() client: Socket,
     @MessageBody() [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
@@ -112,7 +126,7 @@ export class WsGateway
     );
   }
 
-  @SubscribeMessage('server-volatile-broadcast')
+  @SubscribeMessage('ex-server-volatile-broadcast')
   handleServerVolatileBroadcast(
     @ConnectedSocket() client: Socket,
     @MessageBody() [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
@@ -125,7 +139,7 @@ export class WsGateway
     );
   }
 
-  @SubscribeMessage('user-follow')
+  @SubscribeMessage('ex-user-follow')
   async handleUserFollow(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ExcalidrawFollowPayload,
