@@ -280,9 +280,10 @@ export class PageService {
         const fragment = doc.getXmlFragment('default');
 
         if (operation === 'replace') {
-          while (fragment.length > 0) {
-            fragment.delete(0, 1);
+          if (fragment.length > 0) {
+            fragment.delete(0, fragment.length);
           }
+
           const newDoc = TiptapTransformer.toYdoc(
             prosemirrorJson,
             'default',
