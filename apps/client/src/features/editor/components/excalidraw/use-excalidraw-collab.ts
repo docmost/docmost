@@ -2,7 +2,11 @@ import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
-import type { ExcalidrawImperativeAPI, Collaborator, Gesture } from "@excalidraw/excalidraw/types";
+import type {
+  ExcalidrawImperativeAPI,
+  Collaborator,
+  Gesture,
+} from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 import { reconcileElements, getSceneVersion } from "@excalidraw/excalidraw";
 import throttle from "lodash.throttle";
@@ -114,6 +118,7 @@ export function useExcalidrawCollab(
 
           const reconciledElements = reconcileElements(
             localElements,
+            // @ts-ignore
             remoteElements,
             excalidrawAPI.getAppState(),
           );
@@ -134,14 +139,17 @@ export function useExcalidrawCollab(
           const collaborator = collaboratorsRef.current.get(socketId) || {};
           collaboratorsRef.current.set(socketId, {
             ...collaborator,
+            // @ts-ignore
             pointer,
             button,
             username,
+            // @ts-ignore
             selectedElementIds,
             isCurrentUser: false,
           });
 
           excalidrawAPI.updateScene({
+            // @ts-ignore
             collaborators: collaboratorsRef.current,
           });
         }
@@ -164,11 +172,13 @@ export function useExcalidrawCollab(
         newCollaborators.set(id, {
           ...existing,
           isCurrentUser: id === socket.id,
-          username: existing?.username || (id === socket.id ? username : "User"),
+          username:
+            existing?.username || (id === socket.id ? username : "User"),
         });
       }
 
       collaboratorsRef.current = newCollaborators;
+      // @ts-ignore
       excalidrawAPI.updateScene({ collaborators: newCollaborators });
 
       // We're collaborating if there are other users
