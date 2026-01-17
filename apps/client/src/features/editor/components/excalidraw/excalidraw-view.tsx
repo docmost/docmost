@@ -14,7 +14,7 @@ import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import { getFileUrl } from "@/lib/config.ts";
 import "@excalidraw/excalidraw/index.css";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawImperativeAPI, Gesture } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
@@ -23,7 +23,7 @@ import { IconEdit } from "@tabler/icons-react";
 import { lazy } from "react";
 import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { useHandleLibrary } from "@excalidraw/excalidraw";
+import { useHandleLibrary, LiveCollaborationTrigger } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import { useExcalidrawCollab } from "./use-excalidraw-collab";
 
@@ -49,7 +49,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const computedColorScheme = useComputedColorScheme();
 
   const pageId = editor.storage?.pageId;
-  const { broadcastScene } = useExcalidrawCollab(excalidrawAPI, pageId, opened);
+  const { broadcastScene, broadcastPointer, isCollaborating } = useExcalidrawCollab(excalidrawAPI, pageId, opened);
 
   const handleChange = useCallback(
     (elements: readonly ExcalidrawElement[]) => {
@@ -170,6 +170,13 @@ export default function ExcalidrawView(props: NodeViewProps) {
               }}
               theme={computedColorScheme}
               onChange={handleChange}
+              onPointerUpdate={broadcastPointer}
+              renderTopRightUI={() => (
+                <LiveCollaborationTrigger
+                  isCollaborating={isCollaborating}
+                  onSelect={() => {}}
+                />
+              )}
             />
           </Suspense>
         </div>
