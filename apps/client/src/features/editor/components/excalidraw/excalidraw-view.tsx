@@ -8,13 +8,14 @@ import {
   Text,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
 import { getFileUrl } from "@/lib/config.ts";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawElement } from "@excalidraw/element/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
@@ -24,6 +25,7 @@ import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
+import { useExcalidrawCollab } from "./use-excalidraw-collab";
 
 const Excalidraw = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -45,6 +47,16 @@ export default function ExcalidrawView(props: NodeViewProps) {
   const [excalidrawData, setExcalidrawData] = useState<any>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
+
+  const pageId = editor.storage?.pageId;
+  const { broadcastScene } = useExcalidrawCollab(excalidrawAPI, pageId, opened);
+
+  const handleChange = useCallback(
+    (elements: readonly ExcalidrawElement[]) => {
+      broadcastScene(elements);
+    },
+    [broadcastScene],
+  );
 
   const handleOpen = async () => {
     if (!editor.isEditable) {
@@ -157,6 +169,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
                 scrollToContent: true,
               }}
               theme={computedColorScheme}
+              onChange={handleChange}
             />
           </Suspense>
         </div>

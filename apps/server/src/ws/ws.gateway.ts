@@ -1,4 +1,5 @@
 import {
+  ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -76,7 +77,7 @@ export class WsGateway
 
   @SubscribeMessage('join-room')
   async handleJoinRoom(
-    client: Socket,
+    @ConnectedSocket() client: Socket,
     @MessageBody() roomId: string,
   ): Promise<void> {
     await this.excalidrawCollabService.handleJoinRoom(
@@ -87,14 +88,17 @@ export class WsGateway
   }
 
   @SubscribeMessage('leave-room')
-  handleLeaveRoom(client: Socket, @MessageBody() roomName: string): void {
+  handleLeaveRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() roomName: string,
+  ): void {
     client.leave(roomName);
   }
 
   @SubscribeMessage('server-broadcast')
   handleServerBroadcast(
-    client: Socket,
-    [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
+    @ConnectedSocket() client: Socket,
+    @MessageBody() [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
   ): void {
     this.excalidrawCollabService.handleServerBroadcast(
       client,
@@ -106,8 +110,8 @@ export class WsGateway
 
   @SubscribeMessage('server-volatile-broadcast')
   handleServerVolatileBroadcast(
-    client: Socket,
-    [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
+    @ConnectedSocket() client: Socket,
+    @MessageBody() [roomId, encryptedData, iv]: [string, ArrayBuffer, Uint8Array],
   ): void {
     this.excalidrawCollabService.handleServerVolatileBroadcast(
       client,
@@ -119,7 +123,7 @@ export class WsGateway
 
   @SubscribeMessage('user-follow')
   async handleUserFollow(
-    client: Socket,
+    @ConnectedSocket() client: Socket,
     @MessageBody() payload: ExcalidrawFollowPayload,
   ): Promise<void> {
     await this.excalidrawCollabService.handleUserFollow(
