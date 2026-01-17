@@ -88,11 +88,15 @@ export class WsGateway
   }
 
   @SubscribeMessage('leave-room')
-  handleLeaveRoom(
+  async handleLeaveRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() roomName: string,
-  ): void {
-    client.leave(roomName);
+    @MessageBody() roomId: string,
+  ): Promise<void> {
+    await this.excalidrawCollabService.handleLeaveRoom(
+      client,
+      this.server,
+      roomId,
+    );
   }
 
   @SubscribeMessage('server-broadcast')

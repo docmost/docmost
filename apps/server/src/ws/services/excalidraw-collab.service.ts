@@ -4,12 +4,22 @@ import { ExcalidrawFollowPayload } from '../types/excalidraw.types';
 
 @Injectable()
 export class ExcalidrawCollabService {
+  // Track socket -> rooms mapping for disconnect handling
+  // (Socket.IO clears client.rooms before handleDisconnect runs)
+  private socketRooms = new Map<string, Set<string>>();
+
   async handleJoinRoom(
     client: Socket,
     server: Server,
     roomId: string,
   ): Promise<void> {
     await client.join(roomId);
+
+    // Track room membership
+    if (!this.socketRooms.has(client.id)) {
+      this.socketRooms.set(client.id, new Set());
+    }
+    this.socketRooms.get(client.id).add(roomId);
 
     const sockets = await server.in(roomId).fetchSockets();
 
@@ -23,6 +33,26 @@ export class ExcalidrawCollabService {
       'room-user-change',
       sockets.map((socket) => socket.id),
     );
+  }
+
+  async handleLeaveRoom(
+    client: Socket,
+    server: Server,
+    roomId: string,
+  ): Promise<void> {
+    await client.leave(roomId);
+
+    // Remove from tracking
+    this.socketRooms.get(client.id)?.delete(roomId);
+
+    // Notify remaining users
+    const sockets = await server.in(roomId).fetchSockets();
+    if (sockets.length > 0) {
+      server.in(roomId).emit(
+        'room-user-change',
+        sockets.map((socket) => socket.id),
+      );
+    }
   }
 
   handleServerBroadcast(
@@ -68,7 +98,10 @@ export class ExcalidrawCollabService {
   }
 
   async handleDisconnecting(client: Socket, server: Server): Promise<void> {
-    for (const roomId of Array.from(client.rooms)) {
+    // Use tracked rooms since client.rooms is empty by this point
+    const rooms = this.socketRooms.get(client.id) || new Set();
+
+    for (const roomId of rooms) {
       const otherClients = (await server.in(roomId).fetchSockets()).filter(
         (socket) => socket.id !== client.id,
       );
@@ -76,7 +109,7 @@ export class ExcalidrawCollabService {
       const isFollowRoom = roomId.startsWith('follow@');
 
       if (!isFollowRoom && otherClients.length > 0) {
-        client.broadcast.to(roomId).emit(
+        server.to(roomId).emit(
           'room-user-change',
           otherClients.map((socket) => socket.id),
         );
@@ -87,5 +120,8 @@ export class ExcalidrawCollabService {
         server.to(socketId).emit('broadcast-unfollow');
       }
     }
+
+    // Clean up tracking
+    this.socketRooms.delete(client.id);
   }
 }
