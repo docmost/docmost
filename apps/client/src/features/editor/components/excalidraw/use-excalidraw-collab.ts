@@ -42,6 +42,9 @@ export function useExcalidrawCollab(
   const collaboratorsRef = useRef<Map<string, Collaborator>>(new Map());
   const [isCollaborating, setIsCollaborating] = useState(false);
 
+  // Track broadcasted element versions for bandwidth optimization
+  const broadcastedElementVersions = useRef<Map<string, number>>(new Map());
+
   const roomId = pageId ? `excalidraw-${pageId}` : null;
   const username = currentUser?.user?.name || "Anonymous";
 
@@ -77,30 +80,50 @@ export function useExcalidrawCollab(
     [socket, roomId, username, excalidrawAPI],
   );
 
-  // Broadcast scene changes
-  const broadcastScene = useMemo(
-    () =>
-      throttle((elements: readonly ExcalidrawElement[]) => {
-        if (!socket || !roomId || !isInitialized.current) {
-          return;
-        }
+  // Broadcast scene changes with bandwidth optimization
+  const broadcastScene = useCallback(
+    (elements: readonly ExcalidrawElement[], syncAll = false) => {
+      if (!socket || !roomId || !isInitialized.current) {
+        return;
+      }
 
-        const sceneVersion = getSceneVersion(elements);
+      const sceneVersion = getSceneVersion(elements);
 
-        if (sceneVersion <= lastBroadcastedVersion.current) {
-          return;
-        }
+      if (sceneVersion <= lastBroadcastedVersion.current) {
+        return;
+      }
 
-        const data: SceneUpdateMessage = {
-          type: "SCENE_UPDATE",
-          payload: { elements },
-        };
+      // Filter to only send elements that changed since last broadcast
+      const changedElements = elements.filter((element) => {
+        const lastVersion = broadcastedElementVersions.current.get(element.id);
+        return syncAll || lastVersion === undefined || element.version > lastVersion;
+      });
 
-        const json = JSON.stringify(data);
-        socket.emit("server-broadcast", [roomId, json, null]);
-        lastBroadcastedVersion.current = sceneVersion;
-      }, 100),
+      if (changedElements.length === 0) {
+        return;
+      }
+
+      const data: SceneUpdateMessage = {
+        type: "SCENE_UPDATE",
+        payload: { elements: changedElements },
+      };
+
+      // Update tracking map
+      for (const element of changedElements) {
+        broadcastedElementVersions.current.set(element.id, element.version);
+      }
+
+      const json = JSON.stringify(data);
+      socket.emit("server-broadcast", [roomId, json, null]);
+      lastBroadcastedVersion.current = sceneVersion;
+    },
     [socket, roomId],
+  );
+
+  // Throttled version for onChange handler
+  const throttledBroadcastScene = useMemo(
+    () => throttle((elements: readonly ExcalidrawElement[]) => broadcastScene(elements, false), 100),
+    [broadcastScene],
   );
 
   // Handle incoming broadcasts
@@ -207,7 +230,8 @@ export function useExcalidrawCollab(
     socket.on("new-user", (socketId: string) => {
       console.log("New user joined:", socketId);
       if (excalidrawAPI) {
-        broadcastScene(excalidrawAPI.getSceneElements());
+        // Send full scene to new user (syncAll = true)
+        broadcastScene(excalidrawAPI.getSceneElements(), true);
       }
     });
 
@@ -220,6 +244,7 @@ export function useExcalidrawCollab(
       socket.off("new-user");
       isInitialized.current = false;
       lastBroadcastedVersion.current = -1;
+      broadcastedElementVersions.current = new Map();
       collaboratorsRef.current = new Map();
       setIsCollaborating(false);
     };
@@ -234,7 +259,7 @@ export function useExcalidrawCollab(
   ]);
 
   return {
-    broadcastScene,
+    broadcastScene: throttledBroadcastScene,
     broadcastPointer,
     isCollaborating,
   };
