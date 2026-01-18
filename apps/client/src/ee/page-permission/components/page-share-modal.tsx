@@ -14,7 +14,7 @@ import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { usePageRestrictionInfoQuery } from "@/ee/page-permission/queries/page-permission-query";
-import { PagePermissionTab } from "./page-permission-tab";
+import { PagePermissionTab } from "@/ee/page-permission";
 import { PublishTab } from "./publish-tab";
 
 type PageShareModalProps = {
@@ -67,8 +67,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
         opened={opened}
         onClose={close}
         title={t("Share")}
-        size="md"
-        centered
+        size={600}
       >
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List mb="md">

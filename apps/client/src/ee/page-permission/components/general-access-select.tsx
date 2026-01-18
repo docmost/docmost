@@ -2,7 +2,7 @@ import { Group, Menu, Text, UnstyledButton } from "@mantine/core";
 import {
   IconChevronDown,
   IconLock,
-  IconWorld,
+  IconShieldLock,
   IconCheck,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -14,75 +14,75 @@ type GeneralAccessSelectProps = {
   value: AccessLevel;
   onChange: (value: AccessLevel) => void;
   disabled?: boolean;
-  isInherited?: boolean;
+  hasInheritedRestriction?: boolean;
 };
 
 export function GeneralAccessSelect({
   value,
   onChange,
   disabled,
-  isInherited,
+  hasInheritedRestriction,
 }: GeneralAccessSelectProps) {
   const { t } = useTranslation();
 
-  const isRestricted = value === "restricted";
+  const isDirectlyRestricted = value === "restricted";
+  const showInheritedState = hasInheritedRestriction && !isDirectlyRestricted;
+
+  const currentLabel = showInheritedState
+    ? t("Restricted by parent")
+    : isDirectlyRestricted
+      ? t("Restricted")
+      : t("Open");
+
+  const currentDescription = showInheritedState
+    ? t("Inherits restrictions from ancestor page")
+    : isDirectlyRestricted
+      ? t("Only specific people can access")
+      : t("Everyone in this space can access");
+
+  const CurrentIcon = showInheritedState
+    ? IconShieldLock
+    : isDirectlyRestricted
+      ? IconLock
+      : IconShieldLock;
 
   const accessOptions = [
     {
       value: "open" as const,
-      label: t("Open"),
-      description: t("Everyone in this space can access"),
-      icon: IconWorld,
+      label: hasInheritedRestriction ? t("Restricted by parent") : t("Open"),
+      description: hasInheritedRestriction
+        ? t("Use only inherited restrictions")
+        : t("Everyone in this space can access"),
+      icon: IconShieldLock,
     },
     {
       value: "restricted" as const,
       label: t("Restricted"),
-      description: t("Only specific people can view or edit"),
+      description: hasInheritedRestriction
+        ? t("Add restrictions on top of inherited")
+        : t("Only specific people can access"),
       icon: IconLock,
     },
   ];
 
-  const currentOption = accessOptions.find((opt) => opt.value === value);
-  const Icon = currentOption?.icon || IconWorld;
-
-  if (isInherited) {
-    return (
-      <Group className={classes.generalAccessBox}>
-        <div
-          className={`${classes.generalAccessIcon} ${isRestricted ? classes.generalAccessIconRestricted : ""}`}
-        >
-          <Icon size={18} stroke={1.5} />
-        </div>
-        <div>
-          <Text size="sm" fw={500}>
-            {currentOption?.label}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {currentOption?.description}
-          </Text>
-        </div>
-      </Group>
-    );
-  }
-
   return (
     <Menu withArrow disabled={disabled}>
       <Menu.Target>
-        <UnstyledButton className={classes.generalAccessBox}>
+        <UnstyledButton className={classes.generalAccessBox} disabled={disabled}>
           <div
-            className={`${classes.generalAccessIcon} ${isRestricted ? classes.generalAccessIconRestricted : ""}`}
+            className={`${classes.generalAccessIcon} ${isDirectlyRestricted || showInheritedState ? classes.generalAccessIconRestricted : ""}`}
           >
-            <Icon size={18} stroke={1.5} />
+            <CurrentIcon size={18} stroke={1.5} />
           </div>
           <div style={{ flex: 1 }}>
             <Group gap={4}>
               <Text size="sm" fw={500}>
-                {currentOption?.label}
+                {currentLabel}
               </Text>
               {!disabled && <IconChevronDown size={14} />}
             </Group>
             <Text size="xs" c="dimmed">
-              {currentOption?.description}
+              {currentDescription}
             </Text>
           </div>
         </UnstyledButton>

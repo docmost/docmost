@@ -106,3 +106,14 @@
     background-color: var(--mantine-color-dark-6);
   }
 }
+
+.inheritedSection {
+  @mixin light {
+    background-color: var(--mantine-color-orange-0);
+    border: 1px solid var(--mantine-color-orange-2);
+  }
+  @mixin dark {
+    background-color: rgba(255, 146, 43, 0.08);
+    border: 1px solid rgba(255, 146, 43, 0.2);
+  }
+}
