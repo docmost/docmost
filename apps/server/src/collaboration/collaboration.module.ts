@@ -46,7 +46,7 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
     });
 
     wss.on('error', (error) =>
-      this.logger.log('WebSocket server error:', error),
+      this.logger.error('WebSocket server error:', error),
     );
   }
 
