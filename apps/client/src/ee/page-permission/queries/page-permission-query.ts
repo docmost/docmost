@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import {
   IAddPagePermission,
-  IPagePermission,
+  IPagePermissionMember,
   IPageRestrictionInfo,
   IRemovePagePermission,
   IUpdatePagePermissionRole,
@@ -38,7 +38,7 @@ export function usePageRestrictionInfoQuery(
 export function usePagePermissionsQuery(
   pageId: string,
   params?: QueryParams,
-): UseQueryResult<IPagination<IPagePermission>, Error> {
+): UseQueryResult<IPagination<IPagePermissionMember>, Error> {
   return useQuery({
     queryKey: ["page-permissions", pageId, params],
     queryFn: () => getPagePermissions(pageId, params),
@@ -88,7 +88,7 @@ export function useUnrestrictPageMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to unrestrict page"),
+        message: errorMessage || t("Failed to remove page restriction"),
         color: "red",
       });
     },
@@ -109,7 +109,7 @@ export function useAddPagePermissionMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to add page permission"),
+        message: errorMessage || t("Failed to add permission"),
         color: "red",
       });
     },
@@ -130,7 +130,7 @@ export function useRemovePagePermissionMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to remove page permission"),
+        message: errorMessage || t("Failed to remove permission"),
         color: "red",
       });
     },
@@ -151,7 +151,7 @@ export function useUpdatePagePermissionRoleMutation() {
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
       notifications.show({
-        message: errorMessage || t("Failed to update page permission role"),
+        message: errorMessage || t("Failed to update permission"),
         color: "red",
       });
     },

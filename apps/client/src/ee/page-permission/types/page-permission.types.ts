@@ -3,10 +3,6 @@ export enum PagePermissionRole {
   WRITER = "writer",
 }
 
-export type IRestrictPage = {
-  pageId: string;
-};
-
 export type IAddPagePermission = {
   pageId: string;
   role: PagePermissionRole;
@@ -27,29 +23,35 @@ export type IUpdatePagePermissionRole = {
   groupId?: string;
 };
 
-export type IRemovePageRestriction = {
-  pageId: string;
-};
-
-export type IPagePermission = {
-  id: string;
-  pageId: string;
-  role: PagePermissionRole;
-  userId?: string;
-  groupId?: string;
-  user?: {
-    id: string;
-    name: string;
-    avatarUrl: string;
-  };
-  group?: {
-    id: string;
-    name: string;
-  };
-};
-
 export type IPageRestrictionInfo = {
-  isRestricted: boolean;
-  hasAccess: boolean;
-  role?: PagePermissionRole;
+  id: string;
+  title: string;
+  hasDirectRestriction: boolean;
+  hasInheritedRestriction: boolean;
+  userAccess: {
+    canView: boolean;
+    canEdit: boolean;
+    canManage: boolean;
+  };
 };
+
+type IPagePermissionBase = {
+  id: string;
+  name: string;
+  role: string;
+  createdAt: string;
+};
+
+export type IPagePermissionUser = IPagePermissionBase & {
+  type: "user";
+  email: string;
+  avatarUrl: string | null;
+};
+
+export type IPagePermissionGroup = IPagePermissionBase & {
+  type: "group";
+  memberCount: number;
+  isDefault: boolean;
+};
+
+export type IPagePermissionMember = IPagePermissionUser | IPagePermissionGroup;
