@@ -1,6 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { AttachmentUploadPlugin } from "./attachment-upload";
 
 export interface AttachmentOptions {
   HTMLAttributes: Record<string, any>;
@@ -13,6 +12,7 @@ export interface AttachmentAttributes {
   mime?: string; // e.g. application/zip
   size?: number;
   attachmentId?: string;
+  placeholderId?: string;
 }
 
 declare module "@tiptap/core" {
@@ -75,6 +75,14 @@ export const Attachment = Node.create<AttachmentOptions>({
           "data-attachment-id": attributes.attachmentId,
         }),
       },
+      placeholderId: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute("data-attachment-placeholder-id"),
+        renderHTML: (attributes: AttachmentAttributes) => ({
+          "data-attachment-placeholder-id": attributes.placeholderId,
+        }),
+      },
     };
   },
 
@@ -92,7 +100,7 @@ export const Attachment = Node.create<AttachmentOptions>({
       mergeAttributes(
         { "data-type": this.name },
         this.options.HTMLAttributes,
-        HTMLAttributes
+        HTMLAttributes,
       ),
       [
         "a",
@@ -124,13 +132,5 @@ export const Attachment = Node.create<AttachmentOptions>({
     this.editor.isInitialized = true;
 
     return ReactNodeViewRenderer(this.options.view);
-  },
-
-  addProseMirrorPlugins() {
-    return [
-      AttachmentUploadPlugin({
-        placeholderClass: "attachment-placeholder",
-      }),
-    ];
   },
 });

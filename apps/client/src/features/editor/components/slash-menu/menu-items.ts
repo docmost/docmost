@@ -237,6 +237,9 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             const pos = editor.view.state.selection.from;
             uploadAttachmentAction(file, editor.view, pos, pageId, true);
           }
+
+          // Reset the input value to allow uploading the same file again if needed
+          input.value = "";
         };
         input.click();
       },
