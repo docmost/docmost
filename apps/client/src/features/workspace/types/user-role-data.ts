@@ -16,6 +16,11 @@ export const userRoleData: IRoleData[] = [
     value: UserRole.MEMBER,
     description: "Can become members of groups and spaces in workspace",
   },
+  {
+    label: "Visitor",
+    value: UserRole.VISITOR,
+    description: "Can view pages in workspace",
+  },
 ];
 
 export function getUserRoleLabel(value: string) {

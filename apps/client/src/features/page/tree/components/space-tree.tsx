@@ -73,6 +73,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
+import { useUserRole } from "@/hooks/use-user-role";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -165,13 +166,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             flatTreeItems = [
               ...flatTreeItems,
               ...children.filter(
-                (child) => !flatTreeItems.some((item) => item.id === child.id),
+                (child) => !flatTreeItems.some((item) => item.id === child.id)
               ),
             ];
           };
 
           const fetchPromises = ancestors.map((ancestor) =>
-            fetchAndUpdateChildren(ancestor),
+            fetchAndUpdateChildren(ancestor)
           );
 
           // Wait for all fetch operations to complete
@@ -185,7 +186,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             const updatedTree = appendNodeChildren(
               data,
               rootChild.id,
-              rootChild.children,
+              rootChild.children
             );
             setData(updatedTree);
 
@@ -258,6 +259,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 }
 
 function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
+  const userRole = useUserRole();
   const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
@@ -406,14 +408,21 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
 
         <div className={classes.actions}>
-          <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
-
-          {!tree.props.disableEdit && (
-            <CreateNode
-              node={node}
-              treeApi={tree}
-              onExpandTree={() => handleLoadChildren(node)}
-            />
+          {!userRole.isVisitor && (
+            <>
+              <NodeMenu
+                node={node}
+                treeApi={tree}
+                spaceId={node.data.spaceId}
+              />
+              {!tree.props.disableEdit && (
+                <CreateNode
+                  node={node}
+                  treeApi={tree}
+                  onExpandTree={() => handleLoadChildren(node)}
+                />
+              )}
+            </>
           )}
         </div>
       </Box>

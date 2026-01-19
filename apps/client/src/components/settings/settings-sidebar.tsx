@@ -51,11 +51,13 @@ interface DataItem {
 interface DataGroup {
   heading: string;
   items: DataItem[];
+  isVisitor?: boolean;
 }
 
 const groupedData: DataGroup[] = [
   {
     heading: "Account",
+    isVisitor: true,
     items: [
       { label: "Profile", icon: IconUser, path: "/settings/account/profile" },
       {
@@ -75,6 +77,7 @@ const groupedData: DataGroup[] = [
   },
   {
     heading: "Workspace",
+    isVisitor: false,
     items: [
       { label: "General", icon: IconSettings, path: "/settings/workspace" },
       {
@@ -98,9 +101,21 @@ const groupedData: DataGroup[] = [
         isAdmin: true,
         showDisabledInNonEE: true,
       },
-      { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
-      { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
-      { label: "Public sharing", icon: IconWorld, path: "/settings/sharing" },
+      {
+        label: "Groups",
+        icon: IconUsersGroup,
+        path: "/settings/groups",
+      },
+      {
+        label: "Spaces",
+        icon: IconSpaces,
+        path: "/settings/spaces",
+      },
+      {
+        label: "Public sharing",
+        icon: IconWorld,
+        path: "/settings/sharing",
+      },
       {
         label: "API management",
         icon: IconKey,
@@ -121,6 +136,7 @@ const groupedData: DataGroup[] = [
   },
   {
     heading: "System",
+    isVisitor: false,
     items: [
       {
         label: "License & Edition",
@@ -136,7 +152,7 @@ export default function SettingsSidebar() {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const { goBack } = useSettingsNavigation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isVisitor } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
@@ -179,10 +195,15 @@ export default function SettingsSidebar() {
     if (item.showDisabledInNonEE && item.isEnterprise) {
       return !(isCloud() || workspace?.hasLicenseKey);
     }
+
     return false;
   };
 
   const menuItems = groupedData.map((group) => {
+    if (group.isVisitor !== isVisitor) {
+      return null;
+    }
+
     if (group.heading === "System" && (!isAdmin || isCloud())) {
       return null;
     }
@@ -192,6 +213,7 @@ export default function SettingsSidebar() {
         <Text c="dimmed" className={classes.linkHeader}>
           {t(group.heading)}
         </Text>
+
         {group.items.map((item) => {
           if (!canShowItem(item)) {
             return null;

@@ -5,7 +5,11 @@ import { updateUser } from "@/features/user/services/user-service.ts";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
-import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
+import {
+  ResponsiveSettingsRow,
+  ResponsiveSettingsContent,
+  ResponsiveSettingsControl,
+} from "@/components/ui/responsive-settings-row";
 
 export default function PageStatePref() {
   const { t } = useTranslation();
@@ -45,7 +49,7 @@ export function PageStateSegmentedControl({
       setValue(value);
       setUser(updatedUser);
     },
-    [user, setUser],
+    [user, setUser]
   );
 
   useEffect(() => {

@@ -38,4 +38,5 @@ export interface IUserSettings {
 export enum PageEditMode {
   Read = "read",
   Edit = "edit",
+  Visitor='visitor'
 }

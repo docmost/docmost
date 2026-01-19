@@ -9,6 +9,7 @@ export enum UserRole {
   OWNER = "owner",
   ADMIN = "admin",
   MEMBER = "member",
+  VISITOR = "visitor",
 }
 
 export enum SpaceRole {

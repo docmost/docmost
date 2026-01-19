@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
-import { UserRole } from "@/lib/types.ts";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { UserRole } from "@/lib/types";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 
 export const useUserRole = () => {
   const [currentUser] = useAtom(currentUserAtom);
@@ -13,7 +13,9 @@ export const useUserRole = () => {
 
   const isMember = currentUser?.user?.role === UserRole.MEMBER;
 
-  return { isAdmin, isOwner, isMember };
+  const isVisitor = currentUser?.user?.role === UserRole.VISITOR;
+
+  return { isAdmin, isOwner, isMember, isVisitor };
 };
 
 export default useUserRole;

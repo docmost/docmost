@@ -39,6 +39,7 @@ import ExportModal from "@/components/common/export-modal";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
+import useUserRole from "@/hooks/use-user-role";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -48,6 +49,7 @@ export function SpaceSidebar() {
     useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+  const userRole = useUserRole();
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -90,7 +92,7 @@ export function SpaceSidebar() {
                 classes.menu,
                 location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
                   ? classes.activeButton
-                  : "",
+                  : ""
               )}
             >
               <div className={classes.menuItemInner}>
@@ -117,39 +119,43 @@ export function SpaceSidebar() {
               </div>
             </UnstyledButton>
 
-            <UnstyledButton className={classes.menu} onClick={openSettings}>
-              <div className={classes.menuItemInner}>
-                <IconSettings
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>{t("Space settings")}</span>
-              </div>
-            </UnstyledButton>
+            {!userRole.isVisitor && (
+              <>
+                <UnstyledButton className={classes.menu} onClick={openSettings}>
+                  <div className={classes.menuItemInner}>
+                    <IconSettings
+                      size={18}
+                      className={classes.menuItemIcon}
+                      stroke={2}
+                    />
+                    <span>{t("Space settings")}</span>
+                  </div>
+                </UnstyledButton>
 
-            {spaceAbility.can(
-              SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
-            ) && (
-              <UnstyledButton
-                className={classes.menu}
-                onClick={() => {
-                  handleCreatePage();
-                  if (mobileSidebarOpened) {
-                    toggleMobileSidebar();
-                  }
-                }}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconPlus
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("New page")}</span>
-                </div>
-              </UnstyledButton>
+                {spaceAbility.can(
+                  SpaceCaslAction.Manage,
+                  SpaceCaslSubject.Page
+                ) && (
+                  <UnstyledButton
+                    className={classes.menu}
+                    onClick={() => {
+                      handleCreatePage();
+                      if (mobileSidebarOpened) {
+                        toggleMobileSidebar();
+                      }
+                    }}
+                  >
+                    <div className={classes.menuItemInner}>
+                      <IconPlus
+                        size={18}
+                        className={classes.menuItemIcon}
+                        stroke={2}
+                      />
+                      <span>{t("New page")}</span>
+                    </div>
+                  </UnstyledButton>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -160,25 +166,29 @@ export function SpaceSidebar() {
               {t("Pages")}
             </Text>
 
-            {spaceAbility.can(
-              SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
-            ) && (
-              <Group gap="xs">
-                <SpaceMenu spaceId={space.id} onSpaceSettings={openSettings} />
+            {!userRole.isVisitor &&
+              spaceAbility.can(
+                SpaceCaslAction.Manage,
+                SpaceCaslSubject.Page
+              ) && (
+                <Group gap="xs">
+                  <SpaceMenu
+                    spaceId={space.id}
+                    onSpaceSettings={openSettings}
+                  />
 
-                <Tooltip label={t("Create page")} withArrow position="right">
-                  <ActionIcon
-                    variant="default"
-                    size={18}
-                    onClick={handleCreatePage}
-                    aria-label={t("Create page")}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            )}
+                  <Tooltip label={t("Create page")} withArrow position="right">
+                    <ActionIcon
+                      variant="default"
+                      size={18}
+                      onClick={handleCreatePage}
+                      aria-label={t("Create page")}
+                    >
+                      <IconPlus />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              )}
           </Group>
 
           <div className={classes.pages}>
@@ -186,7 +196,7 @@ export function SpaceSidebar() {
               spaceId={space.id}
               readOnly={spaceAbility.cannot(
                 SpaceCaslAction.Manage,
-                SpaceCaslSubject.Page,
+                SpaceCaslSubject.Page
               )}
             />
           </div>

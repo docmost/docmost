@@ -5,6 +5,7 @@ import PageEditor from "@/features/editor/page-editor";
 import { Container } from "@mantine/core";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import useUserRole from "@/hooks/use-user-role";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -27,6 +28,7 @@ export function FullEditor({
   editable,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
+  const { isVisitor } = useUserRole();
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
 
   return (
@@ -40,11 +42,11 @@ export function FullEditor({
         slugId={slugId}
         title={title}
         spaceSlug={spaceSlug}
-        editable={editable}
+        editable={isVisitor ? false : editable}
       />
       <MemoizedPageEditor
         pageId={pageId}
-        editable={editable}
+        editable={isVisitor ? false : editable}
         content={content}
       />
     </Container>

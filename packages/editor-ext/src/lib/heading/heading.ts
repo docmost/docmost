@@ -33,25 +33,27 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
                     icon.appendChild(linkBtnContent);
 
                     icon.addEventListener("mousedown", (e) =>
-                      e.preventDefault(),
+                      e.preventDefault()
                     );
                     icon.addEventListener("click", (e) => {
                       e.stopPropagation();
                       e.preventDefault();
+
                       const id = node.attrs.id;
-                      const baseUrl = window.location.href.split('#')[0];
+                      const baseUrl = window.location.href.split("#")[0];
                       const url = `${baseUrl}#${id}`;
-                      navigator.clipboard.writeText(url);
+
+                      copyToClipboard(url);
+
                       linkBtnContent.innerHTML = successIcon;
-                      setTimeout(
-                        () => (linkBtnContent.innerHTML = copyIcon),
-                        2000,
-                      );
+                      setTimeout(() => {
+                        linkBtnContent.innerHTML = copyIcon;
+                      }, 2000);
                     });
 
                     return icon;
                   },
-                  { side: 1 }, // render after node content
+                  { side: 1 } // render after node content
                 );
                 decorations.push(deco);
               }
@@ -76,3 +78,34 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
     ];
   },
 });
+
+function copyToClipboard(text: string) {
+  // Modern Clipboard API
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => {
+      legacyCopy(text);
+    });
+  }
+
+  // Fallback
+  legacyCopy(text);
+}
+
+function legacyCopy(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    document.execCommand("copy");
+  } catch (err) {
+    console.error("Clipboard copy failed", err);
+  }
+
+  document.body.removeChild(textarea);
+}

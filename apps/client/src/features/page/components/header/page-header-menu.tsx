@@ -44,6 +44,7 @@ import { PageStateSegmentedControl } from "@/features/user/components/page-state
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import ShareModal from "@/features/share/components/share-modal.tsx";
+import { useUserRole } from "@/hooks/use-user-role";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -51,6 +52,7 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
+  const userRole = useUserRole();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
 
   useHotkeys(
@@ -70,7 +72,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         },
       ],
     ],
-    [],
+    []
   );
 
   return (
@@ -86,10 +88,12 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
-
-      {!readOnly && <PageStateSegmentedControl size="xs" />}
-
-      <ShareModal readOnly={readOnly} />
+      {!userRole.isVisitor && !readOnly && (
+        <>
+          <PageStateSegmentedControl size="xs" />
+          <ShareModal readOnly={readOnly} />
+        </>
+      )}
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
@@ -111,7 +115,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
         </ActionIcon>
       </Tooltip>
 
-      <PageActionMenu readOnly={readOnly} />
+      {!userRole.isVisitor && <PageActionMenu readOnly={readOnly} />}
     </>
   );
 }

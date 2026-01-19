@@ -8,10 +8,10 @@ import {
 } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
-import { useClipboard } from "@mantine/hooks";
 import { getInviteLink } from "@/features/workspace/services/workspace-service.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { isCloud } from "@/lib/config.ts";
+import { copyToClipboard } from "@/features/editor/utils/clipboard";
 
 interface Props {
   invitationId: string;
@@ -21,16 +21,19 @@ export default function InviteActionMenu({ invitationId }: Props) {
   const resendInvitationMutation = useResendInvitationMutation();
   const revokeInvitationMutation = useRevokeInvitationMutation();
   const { isAdmin } = useUserRole();
-  const clipboard = useClipboard();
 
   const handleCopyLink = async (invitationId: string) => {
     try {
       const link = await getInviteLink({ invitationId });
-      clipboard.copy(link.inviteLink);
-      notifications.show({ message: t("Link copied") });
-    } catch (err) {
+
+      await copyToClipboard(link.inviteLink);
+
       notifications.show({
-        message: err["response"]?.data?.message,
+        message: t("Link copied"),
+      });
+    } catch (err: any) {
+      notifications.show({
+        message: err?.response?.data?.message || t("Failed to copy link"),
         color: "red",
       });
     }
@@ -50,7 +53,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
       children: (
         <Text size="sm">
           {t(
-            "Are you sure you want to revoke this invitation? The user will not be able to join the workspace.",
+            "Are you sure you want to revoke this invitation? The user will not be able to join the workspace."
           )}
         </Text>
       ),
