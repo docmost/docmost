@@ -1,4 +1,7 @@
-import { imageDimensionsFromData } from "image-dimensions";
+import {
+  imageDimensionsFromData,
+  imageDimensionsFromStream,
+} from "image-dimensions";
 import { MediaUploadOptions, UploadFn } from "../media-utils";
 import { IAttachment } from "../types";
 import { generateNodeId } from "../utils";
@@ -33,7 +36,7 @@ const handleImageUpload =
     // @ts-ignore
     if (!validated) return;
 
-    const imageDimensions = imageDimensionsFromData(await file.bytes());
+    const imageDimensions = await imageDimensionsFromStream(file.stream());
     const placeholderId = generateNodeId();
     const aspectRatio = imageDimensions
       ? imageDimensions.width / imageDimensions.height
