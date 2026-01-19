@@ -1,8 +1,15 @@
 import { ActionIcon, Menu, Tooltip } from "@mantine/core";
-import { IconDots, IconEdit, IconTrash, IconCircleCheck, IconCircleCheckFilled } from "@tabler/icons-react";
+import {
+  IconDots,
+  IconEdit,
+  IconTrash,
+  IconCircleCheck,
+  IconCircleCheckFilled,
+} from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { useTranslation } from "react-i18next";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import { useUserRole } from "@/hooks/use-user-role";
 
 type CommentMenuProps = {
   onEditComment: () => void;
@@ -13,16 +20,17 @@ type CommentMenuProps = {
   isParentComment?: boolean;
 };
 
-function CommentMenu({ 
-  onEditComment, 
-  onDeleteComment, 
+function CommentMenu({
+  onEditComment,
+  onDeleteComment,
   onResolveComment,
   canEdit = true,
   isResolved = false,
-  isParentComment = false
+  isParentComment = false,
 }: CommentMenuProps) {
   const { t } = useTranslation();
   const isCloudEE = useIsCloudEE();
+  const { isVisitor } = useUserRole();
 
   //@ts-ignore
   const openDeleteModal = () =>
@@ -44,34 +52,39 @@ function CommentMenu({
 
       <Menu.Dropdown>
         {canEdit && (
-          <Menu.Item onClick={onEditComment} leftSection={<IconEdit size={14} />}>
+          <Menu.Item
+            onClick={onEditComment}
+            leftSection={<IconEdit size={14} />}
+          >
             {t("Edit comment")}
           </Menu.Item>
         )}
-        {isParentComment && (
-          isCloudEE ? (
-            <Menu.Item 
-              onClick={onResolveComment} 
+        {isParentComment &&
+          (isCloudEE ? (
+            <Menu.Item
+              onClick={onResolveComment}
               leftSection={
-                isResolved ? 
-                  <IconCircleCheckFilled size={14} /> : 
+                isResolved ? (
+                  <IconCircleCheckFilled size={14} />
+                ) : (
                   <IconCircleCheck size={14} />
+                )
               }
             >
               {isResolved ? t("Re-open comment") : t("Resolve comment")}
             </Menu.Item>
           ) : (
-            <Tooltip label={t("Available in enterprise edition")} position="left">
-              <Menu.Item 
-                disabled
-                leftSection={<IconCircleCheck size={14} />}
-              >
+            <Tooltip
+              label={t("Available in enterprise edition")}
+              position="left"
+            >
+              <Menu.Item disabled leftSection={<IconCircleCheck size={14} />}>
                 {t("Resolve comment")}
               </Menu.Item>
             </Tooltip>
-          )
-        )}
+          ))}
         <Menu.Item
+          disabled={!canEdit}
           leftSection={<IconTrash size={14} />}
           onClick={openDeleteModal}
         >
