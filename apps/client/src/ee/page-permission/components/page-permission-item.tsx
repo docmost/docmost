@@ -1,4 +1,4 @@
-import { Group, Menu, Text, UnstyledButton } from "@mantine/core";
+import { Menu, Text, UnstyledButton, Group } from "@mantine/core";
 import { IconChevronDown, IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
@@ -43,65 +43,61 @@ export function PagePermissionItem({
         {member.type === "group" && <IconGroupCircle />}
 
         <div className={classes.permissionItemDetails}>
-          <Group gap={4}>
-            <Text fz="sm" fw={500} lineClamp={1}>
-              {member.name}
-            </Text>
-            {isCurrentUser && (
-              <Text fz="sm" c="dimmed">
-                ({t("You")})
-              </Text>
-            )}
-          </Group>
-          <Text fz="xs" c="dimmed" lineClamp={1}>
+          <Text fz="sm" fw={500} truncate>
+            {member.name}
+            {isCurrentUser && <Text span c="dimmed"> ({t("You")})</Text>}
+          </Text>
+          <Text fz="xs" c="dimmed" truncate>
             {member.type === "user" && member.email}
             {member.type === "group" && formatMemberCount(member.memberCount, t)}
           </Text>
         </div>
       </div>
 
-      {isCurrentUser || disabled ? (
-        <Text size="sm" c="dimmed">
-          {t(roleLabel)}
-        </Text>
-      ) : (
-        <Menu withArrow position="bottom-end">
-          <Menu.Target>
-            <UnstyledButton>
-              <Group gap={4}>
-                <Text size="sm">{t(roleLabel)}</Text>
-                <IconChevronDown size={14} />
-              </Group>
-            </UnstyledButton>
-          </Menu.Target>
+      <div className={classes.permissionItemRole}>
+        {isCurrentUser || disabled ? (
+          <Text size="sm" c="dimmed">
+            {t(roleLabel)}
+          </Text>
+        ) : (
+          <Menu withArrow position="bottom-end">
+            <Menu.Target>
+              <UnstyledButton>
+                <Group gap={4}>
+                  <Text size="sm">{t(roleLabel)}</Text>
+                  <IconChevronDown size={14} />
+                </Group>
+              </UnstyledButton>
+            </Menu.Target>
 
-          <Menu.Dropdown>
-            {pagePermissionRoleData.map((role) => (
+            <Menu.Dropdown>
+              {pagePermissionRoleData.map((role) => (
+                <Menu.Item
+                  key={role.value}
+                  onClick={() => onRoleChange(member.id, member.type, role.value)}
+                  rightSection={
+                    role.value === member.role ? <IconCheck size={16} /> : null
+                  }
+                >
+                  <div>
+                    <Text size="sm">{t(role.label)}</Text>
+                    <Text size="xs" c="dimmed">
+                      {t(role.description)}
+                    </Text>
+                  </div>
+                </Menu.Item>
+              ))}
+              <Menu.Divider />
               <Menu.Item
-                key={role.value}
-                onClick={() => onRoleChange(member.id, member.type, role.value)}
-                rightSection={
-                  role.value === member.role ? <IconCheck size={16} /> : null
-                }
+                color="red"
+                onClick={() => onRemove(member.id, member.type)}
               >
-                <div>
-                  <Text size="sm">{t(role.label)}</Text>
-                  <Text size="xs" c="dimmed">
-                    {t(role.description)}
-                  </Text>
-                </div>
+                {t("Remove access")}
               </Menu.Item>
-            ))}
-            <Menu.Divider />
-            <Menu.Item
-              color="red"
-              onClick={() => onRemove(member.id, member.type)}
-            >
-              {t("Remove access")}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      )}
+            </Menu.Dropdown>
+          </Menu>
+        )}
+      </div>
     </div>
   );
 }

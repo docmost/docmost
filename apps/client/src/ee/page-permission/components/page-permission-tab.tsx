@@ -26,8 +26,8 @@ import {
   useUnrestrictPageMutation,
 } from "@/ee/page-permission/queries/page-permission-query";
 import { pagePermissionRoleData } from "@/ee/page-permission/types/page-permission-role-data";
-import { GeneralAccessSelect } from "./general-access-select";
-import { PagePermissionList } from "./page-permission-list";
+import { GeneralAccessSelect } from "@/ee/page-permission";
+import { PagePermissionList } from "@/ee/page-permission";
 import classes from "./page-permission.module.css";
 import { buildPageUrl } from "@/features/page/page.utils";
 

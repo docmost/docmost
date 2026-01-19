@@ -163,7 +163,7 @@ export function PagePermissionList({
         </Text>
       </Group>
 
-      <ScrollArea.Autosize mah={250}>
+      <ScrollArea mah={250}>
         {sortedMembers.map((member) => (
           <PagePermissionItem
             key={`${member.type}-${member.id}`}
@@ -173,7 +173,7 @@ export function PagePermissionList({
             disabled={!canManage}
           />
         ))}
-      </ScrollArea.Autosize>
+      </ScrollArea>
     </>
   );
 }

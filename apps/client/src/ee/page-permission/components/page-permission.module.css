@@ -37,6 +37,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--mantine-spacing-xs) 0;
+  gap: var(--mantine-spacing-sm);
 }
 
 .permissionItemInfo {
@@ -45,11 +46,19 @@
   gap: var(--mantine-spacing-sm);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .permissionItemDetails {
   min-width: 0;
   flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.permissionItemRole {
+  flex-shrink: 0;
 }
 
 .avatarStack {
