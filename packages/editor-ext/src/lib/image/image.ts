@@ -91,11 +91,14 @@ export const TiptapImage = Image.extend<ImageOptions>({
           "data-size": attributes.size,
         }),
       },
-      placeholderId: {
-        default: null,
-        rendered: false,
-      },
       aspectRatio: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        renderHTML: (attributes: ImageAttributes) => ({
+          "data-aspect-ratio": attributes.aspectRatio,
+        }),
+      },
+      placeholderId: {
         default: null,
         rendered: false,
       },

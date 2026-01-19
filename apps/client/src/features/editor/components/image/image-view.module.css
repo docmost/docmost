@@ -1,4 +1,4 @@
-.imagePlaceholder {
+.imageWrapper {
   border-radius: 8px;
   @mixin light {
     background-color: var(--mantine-color-gray-0);

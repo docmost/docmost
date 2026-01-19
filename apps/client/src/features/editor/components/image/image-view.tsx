@@ -19,8 +19,8 @@ export default function ImageView(props: NodeViewProps) {
     <NodeViewWrapper data-drag-handle>
       <div
         className={clsx(
-          selected ? "ProseMirror-selectednode" : "",
-          classes.imagePlaceholder,
+          selected && "ProseMirror-selectednode",
+          classes.imageWrapper,
           alignClass,
         )}
         style={{
