@@ -2,11 +2,11 @@ import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { useMemo } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
+import classes from "./video-view.module.css";
 
 export default function VideoView(props: NodeViewProps) {
   const { node, selected } = props;
-  const { src, width, align } = node.attrs;
-
+  const { src, width, align, aspectRatio } = node.attrs;
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -16,14 +16,26 @@ export default function VideoView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <video
-        preload="metadata"
-        width={width}
-        controls
-        src={getFileUrl(src)}
-        className={clsx(selected ? "ProseMirror-selectednode" : "", alignClass)}
-        style={{ display: "block" }}
-      />
+      <div
+        className={clsx(
+          selected && "ProseMirror-selectednode",
+          classes.videoWrapper,
+          alignClass,
+        )}
+        style={{
+          aspectRatio: aspectRatio ? aspectRatio : src ? undefined : "16 / 9",
+          width,
+        }}
+      >
+        {src && (
+          <video
+            className={classes.video}
+            preload="metadata"
+            controls
+            src={getFileUrl(src)}
+          />
+        )}
+      </div>
     </NodeViewWrapper>
   );
 }

@@ -1,0 +1,15 @@
+.videoWrapper {
+  border-radius: 8px;
+  @mixin light {
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-7);
+  }
+}
+.video {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+}

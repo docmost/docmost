@@ -205,8 +205,12 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           if (input.files?.length) {
             const file = input.files[0];
             const pos = editor.view.state.selection.from;
+
             uploadVideoAction(file, editor.view, pos, pageId);
           }
+
+          // Reset the input value to allow uploading the same file again if needed
+          input.value = "";
         };
         input.click();
       },
