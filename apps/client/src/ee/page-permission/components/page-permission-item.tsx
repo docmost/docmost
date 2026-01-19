@@ -3,6 +3,7 @@ import { IconChevronDown, IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { formatMemberCount } from "@/lib";
@@ -43,14 +44,17 @@ export function PagePermissionItem({
         {member.type === "group" && <IconGroupCircle />}
 
         <div className={classes.permissionItemDetails}>
-          <Text fz="sm" fw={500} truncate>
+          <AutoTooltipText
+            fz="sm"
+            fw={500}
+            tooltipLabel={isCurrentUser ? `${member.name} (${t("You")})` : member.name}
+          >
             {member.name}
             {isCurrentUser && <Text span c="dimmed"> ({t("You")})</Text>}
-          </Text>
-          <Text fz="xs" c="dimmed" truncate>
-            {member.type === "user" && member.email}
-            {member.type === "group" && formatMemberCount(member.memberCount, t)}
-          </Text>
+          </AutoTooltipText>
+          <AutoTooltipText fz="xs" c="dimmed">
+            {member.type === "user" ? member.email : formatMemberCount(member.memberCount, t)}
+          </AutoTooltipText>
         </div>
       </div>
 
