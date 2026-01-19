@@ -3,11 +3,11 @@ import { useMemo } from "react";
 import { Image } from "@mantine/core";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
+import classes from "./image-view.module.css";
 
 export default function ImageView(props: NodeViewProps) {
   const { node, selected } = props;
-  const { src, width, align, title } = node.attrs;
-
+  const { src, width, align, title, aspectRatio } = node.attrs;
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -17,14 +17,21 @@ export default function ImageView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <Image
-        radius="md"
-        fit="contain"
-        w={width}
-        src={getFileUrl(src)}
-        alt={title}
-        className={clsx(selected ? "ProseMirror-selectednode" : "", alignClass)}
-      />
+      <div
+        className={clsx(
+          selected ? "ProseMirror-selectednode" : "",
+          classes.imagePlaceholder,
+          alignClass,
+        )}
+        style={{
+          aspectRatio: aspectRatio ? aspectRatio : src ? undefined : "16 / 9",
+          width,
+        }}
+      >
+        {src && (
+          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={title} />
+        )}
+      </div>
     </NodeViewWrapper>
   );
 }

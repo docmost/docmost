@@ -1,7 +1,6 @@
 import Image from "@tiptap/extension-image";
 import { ImageOptions as DefaultImageOptions } from "@tiptap/extension-image";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { ImageUploadPlugin } from "./image-upload";
 import { mergeAttributes, Range } from "@tiptap/core";
 
 export interface ImageOptions extends DefaultImageOptions {
@@ -15,6 +14,8 @@ export interface ImageAttributes {
   attachmentId?: string;
   size?: number;
   width?: number;
+  aspectRatio?: number;
+  placeholderId?: string;
 }
 
 declare module "@tiptap/core" {
@@ -22,7 +23,7 @@ declare module "@tiptap/core" {
     imageBlock: {
       setImage: (attributes: ImageAttributes) => ReturnType;
       setImageAt: (
-        attributes: ImageAttributes & { pos: number | Range }
+        attributes: ImageAttributes & { pos: number | Range },
       ) => ReturnType;
       setImageAlign: (align: "left" | "center" | "right") => ReturnType;
       setImageWidth: (width: number) => ReturnType;
@@ -90,6 +91,14 @@ export const TiptapImage = Image.extend<ImageOptions>({
           "data-size": attributes.size,
         }),
       },
+      placeholderId: {
+        default: null,
+        rendered: false,
+      },
+      aspectRatio: {
+        default: null,
+        rendered: false,
+      },
     };
   },
 
@@ -139,13 +148,5 @@ export const TiptapImage = Image.extend<ImageOptions>({
     this.editor.isInitialized = true;
 
     return ReactNodeViewRenderer(this.options.view);
-  },
-
-  addProseMirrorPlugins() {
-    return [
-      ImageUploadPlugin({
-        placeholderClass: "image-upload",
-      }),
-    ];
   },
 });
