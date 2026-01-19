@@ -3,6 +3,7 @@ import { MediaUploadOptions, UploadFn } from "../media-utils";
 import { IAttachment } from "../types";
 import { generateNodeId } from "../utils";
 import { Node } from "@tiptap/pm/model";
+import { Transaction } from "@tiptap/pm/state";
 
 const findImageNodeByPlaceholderId = (
   doc: Node,
@@ -42,8 +43,8 @@ const handleImageUpload =
       aspectRatio,
     });
 
+    let tr: Transaction | null = view.state.tr;
     let placeholderShown = false;
-    let tr = view.state.tr;
 
     if (!initialPlaceholderNode) return;
 
@@ -61,11 +62,14 @@ const handleImageUpload =
     const displayPlaceholderTimeout = setTimeout(() => {
       view.dispatch(tr);
       placeholderShown = true;
-      tr = view.state.tr;
+      tr = null;
     }, 250);
 
     try {
       const attachment: IAttachment = await onUpload(file, pageId);
+
+      tr = tr ?? view.state.tr;
+
       const { pos: currentPos = null } =
         findImageNodeByPlaceholderId(tr.doc, placeholderId) || {};
 
@@ -81,6 +85,8 @@ const handleImageUpload =
         aspectRatio,
       });
     } catch (error) {
+      tr = tr ?? view.state.tr;
+
       const { pos: currentPos = null } =
         findImageNodeByPlaceholderId(tr.doc, placeholderId) || {};
 
