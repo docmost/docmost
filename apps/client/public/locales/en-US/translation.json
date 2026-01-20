@@ -328,6 +328,8 @@
   "Upload any image from your device.": "Upload any image from your device.",
   "Upload any video from your device.": "Upload any video from your device.",
   "Upload any file from your device.": "Upload any file from your device.",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "Table",
   "Insert a table.": "Insert a table.",
   "Insert collapsible block.": "Insert collapsible block.",

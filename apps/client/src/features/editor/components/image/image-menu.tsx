@@ -43,7 +43,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         return false;
       }
 
-      return editor.isActive("image");
+      return editor.isActive("image") && editor.getAttributes("image").src;
     },
     [editor],
   );

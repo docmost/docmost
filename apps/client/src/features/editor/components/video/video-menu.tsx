@@ -20,7 +20,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
   const editorState = useEditorState({
     editor,
-    selector: ctx => {
+    selector: (ctx) => {
       if (!ctx.editor) {
         return null;
       }
@@ -43,7 +43,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         return false;
       }
 
-      return editor.isActive("video");
+      return editor.isActive("video") && editor.getAttributes("video").src;
     },
     [editor],
   );

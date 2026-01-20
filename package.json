@@ -64,6 +64,7 @@
     "dompurify": "^3.2.6",
     "fractional-indexing-jittered": "^1.0.0",
     "highlight.js": "^11.11.1",
+    "image-dimensions": "^2.5.0",
     "ioredis": "^5.4.1",
     "jszip": "^3.10.1",
     "linkifyjs": "^4.3.2",

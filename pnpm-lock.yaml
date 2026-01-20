@@ -153,6 +153,9 @@ importers:
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
+      image-dimensions:
+        specifier: ^2.5.0
+        version: 2.5.0
       ioredis:
         specifier: ^5.4.1
         version: 5.4.1
@@ -6877,6 +6880,11 @@ packages:
 
   image-blob-reduce@3.0.1:
     resolution: {integrity: sha512-/VmmWgIryG/wcn4TVrV7cC4mlfUC/oyiKIfSg5eVM3Ten/c1c34RJhMYKCWTnoSMHSqXLt3tsrBR4Q2HInvN+Q==}
+
+  image-dimensions@2.5.0:
+    resolution: {integrity: sha512-CKZPHjAEtSg9lBV9eER0bhNn/yrY7cFEQEhkwjLhqLY+Na8lcP1pEyWsaGMGc8t2qbKWA/tuqbhFQpOKGN72Yw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   image-size@0.5.5:
     resolution: {integrity: sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==}
@@ -17743,6 +17751,8 @@ snapshots:
   image-blob-reduce@3.0.1:
     dependencies:
       pica: 7.1.1
+
+  image-dimensions@2.5.0: {}
 
   image-size@0.5.5:
     optional: true

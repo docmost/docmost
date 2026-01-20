@@ -1,6 +1,5 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { VideoUploadPlugin } from "./video-upload";
-import { mergeAttributes, Range, Node, nodeInputRule } from "@tiptap/core";
+import { Range, Node } from "@tiptap/core";
 
 export interface VideoOptions {
   view: any;
@@ -8,11 +7,15 @@ export interface VideoOptions {
 }
 export interface VideoAttributes {
   src?: string;
-  title?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
   width?: number;
+  aspectRatio?: number;
+  placeholder?: {
+    id: string;
+    name: string;
+  };
 }
 
 declare module "@tiptap/core" {
@@ -20,7 +23,7 @@ declare module "@tiptap/core" {
     videoBlock: {
       setVideo: (attributes: VideoAttributes) => ReturnType;
       setVideoAt: (
-        attributes: VideoAttributes & { pos: number | Range }
+        attributes: VideoAttributes & { pos: number | Range },
       ) => ReturnType;
       setVideoAlign: (align: "left" | "center" | "right") => ReturnType;
       setVideoWidth: (width: number) => ReturnType;
@@ -81,6 +84,17 @@ export const TiptapVideo = Node.create<VideoOptions>({
           "data-align": attributes.align,
         }),
       },
+      aspectRatio: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        renderHTML: (attributes: VideoAttributes) => ({
+          "data-aspect-ratio": attributes.aspectRatio,
+        }),
+      },
+      placeholder: {
+        default: null,
+        rendered: false,
+      },
     };
   },
 
@@ -130,13 +144,5 @@ export const TiptapVideo = Node.create<VideoOptions>({
     this.editor.isInitialized = true;
 
     return ReactNodeViewRenderer(this.options.view);
-  },
-
-  addProseMirrorPlugins() {
-    return [
-      VideoUploadPlugin({
-        placeholderClass: "video-upload",
-      }),
-    ];
   },
 });
