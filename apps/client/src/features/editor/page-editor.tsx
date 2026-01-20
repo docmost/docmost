@@ -16,6 +16,7 @@ import {
   onSyncedParameters,
 } from "@hocuspocus/provider";
 import {
+  Editor,
   EditorContent,
   EditorProvider,
   useEditor,
@@ -79,7 +80,7 @@ export default function PageEditor({
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
-  const editorCreated = useRef(false);
+  const editorRef = useRef<Editor | null>(null);
 
   useEffect(() => {
     isComponentMounted.current = true;
@@ -104,8 +105,8 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
   const canScroll = useCallback(
-    () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated],
+    () => Boolean(isComponentMounted.current && editorRef.current),
+    [isComponentMounted],
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
@@ -253,10 +254,21 @@ export default function PageEditor({
             }
           },
         },
-        handlePaste: (_view, event) =>
-          handlePaste(editor, event, pageId, currentUser?.user.id),
-        handleDrop: (_view, event, _slice, moved) =>
-          handleFileDrop(editor, event, moved, pageId),
+        handlePaste: (_view, event) => {
+          if (!editorRef.current) return false;
+
+          return handlePaste(
+            editorRef.current,
+            event,
+            pageId,
+            currentUser?.user.id,
+          );
+        },
+        handleDrop: (_view, event, _slice, moved) => {
+          if (!editorRef.current) return false;
+
+          return handleFileDrop(editorRef.current, event, moved, pageId);
+        },
       },
       onCreate({ editor }) {
         if (editor) {
@@ -265,7 +277,7 @@ export default function PageEditor({
           // @ts-ignore
           editor.storage.pageId = pageId;
           handleScrollTo(editor);
-          editorCreated.current = true;
+          editorRef.current = editor;
         }
       },
       onUpdate({ editor }) {
