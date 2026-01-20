@@ -4,8 +4,10 @@ import { getFileUrl } from "@/lib/config.ts";
 import { IconDownload, IconPaperclip } from "@tabler/icons-react";
 import { useHover } from "@mantine/hooks";
 import { formatBytes } from "@/lib";
+import { useTranslation } from "react-i18next";
 
 export default function AttachmentView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { node, selected } = props;
   const { url, name, size } = node.attrs;
   const { hovered, ref } = useHover();
@@ -20,14 +22,18 @@ export default function AttachmentView(props: NodeViewProps) {
           wrap="nowrap"
           h={25}
         >
-          <Group justify="space-between" wrap="nowrap">
-            {url ? <IconPaperclip size={20} /> : <Loader size={20} />}
+          <Group wrap="nowrap" gap="sm" style={{ minWidth: 0, flex: 1 }}>
+            {url ? (
+              <IconPaperclip size={20} style={{ flexShrink: 0 }} />
+            ) : (
+              <Loader size={20} style={{ flexShrink: 0 }} />
+            )}
 
-            <Text component="span" size="md" truncate="end">
-              {url ? name : `Uploading ${name}...`}
+            <Text component="span" size="md" truncate="end" style={{ minWidth: 0 }}>
+              {url ? name : t("Uploading {{name}}", { name })}
             </Text>
 
-            <Text component="span" size="sm" c="dimmed" inline>
+            <Text component="span" size="sm" c="dimmed" style={{ flexShrink: 0 }}>
               {formatBytes(size)}
             </Text>
           </Group>

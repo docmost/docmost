@@ -4,8 +4,10 @@ import { useMemo } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
 import classes from "./image-view.module.css";
+import { useTranslation } from "react-i18next";
 
 export default function ImageView(props: NodeViewProps) {
+  const { t } = useTranslation();
   const { editor, node, selected } = props;
   const { src, width, align, title, aspectRatio, placeholder } = node.attrs;
   const alignClass = useMemo(() => {
@@ -53,10 +55,12 @@ export default function ImageView(props: NodeViewProps) {
           </Group>
         )}
         {!src && !previewSrc && (
-          <Group justify="space-between" wrap="nowrap">
-            <Loader size={20} />
-            <Text component="span" size="md" truncate="end">
-              Uploading{placeholder?.name ? ` ${placeholder?.name}` : ""}...
+          <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
+            <Loader size={20} style={{ flexShrink: 0 }} />
+            <Text component="span" size="sm" truncate="end">
+              {placeholder?.name
+                ? t("Uploading {{name}}", { name: placeholder.name })
+                : t("Uploading file")}
             </Text>
           </Group>
         )}
