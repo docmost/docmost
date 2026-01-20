@@ -93,7 +93,7 @@ export default function PageEditor({
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom
+    yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
@@ -105,7 +105,7 @@ export default function PageEditor({
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated]
+    [isComponentMounted, editorCreated],
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
@@ -253,10 +253,10 @@ export default function PageEditor({
             }
           },
         },
-        handlePaste: (view, event, slice) =>
-          handlePaste(view, event, pageId, currentUser?.user.id),
-        handleDrop: (view, event, _slice, moved) =>
-          handleFileDrop(view, event, moved, pageId),
+        handlePaste: (_view, event) =>
+          handlePaste(editor, event, pageId, currentUser?.user.id),
+        handleDrop: (_view, event, _slice, moved) =>
+          handleFileDrop(editor, event, moved, pageId),
       },
       onCreate({ editor }) {
         if (editor) {
@@ -275,7 +275,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, extensions]
+    [pageId, editable, extensions],
   );
 
   const editorIsEditable = useEditorState({
@@ -320,7 +320,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent
+        handleActiveCommentEvent,
       );
     };
   }, []);

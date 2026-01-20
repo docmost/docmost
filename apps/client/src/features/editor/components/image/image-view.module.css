@@ -1,4 +1,7 @@
 .imageWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border-radius: 8px;
   @mixin light {
     background-color: var(--mantine-color-gray-0);

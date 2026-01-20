@@ -7,13 +7,15 @@ export interface VideoOptions {
 }
 export interface VideoAttributes {
   src?: string;
-  title?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
   width?: number;
   aspectRatio?: number;
-  placeholderId?: string;
+  placeholder?: {
+    id: string;
+    name: string;
+  };
 }
 
 declare module "@tiptap/core" {
@@ -89,7 +91,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
           "data-aspect-ratio": attributes.aspectRatio,
         }),
       },
-      placeholderId: {
+      placeholder: {
         default: null,
         rendered: false,
       },

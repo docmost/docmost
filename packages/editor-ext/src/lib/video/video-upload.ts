@@ -1,8 +1,8 @@
-import { Transaction } from "@tiptap/pm/state";
 import { MediaUploadOptions, UploadFn } from "../media-utils";
 import { IAttachment } from "../types";
 import { generateNodeId } from "../utils";
 import { Node } from "@tiptap/pm/model";
+import { Command } from "@tiptap/core";
 
 const findVideoNodeByPlaceholderId = (
   doc: Node,
@@ -15,7 +15,7 @@ const findVideoNodeByPlaceholderId = (
 
     if (
       node.type.name === "video" &&
-      node.attrs.placeholderId === placeholderId
+      node.attrs.placeholder?.id === placeholderId
     ) {
       result = { node, pos };
       return false;
@@ -52,7 +52,7 @@ const getVideoDimensions = (
 };
 const handleVideoUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, view, pos, pageId) => {
+  async (file, editor, pos, pageId) => {
     // check if the file is valid
     const validated = validateFn?.(file);
     // @ts-ignore
@@ -62,84 +62,107 @@ const handleVideoUpload =
     const videoDimensions = await getVideoDimensions(objectUrl);
     const placeholderId = generateNodeId();
     const aspectRatio = videoDimensions.aspectRatio;
-    const initialPlaceholderNode = view.state.schema.nodes.video?.create({
-      placeholderId,
-      aspectRatio,
-    });
 
-    let tr: Transaction | null = view.state.tr;
-    let placeholderShown = false;
+    let placeholderInserted = false;
 
-    if (!initialPlaceholderNode) {
-      URL.revokeObjectURL(objectUrl);
-      return;
-    }
+    editor.storage.shared.videoPreviews =
+      editor.storage.shared.videoPreviews || {};
+    editor.storage.shared.videoPreviews[placeholderId] = objectUrl;
 
-    const { parent } = tr.doc.resolve(pos);
-    const isEmptyTextBlock = parent.isTextblock && !parent.childCount;
+    const insertPlaceholder = (): Command => {
+      return ({ tr, state }) => {
+        const initialPlaceholderNode = state.schema.nodes.video?.create({
+          placeholder: {
+            id: placeholderId,
+            name: file.name,
+          },
+          aspectRatio,
+        });
 
-    if (isEmptyTextBlock) {
-      // Replace e.g. empty paragraph with the video
-      tr.replaceRangeWith(pos - 1, pos + 1, initialPlaceholderNode);
-    } else {
-      tr.insert(pos, initialPlaceholderNode);
-    }
+        if (!initialPlaceholderNode) return false;
+
+        const { parent } = tr.doc.resolve(pos);
+        const isEmptyTextBlock = parent.isTextblock && !parent.childCount;
+
+        if (isEmptyTextBlock) {
+          // Replace e.g. empty paragraph with the video
+          tr.replaceRangeWith(pos - 1, pos + 1, initialPlaceholderNode);
+        } else {
+          tr.insert(pos, initialPlaceholderNode);
+        }
+
+        return true;
+      };
+    };
+    const replacePlaceholderWithVideo = (attachment: IAttachment): Command => {
+      return ({ tr }) => {
+        const { pos: currentPos = null } =
+          findVideoNodeByPlaceholderId(tr.doc, placeholderId) || {};
+
+        //  If the placeholder is not found or attachment is missing, abort the process
+        if (currentPos === null || !attachment) return;
+
+        // Update the placeholder node with the actual video data
+        tr.setNodeMarkup(currentPos, undefined, {
+          src: `/api/files/${attachment.id}/${attachment.fileName}`,
+          attachmentId: attachment.id,
+          title: attachment.fileName,
+          size: attachment.fileSize,
+          aspectRatio,
+        });
+
+        return true;
+      };
+    };
+    const removePlaceholder = (): Command => {
+      return ({ tr }) => {
+        const { pos: currentPos = null } =
+          findVideoNodeByPlaceholderId(tr.doc, placeholderId) || {};
+
+        if (currentPos === null) return false;
+
+        tr.delete(currentPos, currentPos + 2);
+
+        return true;
+      };
+    };
 
     // Only show the placeholder if the upload takes more than 250ms
-    const displayPlaceholderTimeout = setTimeout(() => {
-      view.dispatch(tr);
-      placeholderShown = true;
-      tr = null;
+    const insertPlaceholderTimeout = setTimeout(() => {
+      editor.commands.command(insertPlaceholder());
+      placeholderInserted = true;
     }, 250);
+    const disposePreviewFile = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      if (editor.storage.shared.videoPreviews) {
+        delete editor.storage.shared.videoPreviews[placeholderId];
+      }
+    };
 
     try {
       const attachment: IAttachment = await onUpload(file, pageId);
 
-      tr = tr ?? view.state.tr;
+      clearTimeout(insertPlaceholderTimeout);
 
-      const { pos: currentPos = null } =
-        findVideoNodeByPlaceholderId(tr.doc, placeholderId) || {};
-
-      //  If the placeholder is not found or attachment is missing, abort the process
-      if (currentPos === null || !attachment) return;
-
-      // Update the placeholder node with the actual video data
-      tr.setNodeMarkup(currentPos, undefined, {
-        src: `/api/files/${attachment.id}/${attachment.fileName}`,
-        attachmentId: attachment.id,
-        title: attachment.fileName,
-        size: attachment.fileSize,
-        aspectRatio,
-      });
-    } catch (error) {
-      tr = tr ?? view.state.tr;
-
-      const { pos: currentPos = null } =
-        findVideoNodeByPlaceholderId(tr.doc, placeholderId) || {};
-
-      if (currentPos === null) return;
-
-      // Delete the video placeholder on error
-      tr.delete(
-        currentPos,
-        currentPos + (initialPlaceholderNode.nodeSize ?? 2),
-      );
-    } finally {
-      clearTimeout(displayPlaceholderTimeout);
-
-      const dispatchFinal = () => {
-        view.dispatch(tr);
-        URL.revokeObjectURL(objectUrl);
-      };
-
-      // If the placeholder was shown, delay showing the video to avoid flicker
-      if (placeholderShown) {
+      if (placeholderInserted) {
         setTimeout(() => {
-          dispatchFinal();
+          editor.commands.command(replacePlaceholderWithVideo(attachment));
+          disposePreviewFile();
         }, 100);
       } else {
-        dispatchFinal();
+        editor
+          .chain()
+          .command(insertPlaceholder())
+          .command(replacePlaceholderWithVideo(attachment))
+          .run();
+        disposePreviewFile();
       }
+    } catch (error) {
+      clearTimeout(insertPlaceholderTimeout);
+
+      editor.commands.command(removePlaceholder());
+      disposePreviewFile();
     }
   };
 

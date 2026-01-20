@@ -12,7 +12,7 @@ export interface AttachmentAttributes {
   mime?: string; // e.g. application/zip
   size?: number;
   attachmentId?: string;
-  placeholderId?: string;
+  placeholder?: string;
 }
 
 declare module "@tiptap/core" {
@@ -75,13 +75,9 @@ export const Attachment = Node.create<AttachmentOptions>({
           "data-attachment-id": attributes.attachmentId,
         }),
       },
-      placeholderId: {
+      placeholder: {
         default: null,
-        parseHTML: (element) =>
-          element.getAttribute("data-attachment-placeholder-id"),
-        renderHTML: (attributes: AttachmentAttributes) => ({
-          "data-attachment-placeholder-id": attributes.placeholderId,
-        }),
+        rendered: false,
       },
     };
   },

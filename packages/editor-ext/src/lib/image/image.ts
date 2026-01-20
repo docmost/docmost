@@ -9,13 +9,15 @@ export interface ImageOptions extends DefaultImageOptions {
 export interface ImageAttributes {
   src?: string;
   alt?: string;
-  title?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
   width?: number;
   aspectRatio?: number;
-  placeholderId?: string;
+  placeholder?: {
+    id: string;
+    name: string;
+  };
 }
 
 declare module "@tiptap/core" {
@@ -98,7 +100,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
           "data-aspect-ratio": attributes.aspectRatio,
         }),
       },
-      placeholderId: {
+      placeholder: {
         default: null,
         rendered: false,
       },
