@@ -14,6 +14,24 @@
 
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
+## Docker (multi-arch build + push)
+
+This repo supports publishing a multi-arch image (AMD64 + ARM64) via Docker Buildx.
+
+```bash
+# Login to Harbor (prompts for password)
+docker login harbor.10layer.com
+
+# Build + push linux/amd64 and linux/arm64 to the "docmost" project/repo
+IMAGE=harbor.10layer.com/docmost/docmost TAG=latest ./scripts/docker/buildx-bake-push.sh
+```
+
+To run via compose using the Harbor image:
+
+```bash
+DOCMOST_IMAGE=harbor.10layer.com/docmost/docmost:latest docker compose up -d
+```
+
 ## Features
 
 - Real-time collaboration

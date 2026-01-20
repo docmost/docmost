@@ -20,6 +20,7 @@ import {
   FileTasks,
   UserMfa as _UserMFA,
   ApiKeys,
+  MentionEmailNotifications as _MentionEmailNotifications,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -116,6 +117,14 @@ export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
 export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
+
+// MentionEmailNotification
+export type MentionEmailNotification = Selectable<_MentionEmailNotifications>;
+export type InsertableMentionEmailNotification =
+  Insertable<_MentionEmailNotifications>;
+export type UpdatableMentionEmailNotification = Updateable<
+  Omit<_MentionEmailNotifications, 'id'>
+>;
 
 // UserMFA
 export type UserMFA = Selectable<_UserMFA>;

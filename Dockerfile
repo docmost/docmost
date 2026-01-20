@@ -1,9 +1,10 @@
-FROM node:22-slim AS base
-LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
+ARG NODE_IMAGE=node:22-slim
+
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build-base
 
 RUN npm install -g pnpm@10.4.0
 
-FROM base AS builder
+FROM build-base AS builder
 
 WORKDIR /app
 
@@ -12,7 +13,8 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-FROM base AS installer
+FROM --platform=$TARGETPLATFORM ${NODE_IMAGE} AS installer
+LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
@@ -36,6 +38,8 @@ COPY --from=builder /app/.npmrc /app/.npmrc
 
 # Copy patches
 COPY --from=builder /app/patches /app/patches
+
+RUN npm install -g pnpm@10.4.0
 
 RUN chown -R node:node /app
 
