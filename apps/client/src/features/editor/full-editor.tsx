@@ -17,6 +17,7 @@ export interface FullEditorProps {
   content: string;
   spaceSlug: string;
   editable: boolean;
+  canComment?: boolean;
 }
 
 export function FullEditor({
@@ -26,6 +27,7 @@ export function FullEditor({
   content,
   spaceSlug,
   editable,
+  canComment = false,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const { isVisitor } = useUserRole();
@@ -48,6 +50,7 @@ export function FullEditor({
         pageId={pageId}
         editable={isVisitor ? false : editable}
         content={content}
+        canComment={canComment}
       />
     </Container>
   );

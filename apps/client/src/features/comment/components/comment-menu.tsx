@@ -84,7 +84,6 @@ function CommentMenu({
             </Tooltip>
           ))}
         <Menu.Item
-          disabled={!canEdit}
           leftSection={<IconTrash size={14} />}
           onClick={openDeleteModal}
         >

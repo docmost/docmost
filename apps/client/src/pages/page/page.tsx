@@ -33,6 +33,11 @@ export default function Page() {
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
 
+  const canComment = spaceAbility.can(
+    SpaceCaslAction.Create,
+    SpaceCaslSubject.Comment,
+  );
+
   if (isLoading) {
     return <></>;
   }
@@ -73,6 +78,7 @@ export default function Page() {
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
+          canComment={canComment}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

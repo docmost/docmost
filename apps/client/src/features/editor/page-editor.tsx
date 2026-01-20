@@ -1,5 +1,11 @@
 import "@/features/editor/styles/index.css";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
@@ -62,15 +68,15 @@ interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
+  canComment?: boolean;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
+  canComment = false,
 }: PageEditorProps) {
-
-  
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
@@ -78,7 +84,7 @@ export default function PageEditor({
   useEffect(() => {
     isComponentMounted.current = true;
   }, []);
-  
+
   const [currentUser] = useAtom(currentUserAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -104,8 +110,11 @@ export default function PageEditor({
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
-  
-    const canScroll = useCallback(() => isComponentMounted.current && editorCreated.current, [isComponentMounted, editorCreated]);
+
+  const canScroll = useCallback(
+    () => isComponentMounted.current && editorCreated.current,
+    [isComponentMounted, editorCreated],
+  );
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
   const providersRef = useRef<{
@@ -415,9 +424,9 @@ export default function PageEditor({
           <SearchAndReplaceDialog editor={editor} editable={editable} />
         )}
 
-        {editor && editorIsEditable && (
+        {editor && (editorIsEditable || canComment) && (
           <div>
-            <EditorBubbleMenu editor={editor} />
+            <EditorBubbleMenu editor={editor} canComment={canComment} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />

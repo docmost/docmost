@@ -287,11 +287,7 @@ export const isColumnGripSelected = ({
   const nodeDOM = view.nodeDOM(from) as HTMLElement;
   const node = nodeDOM || domAtPos;
 
-  if (
-    !editor.isActive("table") ||
-    !node ||
-    isTableSelected(state.selection)
-  ) {
+  if (!editor.isActive("table") || !node || isTableSelected(state.selection)) {
     return false;
   }
 
@@ -358,7 +354,8 @@ export function isTextSelected(editor: Editor) {
   const isEmptyTextBlock =
     !doc.textBetween(from, to).length && isTextSelection(selection);
 
-  if (empty || isEmptyTextBlock || !editor.isEditable) {
+  // Allow text selection even when editor is not editable (for commenting)
+  if (empty || isEmptyTextBlock) {
     return false;
   }
 

@@ -39,6 +39,7 @@ export interface BubbleMenuItem {
 
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
   editor: ReturnType<typeof useEditor>;
+  canComment?: boolean;
 };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
@@ -121,8 +122,11 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       const { selection } = state;
       const { empty } = selection;
 
+      // Allow showing if editor is editable OR if user canComment
+      const canShow = editor.isEditable || props.canComment;
+
       if (
-        !editor.isEditable ||
+        !canShow ||
         editor.isActive("image") ||
         empty ||
         isNodeSelection(selection) ||
@@ -158,68 +162,72 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   return (
     <BubbleMenu {...bubbleMenuProps}>
       <div className={classes.bubbleMenu}>
-        <NodeSelector
-          editor={props.editor}
-          isOpen={isNodeSelectorOpen}
-          setIsOpen={() => {
-            setIsNodeSelectorOpen(!isNodeSelectorOpen);
-            setIsTextAlignmentOpen(false);
-            setIsLinkSelectorOpen(false);
-            setIsColorSelectorOpen(false);
-          }}
-        />
+        {props.editor.isEditable && (
+          <>
+            <NodeSelector
+              editor={props.editor}
+              isOpen={isNodeSelectorOpen}
+              setIsOpen={() => {
+                setIsNodeSelectorOpen(!isNodeSelectorOpen);
+                setIsTextAlignmentOpen(false);
+                setIsLinkSelectorOpen(false);
+                setIsColorSelectorOpen(false);
+              }}
+            />
 
-        <TextAlignmentSelector
-          editor={props.editor}
-          isOpen={isTextAlignmentSelectorOpen}
-          setIsOpen={() => {
-            setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
-            setIsNodeSelectorOpen(false);
-            setIsLinkSelectorOpen(false);
-            setIsColorSelectorOpen(false);
-          }}
-        />
+            <TextAlignmentSelector
+              editor={props.editor}
+              isOpen={isTextAlignmentSelectorOpen}
+              setIsOpen={() => {
+                setIsTextAlignmentOpen(!isTextAlignmentSelectorOpen);
+                setIsNodeSelectorOpen(false);
+                setIsLinkSelectorOpen(false);
+                setIsColorSelectorOpen(false);
+              }}
+            />
 
-        <ActionIcon.Group>
-          {items.map((item, index) => (
-            <Tooltip key={index} label={t(item.name)} withArrow>
-              <ActionIcon
-                key={index}
-                variant="default"
-                size="lg"
-                radius="0"
-                aria-label={t(item.name)}
-                className={clsx({ [classes.active]: item.isActive() })}
-                style={{ border: "none" }}
-                onClick={item.command}
-              >
-                <item.icon style={{ width: rem(16) }} stroke={2} />
-              </ActionIcon>
-            </Tooltip>
-          ))}
-        </ActionIcon.Group>
+            <ActionIcon.Group>
+              {items.map((item, index) => (
+                <Tooltip key={index} label={t(item.name)} withArrow>
+                  <ActionIcon
+                    key={index}
+                    variant="default"
+                    size="lg"
+                    radius="0"
+                    aria-label={t(item.name)}
+                    className={clsx({ [classes.active]: item.isActive() })}
+                    style={{ border: "none" }}
+                    onClick={item.command}
+                  >
+                    <item.icon style={{ width: rem(16) }} stroke={2} />
+                  </ActionIcon>
+                </Tooltip>
+              ))}
+            </ActionIcon.Group>
 
-        <LinkSelector
-          editor={props.editor}
-          isOpen={isLinkSelectorOpen}
-          setIsOpen={(value) => {
-            setIsLinkSelectorOpen(value);
-            setIsNodeSelectorOpen(false);
-            setIsTextAlignmentOpen(false);
-            setIsColorSelectorOpen(false);
-          }}
-        />
+            <LinkSelector
+              editor={props.editor}
+              isOpen={isLinkSelectorOpen}
+              setIsOpen={(value) => {
+                setIsLinkSelectorOpen(value);
+                setIsNodeSelectorOpen(false);
+                setIsTextAlignmentOpen(false);
+                setIsColorSelectorOpen(false);
+              }}
+            />
 
-        <ColorSelector
-          editor={props.editor}
-          isOpen={isColorSelectorOpen}
-          setIsOpen={() => {
-            setIsColorSelectorOpen(!isColorSelectorOpen);
-            setIsNodeSelectorOpen(false);
-            setIsTextAlignmentOpen(false);
-            setIsLinkSelectorOpen(false);
-          }}
-        />
+            <ColorSelector
+              editor={props.editor}
+              isOpen={isColorSelectorOpen}
+              setIsOpen={() => {
+                setIsColorSelectorOpen(!isColorSelectorOpen);
+                setIsNodeSelectorOpen(false);
+                setIsTextAlignmentOpen(false);
+                setIsLinkSelectorOpen(false);
+              }}
+            />
+          </>
+        )}
 
         <ActionIcon
           variant="default"

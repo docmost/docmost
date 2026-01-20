@@ -48,7 +48,7 @@ export class CommentController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Comment)) {
       throw new ForbiddenException();
     }
 
@@ -114,7 +114,7 @@ export class CommentController {
     );
 
     // must be a space member with edit permission
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Comment)) {
       throw new ForbiddenException(
         'You must have space edit permission to edit comments',
       );
@@ -137,7 +137,7 @@ export class CommentController {
     );
 
     // must be a space member with edit permission
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Comment)) {
       throw new ForbiddenException();
     }
 
