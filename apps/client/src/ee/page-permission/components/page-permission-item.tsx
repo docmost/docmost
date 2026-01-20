@@ -3,7 +3,7 @@ import { IconChevronDown, IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
-import { AutoTooltipText } from "@/components/ui/auto-tooltip";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { formatMemberCount } from "@/lib";
