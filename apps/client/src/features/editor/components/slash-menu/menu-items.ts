@@ -239,7 +239,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
 
-              uploadAttachmentAction(file, editor, pos, pageId);
+              uploadAttachmentAction(file, editor, pos, pageId, true);
             }
           }
 
