@@ -16,11 +16,11 @@
     "server:start": "nx run server:start:prod",
     "email:dev": "nx run server:email:dev",
     "dev": "pnpm concurrently -n \"frontend,backend\" -c \"cyan,green\" \"pnpm run client:dev\" \"pnpm run server:dev\"",
-    "clean": "rm -rf apps/*/dist packages/*/dist"
+    "clean": "rm -rf apps/*/dist packages/*/dist apps/*/node_modules/.vite"
   },
   "dependencies": {
     "@braintree/sanitize-url": "^7.1.0",
-    "@casl/ability": "^6.7.5",
+    "@casl/ability": "6.8.0",
     "@docmost/editor-ext": "workspace:*",
     "@floating-ui/dom": "^1.7.3",
     "@hocuspocus/extension-redis": "3.4.3",
