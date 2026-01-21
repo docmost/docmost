@@ -1,15 +1,47 @@
 /* Columns */
 .ProseMirror section[data-type="columns"] {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.75em;
-  margin-bottom: 0.75em;
+  gap: 0;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  position: relative;
+  width: 100%;
+}
+
+/* Resize Layout Handle on the left */
+.ProseMirror section[data-type="columns"]::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: transparent;
+  border-radius: 2px;
+  transition: background-color 0.2s;
+  cursor: grab;
+  z-index: 20;
+}
+
+.ProseMirror section[data-type="columns"]:hover::before {
+  background-color: var(--mantine-color-blue-filled);
 }
 
 .ProseMirror div[data-type="column"] {
-  flex: 1;
+  flex: 1 1 0%;
   min-width: 0;
   overflow: hidden;
+  position: relative;
+  padding: 0 1rem;
+}
+
+.ProseMirror div[data-type="column"]:empty::before {
+  content: "Type / to insert";
+  color: var(--mantine-color-placeholder);
+  position: absolute;
+  pointer-events: none;
+  font-size: 0.9em;
+  opacity: 0.6;
 }
 
 .ProseMirror div[data-type="column"] > * {
@@ -25,57 +57,49 @@
   margin-bottom: 0;
 }
 
-/* Column borders for visual separation - only visible on hover or focus */
-.ProseMirror div[data-type="column"]:not(:last-child) {
-  border-right: 2px solid transparent;
-  padding-right: 1rem;
-  transition: border-color 0.2s ease;
-}
-
-.ProseMirror
-  section[data-type="columns"]:hover
-  div[data-type="column"]:not(:last-child),
-.ProseMirror
-  section[data-type="columns"]:focus-within
-  div[data-type="column"]:not(:last-child) {
-  border-right-color: light-dark(
-    var(--mantine-color-gray-3),
-    var(--mantine-color-dark-5)
+/* Column dividers for visual separation and resizing */
+.ProseMirror div[data-type="column"]:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-4)
   );
+  transition:
+    background-color 0.2s,
+    width 0.2s;
+  z-index: 10;
 }
 
-.ProseMirror div[data-type="column"]:not(:first-child) {
-  padding-left: 1rem;
+.ProseMirror div[data-type="column"]:not(:last-child):hover::after {
+  background-color: var(--mantine-color-blue-filled);
+  width: 3px;
+  cursor: col-resize;
 }
 
 /* Responsive: stack columns on small screens */
 @media (max-width: 48em) {
   .ProseMirror section[data-type="columns"] {
     flex-direction: column;
+    gap: 1rem;
   }
 
-  .ProseMirror div[data-type="column"]:not(:last-child) {
-    border-right: none;
-    border-bottom: 1px solid transparent;
-    padding-right: 0;
-    padding-bottom: 1rem;
-    transition: border-color 0.2s ease;
+  .ProseMirror div[data-type="column"] {
+    padding: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
   }
 
-  .ProseMirror
-    section[data-type="columns"]:hover
-    div[data-type="column"]:not(:last-child),
-  .ProseMirror
-    section[data-type="columns"]:focus-within
-    div[data-type="column"]:not(:last-child) {
-    border-bottom-color: light-dark(
-      var(--mantine-color-gray-3),
-      var(--mantine-color-dark-5)
-    );
+  .ProseMirror div[data-type="column"]:not(:last-child)::after {
+    display: none;
   }
 
-  .ProseMirror div[data-type="column"]:not(:first-child) {
-    padding-left: 0;
-    padding-top: 1rem;
+  .ProseMirror section[data-type="columns"]::before {
+    display: none;
   }
 }

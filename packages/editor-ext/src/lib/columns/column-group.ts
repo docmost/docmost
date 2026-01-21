@@ -5,6 +5,8 @@ declare module "@tiptap/core" {
     columnGroup: {
       insertColumns: (attributes?: { widths?: number[] }) => ReturnType;
       updateColumnLayout: (widths: number[]) => ReturnType;
+      setColumnCount: (count: number) => ReturnType;
+      deleteColumnGroup: () => ReturnType;
     };
   }
 }
@@ -90,6 +92,103 @@ export const ColumnGroup = Node.create({
                   });
                 }
               },
+            );
+            dispatch(tr);
+          }
+
+          return true;
+        },
+
+      setColumnCount:
+        (count: number) =>
+        ({ state, dispatch }) => {
+          const { selection } = state;
+          let columnGroupPos = -1;
+          let columnGroupNode: any = null;
+
+          state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+            if (node.type.name === this.name) {
+              columnGroupPos = pos;
+              columnGroupNode = node;
+              return false;
+            }
+          });
+
+          if (columnGroupPos === -1) {
+            return false;
+          }
+
+          if (dispatch) {
+            const tr = state.tr;
+            const currentContent: any[] = [];
+            columnGroupNode.content.forEach((column: any) => {
+              currentContent.push(column.content);
+            });
+
+            const newWidth = 100 / count;
+            const newColumns = [];
+
+            for (let i = 0; i < count; i++) {
+              newColumns.push(
+                state.schema.nodes.column.create(
+                  { width: newWidth },
+                  currentContent[i] || state.schema.nodes.paragraph.create(),
+                ),
+              );
+            }
+
+            // If we are reducing columns, append leftover content to the last column
+            if (currentContent.length > count) {
+              const lastColumn = newColumns[newColumns.length - 1];
+              let combinedContent = lastColumn.content;
+              for (let i = count; i < currentContent.length; i++) {
+                combinedContent = combinedContent.append(currentContent[i]);
+              }
+              newColumns[newColumns.length - 1] =
+                state.schema.nodes.column.create(
+                  { width: newWidth },
+                  combinedContent,
+                );
+            }
+
+            tr.replaceWith(
+              columnGroupPos,
+              columnGroupPos + columnGroupNode.nodeSize,
+              state.schema.nodes.columnGroup.create(
+                columnGroupNode.attrs,
+                newColumns,
+              ),
+            );
+            dispatch(tr);
+          }
+
+          return true;
+        },
+
+      deleteColumnGroup:
+        () =>
+        ({ state, dispatch }) => {
+          const { selection } = state;
+          let columnGroupPos = -1;
+          let columnGroupNode: any = null;
+
+          state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+            if (node.type.name === this.name) {
+              columnGroupPos = pos;
+              columnGroupNode = node;
+              return false;
+            }
+          });
+
+          if (columnGroupPos === -1) {
+            return false;
+          }
+
+          if (dispatch) {
+            const tr = state.tr;
+            tr.delete(
+              columnGroupPos,
+              columnGroupPos + columnGroupNode.nodeSize,
             );
             dispatch(tr);
           }

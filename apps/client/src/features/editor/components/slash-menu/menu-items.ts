@@ -25,6 +25,10 @@ import {
   IconSitemap,
   IconLink,
   IconColumns,
+  IconLayoutColumns,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarRightCollapse,
+  IconRectangle,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -291,42 +295,29 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run(),
     },
     {
+      title: "1 Column",
+      description: "Insert a single column block.",
+      searchTerms: ["columns", "layout", "one column", "full width"],
+      icon: IconRectangle,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [100] })
+          .run(),
+    },
+    {
       title: "2 Columns",
       description: "Insert two side-by-side columns.",
       searchTerms: ["columns", "layout", "two columns", "side by side"],
-      icon: IconColumns,
+      icon: IconLayoutColumns,
       command: ({ editor, range }: CommandProps) =>
         editor
           .chain()
           .focus()
           .deleteRange(range)
           .insertColumns({ widths: [50, 50] })
-          .run(),
-    },
-    {
-      title: "2 Columns (25/75)",
-      description: "Insert two columns with 25/75 split.",
-      searchTerms: ["columns", "layout", "two columns", "sidebar"],
-      icon: IconColumns,
-      command: ({ editor, range }: CommandProps) =>
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertColumns({ widths: [25, 75] })
-          .run(),
-    },
-    {
-      title: "2 Columns (75/25)",
-      description: "Insert two columns with 75/25 split.",
-      searchTerms: ["columns", "layout", "two columns", "sidebar"],
-      icon: IconColumns,
-      command: ({ editor, range }: CommandProps) =>
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertColumns({ widths: [75, 25] })
           .run(),
     },
     {
@@ -340,6 +331,32 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertColumns({ widths: [33.33, 33.33, 33.34] })
+          .run(),
+    },
+    {
+      title: "4 Columns",
+      description: "Insert four equal columns.",
+      searchTerms: ["columns", "layout", "four columns"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [25, 25, 25, 25] })
+          .run(),
+    },
+    {
+      title: "5 Columns",
+      description: "Insert five equal columns.",
+      searchTerms: ["columns", "layout", "five columns"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [20, 20, 20, 20, 20] })
           .run(),
     },
     {
