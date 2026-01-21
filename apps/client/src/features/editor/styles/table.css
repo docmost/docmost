@@ -4,39 +4,48 @@
   overflow-x: auto;
   overflow-y: auto;
   max-height: 85vh;
-  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  
+
   /* Better scrollbar visibility */
   scrollbar-width: thin;
   scrollbar-color: light-dark(
     var(--mantine-color-gray-4) var(--mantine-color-gray-1),
     var(--mantine-color-dark-4) var(--mantine-color-dark-6)
   );
-  
+
   /* WebKit scrollbar styling */
   &::-webkit-scrollbar {
     width: 12px;
     height: 12px;
   }
-  
+
   &::-webkit-scrollbar-track {
-    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    background: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-6)
+    );
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
-    background: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+    background: light-dark(
+      var(--mantine-color-gray-4),
+      var(--mantine-color-dark-4)
+    );
     border-radius: 4px;
-    
+
     &:hover {
-      background: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+      background: light-dark(
+        var(--mantine-color-gray-5),
+        var(--mantine-color-dark-3)
+      );
     }
   }
-  
+
   & table {
-    overflow-x: hidden;
     min-width: 700px !important;
     margin: 0 !important;
     border: none;
@@ -93,10 +102,9 @@
       top: 0;
       z-index: 10;
       padding: 8px 12px;
-      border-bottom: 2px solid light-dark(
-        var(--mantine-color-gray-4),
-        var(--mantine-color-dark-4)
-      );
+      border-top: none;
+      box-shadow: inset 0 -2px 0
+        light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-8));
     }
 
     .column-resize-handle {
