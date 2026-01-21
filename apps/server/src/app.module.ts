@@ -21,6 +21,7 @@ import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
+import { LoggerModule } from './common/logger/logger.module';
 
 const enterpriseModules = [];
 try {
@@ -38,6 +39,7 @@ try {
 
 @Module({
   imports: [
+    LoggerModule,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,
