@@ -417,7 +417,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Insert Link",
       description: "Link to a page or URL",
-      searchTerms: ["page", "card", "link", "url", "bookmark"],
+      searchTerms: ["page", "link", "url", "insert"],
       icon: IconLink,
       command: ({ editor, range }: CommandProps) => {
         editor
