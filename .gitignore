@@ -1,6 +1,7 @@
 .env
 .env.dev
 .env.prod
+.tar
 data
 # compiled output
 /dist

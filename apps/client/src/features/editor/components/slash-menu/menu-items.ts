@@ -23,6 +23,7 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconLink,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -411,6 +412,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Insert Link",
+      description: "Link to a page or URL",
+      searchTerms: ["page", "card", "link", "url", "bookmark"],
+      icon: IconLink,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertContent({ type: "insertLink" })
+          .run();
       },
     },
     {
