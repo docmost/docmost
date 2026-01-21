@@ -105,7 +105,7 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER)
-  @IsIn(['openai', 'gemini', 'ollama'])
+  @IsIn(['openai', 'openai-compatible', 'gemini', 'ollama'])
   @IsString()
   AI_DRIVER: string;
 
@@ -117,10 +117,9 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @ValidateIf((obj) => obj.AI_EMBEDDING_DIMENSION)
-  @IsIn(['768', '1024', '1536', '2000'])
+  @IsIn(['768', '1024', '1536', '2000', '3072'])
   @IsString()
   AI_EMBEDDING_DIMENSION: string;
-
 
   @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER)
@@ -129,13 +128,20 @@ export class EnvironmentVariables {
   AI_COMPLETION_MODEL: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'openai')
+  @ValidateIf(
+    (obj) =>
+      obj.AI_DRIVER && ['openai', 'openai-compatible'].includes(obj.AI_DRIVER),
+  )
   @IsString()
   @IsNotEmpty()
   OPENAI_API_KEY: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.AI_DRIVER && obj.OPENAI_API_URL && obj.AI_DRIVER === 'openai')
+  @ValidateIf(
+    (obj) =>
+      obj.AI_DRIVER === 'openai-compatible' ||
+      (obj.AI_DRIVER === 'openai' && obj.OPENAI_API_URL),
+  )
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OPENAI_API_URL: string;
 

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
@@ -49,9 +50,9 @@ export default function SpaceList() {
                       name={space.name}
                     />
                     <div style={{ minWidth: 0, overflow: "hidden" }}>
-                      <Text fz="sm" fw={500} lineClamp={1}>
+                      <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
                         {space.name}
-                      </Text>
+                      </AutoTooltipText>
                       <Text fz="xs" c="dimmed" lineClamp={2}>
                         {space.description}
                       </Text>
