@@ -15,6 +15,7 @@ export interface ImageAttributes {
   attachmentId?: string;
   size?: number;
   width?: number;
+  caption?: string;
 }
 
 declare module "@tiptap/core" {
@@ -88,6 +89,13 @@ export const TiptapImage = Image.extend<ImageOptions>({
         parseHTML: (element) => element.getAttribute("data-size"),
         renderHTML: (attributes: ImageAttributes) => ({
           "data-size": attributes.size,
+        }),
+      },
+      caption: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("caption"),
+        renderHTML: (attributes: ImageAttributes) => ({
+          caption: attributes.caption,
         }),
       },
     };
