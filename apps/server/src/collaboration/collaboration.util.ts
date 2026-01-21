@@ -36,6 +36,7 @@ import {
   Highlight,
   UniqueID,
   addUniqueIdsToDoc,
+  HorizontalRule,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -48,7 +49,9 @@ export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
     heading: false,
+    horizontalRule: false,
   }),
+  HorizontalRule,
   Heading,
   UniqueID.configure({
     types: ['heading', 'paragraph'],
