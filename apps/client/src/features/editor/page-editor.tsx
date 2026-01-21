@@ -43,6 +43,7 @@ import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
+import ColumnMenu from "@/features/editor/components/columns/column-menu.tsx";
 import {
   handleFileDrop,
   handlePaste,
@@ -437,6 +438,7 @@ export default function PageEditor({
             <VideoMenu editor={editor} />
             <CalloutMenu editor={editor} />
             <SubpagesMenu editor={editor} />
+            <ColumnMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />

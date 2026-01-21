@@ -24,6 +24,7 @@ import {
   IconAppWindow,
   IconSitemap,
   IconLink,
+  IconColumns,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -287,6 +288,58 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+    },
+    {
+      title: "2 Columns",
+      description: "Insert two side-by-side columns.",
+      searchTerms: ["columns", "layout", "two columns", "side by side"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [50, 50] })
+          .run(),
+    },
+    {
+      title: "2 Columns (25/75)",
+      description: "Insert two columns with 25/75 split.",
+      searchTerms: ["columns", "layout", "two columns", "sidebar"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [25, 75] })
+          .run(),
+    },
+    {
+      title: "2 Columns (75/25)",
+      description: "Insert two columns with 75/25 split.",
+      searchTerms: ["columns", "layout", "two columns", "sidebar"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [75, 25] })
+          .run(),
+    },
+    {
+      title: "3 Columns",
+      description: "Insert three equal columns.",
+      searchTerms: ["columns", "layout", "three columns"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ widths: [33.33, 33.33, 33.34] })
           .run(),
     },
     {

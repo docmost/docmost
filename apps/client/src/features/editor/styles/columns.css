@@ -1,0 +1,81 @@
+/* Columns */
+.ProseMirror section[data-type="columns"] {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.ProseMirror div[data-type="column"] {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ProseMirror div[data-type="column"] > * {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror div[data-type="column"] > *:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror div[data-type="column"] > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Column borders for visual separation - only visible on hover or focus */
+.ProseMirror div[data-type="column"]:not(:last-child) {
+  border-right: 2px solid transparent;
+  padding-right: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.ProseMirror
+  section[data-type="columns"]:hover
+  div[data-type="column"]:not(:last-child),
+.ProseMirror
+  section[data-type="columns"]:focus-within
+  div[data-type="column"]:not(:last-child) {
+  border-right-color: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-5)
+  );
+}
+
+.ProseMirror div[data-type="column"]:not(:first-child) {
+  padding-left: 1rem;
+}
+
+/* Responsive: stack columns on small screens */
+@media (max-width: 48em) {
+  .ProseMirror section[data-type="columns"] {
+    flex-direction: column;
+  }
+
+  .ProseMirror div[data-type="column"]:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid transparent;
+    padding-right: 0;
+    padding-bottom: 1rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .ProseMirror
+    section[data-type="columns"]:hover
+    div[data-type="column"]:not(:last-child),
+  .ProseMirror
+    section[data-type="columns"]:focus-within
+    div[data-type="column"]:not(:last-child) {
+    border-bottom-color: light-dark(
+      var(--mantine-color-gray-3),
+      var(--mantine-color-dark-5)
+    );
+  }
+
+  .ProseMirror div[data-type="column"]:not(:first-child) {
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+}

@@ -46,6 +46,8 @@ import {
   Heading,
   Highlight,
   UniqueID,
+  Column,
+  ColumnGroup,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -253,6 +255,8 @@ export const mainExtensions = [
     },
   }).configure(),
   InsertLink,
+  ColumnGroup,
+  Column,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
