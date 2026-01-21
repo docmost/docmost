@@ -18,16 +18,33 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkSelector } from "./insert-link-selector";
 import { buildPageUrl } from "@/features/page/page.utils";
+import { usePageQuery } from "@/features/page/queries/page-query";
+import { extractPageSlugId } from "@/lib";
 import classes from "./insert-link-view.module.css";
 import styles from "@/features/editor/components/mention/mention.module.css";
 
 export default function InsertLinkView(props: NodeViewProps) {
   const { node, updateAttributes, deleteNode } = props;
-  const { type, pageId, url, title, icon, slugId } = node.attrs;
+  const { type, pageId, url, title, icon, slugId, manualTitle } = node.attrs;
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const [isEditable, setIsEditable] = useState(props.editor.isEditable);
+
+  const { data: page } = usePageQuery({
+    pageId: type === "page" ? extractPageSlugId(slugId) : undefined,
+  });
+
+  useEffect(() => {
+    if (type === "page" && page && !manualTitle) {
+      if (page.title !== title || page.icon !== icon) {
+        updateAttributes({
+          title: page.title,
+          icon: page.icon,
+        });
+      }
+    }
+  }, [page, title, icon, manualTitle, type, updateAttributes]);
 
   useEffect(() => {
     const update = () => setIsEditable(props.editor.isEditable);
@@ -47,6 +64,7 @@ export default function InsertLinkView(props: NodeViewProps) {
     title: string;
     icon?: string;
     slugId?: string;
+    manualTitle?: boolean;
   }) => {
     updateAttributes({
       type: data.type,
@@ -55,6 +73,7 @@ export default function InsertLinkView(props: NodeViewProps) {
       title: data.title,
       icon: data.icon,
       slugId: data.slugId,
+      manualTitle: data.manualTitle,
     });
     setIsSelectorOpen(false);
   };

@@ -31,6 +31,7 @@ interface PageLinkSelectorProps {
     title: string;
     icon?: string;
     slugId?: string;
+    manualTitle?: boolean;
   }) => void;
   initialUrl?: string;
 }
@@ -82,7 +83,8 @@ export const LinkSelector = ({
       onSelect({
         type: "url",
         url: manualUrl,
-        title: manualTitle || manualUrl, // Use manual title or default to URL
+        title: manualTitle || manualUrl,
+        manualTitle: !!manualTitle,
       });
     }
   };
@@ -168,6 +170,7 @@ export const LinkSelector = ({
                       slugId: page.slugId,
                       title: page.title,
                       icon: page.icon,
+                      manualTitle: false,
                     })
                   }
                 >
@@ -204,6 +207,7 @@ export const LinkSelector = ({
                       slugId: page.slugId,
                       title: page.title,
                       icon: page.icon,
+                      manualTitle: false,
                     })
                   }
                 >

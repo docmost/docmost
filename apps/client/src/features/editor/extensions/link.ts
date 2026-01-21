@@ -30,6 +30,9 @@ export default Node.create({
       slugId: {
         default: null,
       },
+      manualTitle: {
+        default: false,
+      },
     };
   },
 
