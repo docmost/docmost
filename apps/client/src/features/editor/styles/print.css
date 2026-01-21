@@ -1,4 +1,9 @@
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .mantine-AppShell-header,
   .mantine-AppShell-navbar,
   .mantine-AppShell-aside,
@@ -18,6 +23,20 @@
   }
 
   .tableWrapper {
-    overflow: hidden !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
   }
 }
