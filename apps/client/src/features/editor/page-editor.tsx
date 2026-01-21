@@ -115,7 +115,11 @@ export default function PageEditor({
     () => isComponentMounted.current && editorCreated.current,
     [isComponentMounted, editorCreated],
   );
-  const { handleScrollTo } = useEditorScroll({ canScroll });
+  const initialScrollTo = window.location.hash
+    ? window.location.hash.slice(1)
+    : "";
+
+  const { handleScrollTo } = useEditorScroll({ canScroll, initialScrollTo });
   // Providers only created once per pageId
   const providersRef = useRef<{
     local: IndexeddbPersistence;
