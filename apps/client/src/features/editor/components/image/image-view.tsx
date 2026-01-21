@@ -6,7 +6,7 @@ import clsx from "clsx";
 
 export default function ImageView(props: NodeViewProps) {
   const { node, selected } = props;
-  const { src, width, align, title } = node.attrs;
+  const { src, width, align, title, alt } = node.attrs;
 
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
@@ -22,7 +22,7 @@ export default function ImageView(props: NodeViewProps) {
         fit="contain"
         w={width}
         src={getFileUrl(src)}
-        alt={title}
+        alt={alt || title || ""}
         className={clsx(selected ? "ProseMirror-selectednode" : "", alignClass)}
       />
     </NodeViewWrapper>
