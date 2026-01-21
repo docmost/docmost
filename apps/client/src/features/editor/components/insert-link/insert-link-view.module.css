@@ -1,0 +1,18 @@
+.container {
+  margin: 0;
+  padding-left: 4px;
+  user-select: none;
+
+  a {
+    border: none !important;
+  }
+}
+
+.actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.container:hover .actions {
+  opacity: 1;
+}

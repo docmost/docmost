@@ -45,6 +45,7 @@ export const LinkSelector = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchQuery, 300);
   const [manualUrl, setManualUrl] = useState(initialUrl);
+  const [manualTitle, setManualTitle] = useState("");
 
   // Search Query
   const { data: searchResults, isLoading: isSearchLoading } =
@@ -81,7 +82,7 @@ export const LinkSelector = ({
       onSelect({
         type: "url",
         url: manualUrl,
-        title: manualUrl, // Default title to URL
+        title: manualTitle || manualUrl, // Use manual title or default to URL
       });
     }
   };
@@ -129,10 +130,15 @@ export const LinkSelector = ({
                 style={{ flex: 1 }}
                 placeholder="https://..."
               />
-              <Button type="submit" size="sm" disabled={!manualUrl}>
-                {t("Add")}
-              </Button>
             </Group>
+            <TextInput
+              value={manualTitle}
+              onChange={(e) => setManualTitle(e.target.value)}
+              placeholder={t("Link Title (optional)")}
+            />
+            <Button type="submit" size="sm" disabled={!manualUrl}>
+              {t("Add")}
+            </Button>
           </Stack>
         </form>
       )}

@@ -3,8 +3,16 @@ import { TextSelection } from "@tiptap/pm/state";
 import React, { FC, useEffect, useRef, useState } from "react";
 import classes from "./table-of-contents.module.css";
 import clsx from "clsx";
-import { Box, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, Text, Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { IconLink } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
+import { useParams } from "react-router-dom";
+import { buildPageUrl } from "@/features/page/page.utils";
+import { getAppUrl } from "@/lib/config";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { extractPageSlugId } from "@/lib";
+import { copyToClipboard } from "@/features/editor/utils/clipboard";
 
 type TableOfContentsProps = {
   editor: ReturnType<typeof useEditor>;
@@ -16,6 +24,7 @@ export type HeadingLink = {
   level: number;
   element: HTMLElement;
   position: number;
+  id: string;
 };
 
 const recalculateLinks = (nodePos: NodePos[]) => {
@@ -32,6 +41,7 @@ const recalculateLinks = (nodePos: NodePos[]) => {
           element: item.element,
           //@ts-ignore
           position: item.resolvedPos.pos,
+          id: item.node.attrs.id,
         });
         nodes.push(item.element);
       }
@@ -48,6 +58,10 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   const [headingDOMNodes, setHeadingDOMNodes] = useState<HTMLElement[]>([]);
   const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
   const headerPaddingRef = useRef<HTMLDivElement | null>(null);
+  const { pageSlug, spaceSlug } = useParams();
+  const { data: page } = usePageQuery({
+    pageId: extractPageSlugId(pageSlug),
+  });
 
   const handleScrollToHeading = (position: number) => {
     const { view } = props.editor;
@@ -70,6 +84,16 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
     tr.setSelection(new TextSelection(tr.doc.resolve(position)));
     view.dispatch(tr);
     view.focus();
+  };
+
+  const handleCopyLink = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!page) return;
+    const pageUrl =
+      getAppUrl() + buildPageUrl(spaceSlug, page.slugId, page.title);
+    const url = `${pageUrl}#${id}`;
+    await copyToClipboard(url);
+    notifications.show({ message: t("Link copied") });
   };
 
   const handleUpdate = () => {
@@ -173,7 +197,22 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
               paddingLeft: `calc(${item.level} * var(--mantine-spacing-md))`,
             }}
           >
-            {item.label}
+            <Group justify="space-between" wrap="nowrap" gap={4}>
+              <Text truncate fw={500} size="sm" style={{ flex: 1 }}>
+                {item.label}
+              </Text>
+              <Tooltip label={t("Copy link")}>
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={(e) => handleCopyLink(e, item.id)}
+                  className={classes.linkBtn}
+                >
+                  <IconLink size={12} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Box>
         ))}
       </div>

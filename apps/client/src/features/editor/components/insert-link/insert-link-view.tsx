@@ -2,12 +2,9 @@ import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
   ActionIcon,
   Anchor,
-  Box,
   Button,
   Group,
   Popover,
-  Text,
-  ThemeIcon,
   Tooltip,
 } from "@mantine/core";
 import { Link, useParams } from "react-router-dom";
@@ -17,11 +14,11 @@ import {
   IconLink,
   IconX,
 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkSelector } from "./insert-link-selector";
 import { buildPageUrl } from "@/features/page/page.utils";
-import classes from "@/features/editor/components/subpages/subpages.module.css";
+import classes from "./insert-link-view.module.css";
 import styles from "@/features/editor/components/mention/mention.module.css";
 
 export default function InsertLinkView(props: NodeViewProps) {
@@ -30,6 +27,18 @@ export default function InsertLinkView(props: NodeViewProps) {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
+  const [isEditable, setIsEditable] = useState(props.editor.isEditable);
+
+  useEffect(() => {
+    const update = () => setIsEditable(props.editor.isEditable);
+    props.editor.on("transaction", update);
+    props.editor.on("update", update);
+
+    return () => {
+      props.editor.off("transaction", update);
+      props.editor.off("update", update);
+    };
+  }, [props.editor]);
 
   const handleSelect = (data: {
     type: "page" | "url";
@@ -95,7 +104,6 @@ export default function InsertLinkView(props: NodeViewProps) {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              flex: 1,
               display: "flex",
               alignItems: "center",
               gap: "4px",
@@ -113,7 +121,7 @@ export default function InsertLinkView(props: NodeViewProps) {
                 <IconFileDescription size={18} />
               </ActionIcon>
             )}
-            <span className={styles.pageMentionText}>
+            <span className={styles.pageMentionText} style={{ border: "none" }}>
               {title || t("Untitled")}
             </span>
           </Anchor>
@@ -125,7 +133,6 @@ export default function InsertLinkView(props: NodeViewProps) {
             className={styles.pageMentionLink}
             underline="never"
             style={{
-              flex: 1,
               display: "flex",
               alignItems: "center",
               gap: "4px",
@@ -139,46 +146,52 @@ export default function InsertLinkView(props: NodeViewProps) {
             >
               <IconExternalLink size={18} />
             </ActionIcon>
-            <span className={styles.pageMentionText}>{title || url}</span>
+            <span className={styles.pageMentionText} style={{ border: "none" }}>
+              {title || url}
+            </span>
           </Anchor>
         )}
 
-        <Tooltip label={t("Edit link")}>
-          <Popover
-            opened={isSelectorOpen}
-            onChange={setIsSelectorOpen}
-            width={350}
-            trapFocus
-            position="bottom"
-            withArrow
-            shadow="md"
-          >
-            <Popover.Target>
+        {isEditable && (
+          <Group gap="xs" className={classes.actions}>
+            <Tooltip label={t("Edit link")}>
+              <Popover
+                opened={isSelectorOpen}
+                onChange={setIsSelectorOpen}
+                width={350}
+                trapFocus
+                position="bottom"
+                withArrow
+                shadow="md"
+              >
+                <Popover.Target>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    size="sm"
+                    onClick={() => setIsSelectorOpen((prev) => !prev)}
+                  >
+                    <IconLink size={14} />
+                  </ActionIcon>
+                </Popover.Target>
+                <Popover.Dropdown p="xs">
+                  <LinkSelector onSelect={handleSelect} initialUrl={url} />
+                </Popover.Dropdown>
+              </Popover>
+            </Tooltip>
+
+            <Tooltip label={t("Remove")}>
               <ActionIcon
                 variant="subtle"
-                color="gray"
+                color="red"
                 size="sm"
-                onClick={() => setIsSelectorOpen((prev) => !prev)}
+                onClick={deleteNode}
               >
-                <IconLink size={14} />
+                <IconX size={14} />
               </ActionIcon>
-            </Popover.Target>
-            <Popover.Dropdown p="xs">
-              <LinkSelector onSelect={handleSelect} initialUrl={url} />
-            </Popover.Dropdown>
-          </Popover>
-        </Tooltip>
-
-        <Tooltip label={t("Remove")}>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            size="sm"
-            onClick={deleteNode}
-          >
-            <IconX size={14} />
-          </ActionIcon>
-        </Tooltip>
+            </Tooltip>
+          </Group>
+        )}
       </Group>
     </NodeViewWrapper>
   );
