@@ -1,3 +1,4 @@
+import classes from "@/features/editor/styles/editor.module.css";
 import "@/features/editor/styles/index.css";
 import React, { useCallback, useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -241,6 +242,7 @@ export function TitleEditor({
   return (
     <EditorContent
       editor={titleEditor}
+      className={classes.titleEditor}
       onKeyDown={(event) => {
         // First handle the search hotkey
         getHotkeyHandler([["mod+F", openSearchDialog]])(event);

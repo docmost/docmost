@@ -2,13 +2,16 @@ import classes from "@/features/editor/styles/editor.module.css";
 import React from "react";
 import { TitleEditor } from "@/features/editor/title-editor";
 import PageEditor from "@/features/editor/page-editor";
-import { Container } from "@mantine/core";
+import { Container, Divider, Space } from "@mantine/core";
 import { useAtom } from "jotai";
 import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import useUserRole from "@/hooks/use-user-role";
+import { TableOfContents } from "@/features/editor/components/table-of-contents/table-of-contents.tsx";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
+const MemoizedTableOfContents = React.memo(TableOfContents);
 
 export interface FullEditorProps {
   pageId: string;
@@ -32,6 +35,7 @@ export function FullEditor({
   const [user] = useAtom(userAtom);
   const { isVisitor } = useUserRole();
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
+  const [pageEditor] = useAtom(pageEditorAtom);
 
   return (
     <Container
@@ -46,6 +50,13 @@ export function FullEditor({
         spaceSlug={spaceSlug}
         editable={isVisitor ? false : editable}
       />
+      <Space h="md" />
+      <Divider my="xs" />
+      <div className="tableofcontent" style={{ paddingLeft: "3rem", paddingRight: "3rem" }}>
+        <MemoizedTableOfContents editor={pageEditor} />
+      </div>
+      <Divider my="xs" />
+      <Space h="sm" />
       <MemoizedPageEditor
         pageId={pageId}
         editable={isVisitor ? false : editable}

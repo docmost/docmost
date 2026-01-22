@@ -1,11 +1,20 @@
 .editor {
-    height: 100%;
-    padding: 8px 0;
-    margin: 48px auto;
+  height: 100%;
+  padding: 8px 0;
+  margin: 48px auto;
 
-    @media print {
-        padding: 0;
-        margin: 0;
-    }
+  @media print {
+    padding: 0;
+    margin: 0;
+  }
 }
 
+.titleEditor :global(.ProseMirror) {
+  text-align: center;
+}
+
+.titleEditor :global(.ProseMirror p.is-editor-empty:first-child::before),
+.titleEditor :global(.ProseMirror h1.is-empty::before) {
+  float: none;
+  text-align: center;
+}

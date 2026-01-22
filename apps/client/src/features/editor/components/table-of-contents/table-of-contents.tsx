@@ -97,10 +97,15 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
   };
 
   const handleUpdate = () => {
-    const result = recalculateLinks(props.editor?.$nodes("heading"));
 
+    if (!props.editor) return; // Menambahkan guard ini
+    const result = recalculateLinks(props.editor.$nodes("heading"));
     setLinks(result.links);
     setHeadingDOMNodes(result.nodes);
+    // const result = recalculateLinks(props.editor?.$nodes("heading"));
+
+    // setLinks(result.links);
+    // setHeadingDOMNodes(result.nodes);
   };
 
   useEffect(() => {
@@ -164,7 +169,7 @@ export const TableOfContents: FC<TableOfContentsProps> = (props) => {
       <>
         {!props.isShare && (
           <Text size="sm">
-            {t("Add headings (H1, H2, H3) to generate a table of contents.")}
+            {t("Add headings (H1, H2, H3, etc.) to generate a table of contents.")}
           </Text>
         )}
 
