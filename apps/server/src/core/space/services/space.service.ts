@@ -8,7 +8,6 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Space, User } from '@docmost/db/types/entity.types';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateSpaceDto } from '../dto/update-space.dto';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
@@ -17,6 +16,7 @@ import { SpaceRole } from '../../../common/helpers/types/permission';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 
 @Injectable()
 export class SpaceService {
@@ -130,13 +130,8 @@ export class SpaceService {
   async getWorkspaceSpaces(
     workspaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Space>> {
-    const spaces = await this.spaceRepo.getSpacesInWorkspace(
-      workspaceId,
-      pagination,
-    );
-
-    return spaces;
+  ): Promise<CursorPaginationResult<Space>> {
+    return this.spaceRepo.getSpacesInWorkspace(workspaceId, pagination);
   }
 
   async deleteSpace(spaceId: string, workspaceId: string): Promise<void> {

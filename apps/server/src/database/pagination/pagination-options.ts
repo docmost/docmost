@@ -23,6 +23,10 @@ export class PaginationOptions {
 
   @IsOptional()
   @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @IsString()
   query: string;
 
   @IsOptional()

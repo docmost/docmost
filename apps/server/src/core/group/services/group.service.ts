@@ -11,7 +11,7 @@ import { UpdateGroupDto } from '../dto/update-group.dto';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { GroupUserService } from './group-user.service';
 
 @Injectable()
@@ -132,12 +132,8 @@ export class GroupService {
   async getWorkspaceGroups(
     workspaceId: string,
     paginationOptions: PaginationOptions,
-  ): Promise<PaginationResult<Group>> {
-    const groups = await this.groupRepo.getGroupsPaginated(
-      workspaceId,
-      paginationOptions,
-    );
-    return groups;
+  ): Promise<CursorPaginationResult<Group>> {
+    return this.groupRepo.getGroupsPaginated(workspaceId, paginationOptions);
   }
 
   async deleteGroup(groupId: string, workspaceId: string): Promise<void> {
