@@ -1,35 +1,38 @@
-// source: https://github.com/charlie-hadden/kysely-paginate/blob/main/src/cursor.ts - MIT
+// adapted from https://github.com/charlie-hadden/kysely-paginate/blob/main/src/cursor.ts - MIT
 import {
-  OrderByDirectionExpression,
+  OrderByDirection,
+  OrderByModifiers,
   ReferenceExpression,
   SelectQueryBuilder,
   StringReference,
-} from "kysely";
+} from 'kysely';
 
 type SortField<DB, TB extends keyof DB, O> =
   | {
-  expression:
-    | (StringReference<DB, TB> & keyof O & string)
-    | (StringReference<DB, TB> & `${string}.${keyof O & string}`);
-  direction: OrderByDirectionExpression;
-  key?: keyof O & string;
-}
+      expression:
+        | (StringReference<DB, TB> & keyof O & string)
+        | (StringReference<DB, TB> & `${string}.${keyof O & string}`);
+      direction: OrderByDirection;
+      orderModifier?: OrderByModifiers;
+      key?: keyof O & string;
+    }
   | {
-  expression: ReferenceExpression<DB, TB>;
-  direction: OrderByDirectionExpression;
-  key: keyof O & string;
-};
+      expression: ReferenceExpression<DB, TB>;
+      direction: OrderByDirection;
+      orderModifier?: OrderByModifiers;
+      key: keyof O & string;
+    };
 
 type ExtractSortFieldKey<
   DB,
   TB extends keyof DB,
   O,
   T extends SortField<DB, TB, O>,
-> = T["key"] extends keyof O & string
-  ? T["key"]
-  : T["expression"] extends keyof O & string
-    ? T["expression"]
-    : T["expression"] extends `${string}.${infer K}`
+> = T['key'] extends keyof O & string
+  ? T['key']
+  : T['expression'] extends keyof O & string
+    ? T['expression']
+    : T['expression'] extends `${string}.${infer K}`
       ? K extends keyof O & string
         ? K
         : never
@@ -101,19 +104,22 @@ type CursorPaginationResultRow<
     : TCursorKey extends false
       ? never
       : TCursorKey extends true
-        ? "$cursor"
+        ? '$cursor'
         : TCursorKey]: string;
+};
+
+type CursorPaginationMeta = {
+  limit: number;
+  hasMore: boolean;
+  nextCursor: string | null;
 };
 
 export type CursorPaginationResult<
   TRow,
-  TCursorKey extends string | boolean | undefined,
+  TCursorKey extends string | boolean | undefined = undefined,
 > = {
-  startCursor: string | undefined;
-  endCursor: string | undefined;
-  hasNextPage?: boolean;
-  hasPrevPage?: boolean;
-  rows: CursorPaginationResultRow<TRow, TCursorKey>[];
+  meta: CursorPaginationMeta;
+  items: CursorPaginationResultRow<TRow, TCursorKey>[];
 };
 
 export async function executeWithCursorPagination<
@@ -141,22 +147,22 @@ export async function executeWithCursorPagination<
   const decodeCursor = opts.decodeCursor ?? defaultDecodeCursor;
 
   const parseCursor =
-    typeof opts.parseCursor === "function"
+    typeof opts.parseCursor === 'function'
       ? opts.parseCursor
       : opts.parseCursor.parse;
 
   const fields = opts.fields.map((field) => {
     let key = field.key;
 
-    if (!key && typeof field.expression === "string") {
-      const expressionParts = field.expression.split(".");
+    if (!key && typeof field.expression === 'string') {
+      const expressionParts = field.expression.split('.');
 
       key = (expressionParts[1] ?? expressionParts[0]) as
         | (keyof O & string)
         | undefined;
     }
 
-    if (!key) throw new Error("missing key");
+    if (!key) throw new Error('missing key');
 
     return { ...field, key };
   });
@@ -180,7 +186,7 @@ export async function executeWithCursorPagination<
   function applyCursor(
     qb: SelectQueryBuilder<DB, TB, O>,
     encoded: string,
-    defaultDirection: "asc" | "desc",
+    defaultDirection: OrderByDirection,
   ) {
     const decoded = decodeCursor(encoded, fieldNames);
     const cursor = parseCursor(decoded);
@@ -192,71 +198,68 @@ export async function executeWithCursorPagination<
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const field = fields[i]!;
 
-        const comparison = field.direction === defaultDirection ? ">" : "<";
+        const comparison = field.direction === defaultDirection ? '>' : '<';
         const value = cursor[field.key as keyof typeof cursor];
 
         const conditions = [eb(field.expression, comparison, value)];
 
         if (expression) {
-          conditions.push(and([eb(field.expression, "=", value), expression]));
+          conditions.push(and([eb(field.expression, '=', value), expression]));
         }
 
         expression = or(conditions);
       }
 
       if (!expression) {
-        throw new Error("Error building cursor expression");
+        throw new Error('Error building cursor expression');
       }
 
       return expression;
     });
   }
 
-  if (opts.after) qb = applyCursor(qb, opts.after, "asc");
-  if (opts.before) qb = applyCursor(qb, opts.before, "desc");
+  if (opts.after) qb = applyCursor(qb, opts.after, 'asc');
+  if (opts.before) qb = applyCursor(qb, opts.before, 'desc');
 
   const reversed = !!opts.before && !opts.after;
 
-  for (const { expression, direction } of fields) {
+  for (const { expression, direction, orderModifier } of fields) {
     qb = qb.orderBy(
       expression,
-      reversed ? (direction === "asc" ? "desc" : "asc") : direction,
+      orderModifier ??
+        (reversed ? (direction === 'asc' ? 'desc' : 'asc') : direction),
     );
   }
 
   const rows = await qb.limit(opts.perPage + 1).execute();
 
-  const hasNextPage = reversed ? undefined : rows.length > opts.perPage;
-  const hasPrevPage = !reversed ? undefined : rows.length > opts.perPage;
+  const hasMore = rows.length > opts.perPage;
 
   // If we fetched an extra row to determine if we have a next page, that
   // shouldn't be in the returned results
-  if (rows.length > opts.perPage) rows.pop();
+  if (hasMore) rows.pop();
 
   if (reversed) rows.reverse();
 
-  const startRow = rows[0];
   const endRow = rows[rows.length - 1];
-
-  const startCursor = startRow ? generateCursor(startRow) : undefined;
-  const endCursor = endRow ? generateCursor(endRow) : undefined;
+  const nextCursor = hasMore && endRow ? generateCursor(endRow) : null;
 
   return {
-    startCursor,
-    endCursor,
-    hasNextPage,
-    hasPrevPage,
-    rows: rows.map((row) => {
+    items: rows.map((row) => {
       if (opts.cursorPerRow) {
         const cursorKey =
-          typeof opts.cursorPerRow === "string" ? opts.cursorPerRow : "$cursor";
+          typeof opts.cursorPerRow === 'string' ? opts.cursorPerRow : '$cursor';
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         (row as any)[cursorKey] = generateCursor(row);
       }
 
       return row as CursorPaginationResultRow<O, TCursorKey>;
     }),
+    meta: {
+      limit: opts.perPage,
+      hasMore,
+      nextCursor,
+    },
   };
 }
 
@@ -270,16 +273,16 @@ export function defaultEncodeCursor<
 
   for (const [key, value] of values) {
     switch (typeof value) {
-      case "string":
+      case 'string':
         cursor.set(key, value);
         break;
 
-      case "number":
-      case "bigint":
+      case 'number':
+      case 'bigint':
         cursor.set(key, value.toString(10));
         break;
 
-      case "object": {
+      case 'object': {
         if (value instanceof Date) {
           cursor.set(key, value.toISOString());
           break;
@@ -292,7 +295,7 @@ export function defaultEncodeCursor<
     }
   }
 
-  return Buffer.from(cursor.toString(), "utf8").toString("base64url");
+  return Buffer.from(cursor.toString(), 'utf8').toString('base64url');
 }
 
 export function defaultDecodeCursor<
@@ -309,15 +312,15 @@ export function defaultDecodeCursor<
   try {
     parsed = [
       ...new URLSearchParams(
-        Buffer.from(cursor, "base64url").toString("utf8"),
+        Buffer.from(cursor, 'base64url').toString('utf8'),
       ).entries(),
     ];
   } catch {
-    throw new Error("Unparsable cursor");
+    throw new Error('Unparsable cursor');
   }
 
   if (parsed.length !== fields.length) {
-    throw new Error("Unexpected number of fields");
+    throw new Error('Unexpected number of fields');
   }
 
   for (let i = 0; i < fields.length; i++) {
@@ -325,11 +328,11 @@ export function defaultDecodeCursor<
     const expectedName = fields[i];
 
     if (!field) {
-      throw new Error("Unable to find field");
+      throw new Error('Unable to find field');
     }
 
     if (field[0] !== expectedName) {
-      throw new Error("Unexpected field name");
+      throw new Error('Unexpected field name');
     }
   }
 
