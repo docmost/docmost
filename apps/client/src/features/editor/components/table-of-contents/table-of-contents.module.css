@@ -68,10 +68,9 @@
 }
 
 .tableofcontent {
-  font-size: var(--mantine-font-size-md);
-  line-height: var(--mantine-line-height-xl);
-  font-weight: 400;
-  width: 100%;
+  height: 100%;
+  padding: 8px 0;
+  margin: 48px auto;
   padding-left: 3rem;
   padding-right: 3rem;
   padding-top: 2rem;
