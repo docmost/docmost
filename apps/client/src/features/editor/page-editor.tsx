@@ -296,13 +296,16 @@ export default function PageEditor({
           editorCreated.current = true;
         }
       },
-      onUpdate({ editor }) {
-        if (editor.isEmpty) return;
+      onUpdate({ editor, transaction }) {
+        if (editor.isEmpty || !transaction.docChanged) return;
         const editorJson = editor.getJSON();
         //update local page cache to reduce flickers
         debouncedUpdateContent(editorJson);
-        // Mark as having unsaved changes when editor content changes
-        setHasUnsavedChanges(true);
+
+        // Only mark unsaved changes if collab is ready and it's a local change
+        if (isCollabReady && transaction.getMeta("y-sync$") === undefined) {
+          setHasUnsavedChanges(true);
+        }
       },
     },
     [pageId, editable, remoteProvider],
@@ -359,6 +362,7 @@ export default function PageEditor({
     setActiveCommentId(null);
     setShowCommentPopup(false);
     setAsideState({ tab: "", isAsideOpen: false });
+    setHasUnsavedChanges(false);
   }, [pageId]);
 
   useEffect(() => {
