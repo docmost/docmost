@@ -110,7 +110,8 @@ type CursorPaginationResultRow<
 
 type CursorPaginationMeta = {
   limit: number;
-  hasNextPage: boolean;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
   nextCursor: string | null;
 };
 
@@ -233,15 +234,19 @@ export async function executeWithCursorPagination<
 
   const rows = await qb.limit(opts.perPage + 1).execute();
 
-  const hasNextPage = rows.length > opts.perPage;
+  const hasNextPage = reversed ? true : rows.length > opts.perPage;
+  const hasPrevPage = !reversed ? undefined : rows.length > opts.perPage;
 
   // If we fetched an extra row to determine if we have a next page, that
   // shouldn't be in the returned results
-  if (hasNextPage) rows.pop();
+  if (rows.length > opts.perPage) rows.pop();
 
   if (reversed) rows.reverse();
 
+  //const startRow = rows[0];
   const endRow = rows[rows.length - 1];
+
+  //const startCursor = startRow ? generateCursor(startRow) : null;
   const nextCursor = hasNextPage && endRow ? generateCursor(endRow) : null;
 
   return {
@@ -258,6 +263,7 @@ export async function executeWithCursorPagination<
     meta: {
       limit: opts.perPage,
       hasNextPage,
+      hasPrevPage: hasPrevPage ?? !!opts.after,
       nextCursor,
     },
   };
