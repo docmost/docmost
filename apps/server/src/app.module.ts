@@ -19,6 +19,7 @@ import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { MentionsModule } from './integrations/mentions/mentions.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 const enterpriseModules = [];
 try {
@@ -36,6 +37,7 @@ try {
 
 @Module({
   imports: [
+    LoggerModule,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,

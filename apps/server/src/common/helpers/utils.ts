@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 import { sanitize } from 'sanitize-filename-ts';
 import { FastifyRequest } from 'fastify';
+import { Readable, Transform } from 'stream';
 
 export const envPath = path.resolve(process.cwd(), '..', '..', '.env');
 
@@ -97,4 +98,39 @@ export function hasLicenseOrEE(opts: {
 }): boolean {
   const { licenseKey, plan, isCloud } = opts;
   return Boolean(licenseKey) || (isCloud && plan === 'business');
+}
+
+/**
+ * Normalizes a database URL for postgres.js compatibility.
+ * - Removes `sslmode=no-verify` (not supported by postgres.js), keeps other sslmode values
+ * - Removes `schema` parameter (has no effect via connection string)
+ * Note: If we don't strip them, the connection will fail
+ */
+export function normalizePostgresUrl(url: string): string {
+  const parsed = new URL(url);
+  const newParams = new URLSearchParams();
+
+  for (const [key, value] of parsed.searchParams) {
+    if (key === 'sslmode' && value === 'no-verify') continue;
+    if (key === 'schema') continue;
+    newParams.append(key, value);
+  }
+
+  parsed.search = newParams.toString();
+  return parsed.toString();
+}
+
+export function createByteCountingStream(source: Readable) {
+  let bytesRead = 0;
+  const stream = new Transform({
+    transform(chunk, encoding, callback) {
+      bytesRead += chunk.length;
+      callback(null, chunk);
+    },
+  });
+
+  source.pipe(stream);
+  source.on('error', (err) => stream.emit('error', err));
+
+  return { stream, getBytesRead: () => bytesRead };
 }
