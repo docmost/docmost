@@ -117,8 +117,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           <IconList size={20} stroke={2} />
         </ActionIcon>
       </Tooltip>
-
-      {!userRole.isVisitor && <PageActionMenu readOnly={readOnly} />}
+      <PageActionMenu readOnly={readOnly} />
     </>
   );
 }
@@ -144,6 +143,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   ] = useDisclosure(false);
   const [pageEditor] = useAtom(pageEditorAtom);
   const pageUpdatedAt = useTimeAgo(page?.updatedAt);
+  const userRole = useUserRole();
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -197,51 +197,55 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               <PageWidthToggle label={t("Full width")} />
             </Group>
           </Menu.Item>
-
-          <Menu.Item
-            leftSection={<IconHistory size={16} />}
-            onClick={openHistoryModal}
-          >
-            {t("Page history")}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          {!readOnly && (
-            <Menu.Item
-              leftSection={<IconArrowRight size={16} />}
-              onClick={openMovePageModal}
-            >
-              {t("Move")}
-            </Menu.Item>
-          )}
-
-          <Menu.Item
-            leftSection={<IconFileExport size={16} />}
-            onClick={openExportModal}
-          >
-            {t("Export")}
-          </Menu.Item>
-
-          <Menu.Item
-            leftSection={<IconPrinter size={16} />}
-            onClick={handlePrint}
-          >
-            {t("Print PDF")}
-          </Menu.Item>
-
-          {!readOnly && (
+          {!userRole.isVisitor && (
             <>
-              <Menu.Divider />
               <Menu.Item
-                color={"red"}
-                leftSection={<IconTrash size={16} />}
-                onClick={handleDeletePage}
+                leftSection={<IconHistory size={16} />}
+                onClick={openHistoryModal}
               >
-                {t("Move to trash")}
+                {t("Page history")}
               </Menu.Item>
+
+              <Menu.Divider />
+
+              {!readOnly && (
+                <Menu.Item
+                  leftSection={<IconArrowRight size={16} />}
+                  onClick={openMovePageModal}
+                >
+                  {t("Move")}
+                </Menu.Item>
+              )}
+
+              <Menu.Item
+                leftSection={<IconFileExport size={16} />}
+                onClick={openExportModal}
+              >
+                {t("Export")}
+              </Menu.Item>
+
+              <Menu.Item
+                leftSection={<IconPrinter size={16} />}
+                onClick={handlePrint}
+              >
+                {t("Print PDF")}
+              </Menu.Item>
+
+              {!readOnly && (
+                <>
+                  <Menu.Divider />
+                  <Menu.Item
+                    color={"red"}
+                    leftSection={<IconTrash size={16} />}
+                    onClick={handleDeletePage}
+                  >
+                    {t("Move to trash")}
+                  </Menu.Item>
+                </>
+              )}
             </>
           )}
+
 
           <Menu.Divider />
 
