@@ -29,6 +29,7 @@ import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  hasUnsavedChangesAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -91,6 +92,7 @@ export default function PageEditor({
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [, setHasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
   const ydocRef = useRef<Y.Doc | null>(null);
   if (!ydocRef.current) {
     ydocRef.current = new Y.Doc();
@@ -110,7 +112,7 @@ export default function PageEditor({
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const userPageEditMode =
-    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Read;
 
   const canScroll = useCallback(
     () => isComponentMounted.current && editorCreated.current,
@@ -299,6 +301,8 @@ export default function PageEditor({
         const editorJson = editor.getJSON();
         //update local page cache to reduce flickers
         debouncedUpdateContent(editorJson);
+        // Mark as having unsaved changes when editor content changes
+        setHasUnsavedChanges(true);
       },
     },
     [pageId, editable, remoteProvider],

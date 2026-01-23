@@ -46,6 +46,7 @@ import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import ShareModal from "@/features/share/components/share-modal.tsx";
 import { useUserRole } from "@/hooks/use-user-role";
 
+
 interface PageHeaderMenuProps {
   readOnly?: boolean;
 }
@@ -54,6 +55,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const userRole = useUserRole();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const { pageSlug } = useParams();
+  const slugId = extractPageSlugId(pageSlug);
 
   useHotkeys(
     [
@@ -90,7 +93,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       )}
       {!userRole.isVisitor && !readOnly && (
         <>
-          <PageStateSegmentedControl size="xs" />
+          <PageStateSegmentedControl size="xs" pageId={slugId} />
           <ShareModal readOnly={readOnly} />
         </>
       )}

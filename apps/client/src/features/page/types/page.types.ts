@@ -73,6 +73,8 @@ export interface IPageInput {
   coverPhoto: string;
   position: string;
   isLocked: boolean;
+  forceHistorySave?: boolean;
+  content?: any;
 }
 
 export interface IExportPageParams {

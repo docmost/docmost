@@ -10,6 +10,9 @@ import {
   ResponsiveSettingsContent,
   ResponsiveSettingsControl,
 } from "@/components/ui/responsive-settings-row";
+import { pageEditorAtom, hasUnsavedChangesAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { useUpdatePageMutation } from "@/features/page/queries/page-query.ts";
+import { notifications } from "@mantine/notifications";
 
 export default function PageStatePref() {
   const { t } = useTranslation();
@@ -32,24 +35,52 @@ export default function PageStatePref() {
 
 interface PageStateSegmentedControlProps {
   size?: MantineSize;
+  pageId?: string;
 }
 
 export function PageStateSegmentedControl({
   size,
+  pageId,
 }: PageStateSegmentedControlProps) {
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
+  const [pageEditor] = useAtom(pageEditorAtom);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
+  const updatePageMutation = useUpdatePageMutation();
   const pageEditMode =
     user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
   const [value, setValue] = useState(pageEditMode);
 
   const handleChange = useCallback(
-    async (value: string) => {
-      const updatedUser = await updateUser({ pageEditMode: value });
-      setValue(value);
+    async (newValue: string) => {
+      // If switching to Read mode and there are unsaved changes, save first
+      if (newValue === PageEditMode.Read && hasUnsavedChanges && pageEditor && pageId) {
+        try {
+          const content = pageEditor.getJSON();
+          await updatePageMutation.mutateAsync({
+            pageId,
+            content,
+            forceHistorySave: true,
+          });
+          setHasUnsavedChanges(false);
+          notifications.show({
+            message: t("Page saved successfully"),
+            color: "green",
+          });
+        } catch (error) {
+          notifications.show({
+            message: t("Failed to save page"),
+            color: "red",
+          });
+          return; // Don't switch mode if save failed
+        }
+      }
+
+      const updatedUser = await updateUser({ pageEditMode: newValue });
+      setValue(newValue);
       setUser(updatedUser);
     },
-    [user, setUser]
+    [user, setUser, hasUnsavedChanges, pageEditor, pageId, updatePageMutation, setHasUnsavedChanges, t]
   );
 
   useEffect(() => {
@@ -58,6 +89,7 @@ export function PageStateSegmentedControl({
     }
   }, [pageEditMode, value]);
 
+  console.log(hasUnsavedChanges);
   return (
     <SegmentedControl
       size={size}
@@ -65,7 +97,10 @@ export function PageStateSegmentedControl({
       onChange={handleChange}
       data={[
         { label: t("Edit"), value: PageEditMode.Edit },
-        { label: t("Read"), value: PageEditMode.Read },
+        {
+          label: hasUnsavedChanges ? t("Save") : t("Read"),
+          value: PageEditMode.Read
+        },
       ]}
     />
   );

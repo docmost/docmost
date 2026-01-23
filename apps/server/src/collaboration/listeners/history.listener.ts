@@ -6,17 +6,30 @@ import { isDeepStrictEqual } from 'node:util';
 
 export class UpdatedPageEvent {
   page: Page;
+  forceHistory?: boolean;
 }
 
 @Injectable()
 export class HistoryListener {
   private readonly logger = new Logger(HistoryListener.name);
 
-  constructor(private readonly pageHistoryRepo: PageHistoryRepo) {}
+  constructor(private readonly pageHistoryRepo: PageHistoryRepo) { }
 
   @OnEvent('collab.page.updated')
   async handleCreatePageHistory(event: UpdatedPageEvent) {
-    const { page } = event;
+    const { page, forceHistory } = event;
+
+    // If forceHistory is true, bypass all checks and create history immediately
+    if (forceHistory) {
+      try {
+        await this.pageHistoryRepo.saveHistory(page);
+        this.logger.debug(`Forced history created for: ${page.id}`);
+        return;
+      } catch (err) {
+        this.logger.error(`Failed to create forced history for page: ${page.id}`, err);
+        return;
+      }
+    }
 
     const pageCreationTime = new Date(page.createdAt).getTime();
     const currentTime = Date.now();

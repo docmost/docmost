@@ -53,7 +53,7 @@ export class PageService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async findById(
     pageId: string,
@@ -167,13 +167,26 @@ export class PageService {
       page.id,
     );
 
-    return await this.pageRepo.findById(page.id, {
+    const updatedPage = await this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+
+    // Emit event for forced history creation if forceHistorySave is true
+    if (updatePageDto.forceHistorySave) {
+      this.eventEmitter.emit('collab.page.updated', {
+        page: {
+          ...updatedPage,
+          content: updatePageDto.content || updatedPage.content,
+        },
+        forceHistory: true,
+      });
+    }
+
+    return updatedPage;
   }
 
   async getSidebarPages(
