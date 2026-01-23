@@ -351,6 +351,7 @@ export interface Workspaces {
   enforceSso: Generated<boolean>;
   hostname: string | null;
   id: Generated<string>;
+  landingPageId: string | null;
   licenseKey: string | null;
   logo: string | null;
   name: string | null;

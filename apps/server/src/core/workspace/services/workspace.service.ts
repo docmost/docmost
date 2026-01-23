@@ -313,6 +313,23 @@ export class WorkspaceService {
       }
     }
 
+    if (typeof updateWorkspaceDto.landingPageId !== 'undefined') {
+      // allow explicit clearing via `null`
+      if (updateWorkspaceDto.landingPageId) {
+        const page = await this.db
+          .selectFrom('pages')
+          .select(['id'])
+          .where('id', '=', updateWorkspaceDto.landingPageId)
+          .where('workspaceId', '=', workspaceId)
+          .where('deletedAt', 'is', null)
+          .executeTakeFirst();
+
+        if (!page) {
+          throw new BadRequestException('Landing page not found');
+        }
+      }
+    }
+
     if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
       await this.workspaceRepo.updateApiSettings(
         workspaceId,

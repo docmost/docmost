@@ -198,6 +198,7 @@ export class SearchService {
       let pageSearch = this.db
         .selectFrom('pages')
         .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
+        .select((eb) => this.pageRepo.withSpace(eb))
         .where((eb) =>
           eb(
             sql`LOWER(f_unaccent(pages.title))`,

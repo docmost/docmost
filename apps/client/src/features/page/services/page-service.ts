@@ -101,8 +101,9 @@ export async function getPageBreadcrumbs(
 
 export async function getRecentChanges(
   spaceId?: string,
+  params?: QueryParams,
 ): Promise<IPagination<IPage>> {
-  const req = await api.post("/pages/recent", { spaceId });
+  const req = await api.post("/pages/recent", { spaceId, ...(params ?? {}) });
   return req.data;
 }
 
