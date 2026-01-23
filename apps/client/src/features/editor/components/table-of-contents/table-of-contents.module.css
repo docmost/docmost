@@ -66,3 +66,19 @@
 .link:hover .linkBtn {
   opacity: 1;
 }
+
+.tableofcontent {
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height-xl);
+  font-weight: 400;
+  width: 100%;
+  padding-left: 3rem;
+  padding-right: 3rem;
+  padding-top: 2rem;
+
+  @media print {
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+  }
+}

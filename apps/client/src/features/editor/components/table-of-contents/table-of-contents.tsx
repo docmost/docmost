@@ -337,9 +337,7 @@ export const TableOfContentsOnPage = () => {
   if (!links.length) return null;
   return (
     <>
-      <div className="tableofcontent" style={{ paddingLeft: "3rem", paddingRight: "3rem" }}>
-        <Space h="md" />
-        <Divider my="xs" />
+      <div className={clsx(classes.tableofcontent, 'tiptap')} style={{ position: "relative" }}>
         <Text mb="xs" fw={500}>
           {t("Table of contents")}
         </Text>
@@ -348,7 +346,7 @@ export const TableOfContentsOnPage = () => {
             component="button"
             onClick={() => handleScrollToHeading(item.position)}
             key={idx}
-            className={clsx(classes.link, {
+            className={clsx(classes.link, 'p0 mt0', {
               [classes.linkActive]: item.element === activeElement,
             })}
             style={{
