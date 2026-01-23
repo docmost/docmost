@@ -51,11 +51,12 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const emit = useQueryEmit();
+  const includePages = props?.editor?.storage?.mentionIncludePages ?? true;
 
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
     query: props.query,
     includeUsers: true,
-    includePages: true,
+    includePages,
     spaceId: space.id,
     limit: 10,
   });
@@ -89,7 +90,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         );
       }
 
-      if (suggestion?.pages?.length > 0) {
+      if (includePages && suggestion?.pages?.length > 0) {
         items.push({ entityType: "header", label: t("Pages") });
         items = items.concat(
           suggestion.pages.map((page) => ({
@@ -102,13 +103,13 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
           })),
         );
       }
-      items.push(createPageItem(props.query));
+      if (includePages) items.push(createPageItem(props.query));
 
       setRenderItems(items);
       // update editor storage
       props.editor.storage.mentionItems = items;
     }
-  }, [suggestion, isLoading]);
+  }, [suggestion, isLoading, includePages]);
 
   const selectItem = useCallback(
     (index: number) => {

@@ -23,6 +23,7 @@ export class WorkspaceRepo {
     'defaultRole',
     'emailDomains',
     'defaultSpaceId',
+    'landingPageId',
     'createdAt',
     'updatedAt',
     'deletedAt',

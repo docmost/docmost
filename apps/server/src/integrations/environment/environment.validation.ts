@@ -58,6 +58,10 @@ export class EnvironmentVariables {
   COLLAB_URL: string;
 
   @IsOptional()
+  @IsString()
+  MENTION_EMAIL_COOLDOWN_MS: string;
+
+  @IsOptional()
   CLOUD: boolean;
 
   @IsOptional()

@@ -1,11 +1,15 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateWorkspaceDto } from './create-workspace.dto';
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsString()
   logo: string;
+
+  @IsOptional()
+  @IsUUID('all')
+  landingPageId?: string | null;
 
   @IsOptional()
   @IsArray()

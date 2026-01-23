@@ -7,6 +7,7 @@ export interface IWorkspace {
   logo: string;
   hostname: string;
   defaultSpaceId: string;
+  landingPageId?: string | null;
   customDomain: string;
   enableInvite: boolean;
   settings: IWorkspaceSettings;
