@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
-import React, { useCallback } from "react";
+import React, { JSX, useCallback } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";

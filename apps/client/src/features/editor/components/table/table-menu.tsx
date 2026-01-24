@@ -1,6 +1,6 @@
 import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
-import React, { useCallback } from "react";
+import React, { JSX, useCallback } from "react";
 import {
   EditorMenuProps,
   ShouldShowProps,

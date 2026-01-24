@@ -36,7 +36,7 @@ export default function SharedTree({ sharedPageTree }: SharedTree) {
   const [tree, setTree] = useState<
     TreeApi<SharedPageTreeNode> | null | undefined
   >(null);
-  const rootElement = useRef<HTMLDivElement>();
+  const rootElement = useRef<HTMLDivElement>(null);
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef(rootElement, sizeRef);
   const { pageSlug } = useParams();

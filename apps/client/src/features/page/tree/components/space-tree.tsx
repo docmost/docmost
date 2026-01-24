@@ -94,9 +94,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     spaceId,
   });
   const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
-  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
+  const treeApiRef = useRef<TreeApi<SpaceTreeNode>>(null);
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
-  const rootElement = useRef<HTMLDivElement>();
+  const rootElement = useRef<HTMLDivElement>(null);
   const [isRootReady, setIsRootReady] = useState(false);
   const { ref: sizeRef, width, height } = useElementSize();
   const mergedRef = useMergedRef((element) => {
