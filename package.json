@@ -79,6 +79,7 @@
   "devDependencies": {
     "@nx/js": "20.4.5",
     "@types/bytes": "^3.1.5",
+    "@types/turndown": "^5.0.6",
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.1.2",
     "nx": "20.4.5",
