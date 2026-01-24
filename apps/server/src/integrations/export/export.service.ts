@@ -177,7 +177,7 @@ export class ExportService {
 
     const fileName = `${space.name}-space-export.zip`;
     return {
-      fileBuffer: zipFile,
+      fileStream: zipFile,
       fileName,
     };
   }
