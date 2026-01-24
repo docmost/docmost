@@ -328,6 +328,8 @@
   "Upload any image from your device.": "Загрузить любое изображение с вашего устройства.",
   "Upload any video from your device.": "Загрузить любое видео с вашего устройства.",
   "Upload any file from your device.": "Загрузить любой файл с вашего устройства.",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "Таблица",
   "Insert a table.": "Вставить таблицу.",
   "Insert collapsible block.": "Вставить сворачиваемый блок.",
