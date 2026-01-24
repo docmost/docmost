@@ -31,7 +31,7 @@ export function htmlToMarkdown(html: string): string {
 function listParagraph(turndownService: _TurndownService) {
   turndownService.addRule('paragraph', {
     filter: ['p'],
-    replacement: (content: any, node: HTMLInputElement) => {
+    replacement: (content: string, node: HTMLInputElement) => {
       if (node.parentElement?.nodeName === 'LI') {
         return content;
       }
@@ -47,7 +47,7 @@ function callout(turndownService: _TurndownService) {
         node.nodeName === 'DIV' && node.getAttribute('data-type') === 'callout'
       );
     },
-    replacement: function (content: any, node: HTMLInputElement) {
+    replacement: function (content: string, node: HTMLInputElement) {
       const calloutType = node.getAttribute('data-callout-type');
       return `\n\n:::${calloutType}\n${content.trim()}\n:::\n\n`;
     },
@@ -62,17 +62,19 @@ function taskList(turndownService: _TurndownService) {
         node.parentNode.nodeName === 'UL'
       );
     },
-    replacement: function (content: any, node: HTMLInputElement) {
+    replacement: function (content: string, node: HTMLInputElement) {
       const checkbox = node.querySelector(
         'input[type="checkbox"]',
       ) as HTMLInputElement;
       const isChecked = checkbox.checked;
 
+      // Process content like regular list items
       content = content
-        .replace(/^\n+/, '')
-        .replace(/\n+$/, '\n')
-        .replace(/\n/gm, '\n  ');
+        .replace(/^\n+/, '') // remove leading newlines
+        .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
+        .replace(/\n/gm, '\n  '); // indent nested content with 2 spaces
 
+      // Create the checkbox prefix
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
@@ -89,7 +91,7 @@ function preserveDetail(turndownService: _TurndownService) {
     filter: function (node: HTMLInputElement) {
       return node.nodeName === 'DETAILS';
     },
-    replacement: function (_content: any, node: HTMLInputElement) {
+    replacement: function (_content: string, node: HTMLInputElement) {
       const summary = node.querySelector(':scope > summary');
       let detailSummary = '';
 
@@ -119,7 +121,7 @@ function mathInline(turndownService: _TurndownService) {
         node.getAttribute('data-type') === 'mathInline'
       );
     },
-    replacement: function (content: any) {
+    replacement: function (content: string) {
       return `$${content}$`;
     },
   });
@@ -133,7 +135,7 @@ function mathBlock(turndownService: _TurndownService) {
         node.getAttribute('data-type') === 'mathBlock'
       );
     },
-    replacement: function (content: any) {
+    replacement: function (content: string) {
       return `\n$$\n${content}\n$$\n`;
     },
   });
@@ -144,7 +146,7 @@ function iframeEmbed(turndownService: _TurndownService) {
     filter: function (node: HTMLInputElement) {
       return node.nodeName === 'IFRAME';
     },
-    replacement: function (_content: any, node: HTMLInputElement) {
+    replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src');
       return '[' + src + '](' + src + ')';
     },
@@ -156,7 +158,7 @@ function video(turndownService: _TurndownService) {
     filter: function (node: HTMLInputElement) {
       return node.tagName === 'VIDEO';
     },
-    replacement: function (_content: any, node: HTMLInputElement) {
+    replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
       const name = src.split('/').pop() || src;
       return '[' + name + '](' + src + ')';
