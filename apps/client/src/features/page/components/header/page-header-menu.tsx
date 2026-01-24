@@ -53,7 +53,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
-        { preventDefault: false },
       ],
       [
         "Escape",

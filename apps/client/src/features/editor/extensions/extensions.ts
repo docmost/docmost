@@ -78,7 +78,6 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
-import { PluginKey } from "@tiptap/pm/state";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -244,7 +243,7 @@ export const mainExtensions = [
         "Mod-f": () => {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
-          return false;
+          return true;
         },
         Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
