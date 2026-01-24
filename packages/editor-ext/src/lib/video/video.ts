@@ -1,6 +1,5 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { VideoUploadPlugin } from "./video-upload";
-import { mergeAttributes, Range, Node, nodeInputRule } from "@tiptap/core";
+import { Range, Node } from "@tiptap/core";
 
 export interface VideoOptions {
   view: any;
@@ -8,11 +7,15 @@ export interface VideoOptions {
 }
 export interface VideoAttributes {
   src?: string;
-  title?: string;
   align?: string;
   attachmentId?: string;
   size?: number;
   width?: number;
+  aspectRatio?: number;
+  placeholder?: {
+    id: string;
+    name: string;
+  };
 }
 
 declare module "@tiptap/core" {
@@ -81,15 +84,26 @@ export const TiptapVideo = Node.create<VideoOptions>({
           "data-align": attributes.align,
         }),
       },
+      aspectRatio: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-aspect-ratio"),
+        renderHTML: (attributes: VideoAttributes) => ({
+          "data-aspect-ratio": attributes.aspectRatio,
+        }),
+      },
+      placeholder: {
+        default: null,
+        rendered: false,
+      },
     };
   },
 
   parseHTML() {
     return [
       {
-        tag: 'video',
+        tag: "video",
       },
-    ]
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -126,14 +140,9 @@ export const TiptapVideo = Node.create<VideoOptions>({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(this.options.view);
-  },
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
 
-  addProseMirrorPlugins() {
-    return [
-      VideoUploadPlugin({
-        placeholderClass: "video-upload",
-      }),
-    ];
+    return ReactNodeViewRenderer(this.options.view);
   },
 });

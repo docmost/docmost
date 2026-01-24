@@ -9,20 +9,14 @@ import {
   IconList,
   IconMessage,
   IconPrinter,
-  IconSearch,
   IconTrash,
   IconWifiOff,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
-import {
-  getHotkeyHandler,
-  useClipboard,
-  useDisclosure,
-  useHotkeys,
-} from "@mantine/hooks";
+import { useClipboard, useDisclosure, useHotkeys } from "@mantine/hooks";
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -38,8 +32,7 @@ import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
-import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
-import { formattedDate, timeAgo } from "@/lib/time.ts";
+import { formattedDate } from "@/lib/time.ts";
 import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
@@ -51,7 +44,6 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
-  const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
 
   useHotkeys(
     [
@@ -68,6 +60,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
+        { preventDefault: false },
       ],
     ],
     [],
@@ -75,17 +68,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
   return (
     <>
-      {yjsConnectionStatus === "disconnected" && (
-        <Tooltip
-          label={t("Real-time editor connection lost. Retrying...")}
-          openDelay={250}
-          withArrow
-        >
-          <ActionIcon variant="default" c="red" style={{ border: "none" }}>
-            <IconWifiOff size={20} stroke={2} />
-          </ActionIcon>
-        </Tooltip>
-      )}
+      <ConnectionWarning />
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
 
@@ -288,5 +271,53 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         open={movePageModalOpened}
       />
     </>
+  );
+}
+
+function ConnectionWarning() {
+  const { t } = useTranslation();
+  const yjsConnectionStatus = useAtomValue(yjsConnectionStatusAtom);
+  const [showWarning, setShowWarning] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const isDisconnected = ["disconnected", "connecting"].includes(
+      yjsConnectionStatus,
+    );
+
+    if (isDisconnected) {
+      if (!timeoutRef.current) {
+        timeoutRef.current = setTimeout(() => setShowWarning(true), 5000);
+      }
+    } else {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setShowWarning(false);
+    }
+  }, [yjsConnectionStatus]);
+
+  // Cleanup only on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  if (!showWarning) return null;
+
+  return (
+    <Tooltip
+      label={t("Real-time editor connection lost. Retrying...")}
+      openDelay={250}
+      withArrow
+    >
+      <ActionIcon variant="default" c="red" style={{ border: "none" }}>
+        <IconWifiOff size={20} stroke={2} />
+      </ActionIcon>
+    </Tooltip>
   );
 }

@@ -87,7 +87,7 @@ export const Callout = Node.create<CalloutOptions>({
       mergeAttributes(
         { "data-type": this.name },
         this.options.HTMLAttributes,
-        HTMLAttributes,
+        HTMLAttributes
       ),
       0,
     ];
@@ -130,6 +130,9 @@ export const Callout = Node.create<CalloutOptions>({
   },
 
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 
@@ -193,7 +196,7 @@ export const Callout = Node.create<CalloutOptions>({
 
           tr.delete(pos, pos + nodeSize);
           tr.setSelection(
-            TextSelection.near(tr.doc.resolve(previousPosition - 1)),
+            TextSelection.near(tr.doc.resolve(previousPosition - 1))
           );
           tr.insert(previousPosition - 1, content);
 

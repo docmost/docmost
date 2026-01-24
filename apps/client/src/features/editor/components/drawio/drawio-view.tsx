@@ -66,6 +66,7 @@ export default function DrawioView(props: NodeViewProps) {
     const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
+    //@ts-ignore
     const pageId = editor.storage?.pageId;
 
     let attachment: IAttachment = null;
