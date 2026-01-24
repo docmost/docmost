@@ -53,6 +53,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           const event = new CustomEvent("openFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
+        { preventDefault: false },
       ],
       [
         "Escape",
@@ -60,6 +61,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
         },
+        { preventDefault: false },
       ],
     ],
     [],
@@ -280,7 +282,9 @@ function ConnectionWarning() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const isDisconnected = ["disconnected", "connecting"].includes(yjsConnectionStatus);
+    const isDisconnected = ["disconnected", "connecting"].includes(
+      yjsConnectionStatus,
+    );
 
     if (isDisconnected) {
       if (!timeoutRef.current) {
