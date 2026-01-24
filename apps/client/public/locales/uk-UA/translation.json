@@ -328,6 +328,8 @@
   "Upload any image from your device.": "Завантажити будь-яке зображення з вашого пристрою.",
   "Upload any video from your device.": "Завантажити будь-яке відео з вашого пристрою.",
   "Upload any file from your device.": "Завантажити будь-який файл з вашого пристрою.",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "Таблиця",
   "Insert a table.": "Вставити таблицю.",
   "Insert collapsible block.": "Вставити блок, що згортається.",
