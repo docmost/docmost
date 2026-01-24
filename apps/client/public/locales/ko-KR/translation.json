@@ -328,6 +328,8 @@
   "Upload any image from your device.": "기기에서 이미지를 업로드하세요.",
   "Upload any video from your device.": "기기에서 비디오를 업로드하세요.",
   "Upload any file from your device.": "기기에서 파일을 업로드하세요.",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "테이블",
   "Insert a table.": "테이블 삽입.",
   "Insert collapsible block.": "접을 수 있는 블록 삽입.",
