@@ -328,6 +328,8 @@
   "Upload any image from your device.": "从设备上传任何图像",
   "Upload any video from your device.": "从设备上传任何视频",
   "Upload any file from your device.": "从设备上传任何文件",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "表格",
   "Insert a table.": "插入一个表格",
   "Insert collapsible block.": "插入一个折叠块",
