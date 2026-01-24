@@ -328,6 +328,8 @@
   "Upload any image from your device.": "Carica un'immagine dal tuo dispositivo.",
   "Upload any video from your device.": "Carica qualsiasi video dal tuo dispositivo.",
   "Upload any file from your device.": "Carica qualsiasi file dal tuo dispositivo.",
+  "Uploading {{name}}": "Uploading {{name}}",
+  "Uploading file": "Uploading file",
   "Table": "Tabella",
   "Insert a table.": "Inserisci una tabella.",
   "Insert collapsible block.": "Inserisci blocco comprimibile.",
