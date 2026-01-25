@@ -5,13 +5,14 @@ const CONTEXTS_TO_IGNORE = [
   'InstanceLoader',
   'RoutesResolver',
   'RouterExplorer',
+  'LegacyRouteConverter',
   'WebSocketsController',
 ];
 
 export function createPinoConfig(): Params {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDebugMode = process.env.DEBUG_MODE === 'true';
-  const logHttp = process.env.LOG_HTTP === 'true';
+  const isProduction = process.env.NODE_ENV?.toLowerCase() === 'production';
+  const isDebugMode = process.env.DEBUG_MODE?.toLowerCase() === 'true';
+  const logHttp = process.env.LOG_HTTP?.toLowerCase() === 'true';
 
   const level = isProduction && !isDebugMode ? 'info' : 'debug';
 
@@ -32,14 +33,20 @@ export function createPinoConfig(): Params {
         : undefined,
       formatters: {
         level: (label) => ({ level: label }),
-        log: (object: Record<string, unknown>) => {
+      },
+      hooks: {
+        logMethod(inputArgs, method) {
           if (isProduction && !isDebugMode) {
-            const context = object['context'] as string | undefined;
-            if (context && CONTEXTS_TO_IGNORE.includes(context)) {
-              return { filtered: true };
+            for (const arg of inputArgs) {
+              if (typeof arg === 'object' && arg !== null && 'context' in arg) {
+                const context = (arg as Record<string, unknown>)['context'];
+                if (typeof context === 'string' && CONTEXTS_TO_IGNORE.includes(context)) {
+                  return;
+                }
+              }
             }
           }
-          return object;
+          return method.apply(this, inputArgs);
         },
       },
       serializers: {

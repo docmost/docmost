@@ -31,6 +31,9 @@ import {
 import { Node as PMNode, Mark } from "@tiptap/pm/model";
 
 declare module "@tiptap/core" {
+  interface Storage {
+    searchAndReplace: SearchAndReplaceStorage;
+  }
   interface Commands<ReturnType> {
     search: {
       /**
@@ -184,21 +187,21 @@ const replace = (
 
   if (dispatch) {
     const tr = state.tr;
-    
+
     // Get all marks that span the text being replaced
     const marksSet = new Set<Mark>();
     state.doc.nodesBetween(from, to, (node) => {
       if (node.isText && node.marks) {
-        node.marks.forEach(mark => marksSet.add(mark));
+        node.marks.forEach((mark) => marksSet.add(mark));
       }
     });
-    
+
     const marks = Array.from(marksSet);
-    
+
     // Delete the old text and insert new text with preserved marks
     tr.delete(from, to);
     tr.insert(from, state.schema.text(replaceTerm, marks));
-    
+
     dispatch(tr);
   }
 };
@@ -215,17 +218,17 @@ const replaceAll = (
   // Process replacements in reverse order to avoid position shifting issues
   for (let i = resultsCopy.length - 1; i >= 0; i -= 1) {
     const { from, to } = resultsCopy[i];
-    
+
     // Get all marks that span the text being replaced
     const marksSet = new Set<Mark>();
     tr.doc.nodesBetween(from, to, (node) => {
       if (node.isText && node.marks) {
-        node.marks.forEach(mark => marksSet.add(mark));
+        node.marks.forEach((mark) => marksSet.add(mark));
       }
     });
-    
+
     const marks = Array.from(marksSet);
-    
+
     // Delete and insert with preserved marks
     tr.delete(from, to);
     tr.insert(from, tr.doc.type.schema.text(replaceTerm, marks));
@@ -352,10 +355,17 @@ export const SearchAndReplace = Extension.create<
           // The results will be recalculated by the plugin, but we need to ensure
           // the index doesn't exceed the new bounds
           setTimeout(() => {
-            const newResultsLength = editor.storage.searchAndReplace.results.length;
-            if (newResultsLength > 0 && editor.storage.searchAndReplace.resultIndex >= newResultsLength) {
+            const newResultsLength =
+              editor.storage.searchAndReplace.results.length;
+            if (
+              newResultsLength > 0 &&
+              editor.storage.searchAndReplace.resultIndex >= newResultsLength
+            ) {
               // Keep the same position if possible, otherwise go to the last result
-              editor.storage.searchAndReplace.resultIndex = Math.min(resultIndex, newResultsLength - 1);
+              editor.storage.searchAndReplace.resultIndex = Math.min(
+                resultIndex,
+                newResultsLength - 1,
+              );
             }
           }, 0);
 

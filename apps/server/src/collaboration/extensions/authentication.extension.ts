@@ -83,7 +83,7 @@ export class AuthenticationExtension implements Extension {
       }
 
       if (!canEdit) {
-        data.connection.readOnly = true;
+        data.connectionConfig.readOnly = true;
         this.logger.debug(
           `User ${user.id} granted readonly access to restricted page: ${pageId}`,
         );
@@ -91,7 +91,7 @@ export class AuthenticationExtension implements Extension {
     } else {
       // No restrictions - use space-level permissions
       if (userSpaceRole === SpaceRole.READER) {
-        data.connection.readOnly = true;
+        data.connectionConfig.readOnly = true;
         this.logger.debug(`User granted readonly access to page: ${pageId}`);
       }
     }

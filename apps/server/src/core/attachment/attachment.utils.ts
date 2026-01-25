@@ -5,15 +5,17 @@ import { sanitizeFileName } from '../../common/helpers';
 import * as sharp from 'sharp';
 
 export interface PreparedFile {
-  buffer: Buffer;
+  buffer?: Buffer;
   fileName: string;
   fileSize: number;
   fileExtension: string;
   mimeType: string;
+  multiPartFile?: MultipartFile;
 }
 
 export async function prepareFile(
   filePromise: Promise<MultipartFile>,
+  options: { skipBuffer?: boolean } = {},
 ): Promise<PreparedFile> {
   const file = await filePromise;
 
@@ -22,10 +24,16 @@ export async function prepareFile(
   }
 
   try {
-    const buffer = await file.toBuffer();
+    let buffer: Buffer | undefined;
+    let fileSize = 0;
+
+    if (!options.skipBuffer) {
+      buffer = await file.toBuffer();
+      fileSize = buffer.length;
+    }
+
     const sanitizedFilename = sanitizeFileName(file.filename);
     const fileName = sanitizedFilename.slice(0, 255);
-    const fileSize = buffer.length;
     const fileExtension = path.extname(file.filename).toLowerCase();
 
     return {
@@ -34,6 +42,7 @@ export async function prepareFile(
       fileSize,
       fileExtension,
       mimeType: file.mimetype,
+      multiPartFile: file,
     };
   } catch (error) {
     throw error;

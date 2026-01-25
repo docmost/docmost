@@ -175,7 +175,9 @@ export class AttachmentController {
     await this.pageAccessService.validateCanView(page, user);
 
     try {
-      const fileStream = await this.storageService.read(attachment.filePath);
+      const fileStream = await this.storageService.readStream(
+        attachment.filePath,
+      );
       res.headers({
         'Content-Type': attachment.mimeType,
         'Cache-Control': 'private, max-age=3600',
@@ -235,7 +237,9 @@ export class AttachmentController {
     }
 
     try {
-      const fileStream = await this.storageService.read(attachment.filePath);
+      const fileStream = await this.storageService.readStream(
+        attachment.filePath,
+      );
       res.headers({
         'Content-Type': attachment.mimeType,
         'Cache-Control': 'public, max-age=3600',
@@ -361,14 +365,14 @@ export class AttachmentController {
     const filePath = `${getAttachmentFolderPath(attachmentType, workspace.id)}/${fileName}`;
 
     try {
-      const fileStream = await this.storageService.read(filePath);
+      const fileStream = await this.storageService.readStream(filePath);
       res.headers({
         'Content-Type': getMimeType(filePath),
         'Cache-Control': 'private, max-age=86400',
       });
       return res.send(fileStream);
     } catch (err) {
-     // this.logger.error(err);
+      // this.logger.error(err);
       throw new NotFoundException('File not found');
     }
   }

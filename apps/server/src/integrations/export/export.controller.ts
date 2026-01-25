@@ -55,7 +55,7 @@ export class ExportController {
       throw new ForbiddenException();
     }
 
-    const zipFileBuffer = await this.exportService.exportPages(
+    const zipFileStream = await this.exportService.exportPages(
       dto.pageId,
       dto.format,
       dto.includeAttachments,
@@ -71,7 +71,7 @@ export class ExportController {
         'attachment; filename="' + encodeURIComponent(fileName) + '"',
     });
 
-    res.send(zipFileBuffer);
+    res.send(zipFileStream);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -102,6 +102,6 @@ export class ExportController {
         '"',
     });
 
-    res.send(exportFile.fileBuffer);
+    res.send(exportFile.fileStream);
   }
 }
