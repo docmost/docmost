@@ -1,19 +1,5 @@
 import { atom } from "jotai";
 import { SpaceTreeNode } from "@/features/page/tree/types";
-import { appendNodeChildren } from "../utils";
+import type { TreeInstance } from "@headless-tree/core";
 
-export const treeDataAtom = atom<SpaceTreeNode[]>([]);
-
-// Atom
-export const appendNodeChildrenAtom = atom(
-  null,
-  (
-    get,
-    set,
-    { parentId, children }: { parentId: string; children: SpaceTreeNode[] }
-  ) => {
-    const currentTree = get(treeDataAtom);
-    const updatedTree = appendNodeChildren(currentTree, parentId, children);
-    set(treeDataAtom, updatedTree);
-  }
-);
+export const treeDataAtom = atom<{ tree: TreeInstance<SpaceTreeNode> | null }>({ tree: null });

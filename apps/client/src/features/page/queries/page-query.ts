@@ -36,8 +36,6 @@ import { validate as isValidUuid } from "uuid";
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
-import { SimpleTree } from "react-arborist";
-import { SpaceTreeNode } from "@/features/page/tree/types";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 
 export function usePageQuery(
@@ -170,7 +168,7 @@ export function useMovePageMutation() {
 }
 
 export function useRestorePageMutation() {
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
 
   return useMutation({
@@ -178,61 +176,21 @@ export function useRestorePageMutation() {
     onSuccess: async (restoredPage) => {
       notifications.show({ message: "Page restored successfully" });
 
-      // Add the restored page back to the tree
-      const treeApi = new SimpleTree<SpaceTreeNode>(treeData);
+      await tree.getItemInstance(restoredPage.parentPageId ?? "root").invalidateChildrenIds();
 
-      // Check if the page already exists in the tree (it shouldn't)
-      if (!treeApi.find(restoredPage.id)) {
-        // Create the tree node data with hasChildren from backend
-        const nodeData: SpaceTreeNode = {
-          id: restoredPage.id,
-          slugId: restoredPage.slugId,
-          name: restoredPage.title || "Untitled",
-          icon: restoredPage.icon,
-          position: restoredPage.position,
+      // Emit websocket event to sync with other users
+      setTimeout(() => {
+        const item = tree.getItemInstance(restoredPage.id);
+        emit({
+          operation: "addTreeNode",
           spaceId: restoredPage.spaceId,
-          parentPageId: restoredPage.parentPageId,
-          hasChildren: restoredPage.hasChildren || false,
-          children: [],
-        };
-
-        // Determine the parent and index
-        const parentId = restoredPage.parentPageId || null;
-        let index = 0;
-
-        if (parentId) {
-          const parentNode = treeApi.find(parentId);
-          if (parentNode) {
-            index = parentNode.children?.length || 0;
-          }
-        } else {
-          // Root level page
-          index = treeApi.data.length;
-        }
-
-        // Add the node to the tree
-        treeApi.create({
-          parentId,
-          index,
-          data: nodeData,
+          payload: {
+            parentId: restoredPage.parentPageId,
+            index: item?.getItemMeta()?.index,
+            data: item?.getItemData()
+          },
         });
-
-        // Update the tree data
-        setTreeData(treeApi.data);
-
-        // Emit websocket event to sync with other users
-        setTimeout(() => {
-          emit({
-            operation: "addTreeNode",
-            spaceId: restoredPage.spaceId,
-            payload: {
-              parentId,
-              index,
-              data: nodeData,
-            },
-          });
-        }, 50);
-      }
+      }, 50);
 
       //  await queryClient.invalidateQueries({ queryKey: ["sidebar-pages", restoredPage.spaceId] });
 
@@ -291,11 +249,21 @@ export async function fetchAllAncestorChildren(params: SidebarPagesParams) {
   const response = await queryClient.fetchQuery({
     queryKey: ["sidebar-pages", params],
     queryFn: () => getAllSidebarPages(params),
-    staleTime: 30 * 60 * 1000,
+    staleTime: 0
   });
 
   const allItems = response.pages.flatMap((page) => page.items);
   return buildTree(allItems);
+}
+
+export async function fetchPageData(pageInput: { pageId: string }) {
+  const response = await queryClient.fetchQuery({
+    queryKey: ["pages", pageInput.pageId],
+    queryFn: () => getPageById(pageInput),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return response;
 }
 
 export function useRecentChangesQuery(

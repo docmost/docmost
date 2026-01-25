@@ -21,7 +21,7 @@ import {
 } from "@/features/page/services/page-service.ts";
 import { notifications } from "@mantine/notifications";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { buildTree } from "@/features/page/tree/utils";
 import { IPage } from "@/features/page/types/page.types.ts";
 import React, { useEffect, useRef, useState } from "react";
@@ -79,7 +79,7 @@ interface ImportFormatSelection {
 }
 function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
   const { t } = useTranslation();
-  const [treeData, setTreeData] = useAtom(treeDataAtom);
+  const [{ tree }] = useAtom(treeDataAtom);
   const [workspace] = useAtom(workspaceAtom);
   const [fileTaskId, setFileTaskId] = useState<string | null>(null);
   const emit = useQueryEmit();
@@ -251,12 +251,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }
 
     if (pages?.length > 0 && pageCount > 0) {
-      const newTreeNodes = buildTree(pages);
-      const fullTree = treeData.concat(newTreeNodes);
-
-      if (newTreeNodes?.length && fullTree?.length > 0) {
-        setTreeData(fullTree);
-      }
+      tree?.getRootItem()?.invalidateChildrenIds();
 
       // Reset file inputs after successful upload
       if (markdownFileRef.current) markdownFileRef.current();

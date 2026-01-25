@@ -1,9 +1,14 @@
 .tree {
     border-radius: 0;
+    overflow: auto;
+    height: 100%;
+    padding-top: 3px;
+    padding-left: calc(var(--mantine-spacing-md) - rem(6px));
 }
 
 .treeContainer {
     height: 100%;
+    overflow: auto;
     min-width: 0;
 
     > div, > div > .tree {
@@ -11,12 +16,18 @@
     }
 }
 
+.dragPreview {
+    position: absolute;
+    top: -99999px;
+    left: -99999px;
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
 .node {
     position: relative;
     border-radius: 4px;
     display: flex;
     align-items: center;
-    height: 100%;
     width: 93%; /* not to overlap with scroll bar */
     text-decoration: none;
     color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
@@ -41,37 +52,16 @@
       &:hover .actions {
        visibility: visible;
     }
-
 }
 
-.node:global(.willReceiveDrop) {
+.willReceiveDrop {
     background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-gray-7));
 }
 
-.node:global(.isSelected) {
-    border-radius: 0;
-
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
-/*
-    color: white;
-
- // background-color: light-dark(
-  //  var(--mantine-color-gray-0),
-   // var(--mantine-color-dark-6)
-  //);
-  //background: rgb(20, 127, 250, 0.5);*/
-}
-
-.node:global(.isSelectedStart.isSelectedEnd) {
+.isSelected, .isFocused:focus-visible {
     border-radius: 4px;
-}
-
-.row:focus .node:global(.isSelected) {
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
-}
-
-.row:focus .node:global(.isFocused) {
-    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
+    /* background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5)); */
 }
 
 .row {
@@ -93,12 +83,13 @@
     flex-shrink: 0;
 }
 
-.text {
+.text, .dragPreview {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: rem(14px);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .arrow {
@@ -107,4 +98,23 @@
 
 [role="treeitem"] {
     padding-bottom: 2px;
+}
+
+.dragline {
+    height: 2px;
+    margin-top: -1px;
+    background-color: #4b91e2;
+}
+
+/* Render the circle at the left of the dragline */
+.dragline::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -3px;
+    height: 8px;
+    width: 8px;
+    background: #fff;
+    border: 2px solid #4b91e2;
+    border-radius: 99px;
 }

@@ -63,7 +63,6 @@
 }
 
 .pages {
-    padding-left: calc(var(--mantine-spacing-md) - rem(6px));
     padding-right: calc(var(--mantine-spacing-md) - rem(6px));
     padding-bottom: var(--mantine-spacing-md);
 }
