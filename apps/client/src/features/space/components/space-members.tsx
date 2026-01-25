@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 
 type MemberType = "user" | "group";
 
@@ -113,7 +114,7 @@ export default function SpaceMembersList({
   return (
     <>
       <SearchInput onSearch={handleSearch} />
-      <ScrollArea h={400}>
+      <ScrollArea h={450}>
         <Table.ScrollContainer minWidth={500}>
           <Table highlightOnHover verticalSpacing={8}>
             <Table.Thead>
@@ -138,10 +139,10 @@ export default function SpaceMembersList({
 
                       {member.type === "group" && <IconGroupCircle />}
 
-                      <div>
-                        <Text fz="sm" fw={500} lineClamp={1}>
+                      <div style={{ minWidth: 0, overflow: "hidden", maxWidth: 260 }}>
+                        <AutoTooltipText fz="sm" fw={500}>
                           {member?.name}
-                        </Text>
+                        </AutoTooltipText>
                         <Text fz="xs" c="dimmed">
                           {member.type == "user" && member?.email}
 

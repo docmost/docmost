@@ -1,10 +1,35 @@
 import { ReactRenderer, useEditor } from "@tiptap/react";
 import CommandList from "@/features/editor/components/slash-menu/command-list";
-import tippy from "tippy.js";
+import {
+  autoUpdate,
+  computePosition,
+  flip,
+  offset,
+  shift,
+} from "@floating-ui/dom";
 
 const renderItems = () => {
   let component: ReactRenderer | null = null;
-  let popup: any | null = null;
+  let popup: HTMLElement | null = null;
+  let cleanup: (() => void) | null = null;
+  let getReferenceClientRect: (() => DOMRect) | null = null;
+
+  const updatePosition = () => {
+    if (!popup || !getReferenceClientRect) return;
+
+    // @ts-ignore
+    const rect = getReferenceClientRect();
+
+    computePosition({ getBoundingClientRect: () => rect }, popup, {
+      placement: "bottom-start",
+      middleware: [offset(0), flip(), shift()],
+    }).then(({ x, y }) => {
+      if (popup) {
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+      }
+    });
+  };
 
   return {
     onStart: (props: {
@@ -21,15 +46,29 @@ const renderItems = () => {
       }
 
       // @ts-ignore
-      popup = tippy("body", {
-        getReferenceClientRect: props.clientRect,
-        appendTo: () => document.body,
-        content: component.element,
-        showOnCreate: true,
-        interactive: true,
-        trigger: "manual",
-        placement: "bottom-start",
-      });
+      getReferenceClientRect = props.clientRect;
+
+      popup = document.createElement("div");
+      popup.style.zIndex = "9999";
+      popup.style.position = "absolute";
+      popup.style.top = "0";
+      popup.style.left = "0";
+
+      document.body.appendChild(popup);
+      popup.appendChild(component.element);
+
+      cleanup = autoUpdate(
+        // @ts-ignore
+        {
+          getBoundingClientRect: () => {
+            return getReferenceClientRect
+              ? getReferenceClientRect()
+              : new DOMRect();
+          },
+        },
+        popup,
+        updatePosition
+      );
     },
     onUpdate: (props: {
       editor: ReturnType<typeof useEditor>;
@@ -41,14 +80,15 @@ const renderItems = () => {
         return;
       }
 
-      popup &&
-        popup[0].setProps({
-          getReferenceClientRect: props.clientRect,
-        });
+      // @ts-ignore
+      getReferenceClientRect = props.clientRect;
+      updatePosition();
     },
     onKeyDown: (props: { event: KeyboardEvent }) => {
       if (props.event.key === "Escape") {
-        popup?.[0].hide();
+        if (popup) {
+          popup.style.display = "none";
+        }
 
         return true;
       }
@@ -57,12 +97,19 @@ const renderItems = () => {
       return component?.ref?.onKeyDown(props);
     },
     onExit: () => {
-      if (popup && !popup[0].state.isDestroyed) {
-        popup[0].destroy();
+      if (cleanup) {
+        cleanup();
+        cleanup = null;
+      }
+
+      if (popup) {
+        popup.remove();
+        popup = null;
       }
 
       if (component) {
         component.destroy();
+        component = null;
       }
     },
   };

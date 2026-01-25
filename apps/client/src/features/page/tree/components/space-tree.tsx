@@ -30,10 +30,7 @@ import {
   getPageById,
 } from "@/features/page/services/page-service.ts";
 import { queryClient } from "@/main.tsx";
-import {
-  useClipboard,
-  useDisclosure,
-} from "@mantine/hooks";
+import { useClipboard, useDisclosure } from "@mantine/hooks";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { notifications } from "@mantine/notifications";
@@ -47,8 +44,17 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
-import { useTree as useHeadlessTree } from "@headless-tree/react/react17"
-import { asyncDataLoaderFeature, dragAndDropFeature, hotkeysCoreFeature, isOrderedDragTarget, selectionFeature, type FeatureImplementation, type ItemInstance, type TreeInstance } from "@headless-tree/core";
+import { useTree as useHeadlessTree } from "@headless-tree/react/react17";
+import {
+  asyncDataLoaderFeature,
+  dragAndDropFeature,
+  hotkeysCoreFeature,
+  isOrderedDragTarget,
+  selectionFeature,
+  type FeatureImplementation,
+  type ItemInstance,
+  type TreeInstance,
+} from "@headless-tree/core";
 import { treeDataAtom } from "../atoms/tree-data-atom.ts";
 
 interface SpaceTreeProps {
@@ -69,28 +75,39 @@ declare module "@headless-tree/core" {
 }
 const headlessTreeExtensions: FeatureImplementation<SpaceTreeNode> = {
   itemInstance: {
-    isActive: ({itemId, tree}) => tree.getConfig().activeItemId === itemId,
+    isActive: ({ itemId, tree }) => tree.getConfig().activeItemId === itemId,
   },
   treeInstance: {
-    getActiveItem: ({tree}) => tree.getItemInstance(tree.getConfig().activeItemId)
-  }
+    getActiveItem: ({ tree }) =>
+      tree.getItemInstance(tree.getConfig().activeItemId),
+  },
 };
 
-const useExpandCurrentPath = (currentPageId: string | undefined, tree: TreeInstance<SpaceTreeNode>, triggerRerender: () => void) => {
+const useExpandCurrentPath = (
+  currentPageId: string | undefined,
+  tree: TreeInstance<SpaceTreeNode>,
+  triggerRerender: () => void,
+) => {
   const isDone = useRef(false);
   useEffect(() => {
     if (isDone.current) return;
     async function expandCurrentPagePath() {
       if (!currentPageId) return;
       const breadcrumbs = await getPageBreadcrumbs(currentPageId);
-      await Promise.all(breadcrumbs.map(breadcrumb => tree.loadChildrenIds(breadcrumb.parentPageId)));
-      breadcrumbs.forEach(breadcrumb => tree.getItemInstance(breadcrumb.id).expand());
+      await Promise.all(
+        breadcrumbs.map((breadcrumb) =>
+          tree.loadChildrenIds(breadcrumb.parentPageId),
+        ),
+      );
+      breadcrumbs.forEach((breadcrumb) =>
+        tree.getItemInstance(breadcrumb.id).expand(),
+      );
       isDone.current = true;
       triggerRerender();
     }
     expandCurrentPagePath();
   }, [currentPageId]);
-}
+};
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const dragPreview = useRef<HTMLDivElement>(null);
@@ -103,53 +120,53 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   });
 
   const tree = useHeadlessTree<SpaceTreeNode>({
-     rootItemId: "root",
-     activeItemId: currentPage?.id,
-     getItemName: item => item.getItemData()?.name || t("untitled"),
-     createLoadingItemData: () => ({
-       id: "loading",
-       name: "Loading...",
-       position: null,
-       spaceId: spaceId,
-       parentPageId: null,
-       hasChildren: false,
-       slugId: "",
-       children: [],
-     }),
-     isItemFolder: item => item.getItemData()?.hasChildren,
-     canDrop: () => true,
-     onDrop: treeMutations.move,
-     setDragImage: () => ({
+    rootItemId: "root",
+    activeItemId: currentPage?.id,
+    getItemName: (item) => item.getItemData()?.name || t("untitled"),
+    createLoadingItemData: () => ({
+      id: "loading",
+      name: "Loading...",
+      position: null,
+      spaceId: spaceId,
+      parentPageId: null,
+      hasChildren: false,
+      slugId: "",
+      children: [],
+    }),
+    isItemFolder: (item) => item.getItemData()?.hasChildren,
+    canDrop: () => true,
+    onDrop: treeMutations.move,
+    setDragImage: () => ({
       imgElement: dragPreview.current,
       xOffset: 40,
       yOffset: 15,
-     }),
-     dataLoader: {
-       getItem: async pageId => {
+    }),
+    dataLoader: {
+      getItem: async (pageId) => {
         // docmost doesn't have a direct API for fetching a single page by ID,
         // but getItem() isn't actually called if getChildrenWithData() is implemented,
         // and item.invalidateItemData() is never called.
-         return null as any;
-       },
-       getChildrenWithData: async pageId => {
-         const children = await fetchAllAncestorChildren({
-           spaceId,
-           pageId: pageId === "root" ? null : pageId,
-         });
-         return (children).map(data => ({
-           id: data.id,
-           data,
-         }));
-       }
-     },
-     indent: 20,
-     features: [
-       asyncDataLoaderFeature, 
-       selectionFeature, 
-       hotkeysCoreFeature, 
-       dragAndDropFeature,
-       headlessTreeExtensions
-     ]
+        return null as any;
+      },
+      getChildrenWithData: async (pageId) => {
+        const children = await fetchAllAncestorChildren({
+          spaceId,
+          pageId: pageId === "root" ? null : pageId,
+        });
+        return children.map((data) => ({
+          id: data.id,
+          data,
+        }));
+      },
+    },
+    indent: 20,
+    features: [
+      asyncDataLoaderFeature,
+      selectionFeature,
+      hotkeysCoreFeature,
+      dragAndDropFeature,
+      headlessTreeExtensions,
+    ],
   });
 
   useEffect(() => {
@@ -158,7 +175,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     tree.getActiveItem()?.scrollTo({
-      block: "nearest"
+      block: "nearest",
     });
   }, [tree.getActiveItem()?.getId()]);
 
@@ -166,8 +183,10 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   return (
     <div className={classes.tree}>
-      <div className={classes.dragPreview} ref={dragPreview}>{tree.getSelectedItems()?.[0]?.getItemName()}</div>
-      <div {...tree.getContainerProps()} >
+      <div className={classes.dragPreview} ref={dragPreview}>
+        {tree.getSelectedItems()?.[0]?.getItemName()}
+      </div>
+      <div {...tree.getContainerProps()}>
         {tree.getItems().map((item) => (
           <Node
             key={item.getId()}
@@ -185,7 +204,16 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   );
 }
 
-const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isDragTarget, isActive, isFocused, level }: {
+const Node = React.memo(function Node({
+  item,
+  spaceId,
+  preview,
+  disableEdit,
+  isDragTarget,
+  isActive,
+  isFocused,
+  level,
+}: {
   item: ItemInstance<SpaceTreeNode>;
   spaceId: string;
   preview?: boolean;
@@ -204,12 +232,15 @@ const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isD
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
   const prefetchPage = () => {
-    timerRef.current = setTimeout(() => {
-      queryClient.prefetchQuery({
-        queryKey: ["pages", item.getItemData().slugId],
-        queryFn: () => getPageById({ pageId: item.getItemData().slugId }),
+    timerRef.current = setTimeout(async () => {
+      const page = await queryClient.fetchQuery({
+        queryKey: ["pages", item.getItemData().id],
+        queryFn: () => getPageById({ pageId: item.getItemData().id }),
         staleTime: 5 * 60 * 1000,
       });
+      if (page?.slugId) {
+        queryClient.setQueryData(["pages", page.slugId], page);
+      }
     }, 150);
   };
 
@@ -237,10 +268,10 @@ const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isD
             id: item.getId(),
             payload: { icon: emoji.native, parentPageId: data.parentPageId },
           });
-        item.updateCachedData({
-          ...item.getItemData(),
-          icon: emoji.native,
-        });
+          item.updateCachedData({
+            ...item.getItemData(),
+            icon: emoji.native,
+          });
         }, 50);
       });
   };
@@ -263,17 +294,21 @@ const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isD
     }, 50);
   };
 
-  const pageUrl = buildPageUrl(spaceSlug, item.getItemData()?.slugId, item.getItemName());
+  const pageUrl = buildPageUrl(
+    spaceSlug,
+    item.getItemData()?.slugId,
+    item.getItemName(),
+  );
   const dragTarget = item.getTree().getDragTarget();
 
   return (
     <>
       <Box
         {...item.getProps()}
-  style={{ paddingLeft: `${level * 20}px` }}
+        style={{ paddingLeft: `${level * 20}px` }}
         className={clsx(
-          classes.node, 
-          isActive && classes.isSelected, 
+          classes.node,
+          isActive && classes.isSelected,
           isFocused && classes.isFocused,
           isDragTarget && classes.willReceiveDrop,
         )}
@@ -287,7 +322,7 @@ const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isD
         onMouseEnter={prefetchPage}
         onMouseLeave={cancelPagePrefetch}
       >
-       <PageArrow item={item} />
+        <PageArrow item={item} />
 
         <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
@@ -307,14 +342,13 @@ const Node = React.memo(function Node({ item, spaceId, preview, disableEdit, isD
         <span className={classes.text}>{item.getItemName()}</span>
 
         <div className={classes.actions}>
-          <TreeItemMenu item={item} spaceId={item.getItemData().spaceId} disableEdit={disableEdit} />
+          <TreeItemMenu
+            item={item}
+            spaceId={item.getItemData().spaceId}
+            disableEdit={disableEdit}
+          />
 
-          {!disableEdit && (
-            <CreateNode
-              item={item}
-              spaceId={spaceId}
-            />
-          )}
+          {!disableEdit && <CreateNode item={item} spaceId={spaceId} />}
         </div>
       </Box>
     </>
@@ -355,7 +389,7 @@ interface TreeItemMenuProps {
 }
 
 function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
-  const mutations = useTreeMutation(spaceId)
+  const mutations = useTreeMutation(spaceId);
   const { t } = useTranslation();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
@@ -374,7 +408,8 @@ function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
 
   const handleCopyLink = () => {
     const pageUrl =
-      getAppUrl() + buildPageUrl(spaceSlug, item.getItemData().slugId, item.getItemName());
+      getAppUrl() +
+      buildPageUrl(spaceSlug, item.getItemData().slugId, item.getItemName());
     clipboard.copy(pageUrl);
     notifications.show({ message: t("Link copied") });
   };
@@ -403,13 +438,19 @@ function TreeItemMenu({ item, spaceId, disableEdit }: TreeItemMenuProps) {
 
       // Update local tree
       const tree = item.getTree();
-      const oldChildren = item.getParent()?.getChildren().map(child => child.getId()) ?? [];
+      const oldChildren =
+        item
+          .getParent()
+          ?.getChildren()
+          .map((child) => child.getId()) ?? [];
       tree.getItemInstance(treeNodeData.id).updateCachedData(treeNodeData);
-      item.getParent()?.updateCachedChildrenIds([
-        ...oldChildren.slice(0, newIndex),
-        treeNodeData.id,
-        ...oldChildren.slice(newIndex),
-      ]);
+      item
+        .getParent()
+        ?.updateCachedChildrenIds([
+          ...oldChildren.slice(0, newIndex),
+          treeNodeData.id,
+          ...oldChildren.slice(newIndex),
+        ]);
 
       // Emit socket event
       setTimeout(() => {
@@ -581,17 +622,15 @@ function PageArrow({ item }: PageArrowProps) {
         }
       }}
     >
-      {
-        isFolder ? (
-          item.isExpanded() ? (
-            <IconChevronDown stroke={2} size={18} />
-          ) : (
-            <IconChevronRight stroke={2} size={18} />
-          )
+      {isFolder ? (
+        item.isExpanded() ? (
+          <IconChevronDown stroke={2} size={18} />
         ) : (
-          <IconPointFilled size={8} />
+          <IconChevronRight stroke={2} size={18} />
         )
-      }
+      ) : (
+        <IconPointFilled size={8} />
+      )}
     </ActionIcon>
   );
 }
