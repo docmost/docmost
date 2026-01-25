@@ -18,6 +18,7 @@ import {
 import { WsSocketWrapper } from './extensions/redis-sync/ws-socket-wrapper';
 import RedisClient from 'ioredis';
 import { pack, unpack } from 'msgpackr';
+import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 
 @Injectable()
 export class CollaborationGateway {
@@ -122,8 +123,7 @@ export class CollaborationGateway {
     return this.hocuspocus.getDocumentsCount();
   }
 
-  async destroy(): Promise<void> {
-    await new Promise((r) => setTimeout(r, 10000));
+  async destroy(collabWsAdapter: CollabWsAdapter): Promise<void> {
     // eslint-disable-next-line no-async-promise-executor
     await new Promise(async (resolve) => {
       try {
@@ -133,6 +133,8 @@ export class CollaborationGateway {
             if (instance.getDocumentsCount() === 0) resolve('');
           },
         });
+
+        collabWsAdapter?.close();
 
         if (this.hocuspocus.getDocumentsCount() === 0) resolve('');
         this.hocuspocus.closeConnections();

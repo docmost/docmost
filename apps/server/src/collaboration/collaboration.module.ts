@@ -51,8 +51,7 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.collabWsAdapter?.close();
-    await this.collaborationGateway?.destroy();
+    await this.collaborationGateway?.destroy(this.collabWsAdapter);
     this.collabWsAdapter?.destroy();
   }
 }
