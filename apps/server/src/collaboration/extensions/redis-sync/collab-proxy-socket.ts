@@ -5,7 +5,7 @@ import type {
   RSAMessageClose,
   RSAMessagePing,
   RSAMessageSend,
-} from './redis-sync.extension';
+} from './redis-sync.types';
 
 export class CollabProxySocket extends EventEmitter {
   private replyTo: string;
