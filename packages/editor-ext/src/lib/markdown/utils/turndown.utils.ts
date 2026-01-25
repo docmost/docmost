@@ -1,5 +1,6 @@
 import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
+import { getBasename } from './basename';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
@@ -160,7 +161,7 @@ function video(turndownService: _TurndownService) {
     },
     replacement: function (_content: string, node: HTMLInputElement) {
       const src = node.getAttribute('src') || '';
-      const name = src.split('/').pop() || src;
+      const name = getBasename(src) || src;
       return '[' + name + '](' + src + ')';
     },
   });
