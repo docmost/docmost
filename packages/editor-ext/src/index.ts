@@ -23,3 +23,4 @@ export * from "./lib/subpages";
 export * from "./lib/highlight";
 export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
+export * from "./lib/shared-storage";
