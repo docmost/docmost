@@ -42,6 +42,7 @@ import {
   Heading,
   Highlight,
   UniqueID,
+  SharedStorage,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -107,6 +108,7 @@ export const mainExtensions = [
       },
     },
   }),
+  SharedStorage,
   Heading,
   UniqueID.configure({
     types: ["heading", "paragraph"],
@@ -246,7 +248,7 @@ export const mainExtensions = [
         Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
-          return true;
+          return false;
         },
       };
     },

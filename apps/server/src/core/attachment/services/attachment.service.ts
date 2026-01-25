@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
@@ -26,6 +27,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { createByteCountingStream } from '../../../common/helpers/utils';
 
 @Injectable()
 export class AttachmentService {
@@ -49,7 +51,9 @@ export class AttachmentService {
     attachmentId?: string;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
-    const preparedFile: PreparedFile = await prepareFile(filePromise);
+    const preparedFile: PreparedFile = await prepareFile(filePromise, {
+      skipBuffer: true,
+    });
 
     let isUpdate = false;
     let attachmentId = null;
@@ -81,7 +85,14 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.buffer);
+    const { stream, getBytesRead } = createByteCountingStream(
+      preparedFile.multiPartFile.file,
+    );
+
+    await this.uploadToDrive(filePath, stream);
+
+    // Update fileSize from the consumed stream
+    preparedFile.fileSize = getBytesRead();
 
     let attachment: Attachment = null;
     try {
@@ -142,7 +153,10 @@ export class AttachmentService {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
 
-    const processedBuffer = await compressAndResizeIcon(preparedFile.buffer, type);
+    const processedBuffer = await compressAndResizeIcon(
+      preparedFile.buffer,
+      type,
+    );
     preparedFile.buffer = processedBuffer;
     preparedFile.fileSize = processedBuffer.length;
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;
@@ -232,9 +246,9 @@ export class AttachmentService {
     }
   }
 
-  async uploadToDrive(filePath: string, fileBuffer: any) {
+  async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {
     try {
-      await this.storageService.upload(filePath, fileBuffer);
+      await this.storageService.upload(filePath, fileContent);
     } catch (err) {
       this.logger.error('Error uploading file to drive:', err);
       throw new BadRequestException('Error uploading file to drive');

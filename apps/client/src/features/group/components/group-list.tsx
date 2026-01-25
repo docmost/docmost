@@ -10,6 +10,7 @@ import Paginate from "@/components/common/paginate.tsx";
 import { queryClient } from "@/main.tsx";
 import { getSpaces } from "@/features/space/services/space-service.ts";
 import { getGroupMembers } from "@/features/group/services/group-service.ts";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 
 export default function GroupList() {
   const { t } = useTranslation();
@@ -51,9 +52,9 @@ export default function GroupList() {
                     <Group gap="sm" wrap="nowrap">
                       <IconGroupCircle />
                       <div style={{ minWidth: 0, overflow: "hidden" }}>
-                        <Text fz="sm" fw={500} lineClamp={1}>
+                        <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
                           {group.name}
-                        </Text>
+                        </AutoTooltipText>
                         <Text fz="xs" c="dimmed" lineClamp={2}>
                           {group.description}
                         </Text>

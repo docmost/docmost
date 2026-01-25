@@ -5,8 +5,8 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
-import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 import { Logger } from '@nestjs/common';
+import { Logger as PinoLogger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -17,9 +17,11 @@ async function bootstrap() {
       maxParamLength: 500,
     }),
     {
-      logger: new InternalLogFilter(),
+      bufferLogs: true,
     },
   );
+
+  app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', { exclude: ['/'] });
 

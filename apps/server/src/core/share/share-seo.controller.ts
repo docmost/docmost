@@ -7,6 +7,7 @@ import { validate as isValidUUID } from 'uuid';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { Workspace } from '@docmost/db/types/entity.types';
+import { htmlEscape } from '../../common/helpers/html-escaper';
 
 @Controller('share')
 export class ShareSeoController {
@@ -68,7 +69,7 @@ export class ShareSeoController {
         return this.sendIndex(indexFilePath, res);
       }
 
-      const rawTitle = share.sharedPage.title ?? 'untitled';
+      const rawTitle = htmlEscape(share?.sharedPage.title ?? 'untitled');
       const metaTitle =
         rawTitle.length > 80 ? `${rawTitle.slice(0, 77)}…` : rawTitle;
 

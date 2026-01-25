@@ -16,6 +16,7 @@ import {
   onSyncedParameters,
 } from "@hocuspocus/provider";
 import {
+  Editor,
   EditorContent,
   EditorProvider,
   useEditor,
@@ -79,7 +80,7 @@ export default function PageEditor({
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
-  const editorCreated = useRef(false);
+  const editorRef = useRef<Editor | null>(null);
 
   useEffect(() => {
     isComponentMounted.current = true;
@@ -93,7 +94,7 @@ export default function PageEditor({
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
-    yjsConnectionStatusAtom
+    yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
   const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
@@ -104,8 +105,8 @@ export default function PageEditor({
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
   const canScroll = useCallback(
-    () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated]
+    () => Boolean(isComponentMounted.current && editorRef.current),
+    [isComponentMounted],
   );
   const { handleScrollTo } = useEditorScroll({ canScroll });
   // Providers only created once per pageId
@@ -253,10 +254,21 @@ export default function PageEditor({
             }
           },
         },
-        handlePaste: (view, event, slice) =>
-          handlePaste(view, event, pageId, currentUser?.user.id),
-        handleDrop: (view, event, _slice, moved) =>
-          handleFileDrop(view, event, moved, pageId),
+        handlePaste: (_view, event) => {
+          if (!editorRef.current) return false;
+
+          return handlePaste(
+            editorRef.current,
+            event,
+            pageId,
+            currentUser?.user.id,
+          );
+        },
+        handleDrop: (_view, event, _slice, moved) => {
+          if (!editorRef.current) return false;
+
+          return handleFileDrop(editorRef.current, event, moved, pageId);
+        },
       },
       onCreate({ editor }) {
         if (editor) {
@@ -265,7 +277,7 @@ export default function PageEditor({
           // @ts-ignore
           editor.storage.pageId = pageId;
           handleScrollTo(editor);
-          editorCreated.current = true;
+          editorRef.current = editor;
         }
       },
       onUpdate({ editor }) {
@@ -275,7 +287,7 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
       },
     },
-    [pageId, editable, extensions]
+    [pageId, editable, extensions],
   );
 
   const editorIsEditable = useEditorState({
@@ -320,7 +332,7 @@ export default function PageEditor({
     return () => {
       document.removeEventListener(
         "ACTIVE_COMMENT_EVENT",
-        handleActiveCommentEvent
+        handleActiveCommentEvent,
       );
     };
   }, []);
