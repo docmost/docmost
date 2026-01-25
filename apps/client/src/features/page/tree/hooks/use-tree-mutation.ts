@@ -16,6 +16,7 @@ import {
   useRemovePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
+  updateCacheOnMovePage,
 } from "@/features/page/queries/page-query.ts";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
@@ -175,8 +176,24 @@ export function useTreeMutation<T>(spaceId: string) {
       parentPageId: args.parentId,
     };
 
+    const draggedNode = args.dragNodes[0];
+    const nodeData = draggedNode.data as SpaceTreeNode;
+    const oldParentId = nodeData.parentPageId ?? null;
+    const pageData = {
+      id: nodeData.id,
+      slugId: nodeData.slugId,
+      title: nodeData.name,
+      icon: nodeData.icon,
+      position: newPosition,
+      spaceId: nodeData.spaceId,
+      parentPageId: args.parentId,
+      hasChildren: nodeData.hasChildren,
+    };
+
     try {
       await movePageMutation.mutateAsync(payload);
+
+      updateCacheOnMovePage(spaceId, draggedNodeId, oldParentId, args.parentId, pageData);
 
       setTimeout(() => {
         emit({
@@ -185,8 +202,10 @@ export function useTreeMutation<T>(spaceId: string) {
           payload: {
             id: draggedNodeId,
             parentId: args.parentId,
+            oldParentId,
             index: args.index,
             position: newPosition,
+            pageData,
           },
         });
       }, 50);
