@@ -1,11 +1,6 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-  useEditorState,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
-import { sticky } from "tippy.js";
 import { Node as PMNode } from "prosemirror-model";
 import {
   EditorMenuProps,
@@ -22,16 +17,6 @@ import { useTranslation } from "react-i18next";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
-  const shouldShow = useCallback(
-    ({ state }: ShouldShowProps) => {
-      if (!state) {
-        return false;
-      }
-
-      return editor.isActive("image");
-    },
-    [editor],
-  );
 
   const editorState = useEditorState({
     editor,
@@ -52,17 +37,37 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     },
   });
 
-  const getReferenceClientRect = useCallback(() => {
+  const shouldShow = useCallback(
+    ({ state }: ShouldShowProps) => {
+      if (!state) {
+        return false;
+      }
+
+      return editor.isActive("image") && editor.getAttributes("image").src;
+    },
+    [editor],
+  );
+
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "image";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const alignImageLeft = useCallback(() => {
@@ -105,15 +110,11 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       editor={editor}
       pluginKey={`image-menu`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 8],
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
-        plugins: [sticky],
-        sticky: "popper",
+      getReferencedVirtualElement={getReferencedVirtualElement}
+      options={{
+        placement: "top",
+        offset: 8,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >

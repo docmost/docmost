@@ -24,7 +24,6 @@
     "@mantine/spotlight": "^8.3.12",
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-query": "^5.90.17",
-    "@tiptap/extension-character-count": "^2.27.1",
     "alfaaz": "^1.1.0",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
@@ -54,7 +53,6 @@
     "react-router-dom": "^7.12.0",
     "semver": "^7.7.3",
     "socket.io-client": "^4.8.3",
-    "tippy.js": "^6.3.7",
     "tiptap-extension-global-drag-handle": "^0.1.18",
     "zod": "^3.25.76"
   },
