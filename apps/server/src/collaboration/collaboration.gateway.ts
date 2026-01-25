@@ -21,10 +21,10 @@ import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class CollaborationGateway {
-  private hocuspocus: Hocuspocus;
+  private readonly hocuspocus: Hocuspocus;
   private redisConfig: RedisConfig;
-  private redisSync: RedisSyncExtension<{}> | null = null;
-  private useRedisSync: boolean;
+  private readonly redisSync: RedisSyncExtension<{}> | null = null;
+  private readonly useRedisSync: boolean;
 
   constructor(
     private authenticationExtension: AuthenticationExtension,
@@ -122,6 +122,24 @@ export class CollaborationGateway {
   }
 
   async destroy(): Promise<void> {
-    //await this.hocuspocus.destroy();
+    await new Promise((r) => setTimeout(r, 10000));
+    // eslint-disable-next-line no-async-promise-executor
+    await new Promise(async (resolve) => {
+      try {
+        // Wait for all documents to unload
+        this.hocuspocus.configuration.extensions.push({
+          async afterUnloadDocument({ instance }) {
+            if (instance.getDocumentsCount() === 0) resolve('');
+          },
+        });
+
+        if (this.hocuspocus.getDocumentsCount() === 0) resolve('');
+        this.hocuspocus.closeConnections();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    await this.hocuspocus.hooks('onDestroy', { instance: this.hocuspocus });
   }
 }
