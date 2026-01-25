@@ -85,7 +85,7 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
     this.lockTTL = lockTTL ?? 10_000;
     this.proxySocketTTL = proxySocketTTL ?? 30_000;
     this.customEventTTL = customEventTTL ?? 30_000;
-    this.prefix = prefix ?? 'rsa';
+    this.prefix = prefix ?? 'collab';
     this.lockPrefix = `${this.prefix}Lock`;
     this.msgChannel = `${this.prefix}Msg`;
     this.customEvents = (customEvents ?? {}) as unknown as TCE;
@@ -275,9 +275,6 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
 
     const proxyTo = await this.getOrClaimLockThrottled(documentName);
     if (proxyTo && proxyTo !== this.serverId) {
-      this.logger.debug(
-        `Doc "${documentName}" owned by server ${proxyTo}, forwarding event "${eventName}"`,
-      );
       ++this.replyIdCounter; // bug in biome thinks this.replyIdCounter is not used if written on the line below
       const replyId = this.replyIdCounter;
       // another server owns the doc
@@ -349,9 +346,6 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
 
     const proxyTo = await this.getOrClaimLockThrottled(documentName);
     if (proxyTo && proxyTo !== this.serverId) {
-      this.logger.debug(
-        `Doc "${documentName}" owned by server ${proxyTo}, proxying message`,
-      );
       // another server owns the doc
       const proxyMessage: RSAMessageProxy = {
         serializedHTTPRequest: serializedHTTPRequest,

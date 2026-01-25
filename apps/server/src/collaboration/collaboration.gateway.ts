@@ -46,6 +46,7 @@ export class CollaborationGateway {
           retryStrategy: createRetryStrategy(),
         }),
         serverId: `collab-${process.pid}`,
+        prefix: `collab`,
         pack,
         unpack,
         customEvents: {},
