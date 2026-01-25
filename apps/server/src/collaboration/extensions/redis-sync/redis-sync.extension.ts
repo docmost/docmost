@@ -1,4 +1,4 @@
-// Source https://github.com/ueberdosis/hocuspocus/pull/1008
+// Adapted from https://github.com/ueberdosis/hocuspocus/pull/1008 - MIT
 import type { IncomingMessage } from 'node:http';
 import {
   type Extension,
@@ -12,7 +12,7 @@ import type RedisClient from 'ioredis';
 import { readVarString } from 'lib0/decoding.js';
 import type { WebSocket } from 'ws';
 import { CollabProxySocket } from './collab-proxy-socket';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
   BaseWebSocket,
   Configuration,
@@ -37,6 +37,7 @@ type SocketId = string;
 
 @Injectable()
 export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
+  private readonly logger = new Logger('Collab' + RedisSyncExtension.name);
   priority = 1000;
   private readonly pub: RedisClient;
   private sub: RedisClient;
@@ -274,6 +275,7 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
 
     const proxyTo = await this.getOrClaimLockThrottled(documentName);
     if (proxyTo && proxyTo !== this.serverId) {
+      this.logger.debug(`Doc "${documentName}" owned by server ${proxyTo}, forwarding event "${eventName}"`);
       ++this.replyIdCounter; // bug in biome thinks this.replyIdCounter is not used if written on the line below
       const replyId = this.replyIdCounter;
       // another server owns the doc
@@ -345,6 +347,7 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
 
     const proxyTo = await this.getOrClaimLockThrottled(documentName);
     if (proxyTo && proxyTo !== this.serverId) {
+      this.logger.debug(`Doc "${documentName}" owned by server ${proxyTo}, proxying message`);
       // another server owns the doc
       const proxyMessage: RSAMessageProxy = {
         serializedHTTPRequest: serializedHTTPRequest,

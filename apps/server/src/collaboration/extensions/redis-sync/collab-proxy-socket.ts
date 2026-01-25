@@ -8,11 +8,11 @@ import type {
 } from './redis-sync.types';
 
 export class CollabProxySocket extends EventEmitter {
-  private replyTo: string;
-  private pongChannel: string;
-  private socketId: string;
+  private readonly replyTo: string;
+  private readonly pongChannel: string;
+  private readonly socketId: string;
   private pub: RedisClient;
-  private pack: Pack;
+  private readonly pack: Pack;
   readyState = 1;
 
   constructor(
