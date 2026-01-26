@@ -1,19 +1,19 @@
 // Adapted from https://github.com/ueberdosis/hocuspocus/pull/1008 - MIT
-import type { IncomingMessage } from 'node:http';
+import { IncomingMessage } from 'node:http';
 import {
-  type Extension,
-  type Hocuspocus,
+  Extension,
+  Hocuspocus,
   IncomingMessage as SocketIncomingMessage,
-  type afterUnloadDocumentPayload,
-  type onConfigurePayload,
-  type onLoadDocumentPayload,
+  afterUnloadDocumentPayload,
+  onConfigurePayload,
+  onLoadDocumentPayload,
 } from '@hocuspocus/server';
-import type RedisClient from 'ioredis';
+import RedisClient from 'ioredis';
 import { readVarString } from 'lib0/decoding.js';
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import { CollabProxySocket } from './collab-proxy-socket';
 import { Injectable, Logger } from '@nestjs/common';
-import type {
+import {
   BaseWebSocket,
   Configuration,
   CustomEvents,
@@ -35,7 +35,6 @@ type ServerId = string;
 type DocumentName = string;
 type SocketId = string;
 
-@Injectable()
 export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
   private readonly logger = new Logger('Collab' + RedisSyncExtension.name);
   priority = 1000;

@@ -9,6 +9,7 @@ import { WebSocket } from 'ws';
 import { TokenModule } from '../core/auth/token.module';
 import { HistoryListener } from './listeners/history.listener';
 import { LoggerExtension } from './extensions/logger.extension';
+import { CollaborationHandler } from './collaboration.handler';
 
 @Module({
   providers: [
@@ -17,6 +18,7 @@ import { LoggerExtension } from './extensions/logger.extension';
     PersistenceExtension,
     LoggerExtension,
     HistoryListener,
+    CollaborationHandler,
   ],
   exports: [CollaborationGateway],
   imports: [TokenModule],

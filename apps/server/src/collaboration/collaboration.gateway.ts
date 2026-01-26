@@ -19,24 +19,43 @@ import { WsSocketWrapper } from './extensions/redis-sync/ws-socket-wrapper';
 import RedisClient from 'ioredis';
 import { pack, unpack } from 'msgpackr';
 import { CollabWsAdapter } from './adapter/collab-ws.adapter';
+import {
+  CollaborationHandler,
+  CollabEventHandlers,
+} from './collaboration.handler';
 
 @Injectable()
 export class CollaborationGateway {
   private readonly hocuspocus: Hocuspocus;
   private redisConfig: RedisConfig;
-  private readonly redisSync: RedisSyncExtension<{}> | null = null;
-  private readonly useRedisSync: boolean;
+  // @ts-ignore
+  private readonly redisSync: RedisSyncExtension<CollabEventHandlers> | null =
+    null;
+  private readonly withRedis: boolean;
 
   constructor(
     private authenticationExtension: AuthenticationExtension,
     private persistenceExtension: PersistenceExtension,
     private loggerExtension: LoggerExtension,
     private environmentService: EnvironmentService,
+    private collabEventsService: CollaborationHandler,
   ) {
     this.redisConfig = parseRedisUrl(this.environmentService.getRedisUrl());
-    this.useRedisSync = !this.environmentService.isCollabDisableRedis();
+    this.withRedis = !this.environmentService.isCollabDisableRedis();
 
-    if (this.useRedisSync) {
+    this.hocuspocus = new Hocuspocus({
+      debounce: 10000,
+      maxDebounce: 45000,
+      unloadImmediately: false,
+      extensions: [
+        this.authenticationExtension,
+        this.persistenceExtension,
+        this.loggerExtension,
+      ],
+    });
+
+    if (this.withRedis) {
+      // @ts-ignore
       this.redisSync = new RedisSyncExtension({
         redis: new RedisClient({
           host: this.redisConfig.host,
@@ -47,24 +66,16 @@ export class CollaborationGateway {
           retryStrategy: createRetryStrategy(),
         }),
         serverId: `collab-${process.pid}`,
-        prefix: `collab`,
+        prefix: 'collab',
         pack,
         unpack,
-        customEvents: {},
+        // @ts-ignore
+        customEvents: this.collabEventsService.getHandlers(this.hocuspocus),
       });
+      this.hocuspocus.configuration.extensions.push(this.redisSync);
+      // @ts-ignore
+      this.redisSync.onConfigure({ instance: this.hocuspocus });
     }
-
-    this.hocuspocus = new Hocuspocus({
-      debounce: 10000,
-      maxDebounce: 45000,
-      unloadImmediately: false,
-      extensions: [
-        this.authenticationExtension,
-        this.persistenceExtension,
-        this.loggerExtension,
-        ...(this.redisSync ? [this.redisSync] : []),
-      ],
-    });
   }
 
   private serializeRequest(request: IncomingMessage): SerializedHTTPRequest {
@@ -121,6 +132,14 @@ export class CollaborationGateway {
 
   getDocumentCount() {
     return this.hocuspocus.getDocumentsCount();
+  }
+
+  handleYjsEvent<TName extends keyof CollabEventHandlers>(
+    eventName: TName,
+    documentName: string,
+    payload: Parameters<CollabEventHandlers[TName]>[1],
+  ) {
+    return this.redisSync?.handleEvent(eventName, documentName, payload);
   }
 
   async destroy(collabWsAdapter: CollabWsAdapter): Promise<void> {

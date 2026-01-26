@@ -1,6 +1,6 @@
-import type EventEmitter from 'node:events';
-import type { IncomingHttpHeaders } from 'node:http2';
-import type RedisClient from 'ioredis';
+import EventEmitter from 'node:events';
+import { IncomingHttpHeaders } from 'node:http2';
+import RedisClient from 'ioredis';
 
 export type SecondParam<T> = T extends (
   arg1: unknown,
