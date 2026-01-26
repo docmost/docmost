@@ -45,7 +45,7 @@ export type RSAMessageClose = {
 export type RSAMessagePing = {
   type: 'ping';
   socketId: string;
-  respondTo: string;
+  replyTo: string;
 };
 
 export type RSAMessagePong = {

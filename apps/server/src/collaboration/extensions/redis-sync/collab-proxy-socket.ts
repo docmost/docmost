@@ -9,7 +9,7 @@ import type {
 
 export class CollabProxySocket extends EventEmitter {
   private readonly replyTo: string;
-  private readonly pongChannel: string;
+  private readonly serverChannel: string;
   private readonly socketId: string;
   private pub: RedisClient;
   private readonly pack: Pack;
@@ -19,13 +19,13 @@ export class CollabProxySocket extends EventEmitter {
     pub: RedisClient,
     pack: Pack,
     replyTo: string,
-    pongChannel: string,
+    serverChannel: string,
     socketId: string,
   ) {
     super();
     this.replyTo = replyTo;
-    this.pongChannel = pongChannel;
     this.socketId = socketId;
+    this.serverChannel = serverChannel;
     this.pub = pub;
     this.pack = pack;
     this.once('close', () => {
@@ -53,7 +53,7 @@ export class CollabProxySocket extends EventEmitter {
     const msg: RSAMessagePing = {
       type: 'ping',
       socketId: this.socketId,
-      respondTo: this.pongChannel,
+      replyTo: this.serverChannel,
     };
     this.publish(msg);
   }
