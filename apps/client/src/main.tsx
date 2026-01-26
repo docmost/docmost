@@ -60,5 +60,39 @@ root.render(
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>
-  </BrowserRouter>,
+  </BrowserRouter >,
 );
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(
+      (registration) => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New update available and installed
+                // Since we use skipWaiting() in sw.js, it will activate immediately.
+                // We can reload the page to use the new version.
+                console.log('New version initialized. Reloading...');
+                window.location.reload();
+              }
+            });
+          }
+        });
+      },
+      (err) => {
+        console.log('ServiceWorker registration failed: ', err);
+      }
+    );
+
+    // Ensure controller change reloads the page (for instant claim)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  });
+}
+
