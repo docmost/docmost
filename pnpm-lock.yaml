@@ -30,9 +30,6 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.3
         version: 1.7.3
-      '@hocuspocus/extension-redis':
-        specifier: 3.4.3
-        version: 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
       '@hocuspocus/provider':
         specifier: 3.4.3
         version: 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
@@ -2392,12 +2389,6 @@ packages:
   '@hocuspocus/common@3.4.3':
     resolution: {integrity: sha512-wnBBO9sWcVAoUPEXN1qO+zk3HaEF9VTemxB6kjuuH6e1dHnD0v12m4P4X1wiZVhmMIX/PMl/fu3MGtYWQJz8gA==}
 
-  '@hocuspocus/extension-redis@3.4.3':
-    resolution: {integrity: sha512-r64Vpgk6tt0VZaQPEo1dQuyur2ozr243ncDcDM+4gFPuV8ZRUjL1rvaJTidb2HCcAW2zjfwshNxw4+OixeksBA==}
-    peerDependencies:
-      y-protocols: ^1.0.6
-      yjs: ^13.6.8
-
   '@hocuspocus/provider@3.4.3':
     resolution: {integrity: sha512-zt+UgVXGsEQrqnDZgavc2PT9yKJjmVjV+5YxvhlmFVFLVORqawT4l601aKmLPhvyK97un4ZApZ5rso8iO6crWg==}
     peerDependencies:
@@ -3892,12 +3883,6 @@ packages:
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
-
-  '@sesamecare-oss/redlock@1.4.0':
-    resolution: {integrity: sha512-2z589R+yxKLN4CgKxP1oN4dsg6Y548SE4bVYam/R0kHk7Q9VrQ9l66q+k1ehhSLLY4or9hcchuF9/MhuuZdjJg==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      ioredis: '>=5'
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -12668,20 +12653,6 @@ snapshots:
     dependencies:
       lib0: 0.2.117
 
-  '@hocuspocus/extension-redis@3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)':
-    dependencies:
-      '@hocuspocus/server': 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
-      '@sesamecare-oss/redlock': 1.4.0(ioredis@5.8.2)
-      ioredis: 5.8.2
-      kleur: 4.1.5
-      lodash.debounce: 4.0.8
-      y-protocols: 1.0.6(yjs@13.6.29)
-      yjs: 13.6.29
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
   '@hocuspocus/provider@3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)':
     dependencies:
       '@hocuspocus/common': 3.4.3
@@ -14159,10 +14130,6 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       selderee: 0.11.0
-
-  '@sesamecare-oss/redlock@1.4.0(ioredis@5.8.2)':
-    dependencies:
-      ioredis: 5.8.2
 
   '@sinclair/typebox@0.27.8': {}
 
