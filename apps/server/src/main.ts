@@ -10,6 +10,7 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
+import { RedisConfigService } from './integrations/redis/redis-config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -35,7 +36,11 @@ async function bootstrap() {
   });
 
   const reflector = app.get(Reflector);
-  const redisIoAdapter = new WsRedisIoAdapter(app);
+
+  const redisIoAdapter = new WsRedisIoAdapter(
+    app.get(RedisConfigService),
+    app
+  );
   await redisIoAdapter.connectToRedis();
 
   app.useWebSocketAdapter(redisIoAdapter);

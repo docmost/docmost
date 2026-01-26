@@ -60,6 +60,30 @@ export class EnvironmentService {
     );
   }
 
+  getRedisTlsRejectUnauthorized(): boolean {
+    const value = this.configService.get<string>('REDIS_TLS_REJECT_UNAUTHORIZED', 'true');
+    return value.toLowerCase() === 'true';
+  }
+
+  getRedisTlsServername(): string | undefined {
+    return this.configService.get<string>('REDIS_TLS_SERVERNAME');
+  }
+
+  getRedisEnableTLS(): boolean {
+    const value = this.configService.get<string>('REDIS_ENABLE_TLS');
+    if (value) {
+      return value.toLowerCase() === 'true';
+    }
+
+    const redisUrl = this.getRedisUrl();
+    try {
+      const url = new URL(redisUrl);
+      return url.protocol === 'rediss:';
+    } catch (error) {
+      return false;
+    }
+  }
+
   getJwtTokenExpiresIn(): string {
     return this.configService.get<string>('JWT_TOKEN_EXPIRES_IN', '90d');
   }

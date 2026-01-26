@@ -6,25 +6,21 @@ import { PersistenceExtension } from './extensions/persistence.extension';
 import { Injectable } from '@nestjs/common';
 import { Redis } from '@hocuspocus/extension-redis';
 import { EnvironmentService } from '../integrations/environment/environment.service';
-import {
-  createRetryStrategy,
-  parseRedisUrl,
-  RedisConfig,
-} from '../common/helpers';
 import { LoggerExtension } from './extensions/logger.extension';
+import { RedisConfigService } from '../integrations/redis/redis-config.service';
 
 @Injectable()
 export class CollaborationGateway {
   private hocuspocus: Hocuspocus;
-  private redisConfig: RedisConfig;
 
   constructor(
     private authenticationExtension: AuthenticationExtension,
     private persistenceExtension: PersistenceExtension,
     private loggerExtension: LoggerExtension,
     private environmentService: EnvironmentService,
+    private redisConfigService: RedisConfigService,
   ) {
-    this.redisConfig = parseRedisUrl(this.environmentService.getRedisUrl());
+    const redisOptions = this.redisConfigService.getOptions();
 
     this.hocuspocus = new Hocuspocus({
       debounce: 10000,
@@ -38,14 +34,9 @@ export class CollaborationGateway {
           ? []
           : [
               new Redis({
-                host: this.redisConfig.host,
-                port: this.redisConfig.port,
-                options: {
-                  password: this.redisConfig.password,
-                  db: this.redisConfig.db,
-                  family: this.redisConfig.family,
-                  retryStrategy: createRetryStrategy(),
-                },
+                host: redisOptions.host,
+                port: redisOptions.port,
+                options: redisOptions,
               }),
             ]),
       ],

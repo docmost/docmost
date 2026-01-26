@@ -1,25 +1,20 @@
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { EnvironmentService } from '../environment/environment.service';
-import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
 import { BacklinksProcessor } from './processors/backlinks.processor';
+import { RedisConfigService } from '../redis/redis-config.service';
+import { RedisConfigModule } from '../redis/redis-config-module';
 
 @Global()
 @Module({
   imports: [
+    RedisConfigModule,
     BullModule.forRootAsync({
-      useFactory: (environmentService: EnvironmentService) => {
-        const redisConfig = parseRedisUrl(environmentService.getRedisUrl());
+      imports: [RedisConfigModule],
+      inject: [RedisConfigService],
+      useFactory: (redisConfigService: RedisConfigService) => {
         return {
-          connection: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            password: redisConfig.password,
-            db: redisConfig.db,
-            family: redisConfig.family,
-            retryStrategy: createRetryStrategy(),
-          },
+          connection: redisConfigService.getOptions(),
           defaultJobOptions: {
             attempts: 3,
             backoff: {
@@ -34,8 +29,7 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
             },
           },
         };
-      },
-      inject: [EnvironmentService],
+      }
     }),
     BullModule.registerQueue({
       name: QueueName.EMAIL_QUEUE,
