@@ -1,4 +1,4 @@
-// Adapted from https://github.com/ueberdosis/hocuspocus/pull/1008 - MIT
+// Source https://github.com/ueberdosis/hocuspocus/pull/1008 - MIT
 import { IncomingMessage } from 'node:http';
 import {
   Extension,
@@ -12,7 +12,7 @@ import RedisClient from 'ioredis';
 import { readVarString } from 'lib0/decoding.js';
 import { WebSocket } from 'ws';
 import { CollabProxySocket } from './collab-proxy-socket';
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import {
   BaseWebSocket,
   Configuration,

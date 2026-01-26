@@ -18,6 +18,8 @@ import {
 import { WsSocketWrapper } from './extensions/redis-sync/ws-socket-wrapper';
 import RedisClient from 'ioredis';
 import { pack, unpack } from 'msgpackr';
+import { nanoid } from 'nanoid';
+import * as os from 'node:os';
 import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import {
   CollaborationHandler,
@@ -65,7 +67,7 @@ export class CollaborationGateway {
           family: this.redisConfig.family,
           retryStrategy: createRetryStrategy(),
         }),
-        serverId: `collab-${process.pid}`,
+        serverId: `collab-${os?.hostname()}-${nanoid(10)}`,
         prefix: 'collab',
         pack,
         unpack,
