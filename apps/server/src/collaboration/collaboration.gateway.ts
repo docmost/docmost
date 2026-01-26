@@ -144,6 +144,24 @@ export class CollaborationGateway {
     return this.redisSync?.handleEvent(eventName, documentName, payload);
   }
 
+  openDirectConnection(documentName: string, context?: any) {
+    return this.hocuspocus.openDirectConnection(documentName, context);
+  }
+
+  /*
+   *Can be used before calling openDirectConnection directly
+   */
+  async lockDocument(documentName: string) {
+    return this.redisSync.lockDocument(documentName);
+  }
+
+  /*
+   *Releases a document lock and stops the interval that maintains it.
+   */
+  async releaseLock(documentName: string) {
+    return this.redisSync.releaseLock(documentName);
+  }
+
   async destroy(collabWsAdapter: CollabWsAdapter): Promise<void> {
     // eslint-disable-next-line no-async-promise-executor
     await new Promise(async (resolve) => {
