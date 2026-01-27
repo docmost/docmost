@@ -25,6 +25,8 @@ import {
   IconDotsVertical,
   IconFileDescription,
   IconFileExport,
+  IconFolder,
+  IconFolderOpen,
   IconLink,
   IconPlus,
   IconPointFilled,
@@ -396,6 +398,12 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
             icon={
               node.data.icon ? (
                 node.data.icon
+              ) : node.children.length > 0 || node.data.hasChildren ? (
+                node.isOpen ? (
+                  <IconFolderOpen size="18" />
+                ) : (
+                  <IconFolder size="18" />
+                )
               ) : (
                 <IconFileDescription size="18" />
               )
@@ -437,31 +445,58 @@ interface CreateNodeProps {
 }
 
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  function handleCreate() {
+  const { t } = useTranslation();
+  function handleCreate(type: "internal" | "folder") {
     if (node.data.hasChildren && node.children.length === 0) {
       node.toggle();
       onExpandTree();
 
       setTimeout(() => {
-        treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
+        treeApi?.create({ type: type as any, parentId: node.id, index: 0 });
       }, 500);
     } else {
-      treeApi?.create({ type: "internal", parentId: node.id });
+      treeApi?.create({ type: type as any, parentId: node.id });
     }
   }
 
   return (
-    <ActionIcon
-      variant="transparent"
-      c="gray"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCreate();
-      }}
-    >
-      <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
-    </ActionIcon>
+    <Menu shadow="md" width={200} position="right-start" withArrow>
+      <Menu.Target>
+        <ActionIcon
+          variant="transparent"
+          c="gray"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
+        </ActionIcon>
+      </Menu.Target>
+
+      <Menu.Dropdown>
+        <Menu.Item
+          leftSection={<IconFileDescription size={16} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("internal");
+          }}
+        >
+          {t("New page")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconFolder size={16} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("folder");
+          }}
+        >
+          {t("New folder")}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
@@ -578,6 +613,42 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         </Menu.Target>
 
         <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<IconPlus size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (node.data.hasChildren && node.children.length === 0) {
+                node.toggle();
+                setTimeout(() => {
+                  treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
+                }, 500);
+              } else {
+                treeApi?.create({ type: "internal", parentId: node.id });
+              }
+            }}
+          >
+            {t("New page")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconFolder size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (node.data.hasChildren && node.children.length === 0) {
+                node.toggle();
+                setTimeout(() => {
+                  treeApi?.create({ type: "folder" as any, parentId: node.id, index: 0 });
+                }, 500);
+              } else {
+                treeApi?.create({ type: "folder" as any, parentId: node.id });
+              }
+            }}
+          >
+            {t("New folder")}
+          </Menu.Item>
+
           <Menu.Item
             leftSection={<IconLink size={16} />}
             onClick={(e) => {

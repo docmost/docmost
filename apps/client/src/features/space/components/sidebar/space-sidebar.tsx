@@ -9,7 +9,9 @@ import {
 import {
   IconArrowDown,
   IconDots,
+  IconFileDescription,
   IconFileExport,
+  IconFolder,
   IconHome,
   IconPlus,
   IconSearch,
@@ -20,6 +22,8 @@ import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
+import { TreeApi } from "react-arborist";
+import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -63,6 +67,10 @@ export function SpaceSidebar() {
 
   function handleCreatePage() {
     tree?.create({ parentId: null, type: "internal", index: 0 });
+  }
+
+  function handleCreateFolder() {
+    tree?.create({ parentId: null, type: "folder" as any, index: 0 });
   }
 
   return (
@@ -136,25 +144,46 @@ export function SpaceSidebar() {
                   SpaceCaslAction.Manage,
                   SpaceCaslSubject.Page
                 ) && (
-                  <UnstyledButton
-                    className={classes.menu}
-                    onClick={() => {
-                      handleCreatePage();
-                      if (mobileSidebarOpened) {
-                        toggleMobileSidebar();
-                      }
-                    }}
-                  >
-                    <div className={classes.menuItemInner}>
-                      <IconPlus
-                        size={18}
-                        className={classes.menuItemIcon}
-                        stroke={2}
-                      />
-                      <span>{t("New page")}</span>
-                    </div>
-                  </UnstyledButton>
-                )}
+                    <Menu shadow="md" width={200} position="right-start" withArrow offset={10}>
+                      <Menu.Target>
+                        <UnstyledButton className={classes.menu}>
+                          <div className={classes.menuItemInner}>
+                            <IconPlus
+                              size={18}
+                              className={classes.menuItemIcon}
+                              stroke={2}
+                            />
+                            <span>{t("New page")}</span>
+                          </div>
+                        </UnstyledButton>
+                      </Menu.Target>
+
+                      <Menu.Dropdown>
+                        <Menu.Item
+                          leftSection={<IconFileDescription size={16} />}
+                          onClick={() => {
+                            handleCreatePage();
+                            if (mobileSidebarOpened) {
+                              toggleMobileSidebar();
+                            }
+                          }}
+                        >
+                          {t("New page")}
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconFolder size={16} />}
+                          onClick={() => {
+                            handleCreateFolder();
+                            if (mobileSidebarOpened) {
+                              toggleMobileSidebar();
+                            }
+                          }}
+                        >
+                          {t("New folder")}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
               </>
             )}
           </div>
@@ -175,18 +204,37 @@ export function SpaceSidebar() {
                   <SpaceMenu
                     spaceId={space.id}
                     onSpaceSettings={openSettings}
+                    tree={tree}
                   />
 
-                  <Tooltip label={t("Create page")} withArrow position="right">
-                    <ActionIcon
-                      variant="default"
-                      size={18}
-                      onClick={handleCreatePage}
-                      aria-label={t("Create page")}
-                    >
-                      <IconPlus />
-                    </ActionIcon>
-                  </Tooltip>
+                  <Menu shadow="md" width={200} position="right-start" withArrow>
+                    <Menu.Target>
+                      <Tooltip label={t("Create page or folder")} withArrow position="right">
+                        <ActionIcon
+                          variant="default"
+                          size={18}
+                          aria-label={t("Create page or folder")}
+                        >
+                          <IconPlus />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<IconFileDescription size={16} />}
+                        onClick={handleCreatePage}
+                      >
+                        {t("New page")}
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconFolder size={16} />}
+                        onClick={handleCreateFolder}
+                      >
+                        {t("New folder")}
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 </Group>
               )}
           </Group>
@@ -215,8 +263,9 @@ export function SpaceSidebar() {
 interface SpaceMenuProps {
   spaceId: string;
   onSpaceSettings: () => void;
+  tree: TreeApi<SpaceTreeNode> | null;
 }
-function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
+function SpaceMenu({ spaceId, onSpaceSettings, tree }: SpaceMenuProps) {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =

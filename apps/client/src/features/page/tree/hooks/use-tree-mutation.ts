@@ -9,7 +9,7 @@ import {
 } from "react-arborist";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
-import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
+import { IMovePage, IPage, IPageInput } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreatePageMutation,
@@ -22,6 +22,7 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { useTranslation } from "react-i18next";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -34,13 +35,19 @@ export function useTreeMutation<T>(spaceId: string) {
   const { spaceSlug } = useParams();
   const { pageSlug } = useParams();
   const emit = useQueryEmit();
+  const { t } = useTranslation();
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
-    const payload: { spaceId: string; parentPageId?: string } = {
+    const payload: Partial<IPage> = {
       spaceId: spaceId,
     };
     if (parentId) {
       payload.parentPageId = parentId;
+    }
+
+    if ((type as any) === "folder") {
+      payload.title = t("New folder");
+      payload.icon = "📁";
     }
 
     let createdPage: IPage;
@@ -53,7 +60,8 @@ export function useTreeMutation<T>(spaceId: string) {
     const data = {
       id: createdPage.id,
       slugId: createdPage.slugId,
-      name: "",
+      name: createdPage.title || "",
+      icon: createdPage.icon,
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
