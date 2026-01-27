@@ -51,6 +51,7 @@ import {
   FigmaIcon,
   FramerIcon,
   GoogleDriveIcon,
+  GoogleDocsIcon,
   GoogleSheetsIcon,
   LoomIcon,
   MiroIcon,
@@ -690,6 +691,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .setEmbed({ provider: "gsheets" })
+          .run();
+      },
+    },
+    {
+      title: "Google Docs",
+      description: "Embed Google Docs content",
+      searchTerms: ["google docs", "gdocs"],
+      icon: GoogleDocsIcon,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setEmbed({ provider: "gdoc" })
           .run();
       },
     },

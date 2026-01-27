@@ -66,6 +66,9 @@ export default function EmbedView(props: NodeViewProps) {
 
     if (provider) {
       const embedProvider = getEmbedProviderById(provider);
+      if (!embedProvider) {
+        return;
+      }
       if (embedProvider.id === "iframe") {
         updateAttributes({ src: sanitizeUrl(data.url) });
         return;
@@ -133,7 +136,7 @@ export default function EmbedView(props: NodeViewProps) {
 
                 <Text component="span" size="lg" c="dimmed">
                   {t("Embed {{provider}}", {
-                    provider: getEmbedProviderById(provider)?.name,
+                    provider: getEmbedProviderById(provider)?.name || provider,
                   })}
                 </Text>
               </div>
@@ -144,7 +147,7 @@ export default function EmbedView(props: NodeViewProps) {
               <FocusTrap active={true}>
                 <TextInput
                   placeholder={t("Enter {{provider}} link to embed", {
-                    provider: getEmbedProviderById(provider).name,
+                    provider: getEmbedProviderById(provider)?.name || provider,
                   })}
                   key={embedForm.key("url")}
                   {...embedForm.getInputProps("url")}

@@ -25,13 +25,23 @@ export function getBackendUrl(): string {
 }
 
 export function getCollaborationUrl(): string {
+  const configValue = getConfigValue("COLLAB_URL");
   const baseUrl =
-    getConfigValue("COLLAB_URL") ||
+    configValue ||
     (import.meta.env.DEV ? process.env.APP_URL : getAppUrl());
 
-  const collabUrl = new URL("/collab", baseUrl);
-  collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
-  return collabUrl.toString();
+  if (!baseUrl) {
+    return "";
+  }
+
+  try {
+    const collabUrl = new URL("/collab", baseUrl);
+    collabUrl.protocol = collabUrl.protocol === "https:" ? "wss:" : "ws:";
+    return collabUrl.toString();
+  } catch (err) {
+    console.error("Failed to construct collaboration URL:", err);
+    return "";
+  }
 }
 
 export function getSubdomainHost(): string {
@@ -104,6 +114,10 @@ function getConfigValue(key: string, defaultValue: string = undefined): string {
     ? process?.env?.[key]
     : window?.CONFIG?.[key];
 
-  const value = rawValue ?? defaultValue;
-  return typeof value === "string" ? value.trim() : value;
+  if (typeof rawValue === "string") {
+    const trimmed = rawValue.trim();
+    return trimmed === "" ? defaultValue : trimmed;
+  }
+
+  return rawValue ?? defaultValue;
 }

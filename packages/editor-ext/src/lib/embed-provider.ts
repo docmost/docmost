@@ -99,8 +99,20 @@ export const embedProviders: IEmbedProvider[] = [
     id: "gsheets",
     name: "Google Sheets",
     regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/.*$/,
+      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/(?:e\/)?([a-zA-Z0-9_-]+)(?:\/.*)?$/,
     getEmbedUrl: (match, url: string) => {
+      return url;
+    },
+  },
+  {
+    id: "gdoc",
+    name: "Google Docs",
+    regex:
+      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/document\/d\/(?:e\/)?([a-zA-Z0-9_-]+)(?:\/.*)?$/,
+    getEmbedUrl: (match, url: string) => {
+      if (url.includes("/edit")) {
+        return url.replace("/edit", "/preview");
+      }
       return url;
     },
   },
