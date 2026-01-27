@@ -30,9 +30,6 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.3
         version: 1.7.3
-      '@hocuspocus/extension-redis':
-        specifier: 3.4.3
-        version: 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
       '@hocuspocus/provider':
         specifier: 3.4.3
         version: 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
@@ -554,12 +551,18 @@ importers:
       ldapts:
         specifier: ^7.4.0
         version: 7.4.0
+      lib0:
+        specifier: ^0.2.117
+        version: 0.2.117
       mammoth:
         specifier: ^1.11.0
         version: 1.11.0
       mime-types:
         specifier: ^2.1.35
         version: 2.1.35
+      msgpackr:
+        specifier: ^1.11.8
+        version: 1.11.8
       nanoid:
         specifier: 3.3.11
         version: 3.3.11
@@ -632,6 +635,9 @@ importers:
       tmp-promise:
         specifier: ^3.0.3
         version: 3.0.3
+      tseep:
+        specifier: ^1.3.1
+        version: 1.3.1
       typesense:
         specifier: ^2.1.0
         version: 2.1.0(@babel/runtime@7.25.6)
@@ -2383,12 +2389,6 @@ packages:
   '@hocuspocus/common@3.4.3':
     resolution: {integrity: sha512-wnBBO9sWcVAoUPEXN1qO+zk3HaEF9VTemxB6kjuuH6e1dHnD0v12m4P4X1wiZVhmMIX/PMl/fu3MGtYWQJz8gA==}
 
-  '@hocuspocus/extension-redis@3.4.3':
-    resolution: {integrity: sha512-r64Vpgk6tt0VZaQPEo1dQuyur2ozr243ncDcDM+4gFPuV8ZRUjL1rvaJTidb2HCcAW2zjfwshNxw4+OixeksBA==}
-    peerDependencies:
-      y-protocols: ^1.0.6
-      yjs: ^13.6.8
-
   '@hocuspocus/provider@3.4.3':
     resolution: {integrity: sha512-zt+UgVXGsEQrqnDZgavc2PT9yKJjmVjV+5YxvhlmFVFLVORqawT4l601aKmLPhvyK97un4ZApZ5rso8iO6crWg==}
     peerDependencies:
@@ -3883,12 +3883,6 @@ packages:
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
-
-  '@sesamecare-oss/redlock@1.4.0':
-    resolution: {integrity: sha512-2z589R+yxKLN4CgKxP1oN4dsg6Y548SE4bVYam/R0kHk7Q9VrQ9l66q+k1ehhSLLY4or9hcchuF9/MhuuZdjJg==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      ioredis: '>=5'
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -7593,13 +7587,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  lib0@0.2.114:
-    resolution: {integrity: sha512-gcxmNFzA4hv8UYi8j43uPlQ7CGcyMJ2KQb5kZASw6SnAKAf10hK12i2fjrS3Cl/ugZa5Ui6WwIu1/6MIXiHttQ==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  lib0@0.2.88:
-    resolution: {integrity: sha512-KyroiEvCeZcZEMx5Ys+b4u4eEBbA1ch7XUaBhYpwa/nPMrzTjUhI4RfcytmQfYoTBPcdyx+FX6WFNIoNuJzJfQ==}
+  lib0@0.2.117:
+    resolution: {integrity: sha512-DeXj9X5xDCjgKLU/7RR+/HQEVzuuEUiwldwOGsHK/sfAfELGWEyTcf0x+uOvCvK3O2zPmZePXWL85vtia6GyZw==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -7975,8 +7964,8 @@ packages:
     resolution: {integrity: sha512-SdzXp4kD/Qf8agZ9+iTu6eql0m3kWm1A2y1hkpTeVNENutaB0BwHlSvAIaMxwntmRUAUjon2V4L8Z/njd0Ct8A==}
     hasBin: true
 
-  msgpackr@1.11.2:
-    resolution: {integrity: sha512-F9UngXRlPyWCDEASDpTf6c9uNhGPTqnTeLVt7bN+bU1eajoR/8V9ys2BRaV5C/e5ihE6sJ9uPIKaYt6bFuO32g==}
+  msgpackr@1.11.8:
+    resolution: {integrity: sha512-bC4UGzHhVvgDNS7kn9tV8fAucIYUBuGojcaLiz7v+P63Lmtm0Xeji8B/8tYKddALXxJLpwIeBmUN3u64C4YkRA==}
 
   multimath@2.0.0:
     resolution: {integrity: sha512-toRx66cAMJ+Ccz7pMIg38xSIrtnbozk0dchXezwQDMgQmbGpfxjtv68H+L00iFL8hxDaVjrmwAFSb3I6bg8Q2g==}
@@ -9670,6 +9659,9 @@ packages:
   tsconfig-paths@4.2.0:
     resolution: {integrity: sha512-NoZ4roiN7LnbKn9QqE1amc9DJfzvZXxF4xDavcOWt1BPkdx+m+0gJuPM+S0vCe7zTJMYUP0R8pO2XMr+Y8oLIg==}
     engines: {node: '>=6'}
+
+  tseep@1.3.1:
+    resolution: {integrity: sha512-ZPtfk1tQnZVyr7BPtbJ93qaAh2lZuIOpTMjhrYa4XctT8xe7t4SAW9LIxrySDuYMsfNNayE51E/WNGrNVgVicQ==}
 
   tslib@2.8.0:
     resolution: {integrity: sha512-jWVzBLplnCmoaTr13V9dYbiQ99wvZRd0vNWaDRg+aVYRcjDF3nDksxFDE/+fkXnKhpnUUkmx5pK/v8mCtLVqZA==}
@@ -12659,27 +12651,13 @@ snapshots:
 
   '@hocuspocus/common@3.4.3':
     dependencies:
-      lib0: 0.2.114
-
-  '@hocuspocus/extension-redis@3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)':
-    dependencies:
-      '@hocuspocus/server': 3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)
-      '@sesamecare-oss/redlock': 1.4.0(ioredis@5.8.2)
-      ioredis: 5.8.2
-      kleur: 4.1.5
-      lodash.debounce: 4.0.8
-      y-protocols: 1.0.6(yjs@13.6.29)
-      yjs: 13.6.29
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
+      lib0: 0.2.117
 
   '@hocuspocus/provider@3.4.3(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)':
     dependencies:
       '@hocuspocus/common': 3.4.3
       '@lifeomic/attempt': 3.0.3
-      lib0: 0.2.114
+      lib0: 0.2.117
       ws: 8.19.0
       y-protocols: 1.0.6(yjs@13.6.29)
       yjs: 13.6.29
@@ -12693,7 +12671,7 @@ snapshots:
       async-lock: 1.4.1
       async-mutex: 0.5.0
       kleur: 4.1.5
-      lib0: 0.2.114
+      lib0: 0.2.117
       ws: 8.19.0
       y-protocols: 1.0.6(yjs@13.6.29)
       yjs: 13.6.29
@@ -14153,10 +14131,6 @@ snapshots:
       domhandler: 5.0.3
       selderee: 0.11.0
 
-  '@sesamecare-oss/redlock@1.4.0(ioredis@5.8.2)':
-    dependencies:
-      ioredis: 5.8.2
-
   '@sinclair/typebox@0.27.8': {}
 
   '@sindresorhus/slugify@1.1.0':
@@ -14867,7 +14841,7 @@ snapshots:
 
   '@tiptap/y-tiptap@3.0.1(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29)':
     dependencies:
-      lib0: 0.2.114
+      lib0: 0.2.117
       prosemirror-model: 1.25.1
       prosemirror-state: 1.4.3
       prosemirror-view: 1.40.0
@@ -16065,7 +16039,7 @@ snapshots:
     dependencies:
       cron-parser: 4.9.0
       ioredis: 5.8.2
-      msgpackr: 1.11.2
+      msgpackr: 1.11.8
       node-abort-controller: 3.1.1
       semver: 7.7.2
       tslib: 2.8.1
@@ -18687,11 +18661,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  lib0@0.2.114:
-    dependencies:
-      isomorphic.js: 0.2.5
-
-  lib0@0.2.88:
+  lib0@0.2.117:
     dependencies:
       isomorphic.js: 0.2.5
 
@@ -19166,7 +19136,7 @@ snapshots:
       '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.2
     optional: true
 
-  msgpackr@1.11.2:
+  msgpackr@1.11.8:
     optionalDependencies:
       msgpackr-extract: 3.0.2
 
@@ -21046,6 +21016,8 @@ snapshots:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
+  tseep@1.3.1: {}
+
   tslib@2.8.0: {}
 
   tslib@2.8.1: {}
@@ -21519,12 +21491,12 @@ snapshots:
 
   y-indexeddb@9.0.12(yjs@13.6.29):
     dependencies:
-      lib0: 0.2.88
+      lib0: 0.2.117
       yjs: 13.6.29
 
   y-prosemirror@1.3.7(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.29))(yjs@13.6.29):
     dependencies:
-      lib0: 0.2.114
+      lib0: 0.2.117
       prosemirror-model: 1.25.1
       prosemirror-state: 1.4.3
       prosemirror-view: 1.40.0
@@ -21533,7 +21505,7 @@ snapshots:
 
   y-protocols@1.0.6(yjs@13.6.29):
     dependencies:
-      lib0: 0.2.114
+      lib0: 0.2.117
       yjs: 13.6.29
 
   y18n@4.0.3: {}
@@ -21586,7 +21558,7 @@ snapshots:
 
   yjs@13.6.29:
     dependencies:
-      lib0: 0.2.114
+      lib0: 0.2.117
 
   yn@3.1.1: {}
 
