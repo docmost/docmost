@@ -110,7 +110,7 @@ export function useUpdatePageMutation() {
   return useMutation<IPage, Error, Partial<IPageInput>>({
     mutationFn: (data) => updatePage(data),
     onSuccess: (data) => {
-      updatePage(data);
+      updatePageData(data);
 
       invalidateOnUpdatePage(
         data.spaceId,

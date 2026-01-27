@@ -53,8 +53,18 @@ export function PageStateSegmentedControl({
 
   const handleChange = useCallback(
     async (newValue: string) => {
-      // If switching to Read mode and there are unsaved changes, save first
+      // Safety Check: Only save if the editor's internal pageId matches the expected pageId
+      const editorPageId = pageEditor?.storage?.pageId;
       if (newValue === PageEditMode.Read && hasUnsavedChanges && pageEditor && pageId) {
+        if (editorPageId !== pageId) {
+          console.warn("Editor pageId mismatch, skipping auto-save to prevent data leak.");
+          const updatedUser = await updateUser({ pageEditMode: newValue });
+          setValue(newValue);
+          setUser(updatedUser);
+          setHasUnsavedChanges(false);
+          return;
+        }
+
         try {
           const content = pageEditor.getJSON();
           await updatePageMutation.mutateAsync({

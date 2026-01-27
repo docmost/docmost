@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import { useTranslation } from "react-i18next";
 import {
   HocuspocusProvider,
   onAuthenticationFailedParameters,
@@ -25,7 +26,7 @@ import {
 } from "@/features/editor/extensions/extensions";
 import { useAtom } from "jotai";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { currentUserAtom, userAtom } from "@/features/user/atoms/current-user-atom";
 import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
@@ -55,9 +56,12 @@ import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
 import SearchAndReplaceDialog from "@/features/editor/components/search-and-replace/search-and-replace-dialog.tsx";
 import { useDebouncedCallback, useDocumentVisibility } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useIdle } from "@/hooks/use-idle.ts";
 import { queryClient } from "@/main.tsx";
 import { IPage } from "@/features/page/types/page.types.ts";
+import { useUpdatePageMutation } from "@/features/page/queries/page-query";
+import { updateUser } from "@/features/user/services/user-service";
 import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
@@ -79,20 +83,30 @@ export default function PageEditor({
   content,
   canComment = false,
 }: PageEditorProps) {
+  const { t } = useTranslation();
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorCreated = useRef(false);
 
-  useEffect(() => {
-    isComponentMounted.current = true;
-  }, []);
-
   const [currentUser] = useAtom(currentUserAtom);
+  const [, setUser] = useAtom(userAtom);
   const [, setEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const [, setHasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useAtom(
+    hasUnsavedChangesAtom,
+  );
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+    return () => {
+      isComponentMounted.current = false;
+      // CLEAR GLOBAL STATE ON UNMOUNT to avoid leakage to next page
+      (setEditor as any)(null);
+      (setHasUnsavedChanges as any)(false);
+    };
+  }, []);
   const ydocRef = useRef<Y.Doc | null>(null);
   if (!ydocRef.current) {
     ydocRef.current = new Y.Doc();
@@ -404,6 +418,100 @@ export default function PageEditor({
     }
   }, [userPageEditMode, editor, editable]);
 
+  const updatePageMutation = useUpdatePageMutation();
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    // Force Read mode on initial load
+    if (userPageEditMode === PageEditMode.Edit && editable) {
+      updateUser({ pageEditMode: PageEditMode.Read }).then((updatedUser) => {
+        setUser(updatedUser);
+      });
+    }
+  }, []); // Only on mount/load
+
+  useEffect(() => {
+    const handleExitSave = () => {
+      const isExitingOrNavigating = !isComponentMounted.current;
+
+      // If in Edit mode and either navigating away or refresing
+      if (userPageEditMode === PageEditMode.Edit && editable) {
+        // 1. Save changes ONLY if there are any and the editor belongs to this page
+        const editorPageId = editor?.storage?.pageId;
+        if (hasUnsavedChangesRef.current && editor && pageId && editorPageId === pageId) {
+          const content = editor.getJSON();
+          updatePageMutation.mutate({
+            pageId,
+            content,
+            forceHistorySave: true,
+          });
+          setHasUnsavedChanges(false);
+        }
+
+        // 2. Always switch user preference to Read mode if we are leaving this specific editor instance
+        if (isExitingOrNavigating) {
+          updateUser({ pageEditMode: PageEditMode.Read }).then((updatedUser) => {
+            setUser(updatedUser);
+          });
+        }
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      // For window close/refresh, we use fetch with keepalive to ensure the preference update reaches the server
+      if (userPageEditMode === PageEditMode.Edit && editable) {
+        // Attempt to save changes and force history if there are unsaved changes
+        const editorPageId = editor?.storage?.pageId;
+        if (hasUnsavedChangesRef.current && editor && pageId && editorPageId === pageId) {
+          const content = editor.getJSON();
+          const saveBody = JSON.stringify({
+            pageId,
+            content,
+            forceHistorySave: true,
+          });
+
+          fetch("/api/pages/update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: saveBody,
+            keepalive: true,
+          });
+        }
+
+        // Also update the mode preference to Read
+        const prefBody = JSON.stringify({ pageEditMode: PageEditMode.Read });
+        fetch("/api/users/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: prefBody,
+          keepalive: true,
+        });
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      handleExitSave();
+    };
+  }, [
+    pageId,
+    userPageEditMode,
+    editor,
+    editable,
+    updatePageMutation,
+    setHasUnsavedChanges,
+  ]);
+
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
 
@@ -455,7 +563,7 @@ export default function PageEditor({
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
       </div>
       <div
-        onClick={() => editor.commands.focus("end")}
+        onClick={() => editor?.commands.focus("end")}
         style={{ paddingBottom: "20vh" }}
       ></div>
     </div>
