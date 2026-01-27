@@ -98,11 +98,7 @@ export async function readDocmostMetadata(
   try {
     const content = await fs.readFile(metadataPath, 'utf-8');
     const metadata = JSON.parse(content) as ExportMetadata;
-    if (
-      metadata.source === 'docmost' &&
-      metadata.version === 1 &&
-      metadata.pages
-    ) {
+    if (metadata.source === 'docmost' && metadata.pages) {
       return metadata;
     }
     return null;

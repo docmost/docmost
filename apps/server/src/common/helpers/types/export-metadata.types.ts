@@ -7,8 +7,8 @@ export type ExportPageMetadata = {
 };
 
 export type ExportMetadata = {
-  version: number;
   exportedAt: string;
   source: 'docmost';
+  version: string;
   pages: Record<string, ExportPageMetadata>;
 };
