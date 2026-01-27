@@ -7,8 +7,6 @@ import * as path from 'path';
 import { Page } from '@docmost/db/types/entity.types';
 import { isAttachmentNode } from '../../common/helpers/prosemirror/utils';
 
-export type { ExportMetadata, ExportPageMetadata } from '../../common/helpers/types/export-metadata.types';
-
 export type PageExportTree = Record<string, Page[]>;
 
 export const INTERNAL_LINK_REGEX =

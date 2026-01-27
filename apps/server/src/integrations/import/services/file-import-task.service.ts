@@ -24,7 +24,6 @@ import { formatImportHtml } from '../utils/import-formatter';
 import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
-  DocmostExportMetadata,
   encodeFilePath,
   readDocmostMetadata,
   stripNotionID,

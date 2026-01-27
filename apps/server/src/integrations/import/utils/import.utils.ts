@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { ExportMetadata } from '../../../common/helpers/types/export-metadata.types';
 
 export async function buildAttachmentCandidates(
   extractDir: string,
@@ -35,9 +36,15 @@ export function resolveRelativeAttachmentPath(
   try {
     mainRel = decodeURIComponent(mainRel);
   } catch (err) {
-    Logger.warn(`URI malformed for attachment path: ${mainRel}. Falling back to raw path.`, 'ImportUtils');
+    Logger.warn(
+      `URI malformed for attachment path: ${mainRel}. Falling back to raw path.`,
+      'ImportUtils',
+    );
   }
-  const fallback = path.normalize(path.join(pageDir, mainRel)).split(path.sep).join('/');
+  const fallback = path
+    .normalize(path.join(pageDir, mainRel))
+    .split(path.sep)
+    .join('/');
 
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;
@@ -78,15 +85,11 @@ export function stripNotionID(fileName: string): string {
 }
 
 export function encodeFilePath(filePath: string): string {
-  return filePath.split('/').map((segment) => encodeURIComponent(segment)).join('/');
+  return filePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
 }
-
-export type {
-  ExportMetadata as DocmostExportMetadata,
-  ExportPageMetadata as DocmostExportPageMetadata,
-} from '../../../common/helpers/types/export-metadata.types';
-
-import type { ExportMetadata } from '../../../common/helpers/types/export-metadata.types';
 
 export async function readDocmostMetadata(
   extractDir: string,
@@ -95,7 +98,11 @@ export async function readDocmostMetadata(
   try {
     const content = await fs.readFile(metadataPath, 'utf-8');
     const metadata = JSON.parse(content) as ExportMetadata;
-    if (metadata.source === 'docmost' && metadata.version === 1 && metadata.pages) {
+    if (
+      metadata.source === 'docmost' &&
+      metadata.version === 1 &&
+      metadata.pages
+    ) {
       return metadata;
     }
     return null;

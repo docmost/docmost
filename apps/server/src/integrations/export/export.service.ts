@@ -14,14 +14,16 @@ import { StorageService } from '../storage/storage.service';
 import {
   buildTree,
   computeLocalPath,
-  ExportMetadata,
-  ExportPageMetadata,
   getExportExtension,
   getPageTitle,
   PageExportTree,
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
 } from './utils';
+import {
+  ExportMetadata,
+  ExportPageMetadata,
+} from '../../common/helpers/types/export-metadata.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
