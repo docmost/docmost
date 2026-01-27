@@ -14,6 +14,8 @@ import { StorageService } from '../storage/storage.service';
 import {
   buildTree,
   computeLocalPath,
+  ExportMetadata,
+  ExportPageMetadata,
   getExportExtension,
   getPageTitle,
   PageExportTree,
@@ -155,12 +157,15 @@ export class ExportService {
         'pages.id',
         'pages.slugId',
         'pages.title',
+        'pages.icon',
+        'pages.position',
         'pages.content',
         'pages.parentPageId',
         'pages.spaceId',
         'pages.workspaceId',
       ])
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
       .execute();
 
     const tree = buildTree(pages as Page[]);
@@ -189,10 +194,12 @@ export class ExportService {
     includeAttachments: boolean,
   ): Promise<void> {
     const slugIdToPath: Record<string, string> = {};
+    const pageIdToFilePath: Record<string, string> = {};
+    const pagesMetadata: Record<string, ExportPageMetadata> = {};
 
     computeLocalPath(tree, format, null, '', slugIdToPath);
 
-    const stack: { folder: JSZip; parentPageId: string }[] = [
+    const stack: { folder: JSZip; parentPageId: string | null }[] = [
       { folder: zip, parentPageId: null },
     ];
 
@@ -232,12 +239,33 @@ export class ExportService {
           `${pageTitle}${getExportExtension(format)}`,
           pageExportContent,
         );
+
+        pageIdToFilePath[page.id] = currentPagePath;
+
+        const parentPath = parentPageId ? pageIdToFilePath[parentPageId] : null;
+        pagesMetadata[currentPagePath] = {
+          pageId: page.id,
+          slugId: page.slugId,
+          icon: page.icon ?? null,
+          position: page.position,
+          parentPath,
+        };
+
         if (childPages.length > 0) {
           const pageFolder = folder.folder(pageTitle);
           stack.push({ folder: pageFolder, parentPageId: page.id });
         }
       }
     }
+
+    const metadata: ExportMetadata = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      source: 'docmost',
+      pages: pagesMetadata,
+    };
+
+    zip.file('docmost-metadata.json', JSON.stringify(metadata, null, 2));
   }
 
   async zipAttachments(prosemirrorJson: any, spaceId: string, zip: JSZip) {

@@ -76,3 +76,30 @@ export function stripNotionID(fileName: string): string {
   const notionIdPattern = /[ -]?[a-z0-9]{32}$/i;
   return fileName.replace(notionIdPattern, '').trim();
 }
+
+export function encodeFilePath(filePath: string): string {
+  return filePath.split('/').map((segment) => encodeURIComponent(segment)).join('/');
+}
+
+export type {
+  ExportMetadata as DocmostExportMetadata,
+  ExportPageMetadata as DocmostExportPageMetadata,
+} from '../../../common/helpers/types/export-metadata.types';
+
+import type { ExportMetadata } from '../../../common/helpers/types/export-metadata.types';
+
+export async function readDocmostMetadata(
+  extractDir: string,
+): Promise<ExportMetadata | null> {
+  const metadataPath = path.join(extractDir, 'docmost-metadata.json');
+  try {
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    const metadata = JSON.parse(content) as ExportMetadata;
+    if (metadata.source === 'docmost' && metadata.version === 1 && metadata.pages) {
+      return metadata;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
