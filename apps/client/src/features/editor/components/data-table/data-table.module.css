@@ -63,7 +63,9 @@
   border-right: 1px solid var(--mantine-color-default-border);
   padding: 0 !important;
   min-height: 34px;
+  height: 1px;
   vertical-align: top;
+  overflow: hidden;
 }
 
 .columnNameInput :global(.mantine-TextInput-input) {
@@ -74,15 +76,27 @@
   padding: 0;
 }
 
+.cellInput {
+  height: 100%;
+}
+
+.cellInput :global(.mantine-Textarea-wrapper) {
+  height: 100%;
+}
+
 .cellInput :global(.mantine-Textarea-input) {
   font-size: 14px;
-  min-height: 34px;
+  min-height: 100% !important;
   padding: 8px 12px;
   border-radius: 0;
   border: none !important;
   background-color: transparent;
   transition: background-color 0.1s ease;
   line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .cellInput :global(.mantine-Textarea-input:focus) {
