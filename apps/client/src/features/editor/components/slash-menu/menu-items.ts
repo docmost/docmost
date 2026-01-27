@@ -30,6 +30,12 @@ import {
   IconRectangle,
   IconAt,
 } from "@tabler/icons-react";
+import { modals } from "@mantine/modals";
+import { DatePicker } from "../date-picker/date-picker";
+import { DatePickerValue, getDateFormat } from "../date-picker/utils";
+import { DateSelectionModal } from "../date-picker/date-selection-modal";
+import dayjs from "dayjs";
+import React from "react";
 import {
   CommandProps,
   SlashMenuGroupedItemsType,
@@ -468,22 +474,37 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     },
     {
       title: "Date",
-      description: "Insert current date",
-      searchTerms: ["date", "today"],
+      description: "Insert a date using a calendar picker.",
+      searchTerms: ["date", "today", "calendar", "picker"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
+        editor.chain().focus().deleteRange(range).run();
 
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .insertContent(currentDate)
-          .run();
+        const initialValue: DatePickerValue = {
+          start: new Date(),
+          end: null,
+          includeTime: false,
+          format: "full",
+        };
+
+        modals.open({
+          title: "Select Date",
+          children: React.createElement(DateSelectionModal, {
+            initialValue,
+            onConfirm: (currentValue: DatePickerValue) => {
+              if (!currentValue.start) return;
+
+              const format = getDateFormat(currentValue.format, currentValue.includeTime);
+              let str = dayjs(currentValue.start).format(format);
+
+              if (currentValue.end) {
+                str += ` → ${dayjs(currentValue.end).format(format)}`;
+              }
+
+              editor.chain().focus().insertContent(str).run();
+            },
+          }),
+        });
       },
     },
     {

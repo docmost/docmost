@@ -1,0 +1,74 @@
+.datePickerContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.calendarWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.calendarWrapper :global(.mantine-DatePicker-calendar) {
+  width: 100%;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: var(--mantine-radius-xs);
+  transition: background-color 0.1s ease;
+  cursor: pointer;
+}
+
+.optionItem:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .optionItem:hover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.clearButton {
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  color: var(--mantine-color-red-6);
+  font-size: var(--mantine-font-size-sm);
+  border-radius: var(--mantine-radius-xs);
+  transition: background-color 0.1s ease;
+}
+
+.clearButton:hover {
+  background-color: var(--mantine-color-red-0);
+}
+
+[data-mantine-color-scheme="dark"] .clearButton:hover {
+  background-color: var(--mantine-color-red-9);
+  color: var(--mantine-color-white);
+}
+
+.footer {
+  border-top: 1px solid var(--mantine-color-default-border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.learnMore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.learnMore:hover {
+  color: var(--mantine-color-text);
+}

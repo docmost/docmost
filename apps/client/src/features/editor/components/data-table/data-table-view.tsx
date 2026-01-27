@@ -59,6 +59,7 @@ import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "../excalidraw/excalidraw-menu";
 import DrawioMenu from "../drawio/drawio-menu";
 import { PersonCell } from "./person-cell";
+import { DateCell } from "./date-cell";
 
 const IconMap: Record<string, any> = {
     text: IconAlphabetLatin,
@@ -336,6 +337,16 @@ export default function DataTableView(props: NodeViewProps) {
         if (col.type === 'person') {
             return (
                 <PersonCell
+                    value={value}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    isEditable={isEditable}
+                />
+            );
+        }
+
+        if (col.type === 'date') {
+            return (
+                <DateCell
                     value={value}
                     onChange={(val) => updateCell(row.id, col.id, val)}
                     isEditable={isEditable}
