@@ -6,6 +6,7 @@ import { ISpace } from "../types/space.types";
 import { useNavigate } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route";
 import { Trans, useTranslation } from "react-i18next";
+import { useState } from "react";
 
 interface DeleteSpaceModalProps {
   space: ISpace;
@@ -14,6 +15,7 @@ interface DeleteSpaceModalProps {
 export default function DeleteSpaceModal({ space }: DeleteSpaceModalProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const deleteSpaceMutation = useDeleteSpaceMutation();
   const navigate = useNavigate();
 
@@ -35,12 +37,15 @@ export default function DeleteSpaceModal({ space }: DeleteSpaceModalProps) {
       return;
     }
 
+    setIsDeleting(true);
     try {
       // pass slug too so we can clear the local cache
       await deleteSpaceMutation.mutateAsync({ id: space.id, slug: space.slug });
       navigate(APP_ROUTE.HOME);
     } catch (error) {
       console.error("Failed to delete space", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -79,7 +84,7 @@ export default function DeleteSpaceModal({ space }: DeleteSpaceModalProps) {
           <Button onClick={close} variant="default">
             {t("Cancel")}
           </Button>
-          <Button onClick={handleDelete} color="red">
+          <Button onClick={handleDelete} color="red" loading={isDeleting}>
             {t("Confirm")}
           </Button>
         </Group>
