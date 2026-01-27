@@ -127,7 +127,6 @@
 .dataTableWrapper[data-read-only="true"] .tableRow:hover .openButton {
   opacity: 1;
 }
-
 .tableRow {
   transition: background-color 0.1s ease;
 }
@@ -176,10 +175,13 @@
   width: 4px;
   cursor: col-resize;
   z-index: 10;
+  transition: background-color 0.1s ease;
 }
 
-.resizeHandle:hover {
-  background-color: var(--mantine-color-blue-4);
+.tableWrapper:not([data-read-only="true"]) .resizeHandle:hover {
+  background-color: var(--mantine-color-blue-6);
+  width: 2px;
+  right: -1px;
 }
 
 .typeButton {
@@ -195,6 +197,12 @@
 
 [data-mantine-color-scheme="dark"] .typeButton:hover {
   background-color: var(--mantine-color-dark-5);
+}
+
+.typeButtonDisabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 
 .addPropertyBtn {

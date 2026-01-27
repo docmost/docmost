@@ -61,6 +61,8 @@ import DrawioMenu from "../drawio/drawio-menu";
 import { PersonCell } from "./person-cell";
 import { DateCell } from "./date-cell";
 
+const ALLOWED_PROPERTY_TYPES = ['text', 'date', 'person'];
+
 const IconMap: Record<string, any> = {
     text: IconAlphabetLatin,
     number: IconHash,
@@ -411,7 +413,7 @@ export default function DataTableView(props: NodeViewProps) {
                                     {columns.slice(1).map((col) => {
                                         const Icon = IconMap[col.type] || IconAlphabetLatin;
                                         return (
-                                            <th key={col.id} style={{ width: col.width || 150, position: 'relative' }}>
+                                            <th key={col.id} style={{ minWidth: col.width || 200, position: 'relative' }}>
                                                 <Group justify="space-between" wrap="nowrap" h="100%">
                                                     <Group gap={8} wrap="nowrap" style={{ flex: 1 }}>
                                                         <Icon size={14} style={{ color: 'var(--mantine-color-dimmed)', flexShrink: 0 }} />
@@ -489,18 +491,22 @@ export default function DataTableView(props: NodeViewProps) {
                                                                 <Box key={group.label} mb="xs">
                                                                     <Text size="xs" c="dimmed" mb={4} px={4}>{group.label}</Text>
                                                                     <Box style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-                                                                        {filtered.map(type => (
-                                                                            <UnstyledButton
-                                                                                key={type.id}
-                                                                                className={classes.typeButton}
-                                                                                onClick={() => onAddProperty(type)}
-                                                                            >
-                                                                                <Group gap={8} wrap="nowrap">
-                                                                                    <type.icon size={14} style={{ flexShrink: 0 }} />
-                                                                                    <Text size="xs" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type.name}</Text>
-                                                                                </Group>
-                                                                            </UnstyledButton>
-                                                                        ))}
+                                                                        {filtered.map(type => {
+                                                                            const isAllowed = ALLOWED_PROPERTY_TYPES.includes(type.id);
+                                                                            return (
+                                                                                <UnstyledButton
+                                                                                    key={type.id}
+                                                                                    className={clsx(classes.typeButton, !isAllowed && classes.typeButtonDisabled)}
+                                                                                    onClick={() => isAllowed && onAddProperty(type)}
+                                                                                    disabled={!isAllowed}
+                                                                                >
+                                                                                    <Group gap={8} wrap="nowrap">
+                                                                                        <type.icon size={14} style={{ flexShrink: 0 }} />
+                                                                                        <Text size="xs" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type.name}</Text>
+                                                                                    </Group>
+                                                                                </UnstyledButton>
+                                                                            );
+                                                                        })}
                                                                     </Box>
                                                                 </Box>
                                                             );

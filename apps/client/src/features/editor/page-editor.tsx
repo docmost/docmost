@@ -546,6 +546,10 @@ export default function PageEditor({
         {editor && (editorIsEditable || canComment) && (
           <div>
             <EditorBubbleMenu editor={editor} canComment={canComment} />
+          </div>
+        )}
+        {editor && editorIsEditable && (
+          <div>
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />

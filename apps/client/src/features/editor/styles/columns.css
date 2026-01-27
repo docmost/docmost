@@ -23,7 +23,8 @@
   z-index: 20;
 }
 
-.ProseMirror section[data-type="columns"]:hover::before {
+.ProseMirror[contenteditable="true"]
+  section[data-type="columns"]:hover::before {
   background-color: var(--mantine-color-blue-filled);
 }
 
@@ -75,7 +76,8 @@
   z-index: 10;
 }
 
-.ProseMirror div[data-type="column"]:not(:last-child):hover::after {
+.ProseMirror[contenteditable="true"]
+  div[data-type="column"]:not(:last-child):hover::after {
   background-color: var(--mantine-color-blue-filled);
   width: 3px;
   cursor: col-resize;
