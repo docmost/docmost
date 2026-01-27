@@ -167,6 +167,8 @@ export class ExportService {
         'pages.parentPageId',
         'pages.spaceId',
         'pages.workspaceId',
+        'pages.createdAt',
+        'pages.updatedAt',
       ])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null)
@@ -253,6 +255,8 @@ export class ExportService {
           icon: page.icon ?? null,
           position: page.position,
           parentPath,
+          createdAt: page.createdAt?.toISOString() ?? new Date().toISOString(),
+          updatedAt: page.updatedAt?.toISOString() ?? new Date().toISOString(),
         };
 
         if (childPages.length > 0) {

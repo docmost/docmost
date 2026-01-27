@@ -4,6 +4,8 @@ export type ExportPageMetadata = {
   icon: string | null;
   position: string;
   parentPath: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ExportMetadata = {

@@ -422,6 +422,8 @@ export class PageRepo {
             'parentPageId',
             'spaceId',
             'workspaceId',
+            'createdAt',
+            'updatedAt',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
@@ -438,6 +440,8 @@ export class PageRepo {
                 'p.parentPageId',
                 'p.spaceId',
                 'p.workspaceId',
+                'p.createdAt',
+                'p.updatedAt',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
