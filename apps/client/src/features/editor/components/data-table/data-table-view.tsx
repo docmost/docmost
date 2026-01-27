@@ -335,7 +335,7 @@ export default function DataTableView(props: NodeViewProps) {
             selectable={false}
         >
             <div className={classes.tableContainer}>
-                <ScrollArea.Autosize mah={800} type="auto">
+                <ScrollArea.Autosize mah={800} type="always">
                     <div style={{ paddingBottom: 12 }}>
                         <table style={{ width: '100%', minWidth: totalColumnsWidth }}>
                             <thead>
@@ -395,16 +395,17 @@ export default function DataTableView(props: NodeViewProps) {
                                         );
                                     })}
                                     {isEditable && (
-                                        <th style={{ width: 150 }}>
-                                            <Menu position="bottom-start" shadow="md" width={280} offset={2} withinPortal={true}>
+                                        <th>
+                                            <Menu position="bottom-start" shadow="md" width={280} offset={2} withinPortal={true} >
                                                 <Menu.Target>
                                                     <Button
+                                                        h="100%"
                                                         variant="subtle"
                                                         size="compact-xs"
                                                         leftSection={<IconPlus size={14} />}
                                                         className={classes.addPropertyBtn}
+                                                        justify="center"
                                                         fullWidth
-                                                        justify="start"
                                                     >
                                                         Add property
                                                     </Button>
@@ -529,6 +530,7 @@ export default function DataTableView(props: NodeViewProps) {
                 onClose={close}
                 size="90%"
                 withCloseButton={false}
+                centered
                 styles={{
                     content: {
                         padding: "16px",

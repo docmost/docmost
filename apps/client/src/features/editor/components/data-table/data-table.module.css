@@ -129,8 +129,8 @@
 .openButton {
   position: absolute;
   right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   opacity: 0;
   transition: opacity 0.1s ease;
   font-size: 10px;
@@ -215,5 +215,6 @@
 }
 
 .modalEditor :global(.ProseMirror) {
-  padding: 0 !important;
+  padding: 1.5rem !important;
+  min-height: 400px;
 }
