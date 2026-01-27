@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { ExportMetadata } from '../../../common/helpers/types/export-metadata.types';
 
 export async function buildAttachmentCandidates(
   extractDir: string,
@@ -35,9 +36,15 @@ export function resolveRelativeAttachmentPath(
   try {
     mainRel = decodeURIComponent(mainRel);
   } catch (err) {
-    Logger.warn(`URI malformed for attachment path: ${mainRel}. Falling back to raw path.`, 'ImportUtils');
+    Logger.warn(
+      `URI malformed for attachment path: ${mainRel}. Falling back to raw path.`,
+      'ImportUtils',
+    );
   }
-  const fallback = path.normalize(path.join(pageDir, mainRel)).split(path.sep).join('/');
+  const fallback = path
+    .normalize(path.join(pageDir, mainRel))
+    .split(path.sep)
+    .join('/');
 
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;
@@ -75,4 +82,27 @@ export function stripNotionID(fileName: string): string {
   // Handle optional separator (space or dash) + 32 alphanumeric chars at end
   const notionIdPattern = /[ -]?[a-z0-9]{32}$/i;
   return fileName.replace(notionIdPattern, '').trim();
+}
+
+export function encodeFilePath(filePath: string): string {
+  return filePath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
+
+export async function readDocmostMetadata(
+  extractDir: string,
+): Promise<ExportMetadata | null> {
+  const metadataPath = path.join(extractDir, 'docmost-metadata.json');
+  try {
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    const metadata = JSON.parse(content) as ExportMetadata;
+    if (metadata.source === 'docmost' && metadata.pages) {
+      return metadata;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

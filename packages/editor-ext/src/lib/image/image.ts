@@ -25,7 +25,7 @@ declare module "@tiptap/core" {
     imageBlock: {
       setImage: (attributes: ImageAttributes) => ReturnType;
       setImageAt: (
-        attributes: ImageAttributes & { pos: number | Range },
+        attributes: ImageAttributes & { pos: number | Range }
       ) => ReturnType;
       setImageAlign: (align: "left" | "center" | "right") => ReturnType;
       setImageWidth: (width: number) => ReturnType;

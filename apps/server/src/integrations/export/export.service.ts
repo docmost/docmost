@@ -20,12 +20,18 @@ import {
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
 } from './utils';
+import {
+  ExportMetadata,
+  ExportPageMetadata,
+} from '../../common/helpers/types/export-metadata.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import slugify = require('@sindresorhus/slugify');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const packageJson = require('../../../package.json');
 import { EnvironmentService } from '../environment/environment.service';
 import {
   getAttachmentIds,
@@ -185,10 +191,14 @@ export class ExportService {
         'pages.id',
         'pages.slugId',
         'pages.title',
+        'pages.icon',
+        'pages.position',
         'pages.content',
         'pages.parentPageId',
         'pages.spaceId',
         'pages.workspaceId',
+        'pages.createdAt',
+        'pages.updatedAt',
       ])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null)
@@ -241,10 +251,12 @@ export class ExportService {
     ignorePermissions = false,
   ): Promise<void> {
     const slugIdToPath: Record<string, string> = {};
+    const pageIdToFilePath: Record<string, string> = {};
+    const pagesMetadata: Record<string, ExportPageMetadata> = {};
 
     computeLocalPath(tree, format, null, '', slugIdToPath);
 
-    const stack: { folder: JSZip; parentPageId: string }[] = [
+    const stack: { folder: JSZip; parentPageId: string | null }[] = [
       { folder: zip, parentPageId: null },
     ];
 
@@ -286,12 +298,35 @@ export class ExportService {
           `${pageTitle}${getExportExtension(format)}`,
           pageExportContent,
         );
+
+        pageIdToFilePath[page.id] = currentPagePath;
+
+        const parentPath = parentPageId ? pageIdToFilePath[parentPageId] : null;
+        pagesMetadata[currentPagePath] = {
+          pageId: page.id,
+          slugId: page.slugId,
+          icon: page.icon ?? null,
+          position: page.position,
+          parentPath,
+          createdAt: page.createdAt?.toISOString() ?? new Date().toISOString(),
+          updatedAt: page.updatedAt?.toISOString() ?? new Date().toISOString(),
+        };
+
         if (childPages.length > 0) {
           const pageFolder = folder.folder(pageTitle);
           stack.push({ folder: pageFolder, parentPageId: page.id });
         }
       }
     }
+
+    const metadata: ExportMetadata = {
+      exportedAt: new Date().toISOString(),
+      source: 'docmost',
+      version: packageJson.version,
+      pages: pagesMetadata,
+    };
+
+    zip.file('docmost-metadata.json', JSON.stringify(metadata, null, 2));
   }
 
   async zipAttachments(prosemirrorJson: any, spaceId: string, zip: JSZip) {
