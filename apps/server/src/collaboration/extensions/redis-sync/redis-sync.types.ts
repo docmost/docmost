@@ -13,7 +13,7 @@ export type SecondParam<T> = T extends (
 export type SerializedHTTPRequest = {
   method: string;
   url: string;
-  headers: IncomingHttpHeaders & { 'sec-websocket-key': string };
+  headers: IncomingHttpHeaders;
   socket: { remoteAddress: string };
 };
 

@@ -85,30 +85,31 @@ export class CollaborationGateway {
       method: request.method ?? 'GET',
       url: request.url ?? '/',
       headers: {
-        ...request.headers,
         'sec-websocket-key': request.headers['sec-websocket-key'] ?? '',
-      } as SerializedHTTPRequest['headers'],
+        'sec-websocket-protocol':
+          request.headers['sec-websocket-protocol'] ?? '',
+      },
       socket: { remoteAddress: request.socket?.remoteAddress ?? '' },
     };
   }
 
   handleConnection(client: WebSocket, request: IncomingMessage): any {
     if (this.redisSync) {
-      const serializedRequest = this.serializeRequest(request);
-      const socketId = serializedRequest.headers['sec-websocket-key'];
+      const serializedHTTPRequest = this.serializeRequest(request);
+      const socketId = serializedHTTPRequest.headers['sec-websocket-key'];
 
       // Create wrapper socket that only receives events via emit()
       // This prevents double-handling since Hocuspocus won't listen to raw WebSocket events
       const wrappedSocket = new WsSocketWrapper(client);
 
       // Route through RedisSync extension (this calls handleConnection internally)
-      this.redisSync.onSocketOpen(wrappedSocket as any, serializedRequest);
+      this.redisSync.onSocketOpen(wrappedSocket as any, serializedHTTPRequest);
 
       // Forward raw WebSocket messages to the extension
       client.on('message', (data: ArrayBuffer) => {
         this.redisSync!.onSocketMessage(
           wrappedSocket as any,
-          serializedRequest,
+          serializedHTTPRequest,
           data,
         );
       });
