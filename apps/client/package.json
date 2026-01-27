@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.24.1",
   "scripts": {
-    "dev": "vite --port 3000",
+    "dev": "vite --port 3001",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

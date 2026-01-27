@@ -1,0 +1,219 @@
+.dataTableWrapper {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Aggressively remove Tiptap node selection highlight, focus rings, and overlays */
+.dataTableWrapper:global(.ProseMirror-selectednode),
+.dataTableWrapper[data-read-only="false"]:global(.ProseMirror-selectednode),
+.dataTableWrapper:global(.ProseMirror-selectednode):after,
+.dataTableWrapper:global(.ProseMirror-selectednode):before,
+.dataTableWrapper :global(.ProseMirror-selectednode),
+:global(.ProseMirror-selectednode) .dataTableWrapper,
+:global(.ProseMirror-selectednode) > .dataTableWrapper {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.dataTableWrapper:focus,
+.dataTableWrapper:active,
+.dataTableWrapper *:focus,
+.dataTableWrapper:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.tableContainer {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+  background-color: var(--mantine-color-body);
+}
+
+.tableContainer :global(.mantine-ScrollArea-root) {
+  width: 100%;
+}
+
+.tableContainer table {
+  margin: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  min-width: fit-content;
+}
+
+.tableContainer th {
+  background-color: var(--mantine-color-gray-0);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-right: 1px solid var(--mantine-color-default-border);
+  padding: 0 12px;
+  height: 34px;
+  white-space: nowrap;
+  font-weight: 500;
+  text-align: left;
+}
+
+[data-mantine-color-scheme="dark"] .tableContainer th {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.tableContainer td {
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-right: 1px solid var(--mantine-color-default-border);
+  padding: 0 !important;
+  min-height: 34px;
+  vertical-align: top;
+}
+
+.columnNameInput :global(.mantine-TextInput-input) {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  height: 32px;
+  padding: 0;
+}
+
+.cellInput :global(.mantine-Textarea-input) {
+  font-size: 14px;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 0;
+  border: none !important;
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+  line-height: 1.5;
+}
+
+.cellInput :global(.mantine-Textarea-input:focus) {
+  background-color: var(--mantine-color-gray-1);
+  box-shadow: none !important;
+}
+
+[data-mantine-color-scheme="dark"]
+  .cellInput
+  :global(.mantine-Textarea-input:focus) {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* Read only refinements */
+.dataTableWrapper[data-read-only="true"]
+  .cellInput
+  :global(.mantine-TextInput-input:focus) {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dataTableWrapper[data-read-only="true"] .tableRow:hover {
+  background-color: transparent;
+}
+
+/* Keep open button visible on hover even in read-only */
+.dataTableWrapper[data-read-only="true"] .tableRow:hover .openButton {
+  opacity: 1;
+}
+
+.tableRow {
+  transition: background-color 0.1s ease;
+}
+
+.tableRow:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .tableRow:hover {
+  background-color: var(--mantine-color-dark-8);
+}
+
+.openButton {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 6px;
+  height: 22px;
+  border-color: var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+  background-color: var(--mantine-color-body);
+  z-index: 50;
+}
+
+.openButton:focus,
+.openButton:active {
+  transform: translateY(-50%) !important;
+  transition: opacity 0.1s ease !important;
+}
+
+.firstColumnCell:hover .openButton {
+  opacity: 1;
+  background-color: var(--mantine-color-gray-1);
+}
+
+.resizeHandle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.resizeHandle:hover {
+  background-color: var(--mantine-color-blue-4);
+}
+
+.typeButton {
+  padding: 6px 8px;
+  border-radius: var(--mantine-radius-xs);
+  transition: background-color 0.1s ease;
+  width: 100%;
+}
+
+.typeButton:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .typeButton:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.addPropertyBtn {
+  color: var(--mantine-color-dimmed);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+/* Custom sleek scrollbar for the table */
+.tableContainer :global(.mantine-ScrollArea-scrollbar) {
+  background-color: transparent;
+}
+
+.tableContainer :global(.mantine-ScrollArea-scrollbar:hover) {
+  background-color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"]
+  .tableContainer
+  :global(.mantine-ScrollArea-scrollbar:hover) {
+  background-color: var(--mantine-color-dark-8);
+}
+
+.tableContainer :global(.mantine-ScrollArea-thumb) {
+  background-color: var(--mantine-color-gray-3);
+}
+
+[data-mantine-color-scheme="dark"]
+  .tableContainer
+  :global(.mantine-ScrollArea-thumb) {
+  background-color: var(--mantine-color-dark-4);
+}
+
+.modalEditor :global(.ProseMirror) {
+  padding: 0 !important;
+}

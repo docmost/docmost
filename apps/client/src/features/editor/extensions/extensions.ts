@@ -48,6 +48,7 @@ import {
   UniqueID,
   Column,
   ColumnGroup,
+  DataTable,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -65,6 +66,7 @@ import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import DataTableView from "@/features/editor/components/data-table/data-table-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -97,7 +99,7 @@ lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
 
-export const mainExtensions = [
+export const baseExtensions = [
   StarterKit.configure({
     heading: false,
     history: false,
@@ -257,6 +259,14 @@ export const mainExtensions = [
   InsertLink,
   ColumnGroup,
   Column,
+] as any;
+
+export const mainExtensions = [
+  ...baseExtensions,
+  DataTable.configure({
+    // @ts-ignore
+    view: DataTableView,
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

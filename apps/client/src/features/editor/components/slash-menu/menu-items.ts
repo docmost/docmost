@@ -18,6 +18,7 @@ import {
   IconPaperclip,
   IconPhoto,
   IconTable,
+  IconTableOptions,
   IconTypography,
   IconMenu4,
   IconCalendar,
@@ -292,6 +293,17 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+    },
+    {
+      title: "Table View",
+      description: "Insert a Notion-like data table.",
+      searchTerms: ["table view", "database", "data table", "notion"],
+      icon: IconTableOptions,
+      command: ({ editor, range }: CommandProps) =>
+        (editor.chain().focus() as any)
+          .deleteRange(range)
+          .insertDataTable()
           .run(),
     },
     {

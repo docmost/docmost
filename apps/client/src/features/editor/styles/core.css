@@ -110,7 +110,7 @@
     border-top: 1px solid #68cef8;
   }
 
-  .ProseMirror-selectednode {
+  .ProseMirror-selectednode:not(.docmost-data-table) {
     outline: 2px solid #70cff8;
   }
 
@@ -186,7 +186,6 @@
     margin-left: auto;
     margin-right: auto;
   }
-
 }
 
 .ProseMirror > h1,
@@ -195,13 +194,11 @@
 .ProseMirror > h4,
 .ProseMirror > h5,
 .ProseMirror > h6 {
-  
   > .link-btn {
     cursor: pointer;
     position: relative;
-
   }
-  
+
   > .link-btn > .link-btn-content {
     opacity: 0;
     position: absolute;
@@ -213,7 +210,7 @@
     justify-content: center;
     flex-direction: column;
   }
-  
+
   &:hover > .link-btn > .link-btn-content {
     opacity: 1;
   }

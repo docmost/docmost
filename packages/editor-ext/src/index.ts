@@ -24,3 +24,4 @@ export * from "./lib/highlight";
 export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
 export * from "./lib/columns";
+export * from "./lib/data-table/data-table";
