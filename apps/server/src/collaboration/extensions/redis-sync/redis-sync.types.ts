@@ -20,7 +20,6 @@ export type SerializedHTTPRequest = {
 export type RSAMessageProxy = {
   type: 'proxy';
   replyTo: string;
-  // @ts-ignore
   message: Uint8Array<ArrayBufferLike>;
   serializedHTTPRequest: SerializedHTTPRequest;
 };
@@ -103,17 +102,16 @@ export type CustomEvents = Record<
   (documentName: string, payload: unknown) => Promise<unknown>
 >;
 
-export type Configuration<TCE> = {
+export interface Configuration<TCE> {
   redis: RedisClient;
   pack: Pack;
   unpack: Unpack;
   serverId: ServerId;
   lockTTL?: number;
   customEventTTL?: number;
-  proxySocketTTL?: number;
   prefix?: string;
   customEvents?: TCE;
-};
+}
 
 export type BaseWebSocket = EventEmitter & {
   readyState: number;
