@@ -22,8 +22,8 @@ export const TableCellMenu = React.memo(
   ({ editor, appendTo }: EditorMenuProps): JSX.Element => {
     const { t } = useTranslation();
     const shouldShow = useCallback(
-      ({ view, state, from }: ShouldShowProps) => {
-        if (!state) {
+      ({ state }: ShouldShowProps) => {
+        if (!state || !editor.isEditable) {
           return false;
         }
 
@@ -69,7 +69,7 @@ export const TableCellMenu = React.memo(
         <ActionIcon.Group>
           <TableBackgroundColor editor={editor} />
           <TableTextAlignment editor={editor} />
-          
+
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}

@@ -151,7 +151,10 @@ export const baseExtensions = [
   }),
   Typography,
   TrailingNode,
-  GlobalDragHandle,
+  GlobalDragHandle.configure({
+    dragHandleWidth: 20,
+    scrollTreshold: 100,
+  }),
   TextStyle,
   Color,
   SlashCommand,
@@ -181,7 +184,7 @@ export const baseExtensions = [
   CustomTable.configure({
     resizable: true,
     lastColumnResizable: true,
-    allowTableNodeSelection: true,
+    allowTableNodeSelection: false,
   }),
   TableRow,
   TableCell,
