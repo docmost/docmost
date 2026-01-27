@@ -33,7 +33,10 @@ import { useTranslation } from "react-i18next";
 export function useWorkspaceQuery(): UseQueryResult<IWorkspace, Error> {
   return useQuery({
     queryKey: ["workspace"],
-    queryFn: () => getWorkspace(),
+    queryFn: async () => {
+      const data = await getWorkspace();
+      return data ?? null;
+    },
   });
 }
 
@@ -43,7 +46,10 @@ export function useWorkspacePublicDataQuery(): UseQueryResult<
 > {
   return useQuery({
     queryKey: ["workspace-public"],
-    queryFn: () => getWorkspacePublicData(),
+    queryFn: async () => {
+      const data = await getWorkspacePublicData();
+      return data ?? null;
+    },
   });
 }
 
@@ -52,7 +58,10 @@ export function useWorkspaceMembersQuery(
 ): UseQueryResult<IPagination<IUser>, Error> {
   return useQuery({
     queryKey: ["workspaceMembers", params],
-    queryFn: () => getWorkspaceMembers(params),
+    queryFn: async () => {
+      const data = await getWorkspaceMembers(params);
+      return data ?? null;
+    },
     placeholderData: keepPreviousData,
   });
 }
@@ -104,7 +113,10 @@ export function useWorkspaceInvitationsQuery(
 ): UseQueryResult<IPagination<IInvitation>, Error> {
   return useQuery({
     queryKey: ["invitations", params],
-    queryFn: () => getPendingInvitations(params),
+    queryFn: async () => {
+      const data = await getPendingInvitations(params);
+      return data ?? null;
+    },
     placeholderData: keepPreviousData,
   });
 }
@@ -176,7 +188,10 @@ export function useGetInvitationQuery(
 ): UseQueryResult<IInvitation, Error> {
   return useQuery({
     queryKey: ["invitations", invitationId],
-    queryFn: () => getInvitationById({ invitationId }),
+    queryFn: async () => {
+      const data = await getInvitationById({ invitationId });
+      return data ?? null;
+    },
     enabled: !!invitationId,
   });
 }
@@ -186,7 +201,10 @@ export function useAppVersion(
 ): UseQueryResult<IVersion, Error> {
   return useQuery({
     queryKey: ["version"],
-    queryFn: () => getAppVersion(),
+    queryFn: async () => {
+      const data = await getAppVersion();
+      return data ?? null;
+    },
     staleTime: 60 * 60 * 1000, // 1 hr
     enabled: isEnabled,
     refetchOnMount: true,

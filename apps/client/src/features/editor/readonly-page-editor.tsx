@@ -68,14 +68,14 @@ export default function ReadonlyPageEditor({
     <>
       <EditorProvider
         editable={false}
-        immediatelyRender={true}
+        immediatelyRender={false}
         extensions={titleExtensions}
         content={title}
       ></EditorProvider>
 
       <EditorProvider
         editable={false}
-        immediatelyRender={true}
+        immediatelyRender={false}
         extensions={extensions}
         content={content}
         onCreate={({ editor }) => {

@@ -44,7 +44,10 @@ export function useGetShareByIdQuery(
 ): UseQueryResult<IShare, Error> {
   const query = useQuery({
     queryKey: ["share-by-id", shareId],
-    queryFn: () => getShareInfo(shareId),
+    queryFn: async () => {
+      const data = await getShareInfo(shareId);
+      return data ?? null;
+    },
     enabled: !!shareId,
   });
 
@@ -56,7 +59,10 @@ export function useSharePageQuery(
 ): UseQueryResult<ISharedPage, Error> {
   const query = useQuery({
     queryKey: ["shares", shareInput],
-    queryFn: () => getSharePageInfo(shareInput),
+    queryFn: async () => {
+      const data = await getSharePageInfo(shareInput);
+      return data ?? null;
+    },
     enabled: !!shareInput.pageId,
   });
 
@@ -68,7 +74,10 @@ export function useShareForPageQuery(
 ): UseQueryResult<IShareForPage, Error> {
   const query = useQuery({
     queryKey: ["share-for-page", pageId],
-    queryFn: () => getShareForPage(pageId),
+    queryFn: async () => {
+      const data = await getShareForPage(pageId);
+      return data ?? null;
+    },
     enabled: !!pageId,
     staleTime: 60 * 1000,
     retry: false,

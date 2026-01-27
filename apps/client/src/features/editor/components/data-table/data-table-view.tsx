@@ -163,6 +163,7 @@ export default function DataTableView(props: NodeViewProps) {
         extensions: baseExtensions,
         content: activeRow?.content || "",
         editable: isEditable,
+        immediatelyRender: false,
         editorProps: {
             handleDOMEvents: {
                 keydown: (_view, event) => {
@@ -332,7 +333,7 @@ export default function DataTableView(props: NodeViewProps) {
         <NodeViewWrapper
             className={clsx(classes.dataTableWrapper, "docmost-data-table")}
             data-read-only={!isEditable}
-            selectable={false}
+            selectable="false"
         >
             <div className={classes.tableContainer}>
                 <ScrollArea.Autosize mah={800} type="always">

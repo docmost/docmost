@@ -86,7 +86,7 @@ export function TitleEditor({
     },
     editable: editable,
     content: title,
-    immediatelyRender: true,
+    immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: {
       handleDOMEvents: {

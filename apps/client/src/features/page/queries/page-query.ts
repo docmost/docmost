@@ -45,7 +45,10 @@ export function usePageQuery(
 ): UseQueryResult<IPage, Error> {
   const query = useQuery({
     queryKey: ["pages", pageInput.pageId],
-    queryFn: () => getPageById(pageInput),
+    queryFn: async () => {
+      const data = await getPageById(pageInput);
+      return data ?? null;
+    },
     enabled: !!pageInput.pageId,
     staleTime: 5 * 60 * 1000,
   });
@@ -281,7 +284,10 @@ export function usePageBreadcrumbsQuery(
 ): UseQueryResult<Partial<IPage[]>, Error> {
   return useQuery({
     queryKey: ["breadcrumbs", pageId],
-    queryFn: () => getPageBreadcrumbs(pageId),
+    queryFn: async () => {
+      const data = await getPageBreadcrumbs(pageId);
+      return data ?? null;
+    },
     enabled: !!pageId,
   });
 }
@@ -303,7 +309,10 @@ export function useRecentChangesQuery(
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
     queryKey: ["recent-changes", spaceId],
-    queryFn: () => getRecentChanges(spaceId),
+    queryFn: async () => {
+      const data = await getRecentChanges(spaceId);
+      return data ?? null;
+    },
     refetchOnMount: true,
   });
 }
@@ -314,7 +323,10 @@ export function useDeletedPagesQuery(
 ): UseQueryResult<IPagination<IPage>, Error> {
   return useQuery({
     queryKey: ["trash-list", spaceId, params],
-    queryFn: () => getDeletedPages(spaceId, params),
+    queryFn: async () => {
+      const data = await getDeletedPages(spaceId, params);
+      return data ?? null;
+    },
     enabled: !!spaceId,
     placeholderData: keepPreviousData,
     refetchOnMount: true,

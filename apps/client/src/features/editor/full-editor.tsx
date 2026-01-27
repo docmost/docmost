@@ -34,7 +34,6 @@ export function FullEditor({
   const [user] = useAtom(userAtom);
   const { isVisitor } = useUserRole();
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
-  const [pageEditor] = useAtom(pageEditorAtom);
 
   return (
     <Container

@@ -24,7 +24,7 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom, userAtom } from "@/features/user/atoms/current-user-atom";
 import {
@@ -90,21 +90,20 @@ export default function PageEditor({
 
   const [currentUser] = useAtom(currentUserAtom);
   const [, setUser] = useAtom(userAtom);
-  const [, setEditor] = useAtom(pageEditorAtom);
+  const setEditor = useSetAtom(pageEditorAtom as any);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useAtom(
-    hasUnsavedChangesAtom,
-  );
+  const setHasUnsavedChanges = useSetAtom(hasUnsavedChangesAtom);
+  const [hasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
 
   useEffect(() => {
     isComponentMounted.current = true;
     return () => {
       isComponentMounted.current = false;
       // CLEAR GLOBAL STATE ON UNMOUNT to avoid leakage to next page
-      (setEditor as any)(null);
-      (setHasUnsavedChanges as any)(false);
+      setEditor(null);
+      setHasUnsavedChanges(false);
     };
   }, []);
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -259,7 +258,7 @@ export default function PageEditor({
     {
       extensions,
       editable,
-      immediatelyRender: true,
+      immediatelyRender: false,
       shouldRerenderOnTransaction: false,
       editorProps: {
         scrollThreshold: 80,
@@ -508,7 +507,6 @@ export default function PageEditor({
     userPageEditMode,
     editor,
     editable,
-    updatePageMutation,
     setHasUnsavedChanges,
   ]);
 
@@ -529,7 +527,7 @@ export default function PageEditor({
     return (
       <EditorProvider
         editable={false}
-        immediatelyRender={true}
+        immediatelyRender={false}
         extensions={mainExtensions}
         content={content}
       />

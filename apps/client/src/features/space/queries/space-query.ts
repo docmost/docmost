@@ -36,7 +36,10 @@ export function useGetSpacesQuery(
 ): UseQueryResult<IPagination<ISpace>, Error> {
   return useQuery({
     queryKey: ["spaces", params],
-    queryFn: () => getSpaces(params),
+    queryFn: async () => {
+      const data = await getSpaces(params);
+      return data ?? null;
+    },
     placeholderData: keepPreviousData,
     refetchOnMount: true,
   });
@@ -45,7 +48,10 @@ export function useGetSpacesQuery(
 export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
   const query = useQuery({
     queryKey: ["space", spaceId],
-    queryFn: () => getSpaceById(spaceId),
+    queryFn: async () => {
+      const data = await getSpaceById(spaceId);
+      return data ?? null;
+    },
     enabled: !!spaceId,
   });
   useEffect(() => {
@@ -64,14 +70,20 @@ export function useSpaceQuery(spaceId: string): UseQueryResult<ISpace, Error> {
 export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
   queryClient.prefetchQuery({
     queryKey: ["space", spaceSlug],
-    queryFn: () => getSpaceById(spaceSlug),
+    queryFn: async () => {
+      const data = await getSpaceById(spaceSlug);
+      return data ?? null;
+    },
   });
 
   if (spaceId) {
     // this endpoint only accepts uuid for now
     queryClient.prefetchQuery({
       queryKey: ["recent-changes", spaceId],
-      queryFn: () => getRecentChanges(spaceId),
+      queryFn: async () => {
+        const data = await getRecentChanges(spaceId);
+        return data ?? null;
+      },
     });
   }
 };
@@ -100,7 +112,10 @@ export function useGetSpaceBySlugQuery(
 ): UseQueryResult<ISpace, Error> {
   return useQuery({
     queryKey: ["space", spaceId],
-    queryFn: () => getSpaceById(spaceId),
+    queryFn: async () => {
+      const data = await getSpaceById(spaceId);
+      return data ?? null;
+    },
     enabled: !!spaceId,
     staleTime: 5 * 60 * 1000,
   });
@@ -196,7 +211,10 @@ export function useSpaceMembersQuery(
 ): UseQueryResult<IPagination<ISpaceMember>, Error> {
   return useQuery({
     queryKey: ["spaceMembers", spaceId, params],
-    queryFn: () => getSpaceMembers(spaceId, params),
+    queryFn: async () => {
+      const data = await getSpaceMembers(spaceId, params);
+      return data ?? null;
+    },
     enabled: !!spaceId,
     placeholderData: keepPreviousData,
   });
