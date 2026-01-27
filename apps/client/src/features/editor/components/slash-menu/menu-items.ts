@@ -27,9 +27,8 @@ import {
   IconLink,
   IconColumns,
   IconLayoutColumns,
-  IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarRightCollapse,
   IconRectangle,
+  IconAt,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -508,6 +507,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .deleteRange(range)
           .insertContent({ type: "insertLink" })
           .run();
+      },
+    },
+    {
+      title: "Mention member",
+      description: "Mention a member in this document.",
+      searchTerms: ["mention", "user", "person", "at", "member"],
+      icon: IconAt,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertContent("@").run();
       },
     },
     {

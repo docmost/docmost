@@ -232,3 +232,45 @@
   padding: 1.5rem !important;
   min-height: 400px;
 }
+
+.personCellTarget {
+  display: flex;
+  align-items: center;
+  transition: background-color 0.1s ease;
+  border-radius: 0;
+}
+
+.personCellTarget:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+.personBadge {
+  background-color: var(--mantine-color-gray-1);
+  padding: 1px 6px;
+  border-radius: var(--mantine-radius-xl);
+  border: 1px solid var(--mantine-color-default-border);
+}
+
+.personSelectItem {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--mantine-radius-xs);
+  transition: background-color 0.1s ease;
+  display: block;
+}
+
+.personSelectItem:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .personCellTarget:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .personBadge {
+  background-color: var(--mantine-color-dark-6);
+}
+
+[data-mantine-color-scheme="dark"] .personSelectItem:hover {
+  background-color: var(--mantine-color-dark-5);
+}

@@ -58,6 +58,7 @@ import ColumnMenu from "@/features/editor/components/columns/column-menu.tsx";
 import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "../excalidraw/excalidraw-menu";
 import DrawioMenu from "../drawio/drawio-menu";
+import { PersonCell } from "./person-cell";
 
 const IconMap: Record<string, any> = {
     text: IconAlphabetLatin,
@@ -329,6 +330,55 @@ export default function DataTableView(props: NodeViewProps) {
         updateAttributes({ columns: newColumns, rows: newRows });
     };
 
+    const renderInput = (row: DataTableRow, col: DataTableColumn, variant: 'table' | 'modal' = 'table') => {
+        const value = row[col.id] || "";
+
+        if (col.type === 'person') {
+            return (
+                <PersonCell
+                    value={value}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    isEditable={isEditable}
+                />
+            );
+        }
+
+        if (variant === 'modal') {
+            const isName = columns[0]?.id === col.id;
+            return (
+                <TextInput
+                    variant="unstyled"
+                    value={value}
+                    onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                    readOnly={!isEditable}
+                    placeholder={!isName ? "Empty" : "Untitled"}
+                    style={{ flex: 1 }}
+                    styles={{
+                        input: {
+                            fontSize: '14px',
+                            fontWeight: isName ? 600 : 400,
+                            color: value ? 'inherit' : 'var(--mantine-color-gray-5)'
+                        }
+                    }}
+                />
+            );
+        }
+
+        return (
+            <Textarea
+                variant="unstyled"
+                value={value}
+                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                readOnly={!isEditable}
+                tabIndex={isEditable ? 0 : -1}
+                className={classes.cellInput}
+                style={{ width: '100%', minHeight: '100%' }}
+                autosize
+                minRows={1}
+            />
+        );
+    };
+
     return (
         <NodeViewWrapper
             className={clsx(classes.dataTableWrapper, "docmost-data-table")}
@@ -455,17 +505,7 @@ export default function DataTableView(props: NodeViewProps) {
                                 {visibleRows.map((row) => (
                                     <tr key={row.id} className={classes.tableRow}>
                                         <td style={{ position: 'relative', verticalAlign: 'middle' }} className={classes.firstColumnCell}>
-                                            <Textarea
-                                                variant="unstyled"
-                                                value={row[columns[0]?.id] || ""}
-                                                onChange={(e) => updateCell(row.id, columns[0]?.id, e.target.value)}
-                                                readOnly={!isEditable}
-                                                tabIndex={isEditable ? 0 : -1}
-                                                className={classes.cellInput}
-                                                style={{ width: '100%', minHeight: '100%' }}
-                                                autosize
-                                                minRows={1}
-                                            />
+                                            {renderInput(row, columns[0])}
                                             <Button
                                                 variant="outline"
                                                 size="compact-xs"
@@ -478,17 +518,7 @@ export default function DataTableView(props: NodeViewProps) {
                                         </td>
                                         {columns.slice(1).map((col) => (
                                             <td key={col.id}>
-                                                <Textarea
-                                                    variant="unstyled"
-                                                    value={row[col.id] || ""}
-                                                    onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                                                    readOnly={!isEditable}
-                                                    tabIndex={isEditable ? 0 : -1}
-                                                    className={classes.cellInput}
-                                                    style={{ width: '100%', minHeight: '100%' }}
-                                                    autosize
-                                                    minRows={1}
-                                                />
+                                                {renderInput(row, col)}
                                             </td>
                                         ))}
                                         {isEditable && (
@@ -550,21 +580,7 @@ export default function DataTableView(props: NodeViewProps) {
                                     <Icon size={18} style={{ color: 'var(--mantine-color-dimmed)' }} />
                                 </Box>
                                 <Text size="sm" w={140} c="dimmed" style={{ flexShrink: 0 }}>{col.name}</Text>
-                                <TextInput
-                                    variant="unstyled"
-                                    value={value}
-                                    onChange={(e) => activeRow && updateCell(activeRow.id, col.id, e.target.value)}
-                                    readOnly={!isEditable}
-                                    placeholder={!isName ? "Empty" : "Untitled"}
-                                    style={{ flex: 1 }}
-                                    styles={{
-                                        input: {
-                                            fontSize: '14px',
-                                            fontWeight: isName ? 600 : 400,
-                                            color: value ? 'inherit' : 'var(--mantine-color-gray-5)'
-                                        }
-                                    }}
-                                />
+                                {activeRow && renderInput(activeRow, col, 'modal')}
                             </Group>
                         );
                     })}
