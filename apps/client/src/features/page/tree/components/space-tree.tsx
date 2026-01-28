@@ -244,7 +244,12 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
-          disableDrop={readOnly}
+          disableDrop={({ parentNode }) => {
+            if (readOnly) return true;
+            if (!parentNode) return false;
+            if (parentNode.id === "__REACT_ARBORIST_INTERNAL_ROOT__") return false;
+            return parentNode.data.icon !== "📁";
+          }}
           disableEdit={readOnly}
           {...controllers}
           width={width}
@@ -410,7 +415,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         component={(isFolder ? "div" : Link) as any}
         {...(!isFolder ? { to: pageUrl } : {})}
         // @ts-ignore
-        ref={dragHandle}
+        ref={node.isEditing ? null : dragHandle}
         onClick={handleNodeClick}
         onMouseEnter={!isFolder ? prefetchPage : undefined}
         onMouseLeave={!isFolder ? cancelPagePrefetch : undefined}
@@ -442,7 +447,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
           <TextInput
             autoFocus
             defaultValue={node.data.name}
-            onBlur={() => node.submit(node.data.name)}
+            onBlur={(e) => node.submit(e.currentTarget.value)}
+            onFocus={(e) => e.currentTarget.select()}
             onKeyDown={(e) => {
               if (e.key === "Enter") node.submit(e.currentTarget.value);
               else if (e.key === "Escape") node.reset();
@@ -462,6 +468,9 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
               e.preventDefault();
               e.stopPropagation();
             }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
           />
         ) : (
           <span className={classes.text}>{node.data.name || t("untitled")}</span>
@@ -475,7 +484,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
                 treeApi={tree}
                 spaceId={node.data.spaceId}
               />
-              {!tree.props.disableEdit && (
+              {!tree.props.disableEdit && isFolder && (
                 <CreateNode
                   node={node}
                   treeApi={tree}
@@ -665,41 +674,45 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item
-            leftSection={<IconPlus size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (node.data.hasChildren && node.children.length === 0) {
-                node.toggle();
-                setTimeout(() => {
-                  treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
-                }, 500);
-              } else {
-                treeApi?.create({ type: "internal", parentId: node.id });
-              }
-            }}
-          >
-            {t("New page")}
-          </Menu.Item>
+          {node.data.icon === "📁" && (
+            <>
+              <Menu.Item
+                leftSection={<IconPlus size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (node.data.hasChildren && node.children.length === 0) {
+                    node.toggle();
+                    setTimeout(() => {
+                      treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
+                    }, 500);
+                  } else {
+                    treeApi?.create({ type: "internal", parentId: node.id });
+                  }
+                }}
+              >
+                {t("New page")}
+              </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconFolder size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (node.data.hasChildren && node.children.length === 0) {
-                node.toggle();
-                setTimeout(() => {
-                  treeApi?.create({ type: "folder" as any, parentId: node.id, index: 0 });
-                }, 500);
-              } else {
-                treeApi?.create({ type: "folder" as any, parentId: node.id });
-              }
-            }}
-          >
-            {t("New folder")}
-          </Menu.Item>
+              <Menu.Item
+                leftSection={<IconFolder size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (node.data.hasChildren && node.children.length === 0) {
+                    node.toggle();
+                    setTimeout(() => {
+                      treeApi?.create({ type: "folder" as any, parentId: node.id, index: 0 });
+                    }, 500);
+                  } else {
+                    treeApi?.create({ type: "folder" as any, parentId: node.id });
+                  }
+                }}
+              >
+                {t("New folder")}
+              </Menu.Item>
+            </>
+          )}
 
           <Menu.Item
             leftSection={<IconEdit size={16} />}

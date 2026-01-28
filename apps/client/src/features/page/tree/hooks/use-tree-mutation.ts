@@ -92,12 +92,14 @@ export function useTreeMutation<T>(spaceId: string) {
       });
     }, 50);
 
-    const pageUrl = buildPageUrl(
-      spaceSlug,
-      createdPage.slugId,
-      createdPage.title
-    );
-    navigate(pageUrl);
+    if ((type as any) !== "folder") {
+      const pageUrl = buildPageUrl(
+        spaceSlug,
+        createdPage.slugId,
+        createdPage.title
+      );
+      navigate(pageUrl);
+    }
     return data;
   };
 
