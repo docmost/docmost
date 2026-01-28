@@ -244,12 +244,13 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
-          disableDrop={({ parentNode }) => {
-            if (readOnly) return true;
-            if (!parentNode) return false;
-            if (parentNode.id === "__REACT_ARBORIST_INTERNAL_ROOT__") return false;
-            return parentNode.data.icon !== "📁";
-          }}
+          // Rizal
+          // disableDrop={({ parentNode }) => {
+          //   if (readOnly) return true;
+          //   if (!parentNode) return false;
+          //   if (parentNode.id === "__REACT_ARBORIST_INTERNAL_ROOT__") return false;
+          //   return parentNode.data.icon !== "📁";
+          // }}
           disableEdit={readOnly}
           {...controllers}
           width={width}
