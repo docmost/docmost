@@ -1,6 +1,51 @@
 .link {
-    color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkWrapper {
+  position: relative;
+  display: inline;
+}
+
+.linkText {
+  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+  text-decoration: underline;
+  text-decoration-color: light-dark(
+    var(--mantine-color-blue-3),
+    var(--mantine-color-blue-7)
+  );
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration-color: light-dark(
+      var(--mantine-color-blue-6),
+      var(--mantine-color-blue-4)
+    );
+  }
+}
+
+.linkToolbar {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.editPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+}
+
+.editPanelOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
 }
