@@ -16,13 +16,14 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Box, Menu, rem } from "@mantine/core";
+import { ActionIcon, Box, Menu, rem, TextInput } from "@mantine/core";
 import {
   IconArrowRight,
   IconChevronDown,
   IconChevronRight,
   IconCopy,
   IconDotsVertical,
+  IconEdit,
   IconFileDescription,
   IconFileExport,
   IconFolder,
@@ -223,8 +224,22 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
   }, [setTreeApi]);
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "F2") {
+      e.preventDefault();
+      const node = treeApiRef.current?.focusedNode;
+      if (node) {
+        node.edit();
+      }
+    }
+  };
+
   return (
-    <div ref={mergedRef} className={classes.treeContainer}>
+    <div
+      ref={mergedRef}
+      className={classes.treeContainer}
+      onKeyDown={handleKeyDown}
+    >
       {isRootReady && rootElement.current && (
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
@@ -371,24 +386,34 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
     }, 650);
   }
 
+  const isFolder = node.data.icon === "📁";
   const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
+
+  const handleNodeClick = (e: React.MouseEvent) => {
+    if (isFolder) {
+      e.preventDefault();
+      e.stopPropagation();
+      node.focus();
+      node.toggle();
+    } else {
+      if (mobileSidebarOpened) {
+        toggleMobileSidebar();
+      }
+    }
+  };
 
   return (
     <>
       <Box
         style={style}
         className={clsx(classes.node, node.state)}
-        component={Link}
-        to={pageUrl}
+        component={(isFolder ? "div" : Link) as any}
+        {...(!isFolder ? { to: pageUrl } : {})}
         // @ts-ignore
         ref={dragHandle}
-        onClick={() => {
-          if (mobileSidebarOpened) {
-            toggleMobileSidebar();
-          }
-        }}
-        onMouseEnter={prefetchPage}
-        onMouseLeave={cancelPagePrefetch}
+        onClick={handleNodeClick}
+        onMouseEnter={!isFolder ? prefetchPage : undefined}
+        onMouseLeave={!isFolder ? cancelPagePrefetch : undefined}
       >
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
 
@@ -413,7 +438,34 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
           />
         </div>
 
-        <span className={classes.text}>{node.data.name || t("untitled")}</span>
+        {node.isEditing ? (
+          <TextInput
+            autoFocus
+            defaultValue={node.data.name}
+            onBlur={() => node.submit(node.data.name)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") node.submit(e.currentTarget.value);
+              else if (e.key === "Escape") node.reset();
+            }}
+            size="xs"
+            variant="unstyled"
+            className={classes.text}
+            styles={{
+              input: {
+                height: 24,
+                padding: "0 4px",
+                fontSize: 14,
+                fontWeight: 500,
+              },
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
+        ) : (
+          <span className={classes.text}>{node.data.name || t("untitled")}</span>
+        )}
 
         <div className={classes.actions}>
           {!userRole.isVisitor && (
@@ -647,6 +699,17 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
             }}
           >
             {t("New folder")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconEdit size={16} />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              node.edit();
+            }}
+          >
+            {t("Rename")}
           </Menu.Item>
 
           <Menu.Item

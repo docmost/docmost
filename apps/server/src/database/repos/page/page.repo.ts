@@ -23,7 +23,7 @@ export class PageRepo {
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   private baseFields: Array<keyof Page> = [
     'id',
@@ -282,6 +282,7 @@ export class PageRepo {
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null)
+      .where((eb) => eb.or([eb('icon', 'is', null), eb('icon', '!=', '📁')]))
       .orderBy('updatedAt', 'desc');
 
     const result = executeWithPagination(query, {
@@ -299,6 +300,7 @@ export class PageRepo {
       .select((eb) => this.withSpace(eb))
       .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
       .where('deletedAt', 'is', null)
+      .where((eb) => eb.or([eb('icon', 'is', null), eb('icon', '!=', '📁')]))
       .orderBy('updatedAt', 'desc');
 
     return executeWithPagination(query, {
