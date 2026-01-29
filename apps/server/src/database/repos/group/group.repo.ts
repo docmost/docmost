@@ -127,7 +127,8 @@ export class GroupRepo {
     const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         {
           expression: 'sub.memberCount',

@@ -110,9 +110,10 @@ type CursorPaginationResultRow<
 
 type CursorPaginationMeta = {
   limit: number;
-  hasNextPage?: boolean;
-  hasPrevPage?: boolean;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
   nextCursor: string | null;
+  prevCursor: string | null;
 };
 
 export type CursorPaginationResult<
@@ -133,8 +134,8 @@ export async function executeWithCursorPagination<
   qb: SelectQueryBuilder<DB, TB, O>,
   opts: {
     perPage: number;
-    after?: string;
-    before?: string;
+    cursor?: string;
+    beforeCursor?: string;
     cursorPerRow?: TCursorKey;
     fields: TFields;
     encodeCursor?: CursorEncoder<DB, TB, O, TFields>;
@@ -219,10 +220,10 @@ export async function executeWithCursorPagination<
     });
   }
 
-  if (opts.after) qb = applyCursor(qb, opts.after, 'asc');
-  if (opts.before) qb = applyCursor(qb, opts.before, 'desc');
+  if (opts.cursor) qb = applyCursor(qb, opts.cursor, 'asc');
+  if (opts.beforeCursor) qb = applyCursor(qb, opts.beforeCursor, 'desc');
 
-  const reversed = !!opts.before && !opts.after;
+  const reversed = !!opts.beforeCursor && !opts.cursor;
 
   for (const { expression, direction, orderModifier } of fields) {
     qb = qb.orderBy(
@@ -234,8 +235,7 @@ export async function executeWithCursorPagination<
 
   const rows = await qb.limit(opts.perPage + 1).execute();
 
-  const hasNextPage = reversed ? true : rows.length > opts.perPage;
-  const hasPrevPage = !reversed ? undefined : rows.length > opts.perPage;
+  const hasNextPage = rows.length > opts.perPage;
 
   // If we fetched an extra row to determine if we have a next page, that
   // shouldn't be in the returned results
@@ -243,10 +243,11 @@ export async function executeWithCursorPagination<
 
   if (reversed) rows.reverse();
 
-  //const startRow = rows[0];
+  const startRow = rows[0];
   const endRow = rows[rows.length - 1];
 
-  //const startCursor = startRow ? generateCursor(startRow) : null;
+  const hasPrevPage = !!opts.cursor;
+  const prevCursor = hasPrevPage && startRow ? generateCursor(startRow) : null;
   const nextCursor = hasNextPage && endRow ? generateCursor(endRow) : null;
 
   return {
@@ -263,8 +264,9 @@ export async function executeWithCursorPagination<
     meta: {
       limit: opts.perPage,
       hasNextPage,
-      hasPrevPage: hasPrevPage ?? !!opts.after,
+      hasPrevPage,
       nextCursor,
+      prevCursor,
     },
   };
 }

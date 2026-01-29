@@ -1,6 +1,7 @@
 export interface QueryParams {
   query?: string;
   cursor?: string;
+  beforeCursor?: string;
   limit?: number;
   adminView?: boolean;
 }
@@ -32,6 +33,7 @@ export type IPaginationMeta = {
   hasNextPage: boolean;
   hasPrevPage: boolean;
   nextCursor: string | null;
+  prevCursor: string | null;
 };
 export type IPagination<T> = {
   items: T[];

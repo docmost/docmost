@@ -285,7 +285,8 @@ export class PageRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         { expression: 'updatedAt', direction: 'desc' },
         { expression: 'id', direction: 'desc' },
@@ -307,7 +308,8 @@ export class PageRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         { expression: 'updatedAt', direction: 'desc' },
         { expression: 'id', direction: 'desc' },
@@ -347,7 +349,8 @@ export class PageRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         { expression: 'deletedAt', direction: 'desc' },
         { expression: 'id', direction: 'desc' },

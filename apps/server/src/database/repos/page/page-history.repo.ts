@@ -69,7 +69,8 @@ export class PageHistoryRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'id', direction: 'desc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });

@@ -128,7 +128,8 @@ export class SpaceRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'id', direction: 'asc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });

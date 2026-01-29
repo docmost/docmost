@@ -11,11 +11,6 @@ import {
 export class PaginationOptions {
   @IsOptional()
   @IsNumber()
-  @Min(1)
-  page = 1;
-
-  @IsOptional()
-  @IsNumber()
   @IsPositive()
   @Min(1)
   @Max(100)
@@ -24,6 +19,10 @@ export class PaginationOptions {
   @IsOptional()
   @IsString()
   cursor?: string;
+
+  @IsOptional()
+  @IsString()
+  beforeCursor?: string;
 
   @IsOptional()
   @IsString()

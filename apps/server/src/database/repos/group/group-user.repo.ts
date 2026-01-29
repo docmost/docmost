@@ -62,7 +62,8 @@ export class GroupUserRepo {
 
     const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'users.id', direction: 'asc', key: 'id' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });

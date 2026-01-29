@@ -206,7 +206,8 @@ export class PageService {
 
     return executeWithCursorPagination(query, {
       perPage: 250,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
         { expression: 'id', direction: 'asc' },

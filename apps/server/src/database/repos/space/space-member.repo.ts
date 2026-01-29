@@ -141,7 +141,8 @@ export class SpaceMemberRepo {
 
     const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [
         { expression: 'sub.isGroup', direction: 'desc', key: 'isGroup' },
         { expression: 'sub.createdAt', direction: 'asc', key: 'createdAt' },
@@ -262,7 +263,8 @@ export class SpaceMemberRepo {
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      after: pagination.cursor,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
       fields: [{ expression: 'id', direction: 'asc' }],
       parseCursor: (cursor) => ({ id: cursor.id }),
     });
