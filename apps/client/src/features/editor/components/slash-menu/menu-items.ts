@@ -313,6 +313,17 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run(),
     },
     {
+      title: "Kanban Board",
+      description: "Insert a Jira-style kanban board.",
+      searchTerms: ["kanban", "board", "tasks", "jira", "notion"],
+      icon: IconColumns,
+      command: ({ editor, range }: CommandProps) =>
+        (editor.chain().focus() as any)
+          .deleteRange(range)
+          .insertKanbanBoard()
+          .run(),
+    },
+    {
       title: "1 Column",
       description: "Insert a single column block.",
       searchTerms: ["columns", "layout", "one column", "full width"],
