@@ -19,7 +19,8 @@ async function bootstrap() {
       },
     }),
     {
-      bufferLogs: true,
+      logger: false,
+      bufferLogs: false,
     },
   );
 
