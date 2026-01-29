@@ -11,10 +11,11 @@
 .boardContainer {
   display: flex;
   gap: 1rem;
-  padding: 1rem 0;
-  overflow-x: auto;
+  padding: 1rem;
   min-height: 400px;
   align-items: flex-start;
+  justify-content: center;
+  min-width: 100%;
 }
 
 .column {
@@ -93,6 +94,17 @@
   opacity: 0.5;
   transform: scale(0.95);
   border: 1px dashed var(--mantine-color-blue-4);
+}
+
+.card.isSelected {
+  border: 2px solid var(--mantine-color-blue-6);
+  background-color: var(--mantine-color-blue-0);
+  z-index: 5;
+}
+
+[data-mantine-color-scheme="dark"] .card.isSelected {
+  background-color: var(--mantine-color-blue-9);
+  border-color: var(--mantine-color-blue-4);
 }
 
 .cardTitle {
@@ -178,4 +190,53 @@
 
 .modalEditorContainer {
   margin-top: 8px;
+}
+
+.selectionBox {
+  position: absolute;
+  border: 1px solid var(--mantine-color-blue-6);
+  background-color: rgba(34, 139, 230, 0.1);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+[data-mantine-color-scheme="dark"] .selectionBox {
+  background-color: rgba(51, 154, 240, 0.2);
+  border-color: var(--mantine-color-blue-4);
+}
+
+.deleteArea {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 450px;
+  height: 56px;
+  background-color: var(--mantine-color-gray-0);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-md);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mantine-color-scheme="dark"] .deleteArea {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.deleteAreaActive {
+  background-color: var(--mantine-color-red-6);
+  border-color: var(--mantine-color-red-6);
+}
+
+[data-mantine-color-scheme="dark"] .deleteAreaActive {
+  background-color: var(--mantine-color-red-8);
+  border-color: var(--mantine-color-red-8);
+}
+
+.deleteAreaActive * {
+  color: white !important;
 }

@@ -58,7 +58,11 @@ export default function KanbanBoardView(props: NodeViewProps) {
     const [activeCardId, setActiveCardId] = useState<string | null>(null);
     const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
     const [dragOverColId, setDragOverColId] = useState<string | null>(null);
+    const [isDragOverDelete, setIsDragOverDelete] = useState(false);
+    const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+    const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
     const menuContainerRef = useRef<HTMLDivElement>(null);
+    const boardRef = useRef<HTMLDivElement>(null);
 
     const activeCard = useMemo(() => cards.find(c => c.id === activeCardId), [cards, activeCardId]);
 
@@ -94,11 +98,25 @@ export default function KanbanBoardView(props: NodeViewProps) {
 
     const handleOpenCard = (cardId: string) => {
         setActiveCardId(cardId);
+        setSelectedCardIds([cardId]);
         const card = cards.find(c => c.id === cardId);
         if (cardEditor && card) {
             cardEditor.commands.setContent(card.content || "");
         }
         open();
+    };
+
+    const toggleCardSelection = (cardId: string, isMulti: boolean) => {
+        if (isMulti) {
+            setSelectedCardIds(prev =>
+                prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
+            );
+        } else {
+            // If already selected, don't clear others on mousedown to allow group dragging
+            if (!selectedCardIds.includes(cardId)) {
+                setSelectedCardIds([cardId]);
+            }
+        }
     };
 
     const addColumn = () => {
@@ -143,10 +161,12 @@ export default function KanbanBoardView(props: NodeViewProps) {
         });
     };
 
-    const removeCard = (cardId: string) => {
+    const removeCard = (cardIdOrIds: string | string[]) => {
+        const idsToRemove = Array.isArray(cardIdOrIds) ? cardIdOrIds : [cardIdOrIds];
         updateAttributes({
-            cards: cards.filter(card => card.id !== cardId)
+            cards: cards.filter(card => !idsToRemove.includes(card.id))
         });
+        setSelectedCardIds([]);
     };
 
     const moveCard = (cardId: string, direction: 'up' | 'down' | 'left' | 'right') => {
@@ -184,8 +204,15 @@ export default function KanbanBoardView(props: NodeViewProps) {
     };
 
     const handleDragStart = (e: React.DragEvent, cardId: string) => {
+        let idsToDrag = [cardId];
+        if (selectedCardIds.includes(cardId)) {
+            idsToDrag = selectedCardIds;
+        } else {
+            setSelectedCardIds([cardId]);
+        }
+
         setDraggedCardId(cardId);
-        e.dataTransfer.setData("cardId", cardId);
+        e.dataTransfer.setData("cardIds", JSON.stringify(idsToDrag));
         e.dataTransfer.effectAllowed = "move";
     };
 
@@ -197,42 +224,154 @@ export default function KanbanBoardView(props: NodeViewProps) {
 
     const handleDrop = (e: React.DragEvent, colId: string, targetCardId?: string) => {
         e.preventDefault();
-        const cardId = e.dataTransfer.getData("cardId") || draggedCardId;
+        const cardIdsRaw = e.dataTransfer.getData("cardIds");
+        const cardIds: string[] = cardIdsRaw ? JSON.parse(cardIdsRaw) : (draggedCardId ? [draggedCardId] : []);
+
         setDraggedCardId(null);
         setDragOverColId(null);
+        setIsDragOverDelete(false);
 
-        if (!cardId) return;
-
-        const cardIndex = cards.findIndex(c => c.id === cardId);
-        if (cardIndex === -1) return;
+        if (cardIds.length === 0) return;
 
         // Don't do anything if dropping on itself
-        if (cardId === targetCardId) return;
+        if (cardIds.length === 1 && cardIds[0] === targetCardId) return;
 
-        const card = cards[cardIndex];
-        const updatedCard = { ...card, columnId: colId };
+        let newCards = [...cards];
+        const draggingCards = cards.filter(c => cardIds.includes(c.id));
 
-        const newCards = cards.filter(c => c.id !== cardId);
+        if (draggingCards.length === 0) return;
+
+        // Remove dragging cards from their current positions
+        newCards = newCards.filter(c => !cardIds.includes(c.id));
+
+        // Update their column ID
+        const updatedDraggingCards = draggingCards.map(c => ({ ...c, columnId: colId }));
 
         if (targetCardId) {
             const targetIndex = newCards.findIndex(c => c.id === targetCardId);
-            newCards.splice(targetIndex, 0, updatedCard);
+            newCards.splice(targetIndex, 0, ...updatedDraggingCards);
         } else {
-            newCards.push(updatedCard);
+            newCards.push(...updatedDraggingCards);
         }
 
         updateAttributes({ cards: newCards });
+        setSelectedCardIds([]);
     };
 
     const handleDragEnd = () => {
         setDraggedCardId(null);
         setDragOverColId(null);
+        setIsDragOverDelete(false);
     };
 
+    const handleMouseDownBoard = (e: React.MouseEvent) => {
+        // Only start selection on left click and on the board container or columns, not on cards or buttons
+        if (e.button !== 0) return;
+
+        const target = e.target as HTMLElement;
+        const isAction = target.closest('button') || target.closest('a') || target.closest('input') || target.closest(`.${classes.card}`);
+
+        if (!isAction && boardRef.current) {
+            const rect = boardRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left + boardRef.current.scrollLeft;
+            const y = e.clientY - rect.top + boardRef.current.scrollTop;
+
+            setSelectionBox({
+                startX: x,
+                startY: y,
+                currentX: x,
+                currentY: y
+            });
+
+            if (!e.ctrlKey && !e.metaKey) {
+                setSelectedCardIds([]);
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleGlobalMouseMove = (e: MouseEvent) => {
+            if (!selectionBox || !boardRef.current) return;
+
+            const rect = boardRef.current.getBoundingClientRect();
+            const currentX = e.clientX - rect.left + boardRef.current.scrollLeft;
+            const currentY = e.clientY - rect.top + boardRef.current.scrollTop;
+
+            setSelectionBox(prev => prev ? { ...prev, currentX, currentY } : null);
+
+            // Viewport-based overlap calculation
+            const boxViewportX = Math.min(selectionBox.startX - boardRef.current.scrollLeft + rect.left, e.clientX);
+            const boxViewportY = Math.min(selectionBox.startY - boardRef.current.scrollTop + rect.top, e.clientY);
+            const boxViewportWidth = Math.abs((selectionBox.startX - boardRef.current.scrollLeft + rect.left) - e.clientX);
+            const boxViewportHeight = Math.abs((selectionBox.startY - boardRef.current.scrollTop + rect.top) - e.clientY);
+
+            const cardElements = boardRef.current.querySelectorAll(`.${classes.card}`);
+            const newSelectedIds: string[] = [];
+
+            cardElements.forEach(el => {
+                const elRect = el.getBoundingClientRect();
+
+                const isOverlapping = (
+                    boxViewportX < elRect.right &&
+                    boxViewportX + boxViewportWidth > elRect.left &&
+                    boxViewportY < elRect.bottom &&
+                    boxViewportY + boxViewportHeight > elRect.top
+                );
+
+                if (isOverlapping) {
+                    const cardId = (el as HTMLElement).getAttribute('data-card-id');
+                    if (cardId) newSelectedIds.push(cardId);
+                }
+            });
+
+            setSelectedCardIds(prev => {
+                if (e.ctrlKey || e.metaKey) {
+                    // This is tricky for real-time toggle, maybe just union for now
+                    const combined = new Set([...prev, ...newSelectedIds]);
+                    return Array.from(combined);
+                }
+                return newSelectedIds;
+            });
+        };
+
+        const handleGlobalMouseUp = () => {
+            setSelectionBox(null);
+        };
+
+        if (selectionBox) {
+            window.addEventListener('mousemove', handleGlobalMouseMove);
+            window.addEventListener('mouseup', handleGlobalMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleGlobalMouseMove);
+            window.removeEventListener('mouseup', handleGlobalMouseUp);
+        };
+    }, [selectionBox]);
+
     return (
-        <NodeViewWrapper className={classes.kanbanBoardWrapper} data-read-only={!isEditable}>
+        <NodeViewWrapper
+            className={classes.kanbanBoardWrapper}
+            data-read-only={!isEditable}
+        >
             <ScrollArea type="always" pb="md">
-                <div className={classes.boardContainer}>
+                <div
+                    ref={boardRef}
+                    className={classes.boardContainer}
+                    onMouseDown={handleMouseDownBoard}
+                    style={{ position: 'relative' }}
+                >
+                    {selectionBox && (
+                        <div
+                            className={classes.selectionBox}
+                            style={{
+                                left: Math.min(selectionBox.startX, selectionBox.currentX),
+                                top: Math.min(selectionBox.startY, selectionBox.currentY),
+                                width: Math.abs(selectionBox.startX - selectionBox.currentX),
+                                height: Math.abs(selectionBox.startY - selectionBox.currentY),
+                            }}
+                        />
+                    )}
                     {columns.map((column) => {
                         const columnCards = cards.filter(card => card.columnId === column.id);
                         const isFirstColumn = column.id === columns[0].id;
@@ -282,7 +421,12 @@ export default function KanbanBoardView(props: NodeViewProps) {
                                     {columnCards.map((card) => (
                                         <Paper
                                             key={card.id}
-                                            className={clsx(classes.card, draggedCardId === card.id && classes.isDragging)}
+                                            data-card-id={card.id}
+                                            className={clsx(
+                                                classes.card,
+                                                (draggedCardId === card.id || (draggedCardId && selectedCardIds.includes(draggedCardId) && selectedCardIds.includes(card.id))) && classes.isDragging,
+                                                selectedCardIds.includes(card.id) && classes.isSelected
+                                            )}
                                             draggable={true}
                                             onDragStart={(e) => handleDragStart(e, card.id)}
                                             onDragEnd={handleDragEnd}
@@ -294,18 +438,32 @@ export default function KanbanBoardView(props: NodeViewProps) {
                                                 e.stopPropagation();
                                                 handleDrop(e, column.id, card.id);
                                             }}
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                                toggleCardSelection(card.id, e.ctrlKey || e.metaKey);
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // If already selected and not dragging, clicking should make it the exclusive selection
+                                                if (!e.ctrlKey && !e.metaKey && selectedCardIds.includes(card.id)) {
+                                                    setSelectedCardIds([card.id]);
+                                                }
+                                            }}
                                         >
                                             <div className={classes.cardTitle}>
                                                 <Text size="sm" fw={500}>{card.title}</Text>
                                             </div>
 
-                                            <div className={classes.cardActions}>
+                                            <div className={classes.cardActions} onClick={(e) => e.stopPropagation()}>
                                                 <ActionIcon
                                                     variant="filled"
                                                     size="md"
                                                     radius="xl"
                                                     color="blue"
-                                                    onClick={(e) => { e.stopPropagation(); handleOpenCard(card.id); }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenCard(card.id);
+                                                    }}
                                                 >
                                                     <IconEdit size={18} />
                                                 </ActionIcon>
@@ -358,13 +516,13 @@ export default function KanbanBoardView(props: NodeViewProps) {
                                 variant="filled"
                                 size="xs"
                                 onClick={() => {
-                                    if (activeCardId) {
-                                        removeCard(activeCardId);
+                                    if (selectedCardIds.length > 0) {
+                                        removeCard(selectedCardIds);
                                         close();
                                     }
                                 }}
                             >
-                                Delete
+                                {selectedCardIds.length > 1 ? `Delete ${selectedCardIds.length} cards` : "Delete"}
                             </Button>
                         </Group>
                     </Group>
@@ -403,6 +561,34 @@ export default function KanbanBoardView(props: NodeViewProps) {
                     </Box>
                 </Stack>
             </Modal>
+
+            {draggedCardId && (
+                <div
+                    className={clsx(classes.deleteArea, isDragOverDelete && classes.deleteAreaActive)}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragOverDelete(true);
+                    }}
+                    onDragLeave={() => setIsDragOverDelete(false)}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const cardIdsRaw = e.dataTransfer.getData("cardIds");
+                        const cardIds: string[] = cardIdsRaw ? JSON.parse(cardIdsRaw) : [];
+
+                        if (cardIds.length > 0) {
+                            removeCard(cardIds);
+                        }
+                        handleDragEnd();
+                    }}
+                >
+                    <Group gap="xs" justify="center" h="100%">
+                        <IconTrash size={24} color={isDragOverDelete ? "var(--mantine-color-white)" : "var(--mantine-color-red-6)"} />
+                        <Text fw={600} c={isDragOverDelete ? "white" : "red"}>
+                            {isDragOverDelete ? "Release to Delete" : "Drag here to delete"}
+                        </Text>
+                    </Group>
+                </div>
+            )}
         </NodeViewWrapper>
     );
 }
