@@ -12,12 +12,15 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     CollabAppModule,
     new FastifyAdapter({
-      ignoreTrailingSlash: true,
-      ignoreDuplicateSlashes: true,
-      maxParamLength: 500,
+      routerOptions: {
+        maxParamLength: 1000,
+        ignoreTrailingSlash: true,
+        ignoreDuplicateSlashes: true,
+      },
     }),
     {
-      bufferLogs: true,
+      logger: false,
+      bufferLogs: false,
     },
   );
 

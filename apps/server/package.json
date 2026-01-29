@@ -76,8 +76,10 @@
     "kysely-migration-cli": "^0.4.2",
     "kysely-postgres-js": "^3.0.0",
     "ldapts": "^7.4.0",
+    "lib0": "^0.2.117",
     "mammoth": "^1.11.0",
     "mime-types": "^2.1.35",
+    "msgpackr": "^1.11.8",
     "nanoid": "3.3.11",
     "nestjs-kysely": "^1.2.0",
     "nestjs-pino": "^4.5.0",
@@ -102,6 +104,7 @@
     "socket.io": "^4.8.3",
     "stripe": "^17.5.0",
     "tmp-promise": "^3.0.3",
+    "tseep": "^1.3.1",
     "typesense": "^2.1.0",
     "ws": "^8.19.0",
     "yauzl": "^3.2.0"

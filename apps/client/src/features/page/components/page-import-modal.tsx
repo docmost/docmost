@@ -172,6 +172,10 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             queryKey: ["root-sidebar-pages", fileTask.spaceId],
           });
 
+          await queryClient.invalidateQueries({
+            queryKey: ["recent-changes", fileTask.spaceId],
+          });
+
           setTimeout(() => {
             emit({
               operation: "refetchRootTreeNodeEvent",

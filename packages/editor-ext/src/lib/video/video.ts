@@ -23,7 +23,7 @@ declare module "@tiptap/core" {
     videoBlock: {
       setVideo: (attributes: VideoAttributes) => ReturnType;
       setVideoAt: (
-        attributes: VideoAttributes & { pos: number | Range },
+        attributes: VideoAttributes & { pos: number | Range }
       ) => ReturnType;
       setVideoAlign: (align: "left" | "center" | "right") => ReturnType;
       setVideoWidth: (width: number) => ReturnType;

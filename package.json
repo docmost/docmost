@@ -23,7 +23,6 @@
     "@casl/ability": "6.8.0",
     "@docmost/editor-ext": "workspace:*",
     "@floating-ui/dom": "^1.7.3",
-    "@hocuspocus/extension-redis": "3.4.3",
     "@hocuspocus/provider": "3.4.3",
     "@hocuspocus/server": "3.4.3",
     "@hocuspocus/transformer": "3.4.3",
