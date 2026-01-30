@@ -9,7 +9,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { DB } from '@docmost/db/types/db';
 import { validate as isValidUUID } from 'uuid';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -110,8 +110,7 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .select((eb) => [this.withMemberCount(eb)])
-      .where('workspaceId', '=', workspaceId)
-      .orderBy('createdAt', 'asc');
+      .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
       query = query.where((eb) =>
@@ -127,12 +126,13 @@ export class SpaceRepo {
       );
     }
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
-
-    return result;
   }
 
   withMemberCount(eb: ExpressionBuilder<DB, 'spaces'>) {
