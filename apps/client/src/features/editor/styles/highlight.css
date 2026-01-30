@@ -1,0 +1,177 @@
+/* Highlight colors with dark mode support */
+
+.ProseMirror {
+  /* Blue */
+  mark[data-color="#98d8f2"] {
+    background-color: light-dark(
+      rgb(224 242 254),
+      rgba(37, 99, 235, 0.35)
+    ) !important;
+  }
+
+  /* Green */
+  mark[data-color="#7edb6c"] {
+    background-color: light-dark(
+      rgb(220 252 231),
+      rgba(0, 138, 0, 0.35)
+    ) !important;
+  }
+
+  /* Purple */
+  mark[data-color="#e0d6ed"] {
+    background-color: light-dark(
+      rgb(243 232 255),
+      rgba(147, 51, 234, 0.35)
+    ) !important;
+  }
+
+  /* Red */
+  mark[data-color="#ffc6c2"] {
+    background-color: light-dark(
+      rgb(255 228 230),
+      rgba(224, 0, 0, 0.35)
+    ) !important;
+  }
+
+  /* Yellow */
+  mark[data-color="#faf594"] {
+    background-color: light-dark(
+      rgb(254 249 195),
+      rgba(234, 179, 8, 0.35)
+    ) !important;
+  }
+
+  /* Orange */
+  mark[data-color="#f5c8a9"] {
+    background-color: light-dark(
+      rgb(251, 236, 221),
+      rgba(255, 165, 0, 0.45)
+    ) !important;
+  }
+
+  /* Pink */
+  mark[data-color="#f5cfe0"] {
+    background-color: light-dark(
+      rgb(252, 241, 246),
+      rgba(186, 64, 129, 0.35)
+    ) !important;
+  }
+
+  /* Gray */
+  mark[data-color="#dfdfd7"] {
+    background-color: light-dark(
+      rgb(238 238 235),
+      rgba(168, 162, 158, 0.35)
+    ) !important;
+  }
+
+  /* Brown */
+  mark[data-color="#d7c4b7"] {
+    background-color: light-dark(
+      rgb(215 196 183),
+      rgba(146, 64, 14, 0.35)
+    ) !important;
+  }
+}
+
+
+/* Color selector trigger button styles */
+.color-selector-trigger[data-text-color="#2563EB"] {
+    color: #2563EB !important;
+}
+
+.color-selector-trigger[data-text-color="#008A00"] {
+    color: #008A00 !important;
+}
+
+.color-selector-trigger[data-text-color="#9333EA"] {
+    color: #9333EA !important;
+}
+
+.color-selector-trigger[data-text-color="#E00000"] {
+    color: #E00000 !important;
+}
+
+.color-selector-trigger[data-text-color="#EAB308"] {
+    color: #EAB308 !important;
+}
+
+.color-selector-trigger[data-text-color="#FFA500"] {
+    color: #FFA500 !important;
+}
+
+.color-selector-trigger[data-text-color="#BA4081"] {
+    color: #BA4081 !important;
+}
+
+.color-selector-trigger[data-text-color="#A8A29E"] {
+    color: #A8A29E !important;
+}
+
+.color-selector-trigger[data-text-color="#92400E"] {
+    color: #92400E !important;
+}
+
+/* Highlight background colors with light-dark support - solid colors for trigger button */
+.color-selector-trigger[data-highlight-color="#98d8f2"] {
+    background-color: light-dark(
+            rgb(224 242 254),
+            rgb(30 64 175)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#7edb6c"] {
+    background-color: light-dark(
+            rgb(220 252 231),
+            rgb(21 128 61)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#e0d6ed"] {
+    background-color: light-dark(
+            rgb(243 232 255),
+            rgb(107 33 168)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#ffc6c2"] {
+    background-color: light-dark(
+            rgb(255 228 230),
+            rgb(185 28 28)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#faf594"] {
+    background-color: light-dark(
+            rgb(254 249 195),
+            rgb(161 98 7)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#f5c8a9"] {
+    background-color: light-dark(
+            rgb(251 236 221),
+            rgb(194 65 12)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#f5cfe0"] {
+    background-color: light-dark(
+            rgb(252 241 246),
+            rgb(157 23 77)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#dfdfd7"] {
+    background-color: light-dark(
+            rgb(238 238 235),
+            rgb(115 115 115)
+    ) !important;
+}
+
+.color-selector-trigger[data-highlight-color="#d7c4b7"] {
+    background-color: light-dark(
+            rgb(215 196 183),
+            rgb(120 53 15)
+    ) !important;
+}

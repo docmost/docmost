@@ -9,6 +9,7 @@ import {
   ScrollArea,
   Avatar,
   Group,
+  Switch,
   getDefaultZIndex,
 } from "@mantine/core";
 import {
@@ -24,15 +25,21 @@ import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useLicense } from "@/ee/hooks/use-license";
 import classes from "./search-spotlight-filters.module.css";
 import { isCloud } from "@/lib/config.ts";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface SearchSpotlightFiltersProps {
   onFiltersChange?: (filters: any) => void;
+  onAskClick?: () => void;
   spaceId?: string;
+  isAiMode?: boolean;
 }
 
 export function SearchSpotlightFilters({
   onFiltersChange,
+  onAskClick,
   spaceId,
+  isAiMode = false,
 }: SearchSpotlightFiltersProps) {
   const { t } = useTranslation();
   const { hasLicenseKey } = useLicense();
@@ -42,9 +49,9 @@ export function SearchSpotlightFilters({
   const [spaceSearchQuery, setSpaceSearchQuery] = useState("");
   const [debouncedSpaceQuery] = useDebouncedValue(spaceSearchQuery, 300);
   const [contentType, setContentType] = useState<string | null>("page");
+  const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({
-    page: 1,
     limit: 100,
     query: debouncedSpaceQuery,
   });
@@ -120,6 +127,31 @@ export function SearchSpotlightFilters({
 
   return (
     <div className={classes.filtersContainer}>
+      {workspace?.settings?.ai?.search === true && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            height: "32px",
+            paddingLeft: "8px",
+            paddingRight: "8px",
+          }}
+        >
+          <Switch
+            checked={isAiMode}
+            onChange={(event) => onAskClick()}
+            label={t("Ask AI")}
+            size="sm"
+            color="blue"
+            labelPosition="left"
+            styles={{
+              root: { display: "flex", alignItems: "center" },
+              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 },
+            }}
+          />
+        </div>
+      )}
+
       <Menu
         shadow="md"
         width={250}
@@ -231,7 +263,9 @@ export function SearchSpotlightFilters({
                 contentType !== option.value &&
                 handleFilterChange("contentType", option.value)
               }
-              disabled={option.disabled}
+              disabled={
+                option.disabled || (isAiMode && option.value === "attachment")
+              }
             >
               <Group flex="1" gap="xs">
                 <div>
@@ -241,6 +275,13 @@ export function SearchSpotlightFilters({
                       {t("Enterprise")}
                     </Badge>
                   )}
+                  {!option.disabled &&
+                    isAiMode &&
+                    option.value === "attachment" && (
+                      <Text size="xs" mt={4}>
+                        {t("Ask AI not available for attachments")}
+                      </Text>
+                    )}
                 </div>
                 {contentType === option.value && <IconCheck size={20} />}
               </Group>

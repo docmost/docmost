@@ -4,9 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
+  compressAndResizeIcon,
   getAttachmentFolderPath,
   PreparedFile,
   prepareFile,
@@ -16,7 +18,7 @@ import { v4 as uuid4, v7 as uuid7 } from 'uuid';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { AttachmentType, validImageExtensions } from '../attachment.constants';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { Attachment } from '@docmost/db/types/entity.types';
+import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -25,6 +27,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { createByteCountingStream } from '../../../common/helpers/utils';
 
 @Injectable()
 export class AttachmentService {
@@ -48,7 +51,9 @@ export class AttachmentService {
     attachmentId?: string;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
-    const preparedFile: PreparedFile = await prepareFile(filePromise);
+    const preparedFile: PreparedFile = await prepareFile(filePromise, {
+      skipBuffer: true,
+    });
 
     let isUpdate = false;
     let attachmentId = null;
@@ -80,7 +85,14 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    await this.uploadToDrive(filePath, preparedFile.buffer);
+    const { stream, getBytesRead } = createByteCountingStream(
+      preparedFile.multiPartFile.file,
+    );
+
+    await this.uploadToDrive(filePath, stream);
+
+    // Update fileSize from the consumed stream
+    preparedFile.fileSize = getBytesRead();
 
     let attachment: Attachment = null;
     try {
@@ -132,8 +144,8 @@ export class AttachmentService {
     filePromise: Promise<MultipartFile>,
     type:
       | AttachmentType.Avatar
-      | AttachmentType.WorkspaceLogo
-      | AttachmentType.SpaceLogo,
+      | AttachmentType.WorkspaceIcon
+      | AttachmentType.SpaceIcon,
     userId: string,
     workspaceId: string,
     spaceId?: string,
@@ -141,6 +153,12 @@ export class AttachmentService {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
 
+    const processedBuffer = await compressAndResizeIcon(
+      preparedFile.buffer,
+      type,
+    );
+    preparedFile.buffer = processedBuffer;
+    preparedFile.fileSize = processedBuffer.length;
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;
 
     const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${preparedFile.fileName}`;
@@ -174,7 +192,7 @@ export class AttachmentService {
             workspaceId,
             trx,
           );
-        } else if (type === AttachmentType.WorkspaceLogo) {
+        } else if (type === AttachmentType.WorkspaceIcon) {
           const workspace = await this.workspaceRepo.findById(workspaceId, {
             trx,
           });
@@ -186,7 +204,7 @@ export class AttachmentService {
             workspaceId,
             trx,
           );
-        } else if (type === AttachmentType.SpaceLogo && spaceId) {
+        } else if (type === AttachmentType.SpaceIcon && spaceId) {
           const space = await this.spaceRepo.findById(spaceId, workspaceId, {
             trx,
           });
@@ -205,7 +223,6 @@ export class AttachmentService {
       });
     } catch (err) {
       // delete uploaded file on db update failure
-      this.logger.error('Image upload error:', err);
       await this.deleteRedundantFile(filePath);
       throw new BadRequestException('Failed to upload image');
     }
@@ -229,9 +246,9 @@ export class AttachmentService {
     }
   }
 
-  async uploadToDrive(filePath: string, fileBuffer: any) {
+  async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {
     try {
-      await this.storageService.upload(filePath, fileBuffer);
+      await this.storageService.upload(filePath, fileContent);
     } catch (err) {
       this.logger.error('Error uploading file to drive:', err);
       throw new BadRequestException('Error uploading file to drive');
@@ -389,4 +406,40 @@ export class AttachmentService {
     }
   }
 
+  async removeUserAvatar(user: User) {
+    if (user.avatarUrl && !user.avatarUrl.toLowerCase().startsWith('http')) {
+      const filePath = `${getAttachmentFolderPath(AttachmentType.Avatar, user.workspaceId)}/${user.avatarUrl}`;
+      await this.deleteRedundantFile(filePath);
+    }
+
+    await this.userRepo.updateUser(
+      { avatarUrl: null },
+      user.id,
+      user.workspaceId,
+    );
+  }
+
+  async removeSpaceIcon(spaceId: string, workspaceId: string) {
+    const space = await this.spaceRepo.findById(spaceId, workspaceId);
+
+    if (!space) {
+      throw new NotFoundException('Space not found');
+    }
+
+    if (space.logo && !space.logo.toLowerCase().startsWith('http')) {
+      const filePath = `${getAttachmentFolderPath(AttachmentType.SpaceIcon, workspaceId)}/${space.logo}`;
+      await this.deleteRedundantFile(filePath);
+    }
+
+    await this.spaceRepo.updateSpace({ logo: null }, spaceId, workspaceId);
+  }
+
+  async removeWorkspaceIcon(workspace: Workspace) {
+    if (workspace.logo && !workspace.logo.toLowerCase().startsWith('http')) {
+      const filePath = `${getAttachmentFolderPath(AttachmentType.WorkspaceIcon, workspace.id)}/${workspace.logo}`;
+      await this.deleteRedundantFile(filePath);
+    }
+
+    await this.workspaceRepo.updateWorkspace({ logo: null }, workspace.id);
+  }
 }

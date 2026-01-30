@@ -1,4 +1,5 @@
 import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
+import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
@@ -222,17 +223,40 @@ export function notionFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function unwrapFromParagraph($: CheerioAPI, $node: Cheerio<any>) {
-  // find the nearest <p> or <a> ancestor
-  let $wrapper = $node.closest('p, a');
+  // Keep track of processed wrappers to avoid infinite loops
+  const processedWrappers = new Set<any>();
 
+  let $wrapper = $node.closest('p, a');
   while ($wrapper.length) {
-    // if the wrapper has only our node inside, replace it entirely
-    if ($wrapper.contents().length === 1) {
+    const wrapperElement = $wrapper.get(0);
+
+    // If we've already processed this wrapper, break to avoid infinite loop
+    if (processedWrappers.has(wrapperElement)) {
+      break;
+    }
+
+    processedWrappers.add(wrapperElement);
+
+    // Check if the wrapper contains only whitespace and our target node
+    const hasOnlyTargetNode =
+      $wrapper.contents().filter((_, el) => {
+        const $el = $(el);
+        // Skip whitespace-only text nodes. NodeType 3 = text node
+        if (el.nodeType === 3 && !$el.text().trim()) {
+          return false;
+        }
+        // Return true if this is not our target node
+        return !$el.is($node) && !$node.is($el);
+      }).length === 0;
+
+    if (hasOnlyTargetNode) {
+      // Replace the wrapper entirely with our node
       $wrapper.replaceWith($node);
     } else {
-      // otherwise just move the node to before the wrapper
+      // Move the node to before the wrapper, preserving other content
       $wrapper.before($node);
     }
+
     // look again for any new wrapper around $node
     $wrapper = $node.closest('p, a');
   }
@@ -257,8 +281,18 @@ export async function rewriteInternalLinksToMentionHtml(
     const $a = $(el);
     const raw = $a.attr('href')!;
     if (raw.startsWith('http') || raw.startsWith('/api/')) return;
+    let decodedRaw = raw;
+    try {
+      decodedRaw = decodeURIComponent(raw);
+    } catch (err) {
+      Logger.warn(
+        `URI malformed in page ${currentFilePath}: ${raw}. Falling back to raw path.`,
+        'ImportFormatter',
+      );
+    }
+
     const resolved = normalize(
-      path.join(path.dirname(currentFilePath), decodeURIComponent(raw)),
+      path.join(path.dirname(currentFilePath), decodedRaw),
     );
     const meta = filePathToPageMetaMap.get(resolved);
     if (!meta) return;

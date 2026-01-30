@@ -1,4 +1,5 @@
 import { jsonToNode } from 'src/collaboration/collaboration.util';
+import { Logger } from '@nestjs/common';
 import { ExportFormat } from './dto/export-dto';
 import { Node } from '@tiptap/pm/model';
 import { validate as isValidUUID } from 'uuid';
@@ -88,7 +89,7 @@ export function replaceInternalLinks(
             // if link and text are same, use page title
             if (markLink === node.text) {
               //@ts-expect-error
-              node.text = getInternalLinkPageName(relativePath);
+              node.text = getInternalLinkPageName(relativePath, currentPagePath);
             }
           }
         }
@@ -99,10 +100,19 @@ export function replaceInternalLinks(
   return doc.toJSON();
 }
 
-export function getInternalLinkPageName(path: string): string {
-  return decodeURIComponent(
-    path?.split('/').pop().split('.').slice(0, -1).join('.'),
-  );
+export function getInternalLinkPageName(path: string, currentFilePath?: string): string {
+  const name = path?.split('/').pop().split('.').slice(0, -1).join('.');
+  try {
+    return decodeURIComponent(name);
+  } catch (err) {
+    if (currentFilePath) {
+      Logger.warn(
+        `URI malformed in page ${currentFilePath}: ${name}. Falling back to raw name.`,
+        'ExportUtils',
+      );
+    }
+    return name;
+  }
 }
 
 export function extractPageSlugId(input: string): string {

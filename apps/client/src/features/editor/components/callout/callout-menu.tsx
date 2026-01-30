@@ -1,15 +1,12 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { ActionIcon, Tooltip, Divider } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconAlertTriangleFilled,
   IconCircleCheckFilled,
@@ -35,17 +32,43 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
-  const getReferenceClientRect = useCallback(() => {
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
+      }
+
+      return {
+        isCallout: ctx.editor.isActive("callout"),
+        isInfo: ctx.editor.isActive("callout", { type: "info" }),
+        isSuccess: ctx.editor.isActive("callout", { type: "success" }),
+        isWarning: ctx.editor.isActive("callout", { type: "warning" }),
+        isDanger: ctx.editor.isActive("callout", { type: "danger" }),
+      };
+    },
+  });
+
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "callout";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const setCalloutType = useCallback(
@@ -92,16 +115,14 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`callout-menu}`}
+      pluginKey={`callout-menu`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 10],
+      getReferencedVirtualElement={getReferencedVirtualElement}
+      options={{
         placement: "bottom",
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
+        // offset: 233, //      //         offset: [0, 10],
+        // zIndex: 99,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >
@@ -111,9 +132,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("info")}
             size="lg"
             aria-label={t("Info")}
-            variant={
-              editor.isActive("callout", { type: "info" }) ? "light" : "default"
-            }
+            variant={editorState?.isInfo ? "light" : "default"}
           >
             <IconInfoCircleFilled size={18} />
           </ActionIcon>
@@ -124,11 +143,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("success")}
             size="lg"
             aria-label={t("Success")}
-            variant={
-              editor.isActive("callout", { type: "success" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isSuccess ? "light" : "default"}
           >
             <IconCircleCheckFilled size={18} />
           </ActionIcon>
@@ -139,11 +154,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("warning")}
             size="lg"
             aria-label={t("Warning")}
-            variant={
-              editor.isActive("callout", { type: "warning" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isWarning ? "light" : "default"}
           >
             <IconAlertTriangleFilled size={18} />
           </ActionIcon>
@@ -154,11 +165,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("danger")}
             size="lg"
             aria-label={t("Danger")}
-            variant={
-              editor.isActive("callout", { type: "danger" })
-                ? "light"
-                : "default"
-            }
+            variant={editorState?.isDanger ? "light" : "default"}
           >
             <IconCircleXFilled size={18} />
           </ActionIcon>

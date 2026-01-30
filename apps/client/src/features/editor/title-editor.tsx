@@ -104,7 +104,10 @@ export function TitleEditor({
   });
 
   useEffect(() => {
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    const anchorId = window.location.hash
+      ? window.location.hash.substring(1)
+      : undefined;
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
     navigate(pageSlug, { replace: true });
   }, [title]);
 
@@ -192,10 +195,43 @@ export function TitleEditor({
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
+    if (key === "Enter") {
+      event.preventDefault();
+
+      const { $from } = titleEditor.state.selection;
+      const titleText = titleEditor.getText();
+
+      // Get the text offset within the heading node (not document position)
+      const textOffset = $from.parentOffset;
+
+      const textAfterCursor = titleText.slice(textOffset);
+
+      // Delete text after cursor from title (this will be in undo history)
+      const endPos = titleEditor.state.doc.content.size;
+      if (textAfterCursor) {
+        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
+      }
+
+      // Don't add to history so undo in page editor won't remove this split
+      pageEditor
+        .chain()
+        .command(({ tr }) => {
+          tr.setMeta("addToHistory", false);
+          return true;
+        })
+        .insertContentAt(0, {
+          type: "paragraph",
+          content: textAfterCursor
+            ? [{ type: "text", text: textAfterCursor }]
+            : undefined,
+        })
+        .focus("start")
+        .run();
+      return;
+    }
+
     const shouldFocusEditor =
-      key === "Enter" ||
-      key === "ArrowDown" ||
-      (key === "ArrowRight" && !$head.nodeAfter);
+      key === "ArrowDown" || (key === "ArrowRight" && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
       pageEditor.commands.focus("start");

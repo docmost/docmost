@@ -10,9 +10,9 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
-  executeWithPagination,
-  PaginationResult,
-} from '@docmost/db/pagination/pagination';
+  CursorPaginationResult,
+  executeWithCursorPagination,
+} from '@docmost/db/pagination/cursor-pagination';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
@@ -38,6 +38,8 @@ import { StorageService } from '../../../integrations/storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
+import { EventName } from '../../../common/events/event.contants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class PageService {
@@ -49,6 +51,8 @@ export class PageService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async findById(
@@ -176,7 +180,7 @@ export class PageService {
     spaceId: string,
     pagination: PaginationOptions,
     pageId?: string,
-  ): Promise<any> {
+  ): Promise<CursorPaginationResult<Partial<Page> & { hasChildren: boolean }>> {
     let query = this.db
       .selectFrom('pages')
       .select([
@@ -191,7 +195,6 @@ export class PageService {
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
-      .orderBy('position', (ob) => ob.collate('C').asc())
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 
@@ -201,12 +204,19 @@ export class PageService {
       query = query.where('parentPageId', 'is', null);
     }
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: 250,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({
+        position: cursor.position,
+        id: cursor.id,
+      }),
     });
-
-    return result;
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string) {
@@ -231,21 +241,33 @@ export class PageService {
         );
       }
 
-      // update spaceId in shares
       if (pageIds.length > 0) {
+        // update spaceId in shares
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
           .where('pageId', 'in', pageIds)
           .execute();
-      }
 
-      // Update attachments
-      await this.attachmentRepo.updateAttachmentsByPageId(
-        { spaceId },
-        pageIds,
-        trx,
-      );
+        // Update comments
+        await trx
+          .updateTable('comments')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIds)
+          .execute();
+
+        // Update attachments
+        await this.attachmentRepo.updateAttachmentsByPageId(
+          { spaceId },
+          pageIds,
+          trx,
+        );
+
+        await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
+          pageId: pageIds,
+          workspaceId: rootPage.workspaceId,
+        });
+      }
     });
   }
 
@@ -371,14 +393,25 @@ export class PageService {
           workspaceId: page.workspaceId,
           creatorId: authUser.id,
           lastUpdatedById: authUser.id,
-          parentPageId: page.parentPageId
-            ? pageMap.get(page.parentPageId)?.newPageId
-            : null,
+          parentPageId:
+            page.id === rootPage.id
+              ? isDuplicateInSameSpace
+                ? rootPage.parentPageId
+                : null
+              : page.parentPageId
+                ? pageMap.get(page.parentPageId)?.newPageId
+                : null,
         };
       }),
     );
 
     await this.db.insertInto('pages').values(insertablePages).execute();
+
+    const insertedPageIds = insertablePages.map((page) => page.id);
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: insertedPageIds,
+      workspaceId: authUser.workspaceId,
+    });
 
     //TODO: best to handle this in a queue
     const attachmentsIds = Array.from(attachmentMap.keys());
@@ -547,25 +580,25 @@ export class PageService {
   async getRecentSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
+  ): Promise<CursorPaginationResult<Page>> {
+    return this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
   }
 
   async getRecentPages(
     userId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getRecentPages(userId, pagination);
+  ): Promise<CursorPaginationResult<Page>> {
+    return this.pageRepo.getRecentPages(userId, pagination);
   }
 
   async getDeletedSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
+  ): Promise<CursorPaginationResult<Page>> {
+    return this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
   }
 
-  async forceDelete(pageId: string): Promise<void> {
+  async forceDelete(pageId: string, workspaceId: string): Promise<void> {
     // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
@@ -606,10 +639,18 @@ export class PageService {
 
     if (pageIds.length > 0) {
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+      this.eventEmitter.emit(EventName.PAGE_DELETED, {
+        pageIds: pageIds,
+        workspaceId,
+      });
     }
   }
 
-  async remove(pageId: string, userId: string): Promise<void> {
-    await this.pageRepo.removePage(pageId, userId);
+  async removePage(
+    pageId: string,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    await this.pageRepo.removePage(pageId, userId, workspaceId);
   }
 }

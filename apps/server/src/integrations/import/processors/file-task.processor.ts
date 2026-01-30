@@ -47,15 +47,23 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     await this.handleFailedJob(job);
   }
 
-  @OnWorkerEvent('stalled')
-  async onStalled(job: Job) {
-    this.logger.error(
-      `Job ${job.name} stalled. . Import Task ID: ${job.data.fileTaskId}.. Job ID: ${job.id}`,
+  @OnWorkerEvent('completed')
+  async onCompleted(job: Job) {
+    this.logger.log(
+      `Completed ${job.name} job for File task ID ${job.data.fileTaskId}`,
     );
 
-    // Set failedReason for stalled jobs since it's not automatically set
-    job.failedReason = 'Job stalled and was marked as failed';
-    await this.handleFailedJob(job);
+    try {
+      const fileTask = await this.fileTaskService.getFileTask(
+        job.data.fileTaskId,
+      );
+      if (fileTask) {
+        await this.storageService.delete(fileTask.filePath);
+        this.logger.debug(`Deleted imported zip file: ${fileTask.filePath}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to delete imported zip file:`, err);
+    }
   }
 
   private async handleFailedJob(job: Job) {
@@ -75,25 +83,6 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
       }
     } catch (err) {
       this.logger.error(err);
-    }
-  }
-
-  @OnWorkerEvent('completed')
-  async onCompleted(job: Job) {
-    this.logger.log(
-      `Completed ${job.name} job for File task ID ${job.data.fileTaskId}`,
-    );
-
-    try {
-      const fileTask = await this.fileTaskService.getFileTask(
-        job.data.fileTaskId,
-      );
-      if (fileTask) {
-        await this.storageService.delete(fileTask.filePath);
-        this.logger.debug(`Deleted imported zip file: ${fileTask.filePath}`);
-      }
-    } catch (err) {
-      this.logger.error(`Failed to delete imported zip file:`, err);
     }
   }
 

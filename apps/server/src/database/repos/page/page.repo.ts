@@ -8,37 +8,22 @@ import {
   UpdatablePage,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { validate as isValidUUID } from 'uuid';
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class PageRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
+    private eventEmitter: EventEmitter2,
   ) {}
-
-  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
-    return eb
-      .selectFrom('pages as child')
-      .select((eb) =>
-        eb
-          .case()
-          .when(eb.fn.countAll(), '>', 0)
-          .then(true)
-          .else(false)
-          .end()
-          .as('count'),
-      )
-      .whereRef('child.parentPageId', '=', 'pages.id')
-      .where('child.deletedAt', 'is', null)
-      .limit(1)
-      .as('hasChildren');
-  }
 
   private baseFields: Array<keyof Page> = [
     'id',
@@ -63,6 +48,7 @@ export class PageRepo {
     pageId: string,
     opts?: {
       includeContent?: boolean;
+      includeTextContent?: boolean;
       includeYdoc?: boolean;
       includeSpace?: boolean;
       includeCreator?: boolean;
@@ -80,6 +66,7 @@ export class PageRepo {
       .select(this.baseFields)
       .$if(opts?.includeContent, (qb) => qb.select('content'))
       .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+      .$if(opts?.includeTextContent, (qb) => qb.select('textContent'))
       .$if(opts?.includeHasChildren, (qb) =>
         qb.select((eb) => this.withHasChildren(eb)),
       );
@@ -126,7 +113,7 @@ export class PageRepo {
     pageIds: string[],
     trx?: KyselyTransaction,
   ) {
-    return dbOrTx(this.db, trx)
+    const result = await dbOrTx(this.db, trx)
       .updateTable('pages')
       .set({ ...updatePageData, updatedAt: new Date() })
       .where(
@@ -135,6 +122,13 @@ export class PageRepo {
         pageIds,
       )
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: pageIds,
+      workspaceId: updatePageData.workspaceId,
+    });
+
+    return result;
   }
 
   async insertPage(
@@ -142,11 +136,18 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ): Promise<Page> {
     const db = dbOrTx(this.db, trx);
-    return db
+    const result = await db
       .insertInto('pages')
       .values(insertablePage)
       .returning(this.baseFields)
       .executeTakeFirst();
+
+    this.eventEmitter.emit(EventName.PAGE_CREATED, {
+      pageIds: [result.id],
+      workspaceId: result.workspaceId,
+    });
+
+    return result;
   }
 
   async deletePage(pageId: string): Promise<void> {
@@ -161,7 +162,11 @@ export class PageRepo {
     await query.execute();
   }
 
-  async removePage(pageId: string, deletedById: string): Promise<void> {
+  async removePage(
+    pageId: string,
+    deletedById: string,
+    workspaceId: string,
+  ): Promise<void> {
     const currentDate = new Date();
 
     const descendants = await this.db
@@ -196,10 +201,15 @@ export class PageRepo {
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
       });
+
+      this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
+        pageIds: pageIds,
+        workspaceId,
+      });
     }
   }
 
-  async restorePage(pageId: string): Promise<void> {
+  async restorePage(pageId: string, workspaceId: string): Promise<void> {
     // First, check if the page being restored has a deleted parent
     const pageToRestore = await this.db
       .selectFrom('pages')
@@ -259,6 +269,10 @@ export class PageRepo {
         .where('id', '=', pageId)
         .execute();
     }
+    this.eventEmitter.emit(EventName.PAGE_RESTORED, {
+      pageIds: pageIds,
+      workspaceId: workspaceId,
+    });
   }
 
   async getRecentPagesInSpace(spaceId: string, pagination: PaginationOptions) {
@@ -267,36 +281,44 @@ export class PageRepo {
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
       .where('spaceId', '=', spaceId)
-      .where('deletedAt', 'is', null)
-      .orderBy('updatedAt', 'desc');
+      .where('deletedAt', 'is', null);
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'updatedAt', direction: 'desc' },
+        { expression: 'id', direction: 'desc' },
+      ],
+      parseCursor: (cursor) => ({
+        updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
     });
-
-    return result;
   }
 
   async getRecentPages(userId: string, pagination: PaginationOptions) {
-    const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
-
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
       .select((eb) => this.withSpace(eb))
-      .where('spaceId', 'in', userSpaceIds)
-      .where('deletedAt', 'is', null)
-      .orderBy('updatedAt', 'desc');
+      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
+      .where('deletedAt', 'is', null);
 
-    const hasEmptyIds = userSpaceIds.length === 0;
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      hasEmptyIds,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'updatedAt', direction: 'desc' },
+        { expression: 'id', direction: 'desc' },
+      ],
+      parseCursor: (cursor) => ({
+        updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
     });
-
-    return result;
   }
 
   async getDeletedPagesInSpace(spaceId: string, pagination: PaginationOptions) {
@@ -323,15 +345,21 @@ export class PageRepo {
             ),
           ),
         ]),
-      )
-      .orderBy('deletedAt', 'desc');
+      );
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'deletedAt', direction: 'desc' },
+        { expression: 'id', direction: 'desc' },
+      ],
+      parseCursor: (cursor) => ({
+        deletedAt: new Date(cursor.deletedAt),
+        id: cursor.id,
+      }),
     });
-
-    return result;
   }
 
   withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
@@ -379,6 +407,24 @@ export class PageRepo {
     ).as('contributors');
   }
 
+  withHasChildren(eb: ExpressionBuilder<DB, 'pages'>) {
+    return eb
+      .selectFrom('pages as child')
+      .select((eb) =>
+        eb
+          .case()
+          .when(eb.fn.countAll(), '>', 0)
+          .then(true)
+          .else(false)
+          .end()
+          .as('count'),
+      )
+      .whereRef('child.parentPageId', '=', 'pages.id')
+      .where('child.deletedAt', 'is', null)
+      .limit(1)
+      .as('hasChildren');
+  }
+
   async getPageAndDescendants(
     parentPageId: string,
     opts: { includeContent: boolean },
@@ -396,6 +442,8 @@ export class PageRepo {
             'parentPageId',
             'spaceId',
             'workspaceId',
+            'createdAt',
+            'updatedAt',
           ])
           .$if(opts?.includeContent, (qb) => qb.select('content'))
           .where('id', '=', parentPageId)
@@ -412,6 +460,8 @@ export class PageRepo {
                 'p.parentPageId',
                 'p.spaceId',
                 'p.workspaceId',
+                'p.createdAt',
+                'p.updatedAt',
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')

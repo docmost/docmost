@@ -19,6 +19,7 @@ export default function SubpagesView(props: NodeViewProps) {
   const { spaceSlug, shareId } = useParams();
   const { t } = useTranslation();
 
+  //@ts-ignore
   const currentPageId = editor.storage.pageId;
 
   // Get subpages from shared tree if we're in a shared context
@@ -52,7 +53,7 @@ export default function SubpagesView(props: NodeViewProps) {
 
   if (error && !shareId) {
     return (
-      <NodeViewWrapper>
+      <NodeViewWrapper data-drag-handle>
         <Text c="dimmed" size="md" py="md">
           {t("Failed to load subpages")}
         </Text>
@@ -62,7 +63,7 @@ export default function SubpagesView(props: NodeViewProps) {
 
   if (subpages.length === 0) {
     return (
-      <NodeViewWrapper>
+      <NodeViewWrapper data-drag-handle>
         <div className={classes.container}>
           <Text c="dimmed" size="md" py="md">
             {t("No subpages")}
@@ -73,7 +74,7 @@ export default function SubpagesView(props: NodeViewProps) {
   }
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <div className={classes.container}>
         <Stack gap={5}>
           {subpages.map((page) => (

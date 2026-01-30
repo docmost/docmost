@@ -17,7 +17,7 @@ import {
   EventExit,
   EventSave,
 } from "react-drawio";
-import { IAttachment } from "@/lib/types";
+import { IAttachment } from "@/features/attachments/types/attachment.types";
 import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
@@ -66,6 +66,7 @@ export default function DrawioView(props: NodeViewProps) {
     const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
+    //@ts-ignore
     const pageId = editor.storage?.pageId;
 
     let attachment: IAttachment = null;
@@ -87,7 +88,7 @@ export default function DrawioView(props: NodeViewProps) {
   };
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <Modal.Root opened={opened} onClose={close} fullScreen>
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>

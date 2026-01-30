@@ -1,6 +1,8 @@
 import "@mantine/core/styles.css";
 import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
+import '@mantine/dates/styles.css';
+
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import { mantineCssResolver, theme } from "@/theme";
@@ -49,7 +51,7 @@ root.render(
     <MantineProvider theme={theme} cssVariablesResolver={mantineCssResolver}>
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
-          <Notifications position="bottom-center" limit={3} />
+          <Notifications position="bottom-center" limit={3} zIndex={10000} />
           <HelmetProvider>
             <PostHogProvider client={posthog}>
               <App />

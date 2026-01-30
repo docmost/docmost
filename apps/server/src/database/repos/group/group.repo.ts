@@ -10,8 +10,8 @@ import {
 import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { DB } from '@docmost/db/types/db';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { DefaultGroup } from '../../../core/group/dto/create-group.dto';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
 @Injectable()
 export class GroupRepo {
@@ -104,17 +104,19 @@ export class GroupRepo {
   }
 
   async getGroupsPaginated(workspaceId: string, pagination: PaginationOptions) {
-    let query = this.db
+    let baseQuery = this.db
       .selectFrom('groups')
       .selectAll('groups')
       .select((eb) => this.withMemberCount(eb))
-      .where('workspaceId', '=', workspaceId)
-      .orderBy('memberCount', 'desc')
-      .orderBy('createdAt', 'asc');
+      .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
-      query = query.where((eb) =>
-        eb(sql`f_unaccent(name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`).or(
+      baseQuery = baseQuery.where((eb) =>
+        eb(
+          sql`f_unaccent(name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
           sql`f_unaccent(description)`,
           'ilike',
           sql`f_unaccent(${'%' + pagination.query + '%'})`,
@@ -122,12 +124,24 @@ export class GroupRepo {
       );
     }
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        {
+          expression: 'sub.memberCount',
+          direction: 'desc',
+          key: 'memberCount',
+        },
+        { expression: 'sub.id', direction: 'asc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        memberCount: parseInt(cursor.memberCount, 10),
+        id: cursor.id,
+      }),
     });
-
-    return result;
   }
 
   withMemberCount(eb: ExpressionBuilder<DB, 'groups'>) {

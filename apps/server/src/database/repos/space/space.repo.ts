@@ -9,13 +9,18 @@ import {
 } from '@docmost/db/types/entity.types';
 import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { DB } from '@docmost/db/types/db';
 import { validate as isValidUUID } from 'uuid';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 
 @Injectable()
 export class SpaceRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async findById(
     spaceId: string,
@@ -105,12 +110,15 @@ export class SpaceRepo {
       .selectFrom('spaces')
       .selectAll('spaces')
       .select((eb) => [this.withMemberCount(eb)])
-      .where('workspaceId', '=', workspaceId)
-      .orderBy('createdAt', 'asc');
+      .where('workspaceId', '=', workspaceId);
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb(sql`f_unaccent(name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`).or(
+        eb(
+          sql`f_unaccent(name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
           sql`f_unaccent(description)`,
           'ilike',
           sql`f_unaccent(${'%' + pagination.query + '%'})`,
@@ -118,12 +126,13 @@ export class SpaceRepo {
       );
     }
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
-
-    return result;
   }
 
   withMemberCount(eb: ExpressionBuilder<DB, 'spaces'>) {
@@ -155,5 +164,9 @@ export class SpaceRepo {
       .where('id', '=', spaceId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+
+    this.eventEmitter.emit(EventName.SPACE_DELETED, {
+      spaceId,
+    });
   }
 }
