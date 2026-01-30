@@ -30,104 +30,110 @@ export class SearchService {
     const { query } = searchParams;
 
     if (query.length < 1) {
-      return;
+      return [];
     }
     const searchQuery = tsquery(query.trim() + '*');
+    const limit = searchParams.limit || 25;
+    const offset = searchParams.offset || 0;
+    const includeSpace = !searchParams.shareId;
 
-    let queryResults = this.db
-      .selectFrom('pages')
-      .select([
-        'id',
-        'slugId',
-        'title',
-        'icon',
-        'parentPageId',
-        'creatorId',
-        'createdAt',
-        'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
-          'rank',
-        ),
-        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
-          'highlight',
-        ),
-      ])
-      .where(
-        'tsv',
-        '@@',
-        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
-      )
-      .$if(Boolean(searchParams.creatorId), (qb) =>
-        qb.where('creatorId', '=', searchParams.creatorId),
-      )
-      .where('deletedAt', 'is', null)
-      .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 25)
-      .offset(searchParams.offset || 0);
-
-    if (!searchParams.shareId) {
-      queryResults = queryResults.select((eb) => this.pageRepo.withSpace(eb));
-    }
-
-    if (searchParams.spaceId) {
-      // search by spaceId
-      queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
-    } else if (opts.userId && !searchParams.spaceId) {
-      // only search spaces the user is a member of
-      queryResults = queryResults
-        .where(
-          'spaceId',
-          'in',
-          this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
-        )
-        .where('workspaceId', '=', opts.workspaceId);
-    } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
-      // search in shares
-      const shareId = searchParams.shareId;
-      const share = await this.shareRepo.findById(shareId);
+    // Handle share search - resolve page IDs first
+    let sharePageIds: string[] | null = null;
+    if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
+      const share = await this.shareRepo.findById(searchParams.shareId);
       if (!share || share.workspaceId !== opts.workspaceId) {
         return [];
       }
 
-      const pageIdsToSearch = [];
       if (share.includeSubPages) {
         const pageList = await this.pageRepo.getPageAndDescendants(
           share.pageId,
-          {
-            includeContent: false,
-          },
+          { includeContent: false },
         );
-
-        pageIdsToSearch.push(...pageList.map((page) => page.id));
+        sharePageIds = pageList.map((page) => page.id);
       } else {
-        pageIdsToSearch.push(share.pageId);
+        sharePageIds = [share.pageId];
       }
 
-      if (pageIdsToSearch.length > 0) {
-        queryResults = queryResults
-          .where('id', 'in', pageIdsToSearch)
-          .where('workspaceId', '=', opts.workspaceId);
-      } else {
+      if (sharePageIds.length === 0) {
         return [];
       }
-    } else {
+    } else if (!searchParams.spaceId && !opts.userId) {
       return [];
     }
 
-    //@ts-ignore
-    queryResults = await queryResults.execute();
+    // CTE to get top N page IDs by rank (without expensive ts_headline)
+    // Join back to compute ts_headline only for those N rows
+    const tsQuery = sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`;
 
-    //@ts-ignore
-    const searchResults = queryResults.map((result: SearchResponseDto) => {
-      if (result.highlight) {
-        result.highlight = result.highlight
+    const queryResults = await this.db
+      .with('ranked_pages', (db) => {
+        let rankQuery = db
+          .selectFrom('pages')
+          .select(['id', sql<number>`ts_rank(tsv, ${tsQuery})`.as('rank')])
+          .where('tsv', '@@', tsQuery)
+          .where('deletedAt', 'is', null)
+          .$if(Boolean(searchParams.creatorId), (qb) =>
+            qb.where('creatorId', '=', searchParams.creatorId),
+          );
+
+        if (searchParams.spaceId) {
+          rankQuery = rankQuery.where('spaceId', '=', searchParams.spaceId);
+        } else if (opts.userId) {
+          rankQuery = rankQuery
+            .where(
+              'spaceId',
+              'in',
+              this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
+            )
+            .where('workspaceId', '=', opts.workspaceId);
+        } else if (sharePageIds) {
+          rankQuery = rankQuery
+            .where('id', 'in', sharePageIds)
+            .where('workspaceId', '=', opts.workspaceId);
+        }
+
+        return rankQuery.orderBy('rank', 'desc').limit(limit).offset(offset);
+      })
+      .selectFrom('ranked_pages')
+      .innerJoin('pages', 'pages.id', 'ranked_pages.id')
+      .select([
+        'pages.id',
+        'pages.slugId',
+        'pages.title',
+        'pages.icon',
+        'pages.parentPageId',
+        'pages.creatorId',
+        'pages.createdAt',
+        'pages.updatedAt',
+        'ranked_pages.rank',
+        sql<string>`ts_headline('english', pages.text_content, ${tsQuery}, 'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+          'highlight',
+        ),
+      ])
+      .$if(includeSpace, (qb) =>
+        qb.innerJoin('spaces', 'spaces.id', 'pages.spaceId').select(
+          sql<{
+            id: string;
+            name: string;
+            slug: string;
+          }>`jsonb_build_object('id', spaces.id, 'name', spaces.name, 'slug', spaces.slug)`.as(
+            'space',
+          ),
+        ),
+      )
+      .orderBy('ranked_pages.rank', 'desc')
+      .execute();
+
+    return queryResults.map((result) => {
+      const mapped = result as unknown as SearchResponseDto;
+      if (mapped.highlight) {
+        mapped.highlight = mapped.highlight
           .replace(/\r\n|\r|\n/g, ' ')
           .replace(/\s+/g, ' ');
       }
-      return result;
+      return mapped;
     });
-
-    return searchResults;
   }
 
   async searchSuggestions(
