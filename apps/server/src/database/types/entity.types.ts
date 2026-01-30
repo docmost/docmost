@@ -3,6 +3,7 @@ import {
   Attachments,
   Comments,
   Groups,
+  Notifications,
   Pages,
   Spaces,
   Users,
@@ -131,3 +132,8 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
 export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
+
+// Notification
+export type Notification = Selectable<Notifications>;
+export type InsertableNotification = Insertable<Notifications>;
+export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
