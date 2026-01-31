@@ -3,7 +3,10 @@
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   border-radius: rem(10px);
   padding: rem(12px);
-  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  background: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-7)
+  );
 }
 
 :global(.history-diff-added) {
@@ -16,12 +19,9 @@
   position: absolute;
   z-index: -1;
   inset: 0;
-  left: rem(-12px);
   right: 0;
-  border-left: rem(4px) solid
-    light-dark(var(--mantine-color-green-6), var(--mantine-color-green-4));
   background: light-dark(var(--mantine-color-green-0), rgba(0, 255, 0, 0.06));
-  border-radius: rem(6px);
+  border-radius: rem(4px);
   pointer-events: none;
 }
 
@@ -39,8 +39,6 @@
   inset: 0;
   left: rem(-12px);
   right: 0;
-  border-left: rem(4px) solid
-    light-dark(var(--mantine-color-red-6), var(--mantine-color-red-4));
   border-top: rem(1px) dashed
     light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
   border-right: rem(1px) dashed
@@ -51,5 +49,3 @@
   border-radius: rem(6px);
   pointer-events: none;
 }
-
-

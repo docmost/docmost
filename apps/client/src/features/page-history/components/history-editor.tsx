@@ -1,14 +1,14 @@
 import "@/features/editor/styles/index.css";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Badge, Divider, Group, Text, Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { computeHistoryBlockDiff } from "@/features/page-history/utils/history-diff";
 import classes from "./history-diff.module.css";
 import historyClasses from "./history.module.css";
 import { recreateTransform } from "@docmost/editor-ext";
-import { Node, Schema, DOMSerializer } from "@tiptap/pm/model";
+import { Node } from "@tiptap/pm/model";
+import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
 
 export interface HistoryEditorProps {
   title: string;
@@ -35,90 +35,65 @@ export function HistoryEditor({
   });
 
   useEffect(() => {
-    if (editor && previousContent && content) {
-      const schema = editor.schema;
+    if (!editor || !content) return;
 
+    let decorationSet = DecorationSet.empty;
+    let addedCount = 0;
+    let deletedCount = 0;
+
+    if (previousContent) {
       try {
-        console.log(
-          "previousContent type:",
-          previousContent?.type,
-          "content type:",
-          content?.type,
-        );
+        const schema = editor.schema;
         const docOld = Node.fromJSON(schema, previousContent);
         const docNew = Node.fromJSON(schema, content);
 
-        const t0 = performance.now();
-        const transform = recreateTransform(docOld, docNew, {
+        const tr = recreateTransform(docOld, docNew, {
           complexSteps: true,
           wordDiffs: true,
           simplifyDiff: true,
         });
-        console.log(
-          `recreateTransform: ${(performance.now() - t0).toFixed(3)}ms`,
+
+        const changeSet = ChangeSet.create(docOld).addSteps(
+          tr.doc,
+          tr.mapping.maps,
+          [],
         );
+        const changes = simplifyChanges(changeSet.changes, docNew);
 
-        //console.log(transform);
-      } catch (e) {
-        console.error("Node.fromJSON failed:", e);
-      }
-    }
-  }, [editor]);
+        editor.commands.setContent(content);
 
-  useEffect(() => {
-    if (editor && content) {
-      let decorationSet = DecorationSet.empty;
-      let addedCount = 0;
-      let deletedCount = 0;
-
-      if (previousContent) {
-        try {
-          const currentDoc = editor.schema.nodeFromJSON(content);
-          const prevDoc = editor.schema.nodeFromJSON(previousContent);
-          const {
-            diffDoc,
-            addedNodeRanges,
-            deletedNodeRanges,
-            addedCount: aCount,
-            deletedCount: dCount,
-          } = computeHistoryBlockDiff(currentDoc, prevDoc);
-
-          editor.commands.setContent(diffDoc.toJSON());
-
-          addedCount = aCount;
-          deletedCount = dCount;
-
-          const decos = addedNodeRanges.map((r) =>
-            Decoration.node(r.from, r.to, { class: "history-diff-added" }),
-          );
-          const deletedDecos = deletedNodeRanges.map((r) =>
-            Decoration.node(r.from, r.to, { class: "history-diff-deleted" }),
-          );
-
-          decorationSet = DecorationSet.create(diffDoc, [
-            ...decos,
-            ...deletedDecos,
-          ]);
-        } catch {
-          decorationSet = DecorationSet.empty;
-          addedCount = 0;
-          deletedCount = 0;
-          editor.commands.setContent(content);
+        const decorations: Decoration[] = [];
+        for (const change of changes) {
+          if (change.toB > change.fromB) {
+            decorations.push(
+              Decoration.inline(change.fromB, change.toB, {
+                class: "history-diff-added",
+              }),
+            );
+            addedCount += 1;
+          }
+          if (change.toA > change.fromA) {
+            deletedCount += 1;
+          }
         }
-      } else {
+
+        decorationSet = DecorationSet.create(docNew, decorations);
+      } catch (e) {
+        console.error("History diff failed:", e);
         editor.commands.setContent(content);
       }
-
-      setDiffCounts({ added: addedCount, deleted: deletedCount });
-
-      const existingEditorProps = editor.options.editorProps ?? {};
-      editor.setOptions({
-        editorProps: {
-          ...existingEditorProps,
-          decorations: () => decorationSet,
-        },
-      });
+    } else {
+      editor.commands.setContent(content);
     }
+
+    setDiffCounts({ added: addedCount, deleted: deletedCount });
+
+    editor.setOptions({
+      editorProps: {
+        ...editor.options.editorProps,
+        decorations: () => decorationSet,
+      },
+    });
   }, [title, content, editor, previousContent]);
 
   return (
