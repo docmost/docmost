@@ -2,6 +2,8 @@ import {
   usePageHistoryListQuery,
   usePageHistoryQuery,
 } from "@/features/page-history/queries/page-history-query";
+import { getPageHistoryById } from "@/features/page-history/services/page-history-service";
+import { queryClient } from "@/main";
 import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,
@@ -34,6 +36,8 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 
+const PREFETCH_DELAY_MS = 300;
+
 interface Props {
   pageId: string;
 }
@@ -58,6 +62,7 @@ function HistoryList({ pageId }: Props) {
   );
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const prefetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [mainEditor] = useAtom(pageEditorAtom);
   const [mainEditorTitle] = useAtom(titleEditorAtom);
@@ -98,6 +103,35 @@ function HistoryList({ pageId }: Props) {
       notifications.show({ message: t("Successfully restored") });
     }
   }, [activeHistoryData]);
+
+  const clearPrefetchTimeout = useCallback(() => {
+    if (prefetchTimeoutRef.current) {
+      clearTimeout(prefetchTimeoutRef.current);
+      prefetchTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleHover = useCallback((historyId: string) => {
+    clearPrefetchTimeout();
+    prefetchTimeoutRef.current = setTimeout(() => {
+      queryClient.prefetchQuery({
+        queryKey: ["page-history", historyId],
+        queryFn: () => getPageHistoryById(historyId),
+      });
+    }, PREFETCH_DELAY_MS);
+  }, [clearPrefetchTimeout]);
+
+  useEffect(() => {
+    return clearPrefetchTimeout;
+  }, [clearPrefetchTimeout]);
+
+  const handleSelect = useCallback(
+    (id: string, index: number) => {
+      setActiveHistoryId(id);
+      setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
+    },
+    [historyItems, setActiveHistoryId, setActiveHistoryPrevId],
+  );
 
   useEffect(() => {
     if (historyItems.length > 0 && !activeHistoryId) {
@@ -142,10 +176,10 @@ function HistoryList({ pageId }: Props) {
           <HistoryItem
             key={historyItem.id}
             historyItem={historyItem}
-            onSelect={(id) => {
-              setActiveHistoryId(id);
-              setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
-            }}
+            index={index}
+            onSelect={handleSelect}
+            onHover={handleHover}
+            onHoverEnd={clearPrefetchTimeout}
             isActive={historyItem.id === activeHistoryId}
           />
         ))}
