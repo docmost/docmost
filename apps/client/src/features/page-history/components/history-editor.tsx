@@ -84,8 +84,12 @@ export function HistoryEditor({
             let foundSpecialNode: { node: Node; pos: number } | null = null;
             docNew.nodesBetween(change.fromB, change.toB, (node, pos) => {
               if (specialNodeTypes.has(node.type.name)) {
-                foundSpecialNode = { node, pos };
-                return false;
+                const nodeEnd = pos + node.nodeSize;
+                // Only match if change spans the entire node (not just content inside)
+                if (change.fromB <= pos && change.toB >= nodeEnd) {
+                  foundSpecialNode = { node, pos };
+                  return false;
+                }
               }
             });
 
@@ -110,8 +114,12 @@ export function HistoryEditor({
             let foundDeletedNode: { node: Node; pos: number } | null = null;
             docOld.nodesBetween(change.fromA, change.toA, (node, pos) => {
               if (specialNodeTypes.has(node.type.name)) {
-                foundDeletedNode = { node, pos };
-                return false;
+                const nodeEnd = pos + node.nodeSize;
+                // Only match if change spans the entire node (not just content inside)
+                if (change.fromA <= pos && change.toA >= nodeEnd) {
+                  foundDeletedNode = { node, pos };
+                  return false;
+                }
               }
             });
 
