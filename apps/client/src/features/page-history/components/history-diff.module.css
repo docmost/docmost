@@ -40,9 +40,8 @@
 }
 
 :global(.history-diff-node-deleted) {
-  display: block;
   opacity: 0.5;
   outline: rem(2px) dashed light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
-  outline-offset: rem(2px);
+  outline-offset: rem(4px);
   border-radius: rem(4px);
 }
