@@ -14,12 +14,14 @@ export interface HistoryEditorProps {
   title: string;
   content: any;
   previousContent?: any;
+  highlightChanges?: boolean;
 }
 
 export function HistoryEditor({
   title,
   content,
   previousContent,
+  highlightChanges = true,
 }: HistoryEditorProps) {
   const editor = useEditor({
     extensions: mainExtensions,
@@ -102,10 +104,10 @@ export function HistoryEditor({
     editor.setOptions({
       editorProps: {
         ...editor.options.editorProps,
-        decorations: () => decorationSet,
+        decorations: () => (highlightChanges ? decorationSet : DecorationSet.empty),
       },
     });
-  }, [title, content, editor, previousContent]);
+  }, [title, content, editor, previousContent, highlightChanges]);
 
   return (
     <>

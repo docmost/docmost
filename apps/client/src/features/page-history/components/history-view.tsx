@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 interface HistoryProps {
   historyId: string;
   prevHistoryId?: string;
+  highlightChanges?: boolean;
 }
 
-function HistoryView({ historyId, prevHistoryId }: HistoryProps) {
+function HistoryView({ historyId, prevHistoryId, highlightChanges }: HistoryProps) {
   const { t } = useTranslation();
   const {
     data,
@@ -35,6 +36,7 @@ function HistoryView({ historyId, prevHistoryId }: HistoryProps) {
           content={data.content}
           title={data.title}
           previousContent={!isErrorPrev ? prevData?.content : undefined}
+          highlightChanges={highlightChanges}
         />
       </div>
     )
