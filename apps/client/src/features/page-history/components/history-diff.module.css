@@ -40,11 +40,9 @@
 }
 
 :global(.history-diff-node-deleted) {
-  display: inline-block;
-  background: light-dark(var(--mantine-color-red-0), rgba(255, 0, 0, 0.1));
-  border: rem(1px) dashed light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
+  display: block;
+  opacity: 0.5;
+  outline: rem(2px) dashed light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
+  outline-offset: rem(2px);
   border-radius: rem(4px);
-  padding: rem(4px) rem(8px);
-  color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-4));
-  font-size: rem(12px);
 }

@@ -7,7 +7,7 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import classes from "./history-diff.module.css";
 import historyClasses from "./history.module.css";
 import { recreateTransform } from "@docmost/editor-ext";
-import { Node } from "@tiptap/pm/model";
+import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
 
 export interface HistoryEditorProps {
@@ -126,10 +126,12 @@ export function HistoryEditor({
             if (foundDeletedNode) {
               decorations.push(
                 Decoration.widget(change.fromB, () => {
-                  const span = document.createElement("span");
-                  span.className = "history-diff-node-deleted";
-                  span.textContent = `[${foundDeletedNode!.node.type.name} removed]`;
-                  return span;
+                  const wrapper = document.createElement("div");
+                  wrapper.className = "history-diff-node-deleted";
+                  const serializer = DOMSerializer.fromSchema(schema);
+                  const dom = serializer.serializeNode(foundDeletedNode!.node);
+                  wrapper.appendChild(dom);
+                  return wrapper;
                 }),
               );
             } else {
