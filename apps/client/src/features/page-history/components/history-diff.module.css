@@ -26,26 +26,9 @@
 }
 
 :global(.history-diff-deleted) {
-  position: relative;
-  z-index: 0;
   text-decoration: line-through;
-  opacity: 0.9;
-}
-
-:global(.history-diff-deleted)::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  left: rem(-12px);
-  right: 0;
-  border-top: rem(1px) dashed
-    light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
-  border-right: rem(1px) dashed
-    light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
-  border-bottom: rem(1px) dashed
-    light-dark(var(--mantine-color-red-4), var(--mantine-color-red-6));
-  background: light-dark(var(--mantine-color-red-0), rgba(255, 0, 0, 0.08));
-  border-radius: rem(6px);
-  pointer-events: none;
+  color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-4));
+  background: light-dark(var(--mantine-color-red-0), rgba(255, 0, 0, 0.1));
+  border-radius: rem(2px);
+  padding: 0 rem(2px);
 }

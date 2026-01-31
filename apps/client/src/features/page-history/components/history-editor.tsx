@@ -73,6 +73,17 @@ export function HistoryEditor({
             addedCount += 1;
           }
           if (change.toA > change.fromA) {
+            const deletedText = docOld.textBetween(change.fromA, change.toA, "");
+            if (deletedText) {
+              decorations.push(
+                Decoration.widget(change.fromB, () => {
+                  const span = document.createElement("span");
+                  span.className = "history-diff-deleted";
+                  span.textContent = deletedText;
+                  return span;
+                }),
+              );
+            }
             deletedCount += 1;
           }
         }
