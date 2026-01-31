@@ -8,7 +8,7 @@ import {
   PageHistory,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
@@ -65,15 +65,15 @@ export class PageHistoryRepo {
       .selectFrom('pageHistory')
       .selectAll()
       .select((eb) => this.withLastUpdatedBy(eb))
-      .where('pageId', '=', pageId)
-      .orderBy('createdAt', 'desc');
+      .where('pageId', '=', pageId);
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'desc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
-
-    return result;
   }
 
   async findPageLastHistory(pageId: string, trx?: KyselyTransaction) {

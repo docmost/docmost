@@ -107,7 +107,9 @@ export function HistoryEditor({
           </>
         )}
 
-        {editor && <EditorContent editor={editor} />}
+        {editor && (
+          <EditorContent editor={editor} className={classes.historyEditor} />
+        )}
       </div>
     </>
   );
