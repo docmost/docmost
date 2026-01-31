@@ -64,27 +64,82 @@ export function HistoryEditor({
 
         editor.commands.setContent(content);
 
+        const specialNodeTypes = new Set([
+          "image",
+          "attachment",
+          "video",
+          "excalidraw",
+          "drawio",
+          "mermaid",
+          "mathBlock",
+          "mathInline",
+          "table",
+          "details",
+          "callout",
+        ]);
+
         const decorations: Decoration[] = [];
         for (const change of changes) {
           if (change.toB > change.fromB) {
-            decorations.push(
-              Decoration.inline(change.fromB, change.toB, {
-                class: "history-diff-added",
-              }),
-            );
+            let foundSpecialNode: { node: Node; pos: number } | null = null;
+            docNew.nodesBetween(change.fromB, change.toB, (node, pos) => {
+              if (specialNodeTypes.has(node.type.name)) {
+                foundSpecialNode = { node, pos };
+                return false;
+              }
+            });
+
+            if (foundSpecialNode) {
+              const nodeEnd =
+                foundSpecialNode.pos + foundSpecialNode.node.nodeSize;
+              decorations.push(
+                Decoration.node(foundSpecialNode.pos, nodeEnd, {
+                  class: "history-diff-node-added",
+                }),
+              );
+            } else {
+              decorations.push(
+                Decoration.inline(change.fromB, change.toB, {
+                  class: "history-diff-added",
+                }),
+              );
+            }
             addedCount += 1;
           }
           if (change.toA > change.fromA) {
-            const deletedText = docOld.textBetween(change.fromA, change.toA, "");
-            if (deletedText) {
+            let foundDeletedNode: { node: Node; pos: number } | null = null;
+            docOld.nodesBetween(change.fromA, change.toA, (node, pos) => {
+              if (specialNodeTypes.has(node.type.name)) {
+                foundDeletedNode = { node, pos };
+                return false;
+              }
+            });
+
+            if (foundDeletedNode) {
               decorations.push(
                 Decoration.widget(change.fromB, () => {
                   const span = document.createElement("span");
-                  span.className = "history-diff-deleted";
-                  span.textContent = deletedText;
+                  span.className = "history-diff-node-deleted";
+                  span.textContent = `[${foundDeletedNode!.node.type.name} removed]`;
                   return span;
                 }),
               );
+            } else {
+              const deletedText = docOld.textBetween(
+                change.fromA,
+                change.toA,
+                "",
+              );
+              if (deletedText) {
+                decorations.push(
+                  Decoration.widget(change.fromB, () => {
+                    const span = document.createElement("span");
+                    span.className = "history-diff-deleted";
+                    span.textContent = deletedText;
+                    return span;
+                  }),
+                );
+              }
             }
             deletedCount += 1;
           }
@@ -104,7 +159,8 @@ export function HistoryEditor({
     editor.setOptions({
       editorProps: {
         ...editor.options.editorProps,
-        decorations: () => (highlightChanges ? decorationSet : DecorationSet.empty),
+        decorations: () =>
+          highlightChanges ? decorationSet : DecorationSet.empty,
       },
     });
   }, [title, content, editor, previousContent, highlightChanges]);
