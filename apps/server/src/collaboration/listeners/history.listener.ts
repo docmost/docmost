@@ -25,7 +25,7 @@ export class HistoryListener {
     const pageCreationTime = new Date(page.createdAt).getTime();
     const currentTime = Date.now();
     const FIVE_MINUTES = this.environmentService.isDevelopment()
-      ? 30 * 1000
+      ? 60 * 1000
       : 5 * 60 * 1000;
 
     if (currentTime - pageCreationTime < FIVE_MINUTES) {
