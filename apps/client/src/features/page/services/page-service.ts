@@ -72,22 +72,19 @@ export async function getSidebarPages(
 export async function getAllSidebarPages(
   params: SidebarPagesParams,
 ): Promise<InfiniteData<IPagination<IPage>, unknown>> {
-  let page = 1;
-  let hasNextPage = false;
+  let cursor: string | undefined = undefined;
   const pages: IPagination<IPage>[] = [];
-  const pageParams: number[] = [];
+  const pageParams: (string | undefined)[] = [];
 
   do {
-    const req = await api.post("/pages/sidebar-pages", { ...params, page: page });
+    const req = await api.post("/pages/sidebar-pages", { ...params, cursor });
 
     const data: IPagination<IPage> = req.data;
     pages.push(data);
-    pageParams.push(page);
+    pageParams.push(cursor);
 
-    hasNextPage = data.meta.hasNextPage;
-
-    page += 1;
-  } while (hasNextPage);
+    cursor = data.meta.nextCursor ?? undefined;
+  } while (cursor);
 
   return {
     pageParams,

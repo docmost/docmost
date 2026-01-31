@@ -9,7 +9,7 @@ import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { sql } from 'kysely';
 import { GroupUser, InsertableGroupUser } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
@@ -52,8 +52,7 @@ export class GroupUserRepo {
       .selectFrom('groupUsers')
       .innerJoin('users', 'users.id', 'groupUsers.userId')
       .selectAll('users')
-      .where('groupId', '=', groupId)
-      .orderBy('createdAt', 'asc');
+      .where('groupId', '=', groupId);
 
     if (pagination.query) {
       query = query.where((eb) =>
@@ -61,9 +60,12 @@ export class GroupUserRepo {
       );
     }
 
-    const result = await executeWithPagination(query, {
-      page: pagination.page,
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'users.id', direction: 'asc', key: 'id' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
 
     result.items.map((user) => {

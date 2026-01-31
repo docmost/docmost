@@ -1,19 +1,8 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 
-export function usePaginateAndSearch(initialQuery: string = "") {
-  const [search, setSearch] = useState(initialQuery);
+export function useCursorPaginate() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([]);
-  const prevSearchRef = useRef(search);
-
-  const handleSearch = useCallback((newQuery: string) => {
-    if (prevSearchRef.current !== newQuery) {
-      prevSearchRef.current = newQuery;
-      setSearch(newQuery);
-      setCursor(undefined);
-      setCursorStack([]);
-    }
-  }, []);
 
   const goNext = useCallback((nextCursor: string | null | undefined) => {
     if (nextCursor) {
@@ -30,5 +19,10 @@ export function usePaginateAndSearch(initialQuery: string = "") {
     });
   }, []);
 
-  return { search, cursor, goNext, goPrev, handleSearch };
+  const resetCursor = useCallback(() => {
+    setCursor(undefined);
+    setCursorStack([]);
+  }, []);
+
+  return { cursor, goNext, goPrev, resetCursor };
 }

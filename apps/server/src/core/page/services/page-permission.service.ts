@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import {
+  PagePermissionMember,
+  PagePermissionRepo,
+} from '@docmost/db/repos/page/page-permission.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import {
   AddPagePermissionDto,
@@ -25,6 +28,10 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
+import {
+  CursorPaginationResult,
+  emptyCursorPaginationResult,
+} from '@docmost/db/pagination/cursor-pagination';
 
 export type PageRestrictionInfo = {
   id: string;
@@ -313,7 +320,7 @@ export class PagePermissionService {
     pageId: string,
     authUser: User,
     pagination: PaginationOptions,
-  ) {
+  ): Promise<CursorPaginationResult<PagePermissionMember>> {
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -337,15 +344,7 @@ export class PagePermissionService {
     const pageAccess =
       await this.pagePermissionRepo.findPageAccessByPageId(pageId);
     if (!pageAccess) {
-      return {
-        items: [],
-        meta: {
-          limit: pagination.limit,
-          page: 1,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-      };
+      return emptyCursorPaginationResult(pagination.limit);
     }
 
     return this.pagePermissionRepo.getPagePermissionsPaginated(

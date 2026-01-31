@@ -11,9 +11,9 @@ import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo'
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import {
-  executeWithPagination,
-  PaginationResult,
-} from '@docmost/db/pagination/pagination';
+  CursorPaginationResult,
+  executeWithCursorPagination,
+} from '@docmost/db/pagination/cursor-pagination';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
@@ -238,7 +238,7 @@ export class PageService {
     pagination: PaginationOptions,
     pageId?: string,
     userId?: string,
-  ): Promise<any> {
+  ): Promise<CursorPaginationResult<Partial<Page> & { hasChildren: boolean }>> {
     let query = this.db
       .selectFrom('pages')
       .select([
@@ -253,7 +253,6 @@ export class PageService {
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
-      .orderBy('position', (ob) => ob.collate('C').asc())
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 
@@ -263,9 +262,18 @@ export class PageService {
       query = query.where('parentPageId', 'is', null);
     }
 
-    const result = await executeWithPagination(query, {
-      page: pagination.page,
+    const result = await executeWithCursorPagination(query, {
       perPage: 250,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({
+        position: cursor.position,
+        id: cursor.id,
+      }),
     });
 
     if (userId && result.items.length > 0) {
@@ -713,7 +721,7 @@ export class PageService {
     spaceId: string,
     userId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
+  ): Promise<CursorPaginationResult<Page>> {
     const result = await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
 
     if (result.items.length > 0) {
@@ -733,7 +741,7 @@ export class PageService {
   async getRecentPages(
     userId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
+  ): Promise<CursorPaginationResult<Page>> {
     const result = await this.pageRepo.getRecentPages(userId, pagination);
 
     if (result.items.length > 0) {
@@ -753,8 +761,8 @@ export class PageService {
   async getDeletedSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Page>> {
-    return await this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
+  ): Promise<CursorPaginationResult<Page>> {
+    return this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
   }
 
   async forceDelete(pageId: string, workspaceId: string): Promise<void> {

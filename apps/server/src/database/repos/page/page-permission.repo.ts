@@ -9,18 +9,22 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
 import { ExpressionBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
-import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { DB } from '@docmost/db/types/db';
+import {
+  CursorPaginationResult,
+  executeWithCursorPagination,
+} from '@docmost/db/pagination/cursor-pagination';
+import { PagePermissionMember } from './types/page-permission.types';
+
+export { PagePermissionMember } from './types/page-permission.types';
 
 @Injectable()
 export class PagePermissionRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly groupRepo: GroupRepo,
-    private readonly groupUserRepo: GroupUserRepo,
   ) {}
 
   async findPageAccessByPageId(
@@ -184,8 +188,8 @@ export class PagePermissionRepo {
   async getPagePermissionsPaginated(
     pageAccessId: string,
     pagination: PaginationOptions,
-  ) {
-    let query = this.db
+  ): Promise<CursorPaginationResult<PagePermissionMember>> {
+    let baseQuery = this.db
       .selectFrom('pagePermissions')
       .leftJoin('users', 'users.id', 'pagePermissions.userId')
       .leftJoin('groups', 'groups.id', 'pagePermissions.groupId')
@@ -202,12 +206,19 @@ export class PagePermissionRepo {
         'groups.isDefault as groupIsDefault',
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
-      .where('pageAccessId', '=', pageAccessId)
-      .orderBy((eb) => eb('groups.id', 'is not', null), 'desc')
-      .orderBy('pagePermissions.createdAt', 'asc');
+      .select((eb) =>
+        eb
+          .case()
+          .when('groups.id', 'is not', null)
+          .then(1)
+          .else(0)
+          .end()
+          .as('isGroup'),
+      )
+      .where('pageAccessId', '=', pageAccessId);
 
     if (pagination.query) {
-      query = query.where((eb) =>
+      baseQuery = baseQuery.where((eb) =>
         eb(
           sql`f_unaccent(users.name)`,
           'ilike',
@@ -226,12 +237,22 @@ export class PagePermissionRepo {
       );
     }
 
-    const result = await executeWithPagination(query, {
-      page: pagination.page,
+    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'sub.isGroup', direction: 'desc', key: 'isGroup' },
+        { expression: 'sub.id', direction: 'asc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        isGroup: parseInt(cursor.isGroup, 10),
+        id: cursor.id,
+      }),
     });
 
-    const members = result.items.map((member) => {
+    const items: PagePermissionMember[] = result.items.map((member) => {
       if (member.userId) {
         return {
           id: member.userId,
@@ -255,8 +276,7 @@ export class PagePermissionRepo {
       }
     });
 
-    result.items = members as any;
-    return result;
+    return { items, meta: result.meta };
   }
 
   async getUserPagePermission(

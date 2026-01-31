@@ -21,9 +21,9 @@ import MemberActionMenu from "@/features/workspace/components/members/components
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
-  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
   const { data, isLoading } = useWorkspaceMembersQuery({
-    page,
+    cursor,
     limit: 100,
     query: search,
   });
@@ -111,10 +111,10 @@ export default function WorkspaceMembersTable() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
     </>
