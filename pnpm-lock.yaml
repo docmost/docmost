@@ -168,6 +168,9 @@ importers:
       ms:
         specifier: 3.0.0-canary.1
         version: 3.0.0-canary.1
+      prosemirror-changeset:
+        specifier: 2.3.1
+        version: 2.3.1
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4

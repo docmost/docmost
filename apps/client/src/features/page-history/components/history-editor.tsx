@@ -7,7 +7,8 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { computeHistoryBlockDiff } from "@/features/page-history/utils/history-diff";
 import classes from "./history-diff.module.css";
 import historyClasses from "./history.module.css";
-
+import { recreateTransform } from "@docmost/editor-ext";
+import { Node, Schema, DOMSerializer } from "@tiptap/pm/model";
 
 export interface HistoryEditorProps {
   title: string;
@@ -32,6 +33,37 @@ export function HistoryEditor({
     added: 0,
     deleted: 0,
   });
+
+  useEffect(() => {
+    if (editor && previousContent && content) {
+      const schema = editor.schema;
+
+      try {
+        console.log(
+          "previousContent type:",
+          previousContent?.type,
+          "content type:",
+          content?.type,
+        );
+        const docOld = Node.fromJSON(schema, previousContent);
+        const docNew = Node.fromJSON(schema, content);
+
+        const t0 = performance.now();
+        const transform = recreateTransform(docOld, docNew, {
+          complexSteps: true,
+          wordDiffs: true,
+          simplifyDiff: true,
+        });
+        console.log(
+          `recreateTransform: ${(performance.now() - t0).toFixed(3)}ms`,
+        );
+
+        //console.log(transform);
+      } catch (e) {
+        console.error("Node.fromJSON failed:", e);
+      }
+    }
+  }, [editor]);
 
   useEffect(() => {
     if (editor && content) {

@@ -69,6 +69,7 @@
     "linkifyjs": "^4.3.2",
     "marked": "13.0.3",
     "ms": "3.0.0-canary.1",
+    "prosemirror-changeset": "2.3.1",
     "qrcode": "^1.5.4",
     "uuid": "^11.1.0",
     "y-indexeddb": "^9.0.12",
