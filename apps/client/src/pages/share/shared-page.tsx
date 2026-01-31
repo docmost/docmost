@@ -27,7 +27,7 @@ export default function SharedPage() {
   useEffect(() => {
     if (shareId && data) {
       if (data.share.key !== shareId) {
-        // Verifica se a página atual faz parte da árvore de compartilhamento ativa (sidebar) - Se fizer parte, não redirecionamos, mantendo a sidebar visível
+
         // Check if the current page is part of the active sharing tree (sidebar) - If we are part of it, we will not redirect, keeping the sidebar visible.
         const isPartOfTree =
           sharedTreeData && isPageInTree(sharedTreeData, data.page.slugId);
