@@ -1,14 +1,23 @@
 import { usePageHistoryQuery } from "@/features/page-history/queries/page-history-query";
-import { HistoryEditor } from "@/features/page-history/components/history-editor";
+import {
+  DiffCounts,
+  HistoryEditor,
+} from "@/features/page-history/components/history-editor";
 import { useTranslation } from "react-i18next";
 
 interface HistoryProps {
   historyId: string;
   prevHistoryId?: string;
   highlightChanges?: boolean;
+  onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
-function HistoryView({ historyId, prevHistoryId, highlightChanges }: HistoryProps) {
+function HistoryView({
+  historyId,
+  prevHistoryId,
+  highlightChanges,
+  onDiffCalculated,
+}: HistoryProps) {
   const { t } = useTranslation();
   const {
     data,
@@ -37,6 +46,7 @@ function HistoryView({ historyId, prevHistoryId, highlightChanges }: HistoryProp
           title={data.title}
           previousContent={!isErrorPrev ? prevData?.content : undefined}
           highlightChanges={highlightChanges}
+          onDiffCalculated={onDiffCalculated}
         />
       </div>
     )

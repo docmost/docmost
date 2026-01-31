@@ -1,4 +1,5 @@
-import { Paper, ScrollArea, Switch } from "@mantine/core";
+import { Badge, Group, Paper, ScrollArea, Switch } from "@mantine/core";
+import { DiffCounts } from "@/features/page-history/components/history-editor";
 import HistoryList from "@/features/page-history/components/history-list";
 import classes from "./history.module.css";
 import { useAtom } from "jotai";
@@ -19,6 +20,7 @@ export default function HistoryModalBody({ pageId }: Props) {
     activeHistoryPrevIdAtom,
   );
   const [highlightChanges, setHighlightChanges] = useState(true);
+  const [diffCounts, setDiffCounts] = useState<DiffCounts | null>(null);
 
   useEffect(() => {
     setActiveHistoryId("");
@@ -41,6 +43,7 @@ export default function HistoryModalBody({ pageId }: Props) {
                 historyId={activeHistoryId}
                 prevHistoryId={activeHistoryPrevId}
                 highlightChanges={highlightChanges}
+                onDiffCalculated={setDiffCounts}
               />
             )}
           </div>
@@ -59,11 +62,23 @@ export default function HistoryModalBody({ pageId }: Props) {
               transform: "translateX(-50%)",
             }}
           >
-            <Switch
-              label="Highlight changes"
-              checked={highlightChanges}
-              onChange={(e) => setHighlightChanges(e.currentTarget.checked)}
-            />
+            <Group gap="md">
+              {diffCounts && (
+                <Group gap="xs">
+                  <Badge variant="light" color="green" size="sm">
+                    +{diffCounts.added}
+                  </Badge>
+                  <Badge variant="light" color="red" size="sm">
+                    -{diffCounts.deleted}
+                  </Badge>
+                </Group>
+              )}
+              <Switch
+                label="Highlight changes"
+                checked={highlightChanges}
+                onChange={(e) => setHighlightChanges(e.currentTarget.checked)}
+              />
+            </Group>
           </Paper>
         )}
       </div>

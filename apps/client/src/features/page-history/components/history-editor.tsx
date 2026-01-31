@@ -1,20 +1,22 @@
 import "@/features/editor/styles/index.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
-import { Badge, Divider, Group, Text, Title } from "@mantine/core";
+import { Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import classes from "./history-diff.module.css";
 import historyClasses from "./history.module.css";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
+
+export type DiffCounts = { added: number; deleted: number };
 
 export interface HistoryEditorProps {
   title: string;
   content: any;
   previousContent?: any;
   highlightChanges?: boolean;
+  onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
 export function HistoryEditor({
@@ -22,18 +24,11 @@ export function HistoryEditor({
   content,
   previousContent,
   highlightChanges = true,
+  onDiffCalculated,
 }: HistoryEditorProps) {
   const editor = useEditor({
     extensions: mainExtensions,
     editable: false,
-  });
-
-  const [diffCounts, setDiffCounts] = useState<{
-    added: number;
-    deleted: number;
-  }>({
-    added: 0,
-    deleted: 0,
   });
 
   useEffect(() => {
@@ -164,7 +159,7 @@ export function HistoryEditor({
       editor.commands.setContent(content);
     }
 
-    setDiffCounts({ added: addedCount, deleted: deletedCount });
+    onDiffCalculated?.({ added: addedCount, deleted: deletedCount });
 
     editor.setOptions({
       editorProps: {
@@ -176,38 +171,14 @@ export function HistoryEditor({
   }, [title, content, editor, previousContent, highlightChanges]);
 
   return (
-    <>
-      <div>
-        <Title order={1}>{title}</Title>
-
-        {previousContent && (
-          <>
-            <Divider my="md" />
-            <div className={classes.diffSummary}>
-              <Group gap="xs" wrap="wrap">
-                <Text fw={600}>Changes</Text>
-                <Badge variant="light" color="green">
-                  +{diffCounts.added} added
-                </Badge>
-                <Badge variant="light" color="red">
-                  -{diffCounts.deleted} deleted
-                </Badge>
-                <Text size="sm" c="dimmed">
-                  (added = green, deleted = red/strikethrough)
-                </Text>
-              </Group>
-            </div>
-            <Divider my="md" />
-          </>
-        )}
-
-        {editor && (
-          <EditorContent
-            editor={editor}
-            className={historyClasses.historyEditor}
-          />
-        )}
-      </div>
-    </>
+    <div>
+      <Title order={1}>{title}</Title>
+      {editor && (
+        <EditorContent
+          editor={editor}
+          className={historyClasses.historyEditor}
+        />
+      )}
+    </div>
   );
 }
