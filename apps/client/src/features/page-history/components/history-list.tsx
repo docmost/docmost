@@ -9,8 +9,16 @@ import {
   historyAtoms,
 } from "@/features/page-history/atoms/history-atoms";
 import { useAtom } from "jotai";
-import { useCallback, useEffect } from "react";
-import { Button, ScrollArea, Group, Divider, Text } from "@mantine/core";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  Button,
+  ScrollArea,
+  Group,
+  Divider,
+  Text,
+  Loader,
+  Center,
+} from "@mantine/core";
 import {
   pageEditorAtom,
   titleEditorAtom,
@@ -35,11 +43,21 @@ function HistoryList({ pageId }: Props) {
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const [, setActiveHistoryPrevId] = useAtom(activeHistoryPrevIdAtom);
   const {
-    data: pageHistoryList,
+    data: pageHistoryData,
     isLoading,
     isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = usePageHistoryListQuery(pageId);
   const { data: activeHistoryData } = usePageHistoryQuery(activeHistoryId);
+
+  const historyItems = useMemo(
+    () => pageHistoryData?.pages.flatMap((page) => page.items) ?? [],
+    [pageHistoryData],
+  );
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [mainEditor] = useAtom(pageEditorAtom);
   const [mainEditorTitle] = useAtom(titleEditorAtom);
@@ -82,15 +100,28 @@ function HistoryList({ pageId }: Props) {
   }, [activeHistoryData]);
 
   useEffect(() => {
-    if (
-      pageHistoryList &&
-      pageHistoryList.items.length > 0 &&
-      !activeHistoryId
-    ) {
-      setActiveHistoryId(pageHistoryList.items[0].id);
-      setActiveHistoryPrevId(pageHistoryList.items[1]?.id ?? "");
+    if (historyItems.length > 0 && !activeHistoryId) {
+      setActiveHistoryId(historyItems[0].id);
+      setActiveHistoryPrevId(historyItems[1]?.id ?? "");
     }
-  }, [pageHistoryList, activeHistoryId, setActiveHistoryId, setActiveHistoryPrevId]);
+  }, [historyItems, activeHistoryId, setActiveHistoryId, setActiveHistoryPrevId]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (isLoading) {
     return <></>;
@@ -100,27 +131,30 @@ function HistoryList({ pageId }: Props) {
     return <div>{t("Error loading page history.")}</div>;
   }
 
-  if (!pageHistoryList || pageHistoryList.items.length === 0) {
+  if (historyItems.length === 0) {
     return <>{t("No page history saved yet.")}</>;
   }
 
   return (
     <div>
       <ScrollArea h={620} w="100%" type="scroll" scrollbarSize={5}>
-        {pageHistoryList &&
-          pageHistoryList.items.map((historyItem, index) => (
-            <HistoryItem
-              key={historyItem.id}
-              historyItem={historyItem}
-              onSelect={(id) => {
-                setActiveHistoryId(id);
-                setActiveHistoryPrevId(
-                  pageHistoryList.items[index + 1]?.id ?? "",
-                );
-              }}
-              isActive={historyItem.id === activeHistoryId}
-            />
-          ))}
+        {historyItems.map((historyItem, index) => (
+          <HistoryItem
+            key={historyItem.id}
+            historyItem={historyItem}
+            onSelect={(id) => {
+              setActiveHistoryId(id);
+              setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
+            }}
+            isActive={historyItem.id === activeHistoryId}
+          />
+        ))}
+        {hasNextPage && <div ref={loadMoreRef} style={{ height: 1 }} />}
+        {isFetchingNextPage && (
+          <Center py="sm">
+            <Loader size="sm" />
+          </Center>
+        )}
       </ScrollArea>
 
       {spaceAbility.cannot(

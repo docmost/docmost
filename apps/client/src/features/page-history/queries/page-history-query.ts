@@ -1,4 +1,10 @@
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  UseInfiniteQueryResult,
+  useQuery,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import {
   getPageHistoryById,
   getPageHistoryList,
@@ -8,12 +14,14 @@ import { IPagination } from "@/lib/types.ts";
 
 export function usePageHistoryListQuery(
   pageId: string,
-): UseQueryResult<IPagination<IPageHistory>, Error> {
-  return useQuery({
+): UseInfiniteQueryResult<InfiniteData<IPagination<IPageHistory>, unknown>> {
+  return useInfiniteQuery({
     queryKey: ["page-history-list", pageId],
-    queryFn: () => getPageHistoryList(pageId),
+    queryFn: ({ pageParam }) => getPageHistoryList(pageId, pageParam),
     enabled: !!pageId,
     gcTime: 0,
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
   });
 }
 
