@@ -11,6 +11,17 @@ import {
 } from "@/features/page-history/services/page-history-service";
 import { IPageHistory } from "@/features/page-history/types/page.types";
 import { IPagination } from "@/lib/types.ts";
+import { queryClient } from "@/main";
+
+const HISTORY_STALE_TIME = 10 * 60 * 1000;
+
+export function prefetchPageHistory(historyId: string) {
+  return queryClient.prefetchQuery({
+    queryKey: ["page-history", historyId],
+    queryFn: () => getPageHistoryById(historyId),
+    staleTime: HISTORY_STALE_TIME,
+  });
+}
 
 export function usePageHistoryListQuery(
   pageId: string,
@@ -32,6 +43,6 @@ export function usePageHistoryQuery(
     queryKey: ["page-history", historyId],
     queryFn: () => getPageHistoryById(historyId),
     enabled: !!historyId,
-    staleTime: 10 * 60 * 1000,
+    staleTime: HISTORY_STALE_TIME,
   });
 }

@@ -1,9 +1,8 @@
 import {
   usePageHistoryListQuery,
   usePageHistoryQuery,
+  prefetchPageHistory,
 } from "@/features/page-history/queries/page-history-query";
-import { getPageHistoryById } from "@/features/page-history/services/page-history-service";
-import { queryClient } from "@/main";
 import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,
@@ -36,7 +35,7 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 
-const PREFETCH_DELAY_MS = 300;
+const PREFETCH_DELAY_MS = 150;
 
 interface Props {
   pageId: string;
@@ -111,15 +110,19 @@ function HistoryList({ pageId }: Props) {
     }
   }, []);
 
-  const handleHover = useCallback((historyId: string) => {
-    clearPrefetchTimeout();
-    prefetchTimeoutRef.current = setTimeout(() => {
-      queryClient.prefetchQuery({
-        queryKey: ["page-history", historyId],
-        queryFn: () => getPageHistoryById(historyId),
-      });
-    }, PREFETCH_DELAY_MS);
-  }, [clearPrefetchTimeout]);
+  const handleHover = useCallback(
+    (historyId: string, index: number) => {
+      clearPrefetchTimeout();
+      prefetchTimeoutRef.current = setTimeout(() => {
+        prefetchPageHistory(historyId);
+        const prevId = historyItems[index + 1]?.id;
+        if (prevId) {
+          prefetchPageHistory(prevId);
+        }
+      }, PREFETCH_DELAY_MS);
+    },
+    [clearPrefetchTimeout, historyItems],
+  );
 
   useEffect(() => {
     return clearPrefetchTimeout;

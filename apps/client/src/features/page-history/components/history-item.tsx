@@ -10,7 +10,7 @@ interface HistoryItemProps {
   historyItem: IPageHistory;
   index: number;
   onSelect: (id: string, index: number) => void;
-  onHover?: (id: string) => void;
+  onHover?: (id: string, index: number) => void;
   onHoverEnd?: () => void;
   isActive: boolean;
 }
@@ -28,8 +28,8 @@ const HistoryItem = memo(function HistoryItem({
   }, [onSelect, historyItem.id, index]);
 
   const handleMouseEnter = useCallback(() => {
-    onHover?.(historyItem.id);
-  }, [onHover, historyItem.id]);
+    onHover?.(historyItem.id, index);
+  }, [onHover, historyItem.id, index]);
 
   return (
     <UnstyledButton
