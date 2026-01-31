@@ -6,6 +6,8 @@ import { Badge, Divider, Group, Text, Title } from "@mantine/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { computeHistoryBlockDiff } from "@/features/page-history/utils/history-diff";
 import classes from "./history-diff.module.css";
+import historyClasses from "./history.module.css";
+
 
 export interface HistoryEditorProps {
   title: string;
@@ -23,7 +25,10 @@ export function HistoryEditor({
     editable: false,
   });
 
-  const [diffCounts, setDiffCounts] = useState<{ added: number; deleted: number }>({
+  const [diffCounts, setDiffCounts] = useState<{
+    added: number;
+    deleted: number;
+  }>({
     added: 0,
     deleted: 0,
   });
@@ -58,7 +63,10 @@ export function HistoryEditor({
             Decoration.node(r.from, r.to, { class: "history-diff-deleted" }),
           );
 
-          decorationSet = DecorationSet.create(diffDoc, [...decos, ...deletedDecos]);
+          decorationSet = DecorationSet.create(diffDoc, [
+            ...decos,
+            ...deletedDecos,
+          ]);
         } catch {
           decorationSet = DecorationSet.empty;
           addedCount = 0;
@@ -83,7 +91,7 @@ export function HistoryEditor({
 
   return (
     <>
-      <div className={classes.container}>
+      <div>
         <Title order={1}>{title}</Title>
 
         {previousContent && (
@@ -108,7 +116,10 @@ export function HistoryEditor({
         )}
 
         {editor && (
-          <EditorContent editor={editor} className={classes.historyEditor} />
+          <EditorContent
+            editor={editor}
+            className={historyClasses.historyEditor}
+          />
         )}
       </div>
     </>

@@ -26,12 +26,12 @@
 }
 
 .sidebar {
-    max-height: rem(700px);
-    width: rem(250px);
-    padding: var(--mantine-spacing-sm);
-    display: flex;
-    flex-direction: column;
-    border-right: rem(1px) solid
+  max-height: rem(700px);
+  width: rem(250px);
+  padding: var(--mantine-spacing-sm);
+  display: flex;
+  flex-direction: column;
+  border-right: rem(1px) solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }
 
@@ -44,6 +44,6 @@
 }
 
 .sidebarRightSection {
-    flex: 1;
-    padding: rem(16px) rem(40px);
+  flex: 1;
+  padding: rem(16px) rem(40px);
 }

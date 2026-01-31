@@ -745,13 +745,13 @@ importers:
   packages/editor-ext:
     dependencies:
       diff:
-        specifier: ^8.0.3
+        specifier: 8.0.3
         version: 8.0.3
       prosemirror-changeset:
-        specifier: ^2.3.1
+        specifier: 2.3.1
         version: 2.3.1
       rfc6902:
-        specifier: ^5.1.2
+        specifier: 5.1.2
         version: 5.1.2
 
 packages:

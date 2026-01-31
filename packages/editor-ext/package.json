@@ -10,8 +10,8 @@
   "module": "./src/index.ts",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "diff": "^8.0.3",
-    "prosemirror-changeset": "^2.3.1",
-    "rfc6902": "^5.1.2"
+    "diff": "8.0.3",
+    "prosemirror-changeset": "2.3.1",
+    "rfc6902": "5.1.2"
   }
 }
