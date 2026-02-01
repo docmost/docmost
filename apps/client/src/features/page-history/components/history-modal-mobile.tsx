@@ -58,8 +58,15 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
 
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const dropdownViewportRef = useRef<HTMLDivElement>(null);
 
-  const { data: pageHistoryData, isLoading } = usePageHistoryListQuery(pageId);
+  const {
+    data: pageHistoryData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePageHistoryListQuery(pageId);
   const { data: activeHistoryData } = usePageHistoryQuery(activeHistoryId);
 
   const historyItems = useMemo(
@@ -112,6 +119,18 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
       setCurrentChangeIndex(0);
     }
   }, [diffCounts]);
+
+  const handleDropdownScroll = useCallback(() => {
+    const viewport = dropdownViewportRef.current;
+    if (!viewport || !hasNextPage || isFetchingNextPage) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = viewport;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50;
+
+    if (isNearBottom) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const scrollToChangeIndex = (index: number) => {
     const viewport = scrollViewportRef.current;
@@ -212,6 +231,10 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
               </Group>
             )}
             comboboxProps={{ withinPortal: false }}
+            scrollAreaProps={{
+              viewportRef: dropdownViewportRef,
+              onScrollPositionChange: handleDropdownScroll,
+            }}
             style={{ flex: 1 }}
           />
           {diffCounts && (
