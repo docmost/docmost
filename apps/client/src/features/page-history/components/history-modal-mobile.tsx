@@ -10,7 +10,7 @@ import {
   Switch,
   Text,
 } from "@mantine/core";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   activeHistoryIdAtom,
   activeHistoryPrevIdAtom,
@@ -19,28 +19,17 @@ import {
   historyAtoms,
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import {
-  usePageHistoryListQuery,
-  usePageHistoryQuery,
-} from "@/features/page-history/queries/page-history-query";
+import { usePageHistoryListQuery } from "@/features/page-history/queries/page-history-query";
 import { formattedDate } from "@/lib/time";
 import {
-  pageEditorAtom,
-  titleEditorAtom,
-} from "@/features/editor/atoms/editor-atoms";
-import { modals } from "@mantine/modals";
-import { notifications } from "@mantine/notifications";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability";
-import { useSpaceQuery } from "@/features/space/queries/space-query";
-import { useParams } from "react-router-dom";
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from "@/features/space/permissions/permissions.type";
-import classes from "./history-mobile.module.css";
+  useDiffNavigation,
+  useHistoryReset,
+  useHistoryRestore,
+} from "@/features/page-history/hooks";
+import classes from "./css/history-mobile.module.css";
 
 interface Props {
   pageId: string;
@@ -51,12 +40,11 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   const { t } = useTranslation();
 
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
-  const [, setActiveHistoryPrevId] = useAtom(activeHistoryPrevIdAtom);
+  const setActiveHistoryPrevId = useSetAtom(activeHistoryPrevIdAtom);
   const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
-  const [diffCounts, setDiffCounts] = useAtom(diffCountsAtom);
-  const [, setHistoryModalOpen] = useAtom(historyAtoms);
+  const diffCounts = useAtomValue(diffCountsAtom);
+  const setHistoryModalOpen = useSetAtom(historyAtoms);
 
-  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const dropdownViewportRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +55,6 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
     hasNextPage,
     isFetchingNextPage,
   } = usePageHistoryListQuery(pageId);
-  const { data: activeHistoryData } = usePageHistoryQuery(activeHistoryId);
 
   const historyItems = useMemo(
     () => pageHistoryData?.pages.flatMap((page) => page.items) ?? [],
@@ -84,41 +71,22 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
     [historyItems],
   );
 
-  const [mainEditor] = useAtom(pageEditorAtom);
-  const [mainEditorTitle] = useAtom(titleEditorAtom);
-
-  const { spaceSlug } = useParams();
-  const { data: space } = useSpaceQuery(spaceSlug);
-  const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useSpaceAbility(spaceRules);
-
-  const canRestore = spaceAbility.can(
-    SpaceCaslAction.Manage,
-    SpaceCaslSubject.Page,
-  );
-
-  useEffect(() => {
-    setActiveHistoryId("");
-    setActiveHistoryPrevId("");
-    // @ts-ignore
-    setDiffCounts(null);
-  }, [pageId]);
+  useHistoryReset(pageId);
+  const { canRestore, confirmRestore } = useHistoryRestore();
+  const { currentChangeIndex, handlePrevChange, handleNextChange } =
+    useDiffNavigation(scrollViewportRef);
 
   useEffect(() => {
     if (historyItems.length > 0 && !activeHistoryId) {
       setActiveHistoryId(historyItems[0].id);
       setActiveHistoryPrevId(historyItems[1]?.id ?? "");
     }
-  }, [historyItems, activeHistoryId]);
-
-  useEffect(() => {
-    if (diffCounts && diffCounts.total > 0) {
-      setCurrentChangeIndex(1);
-      requestAnimationFrame(() => scrollToChangeIndex(1));
-    } else {
-      setCurrentChangeIndex(0);
-    }
-  }, [diffCounts]);
+  }, [
+    historyItems,
+    activeHistoryId,
+    setActiveHistoryId,
+    setActiveHistoryPrevId,
+  ]);
 
   const handleDropdownScroll = useCallback(() => {
     const viewport = dropdownViewportRef.current;
@@ -132,35 +100,6 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const scrollToChangeIndex = (index: number) => {
-    const viewport = scrollViewportRef.current;
-    if (!viewport || index < 1) return;
-    const element = viewport.querySelector(`[data-diff-index="${index}"]`);
-    if (element instanceof HTMLElement) {
-      const elementTop = element.offsetTop;
-      const viewportHeight = viewport.clientHeight;
-      const scrollTarget =
-        elementTop - viewportHeight / 2 + element.offsetHeight / 2;
-      viewport.scrollTo({ top: scrollTarget, behavior: "smooth" });
-    }
-  };
-
-  const handlePrevChange = () => {
-    if (!diffCounts || diffCounts.total === 0) return;
-    const newIndex =
-      currentChangeIndex <= 1 ? diffCounts.total : currentChangeIndex - 1;
-    setCurrentChangeIndex(newIndex);
-    scrollToChangeIndex(newIndex);
-  };
-
-  const handleNextChange = () => {
-    if (!diffCounts || diffCounts.total === 0) return;
-    const newIndex =
-      currentChangeIndex >= diffCounts.total ? 1 : currentChangeIndex + 1;
-    setCurrentChangeIndex(newIndex);
-    scrollToChangeIndex(newIndex);
-  };
-
   const handleSelectVersion = useCallback(
     (value: string | null) => {
       if (!value) return;
@@ -170,39 +109,8 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
         setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
       }
     },
-    [historyItems],
+    [historyItems, setActiveHistoryId, setActiveHistoryPrevId],
   );
-
-  const confirmRestore = () =>
-    modals.openConfirmModal({
-      title: t("Please confirm your action"),
-      children: (
-        <Text size="sm">
-          {t(
-            "Are you sure you want to restore this version? Any changes not versioned will be lost.",
-          )}
-        </Text>
-      ),
-      labels: { confirm: t("Confirm"), cancel: t("Cancel") },
-      onConfirm: handleRestore,
-    });
-
-  const handleRestore = useCallback(() => {
-    if (activeHistoryData) {
-      mainEditorTitle
-        .chain()
-        .clearContent()
-        .setContent(activeHistoryData.title, { emitUpdate: true })
-        .run();
-      mainEditor
-        .chain()
-        .clearContent()
-        .setContent(activeHistoryData.content)
-        .run();
-      setHistoryModalOpen(false);
-      notifications.show({ message: t("Successfully restored") });
-    }
-  }, [activeHistoryData, mainEditor, mainEditorTitle, setHistoryModalOpen, t]);
 
   if (isLoading) {
     return null;

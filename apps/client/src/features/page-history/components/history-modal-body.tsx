@@ -8,8 +8,8 @@ import {
   Text,
 } from "@mantine/core";
 import HistoryList from "@/features/page-history/components/history-list";
-import classes from "./history.module.css";
-import { useAtom } from "jotai";
+import classes from "./css/history.module.css";
+import { useAtom, useAtomValue } from "jotai";
 import {
   activeHistoryIdAtom,
   activeHistoryPrevIdAtom,
@@ -17,9 +17,13 @@ import {
   highlightChangesAtom,
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { IconChevronUp, IconChevronDown } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import {
+  useDiffNavigation,
+  useHistoryReset,
+} from "@/features/page-history/hooks";
 
 interface Props {
   pageId: string;
@@ -27,60 +31,16 @@ interface Props {
 
 export default function HistoryModalBody({ pageId }: Props) {
   const { t } = useTranslation();
-  const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
-  const [activeHistoryPrevId, setActiveHistoryPrevId] = useAtom(
-    activeHistoryPrevIdAtom,
-  );
-  const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
-  const [diffCounts, setDiffCounts] = useAtom(diffCountsAtom);
-
-  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setActiveHistoryId("");
-    setActiveHistoryPrevId("");
-    // @ts-ignore
-    setDiffCounts(null);
-  }, [pageId]);
+  const activeHistoryId = useAtomValue(activeHistoryIdAtom);
+  const activeHistoryPrevId = useAtomValue(activeHistoryPrevIdAtom);
+  const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
+  const diffCounts = useAtomValue(diffCountsAtom);
 
-  useEffect(() => {
-    if (diffCounts && diffCounts.total > 0) {
-      setCurrentChangeIndex(1);
-      requestAnimationFrame(() => scrollToChangeIndex(1));
-    } else {
-      setCurrentChangeIndex(0);
-    }
-  }, [diffCounts]);
-
-  const scrollToChangeIndex = (index: number) => {
-    const viewport = scrollViewportRef.current;
-    if (!viewport || index < 1) return;
-    const element = viewport.querySelector(`[data-diff-index="${index}"]`);
-    if (element instanceof HTMLElement) {
-      const elementTop = element.offsetTop;
-      const viewportHeight = viewport.clientHeight;
-      const scrollTarget =
-        elementTop - viewportHeight / 2 + element.offsetHeight / 2;
-      viewport.scrollTo({ top: scrollTarget, behavior: "smooth" });
-    }
-  };
-
-  const handlePrevChange = () => {
-    if (!diffCounts || diffCounts.total === 0) return;
-    const newIndex =
-      currentChangeIndex <= 1 ? diffCounts.total : currentChangeIndex - 1;
-    setCurrentChangeIndex(newIndex);
-    scrollToChangeIndex(newIndex);
-  };
-
-  const handleNextChange = () => {
-    if (!diffCounts || diffCounts.total === 0) return;
-    const newIndex =
-      currentChangeIndex >= diffCounts.total ? 1 : currentChangeIndex + 1;
-    setCurrentChangeIndex(newIndex);
-    scrollToChangeIndex(newIndex);
-  };
+  useHistoryReset(pageId);
+  const { currentChangeIndex, handlePrevChange, handleNextChange } =
+    useDiffNavigation(scrollViewportRef);
 
   return (
     <div className={classes.sidebarFlex}>

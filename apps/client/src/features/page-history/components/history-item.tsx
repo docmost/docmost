@@ -1,7 +1,7 @@
 import { Text, Group, UnstyledButton } from "@mantine/core";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { formattedDate } from "@/lib/time";
-import classes from "./history.module.css";
+import classes from "./css/history.module.css";
 import clsx from "clsx";
 import { IPageHistory } from "@/features/page-history/types/page.types";
 import { memo, useCallback } from "react";
