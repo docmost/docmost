@@ -28,18 +28,15 @@ export default function HistoryModal({ pageId, pageTitle }: Props) {
           <Modal.Header>
             <Modal.Title>
               <Text size="md" fw={500}>
-                {pageTitle ? (
-                  <>
-                    {t("Version history for")} <Text span fw={700}>{pageTitle}</Text> {t("document")}
-                  </>
-                ) : (
-                  t("Page history")
-                )}
+                {t("Page history")}
               </Text>
             </Modal.Title>
             <Modal.CloseButton />
           </Modal.Header>
-          <Modal.Body p={0} style={{ height: "calc(100vh - 60px)", overflow: "hidden" }}>
+          <Modal.Body
+            p={0}
+            style={{ height: "calc(100vh - 60px)", overflow: "hidden" }}
+          >
             <HistoryModalMobile pageId={pageId} pageTitle={pageTitle} />
           </Modal.Body>
         </Modal.Content>

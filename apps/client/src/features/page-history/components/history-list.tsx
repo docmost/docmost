@@ -152,15 +152,15 @@ function HistoryList({ pageId }: Props) {
         <>
           <Divider />
           <Group p="xs" wrap="nowrap">
-            <Button size="compact-md" onClick={confirmRestore}>
-              {t("Restore")}
-            </Button>
             <Button
               variant="default"
               size="compact-md"
               onClick={() => setHistoryModalOpen(false)}
             >
               {t("Close")}
+            </Button>
+            <Button size="compact-md" onClick={confirmRestore}>
+              {t("Restore")}
             </Button>
           </Group>
         </>
