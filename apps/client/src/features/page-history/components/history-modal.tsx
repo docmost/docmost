@@ -46,7 +46,7 @@ export default function HistoryModal({ pageId, pageTitle }: Props) {
 
   return (
     <Modal.Root
-      size={1200}
+      size={1400}
       opened={isModalOpen}
       onClose={() => setModalOpen(false)}
     >

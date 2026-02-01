@@ -74,16 +74,16 @@ export default function HistoryModalBody({ pageId }: Props) {
               transform: "translateX(-50%)",
             }}
           >
-            <Group gap="md">
+            <Group gap="md" wrap="nowrap">
               <Switch
                 label={t("Highlight changes")}
                 checked={highlightChanges}
                 onChange={(e) => setHighlightChanges(e.currentTarget.checked)}
-                style={{ userSelect: "none" }}
+                styles={{ label: { userSelect: "none", whiteSpace: "nowrap" } }}
               />
               {highlightChanges && diffCounts && diffCounts.total > 0 && (
-                <Group gap="xs">
-                  <Text size="sm" c="dimmed">
+                <Group gap="xs" wrap="nowrap">
+                  <Text size="sm" c="dimmed" style={{ whiteSpace: "nowrap" }}>
                     {currentChangeIndex} of {diffCounts.total}
                   </Text>
                   <ActionIcon
