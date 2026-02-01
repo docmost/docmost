@@ -65,10 +65,10 @@ export default function HistoryModalBody({ pageId }: Props) {
             <Group gap="md">
               {diffCounts && (
                 <Group gap="xs">
-                  <Badge variant="light" color="green" size="sm">
+                  <Badge variant="filled" color="green" size="sm">
                     +{diffCounts.added}
                   </Badge>
-                  <Badge variant="light" color="red" size="sm">
+                  <Badge variant="filled" color="red" size="sm">
                     -{diffCounts.deleted}
                   </Badge>
                 </Group>
