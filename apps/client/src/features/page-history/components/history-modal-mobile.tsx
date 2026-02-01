@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  Badge,
   Box,
   Button,
   Group,
@@ -119,43 +118,30 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   return (
     <Box className={classes.container}>
       <Box className={classes.selectorWrapper}>
-        <Group gap="sm" wrap="nowrap">
-          <Select
-            data={selectData}
-            value={activeHistoryId}
-            onChange={handleSelectVersion}
-            placeholder={t("Select version")}
-            checkIconPosition="right"
-            maxDropdownHeight={300}
-            renderOption={({ option, checked }) => (
-              <Group justify="space-between" wrap="nowrap" w="100%">
-                <div>
-                  <Text size="sm">{option.label}</Text>
-                  <Text size="xs" c="dimmed">
-                    {(option as { userName?: string }).userName}
-                  </Text>
-                </div>
-                {checked && <IconCheck size={16} />}
-              </Group>
-            )}
-            comboboxProps={{ withinPortal: false }}
-            scrollAreaProps={{
-              viewportRef: dropdownViewportRef,
-              onScrollPositionChange: handleDropdownScroll,
-            }}
-            style={{ flex: 1 }}
-          />
-          {diffCounts && (
-            <Group gap={4} wrap="nowrap">
-              <Badge variant="filled" color="green" size="sm">
-                +{diffCounts.added}
-              </Badge>
-              <Badge variant="filled" color="red" size="sm">
-                -{diffCounts.deleted}
-              </Badge>
+        <Select
+          data={selectData}
+          value={activeHistoryId}
+          onChange={handleSelectVersion}
+          placeholder={t("Select version")}
+          checkIconPosition="right"
+          maxDropdownHeight={300}
+          renderOption={({ option, checked }) => (
+            <Group justify="space-between" wrap="nowrap" w="100%">
+              <div>
+                <Text size="sm">{option.label}</Text>
+                <Text size="xs" c="dimmed">
+                  {(option as { userName?: string }).userName}
+                </Text>
+              </div>
+              {checked && <IconCheck size={16} />}
             </Group>
           )}
-        </Group>
+          comboboxProps={{ withinPortal: false }}
+          scrollAreaProps={{
+            viewportRef: dropdownViewportRef,
+            onScrollPositionChange: handleDropdownScroll,
+          }}
+        />
       </Box>
 
       <ScrollArea

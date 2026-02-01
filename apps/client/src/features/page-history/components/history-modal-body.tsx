@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  Badge,
   Group,
   Paper,
   ScrollArea,
@@ -76,16 +75,6 @@ export default function HistoryModalBody({ pageId }: Props) {
             }}
           >
             <Group gap="md">
-              {diffCounts && (
-                <Group gap="xs">
-                  <Badge variant="filled" color="green" size="sm">
-                    +{diffCounts.added}
-                  </Badge>
-                  <Badge variant="filled" color="red" size="sm">
-                    -{diffCounts.deleted}
-                  </Badge>
-                </Group>
-              )}
               <Switch
                 label={t("Highlight changes")}
                 checked={highlightChanges}
