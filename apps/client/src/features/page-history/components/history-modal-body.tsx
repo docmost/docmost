@@ -31,7 +31,7 @@ export default function HistoryModalBody({ pageId }: Props) {
   );
   const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
   const [diffCounts] = useAtom(diffCountsAtom);
-  const setDiffCounts = useSetAtom(diffCountsAtom);
+  const [, setDiffCounts] = useAtom(diffCountsAtom);
 
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
@@ -39,6 +39,7 @@ export default function HistoryModalBody({ pageId }: Props) {
   useEffect(() => {
     setActiveHistoryId("");
     setActiveHistoryPrevId("");
+    // @ts-ignore
     setDiffCounts(null);
   }, [pageId]);
 
