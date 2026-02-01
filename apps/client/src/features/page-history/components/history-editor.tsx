@@ -9,24 +9,26 @@ import historyClasses from "./history.module.css";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
-
-export type DiffCounts = { added: number; deleted: number; total: number };
+import { useAtom } from "jotai";
+import {
+  diffCountsAtom,
+  highlightChangesAtom,
+} from "@/features/page-history/atoms/history-atoms";
 
 export interface HistoryEditorProps {
   title: string;
   content: any;
   previousContent?: any;
-  highlightChanges?: boolean;
-  onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
 export function HistoryEditor({
   title,
   content,
   previousContent,
-  highlightChanges = true,
-  onDiffCalculated,
 }: HistoryEditorProps) {
+  const [highlightChanges] = useAtom(highlightChangesAtom);
+  const [, setDiffCounts] = useAtom(diffCountsAtom);
+
   const editor = useEditor({
     extensions: mainExtensions,
     editable: false,
@@ -169,7 +171,8 @@ export function HistoryEditor({
     }
 
     const total = addedCount + deletedCount;
-    onDiffCalculated?.({ added: addedCount, deleted: deletedCount, total });
+    // @ts-ignore
+    setDiffCounts({ added: addedCount, deleted: deletedCount, total });
 
     editor.setOptions({
       editorProps: {
@@ -178,7 +181,14 @@ export function HistoryEditor({
           highlightChanges ? decorationSet : DecorationSet.empty,
       },
     });
-  }, [title, content, editor, previousContent, highlightChanges]);
+  }, [
+    title,
+    content,
+    editor,
+    previousContent,
+    highlightChanges,
+    setDiffCounts,
+  ]);
 
   return (
     <div>

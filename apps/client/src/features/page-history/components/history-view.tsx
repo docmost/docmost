@@ -1,24 +1,17 @@
 import { usePageHistoryQuery } from "@/features/page-history/queries/page-history-query";
-import {
-  DiffCounts,
-  HistoryEditor,
-} from "@/features/page-history/components/history-editor";
+import { HistoryEditor } from "@/features/page-history/components/history-editor";
 import { useTranslation } from "react-i18next";
+import { useAtomValue } from "jotai";
+import {
+  activeHistoryIdAtom,
+  activeHistoryPrevIdAtom,
+} from "@/features/page-history/atoms/history-atoms";
 
-interface HistoryProps {
-  historyId: string;
-  prevHistoryId?: string;
-  highlightChanges?: boolean;
-  onDiffCalculated?: (counts: DiffCounts) => void;
-}
-
-function HistoryView({
-  historyId,
-  prevHistoryId,
-  highlightChanges,
-  onDiffCalculated,
-}: HistoryProps) {
+function HistoryView() {
   const { t } = useTranslation();
+  const historyId = useAtomValue(activeHistoryIdAtom);
+  const prevHistoryId = useAtomValue(activeHistoryPrevIdAtom);
+
   const {
     data,
     isLoading: isLoadingCurrent,
@@ -28,7 +21,7 @@ function HistoryView({
     data: prevData,
     isLoading: isLoadingPrev,
     isError: isErrorPrev,
-  } = usePageHistoryQuery(prevHistoryId ?? "");
+  } = usePageHistoryQuery(prevHistoryId);
 
   if (isLoadingCurrent || isLoadingPrev) {
     return <></>;
@@ -39,17 +32,13 @@ function HistoryView({
   }
 
   return (
-    data && (
-      <div>
-        <HistoryEditor
-          content={data.content}
-          title={data.title}
-          previousContent={!isErrorPrev ? prevData?.content : undefined}
-          highlightChanges={highlightChanges}
-          onDiffCalculated={onDiffCalculated}
-        />
-      </div>
-    )
+    <div>
+      <HistoryEditor
+        content={data.content}
+        title={data.title}
+        previousContent={!isErrorPrev ? prevData?.content : undefined}
+      />
+    </div>
   );
 }
 

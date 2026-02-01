@@ -7,13 +7,14 @@ import {
   Switch,
   Text,
 } from "@mantine/core";
-import { DiffCounts } from "@/features/page-history/components/history-editor";
 import HistoryList from "@/features/page-history/components/history-list";
 import classes from "./history.module.css";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   activeHistoryIdAtom,
   activeHistoryPrevIdAtom,
+  diffCountsAtom,
+  highlightChangesAtom,
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
 import { useEffect, useRef, useState } from "react";
@@ -28,14 +29,17 @@ export default function HistoryModalBody({ pageId }: Props) {
   const [activeHistoryPrevId, setActiveHistoryPrevId] = useAtom(
     activeHistoryPrevIdAtom,
   );
-  const [highlightChanges, setHighlightChanges] = useState(true);
-  const [diffCounts, setDiffCounts] = useState<DiffCounts | null>(null);
+  const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
+  const [diffCounts] = useAtom(diffCountsAtom);
+  const setDiffCounts = useSetAtom(diffCountsAtom);
+
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setActiveHistoryId("");
     setActiveHistoryPrevId("");
+    setDiffCounts(null);
   }, [pageId]);
 
   useEffect(() => {
@@ -49,7 +53,8 @@ export default function HistoryModalBody({ pageId }: Props) {
     if (element instanceof HTMLElement) {
       const elementTop = element.offsetTop;
       const viewportHeight = viewport.clientHeight;
-      const scrollTarget = elementTop - viewportHeight / 2 + element.offsetHeight / 2;
+      const scrollTarget =
+        elementTop - viewportHeight / 2 + element.offsetHeight / 2;
       viewport.scrollTo({ top: scrollTarget, behavior: "smooth" });
     }
   };
@@ -79,16 +84,14 @@ export default function HistoryModalBody({ pageId }: Props) {
       </nav>
 
       <div style={{ position: "relative", flex: 1 }}>
-        <ScrollArea h={650} w="100%" scrollbarSize={5} viewportRef={scrollViewportRef}>
+        <ScrollArea
+          h={650}
+          w="100%"
+          scrollbarSize={5}
+          viewportRef={scrollViewportRef}
+        >
           <div className={classes.sidebarRightSection}>
-            {activeHistoryId && (
-              <HistoryView
-                historyId={activeHistoryId}
-                prevHistoryId={activeHistoryPrevId}
-                highlightChanges={highlightChanges}
-                onDiffCalculated={setDiffCounts}
-              />
-            )}
+            {activeHistoryId && <HistoryView />}
           </div>
         </ScrollArea>
 
