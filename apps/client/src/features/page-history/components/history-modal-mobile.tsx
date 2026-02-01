@@ -2,14 +2,12 @@ import {
   ActionIcon,
   Box,
   Button,
-  Combobox,
   Group,
-  InputBase,
   Paper,
   ScrollArea,
+  Select,
   Switch,
   Text,
-  useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import {
@@ -21,11 +19,7 @@ import {
 } from "@/features/page-history/atoms/history-atoms";
 import HistoryView from "@/features/page-history/components/history-view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  IconChevronDown,
-  IconChevronUp,
-  IconSelector,
-} from "@tabler/icons-react";
+import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   usePageHistoryListQuery,
@@ -54,9 +48,6 @@ interface Props {
 
 export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   const { t } = useTranslation();
-  const combobox = useCombobox({
-    onDropdownClose: () => combobox.resetSelectedOption(),
-  });
 
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const [, setActiveHistoryPrevId] = useAtom(activeHistoryPrevIdAtom);
@@ -73,6 +64,16 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   const historyItems = useMemo(
     () => pageHistoryData?.pages.flatMap((page) => page.items) ?? [],
     [pageHistoryData],
+  );
+
+  const selectData = useMemo(
+    () =>
+      historyItems.map((item) => ({
+        value: item.id,
+        label: formattedDate(new Date(item.createdAt)),
+        userName: item.lastUpdatedBy?.name,
+      })),
+    [historyItems],
   );
 
   const [mainEditor] = useAtom(pageEditorAtom);
@@ -141,15 +142,15 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   };
 
   const handleSelectVersion = useCallback(
-    (id: string) => {
-      const index = historyItems.findIndex((item) => item.id === id);
+    (value: string | null) => {
+      if (!value) return;
+      const index = historyItems.findIndex((item) => item.id === value);
       if (index >= 0) {
-        setActiveHistoryId(id);
+        setActiveHistoryId(value);
         setActiveHistoryPrevId(historyItems[index + 1]?.id ?? "");
       }
-      combobox.closeDropdown();
     },
-    [historyItems, combobox],
+    [historyItems],
   );
 
   const confirmRestore = () =>
@@ -183,24 +184,6 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
     }
   }, [activeHistoryData, mainEditor, mainEditorTitle, setHistoryModalOpen, t]);
 
-  const selectedItem = historyItems.find((item) => item.id === activeHistoryId);
-
-  const options = historyItems.map((item) => (
-    <Combobox.Option
-      value={item.id}
-      key={item.id}
-      className={classes.option}
-      active={item.id === activeHistoryId}
-    >
-      <div>
-        <Text size="sm">{formattedDate(new Date(item.createdAt))}</Text>
-        <Text size="xs" c="dimmed">
-          {item.lastUpdatedBy?.name}
-        </Text>
-      </div>
-    </Combobox.Option>
-  ));
-
   if (isLoading) {
     return null;
   }
@@ -208,39 +191,26 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
   return (
     <Box className={classes.container}>
       <Box className={classes.selectorWrapper}>
-        <Combobox
-          store={combobox}
-          onOptionSubmit={handleSelectVersion}
-          withinPortal={false}
-        >
-          <Combobox.Target>
-            <InputBase
-              component="button"
-              type="button"
-              pointer
-              rightSection={<IconSelector size={16} />}
-              rightSectionPointerEvents="none"
-              onClick={() => combobox.toggleDropdown()}
-              className={classes.selector}
-            >
-              {selectedItem ? (
-                <Text size="sm">
-                  {formattedDate(new Date(selectedItem.createdAt))}
+        <Select
+          data={selectData}
+          value={activeHistoryId}
+          onChange={handleSelectVersion}
+          placeholder={t("Select version")}
+          checkIconPosition="right"
+          maxDropdownHeight={300}
+          renderOption={({ option, checked }) => (
+            <Group justify="space-between" wrap="nowrap" w="100%">
+              <div>
+                <Text size="sm">{option.label}</Text>
+                <Text size="xs" c="dimmed">
+                  {(option as { userName?: string }).userName}
                 </Text>
-              ) : (
-                <Text size="sm" c="dimmed">
-                  {t("Select version")}
-                </Text>
-              )}
-            </InputBase>
-          </Combobox.Target>
-
-          <Combobox.Dropdown className={classes.dropdown}>
-            <Combobox.Options>
-              <ScrollArea.Autosize mah={300}>{options}</ScrollArea.Autosize>
-            </Combobox.Options>
-          </Combobox.Dropdown>
-        </Combobox>
+              </div>
+              {checked && <IconCheck size={16} />}
+            </Group>
+          )}
+          comboboxProps={{ withinPortal: false }}
+        />
       </Box>
 
       <ScrollArea
