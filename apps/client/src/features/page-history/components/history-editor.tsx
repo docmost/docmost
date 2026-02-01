@@ -1,5 +1,6 @@
 import "@/features/editor/styles/index.css";
-import { useEffect } from "react";
+import "./history-diff.module.css";
+import { useEffect, useImperativeHandle, forwardRef, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Title } from "@mantine/core";
@@ -9,7 +10,11 @@ import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
 import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
 
-export type DiffCounts = { added: number; deleted: number };
+export type DiffCounts = { added: number; deleted: number; total: number };
+
+export type HistoryEditorHandle = {
+  scrollToChange: (index: number) => void;
+};
 
 export interface HistoryEditorProps {
   title: string;
@@ -19,19 +24,31 @@ export interface HistoryEditorProps {
   onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
-export function HistoryEditor({
-  title,
-  content,
-  previousContent,
-  highlightChanges = true,
-  onDiffCalculated,
-}: HistoryEditorProps) {
-  const editor = useEditor({
-    extensions: mainExtensions,
-    editable: false,
-  });
+export const HistoryEditor = forwardRef<HistoryEditorHandle, HistoryEditorProps>(
+  function HistoryEditor(
+    { title, content, previousContent, highlightChanges = true, onDiffCalculated },
+    ref,
+  ) {
+    const editor = useEditor({
+      extensions: mainExtensions,
+      editable: false,
+    });
+    const containerRef = useRef<HTMLDivElement>(null);
+    const changeIndexRef = useRef<number[]>([]);
 
-  useEffect(() => {
+    useImperativeHandle(ref, () => ({
+      scrollToChange: (index: number) => {
+        if (!containerRef.current || index < 1) return;
+        const element = containerRef.current.querySelector(
+          `[data-diff-index="${index}"]`,
+        );
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      },
+    }));
+
+    useEffect(() => {
     if (!editor || !content) return;
 
     let decorationSet = DecorationSet.empty;
@@ -74,13 +91,16 @@ export function HistoryEditor({
         ]);
 
         const decorations: Decoration[] = [];
+        let changeIndex = 0;
+
         for (const change of changes) {
           if (change.toB > change.fromB) {
+            changeIndex++;
+            const currentIndex = changeIndex;
             let foundSpecialNode: { node: Node; pos: number } | null = null;
             docNew.nodesBetween(change.fromB, change.toB, (node, pos) => {
               if (specialNodeTypes.has(node.type.name)) {
                 const nodeEnd = pos + node.nodeSize;
-                // Only match if change spans the entire node (not just content inside)
                 if (change.fromB <= pos && change.toB >= nodeEnd) {
                   foundSpecialNode = { node, pos };
                   return false;
@@ -94,23 +114,26 @@ export function HistoryEditor({
               decorations.push(
                 Decoration.node(foundSpecialNode.pos, nodeEnd, {
                   class: "history-diff-node-added",
+                  "data-diff-index": String(currentIndex),
                 }),
               );
             } else {
               decorations.push(
                 Decoration.inline(change.fromB, change.toB, {
                   class: "history-diff-added",
+                  "data-diff-index": String(currentIndex),
                 }),
               );
             }
             addedCount += 1;
           }
           if (change.toA > change.fromA) {
+            changeIndex++;
+            const currentIndex = changeIndex;
             let foundDeletedNode: { node: Node; pos: number } | null = null;
             docOld.nodesBetween(change.fromA, change.toA, (node, pos) => {
               if (specialNodeTypes.has(node.type.name)) {
                 const nodeEnd = pos + node.nodeSize;
-                // Only match if change spans the entire node (not just content inside)
                 if (change.fromA <= pos && change.toA >= nodeEnd) {
                   foundDeletedNode = { node, pos };
                   return false;
@@ -123,6 +146,7 @@ export function HistoryEditor({
                 Decoration.widget(change.fromB, () => {
                   const wrapper = document.createElement("div");
                   wrapper.className = "history-diff-node-deleted";
+                  wrapper.setAttribute("data-diff-index", String(currentIndex));
                   const serializer = DOMSerializer.fromSchema(schema);
                   const dom = serializer.serializeNode(foundDeletedNode!.node);
                   wrapper.appendChild(dom);
@@ -140,6 +164,7 @@ export function HistoryEditor({
                   Decoration.widget(change.fromB, () => {
                     const span = document.createElement("span");
                     span.className = "history-diff-deleted";
+                    span.setAttribute("data-diff-index", String(currentIndex));
                     span.textContent = deletedText;
                     return span;
                   }),
@@ -150,6 +175,11 @@ export function HistoryEditor({
           }
         }
 
+        changeIndexRef.current = Array.from(
+          { length: changeIndex },
+          (_, i) => i + 1,
+        );
+
         decorationSet = DecorationSet.create(docNew, decorations);
       } catch (e) {
         console.error("History diff failed:", e);
@@ -159,7 +189,8 @@ export function HistoryEditor({
       editor.commands.setContent(content);
     }
 
-    onDiffCalculated?.({ added: addedCount, deleted: deletedCount });
+    const total = addedCount + deletedCount;
+    onDiffCalculated?.({ added: addedCount, deleted: deletedCount, total });
 
     editor.setOptions({
       editorProps: {
@@ -170,15 +201,16 @@ export function HistoryEditor({
     });
   }, [title, content, editor, previousContent, highlightChanges]);
 
-  return (
-    <div>
-      <Title order={1}>{title}</Title>
-      {editor && (
-        <EditorContent
-          editor={editor}
-          className={historyClasses.historyEditor}
-        />
-      )}
-    </div>
-  );
-}
+    return (
+      <div ref={containerRef}>
+        <Title order={1}>{title}</Title>
+        {editor && (
+          <EditorContent
+            editor={editor}
+            className={historyClasses.historyEditor}
+          />
+        )}
+      </div>
+    );
+  },
+);
