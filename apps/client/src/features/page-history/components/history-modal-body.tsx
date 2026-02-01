@@ -7,10 +7,7 @@ import {
   Switch,
   Text,
 } from "@mantine/core";
-import {
-  DiffCounts,
-  HistoryEditorHandle,
-} from "@/features/page-history/components/history-editor";
+import { DiffCounts } from "@/features/page-history/components/history-editor";
 import HistoryList from "@/features/page-history/components/history-list";
 import classes from "./history.module.css";
 import { useAtom } from "jotai";
@@ -34,7 +31,7 @@ export default function HistoryModalBody({ pageId }: Props) {
   const [highlightChanges, setHighlightChanges] = useState(true);
   const [diffCounts, setDiffCounts] = useState<DiffCounts | null>(null);
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
-  const historyEditorRef = useRef<HistoryEditorHandle>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setActiveHistoryId("");
@@ -45,12 +42,24 @@ export default function HistoryModalBody({ pageId }: Props) {
     setCurrentChangeIndex(0);
   }, [activeHistoryId]);
 
+  const scrollToChangeIndex = (index: number) => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport || index < 1) return;
+    const element = viewport.querySelector(`[data-diff-index="${index}"]`);
+    if (element instanceof HTMLElement) {
+      const elementTop = element.offsetTop;
+      const viewportHeight = viewport.clientHeight;
+      const scrollTarget = elementTop - viewportHeight / 2 + element.offsetHeight / 2;
+      viewport.scrollTo({ top: scrollTarget, behavior: "smooth" });
+    }
+  };
+
   const handlePrevChange = () => {
     if (!diffCounts || diffCounts.total === 0) return;
     const newIndex =
       currentChangeIndex <= 1 ? diffCounts.total : currentChangeIndex - 1;
     setCurrentChangeIndex(newIndex);
-    historyEditorRef.current?.scrollToChange(newIndex);
+    scrollToChangeIndex(newIndex);
   };
 
   const handleNextChange = () => {
@@ -58,7 +67,7 @@ export default function HistoryModalBody({ pageId }: Props) {
     const newIndex =
       currentChangeIndex >= diffCounts.total ? 1 : currentChangeIndex + 1;
     setCurrentChangeIndex(newIndex);
-    historyEditorRef.current?.scrollToChange(newIndex);
+    scrollToChangeIndex(newIndex);
   };
 
   return (
@@ -70,11 +79,10 @@ export default function HistoryModalBody({ pageId }: Props) {
       </nav>
 
       <div style={{ position: "relative", flex: 1 }}>
-        <ScrollArea h={650} w="100%" scrollbarSize={5}>
+        <ScrollArea h={650} w="100%" scrollbarSize={5} viewportRef={scrollViewportRef}>
           <div className={classes.sidebarRightSection}>
             {activeHistoryId && (
               <HistoryView
-                ref={historyEditorRef}
                 historyId={activeHistoryId}
                 prevHistoryId={activeHistoryPrevId}
                 highlightChanges={highlightChanges}

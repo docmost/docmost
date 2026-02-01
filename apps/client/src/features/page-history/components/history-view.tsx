@@ -2,10 +2,8 @@ import { usePageHistoryQuery } from "@/features/page-history/queries/page-histor
 import {
   DiffCounts,
   HistoryEditor,
-  HistoryEditorHandle,
 } from "@/features/page-history/components/history-editor";
 import { useTranslation } from "react-i18next";
-import { forwardRef } from "react";
 
 interface HistoryProps {
   historyId: string;
@@ -14,11 +12,12 @@ interface HistoryProps {
   onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
-const HistoryView = forwardRef<HistoryEditorHandle, HistoryProps>(
-  function HistoryView(
-    { historyId, prevHistoryId, highlightChanges, onDiffCalculated },
-    ref,
-  ) {
+function HistoryView({
+  historyId,
+  prevHistoryId,
+  highlightChanges,
+  onDiffCalculated,
+}: HistoryProps) {
   const { t } = useTranslation();
   const {
     data,
@@ -39,21 +38,19 @@ const HistoryView = forwardRef<HistoryEditorHandle, HistoryProps>(
     return <div>{t("Error fetching page data.")}</div>;
   }
 
-    return (
-      data && (
-        <div>
-          <HistoryEditor
-            ref={ref}
-            content={data.content}
-            title={data.title}
-            previousContent={!isErrorPrev ? prevData?.content : undefined}
-            highlightChanges={highlightChanges}
-            onDiffCalculated={onDiffCalculated}
-          />
-        </div>
-      )
-    );
-  },
-);
+  return (
+    data && (
+      <div>
+        <HistoryEditor
+          content={data.content}
+          title={data.title}
+          previousContent={!isErrorPrev ? prevData?.content : undefined}
+          highlightChanges={highlightChanges}
+          onDiffCalculated={onDiffCalculated}
+        />
+      </div>
+    )
+  );
+}
 
 export default HistoryView;

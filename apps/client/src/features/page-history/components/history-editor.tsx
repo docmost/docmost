@@ -1,6 +1,6 @@
 import "@/features/editor/styles/index.css";
 import "./history-diff.module.css";
-import { useEffect, useImperativeHandle, forwardRef, useRef } from "react";
+import { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Title } from "@mantine/core";
@@ -12,10 +12,6 @@ import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
 
 export type DiffCounts = { added: number; deleted: number; total: number };
 
-export type HistoryEditorHandle = {
-  scrollToChange: (index: number) => void;
-};
-
 export interface HistoryEditorProps {
   title: string;
   content: any;
@@ -24,31 +20,19 @@ export interface HistoryEditorProps {
   onDiffCalculated?: (counts: DiffCounts) => void;
 }
 
-export const HistoryEditor = forwardRef<HistoryEditorHandle, HistoryEditorProps>(
-  function HistoryEditor(
-    { title, content, previousContent, highlightChanges = true, onDiffCalculated },
-    ref,
-  ) {
-    const editor = useEditor({
-      extensions: mainExtensions,
-      editable: false,
-    });
-    const containerRef = useRef<HTMLDivElement>(null);
-    const changeIndexRef = useRef<number[]>([]);
+export function HistoryEditor({
+  title,
+  content,
+  previousContent,
+  highlightChanges = true,
+  onDiffCalculated,
+}: HistoryEditorProps) {
+  const editor = useEditor({
+    extensions: mainExtensions,
+    editable: false,
+  });
 
-    useImperativeHandle(ref, () => ({
-      scrollToChange: (index: number) => {
-        if (!containerRef.current || index < 1) return;
-        const element = containerRef.current.querySelector(
-          `[data-diff-index="${index}"]`,
-        );
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      },
-    }));
-
-    useEffect(() => {
+  useEffect(() => {
     if (!editor || !content) return;
 
     let decorationSet = DecorationSet.empty;
@@ -175,11 +159,6 @@ export const HistoryEditor = forwardRef<HistoryEditorHandle, HistoryEditorProps>
           }
         }
 
-        changeIndexRef.current = Array.from(
-          { length: changeIndex },
-          (_, i) => i + 1,
-        );
-
         decorationSet = DecorationSet.create(docNew, decorations);
       } catch (e) {
         console.error("History diff failed:", e);
@@ -201,16 +180,15 @@ export const HistoryEditor = forwardRef<HistoryEditorHandle, HistoryEditorProps>
     });
   }, [title, content, editor, previousContent, highlightChanges]);
 
-    return (
-      <div ref={containerRef}>
-        <Title order={1}>{title}</Title>
-        {editor && (
-          <EditorContent
-            editor={editor}
-            className={historyClasses.historyEditor}
-          />
-        )}
-      </div>
-    );
-  },
-);
+  return (
+    <div>
+      <Title order={1}>{title}</Title>
+      {editor && (
+        <EditorContent
+          editor={editor}
+          className={historyClasses.historyEditor}
+        />
+      )}
+    </div>
+  );
+}
