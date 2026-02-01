@@ -21,10 +21,6 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type";
 
-/**
- * Manages history restore functionality including permission checking,
- * confirmation modal, and the actual restore operation.
- */
 export function useHistoryRestore() {
   const { t } = useTranslation();
 

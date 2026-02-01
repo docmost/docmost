@@ -13,7 +13,7 @@ import { IPageHistory } from "@/features/page-history/types/page.types";
 import { IPagination } from "@/lib/types.ts";
 import { queryClient } from "@/main";
 
-const HISTORY_STALE_TIME = 10 * 60 * 1000;
+const HISTORY_STALE_TIME = 60 * 60 * 1000;
 
 export function prefetchPageHistory(historyId: string) {
   return queryClient.prefetchQuery({

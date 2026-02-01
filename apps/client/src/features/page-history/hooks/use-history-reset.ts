@@ -18,7 +18,7 @@ export function useHistoryReset(pageId: string) {
   useEffect(() => {
     setActiveHistoryId("");
     setActiveHistoryPrevId("");
-    // @ts-ignore - null is valid to clear the counts
+    // @ts-ignore
     setDiffCounts(null);
   }, [pageId, setActiveHistoryId, setActiveHistoryPrevId, setDiffCounts]);
 }
