@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import HistoryList from "@/features/page-history/components/history-list";
 import classes from "./history.module.css";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import {
   activeHistoryIdAtom,
   activeHistoryPrevIdAtom,
@@ -30,8 +30,7 @@ export default function HistoryModalBody({ pageId }: Props) {
     activeHistoryPrevIdAtom,
   );
   const [highlightChanges, setHighlightChanges] = useAtom(highlightChangesAtom);
-  const [diffCounts] = useAtom(diffCountsAtom);
-  const [, setDiffCounts] = useAtom(diffCountsAtom);
+  const [diffCounts, setDiffCounts] = useAtom(diffCountsAtom);
 
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
@@ -44,8 +43,13 @@ export default function HistoryModalBody({ pageId }: Props) {
   }, [pageId]);
 
   useEffect(() => {
-    setCurrentChangeIndex(0);
-  }, [activeHistoryId]);
+    if (diffCounts && diffCounts.total > 0) {
+      setCurrentChangeIndex(1);
+      requestAnimationFrame(() => scrollToChangeIndex(1));
+    } else {
+      setCurrentChangeIndex(0);
+    }
+  }, [diffCounts]);
 
   const scrollToChangeIndex = (index: number) => {
     const viewport = scrollViewportRef.current;
