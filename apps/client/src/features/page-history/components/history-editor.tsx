@@ -8,7 +8,7 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import historyClasses from "./history.module.css";
 import { recreateTransform } from "@docmost/editor-ext";
 import { DOMSerializer, Node } from "@tiptap/pm/model";
-import { ChangeSet, simplifyChanges } from "prosemirror-changeset";
+import { ChangeSet, simplifyChanges } from "@tiptap/pm/changeset";
 import { useAtom } from "jotai";
 import {
   diffCountsAtom,

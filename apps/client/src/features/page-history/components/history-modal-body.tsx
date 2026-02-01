@@ -19,12 +19,14 @@ import {
 import HistoryView from "@/features/page-history/components/history-view";
 import { useEffect, useRef, useState } from "react";
 import { IconChevronUp, IconChevronDown } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   pageId: string;
 }
 
 export default function HistoryModalBody({ pageId }: Props) {
+  const { t } = useTranslation();
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
   const [activeHistoryPrevId, setActiveHistoryPrevId] = useAtom(
     activeHistoryPrevIdAtom,
@@ -125,11 +127,12 @@ export default function HistoryModalBody({ pageId }: Props) {
                 </Group>
               )}
               <Switch
-                label="Highlight changes"
+                label={t("Highlight changes")}
                 checked={highlightChanges}
                 onChange={(e) => setHighlightChanges(e.currentTarget.checked)}
+                style={{ userSelect: "none" }}
               />
-              {diffCounts && diffCounts.total > 0 && (
+              {highlightChanges && diffCounts && diffCounts.total > 0 && (
                 <Group gap="xs">
                   <Text size="sm" c="dimmed">
                     {currentChangeIndex} of {diffCounts.total}
