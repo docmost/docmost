@@ -13,9 +13,10 @@ import { IMovePage, IPage } from "@/features/page/types/page.types.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useCreatePageMutation,
-  useDeletePageMutation,
+  useRemovePageMutation,
   useMovePageMutation,
   useUpdatePageMutation,
+  updateCacheOnMovePage,
 } from "@/features/page/queries/page-query.ts";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
@@ -28,7 +29,7 @@ export function useTreeMutation<T>(spaceId: string) {
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
   const updatePageMutation = useUpdatePageMutation();
-  const deletePageMutation = useDeletePageMutation();
+  const removePageMutation = useRemovePageMutation();
   const movePageMutation = useMovePageMutation();
   const navigate = useNavigate();
   const { spaceSlug } = useParams();
@@ -175,8 +176,24 @@ export function useTreeMutation<T>(spaceId: string) {
       parentPageId: args.parentId,
     };
 
+    const draggedNode = args.dragNodes[0];
+    const nodeData = draggedNode.data as SpaceTreeNode;
+    const oldParentId = nodeData.parentPageId ?? null;
+    const pageData = {
+      id: nodeData.id,
+      slugId: nodeData.slugId,
+      title: nodeData.name,
+      icon: nodeData.icon,
+      position: newPosition,
+      spaceId: nodeData.spaceId,
+      parentPageId: args.parentId,
+      hasChildren: nodeData.hasChildren,
+    };
+
     try {
       await movePageMutation.mutateAsync(payload);
+
+      updateCacheOnMovePage(spaceId, draggedNodeId, oldParentId, args.parentId, pageData);
 
       setTimeout(() => {
         emit({
@@ -185,8 +202,10 @@ export function useTreeMutation<T>(spaceId: string) {
           payload: {
             id: draggedNodeId,
             parentId: args.parentId,
+            oldParentId,
             index: args.index,
             position: newPosition,
+            pageData,
           },
         });
       }, 50);
@@ -225,7 +244,7 @@ export function useTreeMutation<T>(spaceId: string) {
 
   const onDelete: DeleteHandler<T> = async (args: { ids: string[] }) => {
     try {
-      await deletePageMutation.mutateAsync(args.ids[0]);
+      await removePageMutation.mutateAsync(args.ids[0]);
 
       const node = tree.find(args.ids[0]);
       if (!node) {

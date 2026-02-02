@@ -10,8 +10,11 @@ import {
   pageEditorAtom,
   titleEditorAtom,
 } from "@/features/editor/atoms/editor-atoms";
-import { updatePageData, useUpdateTitlePageMutation } from "@/features/page/queries/page-query";
-import { useDebouncedCallback } from "@mantine/hooks";
+import {
+  updatePageData,
+  useUpdateTitlePageMutation,
+} from "@/features/page/queries/page-query";
+import { useDebouncedCallback, getHotkeyHandler } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { History } from "@tiptap/extension-history";
@@ -21,6 +24,9 @@ import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command.ts";
 import { UpdateEvent } from "@/features/websocket/types";
 import localEmitter from "@/lib/local-emitter.ts";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { searchSpotlight } from "@/features/search/constants.ts";
 
 export interface TitleEditorProps {
   pageId: string;
@@ -38,12 +44,16 @@ export function TitleEditor({
   editable,
 }: TitleEditorProps) {
   const { t } = useTranslation();
-  const { mutateAsync: updateTitlePageMutationAsync } = useUpdateTitlePageMutation();
+  const { mutateAsync: updateTitlePageMutationAsync } =
+    useUpdateTitlePageMutation();
   const pageEditor = useAtomValue(pageEditorAtom);
   const [, setTitleEditor] = useAtom(titleEditorAtom);
   const emit = useQueryEmit();
   const navigate = useNavigate();
   const [activePageId, setActivePageId] = useState(pageId);
+  const [currentUser] = useAtom(currentUserAtom);
+  const userPageEditMode =
+    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
 
   const titleEditor = useEditor({
     extensions: [
@@ -77,10 +87,27 @@ export function TitleEditor({
     content: title,
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
+    editorProps: {
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyS") {
+            event.preventDefault();
+            return true;
+          }
+          if ((event.ctrlKey || event.metaKey) && event.code === "KeyK") {
+            searchSpotlight.open();
+            return true;
+          }
+        },
+      },
+    },
   });
 
   useEffect(() => {
-    const pageSlug = buildPageUrl(spaceSlug, slugId, title);
+    const anchorId = window.location.hash
+      ? window.location.hash.substring(1)
+      : undefined;
+    const pageSlug = buildPageUrl(spaceSlug, slugId, title, anchorId);
     navigate(pageSlug, { replace: true });
   }, [title]);
 
@@ -103,7 +130,12 @@ export function TitleEditor({
         spaceId: page.spaceId,
         entity: ["pages"],
         id: page.id,
-        payload: { title: page.title, slugId: page.slugId, parentPageId: page.parentPageId, icon: page.icon },
+        payload: {
+          title: page.title,
+          slugId: page.slugId,
+          parentPageId: page.parentPageId,
+          icon: page.icon,
+        },
       };
 
       if (page.title !== titleEditor.getText()) return;
@@ -136,21 +168,86 @@ export function TitleEditor({
     };
   }, [pageId]);
 
-  function handleTitleKeyDown(event) {
+  useEffect(() => {
+    // honor user default page edit mode preference
+    if (userPageEditMode && titleEditor && editable) {
+      if (userPageEditMode === PageEditMode.Edit) {
+        titleEditor.setEditable(true);
+      } else if (userPageEditMode === PageEditMode.Read) {
+        titleEditor.setEditable(false);
+      }
+    }
+  }, [userPageEditMode, titleEditor, editable]);
+
+  const openSearchDialog = () => {
+    const event = new CustomEvent("openFindDialogFromEditor", {});
+    document.dispatchEvent(event);
+  };
+
+  function handleTitleKeyDown(event: any) {
     if (!titleEditor || !pageEditor || event.shiftKey) return;
+
+    // Prevent focus shift when IME composition is active
+    // `keyCode === 229` is added to support Safari where `isComposing` may not be reliable
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229)
+      return;
 
     const { key } = event;
     const { $head } = titleEditor.state.selection;
 
+    if (key === "Enter") {
+      event.preventDefault();
+
+      const { $from } = titleEditor.state.selection;
+      const titleText = titleEditor.getText();
+
+      // Get the text offset within the heading node (not document position)
+      const textOffset = $from.parentOffset;
+
+      const textAfterCursor = titleText.slice(textOffset);
+
+      // Delete text after cursor from title (this will be in undo history)
+      const endPos = titleEditor.state.doc.content.size;
+      if (textAfterCursor) {
+        titleEditor.commands.deleteRange({ from: $from.pos, to: endPos });
+      }
+
+      // Don't add to history so undo in page editor won't remove this split
+      pageEditor
+        .chain()
+        .command(({ tr }) => {
+          tr.setMeta("addToHistory", false);
+          return true;
+        })
+        .insertContentAt(0, {
+          type: "paragraph",
+          content: textAfterCursor
+            ? [{ type: "text", text: textAfterCursor }]
+            : undefined,
+        })
+        .focus("start")
+        .run();
+      return;
+    }
+
     const shouldFocusEditor =
-      key === "Enter" ||
-      key === "ArrowDown" ||
-      (key === "ArrowRight" && !$head.nodeAfter);
+      key === "ArrowDown" || (key === "ArrowRight" && !$head.nodeAfter);
 
     if (shouldFocusEditor) {
       pageEditor.commands.focus("start");
     }
   }
 
-  return <EditorContent editor={titleEditor} onKeyDown={handleTitleKeyDown} />;
+  return (
+    <EditorContent
+      editor={titleEditor}
+      onKeyDown={(event) => {
+        // First handle the search hotkey
+        getHotkeyHandler([["mod+F", openSearchDialog]])(event);
+
+        // Then handle other key events
+        handleTitleKeyDown(event);
+      }}
+    />
+  );
 }

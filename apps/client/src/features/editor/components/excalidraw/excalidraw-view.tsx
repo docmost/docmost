@@ -15,7 +15,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { getFileUrl } from "@/lib/config.ts";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { IAttachment } from "@/lib/types";
+import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
@@ -98,6 +98,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
     const fileName = "diagram.excalidraw.svg";
     const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
+    // @ts-ignore
     const pageId = editor.storage?.pageId;
 
     let attachment: IAttachment = null;
@@ -118,7 +119,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
   };
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper data-drag-handle>
       <ReactClearModal
         style={{
           backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -183,6 +184,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
               variant="default"
               color="gray"
               mx="xs"
+              className="print-hide"
               style={{
                 position: "absolute",
                 top: 8,

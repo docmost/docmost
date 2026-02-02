@@ -23,25 +23,7 @@ export class S3Driver implements StorageDriver {
     this.s3Client = new S3Client(config as any);
   }
 
-  async upload(filePath: string, file: Buffer): Promise<void> {
-    try {
-      const contentType = getMimeType(filePath);
-
-      const command = new PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: filePath,
-        Body: file,
-        ContentType: contentType,
-        // ACL: "public-read",
-      });
-
-      await this.s3Client.send(command);
-    } catch (err) {
-      throw new Error(`Failed to upload file: ${(err as Error).message}`);
-    }
-  }
-
-  async uploadStream(filePath: string, file: Readable): Promise<void> {
+  async upload(filePath: string, file: Buffer | Readable): Promise<void> {
     try {
       const contentType = getMimeType(filePath);
 
@@ -58,6 +40,44 @@ export class S3Driver implements StorageDriver {
       await upload.done();
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
+    }
+  }
+
+  async uploadStream(
+    filePath: string,
+    file: Readable,
+    options?: { recreateClient?: boolean },
+  ): Promise<void> {
+    let clientToUse = this.s3Client;
+    let shouldDestroyClient = false;
+
+    // optionally recreate client to avoid socket hang errors
+    // (during multi-attachments imports)
+    if (options?.recreateClient) {
+      clientToUse = new S3Client(this.config as any);
+      shouldDestroyClient = true;
+    }
+
+    try {
+      const contentType = getMimeType(filePath);
+
+      const upload = new Upload({
+        client: clientToUse,
+        params: {
+          Bucket: this.config.bucket,
+          Key: filePath,
+          Body: file,
+          ContentType: contentType,
+        },
+      });
+
+      await upload.done();
+    } catch (err) {
+      throw new Error(`Failed to upload file: ${(err as Error).message}`);
+    } finally {
+      if (shouldDestroyClient && clientToUse) {
+        clientToUse.destroy();
+      }
     }
   }
 

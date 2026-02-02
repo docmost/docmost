@@ -8,10 +8,12 @@ import {
   IPageInput,
   SidebarPagesParams,
 } from '@/features/page/types/page.types';
-import { IAttachment, IPagination } from "@/lib/types.ts";
+import { QueryParams } from "@/lib/types";
+import { IPagination } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
+import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
@@ -30,8 +32,21 @@ export async function updatePage(data: Partial<IPageInput>): Promise<IPage> {
   return req.data;
 }
 
-export async function deletePage(pageId: string): Promise<void> {
-  await api.post("/pages/delete", { pageId });
+export async function deletePage(pageId: string, permanentlyDelete = false): Promise<void> {
+  await api.post("/pages/delete", { pageId, permanentlyDelete });
+}
+
+export async function getDeletedPages(
+  spaceId: string,
+  params?: QueryParams,
+): Promise<IPagination<IPage>> {
+  const req = await api.post("/pages/trash", { spaceId, ...params });
+  return req.data;
+}
+
+export async function restorePage(pageId: string): Promise<IPage> {
+  const response = await api.post<IPage>("/pages/restore", { pageId });
+  return response.data;
 }
 
 export async function movePage(data: IMovePage): Promise<void> {
@@ -42,8 +57,8 @@ export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {
   await api.post<void>("/pages/move-to-space", data);
 }
 
-export async function copyPageToSpace(data: ICopyPageToSpace): Promise<IPage> {
-  const req = await api.post<IPage>("/pages/copy-to-space", data);
+export async function duplicatePage(data: ICopyPageToSpace): Promise<IPage> {
+  const req = await api.post<IPage>("/pages/duplicate", data);
   return req.data;
 }
 
@@ -57,22 +72,19 @@ export async function getSidebarPages(
 export async function getAllSidebarPages(
   params: SidebarPagesParams,
 ): Promise<InfiniteData<IPagination<IPage>, unknown>> {
-  let page = 1;
-  let hasNextPage = false;
+  let cursor: string | undefined = undefined;
   const pages: IPagination<IPage>[] = [];
-  const pageParams: number[] = [];
+  const pageParams: (string | undefined)[] = [];
 
   do {
-    const req = await api.post("/pages/sidebar-pages", { ...params, page: page });
+    const req = await api.post("/pages/sidebar-pages", { ...params, cursor });
 
     const data: IPagination<IPage> = req.data;
     pages.push(data);
-    pageParams.push(page);
+    pageParams.push(cursor);
 
-    hasNextPage = data.meta.hasNextPage;
-
-    page += 1;
-  } while (hasNextPage);
+    cursor = data.meta.nextCursor ?? undefined;
+  } while (cursor);
 
   return {
     pageParams,
@@ -103,7 +115,14 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, decodeURIComponent(fileName));
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
 }
 
 export async function importPage(file: File, spaceId: string) {

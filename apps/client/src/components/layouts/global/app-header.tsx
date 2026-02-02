@@ -14,6 +14,14 @@ import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
 import useTrial from "@/ee/hooks/use-trial.tsx";
 import { isCloud } from "@/lib/config.ts";
+import {
+  SearchControl,
+  SearchMobileControl,
+} from "@/features/search/components/search-control.tsx";
+import {
+  searchSpotlight,
+  shareSearchSpotlight,
+} from "@/features/search/constants.ts";
 
 const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
@@ -27,6 +35,8 @@ export function AppHeader() {
   const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
+  const isSpacesRoute = location.pathname === "/spaces";
+  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
@@ -38,7 +48,7 @@ export function AppHeader() {
     <>
       <Group h="100%" px="md" justify="space-between" wrap={"nowrap"}>
         <Group wrap="nowrap">
-          {!isHomeRoute && (
+          {!hideSidebar && (
             <>
               <Tooltip label={t("Sidebar toggle")}>
                 <SidebarToggle
@@ -76,6 +86,15 @@ export function AppHeader() {
             {items}
           </Group>
         </Group>
+
+        <div>
+          <Group visibleFrom="sm">
+            <SearchControl onClick={searchSpotlight.open} />
+          </Group>
+          <Group hiddenFrom="sm">
+            <SearchMobileControl onSearch={searchSpotlight.open} />
+          </Group>
+        </div>
 
         <Group px={"xl"} wrap="nowrap">
           {isCloud() && isTrial && trialDaysLeft !== 0 && (

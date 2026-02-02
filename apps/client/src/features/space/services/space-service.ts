@@ -8,7 +8,6 @@ import {
   ISpaceMember,
 } from "@/features/space/types/space.types";
 import { IPagination, QueryParams } from "@/lib/types.ts";
-import { IUser } from "@/features/user/types/user.types.ts";
 import { saveAs } from "file-saver";
 
 export async function getSpaces(
@@ -70,5 +69,12 @@ export async function exportSpace(data: IExportSpaceParams): Promise<void> {
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, decodeURIComponent(fileName));
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
 }

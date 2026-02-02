@@ -19,7 +19,6 @@ import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
@@ -28,10 +27,12 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
 import { v4 } from 'uuid';
-import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
+import { generateRandomSuffixNumbers } from '../../../common/helpers';
+import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 
 @Injectable()
 export class WorkspaceService {
@@ -49,6 +50,7 @@ export class WorkspaceService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
+    @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
   ) {}
 
   async findById(workspaceId: string) {
@@ -302,6 +304,60 @@ export class WorkspaceService {
       }
     }
 
+    if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
+      await this.workspaceRepo.updateApiSettings(
+        workspaceId,
+        'restrictToAdmins',
+        updateWorkspaceDto.restrictApiToAdmins,
+      );
+      delete updateWorkspaceDto.restrictApiToAdmins;
+    }
+
+    if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'search',
+        updateWorkspaceDto.aiSearch,
+      );
+
+      if (updateWorkspaceDto.aiSearch) {
+        const tableExists = await isPageEmbeddingsTableExists(this.db);
+        if (!tableExists) {
+          throw new BadRequestException(
+            'Failed to activate. Make sure pgvector postgres extension is installed.',
+          );
+        }
+
+        await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
+          workspaceId,
+        });
+      } else {
+        // Schedule deletion after 24 hours
+        const deleteJobId = `ai-search-disabled-${workspaceId}`;
+        await this.aiQueue.add(
+          QueueJob.WORKSPACE_DELETE_EMBEDDINGS,
+          { workspaceId },
+          {
+            jobId: deleteJobId,
+            delay: 24 * 60 * 60 * 1000,
+            removeOnComplete: true,
+            removeOnFail: true,
+          },
+        );
+      }
+
+      delete updateWorkspaceDto.aiSearch;
+    }
+
+    if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
+      await this.workspaceRepo.updateAiSettings(
+        workspaceId,
+        'generative',
+        updateWorkspaceDto.generativeAi,
+      );
+      delete updateWorkspaceDto.generativeAi;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -319,13 +375,8 @@ export class WorkspaceService {
   async getWorkspaceUsers(
     workspaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersPaginated(
-      workspaceId,
-      pagination,
-    );
-
-    return users;
+  ): Promise<CursorPaginationResult<User>> {
+    return this.userRepo.getUsersPaginated(workspaceId, pagination);
   }
 
   async updateWorkspaceUserRole(
@@ -377,24 +428,20 @@ export class WorkspaceService {
     name: string,
     trx?: KyselyTransaction,
   ): Promise<string> {
-    const generateRandomSuffix = (length: number) =>
-      Math.random()
-        .toFixed(length)
-        .substring(2, 2 + length);
-
     let subdomain = name
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 20);
+      .replace(/[^a-z0-9-]/g, '')
+      .substring(0, 20)
+      .replace(/^-+|-+$/g, ''); //remove any hyphen at the start or end
     // Ensure we leave room for a random suffix.
     const maxSuffixLength = 6;
 
     if (subdomain.length < 4) {
-      subdomain = `${subdomain}-${generateRandomSuffix(maxSuffixLength)}`;
+      subdomain = `${subdomain}-${generateRandomSuffixNumbers(maxSuffixLength)}`;
     }
 
     if (DISALLOWED_HOSTNAMES.includes(subdomain)) {
-      subdomain = `workspace-${generateRandomSuffix(maxSuffixLength)}`;
+      subdomain = `workspace-${generateRandomSuffixNumbers(maxSuffixLength)}`;
     }
 
     let uniqueHostname = subdomain;
@@ -408,7 +455,7 @@ export class WorkspaceService {
         break;
       }
       // Append a random suffix and retry.
-      const randomSuffix = generateRandomSuffix(maxSuffixLength);
+      const randomSuffix = generateRandomSuffixNumbers(maxSuffixLength);
       uniqueHostname = `${subdomain}-${randomSuffix}`.substring(0, 25);
     }
 

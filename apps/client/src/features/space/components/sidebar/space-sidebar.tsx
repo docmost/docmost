@@ -14,11 +14,11 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconTrash,
 } from "@tabler/icons-react";
 import classes from "./space-sidebar.module.css";
 import React from "react";
 import { useAtom } from "jotai";
-import { SearchSpotlight } from "@/features/search/search-spotlight.tsx";
 import { treeApiAtom } from "@/features/page/tree/atoms/tree-api-atom.ts";
 import { Link, useLocation, useParams } from "react-router-dom";
 import clsx from "clsx";
@@ -74,7 +74,11 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <SwitchSpace spaceName={space?.name} spaceSlug={space?.slug} />
+          <SwitchSpace
+            spaceName={space?.name}
+            spaceSlug={space?.slug}
+            spaceIcon={space?.logo}
+          />
         </div>
 
         <div className={classes.section}>
@@ -194,8 +198,6 @@ export function SpaceSidebar() {
         onClose={closeSettings}
         spaceId={space?.slug}
       />
-
-      <SearchSpotlight spaceId={space.id} />
     </>
   );
 }
@@ -206,6 +208,7 @@ interface SpaceMenuProps {
 }
 function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
   const { t } = useTranslation();
+  const { spaceSlug } = useParams();
   const [importOpened, { open: openImportModal, close: closeImportModal }] =
     useDisclosure(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
@@ -252,6 +255,14 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             leftSection={<IconSettings size={16} />}
           >
             {t("Space settings")}
+          </Menu.Item>
+
+          <Menu.Item
+            component={Link}
+            to={`/s/${spaceSlug}/trash`}
+            leftSection={<IconTrash size={16} />}
+          >
+            {t("Trash")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>

@@ -10,7 +10,7 @@ export interface IRegister {
 }
 
 export interface ISetupWorkspace {
-  workspaceName: string;
+  workspaceName?: string;
   name: string;
   email: string;
   password: string;
@@ -37,4 +37,11 @@ export interface IVerifyUserToken {
 
 export interface ICollabToken {
   token?: string;
+}
+
+export interface ILoginResponse {
+  userHasMfa?: boolean;
+  requiresMfaSetup?: boolean;
+  mfaToken?: string;
+  isMfaEnforced?: boolean;
 }

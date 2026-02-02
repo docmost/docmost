@@ -45,8 +45,10 @@ export type MoveTreeNodeEvent = {
   payload: {
     id: string;
     parentId: string;
+    oldParentId: string | null;
     index: number;
     position: string;
+    pageData: Partial<IPage>;
   };
 };
 
@@ -63,6 +65,20 @@ export type RefetchRootTreeNodeEvent = {
   spaceId: string;
 };
 
+export type ResolveCommentEvent = {
+  operation: "resolveComment";
+  pageId: string;
+  commentId: string;
+  resolved: boolean;
+  resolvedAt?: Date;
+  resolvedById?: string;
+  resolvedBy?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+};
+
 export type WebSocketEvent =
   | InvalidateEvent
   | InvalidateCommentsEvent
@@ -71,4 +87,5 @@ export type WebSocketEvent =
   | AddTreeNodeEvent
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
-  | RefetchRootTreeNodeEvent;
+  | RefetchRootTreeNodeEvent
+  | ResolveCommentEvent;

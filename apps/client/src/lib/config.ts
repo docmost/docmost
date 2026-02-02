@@ -1,5 +1,6 @@
 import bytes from "bytes";
 import { castToBoolean } from "@/lib/utils.tsx";
+import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 declare global {
   interface Window {
@@ -41,11 +42,14 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
-export function getAvatarUrl(avatarUrl: string) {
+export function getAvatarUrl(
+  avatarUrl: string,
+  type: AvatarIconType = AvatarIconType.AVATAR,
+) {
   if (!avatarUrl) return null;
   if (avatarUrl?.startsWith("http")) return avatarUrl;
 
-  return getBackendUrl() + "/attachments/img/avatar/" + avatarUrl;
+  return getBackendUrl() + `/attachments/img/${type}/` + encodeURI(avatarUrl);
 }
 
 export function getSpaceUrl(spaceSlug: string) {
@@ -81,6 +85,18 @@ export function getDrawioUrl() {
 
 export function getBillingTrialDays() {
   return getConfigValue("BILLING_TRIAL_DAYS");
+}
+
+export function getPostHogHost() {
+  return getConfigValue("POSTHOG_HOST");
+}
+
+export function isPostHogEnabled(): boolean {
+  return Boolean(getPostHogHost() && getPostHogKey());
+}
+
+export function getPostHogKey() {
+  return getConfigValue("POSTHOG_KEY");
 }
 
 function getConfigValue(key: string, defaultValue: string = undefined): string {

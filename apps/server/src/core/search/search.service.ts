@@ -21,15 +21,16 @@ export class SearchService {
   ) {}
 
   async searchPage(
-    query: string,
     searchParams: SearchDTO,
     opts: {
       userId?: string;
       workspaceId: string;
     },
-  ): Promise<SearchResponseDto[]> {
+  ): Promise<{ items: SearchResponseDto[] }> {
+    const { query } = searchParams;
+
     if (query.length < 1) {
-      return;
+      return { items: [] };
     }
     const searchQuery = tsquery(query.trim() + '*');
 
@@ -44,17 +45,24 @@ export class SearchService {
         'creatorId',
         'createdAt',
         'updatedAt',
-        sql<number>`ts_rank(tsv, to_tsquery(${searchQuery}))`.as('rank'),
-        sql<string>`ts_headline('english', text_content, to_tsquery(${searchQuery}),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
+        sql<number>`ts_rank(tsv, to_tsquery('english', f_unaccent(${searchQuery})))`.as(
+          'rank',
+        ),
+        sql<string>`ts_headline('english', text_content, to_tsquery('english', f_unaccent(${searchQuery})),'MinWords=9, MaxWords=10, MaxFragments=3')`.as(
           'highlight',
         ),
       ])
-      .where('tsv', '@@', sql<string>`to_tsquery(${searchQuery})`)
+      .where(
+        'tsv',
+        '@@',
+        sql<string>`to_tsquery('english', f_unaccent(${searchQuery}))`,
+      )
       .$if(Boolean(searchParams.creatorId), (qb) =>
         qb.where('creatorId', '=', searchParams.creatorId),
       )
+      .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 20)
+      .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {
@@ -66,22 +74,19 @@ export class SearchService {
       queryResults = queryResults.where('spaceId', '=', searchParams.spaceId);
     } else if (opts.userId && !searchParams.spaceId) {
       // only search spaces the user is a member of
-      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(
-        opts.userId,
-      );
-      if (userSpaceIds.length > 0) {
-        queryResults = queryResults
-          .where('spaceId', 'in', userSpaceIds)
-          .where('workspaceId', '=', opts.workspaceId);
-      } else {
-        return [];
-      }
+      queryResults = queryResults
+        .where(
+          'spaceId',
+          'in',
+          this.spaceMemberRepo.getUserSpaceIdsQuery(opts.userId),
+        )
+        .where('workspaceId', '=', opts.workspaceId);
     } else if (searchParams.shareId && !searchParams.spaceId && !opts.userId) {
       // search in shares
       const shareId = searchParams.shareId;
       const share = await this.shareRepo.findById(shareId);
       if (!share || share.workspaceId !== opts.workspaceId) {
-        return [];
+        return { items: [] };
       }
 
       const pageIdsToSearch = [];
@@ -103,10 +108,10 @@ export class SearchService {
           .where('id', 'in', pageIdsToSearch)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
-        return [];
+        return { items: [] };
       }
     } else {
-      return [];
+      return { items: [] };
     }
 
     //@ts-ignore
@@ -122,7 +127,7 @@ export class SearchService {
       return result;
     });
 
-    return searchResults;
+    return { items: searchResults };
   }
 
   async searchSuggestions(
@@ -138,21 +143,37 @@ export class SearchService {
     const query = suggestion.query.toLowerCase().trim();
 
     if (suggestion.includeUsers) {
-      users = await this.db
+      const userQuery = this.db
         .selectFrom('users')
-        .select(['id', 'name', 'avatarUrl'])
-        .where((eb) => eb(sql`LOWER(users.name)`, 'like', `%${query}%`))
+        .select(['id', 'name', 'email', 'avatarUrl'])
         .where('workspaceId', '=', workspaceId)
         .where('deletedAt', 'is', null)
-        .limit(limit)
-        .execute();
+        .where((eb) =>
+          eb.or([
+            eb(
+              sql`LOWER(f_unaccent(users.name))`,
+              'like',
+              sql`LOWER(f_unaccent(${`%${query}%`}))`,
+            ),
+            eb(sql`users.email`, 'ilike', sql`f_unaccent(${`%${query}%`})`),
+          ]),
+        )
+        .limit(limit);
+
+      users = await userQuery.execute();
     }
 
     if (suggestion.includeGroups) {
       groups = await this.db
         .selectFrom('groups')
         .select(['id', 'name', 'description'])
-        .where((eb) => eb(sql`LOWER(groups.name)`, 'like', `%${query}%`))
+        .where((eb) =>
+          eb(
+            sql`LOWER(f_unaccent(groups.name))`,
+            'like',
+            sql`LOWER(f_unaccent(${`%${query}%`}))`,
+          ),
+        )
         .where('workspaceId', '=', workspaceId)
         .limit(limit)
         .execute();
@@ -162,7 +183,14 @@ export class SearchService {
       let pageSearch = this.db
         .selectFrom('pages')
         .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
-        .where((eb) => eb(sql`LOWER(pages.title)`, 'like', `%${query}%`))
+        .where((eb) =>
+          eb(
+            sql`LOWER(f_unaccent(pages.title))`,
+            'like',
+            sql`LOWER(f_unaccent(${`%${query}%`}))`,
+          ),
+        )
+        .where('deletedAt', 'is', null)
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 

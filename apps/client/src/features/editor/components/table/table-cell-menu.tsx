@@ -1,6 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react";
 import React, { useCallback } from "react";
-
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -12,8 +10,12 @@ import {
   IconColumnRemove,
   IconRowRemove,
   IconSquareToggle,
+  IconTableRow,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import { TableBackgroundColor } from "./table-background-color";
+import { TableTextAlignment } from "./table-text-alignment";
+import { BubbleMenu } from "@tiptap/react/menus";
 
 export const TableCellMenu = React.memo(
   ({ editor, appendTo }: EditorMenuProps): JSX.Element => {
@@ -26,7 +28,7 @@ export const TableCellMenu = React.memo(
 
         return isCellSelection(state.selection);
       },
-      [editor],
+      [editor]
     );
 
     const mergeCells = useCallback(() => {
@@ -45,21 +47,32 @@ export const TableCellMenu = React.memo(
       editor.chain().focus().deleteRow().run();
     }, [editor]);
 
+    const toggleHeaderCell = useCallback(() => {
+      editor.chain().focus().toggleHeaderCell().run();
+    }, [editor]);
+
     return (
-      <BaseBubbleMenu
+      <BubbleMenu
         editor={editor}
         pluginKey="table-cell-menu"
         updateDelay={0}
-        tippyOptions={{
-          appendTo: () => {
-            return appendTo?.current;
+        appendTo={() => {
+          return appendTo?.current;
+        }}
+        ref={(element) => {
+          element.style.zIndex = "99";
+        }}
+        options={{
+          offset: {
+            mainAxis: 15,
           },
-          offset: [0, 15],
-          zIndex: 99,
         }}
         shouldShow={shouldShow}
       >
         <ActionIcon.Group>
+          <TableBackgroundColor editor={editor} />
+          <TableTextAlignment editor={editor} />
+
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}
@@ -103,10 +116,21 @@ export const TableCellMenu = React.memo(
               <IconRowRemove size={18} />
             </ActionIcon>
           </Tooltip>
+
+          <Tooltip position="top" label={t("Toggle header cell")}>
+            <ActionIcon
+              onClick={toggleHeaderCell}
+              variant="default"
+              size="lg"
+              aria-label={t("Toggle header cell")}
+            >
+              <IconTableRow size={18} />
+            </ActionIcon>
+          </Tooltip>
         </ActionIcon.Group>
-      </BaseBubbleMenu>
+      </BubbleMenu>
     );
-  },
+  }
 );
 
 export default TableCellMenu;

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
+import { sql } from 'kysely';
 import {
   InsertableSpaceMember,
   SpaceMember,
@@ -9,7 +10,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
 import { MemberInfo, UserSpaceRole } from './types';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 
@@ -97,7 +98,7 @@ export class SpaceMemberRepo {
     spaceId: string,
     pagination: PaginationOptions,
   ) {
-    let query = this.db
+    let baseQuery = this.db
       .selectFrom('spaceMembers')
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
@@ -113,21 +114,43 @@ export class SpaceMemberRepo {
         'spaceMembers.createdAt',
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
-      .where('spaceId', '=', spaceId)
-      .orderBy((eb) => eb('groups.id', 'is not', null), 'desc')
-      .orderBy('spaceMembers.createdAt', 'asc');
+      .select(sql<number>`case when groups.id is not null then 1 else 0 end`.as('isGroup'))
+      .where('spaceId', '=', spaceId);
 
     if (pagination.query) {
-      query = query.where((eb) =>
-        eb('users.name', 'ilike', `%${pagination.query}%`)
-          .or('users.email', 'ilike', `%${pagination.query}%`)
-          .or('groups.name', 'ilike', `%${pagination.query}%`),
+      baseQuery = baseQuery.where((eb) =>
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        )
+          .or(
+            sql`users.email`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          )
+          .or(
+            sql`f_unaccent(groups.name)`,
+            'ilike',
+            sql`f_unaccent(${'%' + pagination.query + '%'})`,
+          ),
       );
     }
 
-    const result = await executeWithPagination(query, {
-      page: pagination.page,
+    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
+
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'sub.isGroup', direction: 'desc', key: 'isGroup' },
+        { expression: 'sub.createdAt', direction: 'asc', key: 'createdAt' },
+      ],
+      parseCursor: (cursor) => ({
+        isGroup: parseInt(cursor.isGroup, 10),
+        createdAt: new Date(cursor.createdAt),
+      }),
     });
 
     let memberInfo: MemberInfo;
@@ -196,54 +219,54 @@ export class SpaceMemberRepo {
     return roles;
   }
 
-  async getUserSpaceIds(userId: string): Promise<string[]> {
-    const membership = await this.db
+  getUserSpaceIdsQuery(userId: string) {
+    return this.db
       .selectFrom('spaceMembers')
       .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
-      .select(['spaces.id'])
+      .select('spaces.id')
       .where('userId', '=', userId)
       .union(
         this.db
           .selectFrom('spaceMembers')
           .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
           .innerJoin('spaces', 'spaces.id', 'spaceMembers.spaceId')
-          .select(['spaces.id'])
+          .select('spaces.id')
           .where('groupUsers.userId', '=', userId),
-      )
-      .execute();
+      );
+  }
 
+  async getUserSpaceIds(userId: string): Promise<string[]> {
+    const membership = await this.getUserSpaceIdsQuery(userId).execute();
     return membership.map((space) => space.id);
   }
 
   async getUserSpaces(userId: string, pagination: PaginationOptions) {
-    const userSpaceIds = await this.getUserSpaceIds(userId);
-
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
-      //.where('workspaceId', '=', workspaceId)
-      .where('id', 'in', userSpaceIds)
-      .orderBy('createdAt', 'asc');
+      .where('id', 'in', this.getUserSpaceIdsQuery(userId));
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb('name', 'ilike', `%${pagination.query}%`).or(
-          'description',
+        eb(
+          sql`f_unaccent(name)`,
           'ilike',
-          `%${pagination.query}%`,
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ).or(
+          sql`f_unaccent(description)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
         ),
       );
     }
 
-    const hasEmptyIds = userSpaceIds.length === 0;
-
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
-      hasEmptyIds,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
-
-    return result;
   }
 }

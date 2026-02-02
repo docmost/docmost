@@ -4,7 +4,7 @@ import {
   useWorkspaceMembersQuery,
 } from "@/features/workspace/queries/workspace-query.ts";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import React, { useCallback, useRef, useState } from "react";
+import React from "react";
 import RoleSelectMenu from "@/components/ui/role-select-menu.tsx";
 import {
   getUserRoleLabel,
@@ -21,9 +21,9 @@ import MemberActionMenu from "@/features/workspace/components/members/components
 
 export default function WorkspaceMembersTable() {
   const { t } = useTranslation();
-  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
   const { data, isLoading } = useWorkspaceMembersQuery({
-    page,
+    cursor,
     limit: 100,
     query: search,
   });
@@ -54,7 +54,7 @@ export default function WorkspaceMembersTable() {
   return (
     <>
       <SearchInput onSearch={handleSearch} />
-      <Table.ScrollContainer minWidth={500}>
+      <Table.ScrollContainer minWidth={600}>
         <Table highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
@@ -111,10 +111,10 @@ export default function WorkspaceMembersTable() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
     </>

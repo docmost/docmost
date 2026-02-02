@@ -8,11 +8,12 @@ import { IPagination } from "@/lib/types";
 import {
   invalidateOnCreatePage,
   invalidateOnDeletePage,
-  invalidateOnMovePage,
+  updateCacheOnMovePage,
   invalidateOnUpdatePage,
 } from "../page/queries/page-query";
 import { RQ_KEY } from "../comment/queries/comment-query";
 import { queryClient } from "@/main.tsx";
+import { IComment } from "@/features/comment/types/comment.types";
 
 export const useQuerySubscription = () => {
   const queryClient = useQueryClient();
@@ -40,7 +41,13 @@ export const useQuerySubscription = () => {
           invalidateOnCreatePage(data.payload.data);
           break;
         case "moveTreeNode":
-          invalidateOnMovePage();
+          updateCacheOnMovePage(
+            data.spaceId,
+            data.payload.id,
+            data.payload.oldParentId,
+            data.payload.parentId,
+            data.payload.pageData,
+          );
           break;
         case "deleteTreeNode":
           invalidateOnDeletePage(data.payload.node.id);
@@ -94,6 +101,30 @@ export const useQuerySubscription = () => {
           queryClient.invalidateQueries({
             queryKey: ["recent-changes", spaceId],
           });
+          break;
+        }
+        case "resolveComment": {
+          const currentComments = queryClient.getQueryData(
+            RQ_KEY(data.pageId),
+          ) as IPagination<IComment>;
+
+          if (currentComments && currentComments.items) {
+            const updatedComments = currentComments.items.map((comment) =>
+              comment.id === data.commentId
+                ? { 
+                    ...comment, 
+                    resolvedAt: data.resolvedAt, 
+                    resolvedById: data.resolvedById, 
+                    resolvedBy: data.resolvedBy 
+                  }
+                : comment,
+            );
+            
+            queryClient.setQueryData(RQ_KEY(data.pageId), {
+              ...currentComments,
+              items: updatedComments,
+            });
+          }
           break;
         }
       }

@@ -20,15 +20,21 @@ export class LocalDriver implements StorageDriver {
     return join(this.config.storagePath, filePath);
   }
 
-  async upload(filePath: string, file: Buffer): Promise<void> {
+  async upload(filePath: string, file: Buffer | Readable): Promise<void> {
     try {
-      await fs.outputFile(this._fullPath(filePath), file);
+      const fullPath = this._fullPath(filePath);
+      if (file instanceof Buffer) {
+        await fs.outputFile(fullPath, file);
+      } else {
+        await fs.mkdir(dirname(fullPath), { recursive: true });
+        await pipeline(file, createWriteStream(fullPath));
+      }
     } catch (err) {
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
 
-  async uploadStream(filePath: string, file: Readable): Promise<void> {
+  async uploadStream(filePath: string, file: Readable, options?: { recreateClient?: boolean }): Promise<void> {
     try {
       const fullPath = this._fullPath(filePath);
       await fs.mkdir(dirname(fullPath), { recursive: true });
@@ -40,8 +46,11 @@ export class LocalDriver implements StorageDriver {
 
   async copy(fromFilePath: string, toFilePath: string): Promise<void> {
     try {
+      const fromFullPath = this._fullPath(fromFilePath);
+      const toFullPath = this._fullPath(toFilePath);
+
       if (await this.exists(fromFilePath)) {
-        await fs.copy(fromFilePath, toFilePath);
+        await fs.copy(fromFullPath, toFullPath);
       }
     } catch (err) {
       throw new Error(`Failed to copy file: ${(err as Error).message}`);

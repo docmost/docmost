@@ -6,9 +6,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
+  JwtApiKeyPayload,
   JwtAttachmentPayload,
   JwtCollabPayload,
   JwtExchangePayload,
+  JwtMfaTokenPayload,
   JwtPayload,
   JwtType,
 } from '../dto/jwt-payload';
@@ -22,7 +24,7 @@ export class TokenService {
   ) {}
 
   async generateAccessToken(user: User): Promise<string> {
-    if (user.deletedAt) {
+    if (user.deactivatedAt || user.deletedAt) {
       throw new ForbiddenException();
     }
 
@@ -35,12 +37,13 @@ export class TokenService {
     return this.jwtService.sign(payload);
   }
 
-  async generateCollabToken(
-    userId: string,
-    workspaceId: string,
-  ): Promise<string> {
+  async generateCollabToken(user: User, workspaceId: string): Promise<string> {
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new ForbiddenException();
+    }
+
     const payload: JwtCollabPayload = {
-      sub: userId,
+      sub: user.id,
       workspaceId,
       type: JwtType.COLLAB,
     };
@@ -73,6 +76,40 @@ export class TokenService {
       type: JwtType.ATTACHMENT,
     };
     return this.jwtService.sign(payload, { expiresIn: '1h' });
+  }
+
+  async generateMfaToken(user: User, workspaceId: string): Promise<string> {
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new ForbiddenException();
+    }
+
+    const payload: JwtMfaTokenPayload = {
+      sub: user.id,
+      workspaceId,
+      type: JwtType.MFA_TOKEN,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
+  async generateApiToken(opts: {
+    apiKeyId: string;
+    user: User;
+    workspaceId: string;
+    expiresIn?: string | number;
+  }): Promise<string> {
+    const { apiKeyId, user, workspaceId, expiresIn } = opts;
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new ForbiddenException();
+    }
+
+    const payload: JwtApiKeyPayload = {
+      sub: user.id,
+      apiKeyId: apiKeyId,
+      workspaceId,
+      type: JwtType.API_KEY,
+    };
+
+    return this.jwtService.sign(payload, expiresIn ? { expiresIn } : {});
   }
 
   async verifyJwt(token: string, tokenType: string) {

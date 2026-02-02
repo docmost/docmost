@@ -18,7 +18,10 @@ import {
   AuthAccounts,
   Shares,
   FileTasks,
+  UserMfa as _UserMFA,
+  ApiKeys,
 } from './db';
+import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;
@@ -113,3 +116,18 @@ export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
 export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
+
+// UserMFA
+export type UserMFA = Selectable<_UserMFA>;
+export type InsertableUserMFA = Insertable<_UserMFA>;
+export type UpdatableUserMFA = Updateable<Omit<_UserMFA, 'id'>>;
+
+// Api Keys
+export type ApiKey = Selectable<ApiKeys>;
+export type InsertableApiKey = Insertable<ApiKeys>;
+export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
+
+// Page Embedding
+export type PageEmbedding = Selectable<PageEmbeddings>;
+export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
+export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;

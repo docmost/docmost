@@ -18,6 +18,10 @@ export interface CalloutAttributes {
    * The type of callout.
    */
   type: CalloutType;
+  /**
+   * The custom icon name for the callout.
+   */
+  icon?: string;
 }
 
 declare module "@tiptap/core" {
@@ -27,6 +31,7 @@ declare module "@tiptap/core" {
       unsetCallout: () => ReturnType;
       toggleCallout: (attributes?: CalloutAttributes) => ReturnType;
       updateCalloutType: (type: CalloutType) => ReturnType;
+      updateCalloutIcon: (icon: string) => ReturnType;
     };
   }
 }
@@ -58,6 +63,13 @@ export const Callout = Node.create<CalloutOptions>({
           "data-callout-type": attributes.type,
         }),
       },
+      icon: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-callout-icon"),
+        renderHTML: (attributes) => ({
+          "data-callout-icon": attributes.icon,
+        }),
+      },
     };
   },
 
@@ -75,7 +87,7 @@ export const Callout = Node.create<CalloutOptions>({
       mergeAttributes(
         { "data-type": this.name },
         this.options.HTMLAttributes,
-        HTMLAttributes,
+        HTMLAttributes
       ),
       0,
     ];
@@ -107,10 +119,20 @@ export const Callout = Node.create<CalloutOptions>({
           commands.updateAttributes("callout", {
             type: getValidCalloutType(type),
           }),
+
+      updateCalloutIcon:
+        (icon: string) =>
+        ({ commands }) =>
+          commands.updateAttributes("callout", {
+            icon: icon || null,
+          }),
     };
   },
 
   addNodeView() {
+    // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+    this.editor.isInitialized = true;
+
     return ReactNodeViewRenderer(this.options.view);
   },
 
@@ -174,7 +196,7 @@ export const Callout = Node.create<CalloutOptions>({
 
           tr.delete(pos, pos + nodeSize);
           tr.setSelection(
-            TextSelection.near(tr.doc.resolve(previousPosition - 1)),
+            TextSelection.near(tr.doc.resolve(previousPosition - 1))
           );
           tr.insert(previousPosition - 1, content);
 

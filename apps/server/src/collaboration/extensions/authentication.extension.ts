@@ -46,6 +46,10 @@ export class AuthenticationExtension implements Extension {
       throw new UnauthorizedException();
     }
 
+    if (user.deactivatedAt || user.deletedAt) {
+      throw new UnauthorizedException();
+    }
+
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
       this.logger.warn(`Page not found: ${pageId}`);
@@ -65,7 +69,7 @@ export class AuthenticationExtension implements Extension {
     }
 
     if (userSpaceRole === SpaceRole.READER) {
-      data.connection.readOnly = true;
+      data.connectionConfig.readOnly = true;
       this.logger.debug(`User granted readonly access to page: ${pageId}`);
     }
 

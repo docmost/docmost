@@ -12,10 +12,16 @@ import {
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
+import React from "react";
+
+const MemoizedFullEditor = React.memo(FullEditor);
+const MemoizedPageHeader = React.memo(PageHeader);
+const MemoizedHistoryModal = React.memo(HistoryModal);
 
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+
   const {
     data: page,
     isLoading,
@@ -49,14 +55,14 @@ export default function Page() {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
-        <PageHeader
+        <MemoizedPageHeader
           readOnly={spaceAbility.cannot(
             SpaceCaslAction.Manage,
             SpaceCaslSubject.Page,
           )}
         />
 
-        <FullEditor
+        <MemoizedFullEditor
           key={page.id}
           pageId={page.id}
           title={page.title}
@@ -68,7 +74,7 @@ export default function Page() {
             SpaceCaslSubject.Page,
           )}
         />
-        <HistoryModal pageId={page.id} />
+        <MemoizedHistoryModal pageId={page.id} />
       </div>
     )
   );

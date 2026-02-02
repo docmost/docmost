@@ -8,13 +8,11 @@ import {
   createComment,
   deleteComment,
   getPageComments,
-  resolveComment,
   updateComment,
 } from "@/features/comment/services/comment-service";
 import {
   ICommentParams,
   IComment,
-  IResolveComment,
 } from "@/features/comment/types/comment.types";
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
@@ -108,34 +106,4 @@ export function useDeleteCommentMutation(pageId?: string) {
   });
 }
 
-export function useResolveCommentMutation() {
-  const queryClient = useQueryClient();
-  const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: (data: IResolveComment) => resolveComment(data),
-    onSuccess: (data: IComment, variables) => {
-      const currentComments = queryClient.getQueryData(
-        RQ_KEY(data.pageId),
-      ) as IComment[];
-
-      /*
-      if (currentComments) {
-        const updatedComments = currentComments.map((comment) =>
-          comment.id === variables.commentId
-            ? { ...comment, ...data }
-            : comment,
-        );
-        queryClient.setQueryData(RQ_KEY(data.pageId), updatedComments);
-      }*/
-
-      notifications.show({ message: t("Comment resolved successfully") });
-    },
-    onError: (error) => {
-      notifications.show({
-        message: t("Failed to resolve comment"),
-        color: "red",
-      });
-    },
-  });
-}
+// EE: useResolveCommentMutation has been moved to @/ee/comment/queries/comment-query

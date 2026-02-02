@@ -106,6 +106,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
       setRenderItems(items);
       // update editor storage
+      //@ts-ignore
       props.editor.storage.mentionItems = items;
     }
   }, [suggestion, isLoading]);
@@ -163,7 +164,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
 
   const enterHandler = () => {
     if (!renderItems.length) return;
-    if (renderItems[selectedIndex].entityType !== "header") {
+    if (renderItems[selectedIndex]?.entityType !== "header") {
       selectItem(selectedIndex);
     }
   };
@@ -203,7 +204,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       parentPageId: page.id || null,
       title: title
     };
-    
+
     let createdPage: IPage;
     try {
       createdPage = await createPageMutation.mutateAsync(payload);

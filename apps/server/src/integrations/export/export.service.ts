@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
-import { turndown } from './turndown-utils';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -21,16 +20,23 @@ import {
   replaceInternalLinks,
   updateAttachmentUrlsToLocalPaths,
 } from './utils';
+import {
+  ExportMetadata,
+  ExportPageMetadata,
+} from '../../common/helpers/types/export-metadata.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import slugify = require('@sindresorhus/slugify');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const packageJson = require('../../../package.json');
 import { EnvironmentService } from '../environment/environment.service';
 import {
   getAttachmentIds,
   getProsemirrorContent,
 } from '../../common/helpers/prosemirror/utils';
+import { htmlToMarkdown } from '@docmost/editor-ext';
 
 @Injectable()
 export class ExportService {
@@ -83,16 +89,34 @@ export class ExportService {
         /<colgroup[^>]*>[\s\S]*?<\/colgroup>/gim,
         '',
       );
-      return turndown(newPageHtml);
+      return htmlToMarkdown(newPageHtml);
     }
 
     return;
   }
 
-  async exportPageWithChildren(pageId: string, format: string) {
-    const pages = await this.pageRepo.getPageAndDescendants(pageId, {
-      includeContent: true,
-    });
+  async exportPages(
+    pageId: string,
+    format: string,
+    includeAttachments: boolean,
+    includeChildren: boolean,
+  ) {
+    let pages: Page[];
+
+    if (includeChildren) {
+      //@ts-ignore
+      pages = await this.pageRepo.getPageAndDescendants(pageId, {
+        includeContent: true,
+      });
+    } else {
+      // Only fetch the single page when includeChildren is false
+      const page = await this.pageRepo.findById(pageId, {
+        includeContent: true,
+      });
+      if (page){
+        pages = [page];
+      }
+    }
 
     if (!pages || pages.length === 0) {
       throw new BadRequestException('No pages to export');
@@ -105,7 +129,7 @@ export class ExportService {
     const tree = buildTree(pages as Page[]);
 
     const zip = new JSZip();
-    await this.zipPages(tree, format, zip);
+    await this.zipPages(tree, format, zip, includeAttachments);
 
     const zipFile = zip.generateNodeStream({
       type: 'nodebuffer',
@@ -137,12 +161,17 @@ export class ExportService {
         'pages.id',
         'pages.slugId',
         'pages.title',
+        'pages.icon',
+        'pages.position',
         'pages.content',
         'pages.parentPageId',
         'pages.spaceId',
         'pages.workspaceId',
+        'pages.createdAt',
+        'pages.updatedAt',
       ])
       .where('spaceId', '=', spaceId)
+      .where('deletedAt', 'is', null)
       .execute();
 
     const tree = buildTree(pages as Page[]);
@@ -159,7 +188,7 @@ export class ExportService {
 
     const fileName = `${space.name}-space-export.zip`;
     return {
-      fileBuffer: zipFile,
+      fileStream: zipFile,
       fileName,
     };
   }
@@ -168,13 +197,15 @@ export class ExportService {
     tree: PageExportTree,
     format: string,
     zip: JSZip,
-    includeAttachments = true,
+    includeAttachments: boolean,
   ): Promise<void> {
     const slugIdToPath: Record<string, string> = {};
+    const pageIdToFilePath: Record<string, string> = {};
+    const pagesMetadata: Record<string, ExportPageMetadata> = {};
 
     computeLocalPath(tree, format, null, '', slugIdToPath);
 
-    const stack: { folder: JSZip; parentPageId: string }[] = [
+    const stack: { folder: JSZip; parentPageId: string | null }[] = [
       { folder: zip, parentPageId: null },
     ];
 
@@ -200,7 +231,8 @@ export class ExportService {
 
         if (includeAttachments) {
           await this.zipAttachments(updatedJsonContent, page.spaceId, folder);
-          updatedJsonContent = updateAttachmentUrlsToLocalPaths(updatedJsonContent);
+          updatedJsonContent =
+            updateAttachmentUrlsToLocalPaths(updatedJsonContent);
         }
 
         const pageTitle = getPageTitle(page.title);
@@ -213,12 +245,35 @@ export class ExportService {
           `${pageTitle}${getExportExtension(format)}`,
           pageExportContent,
         );
+
+        pageIdToFilePath[page.id] = currentPagePath;
+
+        const parentPath = parentPageId ? pageIdToFilePath[parentPageId] : null;
+        pagesMetadata[currentPagePath] = {
+          pageId: page.id,
+          slugId: page.slugId,
+          icon: page.icon ?? null,
+          position: page.position,
+          parentPath,
+          createdAt: page.createdAt?.toISOString() ?? new Date().toISOString(),
+          updatedAt: page.updatedAt?.toISOString() ?? new Date().toISOString(),
+        };
+
         if (childPages.length > 0) {
           const pageFolder = folder.folder(pageTitle);
           stack.push({ folder: pageFolder, parentPageId: page.id });
         }
       }
     }
+
+    const metadata: ExportMetadata = {
+      exportedAt: new Date().toISOString(),
+      source: 'docmost',
+      version: packageJson.version,
+      pages: pagesMetadata,
+    };
+
+    zip.file('docmost-metadata.json', JSON.stringify(metadata, null, 2));
   }
 
   async zipAttachments(prosemirrorJson: any, spaceId: string, zip: JSZip) {

@@ -29,19 +29,27 @@ export default function ExportModal({
 }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
-  const [includeAttachments, setIncludeAttachments] = useState<boolean>(true);
+  const [includeAttachments, setIncludeAttachments] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const { t } = useTranslation();
 
   const handleExport = async () => {
+    setIsExporting(true);
     try {
       if (type === "page") {
-        await exportPage({ pageId: id, format, includeChildren });
+        await exportPage({
+          pageId: id,
+          format,
+          includeChildren,
+          includeAttachments,
+        });
       }
       if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
       }
-      setIncludeChildren(false);
-      setIncludeAttachments(true);
+      notifications.show({
+        message: t("Export successful"),
+      });
       onClose();
     } catch (err) {
       notifications.show({
@@ -49,6 +57,8 @@ export default function ExportModal({
         color: "red",
       });
       console.error("export error", err);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -96,6 +106,18 @@ export default function ExportModal({
                   checked={includeChildren}
                 />
               </Group>
+
+              <Group justify="space-between" wrap="nowrap" mt="md">
+                <div>
+                  <Text size="md">{t("Include attachments")}</Text>
+                </div>
+                <Switch
+                  onChange={(event) =>
+                    setIncludeAttachments(event.currentTarget.checked)
+                  }
+                  checked={includeAttachments}
+                />
+              </Group>
             </>
           )}
 
@@ -121,7 +143,7 @@ export default function ExportModal({
             <Button onClick={onClose} variant="default">
               {t("Cancel")}
             </Button>
-            <Button onClick={handleExport}>{t("Export")}</Button>
+            <Button onClick={handleExport} loading={isExporting}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>
