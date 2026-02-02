@@ -32,7 +32,9 @@ export class HistoryListener {
       return;
     }
 
-    const lastHistory = await this.pageHistoryRepo.findPageLastHistory(page.id);
+    const lastHistory = await this.pageHistoryRepo.findPageLastHistory(page.id, {
+      includeContent: true,
+    });
 
     if (
       !lastHistory ||

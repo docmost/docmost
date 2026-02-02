@@ -9,7 +9,9 @@ export class PageHistoryService {
   constructor(private pageHistoryRepo: PageHistoryRepo) {}
 
   async findById(historyId: string): Promise<PageHistory> {
-    return await this.pageHistoryRepo.findById(historyId);
+    return await this.pageHistoryRepo.findById(historyId, {
+      includeContent: true,
+    });
   }
 
   async findHistoryByPageId(
