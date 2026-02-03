@@ -1,0 +1,242 @@
+.kanbanBoardWrapper {
+  outline: none !important;
+  box-shadow: none !important;
+  margin: 2rem 0;
+}
+
+.kanbanBoardWrapper[data-read-only="true"] {
+  cursor: default;
+}
+
+.boardContainer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  min-height: 400px;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 100%;
+}
+
+.column {
+  flex: 1 1 300px;
+  min-width: 280px;
+  max-width: 450px;
+  background-color: var(--mantine-color-gray-0);
+  border-radius: var(--mantine-radius-md);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  border: 1px solid var(--mantine-color-default-border);
+}
+
+[data-mantine-color-scheme="dark"] .column {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.column.dragOver {
+  background-color: var(--mantine-color-blue-0);
+  border-color: var(--mantine-color-blue-4);
+  border-style: dashed;
+}
+
+[data-mantine-color-scheme="dark"] .column.dragOver {
+  background-color: var(--mantine-color-dark-8);
+  border-color: var(--mantine-color-blue-8);
+}
+
+.columnHeader {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.columnTitleInput :global(.mantine-TextInput-input) {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0;
+  height: auto;
+  min-height: unset;
+  background-color: transparent;
+  border: none;
+}
+
+.cardsContainer {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 50px;
+}
+
+.card {
+  background-color: var(--mantine-color-body);
+  border-radius: var(--mantine-radius-sm);
+  padding: 12px;
+  box-shadow: var(--mantine-shadow-xs);
+  border: 1px solid var(--mantine-color-default-border);
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+  position: relative;
+}
+
+.card:hover {
+  box-shadow: var(--mantine-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.card.isDragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  border: 1px dashed var(--mantine-color-blue-4);
+}
+
+.card.isSelected {
+  border: 2px solid var(--mantine-color-blue-6);
+  background-color: var(--mantine-color-blue-0);
+  z-index: 5;
+}
+
+[data-mantine-color-scheme="dark"] .card.isSelected {
+  background-color: var(--mantine-color-blue-9);
+  border-color: var(--mantine-color-blue-4);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.cardTitleInput :global(.mantine-TextInput-input) {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  height: auto;
+  min-height: unset;
+}
+
+.modalTitleInput :global(.mantine-TextInput-input) {
+  font-weight: 600;
+}
+
+.addCardBtn {
+  margin: 0 8px 8px 8px;
+  justify-content: flex-start;
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+}
+
+.addCardBtn:hover {
+  background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-text);
+}
+
+[data-mantine-color-scheme="dark"] .addCardBtn:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.addColumnBtn {
+  flex: 0 0 200px;
+  height: 48px;
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  color: var(--mantine-color-dimmed);
+  transition: all 0.2s ease;
+}
+
+.addColumnBtn:hover {
+  background-color: var(--mantine-color-gray-0);
+  border-style: solid;
+  color: var(--mantine-color-text);
+}
+
+[data-mantine-color-scheme="dark"] .addColumnBtn:hover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.modalEditor :global(.ProseMirror) {
+  padding: 1.5rem !important;
+  min-height: 400px;
+}
+
+.cardActions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.card:hover .cardActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.moveActions {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 0 0;
+}
+
+.modalEditorContainer {
+  margin-top: 8px;
+}
+
+.selectionBox {
+  position: absolute;
+  border: 1px solid var(--mantine-color-blue-6);
+  background-color: rgba(34, 139, 230, 0.1);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+[data-mantine-color-scheme="dark"] .selectionBox {
+  background-color: rgba(51, 154, 240, 0.2);
+  border-color: var(--mantine-color-blue-4);
+}
+
+.deleteArea {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 450px;
+  height: 56px;
+  background-color: var(--mantine-color-gray-0);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-md);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mantine-color-scheme="dark"] .deleteArea {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.deleteAreaActive {
+  background-color: var(--mantine-color-red-6);
+  border-color: var(--mantine-color-red-6);
+}
+
+[data-mantine-color-scheme="dark"] .deleteAreaActive {
+  background-color: var(--mantine-color-red-8);
+  border-color: var(--mantine-color-red-8);
+}
+
+.deleteAreaActive * {
+  color: white !important;
+}

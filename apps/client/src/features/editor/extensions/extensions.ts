@@ -49,6 +49,7 @@ import {
   Column,
   ColumnGroup,
   DataTable,
+  KanbanBoard,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -67,6 +68,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import DataTableView from "@/features/editor/components/data-table/data-table-view.tsx";
+import KanbanBoardView from "@/features/editor/components/kanban/kanban-board-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -269,6 +271,10 @@ export const mainExtensions = [
   DataTable.configure({
     // @ts-ignore
     view: DataTableView,
+  }),
+  KanbanBoard.configure({
+    // @ts-ignore
+    view: KanbanBoardView,
   }),
 ] as any;
 
