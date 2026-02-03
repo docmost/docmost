@@ -18,6 +18,13 @@ export interface DataTableRow {
   [key: string]: any;
 }
 
+export interface DataTableFilter {
+  id: string;
+  columnId: string;
+  operator: string;
+  value: any;
+}
+
 export interface DataTableOptions {
   HTMLAttributes: Record<string, any>;
   view: any;
@@ -73,6 +80,18 @@ export const DataTable = Node.create<DataTableOptions>({
         renderHTML: (attributes) => {
           return {
             "data-rows": JSON.stringify(attributes.rows),
+          };
+        },
+      },
+      filters: {
+        default: [],
+        parseHTML: (element) => {
+          const filters = element.getAttribute("data-filters");
+          return filters ? JSON.parse(filters) : [];
+        },
+        renderHTML: (attributes) => {
+          return {
+            "data-filters": JSON.stringify(attributes.filters || []),
           };
         },
       },

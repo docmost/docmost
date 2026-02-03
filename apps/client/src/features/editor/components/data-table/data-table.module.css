@@ -25,10 +25,13 @@
 }
 
 .tableContainer {
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  overflow: hidden;
+  overflow: visible;
   background-color: var(--mantine-color-body);
+}
+
+.controlTable {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm) var(--mantine-radius-sm) 0 0;
 }
 
 .tableContainer :global(.mantine-ScrollArea-root) {

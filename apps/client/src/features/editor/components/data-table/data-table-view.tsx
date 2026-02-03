@@ -42,7 +42,7 @@ import {
     IconSearch,
     IconMarkdown
 } from "@tabler/icons-react";
-import { DataTableColumn, DataTableRow } from "@docmost/editor-ext";
+import { DataTableColumn, DataTableRow, DataTableFilter } from "@docmost/editor-ext";
 import classes from "./data-table.module.css";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -64,6 +64,7 @@ import { SelectCell } from "./select-cell";
 import { MultiSelectCell } from "./multi-select-cell";
 import { CheckboxCell } from "./checkbox-cell";
 import { RichTextCell } from "./rich-text-cell";
+import { FilterDropdown } from "./filter-dropdown";
 
 const ALLOWED_PROPERTY_TYPES = ['text', 'date', 'person', 'select', 'multi-select', 'checkbox', 'rich-text', 'status'];
 
@@ -125,7 +126,11 @@ const PropertyTypes = [
 
 export default function DataTableView(props: NodeViewProps) {
     const { node, updateAttributes, editor } = props;
-    const { columns, rows } = node.attrs as { columns: DataTableColumn[]; rows: DataTableRow[] };
+    const { columns, rows, filters = [] } = node.attrs as {
+        columns: DataTableColumn[];
+        rows: DataTableRow[];
+        filters?: DataTableFilter[];
+    };
 
     // Use useEditorState for true reactivity to global editor state
     const isEditable = useEditorState({
@@ -154,10 +159,97 @@ export default function DataTableView(props: NodeViewProps) {
         return !hasData && !hasContent;
     };
 
+    const evaluateFilter = (row: DataTableRow, filter: DataTableFilter): boolean => {
+        const column = columns.find(c => c.id === filter.columnId);
+        if (!column) return true;
+
+        const cellValue = row[filter.columnId];
+        const filterValue = filter.value;
+
+        // Handle empty/not empty operators
+        if (filter.operator === "isEmpty") {
+            return !cellValue || cellValue === "" || cellValue === "[]";
+        }
+        if (filter.operator === "isNotEmpty") {
+            return cellValue && cellValue !== "" && cellValue !== "[]";
+        }
+
+        // Handle checkbox
+        if (column.type === "checkbox") {
+            if (filter.operator === "isChecked") return !!cellValue;
+            if (filter.operator === "isNotChecked") return !cellValue;
+        }
+
+        // Handle text/rich-text
+        if (column.type === "text" || column.type === "rich-text") {
+            const cellStr = String(cellValue || "").toLowerCase();
+            const filterStr = String(filterValue || "").toLowerCase();
+
+            if (filter.operator === "contains") return cellStr.includes(filterStr);
+            if (filter.operator === "notContains") return !cellStr.includes(filterStr);
+            if (filter.operator === "is") return cellStr === filterStr;
+            if (filter.operator === "isNot") return cellStr !== filterStr;
+            if (filter.operator === "startsWith") return cellStr.startsWith(filterStr);
+            if (filter.operator === "endsWith") return cellStr.endsWith(filterStr);
+        }
+
+        // Handle number
+        if (column.type === "number") {
+            const cellNum = parseFloat(cellValue);
+            const filterNum = parseFloat(filterValue);
+            if (isNaN(cellNum) || isNaN(filterNum)) return false;
+
+            if (filter.operator === "equals") return cellNum === filterNum;
+            if (filter.operator === "notEquals") return cellNum !== filterNum;
+            if (filter.operator === "greaterThan") return cellNum > filterNum;
+            if (filter.operator === "lessThan") return cellNum < filterNum;
+            if (filter.operator === "greaterThanOrEqual") return cellNum >= filterNum;
+            if (filter.operator === "lessThanOrEqual") return cellNum <= filterNum;
+        }
+
+        // Handle select/status
+        if (column.type === "select" || column.type === "status") {
+            if (filter.operator === "is") return cellValue === filterValue;
+            if (filter.operator === "isNot") return cellValue !== filterValue;
+        }
+
+        // Handle multi-select
+        if (column.type === "multi-select") {
+            try {
+                const selectedIds = JSON.parse(cellValue || "[]");
+                if (filter.operator === "contains") return selectedIds.includes(filterValue);
+                if (filter.operator === "notContains") return !selectedIds.includes(filterValue);
+            } catch {
+                return false;
+            }
+        }
+
+        // Handle date
+        if (column.type === "date") {
+            if (!cellValue || !filterValue) return false;
+            const cellDate = new Date(cellValue);
+            const filterDate = new Date(filterValue);
+
+            if (filter.operator === "is") return cellDate.toDateString() === filterDate.toDateString();
+            if (filter.operator === "isBefore") return cellDate < filterDate;
+            if (filter.operator === "isAfter") return cellDate > filterDate;
+        }
+
+        return true;
+    };
+
+    const filteredRows = useMemo(() => {
+        if (filters.length === 0) return rows;
+
+        return rows.filter(row => {
+            return filters.every(filter => evaluateFilter(row, filter));
+        });
+    }, [rows, filters, columns]);
+
     const visibleRows = useMemo(() => {
-        if (isEditable) return rows;
-        return rows.filter(row => !isRowEmpty(row));
-    }, [rows, columns, isEditable]);
+        if (isEditable) return filteredRows;
+        return filteredRows.filter(row => !isRowEmpty(row));
+    }, [filteredRows, columns, isEditable]);
 
     const visibleProperties = useMemo(() => {
         if (showAllProperties) return columns;
@@ -466,11 +558,84 @@ export default function DataTableView(props: NodeViewProps) {
             selectable={false}
         >
             <div className={classes.tableContainer}>
+                <Box className={classes.controlTable}>
+                    <Group gap="xs">
+                        {isEditable && (
+                            <Menu position="bottom-start" shadow="md" width={280} offset={2} withinPortal={true}>
+                                <Menu.Target>
+                                    <Button
+                                        variant="subtle"
+                                        size="xs"
+                                        leftSection={<IconPlus size={14} />}
+                                    >
+                                        Add property
+                                    </Button>
+                                </Menu.Target>
+                                <Menu.Dropdown p="xs">
+                                    <TextInput
+                                        placeholder="Select type"
+                                        leftSection={<IconSearch size={14} />}
+                                        size="xs"
+                                        mb="xs"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                    <ScrollArea.Autosize mah={300} type="scroll">
+                                        {PropertyTypes.map(group => {
+                                            const filtered = group.types.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+                                            if (filtered.length === 0) return null;
+                                            return (
+                                                <Box key={group.label} mb="xs">
+                                                    <Text size="xs" c="dimmed" mb={4} px={4}>{group.label}</Text>
+                                                    <Box style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
+                                                        {filtered.map(type => {
+                                                            const isAllowed = ALLOWED_PROPERTY_TYPES.includes(type.id);
+                                                            return (
+                                                                <UnstyledButton
+                                                                    key={type.id}
+                                                                    className={clsx(classes.typeButton, !isAllowed && classes.typeButtonDisabled)}
+                                                                    onClick={() => isAllowed && onAddProperty(type)}
+                                                                    disabled={!isAllowed}
+                                                                >
+                                                                    <Group gap={8} wrap="nowrap">
+                                                                        <type.icon size={14} style={{ flexShrink: 0 }} />
+                                                                        <Text size="xs" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type.name}</Text>
+                                                                    </Group>
+                                                                </UnstyledButton>
+                                                            );
+                                                        })}
+                                                    </Box>
+                                                </Box>
+                                            );
+                                        })}
+                                    </ScrollArea.Autosize>
+                                </Menu.Dropdown>
+                            </Menu>
+                        )}
+                        <FilterDropdown
+                            columns={columns}
+                            filters={filters}
+                            onFiltersChange={(newFilters) => updateAttributes({ filters: newFilters })}
+                        />
+                    </Group>
+                </Box>
                 <ScrollArea.Autosize mah={800} type="always">
                     <div style={{ paddingBottom: 12 }}>
                         <table style={{ width: '100%', minWidth: totalColumnsWidth }}>
                             <thead>
                                 <tr>
+                                    {isEditable && (
+                                        <th style={{ width: 50, textAlign: 'center', verticalAlign: 'middle' }}>
+                                            <ActionIcon
+                                                variant="subtle"
+                                                size="sm"
+                                                onClick={addRow}
+                                                c="dimmed"
+                                            >
+                                                <IconPlus size={16} />
+                                            </ActionIcon>
+                                        </th>
+                                    )}
                                     <th style={{ width: 250, position: 'relative' }}>
                                         <Group gap={8} h="100%" wrap="nowrap">
                                             <IconAlphabetLatin size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
@@ -525,69 +690,23 @@ export default function DataTableView(props: NodeViewProps) {
                                             </th>
                                         );
                                     })}
-                                    {isEditable && (
-                                        <th>
-                                            <Menu position="bottom-start" shadow="md" width={280} offset={2} withinPortal={true} >
-                                                <Menu.Target>
-                                                    <Button
-                                                        h="100%"
-                                                        variant="subtle"
-                                                        size="compact-xs"
-                                                        leftSection={<IconPlus size={14} />}
-                                                        className={classes.addPropertyBtn}
-                                                        justify="center"
-                                                        fullWidth
-                                                    >
-                                                        Add property
-                                                    </Button>
-                                                </Menu.Target>
-                                                <Menu.Dropdown p="xs">
-                                                    <TextInput
-                                                        placeholder="Select type"
-                                                        leftSection={<IconSearch size={14} />}
-                                                        size="xs"
-                                                        mb="xs"
-                                                        value={search}
-                                                        onChange={(e) => setSearch(e.target.value)}
-                                                    />
-                                                    <ScrollArea.Autosize mah={300} type="scroll">
-                                                        {PropertyTypes.map(group => {
-                                                            const filtered = group.types.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
-                                                            if (filtered.length === 0) return null;
-                                                            return (
-                                                                <Box key={group.label} mb="xs">
-                                                                    <Text size="xs" c="dimmed" mb={4} px={4}>{group.label}</Text>
-                                                                    <Box style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-                                                                        {filtered.map(type => {
-                                                                            const isAllowed = ALLOWED_PROPERTY_TYPES.includes(type.id);
-                                                                            return (
-                                                                                <UnstyledButton
-                                                                                    key={type.id}
-                                                                                    className={clsx(classes.typeButton, !isAllowed && classes.typeButtonDisabled)}
-                                                                                    onClick={() => isAllowed && onAddProperty(type)}
-                                                                                    disabled={!isAllowed}
-                                                                                >
-                                                                                    <Group gap={8} wrap="nowrap">
-                                                                                        <type.icon size={14} style={{ flexShrink: 0 }} />
-                                                                                        <Text size="xs" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type.name}</Text>
-                                                                                    </Group>
-                                                                                </UnstyledButton>
-                                                                            );
-                                                                        })}
-                                                                    </Box>
-                                                                </Box>
-                                                            );
-                                                        })}
-                                                    </ScrollArea.Autosize>
-                                                </Menu.Dropdown>
-                                            </Menu>
-                                        </th>
-                                    )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {visibleRows.map((row) => (
                                     <tr key={row.id} className={classes.tableRow}>
+                                        {isEditable && (
+                                            <td style={{ width: 40, verticalAlign: 'middle', textAlign: 'center' }}>
+                                                <ActionIcon
+                                                    variant="subtle"
+                                                    color="red"
+                                                    size="sm"
+                                                    onClick={() => removeRow(row.id)}
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </td>
+                                        )}
                                         <td style={{ position: 'relative', verticalAlign: 'middle' }} className={classes.firstColumnCell}>
                                             {renderInput(row, columns[0])}
                                             <Button
@@ -605,39 +724,12 @@ export default function DataTableView(props: NodeViewProps) {
                                                 {renderInput(row, col)}
                                             </td>
                                         ))}
-                                        {isEditable && (
-                                            <td style={{ width: 40, verticalAlign: 'middle' }}>
-                                                <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <ActionIcon
-                                                        variant="subtle"
-                                                        color="red"
-                                                        size="sm"
-                                                        onClick={() => removeRow(row.id)}
-                                                    >
-                                                        <IconTrash size={25} />
-                                                    </ActionIcon>
-                                                </Box>
-                                            </td>
-                                        )}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </ScrollArea.Autosize>
-                {
-                    isEditable && (
-                        <Button
-                            variant="subtle"
-                            leftSection={<IconPlus size={16} />}
-                            onClick={addRow}
-                            fullWidth
-                            justify="center"
-                        >
-                            New
-                        </Button>
-                    )
-                }
             </div >
 
             <Modal
