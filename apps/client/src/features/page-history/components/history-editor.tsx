@@ -1,5 +1,4 @@
 import "@/features/editor/styles/index.css";
-import "./css/history-diff.module.css";
 import { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
