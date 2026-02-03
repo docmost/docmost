@@ -34,11 +34,10 @@ declare module "@tiptap/core" {
 export const TiptapImage = Image.extend<ImageOptions>({
   name: "image",
 
-  inline: false,
-  group: "block",
-  isolating: true,
-  atom: true,
-  defining: true,
+  inline: true,
+  group: "inline",
+  draggable: true,
+  selectable: true,
 
   addOptions() {
     return {
@@ -112,38 +111,38 @@ export const TiptapImage = Image.extend<ImageOptions>({
     return {
       setImage:
         (attrs: ImageAttributes) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAt:
         (attrs) =>
-        ({ commands }) => {
-          return commands.insertContentAt(attrs.pos, {
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContentAt(attrs.pos, {
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAlign:
         (align) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { align }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { align }),
 
       setImageWidth:
         (width) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", {
-            width: `${Math.max(0, Math.min(100, width))}%`,
-          }),
+          ({ commands }) =>
+            commands.updateAttributes("image", {
+              width: `${Math.max(0, Math.min(100, width))}%`,
+            }),
     };
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(this.options.view);
+    return ReactNodeViewRenderer(this.options.view, { as: "span" });
   },
 
   addProseMirrorPlugins() {

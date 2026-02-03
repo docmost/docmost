@@ -133,6 +133,12 @@
         }
       }
     }
+
+    &.node-image {
+      display: inline-block;
+      margin: 0;
+      width: auto; /* Let the component handle width */
+    }
   }
 
   .selection {

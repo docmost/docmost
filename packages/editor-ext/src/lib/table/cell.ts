@@ -3,7 +3,7 @@ import { TableCell as TiptapTableCell } from "@tiptap/extension-table-cell";
 export const TableCell = TiptapTableCell.extend({
   name: "tableCell",
   content:
-    "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | attachment | mathBlock | details | codeBlock)+",
+    "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | video | attachment | mathBlock | details | codeBlock)+",
 
   addAttributes() {
     return {

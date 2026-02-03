@@ -1,0 +1,58 @@
+.imageWrapper {
+  display: inline-block;
+  position: relative;
+  line-height: normal;
+  vertical-align: top;
+  margin: 0 4px; /* classic spacing for inline images */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.imageWrapper:hover .resizeHandle,
+.imageWrapper.selected .resizeHandle {
+  opacity: 1;
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  pointer-events: none; /* Prevent browser drag of image itself interfering with handles */
+}
+
+/* Base style for handles */
+.resizeHandle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: var(--mantine-color-blue-filled);
+  border: 1px solid white;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* Corner handles */
+.resizeHandleNw {
+  top: -5px;
+  left: -5px;
+  cursor: nw-resize;
+}
+
+.resizeHandleNe {
+  top: -5px;
+  right: -5px;
+  cursor: ne-resize;
+}
+
+.resizeHandleSw {
+  bottom: -5px;
+  left: -5px;
+  cursor: sw-resize;
+}
+
+.resizeHandleSe {
+  bottom: -5px;
+  right: -5px;
+  cursor: se-resize;
+}
