@@ -1,4 +1,4 @@
-import { Badge, Box, Combobox, useCombobox, ActionIcon, Group } from "@mantine/core";
+import { Badge, Box, Combobox, useCombobox, ActionIcon, Group, ColorSwatch, Menu } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import classes from "./data-table.module.css";
 import { DataTableColumn } from "@docmost/editor-ext";
@@ -98,19 +98,58 @@ export function SelectCell({ value, column, onChange, onUpdateColumn, isEditable
                                         <Group justify="space-between" wrap="nowrap" w="100%">
                                             <Badge color={item.color} variant="light">{item.label}</Badge>
                                             {canManage && (
-                                                <ActionIcon
-                                                    size="xs"
-                                                    color="red"
-                                                    variant="subtle"
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        const newOptions = options.filter(o => o.id !== item.id);
-                                                        onUpdateColumn({ ...column, options: newOptions });
-                                                    }}
-                                                >
-                                                    <IconX size={12} />
-                                                </ActionIcon>
+                                                <Group gap={4} wrap="nowrap">
+                                                    <Menu position="right" withArrow shadow="md" withinPortal={false} closeOnItemClick={false}>
+                                                        <Menu.Target>
+                                                            <ColorSwatch
+                                                                color={item.color}
+                                                                size={16}
+                                                                style={{ cursor: 'pointer' }}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }}
+                                                            />
+                                                        </Menu.Target>
+                                                        <Menu.Dropdown>
+                                                            <Group gap={4} p={4}>
+                                                                {COLORS.map((color) => (
+                                                                    <ColorSwatch
+                                                                        key={color}
+                                                                        color={color}
+                                                                        size={20}
+                                                                        style={{ cursor: 'pointer' }}
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            const newOptions = options.map(o =>
+                                                                                o.id === item.id ? { ...o, color } : o
+                                                                            );
+                                                                            onUpdateColumn({ ...column, options: newOptions });
+                                                                        }}
+                                                                    />
+                                                                ))}
+                                                            </Group>
+                                                        </Menu.Dropdown>
+                                                    </Menu>
+                                                    <ActionIcon
+                                                        size="xs"
+                                                        color="red"
+                                                        variant="subtle"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            const newOptions = options.filter(o => o.id !== item.id);
+                                                            onUpdateColumn({ ...column, options: newOptions });
+                                                        }}
+                                                    >
+                                                        <IconX size={12} />
+                                                    </ActionIcon>
+                                                </Group>
                                             )}
                                         </Group>
                                     </Combobox.Option>
