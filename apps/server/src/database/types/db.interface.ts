@@ -18,6 +18,7 @@ import {
   UserMfa,
   Users,
   UserTokens,
+  Watchers,
   WorkspaceInvitations,
   Workspaces,
 } from '@docmost/db/types/db';
@@ -43,6 +44,7 @@ export interface DbInterface {
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
+  watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
   apiKeys: ApiKeys;

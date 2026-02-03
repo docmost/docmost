@@ -24,6 +24,7 @@ import {
 import { isDeepStrictEqual } from 'node:util';
 import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import { WatcherService } from '../../core/watcher/watcher.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -36,6 +37,7 @@ export class PersistenceExtension implements Extension {
     private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    private watcherService: WatcherService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -121,6 +123,7 @@ export class PersistenceExtension implements Extension {
         }
 
         let contributorIds = undefined;
+        let newWatcherIds: string[] = [];
         try {
           const existingContributors = page.contributorIds || [];
           const contributorSet = this.contributors.get(documentName);
@@ -129,6 +132,7 @@ export class PersistenceExtension implements Extension {
           contributorIds = Array.from(
             new Set([...existingContributors, ...newContributors]),
           );
+          newWatcherIds = newContributors;
           this.contributors.delete(documentName);
         } catch (err) {
           //this.logger.debug('Contributors error:' + err?.['message']);
@@ -145,6 +149,16 @@ export class PersistenceExtension implements Extension {
           pageId,
           trx,
         );
+
+        if (newWatcherIds.length > 0) {
+          await this.watcherService.addPageWatchers(
+            newWatcherIds,
+            pageId,
+            page.spaceId,
+            page.workspaceId,
+            trx,
+          );
+        }
 
         this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });

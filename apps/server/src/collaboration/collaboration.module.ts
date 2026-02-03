@@ -10,6 +10,7 @@ import { TokenModule } from '../core/auth/token.module';
 import { HistoryListener } from './listeners/history.listener';
 import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
+import { WatcherModule } from '../core/watcher/watcher.module';
 
 @Module({
   providers: [
@@ -21,7 +22,7 @@ import { CollaborationHandler } from './collaboration.handler';
     CollaborationHandler,
   ],
   exports: [CollaborationGateway],
-  imports: [TokenModule],
+  imports: [TokenModule, WatcherModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CollaborationModule.name);

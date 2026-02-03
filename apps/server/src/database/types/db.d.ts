@@ -374,6 +374,17 @@ export interface Notifications {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Watchers {
+  id: Generated<string>;
+  userId: string;
+  pageId: string | null;
+  spaceId: string;
+  workspaceId: string;
+  type: string;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -394,6 +405,7 @@ export interface DB {
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
+  watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
 }

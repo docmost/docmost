@@ -40,6 +40,7 @@ import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { WatcherService } from '../../watcher/watcher.service';
 
 @Injectable()
 export class PageService {
@@ -53,6 +54,7 @@ export class PageService {
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     private eventEmitter: EventEmitter2,
+    private watcherService: WatcherService,
   ) {}
 
   async findById(
@@ -102,6 +104,13 @@ export class PageService {
       workspaceId: workspaceId,
       lastUpdatedById: userId,
     });
+
+    await this.watcherService.watchPage(
+      userId,
+      createdPage.id,
+      createdPage.spaceId,
+      workspaceId,
+    );
 
     return createdPage;
   }
@@ -165,6 +174,13 @@ export class PageService {
         contributorIds: contributorIds,
       },
       page.id,
+    );
+
+    await this.watcherService.watchPage(
+      userId,
+      page.id,
+      page.spaceId,
+      page.workspaceId,
     );
 
     return await this.pageRepo.findById(page.id, {
