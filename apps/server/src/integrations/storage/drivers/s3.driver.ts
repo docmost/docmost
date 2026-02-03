@@ -13,6 +13,7 @@ import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getMimeType } from '../../../common/helpers';
 import { Upload } from '@aws-sdk/lib-storage';
+import { Logger } from '@nestjs/common';
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
@@ -39,6 +40,7 @@ export class S3Driver implements StorageDriver {
 
       await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
@@ -73,6 +75,7 @@ export class S3Driver implements StorageDriver {
 
       await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     } finally {
       if (shouldDestroyClient && clientToUse) {
