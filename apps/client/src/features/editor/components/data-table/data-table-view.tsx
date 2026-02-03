@@ -39,7 +39,8 @@ import {
     IconMapPin,
     IconClock,
     IconUserCheck,
-    IconSearch
+    IconSearch,
+    IconMarkdown
 } from "@tabler/icons-react";
 import { DataTableColumn, DataTableRow } from "@docmost/editor-ext";
 import classes from "./data-table.module.css";
@@ -59,11 +60,16 @@ import ExcalidrawMenu from "../excalidraw/excalidraw-menu";
 import DrawioMenu from "../drawio/drawio-menu";
 import { PersonCell } from "./person-cell";
 import { DateCell } from "./date-cell";
+import { SelectCell } from "./select-cell";
+import { MultiSelectCell } from "./multi-select-cell";
+import { CheckboxCell } from "./checkbox-cell";
+import { RichTextCell } from "./rich-text-cell";
 
-const ALLOWED_PROPERTY_TYPES = ['text', 'date', 'person'];
+const ALLOWED_PROPERTY_TYPES = ['text', 'date', 'person', 'select', 'multi-select', 'checkbox', 'rich-text', 'status'];
 
 const IconMap: Record<string, any> = {
     text: IconAlphabetLatin,
+    'rich-text': IconMarkdown,
     number: IconHash,
     select: IconSelect,
     'multi-select': IconList,
@@ -91,6 +97,7 @@ const PropertyTypes = [
     {
         label: 'Basic', types: [
             { id: 'text', name: 'Text', icon: IconAlphabetLatin },
+            { id: 'rich-text', name: 'Rich text', icon: IconMarkdown },
             { id: 'number', name: 'Number', icon: IconHash },
             { id: 'select', name: 'Select', icon: IconSelect },
             { id: 'multi-select', name: 'Multi-select', icon: IconList },
@@ -270,7 +277,6 @@ export default function DataTableView(props: NodeViewProps) {
     };
 
     const updateCell = (rowId: string, colId: string, value: string) => {
-        if (!isEditable) return;
         const newRows = rows.map(row => {
             if (row.id === rowId) {
                 return { ...row, [colId]: value };
@@ -327,7 +333,17 @@ export default function DataTableView(props: NodeViewProps) {
     const onAddProperty = (type: any) => {
         if (!isEditable) return;
         const newId = `col-${Date.now()}`;
-        const newColumns = [...columns, { id: newId, name: type.name, type: type.id, width: 150 }];
+
+        let initialOptions = undefined;
+        if (type.id === 'status') {
+            initialOptions = [
+                { id: 'not-started', label: 'Not started', color: 'gray', group: 'To-do' },
+                { id: 'in-progress', label: 'In progress', color: 'blue', group: 'In progress' },
+                { id: 'done', label: 'Done', color: 'green', group: 'Complete' }
+            ];
+        }
+
+        const newColumns = [...columns, { id: newId, name: type.name, type: type.id, width: 150, options: initialOptions }];
         const newRows = rows.map(row => ({ ...row, [newId]: "" }));
         updateAttributes({ columns: newColumns, rows: newRows });
     };
@@ -348,6 +364,58 @@ export default function DataTableView(props: NodeViewProps) {
         if (col.type === 'date') {
             return (
                 <DateCell
+                    value={value}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    isEditable={isEditable}
+                />
+            );
+        }
+
+        if (col.type === 'select' || col.type === 'status') {
+            const canEdit = isEditable || col.type === 'status';
+            return (
+                <SelectCell
+                    value={value}
+                    column={col}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    onUpdateColumn={(newCol) => {
+                        const newColumns = columns.map(c => c.id === newCol.id ? newCol : c);
+                        updateAttributes({ columns: newColumns });
+                    }}
+                    isEditable={canEdit}
+                    canManageOptions={isEditable}
+                />
+            );
+        }
+
+        if (col.type === 'multi-select') {
+            return (
+                <MultiSelectCell
+                    value={value}
+                    column={col}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    onUpdateColumn={(newCol) => {
+                        const newColumns = columns.map(c => c.id === newCol.id ? newCol : c);
+                        updateAttributes({ columns: newColumns });
+                    }}
+                    isEditable={isEditable}
+                />
+            );
+        }
+
+        if (col.type === 'checkbox') {
+            return (
+                <CheckboxCell
+                    value={value}
+                    onChange={(val) => updateCell(row.id, col.id, val)}
+                    isEditable={true}
+                />
+            );
+        }
+
+        if (col.type === 'rich-text') {
+            return (
+                <RichTextCell
                     value={value}
                     onChange={(val) => updateCell(row.id, col.id, val)}
                     isEditable={isEditable}
@@ -395,7 +463,7 @@ export default function DataTableView(props: NodeViewProps) {
         <NodeViewWrapper
             className={clsx(classes.dataTableWrapper, "docmost-data-table")}
             data-read-only={!isEditable}
-            selectable="false"
+            selectable={false}
         >
             <div className={classes.tableContainer}>
                 <ScrollArea.Autosize mah={800} type="always">

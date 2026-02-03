@@ -9,6 +9,7 @@ export interface DataTableColumn {
   name: string;
   type: string;
   width?: number;
+  options?: { id: string; label: string; color: string; group?: string }[];
 }
 
 export interface DataTableRow {
