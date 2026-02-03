@@ -157,7 +157,7 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
       {canRestore && (
         <Group className={classes.actionButtons} justify="flex-end" gap="sm">
           <Button variant="default" onClick={() => setHistoryModalOpen(false)}>
-            {t("Close")}
+            {t("Cancel")}
           </Button>
           <Button onClick={confirmRestore}>{t("Restore")}</Button>
         </Group>

@@ -157,7 +157,7 @@ function HistoryList({ pageId }: Props) {
               size="compact-md"
               onClick={() => setHistoryModalOpen(false)}
             >
-              {t("Close")}
+              {t("Cancel")}
             </Button>
             <Button size="compact-md" onClick={confirmRestore}>
               {t("Restore")}
