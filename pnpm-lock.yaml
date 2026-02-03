@@ -7,6 +7,7 @@ settings:
 overrides:
   jsdom: 25.0.1
   jsonwebtoken: 9.0.3
+  prosemirror-changeset: 2.3.1
   y-prosemirror: 1.3.7
 
 patchedDependencies:
@@ -141,6 +142,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      diff:
+        specifier: 8.0.3
+        version: 8.0.3
       dompurify:
         specifier: ^3.2.6
         version: 3.2.6
@@ -171,6 +175,9 @@ importers:
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
+      rfc6902:
+        specifier: 5.1.2
+        version: 5.1.2
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -6110,6 +6117,10 @@ packages:
     resolution: {integrity: sha512-uIFDxqpRZGZ6ThOk84hEfqWoHx2devRFvpTZcTHur85vImfaxUbTW9Ryh4CpCuDnToOP1CEtXKIgytHBPVff5A==}
     engines: {node: '>=0.3.1'}
 
+  diff@8.0.3:
+    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
+    engines: {node: '>=0.3.1'}
+
   dijkstrajs@1.0.3:
     resolution: {integrity: sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA==}
 
@@ -9055,6 +9066,9 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  rfc6902@5.1.2:
+    resolution: {integrity: sha512-zxcb+PWlE8PwX0tiKE6zP97THQ8/lHmeiwucRrJ3YFupWEmp25RmFSlB1dNTqjkovwqG4iq+u1gzJMBS3um8mA==}
 
   rfdc@1.3.1:
     resolution: {integrity: sha512-r5a3l5HzYlIC68TpmYKlxWjmOP6wiPJ1vWv2HeLhNsRZMrCkxeqxiHlQ21oXmQ4F3SiryXBHhAD7JZqvOJjFmg==}
@@ -16747,6 +16761,8 @@ snapshots:
 
   diff@5.2.0: {}
 
+  diff@8.0.3: {}
+
   dijkstrajs@1.0.3: {}
 
   dingbat-to-unicode@1.0.1: {}
@@ -20317,6 +20333,8 @@ snapshots:
   reusify@1.0.4: {}
 
   reusify@1.1.0: {}
+
+  rfc6902@5.1.2: {}
 
   rfdc@1.3.1: {}
 
