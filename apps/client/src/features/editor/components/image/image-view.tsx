@@ -99,8 +99,8 @@ export default function ImageView(props: NodeViewProps) {
     <NodeViewWrapper
       as="span"
       className={clsx(classes.imageWrapper, {
-        [classes.selected]: selected,
-        "ProseMirror-selectednode": selected // Keep this for tiptap selection styles
+        [classes.selected]: selected && isEditable,
+        "ProseMirror-selectednode": selected && isEditable // Keep this for tiptap selection styles
       })}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -112,6 +112,8 @@ export default function ImageView(props: NodeViewProps) {
       ref={containerRef}
     >
       <img
+        draggable="true"
+        data-drag-handle
         src={getFileUrl(src)}
         alt={title}
         className={classes.image}
@@ -125,7 +127,7 @@ export default function ImageView(props: NodeViewProps) {
       />
 
       {/* Visual resize handles */}
-      {isEditable && (selected || hovered || resizing) && (
+      {isEditable && (selected || resizing) && (
         <>
           <div
             className={clsx(classes.resizeHandle, classes.resizeHandleNw)}

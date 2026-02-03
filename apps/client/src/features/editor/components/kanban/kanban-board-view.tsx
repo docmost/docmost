@@ -36,7 +36,6 @@ import { baseExtensions } from "@/features/editor/extensions/extensions";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
-import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
@@ -547,7 +546,6 @@ export default function KanbanBoardView(props: NodeViewProps) {
                                     <EditorBubbleMenu editor={cardEditor} />
                                     <TableMenu editor={cardEditor} />
                                     <TableCellMenu editor={cardEditor} appendTo={menuContainerRef} />
-                                    <ImageMenu editor={cardEditor} />
                                     <VideoMenu editor={cardEditor} />
                                     <CalloutMenu editor={cardEditor} />
                                     <SubpagesMenu editor={cardEditor} />

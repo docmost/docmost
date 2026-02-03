@@ -138,6 +138,30 @@
       display: inline-block;
       margin: 0;
       width: auto; /* Let the component handle width */
+
+      &.ProseMirror-selectednode {
+        outline: none !important;
+        background-color: transparent !important;
+      }
+
+      *::selection {
+        background-color: transparent;
+      }
+    }
+  }
+
+  &[contenteditable="false"] {
+    .node-image {
+      &.ProseMirror-selectednode {
+        outline: none !important;
+        box-shadow: none !important;
+        background-color: transparent !important;
+      }
+
+      img::selection,
+      &::selection {
+        background-color: transparent !important;
+      }
     }
   }
 

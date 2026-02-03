@@ -50,7 +50,6 @@ import { baseExtensions } from "@/features/editor/extensions/extensions";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
-import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
@@ -631,7 +630,6 @@ export default function DataTableView(props: NodeViewProps) {
                             <EditorBubbleMenu editor={rowEditor} />
                             <TableMenu editor={rowEditor} />
                             <TableCellMenu editor={rowEditor} appendTo={menuContainerRef} />
-                            <ImageMenu editor={rowEditor} />
                             <VideoMenu editor={rowEditor} />
                             <CalloutMenu editor={rowEditor} />
                             <SubpagesMenu editor={rowEditor} />

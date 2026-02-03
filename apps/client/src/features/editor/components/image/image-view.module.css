@@ -8,16 +8,12 @@
   box-sizing: border-box;
 }
 
-.imageWrapper:hover .resizeHandle,
 .imageWrapper.selected .resizeHandle {
   opacity: 1;
 }
 
 .image {
-  display: block;
-  max-width: 100%;
   height: auto;
-  pointer-events: none; /* Prevent browser drag of image itself interfering with handles */
 }
 
 /* Base style for handles */
