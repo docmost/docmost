@@ -38,6 +38,10 @@
   width: 100%;
 }
 
+.filterDropdown {
+  border: 1px solid var(--mantine-color-gray-6);
+}
+
 .tableContainer table {
   margin: 0;
   border-collapse: collapse;

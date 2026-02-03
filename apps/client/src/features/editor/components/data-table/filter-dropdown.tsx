@@ -2,6 +2,7 @@ import { ActionIcon, Button, Group, Menu, Select, TextInput, Badge, Box } from "
 import { IconFilter, IconX, IconPlus } from "@tabler/icons-react";
 import { DataTableColumn, DataTableFilter } from "@docmost/editor-ext";
 import { useState } from "react";
+import classes from "./data-table.module.css";
 
 interface FilterDropdownProps {
     columns: DataTableColumn[];
@@ -101,7 +102,7 @@ export function FilterDropdown({ columns, filters, onFiltersChange }: FilterDrop
     };
 
     return (
-        <Menu opened={opened} onChange={setOpened} position="bottom-start" withinPortal>
+        <Menu opened={opened} onChange={setOpened} position="bottom-start" withinPortal closeOnItemClick={false}>
             <Menu.Target>
                 <Button
                     variant="subtle"
@@ -113,7 +114,7 @@ export function FilterDropdown({ columns, filters, onFiltersChange }: FilterDrop
                 </Button>
             </Menu.Target>
 
-            <Menu.Dropdown style={{ minWidth: 500, maxWidth: 600 }}>
+            <Menu.Dropdown style={{ minWidth: 500, maxWidth: 600 }} className={classes.filterDropdown}>
                 <Box p="xs">
                     {filters.length === 0 ? (
                         <Box p="md" style={{ textAlign: "center", color: "var(--mantine-color-dimmed)" }}>
@@ -133,6 +134,7 @@ export function FilterDropdown({ columns, filters, onFiltersChange }: FilterDrop
                                             onChange={(value) => value && updateFilter(filter.id, { columnId: value, operator: "contains", value: "" })}
                                             data={columns.map((col) => ({ value: col.id, label: col.name }))}
                                             style={{ flex: "0 0 150px" }}
+                                            comboboxProps={{ withinPortal: false }}
                                         />
                                         <Select
                                             size="xs"
@@ -140,6 +142,7 @@ export function FilterDropdown({ columns, filters, onFiltersChange }: FilterDrop
                                             onChange={(value) => value && updateFilter(filter.id, { operator: value })}
                                             data={operators}
                                             style={{ flex: "0 0 150px" }}
+                                            comboboxProps={{ withinPortal: false }}
                                         />
                                         {needsValueInput(filter.operator) && (
                                             column?.type === "select" || column?.type === "status" ? (
@@ -151,6 +154,7 @@ export function FilterDropdown({ columns, filters, onFiltersChange }: FilterDrop
                                                     placeholder="Select value..."
                                                     style={{ flex: 1 }}
                                                     clearable
+                                                    comboboxProps={{ withinPortal: false }}
                                                 />
                                             ) : (
                                                 <TextInput
