@@ -8,7 +8,7 @@ import {
   PageHistory,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
@@ -17,15 +17,32 @@ import { DB } from '@docmost/db/types/db';
 export class PageHistoryRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof PageHistory> = [
+    'id',
+    'pageId',
+    'slugId',
+    'title',
+    'icon',
+    'coverPhoto',
+    'lastUpdatedById',
+    'spaceId',
+    'workspaceId',
+    'createdAt',
+  ];
+
   async findById(
     pageHistoryId: string,
-    trx?: KyselyTransaction,
+    opts?: {
+      includeContent?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<PageHistory> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts?.trx);
 
     return await db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
       .select((eb) => this.withLastUpdatedBy(eb))
       .where('id', '=', pageHistoryId)
       .executeTakeFirst();
@@ -63,25 +80,32 @@ export class PageHistoryRepo {
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
       .select((eb) => this.withLastUpdatedBy(eb))
-      .where('pageId', '=', pageId)
-      .orderBy('createdAt', 'desc');
+      .where('pageId', '=', pageId);
 
-    const result = executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'desc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
-
-    return result;
   }
 
-  async findPageLastHistory(pageId: string, trx?: KyselyTransaction) {
-    const db = dbOrTx(this.db, trx);
+  async findPageLastHistory(
+    pageId: string,
+    opts?: {
+      includeContent?: boolean;
+      trx?: KyselyTransaction;
+    },
+  ) {
+    const db = dbOrTx(this.db, opts?.trx);
 
     return await db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
       .where('pageId', '=', pageId)
       .limit(1)
       .orderBy('createdAt', 'desc')

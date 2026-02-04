@@ -99,7 +99,7 @@ export const embedProviders: IEmbedProvider[] = [
     id: "gsheets",
     name: "Google Sheets",
     regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/.*$/,
+      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9_-]+)\/.*$/,
     getEmbedUrl: (match, url: string) => {
       return url;
     },

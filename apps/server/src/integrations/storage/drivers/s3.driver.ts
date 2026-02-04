@@ -13,6 +13,7 @@ import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getMimeType } from '../../../common/helpers';
 import { Upload } from '@aws-sdk/lib-storage';
+import { Logger } from '@nestjs/common';
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
@@ -23,20 +24,23 @@ export class S3Driver implements StorageDriver {
     this.s3Client = new S3Client(config as any);
   }
 
-  async upload(filePath: string, file: Buffer): Promise<void> {
+  async upload(filePath: string, file: Buffer | Readable): Promise<void> {
     try {
       const contentType = getMimeType(filePath);
 
-      const command = new PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: filePath,
-        Body: file,
-        ContentType: contentType,
-        // ACL: "public-read",
+      const upload = new Upload({
+        client: this.s3Client,
+        params: {
+          Bucket: this.config.bucket,
+          Key: filePath,
+          Body: file,
+          ContentType: contentType,
+        },
       });
 
-      await this.s3Client.send(command);
+      await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
@@ -71,6 +75,7 @@ export class S3Driver implements StorageDriver {
 
       await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     } finally {
       if (shouldDestroyClient && clientToUse) {

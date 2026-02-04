@@ -215,7 +215,6 @@ export class PageController {
     }
   }
 
-  // TODO: scope to workspaces
   @HttpCode(HttpStatus.OK)
   @Post('/history')
   async getPageHistory(

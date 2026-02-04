@@ -19,6 +19,7 @@ export default function SubpagesView(props: NodeViewProps) {
   const { spaceSlug, shareId } = useParams();
   const { t } = useTranslation();
 
+  //@ts-ignore
   const currentPageId = editor.storage.pageId;
 
   // Get subpages from shared tree if we're in a shared context

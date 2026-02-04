@@ -9,7 +9,7 @@ import {Transform, TransformFnParams} from "class-transformer";
 
 export class CreateSpaceDto {
   @MinLength(2)
-  @MaxLength(50)
+  @MaxLength(100)
   @IsString()
   @Transform(({ value }: TransformFnParams) => value?.trim())
   name: string;
@@ -19,7 +19,7 @@ export class CreateSpaceDto {
   description?: string;
 
   @MinLength(2)
-  @MaxLength(50)
+  @MaxLength(100)
   @IsAlphanumeric()
   slug: string;
 }

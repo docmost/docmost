@@ -1,20 +1,42 @@
 import { Text, Group, UnstyledButton } from "@mantine/core";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { formattedDate } from "@/lib/time";
-import classes from "./history.module.css";
+import classes from "./css/history.module.css";
 import clsx from "clsx";
+import { IPageHistory } from "@/features/page-history/types/page.types";
+import { memo, useCallback } from "react";
 
 interface HistoryItemProps {
-  historyItem: any;
-  onSelect: (id: string) => void;
+  historyItem: IPageHistory;
+  index: number;
+  onSelect: (id: string, index: number) => void;
+  onHover?: (id: string, index: number) => void;
+  onHoverEnd?: () => void;
   isActive: boolean;
 }
 
-function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
+const HistoryItem = memo(function HistoryItem({
+  historyItem,
+  index,
+  onSelect,
+  onHover,
+  onHoverEnd,
+  isActive,
+}: HistoryItemProps) {
+  const handleClick = useCallback(() => {
+    onSelect(historyItem.id, index);
+  }, [onSelect, historyItem.id, index]);
+
+  const handleMouseEnter = useCallback(() => {
+    onHover?.(historyItem.id, index);
+  }, [onHover, historyItem.id, index]);
+
   return (
     <UnstyledButton
       p="xs"
-      onClick={() => onSelect(historyItem.id)}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={onHoverEnd}
       className={clsx(classes.history, { [classes.active]: isActive })}
     >
       <Group wrap="nowrap">
@@ -27,11 +49,11 @@ function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
             <Group gap={4} wrap="nowrap">
               <CustomAvatar
                 size="sm"
-                avatarUrl={historyItem.lastUpdatedBy.avatarUrl}
-                name={historyItem.lastUpdatedBy.name}
+                avatarUrl={historyItem.lastUpdatedBy?.avatarUrl}
+                name={historyItem.lastUpdatedBy?.name}
               />
               <Text size="sm" c="dimmed" lineClamp={1}>
-                {historyItem.lastUpdatedBy.name}
+                {historyItem.lastUpdatedBy?.name}
               </Text>
             </Group>
           </div>
@@ -39,6 +61,6 @@ function HistoryItem({ historyItem, onSelect, isActive }: HistoryItemProps) {
       </Group>
     </UnstyledButton>
   );
-}
+});
 
 export default HistoryItem;

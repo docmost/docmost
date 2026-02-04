@@ -98,6 +98,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
     const fileName = "diagram.excalidraw.svg";
     const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
+    // @ts-ignore
     const pageId = editor.storage?.pageId;
 
     let attachment: IAttachment = null;

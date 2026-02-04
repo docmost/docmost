@@ -7,12 +7,12 @@ import { ISpace } from "@/features/space/types/space.types.ts";
 import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
-  description: z.string().max(250),
+  name: z.string().min(2).max(100),
+  description: z.string().max(500),
   slug: z
     .string()
     .min(2)
-    .max(50)
+    .max(100)
     .regex(
       /^[a-zA-Z0-9]+$/,
       "Space slug must be alphanumeric. No special characters",
