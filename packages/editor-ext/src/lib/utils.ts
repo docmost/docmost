@@ -370,7 +370,9 @@ export function setAttributes(
 }
 
 export function icon(name: string) {
-  return `<span class="ProseMirror-icon ProseMirror-icon-${name}"></span>`;
+  const span = document.createElement("span");
+  span.classList.add("ProseMirror-icon", `ProseMirror-icon-${name}`);
+  return span.outerHTML;
 }
 
 export function sanitizeUrl(url: string | undefined): string {
