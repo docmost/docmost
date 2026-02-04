@@ -161,6 +161,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 
@@ -173,9 +174,13 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           if (input.files?.length) {
             for (const file of input.files) {
               const pos = editor.view.state.selection.from;
-              uploadImageAction(file, editor.view, pos, pageId);
+
+              uploadImageAction(file, editor, pos, pageId);
             }
           }
+
+          // Reset the input value to allow uploading the same file again if needed
+          input.value = "";
         };
         input.click();
       },
@@ -188,6 +193,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 
@@ -195,12 +201,18 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "video/*";
+        input.multiple = true;
         input.onchange = async () => {
           if (input.files?.length) {
-            const file = input.files[0];
-            const pos = editor.view.state.selection.from;
-            uploadVideoAction(file, editor.view, pos, pageId);
+            for (const file of input.files) {
+              const pos = editor.view.state.selection.from;
+
+              uploadVideoAction(file, editor, pos, pageId);
+            }
           }
+
+          // Reset the input value to allow uploading the same file again if needed
+          input.value = "";
         };
         input.click();
       },
@@ -213,6 +225,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
 
+        // @ts-ignore
         const pageId = editor.storage?.pageId;
         if (!pageId) return;
 
@@ -220,12 +233,18 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "";
+        input.multiple = true;
         input.onchange = async () => {
           if (input.files?.length) {
-            const file = input.files[0];
-            const pos = editor.view.state.selection.from;
-            uploadAttachmentAction(file, editor.view, pos, pageId, true);
+            for (const file of input.files) {
+              const pos = editor.view.state.selection.from;
+
+              uploadAttachmentAction(file, editor, pos, pageId, true);
+            }
           }
+
+          // Reset the input value to allow uploading the same file again if needed
+          input.value = "";
         };
         input.click();
       },

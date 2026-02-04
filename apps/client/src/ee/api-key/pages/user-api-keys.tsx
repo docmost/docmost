@@ -10,19 +10,19 @@ import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-moda
 import { UpdateApiKeyModal } from "@/ee/api-key/components/update-api-key-modal";
 import { RevokeApiKeyModal } from "@/ee/api-key/components/revoke-api-key-modal";
 import Paginate from "@/components/common/paginate";
-import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetApiKeysQuery } from "@/ee/api-key/queries/api-key-query.ts";
 import { IApiKey } from "@/ee/api-key";
 
 export default function UserApiKeys() {
   const { t } = useTranslation();
-  const { page, setPage } = usePaginateAndSearch();
+  const { cursor, goNext, goPrev } = useCursorPaginate();
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<IApiKey | null>(null);
   const [updateModalOpened, setUpdateModalOpened] = useState(false);
   const [revokeModalOpened, setRevokeModalOpened] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<IApiKey | null>(null);
-  const { data, isLoading } = useGetApiKeysQuery({ page });
+  const { data, isLoading } = useGetApiKeysQuery({ cursor });
 
   const handleCreateSuccess = (response: IApiKey) => {
     setCreatedApiKey(response);
@@ -65,10 +65,10 @@ export default function UserApiKeys() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
 

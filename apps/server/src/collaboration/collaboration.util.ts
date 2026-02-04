@@ -1,14 +1,12 @@
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextAlign } from '@tiptap/extension-text-align';
-import { TaskList } from '@tiptap/extension-task-list';
-import { TaskItem } from '@tiptap/extension-task-item';
-import { Underline } from '@tiptap/extension-underline';
 import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
+import { TaskList, TaskItem } from '@tiptap/extension-list';
 import {
   Heading,
   Callout,
@@ -42,11 +40,15 @@ import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // @tiptap/html library works best for generating prosemirror json state but not HTML
 // see: https://github.com/ueberdosis/tiptap/issues/5352
 // see:https://github.com/ueberdosis/tiptap/issues/4089
-import { Node } from '@tiptap/pm/model';
+//import { generateJSON } from '@tiptap/html';
+import { Node, Schema } from '@tiptap/pm/model';
+import { Logger } from '@nestjs/common';
 
 export const tiptapExtensions = [
   StarterKit.configure({
     codeBlock: false,
+    link: false,
+    trailingNode: false,
     heading: false,
   }),
   Heading,
@@ -59,7 +61,6 @@ export const tiptapExtensions = [
   TaskItem.configure({
     nested: true,
   }),
-  Underline,
   LinkExtension,
   Superscript,
   SubScript,
@@ -110,9 +111,53 @@ export function jsonToText(tiptapJson: JSONContent) {
 }
 
 export function jsonToNode(tiptapJson: JSONContent) {
-  return Node.fromJSON(getSchema(tiptapExtensions), tiptapJson);
+  const schema = getSchema(tiptapExtensions);
+  try {
+    return Node.fromJSON(schema, tiptapJson);
+  } catch (error) {
+    if (
+      error instanceof RangeError &&
+      error.message.includes('Unknown node type')
+    ) {
+      Logger.warn('Stripping unknown node types from document:', error.message);
+      const cleanedJson = stripUnknownNodes(tiptapJson, schema);
+      return Node.fromJSON(schema, cleanedJson);
+    }
+    throw error;
+  }
 }
 
 export function getPageId(documentName: string) {
   return documentName.split('.')[1];
+}
+
+function stripUnknownNodes(
+  json: JSONContent,
+  schema: Schema,
+): JSONContent | null {
+  if (!json || typeof json !== 'object') return json;
+
+  // Recursively clean children first, flattening any unwrapped content
+  if (json.content && Array.isArray(json.content)) {
+    const newContent: JSONContent[] = [];
+    for (const child of json.content) {
+      const cleaned = stripUnknownNodes(child, schema);
+      if (Array.isArray(cleaned)) {
+        newContent.push(...cleaned);
+      } else if (cleaned) {
+        newContent.push(cleaned);
+      }
+    }
+    json.content = newContent;
+  }
+
+  // Check if this node is unknown AFTER processing children
+  if (json.type && !schema.nodes[json.type]) {
+    // Unwrap: return cleaned children directly instead of wrapping
+    return (
+      json.content && json.content.length > 0 ? json.content : null
+    ) as any;
+  }
+
+  return json;
 }

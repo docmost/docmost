@@ -5,6 +5,8 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.4.0 --activate
 WORKDIR /app
 
+RUN npm install -g pnpm@10.4.0
+
 FROM base AS builder
 
 COPY .npmrc package.json pnpm*.yaml nx.json /app/

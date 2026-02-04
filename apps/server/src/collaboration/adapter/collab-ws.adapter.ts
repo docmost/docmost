@@ -30,12 +30,20 @@ export class CollabWsAdapter {
     return this.wss;
   }
 
+  public close() {
+    try {
+      this.wss.close();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   public destroy() {
     try {
+      this.wss.close();
       this.wss.clients.forEach((client) => {
         client.terminate();
       });
-      this.wss.close();
     } catch (err) {
       console.error(err);
     }

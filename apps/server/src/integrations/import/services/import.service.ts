@@ -10,7 +10,11 @@ import {
 } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { generateSlugId, sanitizeFileName, createByteCountingStream } from '../../../common/helpers';
+import {
+  generateSlugId,
+  sanitizeFileName,
+  createByteCountingStream,
+} from '../../../common/helpers';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
@@ -226,13 +230,10 @@ export class ImportService {
     workspaceId: string,
   ) {
     const file = await filePromise;
-    // const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();
     const fileName = sanitizeFileName(
       path.basename(file.filename, fileExtension),
     );
-    // const fileSize = fileBuffer.length; // Removed to avoid RangeError
-
     const fileNameWithExt = fileName + fileExtension;
 
     const fileTaskId = uuid7();
@@ -241,7 +242,6 @@ export class ImportService {
     // upload file
     const { stream, getBytesRead } = createByteCountingStream(file.file);
 
-    // upload file
     await this.storageService.upload(filePath, stream);
 
     const fileSize = getBytesRead();

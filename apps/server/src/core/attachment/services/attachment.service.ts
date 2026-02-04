@@ -51,7 +51,9 @@ export class AttachmentService {
     attachmentId?: string;
   }) {
     const { filePromise, pageId, spaceId, userId, workspaceId } = opts;
-    const preparedFile: PreparedFile = await prepareFile(filePromise, { skipBuffer: true });
+    const preparedFile: PreparedFile = await prepareFile(filePromise, {
+      skipBuffer: true,
+    });
 
     let isUpdate = false;
     let attachmentId = null;
@@ -83,7 +85,9 @@ export class AttachmentService {
 
     const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
-    const { stream, getBytesRead } = createByteCountingStream(preparedFile.multiPartFile.file);
+    const { stream, getBytesRead } = createByteCountingStream(
+      preparedFile.multiPartFile.file,
+    );
 
     await this.uploadToDrive(filePath, stream);
 
@@ -149,7 +153,10 @@ export class AttachmentService {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
 
-    const processedBuffer = await compressAndResizeIcon(preparedFile.buffer, type);
+    const processedBuffer = await compressAndResizeIcon(
+      preparedFile.buffer,
+      type,
+    );
     preparedFile.buffer = processedBuffer;
     preparedFile.fileSize = processedBuffer.length;
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;

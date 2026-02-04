@@ -69,7 +69,7 @@ export class AuthenticationExtension implements Extension {
     }
 
     if (userSpaceRole === SpaceRole.READER) {
-      data.connection.readOnly = true;
+      data.connectionConfig.readOnly = true;
       this.logger.debug(`User granted readonly access to page: ${pageId}`);
     }
 

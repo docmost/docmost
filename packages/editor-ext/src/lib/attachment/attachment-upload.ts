@@ -1,126 +1,125 @@
-import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import {
-  insertTrailingNode,
-  MediaUploadOptions,
-  UploadFn,
-} from "../media-utils";
+import { Node } from "@tiptap/pm/model";
+import { MediaUploadOptions, UploadFn } from "../media-utils";
 import { IAttachment } from "../types";
+import { generateNodeId } from "../utils";
+import { Command } from "@tiptap/core";
 
-const uploadKey = new PluginKey("attachment-upload");
+const findAttachmentNodeByPlaceholderId = (
+  doc: Node,
+  placeholderId: string,
+): { node: Node; pos: number } | null => {
+  let result: { node: Node; pos: number } | null = null;
 
-export const AttachmentUploadPlugin = ({
-  placeholderClass,
-}: {
-  placeholderClass: string;
-}) =>
-  new Plugin({
-    key: uploadKey,
-    state: {
-      init() {
-        return DecorationSet.empty;
-      },
-      apply(tr, set) {
-        set = set.map(tr.mapping, tr.doc);
-        // See if the transaction adds or removes any placeholders
-        //@-ts-expect-error - not yet sure what the type I need here
-        const action = tr.getMeta(this);
-        if (action?.add) {
-          const { id, pos, fileName } = action.add;
-
-          const placeholder = document.createElement("div");
-          placeholder.setAttribute("class", placeholderClass);
-
-          const uploadingText = document.createElement("span");
-          uploadingText.setAttribute("class", "uploading-text");
-          uploadingText.textContent = `Uploading ${fileName}`;
-
-          placeholder.appendChild(uploadingText);
-
-          const realPos = pos + 1;
-          const deco = Decoration.widget(realPos, placeholder, {
-            id,
-          });
-          set = set.add(tr.doc, [deco]);
-        } else if (action?.remove) {
-          set = set.remove(
-            set.find(
-              undefined,
-              undefined,
-              (spec) => spec.id == action.remove.id,
-            ),
-          );
-        }
-        return set;
-      },
-    },
-    props: {
-      decorations(state) {
-        return this.getState(state);
-      },
-    },
+  doc.descendants((node, pos) => {
+    if (result) return false;
+    if (
+      node.type.name === "attachment" &&
+      node.attrs.placeholder?.id === placeholderId
+    ) {
+      result = { node, pos };
+      return false;
+    }
+    return true;
   });
 
-function findPlaceholder(state: EditorState, id: {}) {
-  const decos = uploadKey.getState(state) as DecorationSet;
-  const found = decos.find(undefined, undefined, (spec) => spec.id == id);
-  return found.length ? found[0]?.from : null;
-}
-
-export const handleAttachmentUpload =
+  return result;
+};
+const handleAttachmentUpload =
   ({ validateFn, onUpload }: MediaUploadOptions): UploadFn =>
-  async (file, view, pos, pageId, allowMedia) => {
+  async (file, editor, pos, pageId, allowMedia) => {
     const validated = validateFn?.(file, allowMedia);
     // @ts-ignore
     if (!validated) return;
-    // A fresh object to act as the ID for this upload
-    const id = {};
 
-    // Replace the selection with a placeholder
-    const tr = view.state.tr;
-    if (!tr.selection.empty) tr.deleteSelection();
+    const placeholderId = generateNodeId();
 
-    tr.setMeta(uploadKey, {
-      add: {
-        id,
-        pos,
-        fileName: file.name,
-      },
-    });
+    let placeholderInserted = false;
 
-    insertTrailingNode(tr, pos, view);
-    view.dispatch(tr);
+    const insertPlaceholder = (): Command => {
+      return ({ tr, state }) => {
+        const initialPlaceholderNode = state.schema.nodes.attachment?.create({
+          placeholder: {
+            id: placeholderId,
+          },
+          name: file.name,
+          size: file.size,
+        });
 
-    await onUpload(file, pageId).then(
-      (attachment: IAttachment) => {
-        const { schema } = view.state;
+        if (!initialPlaceholderNode) return false;
 
-        const pos = findPlaceholder(view.state, id);
+        const { parent } = tr.doc.resolve(pos);
+        const isEmptyTextBlock = parent.isTextblock && !parent.childCount;
 
-        if (pos == null) return;
+        if (isEmptyTextBlock) {
+          tr.replaceRangeWith(pos - 1, pos + 1, initialPlaceholderNode);
+        } else {
+          tr.insert(pos, initialPlaceholderNode);
+        }
 
-        if (!attachment) return;
+        return true;
+      };
+    };
+    const replacePlaceholderWithAttachment = (
+      attachment: IAttachment,
+    ): Command => {
+      return ({ tr }) => {
+        const { pos: currentPos = null } =
+          findAttachmentNodeByPlaceholderId(tr.doc, placeholderId) || {};
 
-        const node = schema.nodes.attachment?.create({
+        //  If the placeholder is not found or attachment is missing, abort the process
+        if (currentPos === null || !attachment) return false;
+
+        // Update the placeholder node with the actual attachment data
+        tr.setNodeMarkup(currentPos, undefined, {
           url: `/api/files/${attachment.id}/${attachment.fileName}`,
           name: attachment.fileName,
           mime: attachment.mimeType,
           size: attachment.fileSize,
           attachmentId: attachment.id,
         });
-        if (!node) return;
 
-        const transaction = view.state.tr
-          .replaceWith(pos, pos, node)
-          .setMeta(uploadKey, { remove: { id } });
-        view.dispatch(transaction);
-      },
-      () => {
-        // Deletes the placeholder on error
-        const transaction = view.state.tr
-          .delete(pos, pos)
-          .setMeta(uploadKey, { remove: { id } });
-        view.dispatch(transaction);
-      },
-    );
+        return true;
+      };
+    };
+    const removePlaceholder = (): Command => {
+      return ({ tr }) => {
+        const { pos: currentPos = null } =
+          findAttachmentNodeByPlaceholderId(tr.doc, placeholderId) || {};
+
+        if (currentPos === null) return false;
+
+        tr.delete(currentPos, currentPos + 2);
+
+        return true;
+      };
+    };
+    // Only show the placeholder if the upload takes more than 250ms
+    const insertPlaceholderTimeout = setTimeout(() => {
+      editor.commands.command(insertPlaceholder());
+      placeholderInserted = true;
+    }, 250);
+
+    try {
+      const attachment: IAttachment = await onUpload(file, pageId);
+
+      clearTimeout(insertPlaceholderTimeout);
+
+      if (placeholderInserted) {
+        setTimeout(() => {
+          editor.commands.command(replacePlaceholderWithAttachment(attachment));
+        }, 100);
+      } else {
+        editor
+          .chain()
+          .command(insertPlaceholder())
+          .command(replacePlaceholderWithAttachment(attachment))
+          .run();
+      }
+    } catch (error) {
+      clearTimeout(insertPlaceholderTimeout);
+
+      editor.commands.command(removePlaceholder());
+    }
   };
+
+export { handleAttachmentUpload };

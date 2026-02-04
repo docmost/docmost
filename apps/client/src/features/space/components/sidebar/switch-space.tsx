@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { SpaceSelect } from "./space-select";
 import { getSpaceUrl } from "@/lib/config";
 import { Button, Popover, Text } from "@mantine/core";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
@@ -21,7 +21,7 @@ export function SwitchSpace({
   spaceIcon,
 }: SwitchSpaceProps) {
   const navigate = useNavigate();
-  const [opened, { close, open, toggle }] = useDisclosure(false);
+  const [opened, { close, toggle }] = useDisclosure(false);
 
   const handleSelect = (value: string) => {
     if (value) {
@@ -44,9 +44,9 @@ export function SwitchSpace({
           variant="subtle"
           fullWidth
           justify="space-between"
-          rightSection={<IconChevronDown size={18} />}
+          rightSection={opened ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
           color="gray"
-          onClick={open}
+          onClick={toggle}
         >
           <CustomAvatar
             name={spaceName}

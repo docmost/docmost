@@ -5,9 +5,9 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { Logger, NotFoundException, ValidationPipe } from '@nestjs/common';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { TransformHttpResponseInterceptor } from './common/interceptors/http-response.interceptor';
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
-import { InternalLogFilter } from './common/logger/internal-log-filter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
 
@@ -24,9 +24,15 @@ async function bootstrap() {
     }),
     {
       rawBody: true,
-      logger: new InternalLogFilter(),
+      // disable Nest logger so pino handles all logs
+      // bufferLogs must be false else pino will fail
+      // to log OnApplicationBootstrap logs
+      logger: false,
+      bufferLogs: false,
     },
   );
+
+  app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', {
     exclude: ['robots.txt', 'share/:shareId/p/:pageSlug'],
@@ -98,7 +104,8 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0', () => {
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
     logger.log(
       `Listening on http://127.0.0.1:${port} / ${process.env.APP_URL}`,
     );
