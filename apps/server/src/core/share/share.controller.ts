@@ -202,7 +202,10 @@ export class ShareController {
     @Body() dto: ShareIdDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const treeData = await this.shareService.getShareTree(dto.shareId, workspace.id);
+    const treeData = await this.shareService.getShareTree(
+      dto.shareId,
+      workspace.id,
+    );
 
     const sharingAllowed = await this.shareService.isSharingAllowed(
       workspace.id,

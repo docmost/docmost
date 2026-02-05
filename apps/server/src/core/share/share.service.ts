@@ -264,7 +264,10 @@ export class ShareService {
     return ancestor;
   }
 
-  async isSharingAllowed(workspaceId: string, spaceId: string): Promise<boolean> {
+  async isSharingAllowed(
+    workspaceId: string,
+    spaceId: string,
+  ): Promise<boolean> {
     const result = await this.db
       .selectFrom('workspaces')
       .innerJoin('spaces', 'spaces.workspaceId', 'workspaces.id')
@@ -278,8 +281,10 @@ export class ShareService {
 
     if (!result) return false;
 
-    const workspaceDisabled = (result.workspaceSettings as any)?.sharing?.disabled === true;
-    const spaceDisabled = (result.spaceSettings as any)?.sharing?.disabled === true;
+    const workspaceDisabled =
+      (result.workspaceSettings as any)?.sharing?.disabled === true;
+    const spaceDisabled =
+      (result.spaceSettings as any)?.sharing?.disabled === true;
 
     return !workspaceDisabled && !spaceDisabled;
   }
