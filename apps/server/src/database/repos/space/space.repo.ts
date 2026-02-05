@@ -89,6 +89,26 @@ export class SpaceRepo {
       .executeTakeFirst();
   }
 
+  async updateSharingSettings(
+    spaceId: string,
+    workspaceId: string,
+    prefKey: string,
+    prefValue: string | boolean,
+  ) {
+    return this.db
+      .updateTable('spaces')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+          || jsonb_build_object('sharing', COALESCE(settings->'sharing', '{}'::jsonb)
+          || jsonb_build_object('${sql.raw(prefKey)}', ${sql.lit(prefValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', spaceId)
+      .where('workspaceId', '=', workspaceId)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
   async insertSpace(
     insertableSpace: InsertableSpace,
     trx?: KyselyTransaction,

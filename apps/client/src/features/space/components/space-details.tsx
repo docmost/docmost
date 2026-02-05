@@ -18,6 +18,8 @@ import {
   ResponsiveSettingsControl,
   ResponsiveSettingsRow,
 } from "@/components/ui/responsive-settings-row.tsx";
+import SpacePublicSharingToggle from "@/ee/security/components/space-public-sharing-toggle.tsx";
+import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
 
 interface SpaceDetailsProps {
   spaceId: string;
@@ -26,6 +28,8 @@ interface SpaceDetailsProps {
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
   const { t } = useTranslation();
   const { data: space, isLoading, refetch } = useSpaceQuery(spaceId);
+  const hasEnterpriseAccess = useEnterpriseAccess();
+  const showSharingToggle = !readOnly && hasEnterpriseAccess;
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [isIconUploading, setIsIconUploading] = useState(false);
@@ -77,7 +81,6 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
               fallbackName={space.name}
               size={"60px"}
               variant="filled"
-
               type={AvatarIconType.SPACE_ICON}
               onUpload={handleIconUpload}
               onRemove={handleIconRemove}
@@ -87,6 +90,13 @@ export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
           </div>
 
           <EditSpaceForm space={space} readOnly={readOnly} />
+
+          {showSharingToggle && (
+            <>
+              <Divider my="lg" />
+              <SpacePublicSharingToggle space={space} />
+            </>
+          )}
 
           {!readOnly && (
             <>
