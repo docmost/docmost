@@ -18,7 +18,7 @@ export class SearchService {
     private pageRepo: PageRepo,
     private shareRepo: ShareRepo,
     private spaceMemberRepo: SpaceMemberRepo,
-  ) {}
+  ) { }
 
   async searchPage(
     searchParams: SearchDTO,

@@ -33,7 +33,7 @@ export class ImportController {
     private readonly importService: ImportService,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly environmentService: EnvironmentService,
-  ) {}
+  ) { }
 
   @UseInterceptors(FileInterceptor)
   @UseGuards(JwtAuthGuard)
@@ -74,16 +74,28 @@ export class ImportController {
 
     const spaceId = file.fields?.spaceId?.value;
 
+    const rawParentPageId = file.fields?.parentPageId?.value;
+    const parentPageId =
+      typeof rawParentPageId === 'string' && rawParentPageId.trim()
+        ? rawParentPageId.trim()
+        : undefined;
+
     if (!spaceId) {
       throw new BadRequestException('spaceId is required');
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
-    return this.importService.importPage(file, user.id, spaceId, workspace.id);
+    return this.importService.importPage(
+      file,
+      user.id,
+      spaceId,
+      workspace.id,
+      parentPageId,
+    );
   }
 
   @UseInterceptors(FileInterceptor)
@@ -138,7 +150,7 @@ export class ImportController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
