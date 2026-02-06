@@ -8,7 +8,7 @@
   }
 
   .mantine-AppShell-main {
-    padding-top: 0 !important;
+    padding: 0 !important;
     min-height: auto !important;
   }
 
