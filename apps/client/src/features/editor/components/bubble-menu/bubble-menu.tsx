@@ -9,10 +9,11 @@ import {
   IconStrikethrough,
   IconUnderline,
   IconMessage,
+  IconSparkles,
 } from "@tabler/icons-react";
 import clsx from "clsx";
 import classes from "./bubble-menu.module.css";
-import { ActionIcon, rem, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, rem, Tooltip } from "@mantine/core";
 import { ColorSelector } from "./color-selector";
 import { NodeSelector } from "./node-selector";
 import { TextAlignmentSelector } from "./text-alignment-selector";
@@ -25,6 +26,7 @@ import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
+import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms";
 
 export interface BubbleMenuItem {
   name: string;
@@ -39,13 +41,19 @@ type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const { t } = useTranslation();
+  const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
+  const showAiMenuRef = useRef(showAiMenu);
 
   useEffect(() => {
     showCommentPopupRef.current = showCommentPopup;
   }, [showCommentPopup]);
+
+  useEffect(() => {
+    showAiMenuRef.current = showAiMenu;
+  }, [showAiMenu]);
 
   const editorState = useEditorState({
     editor: props.editor,
@@ -123,6 +131,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         empty ||
         isNodeSelection(selection) ||
         isCellSelection(selection) ||
+        showAiMenuRef.current ||
         showCommentPopupRef?.current
       ) {
         return false;
@@ -146,9 +155,26 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
 
+  // Hide the bubble menu immediately when AI menu is shown
+  if (showAiMenu) return;
+
   return (
-    <BubbleMenu {...bubbleMenuProps} style={{ zIndex: 200, position: "relative"}}>
+    <BubbleMenu
+      {...bubbleMenuProps}
+      style={{ zIndex: 200, position: "relative" }}
+    >
       <div className={classes.bubbleMenu}>
+        <Button
+          variant="default"
+          style={{ border: "none", height: "34px" }}
+          radius="0"
+          rightSection={<IconSparkles size={16} />}
+          onClick={() => {
+            setShowAiMenu(true);
+          }}
+        >
+          Ask AI
+        </Button>
         <NodeSelector
           editor={props.editor}
           isOpen={isNodeSelectorOpen}
