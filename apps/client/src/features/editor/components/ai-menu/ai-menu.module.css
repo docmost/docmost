@@ -1,0 +1,14 @@
+.aiMenu {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 2.25rem;
+}
+.resultPreviewWrapper {
+  *:first-child {
+    margin-top: 0;
+  }
+  *:last-child {
+    margin-bottom: 0;
+  }
+}
