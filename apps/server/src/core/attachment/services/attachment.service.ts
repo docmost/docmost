@@ -40,7 +40,7 @@ export class AttachmentService {
     private readonly spaceRepo: SpaceRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
-  ) {}
+  ) { }
 
   async uploadFile(opts: {
     filePromise: Promise<MultipartFile>;

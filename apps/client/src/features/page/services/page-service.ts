@@ -125,7 +125,9 @@ export async function exportPage(data: IExportPageParams): Promise<void> {
   saveAs(req.data, decodedFileName);
 }
 
-export async function importPage(file: File, spaceId: string) {
+import { AxiosProgressEvent } from "axios";
+
+export async function importPage(file: File, spaceId: string, onUploadProgress?: (progressEvent: AxiosProgressEvent) => void) {
   const formData = new FormData();
   formData.append("spaceId", spaceId);
   formData.append("file", file);
@@ -134,6 +136,7 @@ export async function importPage(file: File, spaceId: string) {
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req.data;
@@ -143,6 +146,7 @@ export async function importZip(
   file: File,
   spaceId: string,
   source?: string,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<IFileTask> {
   const formData = new FormData();
   formData.append("spaceId", spaceId);
@@ -153,6 +157,7 @@ export async function importZip(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req.data;
@@ -162,6 +167,7 @@ export async function uploadFile(
   file: File,
   pageId: string,
   attachmentId?: string,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<IAttachment> {
   const formData = new FormData();
   if (attachmentId) {
@@ -174,6 +180,7 @@ export async function uploadFile(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    onUploadProgress,
   });
 
   return req as unknown as IAttachment;

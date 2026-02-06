@@ -36,6 +36,7 @@ import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import pLimit from 'p-limit';
 
 @Injectable()
 export class FileImportTaskService {
@@ -50,14 +51,18 @@ export class FileImportTaskService {
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
-  async processZIpImport(fileTaskId: string): Promise<void> {
-    const fileTask = await this.db
+  async getFileTask(fileTaskId: string): Promise<FileTask | undefined> {
+    return await this.db
       .selectFrom('fileTasks')
       .selectAll()
       .where('id', '=', fileTaskId)
       .executeTakeFirst();
+  }
+
+  async processZipImport(fileTaskId: string): Promise<void> {
+    const fileTask = await this.getFileTask(fileTaskId);
 
     if (!fileTask) {
       this.logger.log(`Import file task with ID ${fileTaskId} not found`);
@@ -89,7 +94,9 @@ export class FileImportTaskService {
         fileTask.filePath,
       );
       await pipeline(fileStream, createWriteStream(tmpZipPath));
+      await this.updateTaskProgress(fileTaskId, 5);
       await extractZip(tmpZipPath, tmpExtractDir);
+      await this.updateTaskProgress(fileTaskId, 10);
     } catch (err) {
       await cleanupTmpFile();
       await cleanupTmpDir();
@@ -406,14 +413,17 @@ export class FileImportTaskService {
 
     // Sort levels to process in order
     const sortedLevels = Array.from(pagesByLevel.keys()).sort((a, b) => a - b);
+    const preparedPagesByLevel = new Map<number, InsertablePage[]>();
 
     try {
-      await executeTx(this.db, async (trx) => {
-        // Process pages level by level sequentially within the transaction
-        for (const level of sortedLevels) {
-          const levelPages = pagesByLevel.get(level)!;
+      const processingLimit = pLimit(5); // Process up to 5 pages concurrently
 
-          for (const [filePath, page] of levelPages) {
+      for (const level of sortedLevels) {
+        const levelPages = pagesByLevel.get(level)!;
+        const levelPreparedPages: InsertablePage[] = [];
+
+        const tasks = levelPages.map(([filePath, page]) =>
+          processingLimit(async () => {
             const absPath = path.join(extractDir, filePath);
             let content = '';
 
@@ -476,16 +486,36 @@ export class FileImportTaskService {
               parentPageId: page.parentPageId,
             };
 
-            await trx.insertInto('pages').values(insertablePage).execute();
-
-            // Track valid page IDs and collect backlinks
-            validPageIds.add(insertablePage.id);
+            levelPreparedPages.push(insertablePage);
             allBacklinks.push(...backlinks);
             totalPagesProcessed++;
 
-            // Log progress periodically
-            if (totalPagesProcessed % 50 === 0) {
-              this.logger.debug(`Processed ${totalPagesProcessed} pages...`);
+            const totalPages = pagesMap.size;
+            // Update DB progress (mapping 10% - 95% for page processing)
+            const progress = Math.min(
+              10 + Math.round((totalPagesProcessed / totalPages) * 85),
+              95,
+            );
+            await this.updateTaskProgress(fileTask.id, progress);
+          }),
+        );
+
+        await Promise.all(tasks);
+        preparedPagesByLevel.set(level, levelPreparedPages);
+      }
+
+      await executeTx(this.db, async (trx) => {
+        // Insert prepared pages level by level within the transaction
+        for (const level of sortedLevels) {
+          const levelPages = preparedPagesByLevel.get(level) || [];
+
+          // Batch insert pages for this level
+          if (levelPages.length > 0) {
+            const PAGE_BATCH_SIZE = 50;
+            for (let i = 0; i < levelPages.length; i += PAGE_BATCH_SIZE) {
+              const chunk = levelPages.slice(i, i + PAGE_BATCH_SIZE);
+              await trx.insertInto('pages').values(chunk).execute();
+              chunk.forEach((p) => validPageIds.add(p.id));
             }
           }
         }
@@ -528,14 +558,6 @@ export class FileImportTaskService {
     }
   }
 
-  async getFileTask(fileTaskId: string) {
-    return this.db
-      .selectFrom('fileTasks')
-      .selectAll()
-      .where('id', '=', fileTaskId)
-      .executeTakeFirst();
-  }
-
   async updateTaskStatus(
     fileTaskId: string,
     status: FileTaskStatus,
@@ -544,7 +566,24 @@ export class FileImportTaskService {
     try {
       await this.db
         .updateTable('fileTasks')
-        .set({ status: status, errorMessage, updatedAt: new Date() })
+        .set({
+          status: status,
+          errorMessage,
+          progress: status === FileTaskStatus.Success ? 100 : undefined,
+          updatedAt: new Date(),
+        })
+        .where('id', '=', fileTaskId)
+        .execute();
+    } catch (err) {
+      this.logger.error(err);
+    }
+  }
+
+  async updateTaskProgress(fileTaskId: string, progress: number) {
+    try {
+      await this.db
+        .updateTable('fileTasks')
+        .set({ progress, updatedAt: new Date() })
         .where('id', '=', fileTaskId)
         .execute();
     } catch (err) {
