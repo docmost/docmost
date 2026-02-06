@@ -1,7 +1,6 @@
 import { AiAction } from "@/ee/ai/types/ai.types";
 import {
   IconSparkles,
-  IconCheck,
   IconArrowsMaximize,
   IconArrowsMinimize,
   IconWriting,
@@ -12,6 +11,9 @@ import {
   IconTrash,
   IconRefresh,
   IconChevronLeft,
+  IconCheck,
+  IconArrowDownLeft,
+  IconCopy,
 } from "@tabler/icons-react";
 
 interface CommandItem {
@@ -139,7 +141,9 @@ const translateItems: CommandItem[] = [
   },
 ];
 const resultItems: CommandItem[] = [
-  { id: "result-insert", name: "Insert", icon: IconCheck },
+  { id: "result-replace", name: "Replace", icon: IconCheck },
+  { id: "result-insert-below", name: "Insert below", icon: IconArrowDownLeft },
+  { id: "result-copy", name: "Copy", icon: IconCopy },
   { id: "result-discard", name: "Discard", icon: IconTrash },
   {
     id: "result-try-again",

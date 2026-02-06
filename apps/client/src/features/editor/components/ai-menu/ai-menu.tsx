@@ -128,7 +128,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
       if (item.id === "back") {
         return setActiveCommandSet("main");
       }
-      if (item.id === "result-insert") {
+      if (item.id === "result-replace") {
         const chain = editor.chain().focus();
 
         if (lastAction.action === AiAction.CONTINUE_WRITING) {
@@ -136,6 +136,21 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         }
 
         chain.insertContent(marked.parse(output)).run();
+
+        return setShowAiMenu(false);
+      }
+      if (item.id === "result-insert-below") {
+        editor
+          .chain()
+          .focus()
+          .setTextSelection(editor.state.selection.to)
+          .insertContent(marked.parse(output))
+          .run();
+
+        return setShowAiMenu(false);
+      }
+      if (item.id === "result-copy") {
+        navigator.clipboard.writeText(output);
 
         return setShowAiMenu(false);
       }
