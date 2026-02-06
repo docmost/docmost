@@ -64,8 +64,18 @@ export class ShareController {
       throw new BadRequestException();
     }
 
+    const shareData = await this.shareService.getSharedPage(dto, workspace.id);
+
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      shareData.share.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new NotFoundException('Shared page not found');
+    }
+
     return {
-      ...(await this.shareService.getSharedPage(dto, workspace.id)),
+      ...shareData,
       hasLicenseKey: hasLicenseOrEE({
         licenseKey: workspace.licenseKey,
         isCloud: this.environmentService.isCloud(),
@@ -83,6 +93,14 @@ export class ShareController {
     });
 
     if (!share) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      share.workspaceId,
+      share.spaceId,
+    );
+    if (!sharingAllowed) {
       throw new NotFoundException('Share not found');
     }
 
@@ -125,6 +143,14 @@ export class ShareController {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
     if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Share)) {
       throw new ForbiddenException();
+    }
+
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      page.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new ForbiddenException('Public sharing is disabled');
     }
 
     return this.shareService.createShare({
@@ -176,8 +202,21 @@ export class ShareController {
     @Body() dto: ShareIdDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    const treeData = await this.shareService.getShareTree(
+      dto.shareId,
+      workspace.id,
+    );
+
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      treeData.share.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new NotFoundException('Share not found');
+    }
+
     return {
-      ...(await this.shareService.getShareTree(dto.shareId, workspace.id)),
+      ...treeData,
       hasLicenseKey: hasLicenseOrEE({
         licenseKey: workspace.licenseKey,
         isCloud: this.environmentService.isCloud(),

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,12 +18,18 @@ import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 
 @Injectable()
 export class SpaceService {
   constructor(
     private spaceRepo: SpaceRepo,
     private spaceMemberService: SpaceMemberService,
+    private shareRepo: ShareRepo,
+    private workspaceRepo: WorkspaceRepo,
+    private licenseCheckService: LicenseCheckService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
   ) {}
@@ -102,6 +109,31 @@ export class SpaceService {
         throw new BadRequestException(
           'Space slug exists. Please use a unique space slug',
         );
+      }
+    }
+
+    if (typeof updateSpaceDto.disablePublicSharing !== 'undefined') {
+      const workspace = await this.workspaceRepo.findById(workspaceId, {
+        withLicenseKey: true,
+      });
+
+      if (
+        !this.licenseCheckService.isValidEELicense(workspace.licenseKey)
+      ) {
+        throw new ForbiddenException(
+          'This feature requires a valid enterprise license',
+        );
+      }
+
+      await this.spaceRepo.updateSharingSettings(
+        updateSpaceDto.spaceId,
+        workspaceId,
+        'disabled',
+        updateSpaceDto.disablePublicSharing,
+      );
+
+      if (updateSpaceDto.disablePublicSharing) {
+        await this.shareRepo.deleteBySpaceId(updateSpaceDto.spaceId);
       }
     }
 
