@@ -14,16 +14,15 @@ const ResultPreview = memo(({ output, isLoading }: ResultPreviewProps) => {
   const parsedOutput = `${marked.parse(output)}`;
 
   return (
-    <Paper p="sm" mb={4} shadow="lg" withBorder>
-      <Text size="sm" component="div">
+    <Paper p="md" mb={4} shadow="md" radius="md" className={classes.resultPreview}>
+      <div className={classes.resultPreviewWrapper}>
         {parsedOutput && (
           <div
-            className={classes.resultPreviewWrapper}
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedOutput) }}
           />
         )}
         {isLoading && <Loader size={12} ml="xs" display="inline-block" />}
-      </Text>
+      </div>
     </Paper>
   );
 });

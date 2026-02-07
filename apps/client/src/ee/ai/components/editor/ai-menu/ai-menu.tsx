@@ -4,7 +4,7 @@ import { useDebouncedCallback, useMediaQuery } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAtom } from "jotai";
-import { IconSend } from "@tabler/icons-react";
+import { IconArrowUp } from "@tabler/icons-react";
 import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { useAiGenerateStreamMutation } from "@/ee/ai/queries/ai-query.ts";
 import { AiAction } from "@/ee/ai/types/ai.types.ts";
@@ -286,22 +286,23 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         >
           <TextInput
             ref={inputRef}
-            style={{ width: "100%" }}
+            className={classes.aiInput}
             placeholder="Ask AI..."
             data-autofocus
             value={prompt}
             disabled={isLoading}
             onChange={(e) => setPrompt(e.currentTarget.value)}
             rightSection={
-              <Tooltip label="Ask AI">
-                <ActionIcon
-                  disabled={!prompt || isLoading}
-                  variant="transparent"
-                  onClick={() => handleGenerate()}
-                >
-                  <IconSend size={16} />
-                </ActionIcon>
-              </Tooltip>
+              <ActionIcon
+                disabled={!prompt || isLoading}
+                variant="filled"
+                color="blue"
+                radius="xl"
+                size="sm"
+                onClick={() => handleGenerate()}
+              >
+                <IconArrowUp size={14} stroke={2.5} />
+              </ActionIcon>
             }
             onKeyDown={handleKeyDown}
           />
