@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAtom } from "jotai";
 import { IconSend } from "@tabler/icons-react";
-import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms";
-import { useAiGenerateStreamMutation } from "@/ee/ai/queries/ai-query";
-import { AiAction } from "@/ee/ai/types/ai.types";
-import { CommandItem, commandItems, CommandSet } from "./command-items";
-import { CommandSelector } from "./command-selector";
-import { ResultPreview } from "./result-preview";
+import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { useAiGenerateStreamMutation } from "@/ee/ai/queries/ai-query.ts";
+import { AiAction } from "@/ee/ai/types/ai.types.ts";
+import { CommandItem, commandItems, CommandSet } from "./command-items.ts";
+import { CommandSelector } from "./command-selector.tsx";
+import { ResultPreview } from "./result-preview.tsx";
 import classes from "./ai-menu.module.css";
 import { marked } from "marked";
 

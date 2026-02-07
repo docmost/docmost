@@ -1,7 +1,7 @@
 import { Loader, Menu, ScrollArea } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
 import { ReactNode } from "react";
-import { CommandItem } from "./command-items";
+import { CommandItem } from "./command-items.ts";
 import classes from "./ai-menu.module.css";
 
 interface CommandSelectorProps {

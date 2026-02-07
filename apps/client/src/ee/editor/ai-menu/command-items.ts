@@ -1,4 +1,4 @@
-import { AiAction } from "@/ee/ai/types/ai.types";
+import { AiAction } from "@/ee/ai/types/ai.types.ts";
 import {
   IconSparkles,
   IconArrowsMaximize,
