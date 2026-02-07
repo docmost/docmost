@@ -59,8 +59,8 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
     const editorPadding = isSmBreakpoint ? 16 : 48;
 
     setMenuPlacement({
-      top: cursorCoords.bottom + topOffset,
-      left: editorRect.left + editorPadding,
+      top: cursorCoords.bottom + topOffset + window.scrollY,
+      left: editorRect.left + editorPadding + window.scrollX,
       width: editorRect.width - editorPadding * 2,
     });
   }, [editor, showAiMenu, isSmBreakpoint]);
@@ -247,7 +247,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
   useEffect(() => {
     // Focus input when menu opens or command set changes
     requestAnimationFrame(() => {
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     });
   }, [showAiMenu, isLoading, currentItems]);
   useEffect(() => {
@@ -263,7 +263,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
     <div
       style={{
         zIndex: 200,
-        position: "fixed",
+        position: "absolute",
         top: menuPlacement.top,
         left: menuPlacement.left,
         width: menuPlacement.width,

@@ -25,6 +25,7 @@ const CommandSelector = ({
   return (
     <Menu
       opened={!isLoading && currentItems.length > 0}
+      middlewares={{ flip: false }}
       position="bottom-start"
       offset={4}
       width={250}
