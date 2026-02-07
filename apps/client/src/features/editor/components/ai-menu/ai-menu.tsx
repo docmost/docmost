@@ -91,6 +91,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
       const { from, to } = editor.state.selection;
       const content = editor.state.doc.textBetween(from, to);
 
+      setOutput("");
       setIsLoading(true);
       aiGenerateStreamMutation.mutate({
         action: command.action,
