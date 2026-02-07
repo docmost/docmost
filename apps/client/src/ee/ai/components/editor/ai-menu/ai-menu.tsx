@@ -15,6 +15,7 @@ import classes from "./ai-menu.module.css";
 import { marked } from "marked";
 import { DOMSerializer } from "@tiptap/pm/model";
 import { htmlToMarkdown } from "@docmost/editor-ext";
+import { useLocation } from "react-router-dom";
 
 interface EditorAiMenuProps {
   editor: Editor | null;
@@ -22,6 +23,7 @@ interface EditorAiMenuProps {
 
 const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
   const aiGenerateStreamMutation = useAiGenerateStreamMutation();
+  const location = useLocation();
   const isSmBreakpoint = useMediaQuery("(max-width: 48em)");
   const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -234,6 +236,9 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
     };
   }, [editor, updateMenuPlacement, debouncedUpdateMenuPlacement]);
 
+  useEffect(() => {
+    setShowAiMenu(false);
+  }, [location]);
   useEffect(() => {
     if (showAiMenu) {
       resetMenu();
