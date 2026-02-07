@@ -64,8 +64,7 @@ const mainItems: CommandItem[] = [
     id: "explain",
     name: "Explain",
     icon: IconHelp,
-    action: AiAction.CUSTOM,
-    prompt: "Explain this text",
+    action: AiAction.EXPLAIN,
   },
   {
     id: "summarize",

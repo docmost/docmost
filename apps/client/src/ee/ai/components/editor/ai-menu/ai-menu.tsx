@@ -13,6 +13,8 @@ import { CommandSelector } from "./command-selector.tsx";
 import { ResultPreview } from "./result-preview.tsx";
 import classes from "./ai-menu.module.css";
 import { marked } from "marked";
+import { DOMSerializer } from "@tiptap/pm/model";
+import { htmlToMarkdown } from "@docmost/editor-ext";
 
 interface EditorAiMenuProps {
   editor: Editor | null;
@@ -89,7 +91,12 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
       }
 
       const { from, to } = editor.state.selection;
-      const content = editor.state.doc.textBetween(from, to);
+      const slice = editor.state.doc.slice(from, to);
+      const serializer = DOMSerializer.fromSchema(editor.schema);
+      const fragment = serializer.serializeFragment(slice.content);
+      const wrapper = document.createElement("div");
+      wrapper.appendChild(fragment);
+      const content = htmlToMarkdown(wrapper.innerHTML);
 
       setOutput("");
       setIsLoading(true);
