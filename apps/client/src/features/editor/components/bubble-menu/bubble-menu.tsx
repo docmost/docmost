@@ -166,14 +166,14 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       <div className={classes.bubbleMenu}>
         <Button
           variant="default"
-          style={{ border: "none", height: "34px" }}
+          className={clsx(classes.buttonRoot, classes.buttonSeparator)}
           radius="0"
-          rightSection={<IconSparkles size={16} />}
+          leftSection={<IconSparkles size={16} />}
           onClick={() => {
             setShowAiMenu(true);
           }}
         >
-          Ask AI
+          {t("Ask AI")}
         </Button>
         <NodeSelector
           editor={props.editor}

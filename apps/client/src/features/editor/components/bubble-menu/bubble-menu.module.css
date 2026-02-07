@@ -9,3 +9,15 @@
     color: light-dark(var(--mantine-color-blue-8), var(--mantine-color-gray-5));
   }
 }
+
+.buttonRoot {
+  height: 34px;
+  padding-left: rem(8);
+  padding-right: rem(4);
+  border: none;
+}
+
+.buttonSeparator {
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+}
