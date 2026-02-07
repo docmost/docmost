@@ -1,6 +1,8 @@
-import { Button, Menu, ScrollArea } from "@mantine/core";
+import { Loader, Menu, ScrollArea } from "@mantine/core";
+import { IconChevronRight } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { CommandItem } from "./command-items";
+import classes from "./ai-menu.module.css";
 
 interface CommandSelectorProps {
   selectedIndex: number;
@@ -25,36 +27,41 @@ const CommandSelector = ({
       opened={!isLoading && currentItems.length > 0}
       position="bottom-start"
       offset={4}
-      width={300}
+      width={250}
       trapFocus={false}
+      shadow="lg"
     >
       <Menu.Target>{children}</Menu.Target>
       <Menu.Dropdown>
-        <ScrollArea.Autosize type="scroll" mah={400}>
-          <Button.Group orientation="vertical" display="flex">
-            {currentItems.map((item, index) => {
-              const unselectedVariant =
-                item.id === "back" ? "subtle" : "default";
+        <ScrollArea.Autosize type="scroll" scrollbarSize={5} mah={300}>
+          {currentItems.map((item, index) => {
+            const isSelected = selectedIndex === index;
+            const showLoader =
+              isLoading && output === "" && !item.subCommandSet;
 
-              return (
-                <Button
-                  key={item.id}
-                  variant={
-                    selectedIndex === index ? "light" : unselectedVariant
-                  }
-                  leftSection={item.icon ? <item.icon size={16} /> : undefined}
-                  justify="left"
-                  fullWidth
-                  onClick={() => handleCommand(item)}
-                  style={{ border: "none" }}
-                  loading={isLoading && output === "" && !item.subCommandSet}
-                  disabled={isLoading}
-                >
-                  {item.name}
-                </Button>
-              );
-            })}
-          </Button.Group>
+            return (
+              <Menu.Item
+                key={item.id}
+                className={isSelected ? classes.menuItemSelected : undefined}
+                leftSection={
+                  showLoader ? (
+                    <Loader size={14} />
+                  ) : item.icon ? (
+                    <item.icon size={16} />
+                  ) : undefined
+                }
+                rightSection={
+                  item.subCommandSet ? (
+                    <IconChevronRight size={14} />
+                  ) : undefined
+                }
+                onClick={() => handleCommand(item)}
+                disabled={isLoading}
+              >
+                {item.name}
+              </Menu.Item>
+            );
+          })}
         </ScrollArea.Autosize>
       </Menu.Dropdown>
     </Menu>

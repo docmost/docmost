@@ -4,6 +4,14 @@
   width: 100%;
   min-height: 2.25rem;
 }
+.menuItemSelected {
+  background-color: var(--mantine-color-gray-1);
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-5);
+  }
+}
+
 .resultPreviewWrapper {
   *:first-child {
     margin-top: 0;

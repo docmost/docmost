@@ -14,6 +14,8 @@ import {
   IconCheck,
   IconArrowDownLeft,
   IconCopy,
+  IconTextPlus,
+  IconAlignJustified,
 } from "@tabler/icons-react";
 
 interface CommandItem {
@@ -43,13 +45,13 @@ const mainItems: CommandItem[] = [
   {
     id: "make-longer",
     name: "Make longer",
-    icon: IconArrowsMaximize,
+    icon: IconTextPlus,
     action: AiAction.MAKE_LONGER,
   },
   {
     id: "make-shorter",
     name: "Make shorter",
-    icon: IconArrowsMinimize,
+    icon: IconAlignJustified,
     action: AiAction.MAKE_SHORTER,
   },
   {
@@ -73,13 +75,13 @@ const mainItems: CommandItem[] = [
   },
   {
     id: "change-tone",
-    name: "Change tone...",
+    name: "Change tone",
     icon: IconMoodSmile,
     subCommandSet: "tone",
   },
   {
     id: "translate",
-    name: "Translate...",
+    name: "Translate",
     icon: IconLanguage,
     subCommandSet: "translate",
   },
