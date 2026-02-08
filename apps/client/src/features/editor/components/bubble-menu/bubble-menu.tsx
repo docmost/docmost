@@ -21,12 +21,13 @@ import {
   draftCommentIdAtom,
   showCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
 import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 
 export interface BubbleMenuItem {
   name: string;
@@ -43,6 +44,8 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const { t } = useTranslation();
   const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const workspace = useAtomValue(workspaceAtom);
+  const isGenerativeAiEnabled = workspace?.settings?.ai?.generative === true;
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
   const showAiMenuRef = useRef(showAiMenu);
@@ -164,17 +167,19 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       style={{ zIndex: 200, position: "relative" }}
     >
       <div className={classes.bubbleMenu}>
-        <Button
-          variant="default"
-          className={clsx(classes.buttonRoot, classes.buttonSeparator)}
-          radius="0"
-          leftSection={<IconSparkles size={16} />}
-          onClick={() => {
-            setShowAiMenu(true);
-          }}
-        >
-          {t("Ask AI")}
-        </Button>
+        {isGenerativeAiEnabled && (
+          <Button
+            variant="default"
+            className={clsx(classes.buttonRoot, classes.buttonSeparator)}
+            radius="0"
+            leftSection={<IconSparkles size={16} />}
+            onClick={() => {
+              setShowAiMenu(true);
+            }}
+          >
+            {t("Ask AI")}
+          </Button>
+        )}
         <NodeSelector
           editor={props.editor}
           isOpen={isNodeSelectorOpen}

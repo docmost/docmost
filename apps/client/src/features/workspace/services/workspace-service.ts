@@ -42,7 +42,7 @@ export async function deleteWorkspaceMember(data: {
   await api.post("/workspace/members/delete", data);
 }
 
-export async function updateWorkspace(data: Partial<IWorkspace> & { aiSearch?: boolean }) {
+export async function updateWorkspace(data: Partial<IWorkspace> & { aiSearch?: boolean; generativeAi?: boolean }) {
   const req = await api.post<IWorkspace>("/workspace/update", data);
   return req.data;
 }

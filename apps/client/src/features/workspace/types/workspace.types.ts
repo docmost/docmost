@@ -30,6 +30,7 @@ export interface IWorkspaceSettings {
 
 export interface IWorkspaceAiSettings {
   search?: boolean;
+  generative?: boolean;
 }
 
 export interface ICreateInvite {
