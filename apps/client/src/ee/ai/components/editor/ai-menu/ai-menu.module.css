@@ -43,12 +43,13 @@
   border: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .resultPreviewWrapper {
   font-size: var(--mantine-font-size-md);
   line-height: 1.6;
+  padding: var(--mantine-spacing-md);
 
   *:first-child {
     margin-top: 0;

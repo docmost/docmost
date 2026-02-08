@@ -1,4 +1,4 @@
-import { Loader, Paper, Text } from "@mantine/core";
+import { Loader, Paper, ScrollArea } from "@mantine/core";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { memo } from "react";
@@ -14,15 +14,17 @@ const ResultPreview = memo(({ output, isLoading }: ResultPreviewProps) => {
   const parsedOutput = `${marked.parse(output)}`;
 
   return (
-    <Paper p="md" mb={4} shadow="md" radius="md" className={classes.resultPreview}>
-      <div className={classes.resultPreviewWrapper}>
-        {parsedOutput && (
-          <div
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedOutput) }}
-          />
-        )}
-        {isLoading && <Loader size={12} ml="xs" display="inline-block" />}
-      </div>
+    <Paper mb={4} shadow="lg" radius="md" className={classes.resultPreview}>
+      <ScrollArea.Autosize mah={300} type="scroll" scrollbarSize={5}>
+        <div className={classes.resultPreviewWrapper}>
+          {parsedOutput && (
+            <div
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedOutput) }}
+            />
+          )}
+          {isLoading && <Loader size={12} ml="xs" display="inline-block" />}
+        </div>
+      </ScrollArea.Autosize>
     </Paper>
   );
 });
