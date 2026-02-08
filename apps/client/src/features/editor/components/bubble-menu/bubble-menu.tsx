@@ -170,7 +170,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         {isGenerativeAiEnabled && (
           <Button
             variant="default"
-            className={clsx(classes.buttonRoot, classes.buttonSeparator)}
+            className={clsx(classes.buttonRoot)}
             radius="0"
             leftSection={<IconSparkles size={16} />}
             onClick={() => {
@@ -246,7 +246,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         <ActionIcon
           variant="default"
           size="lg"
-          radius="0"
+          radius="6px"
           aria-label={t(commentItem.name)}
           style={{ border: "none" }}
           onClick={commentItem.command}
