@@ -202,6 +202,13 @@
     cursor: col-resize;
   }
 
+  .has-focus {
+    background-color: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05));
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+
   .alignLeft {
     margin-left: 0;
     margin-right: auto;

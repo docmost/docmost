@@ -1,4 +1,6 @@
+import { Focus } from "@tiptap/extension-focus";
 import { StarterKit } from "@tiptap/starter-kit";
+
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { CharacterCount } from "@tiptap/extension-character-count";
@@ -117,7 +119,12 @@ export const baseExtensions = [
     },
   }),
   Heading,
+  Focus.configure({
+    className: "has-focus",
+    mode: "all",
+  }),
   UniqueID.configure({
+
     types: ["heading", "paragraph"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
@@ -287,8 +294,10 @@ export const collabExtensions: CollabExtensions = (provider, user) => [
   CollaborationCursor.configure({
     provider,
     user: {
+      id: user.id,
       name: user.name,
       color: randomElement(userColors),
     },
   }),
 ];
+

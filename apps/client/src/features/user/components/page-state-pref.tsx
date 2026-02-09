@@ -36,12 +36,15 @@ export default function PageStatePref() {
 interface PageStateSegmentedControlProps {
   size?: MantineSize;
   pageId?: string;
+  disabled?: boolean;
 }
 
 export function PageStateSegmentedControl({
   size,
   pageId,
+  disabled,
 }: PageStateSegmentedControlProps) {
+
   const { t } = useTranslation();
   const [user, setUser] = useAtom(userAtom);
   const [pageEditor] = useAtom(pageEditorAtom);
@@ -105,7 +108,9 @@ export function PageStateSegmentedControl({
       size={size}
       value={value}
       onChange={handleChange}
+      disabled={disabled}
       data={[
+
         { label: t("Edit"), value: PageEditMode.Edit },
         {
           label: hasUnsavedChanges ? t("Save") : t("Read"),

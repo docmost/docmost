@@ -7,6 +7,8 @@ import {
   IconHistory,
   IconLink,
   IconList,
+  IconLock,
+  IconLockOpen,
   IconMessage,
   IconPrinter,
   IconSearch,
@@ -37,6 +39,8 @@ import ExportModal from "@/components/common/export-modal";
 import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
+  pageLockAtom,
+  awarenessAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { searchAndReplaceStateAtom } from "@/features/editor/components/search-and-replace/atoms/search-and-replace-state-atom.ts";
 import { formattedDate, timeAgo } from "@/lib/time.ts";
@@ -45,6 +49,8 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import ShareModal from "@/features/share/components/share-modal.tsx";
 import { useUserRole } from "@/hooks/use-user-role";
+import { UserPresence } from "./user-presence";
+import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 
 interface PageHeaderMenuProps {
@@ -55,6 +61,9 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const toggleAside = useToggleAside();
   const userRole = useUserRole();
   const [yjsConnectionStatus] = useAtom(yjsConnectionStatusAtom);
+  const [pageLock] = useAtom(pageLockAtom);
+  const [awareness] = useAtom(awarenessAtom);
+  const [currentUser] = useAtom(currentUserAtom);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
 
@@ -78,6 +87,22 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     []
   );
 
+  const toggleLock = () => {
+    if (awareness) {
+      const currentLock = awareness.getLocalState()?.isLocked;
+      awareness.setLocalStateField('isLocked', !currentLock);
+      
+      if (!currentLock) {
+          notifications.show({ message: t("Page locked by you"), color: "blue" });
+      } else {
+          notifications.show({ message: t("Page unlocked"), color: "gray" });
+      }
+    }
+  };
+
+  const isLockedByMe = pageLock && pageLock.userId === currentUser?.user?.id;
+  const isLockedByOthers = pageLock && pageLock.userId !== currentUser?.user?.id;
+
   return (
     <>
       {yjsConnectionStatus === "disconnected" && (
@@ -91,11 +116,30 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           </ActionIcon>
         </Tooltip>
       )}
+
       {!userRole.isVisitor && !readOnly && (
-        <>
-          <PageStateSegmentedControl size="xs" pageId={slugId} />
-          <ShareModal readOnly={readOnly} />
-        </>
+        <Group gap="xs" wrap="nowrap">
+          <UserPresence />
+          
+          <Tooltip label={isLockedByOthers ? t("Locked by {{name}}", { name: pageLock.userName }) : (isLockedByMe ? t("Unlock Page") : t("Lock Page"))} withArrow>
+            <ActionIcon 
+                variant={isLockedByMe || isLockedByOthers ? "light" : "default"} 
+                color={isLockedByOthers ? "red" : (isLockedByMe ? "blue" : "gray")}
+                style={{ border: "none" }}
+                onClick={isLockedByOthers ? undefined : toggleLock}
+                disabled={isLockedByOthers}
+            >
+                {isLockedByMe || isLockedByOthers ? <IconLock size={20} stroke={2} /> : <IconLockOpen size={20} stroke={2} />}
+            </ActionIcon>
+          </Tooltip>
+
+          <PageStateSegmentedControl 
+            size="xs" 
+            pageId={slugId} 
+            disabled={isLockedByOthers}
+          />
+          <ShareModal readOnly={readOnly || isLockedByOthers} />
+        </Group>
       )}
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
@@ -166,6 +210,8 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const handleDeletePage = () => {
     openDeleteModal({ onConfirm: () => tree?.delete(page.id) });
   };
+
+  if (!page) return null;
 
   return (
     <>
@@ -253,7 +299,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             <Group px="sm" wrap="nowrap" style={{ cursor: "pointer" }}>
               <Tooltip
                 label={t("Edited by {{name}} {{time}}", {
-                  name: page.lastUpdatedBy.name,
+                  name: page.lastUpdatedBy?.name || "Unknown",
                   time: pageUpdatedAt,
                 })}
                 position="left-start"
@@ -261,7 +307,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
                 <div style={{ width: 210 }}>
                   <Text size="xs" c="dimmed" truncate="end">
                     {t("Word count: {{wordCount}}", {
-                      wordCount: pageEditor?.storage?.characterCount?.words(),
+                      wordCount: pageEditor?.storage?.characterCount?.words() || 0,
                     })}
                   </Text>
 

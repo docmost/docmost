@@ -31,6 +31,9 @@ import {
   pageEditorAtom,
   yjsConnectionStatusAtom,
   hasUnsavedChangesAtom,
+  pageUsersAtom,
+  pageLockAtom,
+  awarenessAtom,
 } from "@/features/editor/atoms/editor-atoms";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import {
@@ -93,8 +96,12 @@ export default function PageEditor({
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const setHasUnsavedChanges = useSetAtom(hasUnsavedChangesAtom);
+  const [, setHasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
   const [hasUnsavedChanges] = useAtom(hasUnsavedChangesAtom);
+  
+  const [, setPageUsers] = useAtom(pageUsersAtom);
+  const [pageLock, setPageLock] = useAtom(pageLockAtom);
+  const [, setAwareness] = useAtom(awarenessAtom);
 
   useEffect(() => {
     isComponentMounted.current = true;
@@ -103,6 +110,7 @@ export default function PageEditor({
       // CLEAR GLOBAL STATE ON UNMOUNT to avoid leakage to next page
       setEditor(null);
       setHasUnsavedChanges(false);
+      setAwareness(null);
     };
   }, []);
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -112,7 +120,7 @@ export default function PageEditor({
   const ydoc = ydocRef.current;
   const [isLocalSynced, setLocalSynced] = useState(false);
   const [isRemoteSynced, setRemoteSynced] = useState(false);
-  const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
+  const [, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
   );
   const menuContainerRef = useRef(null);
@@ -194,6 +202,22 @@ export default function PageEditor({
       remote.on("disconnect", () => {
         setYjsConnectionStatus(WebSocketStatus.Disconnected);
       });
+
+      remote.awareness.on("change", () => {
+        const states = Array.from(remote.awareness.getStates().values());
+        setPageUsers(states);
+
+        // Check if any user has locked the page
+        const lockState = states.find((state: any) => state.isLocked);
+        if (lockState) {
+          setPageLock({ userId: lockState.user.id, userName: lockState.user.name });
+        } else {
+          setPageLock(null);
+        }
+      });
+
+      setAwareness(remote.awareness);
+
       providersRef.current = { local, remote };
       setProvidersReady(true);
     } else {
@@ -205,22 +229,7 @@ export default function PageEditor({
       providersRef.current?.local.destroy();
       providersRef.current = null;
     };
-  }, [pageId]);
-
-  /*
-  useEffect(() => {
-    // Handle token updates by reconnecting with new token
-    if (providersRef.current?.remote && collabQuery?.token) {
-      const currentToken = providersRef.current.remote.configuration.token;
-      if (currentToken !== collabQuery.token) {
-        // Token has changed, need to reconnect with new token
-        providersRef.current.remote.disconnect();
-        providersRef.current.remote.configuration.token = collabQuery.token;
-        providersRef.current.remote.connect();
-      }
-    }
-  }, [collabQuery?.token]);
-   */
+  }, [pageId, setPageUsers, setPageLock, setAwareness, setYjsConnectionStatus]);
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
@@ -385,7 +394,7 @@ export default function PageEditor({
       }, 5000);
       return () => clearTimeout(timeout);
     }
-  }, [remoteProvider?.status]);
+  }, [remoteProvider?.status, setYjsConnectionStatus]);
 
   const isSynced = isLocalSynced && isRemoteSynced;
 
@@ -400,12 +409,14 @@ export default function PageEditor({
       }
     }, 500);
     return () => clearTimeout(collabReadyTimeout);
-  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status]);
+  }, [isRemoteSynced, isLocalSynced, remoteProvider?.status, isSynced, isCollabReady]);
 
   useEffect(() => {
     // Only honor user default page edit mode preference and permissions
     if (editor) {
-      if (userPageEditMode && editable) {
+      const isLockedByOthers = pageLock && pageLock.userId !== currentUser?.user?.id;
+
+      if (userPageEditMode && editable && !isLockedByOthers) {
         if (userPageEditMode === PageEditMode.Edit) {
           editor.setEditable(true);
         } else if (userPageEditMode === PageEditMode.Read) {
@@ -415,7 +426,7 @@ export default function PageEditor({
         editor.setEditable(false);
       }
     }
-  }, [userPageEditMode, editor, editable]);
+  }, [userPageEditMode, editor, editable, pageLock, currentUser?.user?.id]);
 
   const updatePageMutation = useUpdatePageMutation();
   const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
@@ -425,13 +436,14 @@ export default function PageEditor({
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    // Force Read mode on initial load
+    // Force Read mode ONLY on initial mount/load
     if (userPageEditMode === PageEditMode.Edit && editable) {
       updateUser({ pageEditMode: PageEditMode.Read }).then((updatedUser) => {
         setUser(updatedUser);
       });
     }
-  }, []); // Only on mount/load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editable, setUser]); 
 
   useEffect(() => {
     const handleExitSave = () => {
@@ -508,6 +520,8 @@ export default function PageEditor({
     editor,
     editable,
     setHasUnsavedChanges,
+    updatePageMutation,
+    setUser
   ]);
 
   const hasConnectedOnceRef = useRef(false);

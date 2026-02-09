@@ -29,6 +29,7 @@
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-query": "^5.90.17",
     "@tiptap/extension-character-count": "^2.27.1",
+    "@tiptap/extension-focus": "^3.19.0",
     "alfaaz": "^1.1.0",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",

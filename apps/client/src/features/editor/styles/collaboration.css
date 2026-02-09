@@ -24,3 +24,10 @@
     user-select: none;
     white-space: nowrap;
 }
+
+.ProseMirror > *:has(.collaboration-cursor__caret) {
+    background-color: light-dark(rgba(112, 207, 248, 0.05), rgba(112, 207, 248, 0.1));
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
