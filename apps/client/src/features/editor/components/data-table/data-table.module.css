@@ -146,6 +146,34 @@
   background-color: var(--mantine-color-dark-8);
 }
 
+.gripHandle {
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.gripHandle:hover {
+  background-color: var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme="dark"] .gripHandle:hover {
+  background-color: var(--mantine-color-dark-4);
+}
+
+.columnNameInput :global(.mantine-TextInput-input) {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  height: 32px;
+  padding: 0;
+}
+
+[data-mantine-color-scheme="dark"] .tableRow:hover {
+  background-color: var(--mantine-color-dark-8);
+}
+
 .openButton {
   position: absolute;
   right: 6px;

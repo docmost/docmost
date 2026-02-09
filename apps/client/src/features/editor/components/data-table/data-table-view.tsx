@@ -40,14 +40,16 @@ import {
     IconClock,
     IconUserCheck,
     IconSearch,
-    IconMarkdown
+    IconMarkdown,
+    IconGripVertical
 } from "@tabler/icons-react";
 import { DataTableColumn, DataTableRow, DataTableFilter } from "@docmost/editor-ext";
 import classes from "./data-table.module.css";
 import { useDisclosure } from "@mantine/hooks";
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { baseExtensions } from "@/features/editor/extensions/extensions";
+import { mainExtensions } from "@/features/editor/extensions/extensions";
+import useUserRole from "@/hooks/use-user-role";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
@@ -65,6 +67,28 @@ import { MultiSelectCell } from "./multi-select-cell";
 import { CheckboxCell } from "./checkbox-cell";
 import { RichTextCell } from "./rich-text-cell";
 import { FilterDropdown } from "./filter-dropdown";
+
+// Drag and Drop imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragStartEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    horizontalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import * as modifiers from '@dnd-kit/modifiers';
 
 const ALLOWED_PROPERTY_TYPES = ['text', 'date', 'person', 'select', 'multi-select', 'checkbox', 'rich-text', 'status'];
 
@@ -125,24 +149,28 @@ const PropertyTypes = [
 ];
 
 export default function DataTableView(props: NodeViewProps) {
-    const { node, updateAttributes, editor } = props;
+    const { node, updateAttributes, editor, getPos } = props;
     const { columns, rows, filters = [] } = node.attrs as {
         columns: DataTableColumn[];
         rows: DataTableRow[];
         filters?: DataTableFilter[];
     };
 
-    // Use useEditorState for true reactivity to global editor state
+    const { isVisitor } = useUserRole();
+
     const isEditable = useEditorState({
         editor,
         selector: (ctx) => ctx.editor.isEditable
     });
+
+    const canEditQuickly = !isVisitor;
 
     const [opened, { open, close }] = useDisclosure(false);
     const [showAllProperties, { toggle: toggleAllProperties }] = useDisclosure(false);
     const [activeRowId, setActiveRowId] = useState<string | null>(null);
     const menuContainerRef = useRef<HTMLDivElement>(null);
     const [search, setSearch] = useState("");
+    const [isDragging, setIsDragging] = useState(false);
 
     const totalColumnsWidth = useMemo(() => {
         return columns.reduce((acc, col) => acc + (col.width || 150), 0);
@@ -152,7 +180,6 @@ export default function DataTableView(props: NodeViewProps) {
 
     const isRowEmpty = (row: DataTableRow) => {
         const hasData = columns.some(col => row[col.id] && row[col.id]?.toString().trim() !== "");
-        // Check if content exists and isn't just an empty paragraph
         const content = row.content as any;
         const hasContent = content && content.content && content.content.length > 0 &&
             !(content.content.length === 1 && content.content[0].type === 'paragraph' && !content.content[0].content);
@@ -166,25 +193,17 @@ export default function DataTableView(props: NodeViewProps) {
         const cellValue = row[filter.columnId];
         const filterValue = filter.value;
 
-        // Handle empty/not empty operators
-        if (filter.operator === "isEmpty") {
-            return !cellValue || cellValue === "" || cellValue === "[]";
-        }
-        if (filter.operator === "isNotEmpty") {
-            return cellValue && cellValue !== "" && cellValue !== "[]";
-        }
+        if (filter.operator === "isEmpty") return !cellValue || cellValue === "" || cellValue === "[]";
+        if (filter.operator === "isNotEmpty") return cellValue && cellValue !== "" && cellValue !== "[]";
 
-        // Handle checkbox
         if (column.type === "checkbox") {
             if (filter.operator === "isChecked") return !!cellValue;
             if (filter.operator === "isNotChecked") return !cellValue;
         }
 
-        // Handle text/rich-text
         if (column.type === "text" || column.type === "rich-text") {
             const cellStr = String(cellValue || "").toLowerCase();
             const filterStr = String(filterValue || "").toLowerCase();
-
             if (filter.operator === "contains") return cellStr.includes(filterStr);
             if (filter.operator === "notContains") return !cellStr.includes(filterStr);
             if (filter.operator === "is") return cellStr === filterStr;
@@ -193,12 +212,10 @@ export default function DataTableView(props: NodeViewProps) {
             if (filter.operator === "endsWith") return cellStr.endsWith(filterStr);
         }
 
-        // Handle number
         if (column.type === "number") {
             const cellNum = parseFloat(cellValue);
             const filterNum = parseFloat(filterValue);
             if (isNaN(cellNum) || isNaN(filterNum)) return false;
-
             if (filter.operator === "equals") return cellNum === filterNum;
             if (filter.operator === "notEquals") return cellNum !== filterNum;
             if (filter.operator === "greaterThan") return cellNum > filterNum;
@@ -207,43 +224,33 @@ export default function DataTableView(props: NodeViewProps) {
             if (filter.operator === "lessThanOrEqual") return cellNum <= filterNum;
         }
 
-        // Handle select/status
         if (column.type === "select" || column.type === "status") {
             if (filter.operator === "is") return cellValue === filterValue;
             if (filter.operator === "isNot") return cellValue !== filterValue;
         }
 
-        // Handle multi-select
         if (column.type === "multi-select") {
             try {
                 const selectedIds = JSON.parse(cellValue || "[]");
                 if (filter.operator === "contains") return selectedIds.includes(filterValue);
                 if (filter.operator === "notContains") return !selectedIds.includes(filterValue);
-            } catch {
-                return false;
-            }
+            } catch { return false; }
         }
 
-        // Handle date
         if (column.type === "date") {
             if (!cellValue || !filterValue) return false;
             const cellDate = new Date(cellValue);
             const filterDate = new Date(filterValue);
-
             if (filter.operator === "is") return cellDate.toDateString() === filterDate.toDateString();
             if (filter.operator === "isBefore") return cellDate < filterDate;
             if (filter.operator === "isAfter") return cellDate > filterDate;
         }
-
         return true;
     };
 
     const filteredRows = useMemo(() => {
         if (filters.length === 0) return rows;
-
-        return rows.filter(row => {
-            return filters.every(filter => evaluateFilter(row, filter));
-        });
+        return rows.filter(row => filters.every(filter => evaluateFilter(row, filter)));
     }, [rows, filters, columns]);
 
     const visibleRows = useMemo(() => {
@@ -253,7 +260,7 @@ export default function DataTableView(props: NodeViewProps) {
 
     const visibleProperties = useMemo(() => {
         if (showAllProperties) return columns;
-        return columns.slice(0, 4); // Show Name + 3 properties by default
+        return columns.slice(0, 4);
     }, [columns, showAllProperties]);
 
     const hiddenCount = columns.length - visibleProperties.length;
@@ -262,25 +269,15 @@ export default function DataTableView(props: NodeViewProps) {
     rowsRef.current = rows;
 
     const rowEditor = useEditor({
-        extensions: baseExtensions,
+        extensions: mainExtensions,
         content: activeRow?.content || "",
         editable: isEditable,
         immediatelyRender: false,
-        editorProps: {
-            handleDOMEvents: {
-                keydown: (_view, event) => {
-                    if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
-                        const slashCommand = document.querySelector("#slash-command");
-                        if (slashCommand) {
-                            return true;
-                        }
-                    }
-                    return false;
-                },
-            },
-        },
         onCreate({ editor: e }) {
-            e.storage.pageId = editor.storage.pageId;
+            queueMicrotask(() => {
+                // @ts-ignore
+                e.storage.pageId = editor.storage.pageId;
+            });
         },
         onUpdate: ({ editor: e }) => {
             if (activeRowId && isEditable) {
@@ -295,35 +292,26 @@ export default function DataTableView(props: NodeViewProps) {
         }
     }, [activeRowId]);
 
-    // Reactively sync nested row editor and clear highlights when switching to read-only Mode
     useEffect(() => {
-        if (rowEditor && !rowEditor.isDestroyed) {
-            rowEditor.setEditable(isEditable);
-        }
-
-        if (!isEditable) {
-            // Forcefully clear node selection and blur to remove highlights immediately
-            editor.commands.blur();
-        }
+        queueMicrotask(() => {
+            if (rowEditor && !rowEditor.isDestroyed) {
+                rowEditor.setEditable(isEditable);
+            }
+            if (!isEditable) {
+                editor.commands.blur();
+            }
+        });
     }, [isEditable, rowEditor, editor]);
 
-    // Force re-render on editor state changes (Edit/Read mode toggle)
     const [, setTick] = useState(0);
     useEffect(() => {
-        const update = () => {
-            setTick(t => t + 1);
-        };
-
-        // Aggressive listening to all relevant events
+        const update = () => setTick(t => t + 1);
         editor.on('transaction', update);
         editor.on('selectionUpdate', update);
         editor.on('update', update);
         editor.on('focus', update);
         editor.on('blur', update);
-
-        // Safety polling to catch mode changes that don't trigger events
         const interval = setInterval(update, 500);
-
         return () => {
             editor.off('transaction', update);
             editor.off('selectionUpdate', update);
@@ -357,9 +345,7 @@ export default function DataTableView(props: NodeViewProps) {
         if (!isEditable) return;
         const newId = `row-${Date.now()}`;
         const newRow = { id: newId, content: null };
-        columns.forEach(col => {
-            (newRow as any)[col.id] = "";
-        });
+        columns.forEach(col => { (newRow as any)[col.id] = ""; });
         updateAttributes({ rows: [...rows, newRow] });
     };
 
@@ -375,15 +361,27 @@ export default function DataTableView(props: NodeViewProps) {
             }
             return row;
         });
-        updateAttributes({ rows: newRows });
+
+        if (isEditable) {
+            updateAttributes({ rows: newRows });
+        } else if (canEditQuickly) {
+            editor.commands.command(({ tr }) => {
+                if (typeof getPos === 'function') {
+                    tr.setNodeMarkup(getPos(), undefined, {
+                        ...node.attrs,
+                        rows: newRows,
+                    });
+                    tr.setMeta('addToHistory', false);
+                }
+                return true;
+            });
+        }
     };
 
     const updateColumnName = (colId: string, name: string) => {
         if (!isEditable) return;
         const newColumns = columns.map(col => {
-            if (col.id === colId) {
-                return { ...col, name };
-            }
+            if (col.id === colId) return { ...col, name };
             return col;
         });
         updateAttributes({ columns: newColumns });
@@ -392,9 +390,7 @@ export default function DataTableView(props: NodeViewProps) {
     const updateColumnWidth = (colId: string, width: number) => {
         if (!isEditable) return;
         const newColumns = columns.map(col => {
-            if (col.id === colId) {
-                return { ...col, width };
-            }
+            if (col.id === colId) return { ...col, width };
             return col;
         });
         updateAttributes({ columns: newColumns });
@@ -403,21 +399,17 @@ export default function DataTableView(props: NodeViewProps) {
     const handleResizeStart = (e: React.MouseEvent, colId: string, currentWidth: number) => {
         if (!isEditable) return;
         e.preventDefault();
-
         const startX = e.pageX;
         const startWidth = currentWidth || 150;
-
         const handleMouseMove = (moveEvent: MouseEvent) => {
             const deltaX = moveEvent.pageX - startX;
             const newWidth = Math.max(100, startWidth + deltaX);
             updateColumnWidth(colId, newWidth);
         };
-
         const handleMouseUp = () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
     };
@@ -425,7 +417,6 @@ export default function DataTableView(props: NodeViewProps) {
     const onAddProperty = (type: any) => {
         if (!isEditable) return;
         const newId = `col-${Date.now()}`;
-
         let initialOptions = undefined;
         if (type.id === 'status') {
             initialOptions = [
@@ -434,37 +425,45 @@ export default function DataTableView(props: NodeViewProps) {
                 { id: 'done', label: 'Done', color: 'green', group: 'Complete' }
             ];
         }
-
         const newColumns = [...columns, { id: newId, name: type.name, type: type.id, width: 150, options: initialOptions }];
         const newRows = rows.map(row => ({ ...row, [newId]: "" }));
         updateAttributes({ columns: newColumns, rows: newRows });
     };
 
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleRowDragStart = () => setIsDragging(true);
+    const handleRowDragEnd = (event: DragEndEvent) => {
+        setIsDragging(false);
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = rows.findIndex((row) => row.id === active.id);
+        const newIndex = rows.findIndex((row) => row.id === over.id);
+        const newRows = arrayMove(rows, oldIndex, newIndex);
+        updateAttributes({ rows: newRows });
+    };
+
+    const handleColumnDragStart = () => setIsDragging(true);
+    const handleColumnDragEnd = (event: DragEndEvent) => {
+        setIsDragging(false);
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = columns.findIndex((col) => col.id === active.id);
+        const newIndex = columns.findIndex((col) => col.id === over.id);
+        if (oldIndex === 0 || newIndex === 0) return;
+        const newColumns = arrayMove(columns, oldIndex, newIndex);
+        updateAttributes({ columns: newColumns });
+    };
+
     const renderInput = (row: DataTableRow, col: DataTableColumn, variant: 'table' | 'modal' = 'table') => {
         const value = row[col.id] || "";
-
-        if (col.type === 'person') {
-            return (
-                <PersonCell
-                    value={value}
-                    onChange={(val) => updateCell(row.id, col.id, val)}
-                    isEditable={isEditable}
-                />
-            );
-        }
-
-        if (col.type === 'date') {
-            return (
-                <DateCell
-                    value={value}
-                    onChange={(val) => updateCell(row.id, col.id, val)}
-                    isEditable={isEditable}
-                />
-            );
-        }
-
+        if (col.type === 'person') return <PersonCell value={value} onChange={(val) => updateCell(row.id, col.id, val)} isEditable={isEditable} />;
+        if (col.type === 'date') return <DateCell value={value} onChange={(val) => updateCell(row.id, col.id, val)} isEditable={isEditable} />;
         if (col.type === 'select' || col.type === 'status') {
-            const canEdit = isEditable || col.type === 'status';
+            const canEdit = isEditable || (canEditQuickly && col.type === 'status');
             return (
                 <SelectCell
                     value={value}
@@ -472,7 +471,20 @@ export default function DataTableView(props: NodeViewProps) {
                     onChange={(val) => updateCell(row.id, col.id, val)}
                     onUpdateColumn={(newCol) => {
                         const newColumns = columns.map(c => c.id === newCol.id ? newCol : c);
-                        updateAttributes({ columns: newColumns });
+                        if (isEditable) {
+                            updateAttributes({ columns: newColumns });
+                        } else if (canEditQuickly) {
+                            editor.commands.command(({ tr }) => {
+                                if (typeof getPos === 'function') {
+                                    tr.setNodeMarkup(getPos(), undefined, {
+                                        ...node.attrs,
+                                        columns: newColumns,
+                                    });
+                                    tr.setMeta('addToHistory', false);
+                                }
+                                return true;
+                            });
+                        }
                     }}
                     isEditable={canEdit}
                     canManageOptions={isEditable}
@@ -496,25 +508,24 @@ export default function DataTableView(props: NodeViewProps) {
         }
 
         if (col.type === 'checkbox') {
-            return (
-                <CheckboxCell
-                    value={value}
-                    onChange={(val) => updateCell(row.id, col.id, val)}
-                    isEditable={true}
-                />
-            );
+            return <CheckboxCell value={value} onChange={(val) => updateCell(row.id, col.id, String(val))} isEditable={canEditQuickly} />;
         }
-
-        if (col.type === 'rich-text') {
+        if (col.type === 'multi-select') {
             return (
-                <RichTextCell
+                <MultiSelectCell
                     value={value}
+                    column={col}
                     onChange={(val) => updateCell(row.id, col.id, val)}
+                    onUpdateColumn={(newCol) => {
+                        const newColumns = columns.map(c => c.id === newCol.id ? newCol : c);
+                        updateAttributes({ columns: newColumns });
+                    }}
                     isEditable={isEditable}
                 />
             );
         }
-
+        if (col.type === 'checkbox') return <CheckboxCell value={value} onChange={(val) => updateCell(row.id, col.id, String(val))} isEditable={true} />;
+        if (col.type === 'rich-text') return <RichTextCell value={value} onChange={(val) => updateCell(row.id, col.id, val)} isEditable={isEditable} />;
         if (variant === 'modal') {
             const isName = columns[0]?.id === col.id;
             return (
@@ -525,17 +536,10 @@ export default function DataTableView(props: NodeViewProps) {
                     readOnly={!isEditable}
                     placeholder={!isName ? "Empty" : "Untitled"}
                     style={{ flex: 1 }}
-                    styles={{
-                        input: {
-                            fontSize: '14px',
-                            fontWeight: isName ? 600 : 400,
-                            color: value ? 'inherit' : 'var(--mantine-color-gray-5)'
-                        }
-                    }}
+                    styles={{ input: { fontSize: '14px', fontWeight: isName ? 600 : 400, color: value ? 'inherit' : 'var(--mantine-color-gray-5)' } }}
                 />
             );
         }
-
         return (
             <Textarea
                 variant="unstyled"
@@ -555,7 +559,7 @@ export default function DataTableView(props: NodeViewProps) {
         <NodeViewWrapper
             className={clsx(classes.dataTableWrapper, "docmost-data-table")}
             data-read-only={!isEditable}
-            selectable={false}
+            selectable="false"
         >
             <div className={classes.tableContainer}>
                 <Box className={classes.controlTable}>
@@ -563,13 +567,7 @@ export default function DataTableView(props: NodeViewProps) {
                         {isEditable && (
                             <Menu position="bottom-start" shadow="md" width={280} offset={2} withinPortal={true}>
                                 <Menu.Target>
-                                    <Button
-                                        variant="subtle"
-                                        size="xs"
-                                        leftSection={<IconPlus size={14} />}
-                                    >
-                                        Add property
-                                    </Button>
+                                    <Button variant="subtle" size="xs" leftSection={<IconPlus size={14} />}>Add property</Button>
                                 </Menu.Target>
                                 <Menu.Dropdown p="xs">
                                     <TextInput
@@ -623,133 +621,70 @@ export default function DataTableView(props: NodeViewProps) {
                     <div style={{ paddingBottom: 12 }}>
                         <table style={{ width: '100%', minWidth: totalColumnsWidth }}>
                             <thead>
-                                <tr>
-                                    {isEditable && (
-                                        <th style={{ width: 50, textAlign: 'center', verticalAlign: 'middle' }}>
-                                            <ActionIcon
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={addRow}
-                                                c="dimmed"
-                                            >
-                                                <IconPlus size={16} />
-                                            </ActionIcon>
-                                        </th>
-                                    )}
-                                    <th style={{ width: 250, position: 'relative' }}>
-                                        <Group gap={8} h="100%" wrap="nowrap">
-                                            <IconAlphabetLatin size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                                            <Text size="xs" fw={500} c="dimmed">Name</Text>
-                                        </Group>
-                                    </th>
-                                    {columns.slice(1).map((col) => {
-                                        const Icon = IconMap[col.type] || IconAlphabetLatin;
-                                        return (
-                                            <th key={col.id} style={{ minWidth: col.width || 200, position: 'relative' }}>
-                                                <Group justify="space-between" wrap="nowrap" h="100%">
-                                                    <Group gap={8} wrap="nowrap" style={{ flex: 1 }}>
-                                                        <Icon size={14} style={{ color: 'var(--mantine-color-dimmed)', flexShrink: 0 }} />
-                                                        {isEditable ? (
-                                                            <TextInput
-                                                                variant="unstyled"
-                                                                value={col.name}
-                                                                onChange={(e) => updateColumnName(col.id, e.target.value)}
-                                                                className={classes.columnNameInput}
-                                                            />
-                                                        ) : (
-                                                            <Text size="xs" fw={500} c="dimmed" style={{ height: 32, display: 'flex', alignItems: 'center' }}>
-                                                                {col.name}
-                                                            </Text>
-                                                        )}
-                                                    </Group>
-                                                    {isEditable && (
-                                                        <Menu position="bottom-end" shadow="md" withinPortal={false}>
-                                                            <Menu.Target>
-                                                                <ActionIcon variant="subtle" size="xs" c="dimmed">
-                                                                    <IconChevronDown size={12} />
-                                                                </ActionIcon>
-                                                            </Menu.Target>
-                                                            <Menu.Dropdown>
-                                                                <Menu.Item
-                                                                    color="red"
-                                                                    leftSection={<IconTrash size={14} />}
-                                                                    onClick={() => removeColumn(col.id)}
-                                                                >
-                                                                    Delete property
-                                                                </Menu.Item>
-                                                            </Menu.Dropdown>
-                                                        </Menu>
-                                                    )}
-                                                </Group>
-                                                {isEditable && (
-                                                    <div
-                                                        className={classes.resizeHandle}
-                                                        onMouseDown={(e) => handleResizeStart(e, col.id, col.width || 150)}
-                                                    />
-                                                )}
-                                            </th>
-                                        );
-                                    })}
-                                </tr>
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragStart={handleColumnDragStart}
+                                    onDragEnd={handleColumnDragEnd}
+                                    modifiers={[modifiers.restrictToHorizontalAxis]}
+                                    autoScroll={false}
+                                >
+                                    <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                                        <tr>
+                                            {isEditable && (
+                                                <th style={{ width: 50, textAlign: 'center', verticalAlign: 'middle' }}>
+                                                    <ActionIcon variant="subtle" size="sm" onClick={addRow} c="dimmed"><IconPlus size={16} /></ActionIcon>
+                                                </th>
+                                            )}
+                                            {columns.map((col, idx) => (
+                                                <SortableHeader
+                                                    key={col.id}
+                                                    col={col}
+                                                    idx={idx}
+                                                    isEditable={isEditable}
+                                                    updateColumnName={updateColumnName}
+                                                    removeColumn={removeColumn}
+                                                    handleResizeStart={handleResizeStart}
+                                                />
+                                            ))}
+                                        </tr>
+                                    </SortableContext>
+                                </DndContext>
                             </thead>
                             <tbody>
-                                {visibleRows.map((row) => (
-                                    <tr key={row.id} className={classes.tableRow}>
-                                        {isEditable && (
-                                            <td style={{ width: 40, verticalAlign: 'middle', textAlign: 'center' }}>
-                                                <ActionIcon
-                                                    variant="subtle"
-                                                    color="red"
-                                                    size="sm"
-                                                    onClick={() => removeRow(row.id)}
-                                                >
-                                                    <IconTrash size={16} />
-                                                </ActionIcon>
-                                            </td>
-                                        )}
-                                        <td style={{ position: 'relative', verticalAlign: 'middle' }} className={classes.firstColumnCell}>
-                                            {renderInput(row, columns[0])}
-                                            <Button
-                                                variant="outline"
-                                                size="compact-xs"
-                                                className={classes.openButton}
-                                                onClick={() => handleOpenRow(row.id)}
-                                                leftSection={<IconExternalLink size={12} />}
-                                            >
-                                                OPEN
-                                            </Button>
-                                        </td>
-                                        {columns.slice(1).map((col) => (
-                                            <td key={col.id}>
-                                                {renderInput(row, col)}
-                                            </td>
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragStart={handleRowDragStart}
+                                    onDragEnd={handleRowDragEnd}
+                                    modifiers={[modifiers.restrictToVerticalAxis]}
+                                    autoScroll={false}
+                                >
+                                    <SortableContext items={visibleRows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                                        {visibleRows.map((row, idx) => (
+                                            <SortableRow
+                                                key={row.id}
+                                                row={row}
+                                                idx={idx}
+                                                columns={columns}
+                                                isEditable={isEditable}
+                                                removeRow={removeRow}
+                                                renderInput={renderInput}
+                                                handleOpenRow={handleOpenRow}
+                                            />
                                         ))}
-                                    </tr>
-                                ))}
+                                    </SortableContext>
+                                </DndContext>
                             </tbody>
                         </table>
                     </div>
                 </ScrollArea.Autosize>
-            </div >
+            </div>
 
-            <Modal
-                opened={opened}
-                onClose={close}
-                size="90%"
-                withCloseButton={false}
-                centered
-                styles={{
-                    content: {
-                        padding: "16px",
-                    },
-                }}
-            >
+            <Modal opened={opened} onClose={close} size="90%" withCloseButton={false} centered styles={{ content: { padding: "16px" } }}>
                 <Box mb="xl">
                     {visibleProperties.map((col, index) => {
                         const Icon = IconMap[col.type] || IconAlphabetLatin;
-                        const isName = index === 0;
-                        const value = activeRow ? (activeRow[col.id] || "") : "";
-
                         return (
                             <Group key={col.id} mb="sm" wrap="nowrap" align="center">
                                 <Box style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -760,7 +695,6 @@ export default function DataTableView(props: NodeViewProps) {
                             </Group>
                         );
                     })}
-
                     {!showAllProperties && hiddenCount > 0 && (
                         <UnstyledButton onClick={toggleAllProperties} mt="xs">
                             <Group gap={8}>
@@ -769,7 +703,6 @@ export default function DataTableView(props: NodeViewProps) {
                             </Group>
                         </UnstyledButton>
                     )}
-
                     {showAllProperties && columns.length > 4 && (
                         <UnstyledButton onClick={toggleAllProperties} mt="xs">
                             <Group gap={8}>
@@ -779,11 +712,8 @@ export default function DataTableView(props: NodeViewProps) {
                         </UnstyledButton>
                     )}
                 </Box>
-
                 <Divider my="xl" label="Page Content" labelPosition="center" />
-
-                <Box ref={menuContainerRef}
-                    style={{ minHeight: '65vh' }}>
+                <Box ref={menuContainerRef} style={{ minHeight: '65vh' }}>
                     <EditorContent editor={rowEditor} className={classes.modalEditor} />
                     {rowEditor && isEditable && (
                         <>
@@ -801,6 +731,90 @@ export default function DataTableView(props: NodeViewProps) {
                     )}
                 </Box>
             </Modal>
-        </NodeViewWrapper >
+        </NodeViewWrapper>
+    );
+}
+
+function SortableHeader({ col, idx, isEditable, updateColumnName, removeColumn, handleResizeStart }: any) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: col.id, disabled: idx === 0 });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+        minWidth: col.width || (idx === 0 ? 250 : 200),
+        position: 'relative' as const,
+        opacity: isDragging ? 0.5 : 1,
+    };
+    const Icon = IconMap[col.type] || IconAlphabetLatin;
+    return (
+        <th ref={setNodeRef} style={style}>
+            <Group justify="space-between" wrap="nowrap" h="100%">
+                <Group gap={8} wrap="nowrap" style={{ flex: 1 }}>
+                    {isEditable && idx !== 0 ? (
+                        <div {...attributes} {...listeners} className={classes.gripHandle}>
+                            <IconGripVertical size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
+                        </div>
+                    ) : (
+                        idx !== 0 && <Icon size={14} style={{ color: 'var(--mantine-color-dimmed)', flexShrink: 0 }} />
+                    )}
+                    {idx === 0 && <IconAlphabetLatin size={14} style={{ color: 'var(--mantine-color-dimmed)', flexShrink: 0 }} />}
+
+                    {idx === 0 ? (
+                        <Text size="xs" fw={500} c="dimmed">Name</Text>
+                    ) : (
+                        isEditable ? (
+                            <TextInput
+                                variant="unstyled"
+                                value={col.name}
+                                onChange={(e) => updateColumnName(col.id, e.target.value)}
+                                className={classes.columnNameInput}
+                            />
+                        ) : (
+                            <Text size="xs" fw={500} c="dimmed" style={{ height: 32, display: 'flex', alignItems: 'center' }}>{col.name}</Text>
+                        )
+                    )}
+                </Group>
+                {isEditable && idx !== 0 && (
+                    <Menu position="bottom-end" shadow="md" withinPortal={false}>
+                        <Menu.Target>
+                            <ActionIcon variant="subtle" size="xs" c="dimmed"><IconChevronDown size={12} /></ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                            <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => removeColumn(col.id)}>Delete property</Menu.Item>
+                        </Menu.Dropdown>
+                    </Menu>
+                )}
+            </Group>
+            {isEditable && (<div className={classes.resizeHandle} onMouseDown={(e) => handleResizeStart(e, col.id, col.width || 150)} />)}
+        </th>
+    );
+}
+
+function SortableRow({ row, idx, columns, isEditable, removeRow, renderInput, handleOpenRow }: any) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0.5 : 1,
+    };
+    return (
+        <tr ref={setNodeRef} style={style} className={classes.tableRow}>
+            {isEditable && (
+                <td style={{ width: 40, verticalAlign: 'middle', textAlign: 'center' }}>
+                    <Group gap={4} wrap="nowrap">
+                        <div {...attributes} {...listeners} className={classes.gripHandle}>
+                            <IconGripVertical size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
+                        </div>
+                        <ActionIcon variant="subtle" color="red" size="sm" onClick={() => removeRow(row.id)}><IconTrash size={16} /></ActionIcon>
+                    </Group>
+                </td>
+            )}
+            <td style={{ position: 'relative', verticalAlign: 'middle' }} className={classes.firstColumnCell}>
+                {renderInput(row, columns[0])}
+                <Button variant="outline" size="compact-xs" className={classes.openButton} onClick={() => handleOpenRow(row.id)} leftSection={<IconExternalLink size={12} />}>OPEN</Button>
+            </td>
+            {columns.slice(1).map((col: any) => (<td key={col.id}>{renderInput(row, col)}</td>))}
+        </tr>
     );
 }
