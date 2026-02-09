@@ -315,7 +315,8 @@ export default function PageEditor({
         debouncedUpdateContent(editorJson);
 
         // Only mark unsaved changes if collab is ready and it's a local change
-        if (isCollabReady && transaction.getMeta("y-sync$") === undefined) {
+        // AND the editor is in explicit edit mode (not quick-edit in read mode)
+        if (isCollabReady && transaction.getMeta("y-sync$") === undefined && editor.isEditable) {
           setHasUnsavedChanges(true);
         }
       },
