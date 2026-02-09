@@ -4,13 +4,15 @@ import { useTranslation } from "react-i18next";
 
 interface HistoryProps {
   historyId: string;
+  previousHistoryId?: string;
 }
 
-function HistoryView({ historyId }: HistoryProps) {
+function HistoryView({ historyId, previousHistoryId }: HistoryProps) {
   const { t } = useTranslation();
   const { data, isLoading, isError } = usePageHistoryQuery(historyId);
+  const { data: previousData, isLoading: isPrevLoading } = usePageHistoryQuery(previousHistoryId || "");
 
-  if (isLoading) {
+  if (isLoading || (previousHistoryId && isPrevLoading)) {
     return <></>;
   }
 
@@ -19,11 +21,12 @@ function HistoryView({ historyId }: HistoryProps) {
   }
 
   return (
-    data && (
-      <div>
-        <HistoryEditor content={data.content} title={data.title} />
-      </div>
-    )
+    <HistoryEditor
+      content={data.content}
+      title={data.title}
+      previousContent={previousData?.content}
+      previousTitle={previousData?.title}
+    />
   );
 }
 

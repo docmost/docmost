@@ -6,6 +6,7 @@ import HistoryItem from "@/features/page-history/components/history-item";
 import {
   activeHistoryIdAtom,
   historyAtoms,
+  previousHistoryIdAtom,
 } from "@/features/page-history/atoms/history-atoms";
 import { useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
@@ -32,11 +33,24 @@ interface Props {
 function HistoryList({ pageId }: Props) {
   const { t } = useTranslation();
   const [activeHistoryId, setActiveHistoryId] = useAtom(activeHistoryIdAtom);
+  const [, setPreviousHistoryId] = useAtom(previousHistoryIdAtom);
+
   const {
     data: pageHistoryList,
     isLoading,
     isError,
   } = usePageHistoryListQuery(pageId);
+
+  const handleSelectHistory = useCallback((id: string) => {
+    setActiveHistoryId(id);
+
+    if (pageHistoryList) {
+      const currentIndex = pageHistoryList.items.findIndex(item => item.id === id);
+      const previousItem = pageHistoryList.items[currentIndex + 1];
+      setPreviousHistoryId(previousItem?.id || '');
+    }
+  }, [pageHistoryList, setActiveHistoryId, setPreviousHistoryId]);
+
   const { data: activeHistoryData } = usePageHistoryQuery(activeHistoryId);
 
   const [mainEditor] = useAtom(pageEditorAtom);
@@ -77,7 +91,7 @@ function HistoryList({ pageId }: Props) {
       setHistoryModalOpen(false);
       notifications.show({ message: t("Successfully restored") });
     }
-  }, [activeHistoryData]);
+  }, [activeHistoryData, mainEditor, mainEditorTitle, setHistoryModalOpen, t]);
 
   useEffect(() => {
     if (
@@ -85,9 +99,9 @@ function HistoryList({ pageId }: Props) {
       pageHistoryList.items.length > 0 &&
       !activeHistoryId
     ) {
-      setActiveHistoryId(pageHistoryList.items[0].id);
+      handleSelectHistory(pageHistoryList.items[0].id);
     }
-  }, [pageHistoryList]);
+  }, [pageHistoryList, activeHistoryId, handleSelectHistory]);
 
   if (isLoading) {
     return <></>;
@@ -109,7 +123,7 @@ function HistoryList({ pageId }: Props) {
             <HistoryItem
               key={index}
               historyItem={historyItem}
-              onSelect={setActiveHistoryId}
+              onSelect={handleSelectHistory}
               isActive={historyItem.id === activeHistoryId}
             />
           ))}
