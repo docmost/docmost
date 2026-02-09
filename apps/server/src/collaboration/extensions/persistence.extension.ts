@@ -13,7 +13,6 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { Queue } from 'bullmq';
@@ -22,8 +21,16 @@ import {
   extractPageMentions,
 } from '../../common/helpers/prosemirror/utils';
 import { isDeepStrictEqual } from 'node:util';
-import { IPageBacklinkJob } from '../../integrations/queue/constants/queue.interface';
+import {
+  IPageBacklinkJob,
+  IPageHistoryJob,
+} from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import {
+  HISTORY_FAST_INTERVAL,
+  HISTORY_FAST_THRESHOLD,
+  HISTORY_INTERVAL,
+} from '../constants';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
@@ -33,9 +40,9 @@ export class PersistenceExtension implements Extension {
   constructor(
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
-    private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @InjectQueue(QueueName.HISTORY_QUEUE) private historyQueue: Queue,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -153,14 +160,6 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
-      this.eventEmitter.emit('collab.page.updated', {
-        page: {
-          ...page,
-          content: tiptapJson,
-          lastUpdatedById: context.user.id,
-        },
-      });
-
       const mentions = extractMentions(tiptapJson);
       const pageMentions = extractPageMentions(mentions);
 
@@ -174,6 +173,8 @@ export class PersistenceExtension implements Extension {
         pageIds: [pageId],
         workspaceId: page.workspaceId,
       });
+
+      await this.enqueuePageHistory(page);
     }
   }
 
@@ -192,5 +193,19 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
+  }
+
+  private async enqueuePageHistory(page: Page): Promise<void> {
+    const pageAge = Date.now() - new Date(page.createdAt).getTime();
+    const delay =
+      pageAge < HISTORY_FAST_THRESHOLD
+        ? HISTORY_FAST_INTERVAL
+        : HISTORY_INTERVAL;
+
+    await this.historyQueue.add(
+      QueueJob.PAGE_HISTORY,
+      { pageId: page.id } as IPageHistoryJob,
+      { jobId: page.id, delay },
+    );
   }
 }
