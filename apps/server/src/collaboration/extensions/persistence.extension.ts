@@ -26,6 +26,7 @@ import {
   IPageHistoryJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
+import { CollabHistoryService } from '../services/collab-history.service';
 import {
   HISTORY_FAST_INTERVAL,
   HISTORY_FAST_THRESHOLD,
@@ -43,6 +44,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @InjectQueue(QueueName.HISTORY_QUEUE) private historyQueue: Queue,
+    private readonly collabHistory: CollabHistoryService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -108,6 +110,7 @@ export class PersistenceExtension implements Extension {
     }
 
     let page: Page = null;
+    const editingUserIds = this.consumeContributors(documentName);
 
     try {
       await executeTx(this.db, async (trx) => {
@@ -130,13 +133,9 @@ export class PersistenceExtension implements Extension {
         let contributorIds = undefined;
         try {
           const existingContributors = page.contributorIds || [];
-          const contributorSet = this.contributors.get(documentName);
-          contributorSet.add(page.creatorId);
-          const newContributors = [...contributorSet];
           contributorIds = Array.from(
-            new Set([...existingContributors, ...newContributors]),
+            new Set([...existingContributors, ...editingUserIds, page.creatorId]),
           );
-          this.contributors.delete(documentName);
         } catch (err) {
           //this.logger.debug('Contributors error:' + err?.['message']);
         }
@@ -160,6 +159,8 @@ export class PersistenceExtension implements Extension {
     }
 
     if (page) {
+      await this.collabHistory.addContributors(pageId, editingUserIds);
+
       const mentions = extractMentions(tiptapJson);
       const pageMentions = extractPageMentions(mentions);
 
@@ -193,6 +194,14 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
+  }
+
+  private consumeContributors(documentName: string): string[] {
+    const contributorSet = this.contributors.get(documentName);
+    if (!contributorSet) return [];
+    const userIds = [...contributorSet];
+    this.contributors.delete(documentName);
+    return userIds;
   }
 
   private async enqueuePageHistory(page: Page): Promise<void> {

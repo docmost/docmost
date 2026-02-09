@@ -6,6 +6,7 @@ import { IPageHistoryJob } from '../../integrations/queue/constants/queue.interf
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { isDeepStrictEqual } from 'node:util';
+import { CollabHistoryService } from '../services/collab-history.service';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -14,6 +15,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
   constructor(
     private readonly pageHistoryRepo: PageHistoryRepo,
     private readonly pageRepo: PageRepo,
+    private readonly collabHistory: CollabHistoryService,
   ) {
     super();
   }
@@ -30,6 +32,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
 
       if (!page) {
         this.logger.warn(`Page ${pageId} not found, skipping history`);
+        await this.collabHistory.clearContributors(pageId);
         return;
       }
 
@@ -42,8 +45,19 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         !lastHistory ||
         !isDeepStrictEqual(lastHistory.content, page.content)
       ) {
-        await this.pageHistoryRepo.saveHistory(page);
-        this.logger.debug(`History created for page: ${pageId}`);
+        const contributorIds =
+          await this.collabHistory.popContributors(pageId);
+
+        try {
+          await this.pageHistoryRepo.saveHistory(page, { contributorIds });
+          this.logger.debug(`History created for page: ${pageId}`);
+        } catch (err) {
+          await this.collabHistory.addContributors(
+            pageId,
+            contributorIds,
+          );
+          throw err;
+        }
       }
     } catch (err) {
       throw err;

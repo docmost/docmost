@@ -10,6 +10,7 @@ import { TokenModule } from '../core/auth/token.module';
 import { HistoryProcessor } from './processors/history.processor';
 import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
+import { CollabHistoryService } from './services/collab-history.service';
 
 @Module({
   providers: [
@@ -18,6 +19,7 @@ import { CollaborationHandler } from './collaboration.handler';
     PersistenceExtension,
     LoggerExtension,
     HistoryProcessor,
+    CollabHistoryService,
     CollaborationHandler,
   ],
   exports: [CollaborationGateway],
