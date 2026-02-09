@@ -25,6 +25,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from "@/features/space/permissions/permissions.type.ts";
+import { useUpdatePageMutation } from "@/features/page/queries/page-query";
 
 interface Props {
   pageId: string;
@@ -62,6 +63,49 @@ function HistoryList({ pageId }: Props) {
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
 
+  const updatePageMutation = useUpdatePageMutation();
+
+  const handleRestore = useCallback(async () => {
+    if (activeHistoryData) {
+      try {
+        await updatePageMutation.mutateAsync({
+          pageId: pageId,
+          title: activeHistoryData.title,
+          content: activeHistoryData.content,
+          forceHistorySave: true,
+        });
+
+        // After DB update, sync local editor state
+        if (mainEditorTitle) {
+          mainEditorTitle
+            .chain()
+            .focus()
+            .setContent(activeHistoryData.title, true)
+            .run();
+        }
+
+        if (mainEditor) {
+          mainEditor
+            .chain()
+            .focus()
+            .setContent(activeHistoryData.content, true)
+            .run();
+        }
+
+        setHistoryModalOpen(false);
+        notifications.show({ 
+          message: t("Successfully restored"),
+          color: "green"
+        });
+      } catch (error) {
+        notifications.show({ 
+          message: t("Failed to restore version"),
+          color: "red"
+        });
+      }
+    }
+  }, [activeHistoryData, mainEditor, mainEditorTitle, setHistoryModalOpen, t, updatePageMutation, pageId]);
+
   const confirmModal = () =>
     modals.openConfirmModal({
       title: t("Please confirm your action"),
@@ -75,23 +119,6 @@ function HistoryList({ pageId }: Props) {
       labels: { confirm: t("Confirm"), cancel: t("Cancel") },
       onConfirm: handleRestore,
     });
-
-  const handleRestore = useCallback(() => {
-    if (activeHistoryData) {
-      mainEditorTitle
-        .chain()
-        .clearContent()
-        .setContent(activeHistoryData.title, true)
-        .run();
-      mainEditor
-        .chain()
-        .clearContent()
-        .setContent(activeHistoryData.content)
-        .run();
-      setHistoryModalOpen(false);
-      notifications.show({ message: t("Successfully restored") });
-    }
-  }, [activeHistoryData, mainEditor, mainEditorTitle, setHistoryModalOpen, t]);
 
   useEffect(() => {
     if (
@@ -136,7 +163,11 @@ function HistoryList({ pageId }: Props) {
         <>
           <Divider />
           <Group p="xs" wrap="nowrap">
-            <Button size="compact-md" onClick={confirmModal}>
+            <Button 
+              size="compact-md" 
+              onClick={confirmModal}
+              loading={updatePageMutation.isPending}
+            >
               {t("Restore")}
             </Button>
             <Button
