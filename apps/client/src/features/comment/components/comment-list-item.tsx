@@ -133,6 +133,7 @@ function CommentListItem({
     setIsEditing(true);
   }
   function cancelEdit() {
+    editContentRef.current = null;
     setIsEditing(false);
   }
 
