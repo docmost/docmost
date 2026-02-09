@@ -23,7 +23,7 @@ export class AuthenticationExtension implements Extension {
     private userRepo: UserRepo,
     private pageRepo: PageRepo,
     private readonly spaceMemberRepo: SpaceMemberRepo,
-  ) {}
+  ) { }
 
   async onAuthenticate(data: onAuthenticatePayload) {
     const { documentName, token } = data;
@@ -69,7 +69,7 @@ export class AuthenticationExtension implements Extension {
     }
 
     if (userSpaceRole === SpaceRole.READER) {
-      data.connection.readOnly = true;
+      (data as any).connection.readOnly = true;
       this.logger.debug(`User granted readonly access to page: ${pageId}`);
     }
 
