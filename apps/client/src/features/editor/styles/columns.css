@@ -2,11 +2,12 @@
 .ProseMirror section[data-type="columns"] {
   display: flex;
   gap: 0;
-  margin-top: 1.5em;
-  margin-bottom: 1.5em;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
   position: relative;
   width: 100%;
 }
+
 
 /* Resize Layout Handle on the left */
 .ProseMirror section[data-type="columns"]::before {
@@ -35,6 +36,15 @@
   position: relative;
   padding: 0 1rem;
 }
+
+.ProseMirror div[data-type="column"]:first-child {
+  padding-left: 0;
+}
+
+.ProseMirror div[data-type="column"]:last-child {
+  padding-right: 0;
+}
+
 
 .ProseMirror div[data-type="column"]:empty::before {
   content: "Type / to insert";
