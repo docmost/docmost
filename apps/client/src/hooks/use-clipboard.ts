@@ -1,6 +1,7 @@
 // Source: https://github.com/mantinedev/mantine/blob/master/packages/@mantine/hooks/src/use-clipboard/use-clipboard.ts
 // polyfilled to support execCommand fallback
 import { useState } from "react";
+import { execCommandCopy } from "@docmost/editor-ext";
 
 export type UseClipboardOptions = {
   timeout?: number;
@@ -33,7 +34,7 @@ export function useClipboard(
         .then(() => handleCopyResult(true))
         .catch(() => {
           try {
-            fallbackCopy(value);
+            execCommandCopy(value);
             handleCopyResult(true);
           } catch (err) {
             setError(err instanceof Error ? err : new Error("Failed to copy"));
@@ -41,7 +42,7 @@ export function useClipboard(
         });
     } else {
       try {
-        fallbackCopy(value);
+        execCommandCopy(value);
         handleCopyResult(true);
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Failed to copy"));
@@ -56,16 +57,4 @@ export function useClipboard(
   };
 
   return { copy, reset, error, copied };
-}
-
-function fallbackCopy(value: string): void {
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.style.top = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
 }
