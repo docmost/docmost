@@ -73,6 +73,20 @@ export class LocalDriver implements StorageDriver {
     }
   }
 
+  async readRangeStream(
+    filePath: string,
+    range: { start: number; end: number },
+  ): Promise<Readable> {
+    try {
+      return createReadStream(this._fullPath(filePath), {
+        start: range.start,
+        end: range.end,
+      });
+    } catch (err) {
+      throw new Error(`Failed to read file: ${(err as Error).message}`);
+    }
+  }
+
   async exists(filePath: string): Promise<boolean> {
     try {
       return await fs.pathExists(this._fullPath(filePath));

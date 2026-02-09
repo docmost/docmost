@@ -22,15 +22,23 @@ export interface IWorkspace {
   plan?: string;
   hasLicenseKey?: boolean;
   enforceMfa?: boolean;
+  aiSearch?: boolean;
+  generativeAi?: boolean;
+  disablePublicSharing?: boolean;
 }
 
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
+  sharing?: IWorkspaceSharingSettings;
 }
 
 export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
+}
+
+export interface IWorkspaceSharingSettings {
+  disabled?: boolean;
 }
 
 export interface ICreateInvite {

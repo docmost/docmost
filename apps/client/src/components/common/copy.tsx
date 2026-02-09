@@ -1,4 +1,5 @@
-import { ActionIcon, CopyButton, Tooltip } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
+import { CopyButton } from "@/components/common/copy-button";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";

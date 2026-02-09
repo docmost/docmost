@@ -1,7 +1,8 @@
 import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useEffect, useState } from "react";
-import { Button, CopyButton, Group, Text, TextInput } from "@mantine/core";
+import { Button, Group, Text, TextInput } from "@mantine/core";
+import { CopyButton } from "@/components/common/copy-button";
 import { useTranslation } from "react-i18next";
 
 export default function WorkspaceInviteSection() {
