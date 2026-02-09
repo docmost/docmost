@@ -62,11 +62,18 @@ export default function HistoryModalMobile({ pageId, pageTitle }: Props) {
 
   const selectData = useMemo(
     () =>
-      historyItems.map((item) => ({
-        value: item.id,
-        label: formattedDate(new Date(item.createdAt)),
-        userName: item.lastUpdatedBy?.name,
-      })),
+      historyItems.map((item) => {
+        const contributors = item.contributors;
+        const hasContributors = contributors && contributors.length > 0;
+        const names = hasContributors
+          ? contributors.map((c) => c.name).join(", ")
+          : item.lastUpdatedBy?.name;
+        return {
+          value: item.id,
+          label: formattedDate(new Date(item.createdAt)),
+          userName: names,
+        };
+      }),
     [historyItems],
   );
 
