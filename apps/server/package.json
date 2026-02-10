@@ -39,6 +39,7 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.4.0",
     "@fastify/static": "^9.0.0",
+    "@keyv/redis": "^5.1.6",
     "@langchain/core": "1.1.18",
     "@langchain/textsplitters": "1.0.1",
     "@nestjs-labs/nestjs-ioredis": "^11.0.4",
