@@ -205,6 +205,7 @@ export interface PageHierarchy {
 
 export interface PageHistory {
   content: Json | null;
+  contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
   icon: string | null;
@@ -279,6 +280,7 @@ export interface Spaces {
   id: Generated<string>;
   logo: string | null;
   name: string | null;
+  settings: Json | null;
   slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;

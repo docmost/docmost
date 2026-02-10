@@ -9,24 +9,43 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { ExpressionBuilder } from 'kysely';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 
 @Injectable()
 export class PageHistoryRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof PageHistory> = [
+    'id',
+    'pageId',
+    'slugId',
+    'title',
+    'icon',
+    'coverPhoto',
+    'lastUpdatedById',
+    'contributorIds',
+    'spaceId',
+    'workspaceId',
+    'createdAt',
+  ];
+
   async findById(
     pageHistoryId: string,
-    trx?: KyselyTransaction,
+    opts?: {
+      includeContent?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<PageHistory> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts?.trx);
 
     return await db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
       .select((eb) => this.withLastUpdatedBy(eb))
+      .select((eb) => this.withContributors(eb))
       .where('id', '=', pageHistoryId)
       .executeTakeFirst();
   }
@@ -43,7 +62,10 @@ export class PageHistoryRepo {
       .executeTakeFirst();
   }
 
-  async saveHistory(page: Page, trx?: KyselyTransaction): Promise<void> {
+  async saveHistory(
+    page: Page,
+    opts?: { contributorIds?: string[]; trx?: KyselyTransaction },
+  ): Promise<void> {
     await this.insertPageHistory(
       {
         pageId: page.id,
@@ -53,18 +75,20 @@ export class PageHistoryRepo {
         icon: page.icon,
         coverPhoto: page.coverPhoto,
         lastUpdatedById: page.lastUpdatedById ?? page.creatorId,
+        contributorIds: opts?.contributorIds,
         spaceId: page.spaceId,
         workspaceId: page.workspaceId,
       },
-      trx,
+      opts?.trx,
     );
   }
 
   async findPageHistoryByPageId(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
       .select((eb) => this.withLastUpdatedBy(eb))
+      .select((eb) => this.withContributors(eb))
       .where('pageId', '=', pageId);
 
     return executeWithCursorPagination(query, {
@@ -76,12 +100,19 @@ export class PageHistoryRepo {
     });
   }
 
-  async findPageLastHistory(pageId: string, trx?: KyselyTransaction) {
-    const db = dbOrTx(this.db, trx);
+  async findPageLastHistory(
+    pageId: string,
+    opts?: {
+      includeContent?: boolean;
+      trx?: KyselyTransaction;
+    },
+  ) {
+    const db = dbOrTx(this.db, opts?.trx);
 
     return await db
       .selectFrom('pageHistory')
-      .selectAll()
+      .select(this.baseFields)
+      .$if(opts?.includeContent, (qb) => qb.select('content'))
       .where('pageId', '=', pageId)
       .limit(1)
       .orderBy('createdAt', 'desc')
@@ -95,5 +126,18 @@ export class PageHistoryRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'pageHistory.lastUpdatedById'),
     ).as('lastUpdatedBy');
+  }
+
+  withContributors(eb: ExpressionBuilder<DB, 'pageHistory'>) {
+    return jsonArrayFrom(
+      eb
+        .selectFrom('users')
+        .select(['users.id', 'users.name', 'users.avatarUrl'])
+        .whereRef(
+          'users.id',
+          '=',
+          sql`ANY(${eb.ref('pageHistory.contributorIds')})`,
+        ),
+    ).as('contributors');
   }
 }
