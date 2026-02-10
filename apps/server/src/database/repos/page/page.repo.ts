@@ -175,11 +175,13 @@ export class PageRepo {
           .selectFrom('pages')
           .select(['id'])
           .where('id', '=', pageId)
+          .where('deletedAt', 'is', null)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
               .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_descendants')
@@ -197,6 +199,7 @@ export class PageRepo {
             deletedAt: currentDate,
           })
           .where('id', 'in', pageIds)
+          .where('deletedAt', 'is', null)
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();

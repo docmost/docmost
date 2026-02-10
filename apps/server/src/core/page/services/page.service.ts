@@ -57,61 +57,6 @@ export class PageService {
     private eventEmitter: EventEmitter2,
   ) {}
 
-  /**
-   * Filters a list of pages to only those accessible to the user while maintaining tree integrity.
-   * A page is included only if:
-   * 1. The user has access to it
-   * 2. Its parent is also included (or it's the root page)
-   * This ensures that if a middle page is inaccessible, its entire subtree is excluded.
-   */
-  private async filterAccessibleTreePages<T extends { id: string; parentPageId: string | null }>(
-    pages: T[],
-    rootPageId: string,
-    userId: string,
-  ): Promise<T[]> {
-    if (pages.length === 0) return [];
-
-    const pageIds = pages.map((p) => p.id);
-    const accessiblePages =
-      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
-        pageIds,
-        userId,
-      );
-    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
-
-    // Build a map for quick lookup
-    const pageMap = new Map(pages.map((p) => [p.id, p]));
-
-    // Prune: include a page only if it's accessible AND its parent chain to root is included
-    const includedIds = new Set<string>();
-
-    // Process pages in a way that ensures parents are processed before children
-    // We do this by iterating until no more pages can be added
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const page of pages) {
-        if (includedIds.has(page.id)) continue;
-        if (!accessibleSet.has(page.id)) continue;
-
-        // Root page: include if accessible
-        if (page.id === rootPageId) {
-          includedIds.add(page.id);
-          changed = true;
-          continue;
-        }
-
-        // Non-root: include if parent is already included
-        if (page.parentPageId && includedIds.has(page.parentPageId)) {
-          includedIds.add(page.id);
-          changed = true;
-        }
-      }
-    }
-
-    return pages.filter((p) => includedIds.has(p.id));
-  }
-
   async findById(
     pageId: string,
     includeContent?: boolean,
@@ -760,9 +705,26 @@ export class PageService {
 
   async getDeletedSpacePages(
     spaceId: string,
+    userId: string,
     pagination: PaginationOptions,
   ): Promise<CursorPaginationResult<Page>> {
-    return this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
+    const result = await this.pageRepo.getDeletedPagesInSpace(
+      spaceId,
+      pagination,
+    );
+
+    if (result.items.length > 0) {
+      const pageIds = result.items.map((p) => p.id);
+      const accessiblePages =
+        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+          pageIds,
+          userId,
+        );
+      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+      result.items = result.items.filter((p) => accessibleSet.has(p.id));
+    }
+
+    return result;
   }
 
   async forceDelete(pageId: string, workspaceId: string): Promise<void> {
@@ -819,5 +781,60 @@ export class PageService {
     workspaceId: string,
   ): Promise<void> {
     await this.pageRepo.removePage(pageId, userId, workspaceId);
+  }
+
+  /**
+   * Filters a list of pages to only those accessible to the user while maintaining tree integrity.
+   * A page is included only if:
+   * 1. The user has access to it
+   * 2. Its parent is also included (or it's the root page)
+   * This ensures that if a middle page is inaccessible, its entire subtree is excluded.
+   */
+  private async filterAccessibleTreePages<T extends { id: string; parentPageId: string | null }>(
+    pages: T[],
+    rootPageId: string,
+    userId: string,
+  ): Promise<T[]> {
+    if (pages.length === 0) return [];
+
+    const pageIds = pages.map((p) => p.id);
+    const accessiblePages =
+      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+        pageIds,
+        userId,
+      );
+    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+
+    // Build a map for quick lookup
+    const pageMap = new Map(pages.map((p) => [p.id, p]));
+
+    // Prune: include a page only if it's accessible AND its parent chain to root is included
+    const includedIds = new Set<string>();
+
+    // Process pages in a way that ensures parents are processed before children
+    // We do this by iterating until no more pages can be added
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const page of pages) {
+        if (includedIds.has(page.id)) continue;
+        if (!accessibleSet.has(page.id)) continue;
+
+        // Root page: include if accessible
+        if (page.id === rootPageId) {
+          includedIds.add(page.id);
+          changed = true;
+          continue;
+        }
+
+        // Non-root: include if parent is already included
+        if (page.parentPageId && includedIds.has(page.parentPageId)) {
+          includedIds.add(page.id);
+          changed = true;
+        }
+      }
+    }
+
+    return pages.filter((p) => includedIds.has(p.id));
   }
 }

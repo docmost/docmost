@@ -213,7 +213,6 @@ export class PageController {
     @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
-    //TODO: should space admin see deleted pages they dont have access to?
     if (deletedPageDto.spaceId) {
       const ability = await this.spaceAbility.createForUser(
         user,
@@ -226,6 +225,7 @@ export class PageController {
 
       return this.pageService.getDeletedSpacePages(
         deletedPageDto.spaceId,
+        user.id,
         pagination,
       );
     }
