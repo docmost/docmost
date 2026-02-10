@@ -66,11 +66,15 @@ export const LinkExtension = TiptapLink.extend({
           },
         },
       }),
-      // Fix for Firefox: when the cursor is at the right boundary of a link,
+      // Fix for Firefox: when the cursor is at a boundary of a link,
       // Firefox's contenteditable inserts new text *inside* the <a> element.
       // ProseMirror then rejects the mutation because inclusive is false,
       // causing keystrokes to be silently swallowed. Firefox also does not
       // fire handleTextInput in this state, so we intercept at handleKeyDown.
+      // This handles both:
+      //   - right boundary: cursor just after a link (typing appends to link)
+      //   - left boundary: cursor just before a link, e.g. at the start of a
+      //     line (#1748), where Firefox places new text inside the link node
       new Plugin({
         key: new PluginKey("linkBoundaryInput"),
         props: {
@@ -92,16 +96,16 @@ export const LinkExtension = TiptapLink.extend({
             const nodeBefore = $from.nodeBefore;
             const nodeAfter = $from.nodeAfter;
 
-            if (!nodeBefore) return false;
+            const linkBefore = nodeBefore && linkType.isInSet(nodeBefore.marks);
+            const linkAfter = nodeAfter && linkType.isInSet(nodeAfter.marks);
 
-            // Check if text before cursor has a link mark
-            if (!linkType.isInSet(nodeBefore.marks)) return false;
+            // If both sides have link marks we're in the middle — don't interfere
+            if (linkBefore && linkAfter) return false;
 
-            // If text after cursor also has the same link mark,
-            // we're in the middle of a link — don't interfere
-            if (nodeAfter && linkType.isInSet(nodeAfter.marks)) return false;
+            // Not at any link boundary — nothing to do
+            if (!linkBefore && !linkAfter) return false;
 
-            // We're at the right boundary of a link mark.
+            // We're at a link boundary (left or right).
             // Prevent native input and insert text without the link mark.
             event.preventDefault();
             const tr = state.tr.insertText(event.key, from, to);
