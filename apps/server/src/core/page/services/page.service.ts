@@ -217,7 +217,11 @@ export class PageService {
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
-        { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
+        {
+          expression: 'position',
+          direction: 'asc',
+          orderModifier: (ob) => ob.collate('C').asc(),
+        },
         { expression: 'id', direction: 'asc' },
       ],
       parseCursor: (cursor) => ({
@@ -296,13 +300,19 @@ export class PageService {
 
     // Find inaccessible pages whose parent is being moved - these need to be orphaned
     const pagesToOrphan = allPages.filter(
-      (p) => !accessibleIds.has(p.id) && p.parentPageId && accessibleIds.has(p.parentPageId),
+      (p) =>
+        !accessibleIds.has(p.id) &&
+        p.parentPageId &&
+        accessibleIds.has(p.parentPageId),
     );
 
     await executeTx(this.db, async (trx) => {
       // Orphan inaccessible child pages (make them root pages in original space)
       for (const page of pagesToOrphan) {
-        const orphanPosition = await this.nextPagePosition(rootPage.spaceId, null);
+        const orphanPosition = await this.nextPagePosition(
+          rootPage.spaceId,
+          null,
+        );
         await this.pageRepo.updatePage(
           { parentPageId: null, position: orphanPosition },
           page.id,
@@ -689,7 +699,10 @@ export class PageService {
     userId: string,
     pagination: PaginationOptions,
   ): Promise<CursorPaginationResult<Page>> {
-    const result = await this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
+    const result = await this.pageRepo.getRecentPagesInSpace(
+      spaceId,
+      pagination,
+    );
 
     if (result.items.length > 0) {
       const pageIds = result.items.map((p) => p.id);
@@ -814,7 +827,9 @@ export class PageService {
    * 2. Its parent is also included (or it's the root page)
    * This ensures that if a middle page is inaccessible, its entire subtree is excluded.
    */
-  private async filterAccessibleTreePages<T extends { id: string; parentPageId: string | null }>(
+  private async filterAccessibleTreePages<
+    T extends { id: string; parentPageId: string | null },
+  >(
     pages: T[],
     rootPageId: string,
     userId: string,
@@ -823,12 +838,13 @@ export class PageService {
     if (pages.length === 0) return [];
 
     const pageIds = pages.map((p) => p.id);
-    const accessibleIds =
-      await this.pagePermissionRepo.filterAccessiblePageIds({
+    const accessibleIds = await this.pagePermissionRepo.filterAccessiblePageIds(
+      {
         pageIds,
         userId,
         spaceId,
-      });
+      },
+    );
     const accessibleSet = new Set(accessibleIds);
 
     // Prune: include a page only if it's accessible AND its parent chain to root is included

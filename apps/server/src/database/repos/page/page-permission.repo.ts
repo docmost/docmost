@@ -984,6 +984,47 @@ export class PagePermissionRepo {
     return results.map((r) => r.descendantId);
   }
 
+  /**
+   * Given a pageId and a set of candidate userIds, return the subset who can
+   * access the page (have permission on ALL restricted ancestors).
+   * Returns all userIds if the page has no restricted ancestors.
+   */
+  async getUserIdsWithPageAccess(
+    pageId: string,
+    userIds: string[],
+  ): Promise<string[]> {
+    if (userIds.length === 0) return [];
+
+    const results = await sql<{ userId: string }>`
+      WITH RECURSIVE ancestors AS (
+        SELECT id AS ancestor_id, parent_page_id
+        FROM pages
+        WHERE id = ${pageId}::uuid
+        UNION ALL
+        SELECT p.id, p.parent_page_id
+        FROM pages p
+        JOIN ancestors a ON a.parent_page_id = p.id
+      )
+      SELECT cu.user_id AS "userId"
+      FROM unnest(${userIds}::uuid[]) AS cu(user_id)
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM ancestors a
+        JOIN page_access pa ON pa.page_id = a.ancestor_id
+        LEFT JOIN page_permissions pp ON pp.page_access_id = pa.id
+          AND (
+            pp.user_id = cu.user_id
+            OR pp.group_id IN (
+              SELECT gu.group_id FROM group_users gu WHERE gu.user_id = cu.user_id
+            )
+          )
+        WHERE pp.id IS NULL
+      )
+    `.execute(this.db);
+
+    return results.rows.map((r) => r.userId);
+  }
+
   private userGroupIdsSubquery(
     eb: ExpressionBuilder<any, keyof DB>,
     userId: string,

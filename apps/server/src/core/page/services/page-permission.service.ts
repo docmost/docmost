@@ -32,6 +32,8 @@ import {
   CursorPaginationResult,
   emptyCursorPaginationResult,
 } from '@docmost/db/pagination/cursor-pagination';
+import { WsService } from '../../../ws/ws.service';
+import { WsTreeService } from '../../../ws/ws-tree.service';
 
 export type PageRestrictionInfo = {
   id: string;
@@ -51,6 +53,8 @@ export class PagePermissionService {
     private pagePermissionRepo: PagePermissionRepo,
     private pageRepo: PageRepo,
     private spaceAbility: SpaceAbilityFactory,
+    private wsService: WsService,
+    private wsTreeService: WsTreeService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -95,6 +99,9 @@ export class PagePermissionService {
         trx,
       );
     });
+
+    await this.wsService.invalidateSpaceRestrictionCache(page.spaceId);
+    await this.wsTreeService.notifyPageRestricted(page, authUser.id);
   }
 
   async addPagePermissions(
@@ -181,6 +188,23 @@ export class PagePermissionService {
 
     if (permissionsToAdd.length > 0) {
       await this.pagePermissionRepo.insertPagePermissions(permissionsToAdd);
+
+      const notifyUserIds = validUsers.map((u) => u.id);
+
+      if (validGroups.length > 0) {
+        const groupMembers = await this.db
+          .selectFrom('groupUsers')
+          .select('userId')
+          .where(
+            'groupId',
+            'in',
+            validGroups.map((g) => g.id),
+          )
+          .execute();
+        notifyUserIds.push(...groupMembers.map((m) => m.userId));
+      }
+
+      await this.wsTreeService.notifyPermissionGranted(page, notifyUserIds);
     }
   }
 
@@ -314,6 +338,8 @@ export class PagePermissionService {
     }
 
     await this.pagePermissionRepo.deletePageAccess(pageId);
+
+    await this.wsService.invalidateSpaceRestrictionCache(page.spaceId);
   }
 
   async getPagePermissions(
