@@ -183,6 +183,7 @@ export class PageService {
     pagination: PaginationOptions,
     pageId?: string,
     userId?: string,
+    spaceCanEdit?: boolean,
   ): Promise<CursorPaginationResult<Partial<Page> & { hasChildren: boolean }>> {
     let query = this.db
       .selectFrom('pages')
@@ -222,42 +223,53 @@ export class PageService {
     });
 
     if (userId && result.items.length > 0) {
-      const pageIds = result.items.map((p: any) => p.id);
+      const hasRestrictions =
+        await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
 
-      // Single query to get accessible pages with their edit permissions
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
-          pageIds,
-          userId,
-        );
-
-      const permissionMap = new Map(
-        accessiblePages.map((p) => [p.id, p.canEdit]),
-      );
-
-      // Filter and add canEdit flag in one pass
-      result.items = result.items
-        .filter((p: any) => permissionMap.has(p.id))
-        .map((p: any) => ({
-          ...p,
-          canEdit: permissionMap.get(p.id),
-        }));
-
-      // For pages with hasChildren: true, verify they have accessible children
-      const pagesWithChildren = result.items.filter((p: any) => p.hasChildren);
-      if (pagesWithChildren.length > 0) {
-        const parentIds = pagesWithChildren.map((p: any) => p.id);
-        const parentsWithAccessibleChildren =
-          await this.pagePermissionRepo.getParentIdsWithAccessibleChildren(
-            parentIds,
-            userId,
-          );
-        const hasAccessibleChildrenSet = new Set(parentsWithAccessibleChildren);
-
+      if (!hasRestrictions) {
         result.items = result.items.map((p: any) => ({
           ...p,
-          hasChildren: p.hasChildren && hasAccessibleChildrenSet.has(p.id),
+          canEdit: spaceCanEdit ?? true,
         }));
+      } else {
+        const pageIds = result.items.map((p: any) => p.id);
+
+        const accessiblePages =
+          await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+            pageIds,
+            userId,
+          );
+
+        const permissionMap = new Map(
+          accessiblePages.map((p) => [p.id, p.canEdit]),
+        );
+
+        result.items = result.items
+          .filter((p: any) => permissionMap.has(p.id))
+          .map((p: any) => ({
+            ...p,
+            canEdit: permissionMap.get(p.id),
+          }));
+
+        const pagesWithChildren = result.items.filter(
+          (p: any) => p.hasChildren,
+        );
+        if (pagesWithChildren.length > 0) {
+          const parentIds = pagesWithChildren.map((p: any) => p.id);
+          const parentsWithAccessibleChildren =
+            await this.pagePermissionRepo.getParentIdsWithAccessibleChildren(
+              parentIds,
+              userId,
+            );
+          const hasAccessibleChildrenSet = new Set(
+            parentsWithAccessibleChildren,
+          );
+
+          result.items = result.items.map((p: any) => ({
+            ...p,
+            hasChildren: p.hasChildren && hasAccessibleChildrenSet.has(p.id),
+          }));
+        }
       }
     }
 

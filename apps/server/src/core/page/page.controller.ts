@@ -298,11 +298,17 @@ export class PageController {
       throw new ForbiddenException();
     }
 
+    const spaceCanEdit = ability.can(
+      SpaceCaslAction.Edit,
+      SpaceCaslSubject.Page,
+    );
+
     return this.pageService.getSidebarPages(
       spaceId,
       pagination,
       dto.pageId,
       user.id,
+      spaceCanEdit,
     );
   }
 
