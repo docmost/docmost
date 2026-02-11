@@ -4,6 +4,7 @@ export * from "./components/publish-tab";
 export * from "./components/page-permission-list";
 export * from "./components/page-permission-item";
 export * from "./components/general-access-select";
+export * from "./hooks/use-page-permission";
 export * from "./queries/page-permission-query";
 export * from "./services/page-permission-service";
 export * from "./types/page-permission.types";

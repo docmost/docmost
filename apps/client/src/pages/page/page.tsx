@@ -6,13 +6,9 @@ import { Helmet } from "react-helmet-async";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
 import React from "react";
+import { usePagePermission } from "@/ee/page-permission";
 
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -30,8 +26,7 @@ export default function Page() {
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useSpaceAbility(spaceRules);
+  const { canEdit } = usePagePermission(page?.id, space?.membership?.permissions);
 
   if (isLoading) {
     return <></>;
@@ -55,12 +50,7 @@ export default function Page() {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
 
-        <MemoizedPageHeader
-          readOnly={spaceAbility.cannot(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
-          )}
-        />
+        <MemoizedPageHeader readOnly={!canEdit} />
 
         <MemoizedFullEditor
           key={page.id}
@@ -69,10 +59,7 @@ export default function Page() {
           content={page.content}
           slugId={page.slugId}
           spaceSlug={page?.space?.slug}
-          editable={spaceAbility.can(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
-          )}
+          editable={canEdit}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>
