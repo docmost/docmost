@@ -83,7 +83,11 @@ export class PageService {
         createPageDto.parentPageId,
       );
 
-      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId) {
+      if (
+        !parentPage ||
+        parentPage.deletedAt ||
+        parentPage.spaceId !== createPageDto.spaceId
+      ) {
         throw new NotFoundException('Parent page not found');
       }
 
@@ -600,7 +604,11 @@ export class PageService {
       // changing the page's parent
       if (dto.parentPageId) {
         const parentPage = await this.pageRepo.findById(dto.parentPageId);
-        if (!parentPage || parentPage.spaceId !== movedPage.spaceId) {
+        if (
+          !parentPage ||
+          parentPage.deletedAt ||
+          parentPage.spaceId !== movedPage.spaceId
+        ) {
           throw new NotFoundException('Parent page not found');
         }
         parentPageId = parentPage.id;

@@ -54,7 +54,7 @@ export class AuthenticationExtension implements Extension {
 
     const page = await this.pageRepo.findById(pageId);
     if (!page) {
-      this.logger.warn(`Page not found: ${pageId}`);
+      this.logger.debug(`Page not found: ${pageId}`);
       throw new NotFoundException('Page not found');
     }
 
@@ -94,6 +94,10 @@ export class AuthenticationExtension implements Extension {
         data.connectionConfig.readOnly = true;
         this.logger.debug(`User granted readonly access to page: ${pageId}`);
       }
+    }
+
+    if (page.deletedAt) {
+      data.connectionConfig.readOnly = true;
     }
 
     this.logger.debug(`Authenticated user ${user.id} on page ${pageId}`);

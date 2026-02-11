@@ -80,7 +80,11 @@ export class PageController {
       const parentPage = await this.pageRepo.findById(
         createPageDto.parentPageId,
       );
-      if (!parentPage || parentPage.spaceId !== createPageDto.spaceId) {
+      if (
+        !parentPage ||
+        parentPage.deletedAt ||
+        parentPage.spaceId !== createPageDto.spaceId
+      ) {
         throw new NotFoundException('Parent page not found');
       }
       await this.pageAccessService.validateCanEdit(parentPage, user);
@@ -411,9 +415,10 @@ export class PageController {
     // If moving to a new parent, check permission on the target parent
     if (dto.parentPageId && dto.parentPageId !== movedPage.parentPageId) {
       const targetParent = await this.pageRepo.findById(dto.parentPageId);
-      if (targetParent) {
-        await this.pageAccessService.validateCanEdit(targetParent, user);
+      if (!targetParent || targetParent.deletedAt) {
+        throw new NotFoundException('Target parent page not found');
       }
+      await this.pageAccessService.validateCanEdit(targetParent, user);
     }
 
     return this.pageService.movePage(dto, movedPage);
