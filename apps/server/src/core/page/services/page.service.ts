@@ -286,6 +286,7 @@ export class PageService {
       allPages,
       rootPage.id,
       userId,
+      rootPage.spaceId,
     );
     const accessibleIds = new Set(accessiblePages.map((p) => p.id));
 
@@ -389,6 +390,7 @@ export class PageService {
       allPages,
       rootPage.id,
       authUser.id,
+      rootPage.spaceId,
     );
 
     const pageMap = new Map<string, CopyPageMapEntry>();
@@ -683,12 +685,13 @@ export class PageService {
 
     if (result.items.length > 0) {
       const pageIds = result.items.map((p) => p.id);
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
           userId,
-        );
-      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+          spaceId,
+        });
+      const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((p) => accessibleSet.has(p.id));
     }
 
@@ -703,12 +706,12 @@ export class PageService {
 
     if (result.items.length > 0) {
       const pageIds = result.items.map((p) => p.id);
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
           userId,
-        );
-      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+        });
+      const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((p) => accessibleSet.has(p.id));
     }
 
@@ -727,12 +730,13 @@ export class PageService {
 
     if (result.items.length > 0) {
       const pageIds = result.items.map((p) => p.id);
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
           userId,
-        );
-      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+          spaceId,
+        });
+      const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((p) => accessibleSet.has(p.id));
     }
 
@@ -806,19 +810,18 @@ export class PageService {
     pages: T[],
     rootPageId: string,
     userId: string,
+    spaceId?: string,
   ): Promise<T[]> {
     if (pages.length === 0) return [];
 
     const pageIds = pages.map((p) => p.id);
-    const accessiblePages =
-      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+    const accessibleIds =
+      await this.pagePermissionRepo.filterAccessiblePageIds({
         pageIds,
         userId,
-      );
-    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
-
-    // Build a map for quick lookup
-    const pageMap = new Map(pages.map((p) => [p.id, p]));
+        spaceId,
+      });
+    const accessibleSet = new Set(accessibleIds);
 
     // Prune: include a page only if it's accessible AND its parent chain to root is included
     const includedIds = new Set<string>();

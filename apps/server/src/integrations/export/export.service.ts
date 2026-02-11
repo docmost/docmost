@@ -380,12 +380,11 @@ export class ExportService {
 
     // Filter to only accessible pages if permissions are enforced
     if (!ignorePermissions && userId) {
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
-          pageMentionIds,
+      pageMentionIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds: pageMentionIds,
           userId,
-        );
-      pageMentionIds = accessiblePages.map((p) => p.id);
+        });
     }
 
     const pages =
@@ -485,20 +484,14 @@ export class ExportService {
   ): Promise<Page[]> {
     if (pages.length === 0) return [];
 
-    // skip heavy filtering if no restrictions exist in this space
-    const hasRestrictions =
-      await this.pagePermissionRepo.hasRestrictedPagesInSpace(spaceId);
-    if (!hasRestrictions) {
-      return pages;
-    }
-
     const pageIds = pages.map((p) => p.id);
-    const accessiblePages =
-      await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+    const accessibleIds =
+      await this.pagePermissionRepo.filterAccessiblePageIds({
         pageIds,
         userId,
-      );
-    const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+        spaceId,
+      });
+    const accessibleSet = new Set(accessibleIds);
 
     const includedIds = new Set<string>();
 

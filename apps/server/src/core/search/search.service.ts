@@ -122,12 +122,13 @@ export class SearchService {
     // Filter results by page-level permissions (if user is authenticated)
     if (opts.userId && results.length > 0) {
       const pageIds = results.map((r: any) => r.id);
-      const accessiblePages =
-        await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
-          opts.userId,
-        );
-      const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+          userId: opts.userId,
+          spaceId: searchParams.spaceId,
+        });
+      const accessibleSet = new Set(accessibleIds);
       results = results.filter((r: any) => accessibleSet.has(r.id));
     }
 
@@ -225,12 +226,13 @@ export class SearchService {
       // Filter by page-level permissions
       if (pages.length > 0) {
         const pageIds = pages.map((p) => p.id);
-        const accessiblePages =
-          await this.pagePermissionRepo.filterAccessiblePageIdsWithPermissions(
+        const accessibleIds =
+          await this.pagePermissionRepo.filterAccessiblePageIds({
             pageIds,
             userId,
-          );
-        const accessibleSet = new Set(accessiblePages.map((p) => p.id));
+            spaceId: suggestion?.spaceId,
+          });
+        const accessibleSet = new Set(accessibleIds);
         pages = pages.filter((p) => accessibleSet.has(p.id));
       }
     }
