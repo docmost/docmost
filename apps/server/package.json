@@ -111,7 +111,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
-    "@nestjs/cli": "^11.0.4",
+    "@nestjs/cli": "^11.0.16",
     "@nestjs/schematics": "^11.0.1",
     "@nestjs/testing": "^11.0.10",
     "@types/bcrypt": "^5.0.2",
