@@ -16,6 +16,7 @@ import { Popover, Button, ScrollArea } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import classes from "./bubble-menu.module.css";
 
 interface NodeSelectorProps {
   editor: Editor | null;
@@ -133,6 +134,7 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
     <Popover opened={isOpen} withArrow>
       <Popover.Target>
         <Button
+          className={classes.buttonRoot}
           variant="default"
           style={{ border: "none", height: "34px" }}
           radius="0"
