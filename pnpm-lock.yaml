@@ -18,7 +18,7 @@ overrides:
   braces: 3.0.3
   ws: 8.19.0
   cross-spawn: 7.0.5
-  dompurify: ^3.3.1
+  dompurify: 3.3.1
   tmp: 0.2.5
   brace-expansion: 4.0.1
   '@babel/runtime': 7.26.10
@@ -161,7 +161,7 @@ importers:
         specifier: 8.0.3
         version: 8.0.3
       dompurify:
-        specifier: ^3.3.1
+        specifier: 3.3.1
         version: 3.3.1
       fractional-indexing-jittered:
         specifier: ^1.0.0
