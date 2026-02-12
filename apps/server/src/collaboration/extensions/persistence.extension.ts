@@ -181,7 +181,8 @@ export class PersistenceExtension implements Extension {
 
   async onChange(data: onChangePayload) {
     const documentName = data.documentName;
-    const userId = data.context?.user.id;
+    const userId = data.context?.user?.id;
+
     if (!userId) return;
 
     if (!this.contributors.has(documentName)) {

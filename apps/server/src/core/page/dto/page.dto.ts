@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export type OutputFormat = 'json' | 'markdown' | 'html';
+import { ContentFormat } from './create-page.dto';
 
 export class PageIdDto {
   @IsString()
@@ -38,7 +38,7 @@ export class PageInfoDto extends PageIdDto {
   @IsOptional()
   @Transform(({ value }) => value?.toLowerCase())
   @IsIn(['json', 'markdown', 'html'])
-  output?: OutputFormat;
+  format?: ContentFormat;
 }
 
 export class DeletePageDto extends PageIdDto {

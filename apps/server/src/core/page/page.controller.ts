@@ -70,9 +70,9 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    if (dto.output && dto.output !== 'json' && page.content) {
+    if (dto.format && dto.format !== 'json' && page.content) {
       const contentOutput =
-        dto.output === 'markdown'
+        dto.format === 'markdown'
           ? jsonToMarkdown(page.content)
           : jsonToHtml(page.content);
       return {
@@ -99,7 +99,25 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.create(user.id, workspace.id, createPageDto);
+    const page = await this.pageService.create(
+      user.id,
+      workspace.id,
+      createPageDto,
+    );
+
+    if (
+      createPageDto.format &&
+      createPageDto.format !== 'json' &&
+      page.content
+    ) {
+      const contentOutput =
+        createPageDto.format === 'markdown'
+          ? jsonToMarkdown(page.content)
+          : jsonToHtml(page.content);
+      return { ...page, content: contentOutput };
+    }
+
+    return page;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -116,7 +134,25 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.update(page, updatePageDto, user);
+    const updatedPage = await this.pageService.update(
+      page,
+      updatePageDto,
+      user,
+    );
+
+    if (
+      updatePageDto.format &&
+      updatePageDto.format !== 'json' &&
+      updatedPage.content
+    ) {
+      const contentOutput =
+        updatePageDto.format === 'markdown'
+          ? jsonToMarkdown(updatedPage.content)
+          : jsonToHtml(updatedPage.content);
+      return { ...updatedPage, content: contentOutput };
+    }
+
+    return updatedPage;
   }
 
   @HttpCode(HttpStatus.OK)

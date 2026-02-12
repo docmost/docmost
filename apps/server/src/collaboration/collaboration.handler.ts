@@ -30,18 +30,13 @@ export class CollaborationHandler {
       updatePageContent: async (
         documentName: string,
         payload: {
-          pageId: string;
           prosemirrorJson: any;
-          operation: string;
+          contentOperation: string;
           user: User;
         },
       ) => {
-        const { pageId, prosemirrorJson, operation, user } = payload;
-        this.logger.debug(
-          'Updating page content via yjs',
-          documentName,
-          payload,
-        );
+        const { prosemirrorJson, contentOperation, user } = payload;
+        this.logger.debug('Updating page content via yjs', documentName);
         await this.withYdocConnection(
           hocuspocus,
           documentName,
@@ -49,7 +44,7 @@ export class CollaborationHandler {
           (doc) => {
             const fragment = doc.getXmlFragment('default');
 
-            if (operation === 'replace') {
+            if (contentOperation === 'replace') {
               if (fragment.length > 0) {
                 fragment.delete(0, fragment.length);
               }
@@ -63,7 +58,9 @@ export class CollaborationHandler {
             } else {
               const newContent = prosemirrorJson.content || [];
               const yElements = newContent.map(prosemirrorNodeToYElement);
-              fragment.insert(fragment.length, yElements);
+              const position =
+                contentOperation === 'prepend' ? 0 : fragment.length;
+              fragment.insert(position, yElements);
             }
           },
         );

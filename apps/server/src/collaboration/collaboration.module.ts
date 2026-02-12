@@ -18,7 +18,6 @@ import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
 import { CollabHistoryService } from './services/collab-history.service';
 
-@Global()
 @Module({
   providers: [
     CollaborationGateway,

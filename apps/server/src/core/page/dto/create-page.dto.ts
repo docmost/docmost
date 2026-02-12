@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export type InputFormat = 'json' | 'markdown' | 'html';
+export type ContentFormat = 'json' | 'markdown' | 'html';
 
 export class CreatePageDto {
   @IsOptional()
@@ -29,7 +29,7 @@ export class CreatePageDto {
   content?: string | object;
 
   @ValidateIf((o) => o.content !== undefined)
-  @Transform(({ value }) => value?.toLowerCase())
+  @Transform(({ value }) => value?.toLowerCase() ?? 'json')
   @IsIn(['json', 'markdown', 'html'])
-  input?: InputFormat;
+  format?: ContentFormat;
 }

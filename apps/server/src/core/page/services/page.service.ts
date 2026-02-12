@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreatePageDto, InputFormat } from '../dto/create-page.dto';
+import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
 import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
@@ -99,10 +99,10 @@ export class PageService {
     let textContent = undefined;
     let ydoc = undefined;
 
-    if (createPageDto?.content && createPageDto?.input) {
+    if (createPageDto?.content && createPageDto?.format) {
       let prosemirrorJson: any;
 
-      switch (createPageDto.input) {
+      switch (createPageDto.format) {
         case 'markdown': {
           const html = await markdownToHtml(createPageDto.content as string);
           prosemirrorJson = htmlToJson(html as string);
@@ -212,14 +212,14 @@ export class PageService {
 
     if (
       updatePageDto.content &&
-      updatePageDto.operation &&
-      updatePageDto.input
+      updatePageDto.contentOperation &&
+      updatePageDto.format
     ) {
       await this.updatePageContent(
         page.id,
         updatePageDto.content,
-        updatePageDto.operation,
-        updatePageDto.input,
+        updatePageDto.contentOperation,
+        updatePageDto.format,
         user,
       );
     }
@@ -236,13 +236,13 @@ export class PageService {
   async updatePageContent(
     pageId: string,
     content: string | object,
-    operation: ContentOperation,
-    input: InputFormat,
+    contentOperation: ContentOperation,
+    format: ContentFormat,
     user: User,
   ): Promise<void> {
     let prosemirrorJson: any;
 
-    switch (input) {
+    switch (format) {
       case 'markdown': {
         const html = await markdownToHtml(content as string);
         prosemirrorJson = htmlToJson(html as string);
@@ -262,14 +262,14 @@ export class PageService {
     try {
       jsonToNode(prosemirrorJson);
     } catch (err) {
-      throw new BadRequestException('Invalid content format');
+      throw new BadRequestException('Invalid content');
     }
 
     const documentName = `page.${pageId}`;
     await this.collaborationGateway.handleYjsEvent(
       'updatePageContent',
       documentName,
-      { pageId, operation, prosemirrorJson, user },
+      { contentOperation, prosemirrorJson, user },
     );
   }
 
@@ -306,7 +306,11 @@ export class PageService {
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
-        { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
+        {
+          expression: 'position',
+          direction: 'asc',
+          orderModifier: (ob) => ob.collate('C').asc(),
+        },
         { expression: 'id', direction: 'asc' },
       ],
       parseCursor: (cursor) => ({
