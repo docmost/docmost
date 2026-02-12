@@ -32,8 +32,6 @@ import {
   htmlToJson,
   jsonToNode,
   jsonToText,
-  prosemirrorNodeToYElement,
-  tiptapExtensions,
 } from 'src/collaboration/collaboration.util';
 import {
   CopyPageMapEntry,
@@ -48,8 +46,6 @@ import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 import { markdownToHtml } from '@docmost/editor-ext';
-import { TiptapTransformer } from '@hocuspocus/transformer';
-import * as Y from 'yjs';
 
 @Injectable()
 export class PageService {
@@ -197,17 +193,17 @@ export class PageService {
   async update(
     page: Page,
     updatePageDto: UpdatePageDto,
-    userId: string,
+    user: User,
   ): Promise<Page> {
     const contributors = new Set<string>(page.contributorIds);
-    contributors.add(userId);
+    contributors.add(user.id);
     const contributorIds = Array.from(contributors);
 
     await this.pageRepo.updatePage(
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
-        lastUpdatedById: userId,
+        lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
       },
@@ -224,7 +220,7 @@ export class PageService {
         updatePageDto.content,
         updatePageDto.operation,
         updatePageDto.input,
-        userId,
+        user,
       );
     }
 
@@ -242,7 +238,7 @@ export class PageService {
     content: string | object,
     operation: ContentOperation,
     input: InputFormat,
-    userId: string,
+    user: User,
   ): Promise<void> {
     let prosemirrorJson: any;
 
@@ -270,35 +266,11 @@ export class PageService {
     }
 
     const documentName = `page.${pageId}`;
-    const connection = await this.collaborationGateway.openDirectConnection(
+    await this.collaborationGateway.handleYjsEvent(
+      'updatePageContent',
       documentName,
-      { user: { id: userId } },
+      { pageId, operation, prosemirrorJson, user },
     );
-
-    try {
-      await connection.transact((doc) => {
-        const fragment = doc.getXmlFragment('default');
-
-        if (operation === 'replace') {
-          if (fragment.length > 0) {
-            fragment.delete(0, fragment.length);
-          }
-
-          const newDoc = TiptapTransformer.toYdoc(
-            prosemirrorJson,
-            'default',
-            tiptapExtensions,
-          );
-          Y.applyUpdate(doc, Y.encodeStateAsUpdate(newDoc));
-        } else {
-          const newContent = prosemirrorJson.content || [];
-          const yElements = newContent.map(prosemirrorNodeToYElement);
-          fragment.insert(fragment.length, yElements);
-        }
-      });
-    } finally {
-      await connection.disconnect();
-    }
   }
 
   async getSidebarPages(
@@ -334,7 +306,11 @@ export class PageService {
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
-        { expression: 'position', direction: 'asc', orderModifier: (ob) => ob.collate('C').asc() },
+        {
+          expression: 'position',
+          direction: 'asc',
+          orderModifier: (ob) => ob.collate('C').asc(),
+        },
         { expression: 'id', direction: 'asc' },
       ],
       parseCursor: (cursor) => ({

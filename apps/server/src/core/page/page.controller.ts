@@ -116,7 +116,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.update(page, updatePageDto, user.id);
+    return this.pageService.update(page, updatePageDto, user);
   }
 
   @HttpCode(HttpStatus.OK)
