@@ -95,6 +95,18 @@ export class ExportService {
     return;
   }
 
+  async exportPageAsMarkdown(pageId: string): Promise<string> {
+    const page = await this.pageRepo.findById(pageId, {
+      includeContent: true,
+    });
+
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    return this.exportPage(ExportFormat.Markdown, page, true);
+  }
+
   async exportPages(
     pageId: string,
     format: string,
