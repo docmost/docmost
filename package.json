@@ -56,6 +56,7 @@
     "@tiptap/react": "3.17.1",
     "@tiptap/starter-kit": "3.17.1",
     "@tiptap/suggestion": "3.17.1",
+    "@tiptap/y-tiptap": "^3.0.2",
     "@types/qrcode": "^1.5.5",
     "bytes": "^3.1.2",
     "cross-env": "^7.0.3",
@@ -108,7 +109,16 @@
       "cross-spawn": "7.0.5",
       "dompurify": "3.3.1",
       "tmp": "0.2.5",
-      "lodash-es": "4.17.23"
+      "lodash-es": "4.17.23",
+      "@tiptap/core": "3.17.1",
+      "@tiptap/pm": "3.17.1",
+      "@tiptap/starter-kit": "3.17.1",
+      "@tiptap/extension-blockquote": "3.17.1",
+      "@tiptap/extension-bold": "3.17.0",
+      "@tiptap/extension-bubble-menu": "3.17.1",
+      "@tiptap/extension-bullet-list": "3.17.1",
+      "@tiptap/extension-list": "3.17.1",
+      "@tiptap/extension-code": "3.17.1"
     },
     "neverBuiltDependencies": []
   }
