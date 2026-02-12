@@ -15,7 +15,7 @@ export class UpdatePageDto extends PartialType(CreatePageDto) {
   @ValidateIf((o) => o.content !== undefined)
   @Transform(({ value }) => value?.toLowerCase())
   @IsIn(['append', 'prepend', 'replace'])
-  contentOperation?: ContentOperation;
+  operation?: ContentOperation;
 
   @ValidateIf((o) => o.content !== undefined)
   @Transform(({ value }) => value?.toLowerCase() ?? 'json')

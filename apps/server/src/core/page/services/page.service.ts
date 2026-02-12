@@ -212,13 +212,13 @@ export class PageService {
 
     if (
       updatePageDto.content &&
-      updatePageDto.contentOperation &&
+      updatePageDto.operation &&
       updatePageDto.format
     ) {
       await this.updatePageContent(
         page.id,
         updatePageDto.content,
-        updatePageDto.contentOperation,
+        updatePageDto.operation,
         updatePageDto.format,
         user,
       );
@@ -236,7 +236,7 @@ export class PageService {
   async updatePageContent(
     pageId: string,
     content: string | object,
-    contentOperation: ContentOperation,
+    operation: ContentOperation,
     format: ContentFormat,
     user: User,
   ): Promise<void> {
@@ -269,7 +269,7 @@ export class PageService {
     await this.collaborationGateway.handleYjsEvent(
       'updatePageContent',
       documentName,
-      { contentOperation, prosemirrorJson, user },
+      { operation, prosemirrorJson, user },
     );
   }
 
