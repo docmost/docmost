@@ -1,10 +1,14 @@
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export type OutputFormat = 'json' | 'markdown' | 'html';
 
 export class PageIdDto {
   @IsString()
@@ -30,6 +34,11 @@ export class PageInfoDto extends PageIdDto {
   @IsOptional()
   @IsBoolean()
   includeContent: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => value?.toLowerCase())
+  @IsIn(['json', 'markdown', 'html'])
+  output?: OutputFormat;
 }
 
 export class DeletePageDto extends PageIdDto {

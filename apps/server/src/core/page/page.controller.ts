@@ -35,6 +35,10 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
 import { DeletedPageDto } from './dto/deleted-page.dto';
+import {
+  jsonToHtml,
+  jsonToMarkdown,
+} from '../../collaboration/collaboration.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -64,6 +68,17 @@ export class PageController {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
+    }
+
+    if (dto.output && dto.output !== 'json' && page.content) {
+      const contentOutput =
+        dto.output === 'markdown'
+          ? jsonToMarkdown(page.content)
+          : jsonToHtml(page.content);
+      return {
+        ...page,
+        content: contentOutput,
+      };
     }
 
     return page;
@@ -101,7 +116,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.update(page, updatePageDto, user.id);
+    return this.pageService.update(page, updatePageDto, user);
   }
 
   @HttpCode(HttpStatus.OK)
