@@ -77,7 +77,7 @@ const mentionRenderItems = () => {
             {
               placement: "bottom-start",
               middleware: [offset(0), flip(), shift()],
-            }
+            },
           ).then(({ x, y }) => {
             Object.assign(element.style, {
               left: `${x}px`,
@@ -86,7 +86,7 @@ const mentionRenderItems = () => {
               zIndex: "9999",
             });
           });
-        }
+        },
       );
     },
     onUpdate: (props: {
@@ -115,23 +115,30 @@ const mentionRenderItems = () => {
 
       // destroy component if space is greater 3 without a match
       if (
-        whitespaceCount > 3 &&
+        whitespaceCount > 4 &&
         //@ts-ignore
-        props.editor.storage.mentionItems.length === 0
+        props.editor.storage.mentionItems.length === 1
       ) {
+        destroy();
+        return;
+      }
+      // fallback exit
+      if (whitespaceCount > 7) {
         destroy();
         return;
       }
     },
     onKeyDown: (props: { event: KeyboardEvent }) => {
-      if (props.event.key)
-        if (
-          props.event.key === "Escape" ||
-          (props.event.key === "Enter" && !component)
-        ) {
-          destroy();
-          return false;
-        }
+      if (props.event.key === "Escape") {
+        destroy();
+        return true;
+      }
+
+      if (props.event.key === "Enter" && !component) {
+        destroy();
+        return false;
+      }
+
       return (component?.ref as any)?.onKeyDown(props);
     },
     onExit: () => {

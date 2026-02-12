@@ -69,5 +69,12 @@ export async function exportSpace(data: IExportSpaceParams): Promise<void> {
     .split("filename=")[1]
     .replace(/"/g, "");
 
-  saveAs(req.data, decodeURIComponent(fileName));
+  let decodedFileName = fileName;
+  try {
+    decodedFileName = decodeURIComponent(fileName);
+  } catch (err) {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, decodedFileName);
 }

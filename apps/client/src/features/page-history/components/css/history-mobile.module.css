@@ -1,0 +1,69 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  position: relative;
+  overflow: hidden;
+}
+
+.selectorWrapper {
+  padding: var(--mantine-spacing-sm);
+  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  flex-shrink: 0;
+}
+
+.selector {
+  width: 100%;
+  text-align: left;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  cursor: pointer;
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  }
+}
+
+.dropdown {
+  max-height: rem(300px);
+}
+
+.option {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+
+  &[data-combobox-selected] {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+}
+
+.editorArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.editorContent {
+  padding: var(--mantine-spacing-md);
+  padding-bottom: rem(60px);
+}
+
+.actionButtons {
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  padding-bottom: rem(70px);
+  border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  flex-shrink: 0;
+}
+
+.floatingBar {
+  position: fixed;
+  bottom: var(--mantine-spacing-md);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  white-space: nowrap;
+}

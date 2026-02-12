@@ -18,7 +18,6 @@ import {
   IconFileDescription,
   IconSearch,
   IconCheck,
-  IconSparkles,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useDebouncedValue } from "@mantine/hooks";
@@ -26,7 +25,7 @@ import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { useLicense } from "@/ee/hooks/use-license";
 import classes from "./search-spotlight-filters.module.css";
 import { isCloud } from "@/lib/config.ts";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface SearchSpotlightFiltersProps {
@@ -53,7 +52,6 @@ export function SearchSpotlightFilters({
   const [workspace] = useAtom(workspaceAtom);
 
   const { data: spacesData } = useGetSpacesQuery({
-    page: 1,
     limit: 100,
     query: debouncedSpaceQuery,
   });
@@ -265,7 +263,9 @@ export function SearchSpotlightFilters({
                 contentType !== option.value &&
                 handleFilterChange("contentType", option.value)
               }
-              disabled={option.disabled || (isAiMode && option.value === "attachment")}
+              disabled={
+                option.disabled || (isAiMode && option.value === "attachment")
+              }
             >
               <Group flex="1" gap="xs">
                 <div>
@@ -275,11 +275,13 @@ export function SearchSpotlightFilters({
                       {t("Enterprise")}
                     </Badge>
                   )}
-                  {!option.disabled && isAiMode && option.value === "attachment" && (
-                    <Text size="xs" mt={4}>
-                      {t("Ask AI not available for attachments")}
-                    </Text>
-                  )}
+                  {!option.disabled &&
+                    isAiMode &&
+                    option.value === "attachment" && (
+                      <Text size="xs" mt={4}>
+                        {t("Ask AI not available for attachments")}
+                      </Text>
+                    )}
                 </div>
                 {contentType === option.value && <IconCheck size={20} />}
               </Group>

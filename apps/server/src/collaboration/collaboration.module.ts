@@ -7,8 +7,10 @@ import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { TokenModule } from '../core/auth/token.module';
-import { HistoryListener } from './listeners/history.listener';
+import { HistoryProcessor } from './processors/history.processor';
 import { LoggerExtension } from './extensions/logger.extension';
+import { CollaborationHandler } from './collaboration.handler';
+import { CollabHistoryService } from './services/collab-history.service';
 
 @Module({
   providers: [
@@ -16,7 +18,9 @@ import { LoggerExtension } from './extensions/logger.extension';
     AuthenticationExtension,
     PersistenceExtension,
     LoggerExtension,
-    HistoryListener,
+    HistoryProcessor,
+    CollabHistoryService,
+    CollaborationHandler,
   ],
   exports: [CollaborationGateway],
   imports: [TokenModule],
@@ -46,16 +50,12 @@ export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
     });
 
     wss.on('error', (error) =>
-      this.logger.log('WebSocket server error:', error),
+      this.logger.error('WebSocket server error:', error),
     );
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.collaborationGateway) {
-      await this.collaborationGateway.destroy();
-    }
-    if (this.collabWsAdapter) {
-      this.collabWsAdapter.destroy();
-    }
+    await this.collaborationGateway?.destroy(this.collabWsAdapter);
+    this.collabWsAdapter?.destroy();
   }
 }

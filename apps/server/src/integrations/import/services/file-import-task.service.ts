@@ -24,6 +24,8 @@ import { formatImportHtml } from '../utils/import-formatter';
 import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
+  encodeFilePath,
+  readDocmostMetadata,
   stripNotionID,
 } from '../utils/import.utils';
 import { executeTx } from '@docmost/db/utils';
@@ -154,6 +156,7 @@ export class FileImportTaskService {
     const { extractDir, fileTask } = opts;
     const allFiles = await collectMarkdownAndHtmlFiles(extractDir);
     const attachmentCandidates = await buildAttachmentCandidates(extractDir);
+    const docmostMetadata = await readDocmostMetadata(extractDir);
 
     const pagesMap = new Map<string, ImportPageNode>();
 
@@ -164,6 +167,9 @@ export class FileImportTaskService {
         .join('/'); // normalize to forward-slashes
       const ext = path.extname(relPath).toLowerCase();
 
+      const encodedPath = encodeFilePath(relPath);
+      const pageMetadata = docmostMetadata?.pages[encodedPath];
+
       pagesMap.set(relPath, {
         id: v7(),
         slugId: generateSlugId(),
@@ -172,6 +178,7 @@ export class FileImportTaskService {
         parentPageId: null,
         fileExtension: ext,
         filePath: relPath,
+        icon: pageMetadata?.icon ?? null,
       });
     }
 
@@ -224,6 +231,8 @@ export class FileImportTaskService {
 
       if (!pagesMap.has(mdPath) && !pagesMap.has(htmlPath)) {
         const folderName = path.basename(folderPath);
+        const encodedMdPath = encodeFilePath(mdPath);
+        const placeholderMetadata = docmostMetadata?.pages[encodedMdPath];
         pagesMap.set(mdPath, {
           id: v7(),
           slugId: generateSlugId(),
@@ -232,6 +241,7 @@ export class FileImportTaskService {
           parentPageId: null,
           fileExtension: '.md',
           filePath: mdPath,
+          icon: placeholderMetadata?.icon ?? null,
         });
       }
     });
@@ -266,11 +276,39 @@ export class FileImportTaskService {
       siblingsMap.set(page.parentPageId, group);
     });
 
+    const encodedPathsMap = new Map<string, string>();
+    if (docmostMetadata) {
+      pagesMap.forEach((_, filePath) => {
+        encodedPathsMap.set(filePath, encodeFilePath(filePath));
+      });
+    }
+
+    // Sort siblings by metadata position if available, otherwise alphabetically
+    const sortSiblings = (siblings: ImportPageNode[]) => {
+      if (docmostMetadata) {
+        siblings.sort((a, b) => {
+          const posA =
+            docmostMetadata.pages[encodedPathsMap.get(a.filePath)]?.position;
+          const posB =
+            docmostMetadata.pages[encodedPathsMap.get(b.filePath)]?.position;
+          if (posA && posB) {
+            // Use direct comparison to match PostgreSQL collation 'C' (byte order)
+            if (posA < posB) return -1;
+            if (posA > posB) return 1;
+            return 0;
+          }
+          return a.name.localeCompare(b.name);
+        });
+      } else {
+        siblings.sort((a, b) => a.name.localeCompare(b.name));
+      }
+    };
+
     // get root pages
     const rootSibs = siblingsMap.get(null);
 
     if (rootSibs?.length) {
-      rootSibs.sort((a, b) => a.name.localeCompare(b.name));
+      sortSiblings(rootSibs);
 
       // get first position key from the server
       const nextPosition = await this.pageService.nextPagePosition(
@@ -292,7 +330,7 @@ export class FileImportTaskService {
     siblingsMap.forEach((sibs, parentId) => {
       if (parentId === null) return; // root already done
 
-      sibs.sort((a, b) => a.name.localeCompare(b.name));
+      sortSiblings(sibs);
 
       let prevPos: string | null = null;
       for (const page of sibs) {
@@ -426,7 +464,7 @@ export class FileImportTaskService {
               id: page.id,
               slugId: page.slugId,
               title: title || page.name,
-              icon: pageIcon || null,
+              icon: page.icon || pageIcon || null,
               content: prosemirrorJson,
               textContent: jsonToText(prosemirrorJson),
               ydoc: await this.importService.createYdoc(prosemirrorJson),
