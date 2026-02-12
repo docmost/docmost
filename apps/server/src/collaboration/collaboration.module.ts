@@ -1,4 +1,10 @@
-import { Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Global,
+  Logger,
+  Module,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { CollaborationGateway } from './collaboration.gateway';
