@@ -100,30 +100,10 @@ export class PageService {
     let ydoc = undefined;
 
     if (createPageDto?.content && createPageDto?.format) {
-      let prosemirrorJson: any;
-
-      switch (createPageDto.format) {
-        case 'markdown': {
-          const html = await markdownToHtml(createPageDto.content as string);
-          prosemirrorJson = htmlToJson(html as string);
-          break;
-        }
-        case 'html': {
-          prosemirrorJson = htmlToJson(createPageDto.content as string);
-          break;
-        }
-        case 'json':
-        default: {
-          prosemirrorJson = createPageDto.content;
-          break;
-        }
-      }
-
-      try {
-        jsonToNode(prosemirrorJson);
-      } catch (err) {
-        throw new BadRequestException('Invalid content format');
-      }
+      const prosemirrorJson = await this.parseProsemirrorContent(
+        createPageDto.content,
+        createPageDto.format,
+      );
 
       content = prosemirrorJson;
       textContent = jsonToText(prosemirrorJson);
@@ -240,30 +220,7 @@ export class PageService {
     format: ContentFormat,
     user: User,
   ): Promise<void> {
-    let prosemirrorJson: any;
-
-    switch (format) {
-      case 'markdown': {
-        const html = await markdownToHtml(content as string);
-        prosemirrorJson = htmlToJson(html as string);
-        break;
-      }
-      case 'html': {
-        prosemirrorJson = htmlToJson(content as string);
-        break;
-      }
-      case 'json':
-      default: {
-        prosemirrorJson = content;
-        break;
-      }
-    }
-
-    try {
-      jsonToNode(prosemirrorJson);
-    } catch (err) {
-      throw new BadRequestException('Invalid content');
-    }
+    const prosemirrorJson = await this.parseProsemirrorContent(content, format);
 
     const documentName = `page.${pageId}`;
     await this.collaborationGateway.handleYjsEvent(
@@ -753,5 +710,37 @@ export class PageService {
     workspaceId: string,
   ): Promise<void> {
     await this.pageRepo.removePage(pageId, userId, workspaceId);
+  }
+
+  private async parseProsemirrorContent(
+    content: string | object,
+    format: ContentFormat,
+  ): Promise<any> {
+    let prosemirrorJson: any;
+
+    switch (format) {
+      case 'markdown': {
+        const html = await markdownToHtml(content as string);
+        prosemirrorJson = htmlToJson(html as string);
+        break;
+      }
+      case 'html': {
+        prosemirrorJson = htmlToJson(content as string);
+        break;
+      }
+      case 'json':
+      default: {
+        prosemirrorJson = content;
+        break;
+      }
+    }
+
+    try {
+      jsonToNode(prosemirrorJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid content format');
+    }
+
+    return prosemirrorJson;
   }
 }
