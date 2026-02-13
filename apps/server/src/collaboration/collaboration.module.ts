@@ -1,4 +1,10 @@
-import { Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Global,
+  Logger,
+  Module,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { CollaborationGateway } from './collaboration.gateway';
@@ -7,9 +13,10 @@ import { CollabWsAdapter } from './adapter/collab-ws.adapter';
 import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { TokenModule } from '../core/auth/token.module';
-import { HistoryListener } from './listeners/history.listener';
+import { HistoryProcessor } from './processors/history.processor';
 import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
+import { CollabHistoryService } from './services/collab-history.service';
 
 @Module({
   providers: [
@@ -17,7 +24,8 @@ import { CollaborationHandler } from './collaboration.handler';
     AuthenticationExtension,
     PersistenceExtension,
     LoggerExtension,
-    HistoryListener,
+    HistoryProcessor,
+    CollabHistoryService,
     CollaborationHandler,
   ],
   exports: [CollaborationGateway],
