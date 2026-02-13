@@ -35,3 +35,12 @@ export interface ICommentNotificationJob {
   mentionedUserIds: string[];
   notifyWatchers: boolean;
 }
+
+export interface ICommentResolvedNotificationJob {
+  commentId: string;
+  commentCreatorId: string;
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+}

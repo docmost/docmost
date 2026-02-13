@@ -65,4 +65,5 @@ export enum QueueJob {
   PAGE_HISTORY = 'page-history',
 
   COMMENT_NOTIFICATION = 'comment-notification',
+  COMMENT_RESOLVED_NOTIFICATION = 'comment-resolved-notification',
 }

@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
   ICommentNotificationJob,
+  ICommentResolvedNotificationJob,
   INotificationCreateJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { NotificationService } from './notification.service';
@@ -25,7 +26,12 @@ export class NotificationProcessor
   }
 
   async process(
-    job: Job<INotificationCreateJob | ICommentNotificationJob, void>,
+    job: Job<
+      | INotificationCreateJob
+      | ICommentNotificationJob
+      | ICommentResolvedNotificationJob,
+      void
+    >,
   ): Promise<void> {
     try {
       switch (job.name) {
@@ -61,6 +67,13 @@ export class NotificationProcessor
         case QueueJob.COMMENT_NOTIFICATION: {
           await this.commentNotificationService.process(
             job.data as ICommentNotificationJob,
+          );
+          break;
+        }
+
+        case QueueJob.COMMENT_RESOLVED_NOTIFICATION: {
+          await this.commentNotificationService.processResolved(
+            job.data as ICommentResolvedNotificationJob,
           );
           break;
         }
