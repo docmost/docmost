@@ -24,7 +24,11 @@ async function bootstrap() {
     }),
     {
       rawBody: true,
-      bufferLogs: true,
+      // disable Nest logger so pino handles all logs
+      // bufferLogs must be false else pino will fail
+      // to log OnApplicationBootstrap logs
+      logger: false,
+      bufferLogs: false,
     },
   );
 
@@ -100,8 +104,11 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0', () => {
-    logger.log(`Listening on http://127.0.0.1:${port} / ${process.env.APP_URL}`);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
+    logger.log(
+      `Listening on http://127.0.0.1:${port} / ${process.env.APP_URL}`,
+    );
   });
 }
 

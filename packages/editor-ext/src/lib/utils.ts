@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { Editor, findParentNode, isTextSelection } from "@tiptap/core";
-import { Selection, Transaction } from "@tiptap/pm/state";
+import { EditorState, Selection, Transaction } from "@tiptap/pm/state";
+import { EditorView } from "@tiptap/pm/view";
 import { CellSelection, TableMap } from "@tiptap/pm/tables";
 import { Node, ResolvedPos } from "@tiptap/pm/model";
 import { sanitizeUrl as braintreeSanitizeUrl } from "@braintree/sanitize-url";
@@ -287,11 +287,7 @@ export const isColumnGripSelected = ({
   const nodeDOM = view.nodeDOM(from) as HTMLElement;
   const node = nodeDOM || domAtPos;
 
-  if (
-    !editor.isActive("table") ||
-    !node ||
-    isTableSelected(state.selection)
-  ) {
+  if (!editor.isActive("table") || !node || isTableSelected(state.selection)) {
     return false;
   }
 
@@ -324,11 +320,7 @@ export const isRowGripSelected = ({
   const nodeDOM = view.nodeDOM(from) as HTMLElement;
   const node = nodeDOM || domAtPos;
 
-  if (
-    !editor.isActive(Table.name) ||
-    !node ||
-    isTableSelected(state.selection)
-  ) {
+  if (!editor.isActive("table") || !node || isTableSelected(state.selection)) {
     return false;
   }
 
@@ -392,3 +384,25 @@ export function sanitizeUrl(url: string | undefined): string {
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz";
 export const generateNodeId = customAlphabet(alphabet, 12);
+
+export function copyToClipboard(text: string): void {
+  if ("clipboard" in navigator) {
+    navigator.clipboard.writeText(text).catch(() => {
+      execCommandCopy(text);
+    });
+  } else {
+    execCommandCopy(text);
+  }
+}
+
+export function execCommandCopy(text: string): void {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+}

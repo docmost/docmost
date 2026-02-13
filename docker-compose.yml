@@ -7,7 +7,7 @@ services:
     environment:
       APP_URL: 'http://localhost:3000'
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost?schema=public'
+      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost'
       REDIS_URL: 'redis://redis:6379'
     ports:
       - "3000:3000"
@@ -16,17 +16,18 @@ services:
       - docmost:/app/data/storage
 
   db:
-    image: postgres:16-alpine
+    image: postgres:18
     environment:
       POSTGRES_DB: docmost
       POSTGRES_USER: docmost
       POSTGRES_PASSWORD: STRONG_DB_PASSWORD
     restart: unless-stopped
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:8
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     restart: unless-stopped
     volumes:
       - redis_data:/data

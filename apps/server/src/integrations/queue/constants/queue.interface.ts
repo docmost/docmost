@@ -20,3 +20,7 @@ export interface IMentionEmailJob {
 export interface IStripeSeatsSyncJob {
   workspaceId: string;
 }
+
+export interface IPageHistoryJob {
+  pageId: string;
+}

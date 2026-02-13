@@ -30,15 +30,15 @@ import { useState } from "react";
 import TrashPageContentModal from "@/features/page/trash/components/trash-page-content-modal";
 import { UserInfo } from "@/components/common/user-info.tsx";
 import Paginate from "@/components/common/paginate.tsx";
-import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 
 export default function Trash() {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
-  const { page, setPage } = usePaginateAndSearch();
+  const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
   const { data: deletedPages, isLoading } = useDeletedPagesQuery(space?.id, {
-    page, limit: 50
+    cursor, limit: 50
   });
   const restorePageMutation = useRestorePageMutation();
   const deletePageMutation = useDeletePageMutation();
@@ -206,10 +206,10 @@ export default function Trash() {
 
         {deletedPages && deletedPages.items.length > 0 && (
           <Paginate
-            currentPage={page}
-            hasPrevPage={deletedPages.meta.hasPrevPage}
-            hasNextPage={deletedPages.meta.hasNextPage}
-            onPageChange={setPage}
+            hasPrevPage={deletedPages.meta?.hasPrevPage}
+            hasNextPage={deletedPages.meta?.hasNextPage}
+            onNext={() => goNext(deletedPages.meta?.nextCursor)}
+            onPrev={goPrev}
           />
         )}
       </Stack>

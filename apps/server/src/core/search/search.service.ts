@@ -26,11 +26,11 @@ export class SearchService {
       userId?: string;
       workspaceId: string;
     },
-  ): Promise<SearchResponseDto[]> {
+  ): Promise<{ items: SearchResponseDto[] }> {
     const { query } = searchParams;
 
     if (query.length < 1) {
-      return;
+      return { items: [] };
     }
     const searchQuery = tsquery(query.trim() + '*');
 
@@ -62,7 +62,7 @@ export class SearchService {
       )
       .where('deletedAt', 'is', null)
       .orderBy('rank', 'desc')
-      .limit(searchParams.limit | 25)
+      .limit(searchParams.limit || 25)
       .offset(searchParams.offset || 0);
 
     if (!searchParams.shareId) {
@@ -86,7 +86,7 @@ export class SearchService {
       const shareId = searchParams.shareId;
       const share = await this.shareRepo.findById(shareId);
       if (!share || share.workspaceId !== opts.workspaceId) {
-        return [];
+        return { items: [] };
       }
 
       const pageIdsToSearch = [];
@@ -108,10 +108,10 @@ export class SearchService {
           .where('id', 'in', pageIdsToSearch)
           .where('workspaceId', '=', opts.workspaceId);
       } else {
-        return [];
+        return { items: [] };
       }
     } else {
-      return [];
+      return { items: [] };
     }
 
     //@ts-ignore
@@ -127,7 +127,7 @@ export class SearchService {
       return result;
     });
 
-    return searchResults;
+    return { items: searchResults };
   }
 
   async searchSuggestions(

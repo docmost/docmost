@@ -12,12 +12,15 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     CollabAppModule,
     new FastifyAdapter({
-      ignoreTrailingSlash: true,
-      ignoreDuplicateSlashes: true,
-      maxParamLength: 500,
+      routerOptions: {
+        maxParamLength: 1000,
+        ignoreTrailingSlash: true,
+        ignoreDuplicateSlashes: true,
+      },
     }),
     {
-      bufferLogs: true,
+      logger: false,
+      bufferLogs: false,
     },
   );
 
@@ -34,7 +37,8 @@ async function bootstrap() {
   const logger = new Logger('CollabServer');
 
   const port = process.env.COLLAB_PORT || 3001;
-  await app.listen(port, '0.0.0.0', () => {
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
     logger.log(`Listening on http://127.0.0.1:${port}`);
   });
 }

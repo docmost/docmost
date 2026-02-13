@@ -30,9 +30,11 @@ export default function ExportModal({
   const [format, setFormat] = useState<ExportFormat>(ExportFormat.Markdown);
   const [includeChildren, setIncludeChildren] = useState<boolean>(false);
   const [includeAttachments, setIncludeAttachments] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const { t } = useTranslation();
 
   const handleExport = async () => {
+    setIsExporting(true);
     try {
       if (type === "page") {
         await exportPage({
@@ -45,6 +47,9 @@ export default function ExportModal({
       if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
       }
+      notifications.show({
+        message: t("Export successful"),
+      });
       onClose();
     } catch (err) {
       notifications.show({
@@ -52,6 +57,8 @@ export default function ExportModal({
         color: "red",
       });
       console.error("export error", err);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -136,7 +143,7 @@ export default function ExportModal({
             <Button onClick={onClose} variant="default">
               {t("Cancel")}
             </Button>
-            <Button onClick={handleExport}>{t("Export")}</Button>
+            <Button onClick={handleExport} loading={isExporting}>{t("Export")}</Button>
           </Group>
         </Modal.Body>
       </Modal.Content>

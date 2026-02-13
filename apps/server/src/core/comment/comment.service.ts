@@ -9,18 +9,14 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 import { Comment, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { MentionNotificationService } from '../../integrations/mentions/mentions.service';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 
 @Injectable()
 export class CommentService {
   constructor(
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
-    private spaceMemberRepo: SpaceMemberRepo,
-    private readonly mentionNotificationService: MentionNotificationService,
   ) {}
 
   async findById(commentId: string) {
@@ -55,7 +51,7 @@ export class CommentService {
       }
     }
 
-    const created = await this.commentRepo.insertComment({
+    return await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
       selection: createCommentDto?.selection?.substring(0, 250),
@@ -65,30 +61,19 @@ export class CommentService {
       workspaceId: workspaceId,
       spaceId: page.spaceId,
     });
-
-    await this.mentionNotificationService.scheduleMentionEmails({
-      workspaceId,
-      actorUserId: userId,
-      source: 'comment',
-      prosemirrorJson: commentContent,
-      pageId: page.id,
-      commentId: created.id,
-    });
-
-    return created;
   }
 
   async findByPageId(
     pageId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<Comment>> {
+  ): Promise<CursorPaginationResult<Comment>> {
     const page = await this.pageRepo.findById(pageId);
 
     if (!page) {
       throw new BadRequestException('Page not found');
     }
 
-    return await this.commentRepo.findPageComments(pageId, pagination);
+    return this.commentRepo.findPageComments(pageId, pagination);
   }
 
   async update(
@@ -115,15 +100,6 @@ export class CommentService {
     comment.content = commentContent;
     comment.editedAt = editedAt;
     comment.updatedAt = editedAt;
-
-    await this.mentionNotificationService.scheduleMentionEmails({
-      workspaceId: comment.workspaceId,
-      actorUserId: authUser.id,
-      source: 'comment',
-      prosemirrorJson: commentContent,
-      pageId: comment.pageId,
-      commentId: comment.id,
-    });
 
     return comment;
   }

@@ -45,8 +45,10 @@ export type MoveTreeNodeEvent = {
   payload: {
     id: string;
     parentId: string;
+    oldParentId: string | null;
     index: number;
     position: string;
+    pageData: Partial<IPage>;
   };
 };
 

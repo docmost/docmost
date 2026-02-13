@@ -8,7 +8,7 @@ import {
   UpdatableShare,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { validate as isValidUUID } from 'uuid';
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
@@ -136,6 +136,20 @@ export class ShareRepo {
     await query.execute();
   }
 
+  async deleteBySpaceId(spaceId: string): Promise<void> {
+    await this.db
+      .deleteFrom('shares')
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
+  async deleteByWorkspaceId(workspaceId: string): Promise<void> {
+    await this.db
+      .deleteFrom('shares')
+      .where('workspaceId', '=', workspaceId)
+      .execute();
+  }
+
   async getShares(userId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('shares')
@@ -143,12 +157,20 @@ export class ShareRepo {
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb, userId))
       .select((eb) => this.withCreator(eb))
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
-      .orderBy('updatedAt', 'desc');
+      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId));
 
-    return executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'updatedAt', direction: 'desc' },
+        { expression: 'id', direction: 'desc' },
+      ],
+      parseCursor: (cursor) => ({
+        updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
     });
   }
 

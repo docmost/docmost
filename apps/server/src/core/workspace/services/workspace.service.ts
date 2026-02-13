@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
@@ -19,7 +20,6 @@ import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { PaginationResult } from '@docmost/db/pagination/pagination';
 import { UpdateWorkspaceUserRoleDto } from '../dto/update-workspace-user-role.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
@@ -28,12 +28,13 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { addDays } from 'date-fns';
 import { DISALLOWED_HOSTNAMES, WorkspaceStatus } from '../workspace.constants';
 import { v4 } from 'uuid';
-import { AttachmentType } from 'src/core/attachment/attachment.constants';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import { generateRandomSuffixNumbers } from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
+import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 
 @Injectable()
 export class WorkspaceService {
@@ -48,6 +49,8 @@ export class WorkspaceService {
     private userRepo: UserRepo,
     private environmentService: EnvironmentService,
     private domainService: DomainService,
+    private licenseCheckService: LicenseCheckService,
+    private shareRepo: ShareRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
@@ -376,6 +379,32 @@ export class WorkspaceService {
       delete updateWorkspaceDto.generativeAi;
     }
 
+    if (typeof updateWorkspaceDto.disablePublicSharing !== 'undefined') {
+      const currentWorkspace = await this.workspaceRepo.findById(workspaceId, {
+        withLicenseKey: true,
+      });
+
+      if (
+        !this.licenseCheckService.isValidEELicense(currentWorkspace.licenseKey)
+      ) {
+        throw new ForbiddenException(
+          'This feature requires a valid enterprise license',
+        );
+      }
+
+      await this.workspaceRepo.updateSharingSettings(
+        workspaceId,
+        'disabled',
+        updateWorkspaceDto.disablePublicSharing,
+      );
+
+      if (updateWorkspaceDto.disablePublicSharing) {
+        await this.shareRepo.deleteByWorkspaceId(workspaceId);
+      }
+
+      delete updateWorkspaceDto.disablePublicSharing;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -393,13 +422,8 @@ export class WorkspaceService {
   async getWorkspaceUsers(
     workspaceId: string,
     pagination: PaginationOptions,
-  ): Promise<PaginationResult<User>> {
-    const users = await this.userRepo.getUsersPaginated(
-      workspaceId,
-      pagination,
-    );
-
-    return users;
+  ): Promise<CursorPaginationResult<User>> {
+    return this.userRepo.getUsersPaginated(workspaceId, pagination);
   }
 
   async updateWorkspaceUserRole(
