@@ -19,11 +19,13 @@ import { Queue } from 'bullmq';
 import {
   extractMentions,
   extractPageMentions,
+  extractUserMentions,
 } from '../../common/helpers/prosemirror/utils';
 import { isDeepStrictEqual } from 'node:util';
 import {
   IPageBacklinkJob,
   IPageHistoryJob,
+  IPageMentionNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
 import { CollabHistoryService } from '../services/collab-history.service';
@@ -44,6 +46,7 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @InjectQueue(QueueName.HISTORY_QUEUE) private historyQueue: Queue,
+    @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
   ) {}
 
@@ -169,6 +172,32 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
         mentions: pageMentions,
       } as IPageBacklinkJob);
+
+      const userMentions = extractUserMentions(mentions);
+      const oldMentions = page.content ? extractMentions(page.content) : [];
+      const oldUserMentionIds = new Set(
+        extractUserMentions(oldMentions).map((m) => m.entityId),
+      );
+      const newMentions = userMentions.filter(
+        (m) => !oldUserMentionIds.has(m.entityId) && m.creatorId !== m.entityId,
+      );
+
+      const mentionsByCreator = new Map<string, string[]>();
+      for (const m of newMentions) {
+        const list = mentionsByCreator.get(m.creatorId) || [];
+        list.push(m.entityId);
+        mentionsByCreator.set(m.creatorId, list);
+      }
+
+      for (const [actorId, mentionedUserIds] of mentionsByCreator) {
+        await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
+          mentionedUserIds,
+          pageId,
+          spaceId: page.spaceId,
+          workspaceId: page.workspaceId,
+          actorId,
+        } as IPageMentionNotificationJob);
+      }
 
       await this.aiQueue.add(QueueJob.PAGE_CONTENT_UPDATED, {
         pageIds: [pageId],

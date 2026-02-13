@@ -9,7 +9,6 @@ import { NotificationService } from '../notification.service';
 import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { MailService } from '../../../integrations/mail/mail.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CommentMentionEmail } from '@docmost/transactional/emails/comment-mention-email';
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
@@ -24,7 +23,6 @@ export class CommentNotificationService {
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly watcherRepo: WatcherRepo,
-    private readonly mailService: MailService,
     private readonly environmentService: EnvironmentService,
   ) {}
 
@@ -69,7 +67,7 @@ export class CommentNotificationService {
         commentId,
       });
 
-      await this.queueEmail(
+      await this.notificationService.queueEmail(
         userId,
         notification.id,
         `${actor.name} mentioned you in a comment`,
@@ -96,7 +94,7 @@ export class CommentNotificationService {
         commentId,
       });
 
-      await this.queueEmail(
+      await this.notificationService.queueEmail(
         watcherId,
         notification.id,
         `${actor.name} commented on ${pageTitle}`,
@@ -139,7 +137,7 @@ export class CommentNotificationService {
 
     const subject = `${actor.name} resolved a comment on ${pageTitle}`;
 
-    await this.queueEmail(
+    await this.notificationService.queueEmail(
       commentCreatorId,
       notification.id,
       subject,
@@ -183,34 +181,4 @@ export class CommentNotificationService {
     return { actor, pageTitle: page.title || 'Untitled', pageUrl };
   }
 
-  private async queueEmail(
-    userId: string,
-    notificationId: string,
-    subject: string,
-    template: any,
-  ) {
-    try {
-      const user = await this.db
-        .selectFrom('users')
-        .select(['email'])
-        .where('id', '=', userId)
-        .where('deletedAt', 'is', null)
-        .executeTakeFirst();
-
-      if (!user?.email) return;
-
-      await this.mailService.sendToQueue({
-        to: user.email,
-        subject,
-        template,
-      });
-
-      await this.notificationService.markAsEmailed(notificationId);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      this.logger.error(
-        `Failed to send email for notification ${notificationId}: ${message}`,
-      );
-    }
-  }
 }

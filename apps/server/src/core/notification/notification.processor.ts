@@ -6,9 +6,11 @@ import {
   ICommentNotificationJob,
   ICommentResolvedNotificationJob,
   INotificationCreateJob,
+  IPageMentionNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { NotificationService } from './notification.service';
 import { CommentNotificationService } from './services/comment.notification';
+import { PageNotificationService } from './services/page.notification';
 import { JsonValue } from '@docmost/db/types/db';
 
 @Processor(QueueName.NOTIFICATION_QUEUE)
@@ -21,6 +23,7 @@ export class NotificationProcessor
   constructor(
     private readonly notificationService: NotificationService,
     private readonly commentNotificationService: CommentNotificationService,
+    private readonly pageNotificationService: PageNotificationService,
   ) {
     super();
   }
@@ -29,7 +32,8 @@ export class NotificationProcessor
     job: Job<
       | INotificationCreateJob
       | ICommentNotificationJob
-      | ICommentResolvedNotificationJob,
+      | ICommentResolvedNotificationJob
+      | IPageMentionNotificationJob,
       void
     >,
   ): Promise<void> {
@@ -58,9 +62,7 @@ export class NotificationProcessor
             data: data as JsonValue,
           });
 
-          this.logger.debug(
-            `Created notification for user ${userId}: ${type}`,
-          );
+          this.logger.debug(`Created notification for user ${userId}: ${type}`);
           break;
         }
 
@@ -74,6 +76,13 @@ export class NotificationProcessor
         case QueueJob.COMMENT_RESOLVED_NOTIFICATION: {
           await this.commentNotificationService.processResolved(
             job.data as ICommentResolvedNotificationJob,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_MENTION_NOTIFICATION: {
+          await this.pageNotificationService.processPageMention(
+            job.data as IPageMentionNotificationJob,
           );
           break;
         }

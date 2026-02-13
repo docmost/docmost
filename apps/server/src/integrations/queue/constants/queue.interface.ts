@@ -44,3 +44,11 @@ export interface ICommentResolvedNotificationJob {
   workspaceId: string;
   actorId: string;
 }
+
+export interface IPageMentionNotificationJob {
+  mentionedUserIds: string[];
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+}

@@ -3,6 +3,7 @@ import { NotificationService } from './notification.service';
 import { NotificationController } from './notification.controller';
 import { NotificationProcessor } from './notification.processor';
 import { CommentNotificationService } from './services/comment.notification';
+import { PageNotificationService } from './services/page.notification';
 import { WsModule } from '../../ws/ws.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { WsModule } from '../../ws/ws.module';
     NotificationService,
     NotificationProcessor,
     CommentNotificationService,
+    PageNotificationService,
   ],
   exports: [NotificationService],
 })
