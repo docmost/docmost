@@ -10,16 +10,22 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { UpdateGroupDto } from '../dto/update-group.dto';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { GroupUserService } from './group-user.service';
+import { WatcherService } from '../../watcher/watcher.service';
 
 @Injectable()
 export class GroupService {
   constructor(
     private groupRepo: GroupRepo,
+    private groupUserRepo: GroupUserRepo,
+    private spaceMemberRepo: SpaceMemberRepo,
     @Inject(forwardRef(() => GroupUserService))
     private groupUserService: GroupUserService,
+    private readonly watcherService: WatcherService,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -141,7 +147,17 @@ export class GroupService {
     if (group.isDefault) {
       throw new BadRequestException('You cannot delete a default group');
     }
+
+    const [userIds, spaceIds] = await Promise.all([
+      this.groupUserRepo.getUserIdsByGroupId(groupId),
+      this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
+    ]);
+
     await this.groupRepo.delete(groupId, workspaceId);
+
+    for (const spaceId of spaceIds) {
+      await this.watcherService.cleanupOnSpaceAccessChange(userIds, spaceId);
+    }
   }
 
   async findAndValidateGroup(

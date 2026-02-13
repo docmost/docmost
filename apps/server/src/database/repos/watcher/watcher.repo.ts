@@ -148,6 +148,50 @@ export class WatcherRepo {
     return Number(result?.count ?? 0);
   }
 
+  async deleteByUsersWithoutSpaceAccess(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    const usersWithAccess = this.db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('spaceId', '=', spaceId)
+      .where('userId', 'is not', null)
+      .union(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin(
+            'groupUsers',
+            'groupUsers.groupId',
+            'spaceMembers.groupId',
+          )
+          .select('groupUsers.userId')
+          .where('spaceMembers.spaceId', '=', spaceId),
+      );
+
+    await this.db
+      .deleteFrom('watchers')
+      .where('userId', 'in', userIds)
+      .where('spaceId', '=', spaceId)
+      .where('userId', 'not in', usersWithAccess)
+      .execute();
+  }
+
+  async deleteByUserAndWorkspace(
+    userId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('watchers')
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .execute();
+  }
+
   withUser(eb: ExpressionBuilder<DB, 'watchers'>) {
     return jsonObjectFrom(
       eb

@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { WatcherRepo, WatcherType } from '@docmost/db/repos/watcher/watcher.repo';
+import {
+  WatcherRepo,
+  WatcherType,
+} from '@docmost/db/repos/watcher/watcher.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { InsertableWatcher } from '@docmost/db/types/entity.types';
@@ -68,5 +71,20 @@ export class WatcherService {
 
   async countPageWatchers(pageId: string): Promise<number> {
     return this.watcherRepo.countPageWatchers(pageId);
+  }
+
+  async cleanupOnSpaceAccessChange(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<void> {
+    await this.watcherRepo.deleteByUsersWithoutSpaceAccess(userIds, spaceId);
+  }
+
+  async cleanupOnWorkspaceRemoval(
+    userId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, trx);
   }
 }

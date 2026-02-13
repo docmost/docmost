@@ -35,6 +35,7 @@ import { generateRandomSuffixNumbers } from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { WatcherService } from '../../watcher/watcher.service';
 
 @Injectable()
 export class WorkspaceService {
@@ -51,6 +52,7 @@ export class WorkspaceService {
     private domainService: DomainService,
     private licenseCheckService: LicenseCheckService,
     private shareRepo: ShareRepo,
+    private readonly watcherService: WatcherService,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
@@ -553,6 +555,11 @@ export class WorkspaceService {
         .deleteFrom('authAccounts')
         .where('userId', '=', userId)
         .execute();
+      await this.watcherService.cleanupOnWorkspaceRemoval(
+        userId,
+        workspaceId,
+        trx,
+      );
     });
 
     try {

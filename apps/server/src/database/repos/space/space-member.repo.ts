@@ -219,6 +219,16 @@ export class SpaceMemberRepo {
     return roles;
   }
 
+  async getSpaceIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('spaceId')
+      .where('groupId', '=', groupId)
+      .execute();
+
+    return rows.map((r) => r.spaceId);
+  }
+
   getUserSpaceIdsQuery(userId: string) {
     return this.db
       .selectFrom('spaceMembers')
