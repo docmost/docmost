@@ -373,6 +373,7 @@ export interface Notifications {
   commentId: string | null;
   data: Json | null;
   readAt: Timestamp | null;
+  emailedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
 }
 
@@ -384,6 +385,7 @@ export interface Watchers {
   workspaceId: string;
   type: string;
   addedById: string | null;
+  mutedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
 }
 

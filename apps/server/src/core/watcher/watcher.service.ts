@@ -23,7 +23,7 @@ export class WatcherService {
       type: WatcherType.PAGE,
       addedById: userId,
     };
-    return this.watcherRepo.insert(watcher, trx);
+    return this.watcherRepo.upsert(watcher, trx);
   }
 
   async addPageWatchers(
@@ -48,7 +48,7 @@ export class WatcherService {
   }
 
   async unwatchPage(userId: string, pageId: string) {
-    return this.watcherRepo.delete(userId, pageId);
+    return this.watcherRepo.mute(userId, pageId);
   }
 
   async isWatchingPage(userId: string, pageId: string): Promise<boolean> {

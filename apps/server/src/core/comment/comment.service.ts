@@ -11,12 +11,14 @@ import { Comment, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { WatcherService } from '../watcher/watcher.service';
 
 @Injectable()
 export class CommentService {
   constructor(
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
+    private readonly watcherService: WatcherService,
   ) {}
 
   async findById(commentId: string) {
@@ -51,7 +53,7 @@ export class CommentService {
       }
     }
 
-    return await this.commentRepo.insertComment({
+    const comment = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
       selection: createCommentDto?.selection?.substring(0, 250),
@@ -61,6 +63,15 @@ export class CommentService {
       workspaceId: workspaceId,
       spaceId: page.spaceId,
     });
+
+    await this.watcherService.addPageWatchers(
+      [userId],
+      page.id,
+      page.spaceId,
+      workspaceId,
+    );
+
+    return comment;
   }
 
   async findByPageId(

@@ -12,7 +12,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('type', 'varchar(100)', (col) => col.notNull())
+    .addColumn('type', 'text', (col) => col.notNull())
     .addColumn('actor_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -27,6 +27,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('data', 'jsonb')
     .addColumn('read_at', 'timestamptz')
+    .addColumn('emailed_at', 'timestamptz')
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )

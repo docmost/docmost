@@ -6,7 +6,7 @@ import {
   Notification,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -30,12 +30,14 @@ export class NotificationRepo {
       .select((eb) => this.withActor(eb))
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb))
-      .where('userId', '=', userId)
-      .orderBy('createdAt', 'desc');
+      .where('userId', '=', userId);
 
-    return executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'desc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
   }
 

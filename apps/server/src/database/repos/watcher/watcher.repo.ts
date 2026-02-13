@@ -3,7 +3,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { InsertableWatcher, Watcher } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -39,11 +39,14 @@ export class WatcherRepo {
       .select((eb) => this.withUser(eb))
       .where('pageId', '=', pageId)
       .where('type', '=', WatcherType.PAGE)
-      .orderBy('createdAt', 'asc');
+      .where('mutedAt', 'is', null);
 
-    return executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
   }
 
@@ -57,6 +60,7 @@ export class WatcherRepo {
       .select('userId')
       .where('pageId', '=', pageId)
       .where('type', '=', WatcherType.PAGE)
+      .where('mutedAt', 'is', null)
       .execute();
 
     return watchers.map((w) => w.userId);
@@ -88,14 +92,33 @@ export class WatcherRepo {
       .execute();
   }
 
-  async delete(
+  async upsert(
+    watcher: InsertableWatcher,
+    trx?: KyselyTransaction,
+  ): Promise<Watcher | undefined> {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .insertInto('watchers')
+      .values(watcher)
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'pageId'])
+          .where('pageId', 'is not', null)
+          .doUpdateSet({ mutedAt: null }),
+      )
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async mute(
     userId: string,
     pageId: string,
     trx?: KyselyTransaction,
   ): Promise<void> {
     const db = dbOrTx(this.db, trx);
     await db
-      .deleteFrom('watchers')
+      .updateTable('watchers')
+      .set({ mutedAt: new Date() })
       .where('userId', '=', userId)
       .where('pageId', '=', pageId)
       .execute();
@@ -107,6 +130,7 @@ export class WatcherRepo {
       .select('id')
       .where('userId', '=', userId)
       .where('pageId', '=', pageId)
+      .where('mutedAt', 'is', null)
       .executeTakeFirst();
 
     return !!watcher;
@@ -118,6 +142,7 @@ export class WatcherRepo {
       .select((eb) => eb.fn.count('id').as('count'))
       .where('pageId', '=', pageId)
       .where('type', '=', WatcherType.PAGE)
+      .where('mutedAt', 'is', null)
       .executeTakeFirst();
 
     return Number(result?.count ?? 0);
