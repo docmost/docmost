@@ -182,16 +182,16 @@ export class PersistenceExtension implements Extension {
         (m) => !oldUserMentionIds.has(m.entityId) && m.creatorId !== m.entityId,
       );
 
-      const mentionsByCreator = new Map<string, string[]>();
+      const mentionsByCreator = new Map<string, { userId: string; mentionId: string }[]>();
       for (const m of newMentions) {
         const list = mentionsByCreator.get(m.creatorId) || [];
-        list.push(m.entityId);
+        list.push({ userId: m.entityId, mentionId: m.id });
         mentionsByCreator.set(m.creatorId, list);
       }
 
-      for (const [actorId, mentionedUserIds] of mentionsByCreator) {
+      for (const [actorId, mentions] of mentionsByCreator) {
         await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
-          mentionedUserIds,
+          mentions,
           pageId,
           spaceId: page.spaceId,
           workspaceId: page.workspaceId,

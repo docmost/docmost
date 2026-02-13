@@ -20,14 +20,14 @@ export class PageNotificationService {
   ) {}
 
   async processPageMention(data: IPageMentionNotificationJob) {
-    const { mentionedUserIds, pageId, spaceId, workspaceId, actorId } = data;
+    const { mentions, pageId, spaceId, workspaceId, actorId } = data;
 
     const context = await this.getPageContext(actorId, pageId, spaceId);
     if (!context) return;
 
-    const { actor, pageTitle, pageUrl } = context;
+    const { actor, pageTitle, basePageUrl } = context;
 
-    for (const userId of mentionedUserIds) {
+    for (const { userId, mentionId } of mentions) {
       const roles = await this.spaceMemberRepo.getUserSpaceRoles(
         userId,
         spaceId,
@@ -49,6 +49,7 @@ export class PageNotificationService {
         spaceId,
       });
 
+      const pageUrl = `${basePageUrl}?mentionId=${mentionId}`;
       const subject = `${actor.name} mentioned you in ${pageTitle}`;
 
       await this.notificationService.queueEmail(
@@ -90,9 +91,9 @@ export class PageNotificationService {
       return null;
     }
 
-    const pageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}`;
+    const basePageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}`;
 
-    return { actor, pageTitle: page.title || 'Untitled', pageUrl };
+    return { actor, pageTitle: page.title || 'Untitled', basePageUrl };
   }
 
 }
