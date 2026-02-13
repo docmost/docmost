@@ -25,3 +25,13 @@ export interface INotificationCreateJob {
   commentId?: string;
   data?: Record<string, unknown>;
 }
+
+export interface ICommentNotificationJob {
+  commentId: string;
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  mentionedUserIds: string[];
+  notifyWatchers: boolean;
+}

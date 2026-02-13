@@ -31,6 +31,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   const [currentUser] = useAtom(currentUserAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const useClickOutsideRef = useClickOutside(() => {
+    if (document.querySelector("#mention")) return;
     handleDialogClose();
   });
   const createCommentMutation = useCreateCommentMutation();

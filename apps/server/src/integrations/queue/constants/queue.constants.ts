@@ -7,6 +7,7 @@ export enum QueueName {
   SEARCH_QUEUE = '{search-queue}',
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
+  NOTIFICATION_QUEUE = '{notification-queue}',
 }
 
 export enum QueueJob {
@@ -62,4 +63,6 @@ export enum QueueJob {
   DELETE_PAGE_EMBEDDINGS = 'delete-page-embeddings',
 
   PAGE_HISTORY = 'page-history',
+
+  COMMENT_NOTIFICATION = 'comment-notification',
 }
