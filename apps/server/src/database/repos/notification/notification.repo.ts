@@ -86,6 +86,15 @@ export class NotificationRepo {
       .execute();
   }
 
+  async markAsEmailed(notificationId: string): Promise<void> {
+    await this.db
+      .updateTable('notifications')
+      .set({ emailedAt: new Date() })
+      .where('id', '=', notificationId)
+      .where('emailedAt', 'is', null)
+      .execute();
+  }
+
   async markAllAsRead(userId: string): Promise<void> {
     await this.db
       .updateTable('notifications')

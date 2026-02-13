@@ -1,18 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectKysely } from 'nestjs-kysely';
+import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { ICommentNotificationJob } from '../../../integrations/queue/constants/queue.interface';
 import { NotificationService } from '../notification.service';
 import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { MailService } from '../../../integrations/mail/mail.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { CommentNotificationEmail } from '../../../integrations/transactional/emails/comment-notification-email';
 
 @Injectable()
 export class CommentNotificationService {
   private readonly logger = new Logger(CommentNotificationService.name);
 
   constructor(
+    @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly watcherRepo: WatcherRepo,
+    private readonly mailService: MailService,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async process(data: ICommentNotificationJob) {
@@ -26,6 +34,32 @@ export class CommentNotificationService {
       notifyWatchers,
     } = data;
 
+    const [actor, page, space] = await Promise.all([
+      this.db
+        .selectFrom('users')
+        .select(['id', 'name'])
+        .where('id', '=', actorId)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('pages')
+        .select(['id', 'title', 'slugId'])
+        .where('id', '=', pageId)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('spaces')
+        .select(['id', 'slug'])
+        .where('id', '=', spaceId)
+        .executeTakeFirst(),
+    ]);
+
+    if (!actor || !page || !space) {
+      this.logger.warn(
+        `Missing data for comment notification: actor=${!!actor} page=${!!page} space=${!!space}`,
+      );
+      return;
+    }
+
+    const pageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
 
@@ -42,7 +76,7 @@ export class CommentNotificationService {
         continue;
       }
 
-      await this.notificationService.create({
+      const notification = await this.notificationService.create({
         userId,
         workspaceId,
         type: NotificationType.COMMENT_USER_MENTION,
@@ -51,6 +85,15 @@ export class CommentNotificationService {
         spaceId,
         commentId,
       });
+
+      await this.sendEmail(
+        userId,
+        notification.id,
+        actor.name,
+        page.title,
+        pageUrl,
+        true,
+      );
 
       notifiedUserIds.add(userId);
     }
@@ -62,7 +105,7 @@ export class CommentNotificationService {
     for (const watcherId of watcherIds) {
       if (notifiedUserIds.has(watcherId)) continue;
 
-      await this.notificationService.create({
+      const notification = await this.notificationService.create({
         userId: watcherId,
         workspaceId,
         type: NotificationType.COMMENT_NEW_COMMENT,
@@ -71,6 +114,59 @@ export class CommentNotificationService {
         spaceId,
         commentId,
       });
+
+      await this.sendEmail(
+        watcherId,
+        notification.id,
+        actor.name,
+        page.title,
+        pageUrl,
+        false,
+      );
+    }
+  }
+
+  private async sendEmail(
+    userId: string,
+    notificationId: string,
+    actorName: string,
+    pageTitle: string,
+    pageUrl: string,
+    isMention: boolean,
+  ) {
+    try {
+      const user = await this.db
+        .selectFrom('users')
+        .select(['email'])
+        .where('id', '=', userId)
+        .where('deletedAt', 'is', null)
+        .executeTakeFirst();
+
+      if (!user?.email) return;
+
+      const subject = isMention
+        ? `${actorName} mentioned you in a comment`
+        : `${actorName} commented on ${pageTitle || 'Untitled'}`;
+
+      const template = CommentNotificationEmail({
+        actorName,
+        pageTitle,
+        pageUrl,
+        isMention,
+      });
+
+      await this.mailService.sendToQueue({
+        to: user.email,
+        subject,
+        template,
+      });
+
+      await this.notificationService.markAsEmailed(notificationId);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send email for notification ${notificationId}: ${message}`,
+      );
     }
   }
 }

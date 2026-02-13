@@ -40,4 +40,8 @@ export class NotificationService {
   async markAllAsRead(userId: string) {
     return this.notificationRepo.markAllAsRead(userId);
   }
+
+  async markAsEmailed(notificationId: string) {
+    return this.notificationRepo.markAsEmailed(notificationId);
+  }
 }
