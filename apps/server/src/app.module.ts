@@ -16,6 +16,7 @@ import { ExportModule } from './integrations/export/export.module';
 import { ImportModule } from './integrations/import/import.module';
 import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
+import { McpModule } from './integrations/mcp/mcp.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { LoggerModule } from './common/logger/logger.module';
@@ -59,6 +60,7 @@ try {
     EventEmitterModule.forRoot(),
     SecurityModule,
     TelemetryModule,
+    McpModule,
     ...enterpriseModules,
   ],
   controllers: [AppController],
