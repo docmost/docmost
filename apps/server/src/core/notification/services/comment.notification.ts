@@ -8,7 +8,8 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { MailService } from '../../../integrations/mail/mail.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
-import { CommentNotificationEmail } from '../../../integrations/transactional/emails/comment-notification-email';
+import { CommentMentionEmail } from '../../../integrations/transactional/emails/comment-mention-email';
+import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 
 @Injectable()
 export class CommentNotificationService {
@@ -59,6 +60,7 @@ export class CommentNotificationService {
       return;
     }
 
+    //TODO: flagged
     const pageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
@@ -86,13 +88,12 @@ export class CommentNotificationService {
         commentId,
       });
 
-      await this.sendEmail(
+      await this.sendMentionEmail(
         userId,
         notification.id,
         actor.name,
         page.title,
         pageUrl,
-        true,
       );
 
       notifiedUserIds.add(userId);
@@ -108,31 +109,58 @@ export class CommentNotificationService {
       const notification = await this.notificationService.create({
         userId: watcherId,
         workspaceId,
-        type: NotificationType.COMMENT_NEW_COMMENT,
+        type: NotificationType.COMMENT_CREATED,
         actorId,
         pageId,
         spaceId,
         commentId,
       });
 
-      await this.sendEmail(
+      await this.sendCommentCreatedEmail(
         watcherId,
         notification.id,
         actor.name,
         page.title,
         pageUrl,
-        false,
       );
     }
   }
 
-  private async sendEmail(
+  private async sendMentionEmail(
     userId: string,
     notificationId: string,
     actorName: string,
     pageTitle: string,
     pageUrl: string,
-    isMention: boolean,
+  ) {
+    await this.queueEmail(
+      userId,
+      notificationId,
+      `${actorName} mentioned you in a comment`,
+      CommentMentionEmail({ actorName, pageTitle, pageUrl }),
+    );
+  }
+
+  private async sendCommentCreatedEmail(
+    userId: string,
+    notificationId: string,
+    actorName: string,
+    pageTitle: string,
+    pageUrl: string,
+  ) {
+    await this.queueEmail(
+      userId,
+      notificationId,
+      `${actorName} commented on ${pageTitle || 'Untitled'}`,
+      CommentCreateEmail({ actorName, pageTitle, pageUrl }),
+    );
+  }
+
+  private async queueEmail(
+    userId: string,
+    notificationId: string,
+    subject: string,
+    template: any,
   ) {
     try {
       const user = await this.db
@@ -143,17 +171,6 @@ export class CommentNotificationService {
         .executeTakeFirst();
 
       if (!user?.email) return;
-
-      const subject = isMention
-        ? `${actorName} mentioned you in a comment`
-        : `${actorName} commented on ${pageTitle || 'Untitled'}`;
-
-      const template = CommentNotificationEmail({
-        actorName,
-        pageTitle,
-        pageUrl,
-        isMention,
-      });
 
       await this.mailService.sendToQueue({
         to: user.email,

@@ -7,23 +7,19 @@ interface Props {
   actorName: string;
   pageTitle: string;
   pageUrl: string;
-  isMention: boolean;
 }
 
-export const CommentNotificationEmail = ({
+export const CommentCreateEmail = ({
   actorName,
   pageTitle,
   pageUrl,
-  isMention,
 }: Props) => {
-  const action = isMention ? 'mentioned you in a comment on' : 'commented on';
-
   return (
     <MailBody>
       <Section style={content}>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          <strong>{actorName}</strong> {action}{' '}
+          <strong>{actorName}</strong> commented on{' '}
           <strong>{pageTitle || 'Untitled'}</strong>.
         </Text>
       </Section>
@@ -37,11 +33,11 @@ export const CommentNotificationEmail = ({
         }}
       >
         <Button href={pageUrl} style={button}>
-          View Page
+          View Comment
         </Button>
       </Section>
     </MailBody>
   );
 };
 
-export default CommentNotificationEmail;
+export default CommentCreateEmail;
