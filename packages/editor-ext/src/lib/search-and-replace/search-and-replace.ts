@@ -197,11 +197,15 @@ const replace = (
     });
 
     const marks = Array.from(marksSet);
-
-    // Delete the old text and insert new text with preserved marks
+    
+    // Delete the old text
     tr.delete(from, to);
-    tr.insert(from, state.schema.text(replaceTerm, marks));
 
+    // Only insert new text if replaceTerm is not empty (allows for deletion when replaceTerm is empty)
+    if (replaceTerm) {
+      tr.insert(from, state.schema.text(replaceTerm, marks));
+    }
+    
     dispatch(tr);
   }
 };
@@ -228,10 +232,14 @@ const replaceAll = (
     });
 
     const marks = Array.from(marksSet);
-
-    // Delete and insert with preserved marks
+    
+    // Delete the old text
     tr.delete(from, to);
-    tr.insert(from, tr.doc.type.schema.text(replaceTerm, marks));
+
+    // Only insert new text if replaceTerm is not empty (allows for deletion when replaceTerm is empty)
+    if (replaceTerm) {
+      tr.insert(from, tr.doc.type.schema.text(replaceTerm, marks));
+    }
   }
 
   dispatch(tr);

@@ -84,9 +84,14 @@ const CommentEditor = forwardRef(
       autofocus: (autofocus && "end") || false,
     });
 
+    // Sync content from props for read-only editors (e.g. when updated via
+    // websocket on another browser). Skip for editable editors to avoid
+    // resetting the cursor position on every keystroke.
     useEffect(() => {
-      commentEditor.commands.setContent(defaultContent);
-    }, [defaultContent]);
+      if (!editable && commentEditor && defaultContent) {
+        commentEditor.commands.setContent(defaultContent);
+      }
+    }, [defaultContent, editable, commentEditor]);
 
     useEffect(() => {
       setTimeout(() => {

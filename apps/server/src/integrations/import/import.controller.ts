@@ -44,7 +44,7 @@ export class ImportController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const validFileExtensions = ['.md', '.html'];
+    const validFileExtensions = ['.md', '.html', '.docx'];
 
     const maxFileSize = bytes('10mb');
 

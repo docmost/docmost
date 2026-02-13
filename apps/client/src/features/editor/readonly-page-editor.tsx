@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
-import { Heading, generateNodeId, UniqueID } from "@docmost/editor-ext";
+import { Heading, UniqueID } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
