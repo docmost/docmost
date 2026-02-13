@@ -73,6 +73,7 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import CopyPageModal from "../../components/copy-page-modal.tsx";
 import { duplicatePage } from "../../services/page-service.ts";
+import FloatingParentHeader from "./floating-parent-header.tsx";
 
 interface SpaceTreeProps {
   spaceId: string;
@@ -80,6 +81,7 @@ interface SpaceTreeProps {
 }
 
 const openTreeNodesAtom = atom<OpenMap>({});
+const expandedParentNodeAtom = atom<SpaceTreeNode | null>(null);
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
@@ -94,6 +96,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     spaceId,
   });
   const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
+  const [expandedParentNode, setExpandedParentNode] = useAtom(expandedParentNodeAtom);
   const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
   const rootElement = useRef<HTMLDivElement>();
@@ -220,8 +223,80 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
   }, [setTreeApi]);
 
+  const handleNodeToggle = () => {
+    // Get all currently open nodes from the tree API
+    const openState = treeApiRef.current?.openState || {};
+    const openNodeIds = Object.keys(openState).filter((key) => openState[key] === true);
+    
+    if (openNodeIds.length === 0) {
+      setExpandedParentNode(null);
+      return;
+    }
+
+    // Find the deepest open node or the first open node with children
+    const findNode = (nodes: SpaceTreeNode[]): SpaceTreeNode | null => {
+      for (const node of nodes) {
+        if (openNodeIds.includes(node.id) && node.children && node.children.length > 0) {
+          // Check if any children are also open - if so, keep looking deeper
+          const childOpen = findNode(node.children);
+          if (childOpen) {
+            return childOpen;
+          }
+          // If no deeper open node, return this one
+          return node;
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findNode(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const node = findNode(data);
+    if (node) {
+      setExpandedParentNode(node);
+    } else if (openNodeIds.length > 0) {
+      // Find any node that is open, even if it has no children yet
+      const findAnyOpenNode = (nodes: SpaceTreeNode[]): SpaceTreeNode | null => {
+        for (const node of nodes) {
+          if (openNodeIds.includes(node.id) && (node.children?.length > 0 || node.hasChildren)) {
+            return node;
+          }
+          if (node.children && node.children.length > 0) {
+            const found = findAnyOpenNode(node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      
+      const anyNode = findAnyOpenNode(data);
+      setExpandedParentNode(anyNode);
+    } else {
+      setExpandedParentNode(null);
+    }
+    
+    setOpenTreeNodes(treeApiRef.current?.openState);
+  };
+
+  const handleCollapseParent = (nodeId: string) => {
+    if (treeApiRef.current) {
+      const node = treeApiRef.current.get(nodeId);
+      if (node) {
+        node.toggle();
+        setExpandedParentNode(null);
+      }
+    }
+  };
+
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
+      <FloatingParentHeader
+        parentNode={expandedParentNode}
+        isVisible={!!expandedParentNode}
+        onCollapse={handleCollapseParent}
+      />
       {isRootReady && rootElement.current && (
         <Tree
           data={data.filter((node) => node?.spaceId === spaceId)}
@@ -246,7 +321,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           overscanCount={10}
           dndRootElement={rootElement.current}
           onToggle={() => {
-            setOpenTreeNodes(treeApiRef.current?.openState);
+            handleNodeToggle();
           }}
           initialOpenState={openTreeNodes}
         >
