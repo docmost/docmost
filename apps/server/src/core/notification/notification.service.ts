@@ -48,10 +48,6 @@ export class NotificationService {
     return this.notificationRepo.markAllAsRead(userId);
   }
 
-  async markAsEmailed(notificationId: string) {
-    return this.notificationRepo.markAsEmailed(notificationId);
-  }
-
   async queueEmail(
     userId: string,
     notificationId: string,
@@ -72,13 +68,12 @@ export class NotificationService {
         to: user.email,
         subject,
         template,
+        notificationId,
       });
-
-      await this.markAsEmailed(notificationId);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.logger.error(
-        `Failed to send email for notification ${notificationId}: ${message}`,
+        `Failed to queue email for notification ${notificationId}: ${message}`,
       );
     }
   }

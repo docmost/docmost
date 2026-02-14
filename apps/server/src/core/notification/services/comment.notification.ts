@@ -9,11 +9,10 @@ import { NotificationService } from '../notification.service';
 import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CommentMentionEmail } from '@docmost/transactional/emails/comment-mention-email';
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 import { CommentResolvedEmail } from '@docmost/transactional/emails/comment-resolved-email';
-import { getPageTitle } from '../../../common/helpers/constants';
+import { getPageTitle } from '../../../common/helpers';
 
 @Injectable()
 export class CommentNotificationService {
@@ -24,10 +23,9 @@ export class CommentNotificationService {
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly watcherRepo: WatcherRepo,
-    private readonly environmentService: EnvironmentService,
   ) {}
 
-  async process(data: ICommentNotificationJob) {
+  async process(data: ICommentNotificationJob, appUrl: string) {
     const {
       commentId,
       parentCommentId,
@@ -39,7 +37,13 @@ export class CommentNotificationService {
       notifyWatchers,
     } = data;
 
-    const context = await this.getCommentContext(actorId, pageId, spaceId, commentId);
+    const context = await this.getCommentContext(
+      actorId,
+      pageId,
+      spaceId,
+      commentId,
+      appUrl,
+    );
     if (!context) return;
 
     const { actor, pageTitle, pageUrl } = context;
@@ -52,11 +56,14 @@ export class CommentNotificationService {
         ? await this.watcherRepo.getPageWatcherIds(pageId)
         : [];
 
-    const allCandidateIds = [...new Set([...mentionedUserIds, ...recipientIds])];
-    const usersWithAccess = await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
-      allCandidateIds,
-      spaceId,
-    );
+    const allCandidateIds = [
+      ...new Set([...mentionedUserIds, ...recipientIds]),
+    ];
+    const usersWithAccess =
+      await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+        allCandidateIds,
+        spaceId,
+      );
 
     for (const userId of mentionedUserIds) {
       if (!usersWithAccess.has(userId)) continue;
@@ -104,12 +111,25 @@ export class CommentNotificationService {
     }
   }
 
-  async processResolved(data: ICommentResolvedNotificationJob) {
-    const { commentId, commentCreatorId, pageId, spaceId, workspaceId, actorId } = data;
+  async processResolved(data: ICommentResolvedNotificationJob, appUrl: string) {
+    const {
+      commentId,
+      commentCreatorId,
+      pageId,
+      spaceId,
+      workspaceId,
+      actorId,
+    } = data;
 
     if (commentCreatorId === actorId) return;
 
-    const context = await this.getCommentContext(actorId, pageId, spaceId, commentId);
+    const context = await this.getCommentContext(
+      actorId,
+      pageId,
+      spaceId,
+      commentId,
+      appUrl,
+    );
     if (!context) return;
 
     const { actor, pageTitle, pageUrl } = context;
@@ -146,7 +166,9 @@ export class CommentNotificationService {
     );
   }
 
-  private async getThreadParticipantIds(parentCommentId: string): Promise<string[]> {
+  private async getThreadParticipantIds(
+    parentCommentId: string,
+  ): Promise<string[]> {
     const participants = await this.db
       .selectFrom('comments')
       .select('creatorId')
@@ -166,6 +188,7 @@ export class CommentNotificationService {
     pageId: string,
     spaceId: string,
     commentId: string,
+    appUrl: string,
   ) {
     const [actor, page, space] = await Promise.all([
       this.db
@@ -192,9 +215,8 @@ export class CommentNotificationService {
       return null;
     }
 
-    const pageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
+    const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
 
     return { actor, pageTitle: getPageTitle(page.title), pageUrl };
   }
-
 }

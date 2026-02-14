@@ -5,7 +5,6 @@ import { IPageMentionNotificationJob } from '../../../integrations/queue/constan
 import { NotificationService } from '../notification.service';
 import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
 import { getPageTitle } from '../../../common/helpers';
 
@@ -17,10 +16,9 @@ export class PageNotificationService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
-    private readonly environmentService: EnvironmentService,
   ) {}
 
-  async processPageMention(data: IPageMentionNotificationJob) {
+  async processPageMention(data: IPageMentionNotificationJob, appUrl: string) {
     const { userMentions, oldMentionedUserIds, pageId, spaceId, workspaceId } =
       data;
 
@@ -60,6 +58,7 @@ export class PageNotificationService {
         pageId,
         spaceId,
         workspaceId,
+        appUrl,
       );
     }
   }
@@ -70,8 +69,9 @@ export class PageNotificationService {
     pageId: string,
     spaceId: string,
     workspaceId: string,
+    appUrl: string,
   ) {
-    const context = await this.getPageContext(actorId, pageId, spaceId);
+    const context = await this.getPageContext(actorId, pageId, spaceId, appUrl);
     if (!context) return;
 
     const { actor, pageTitle, basePageUrl } = context;
@@ -102,6 +102,7 @@ export class PageNotificationService {
     actorId: string,
     pageId: string,
     spaceId: string,
+    appUrl: string,
   ) {
     const [actor, page, space] = await Promise.all([
       this.db
@@ -128,7 +129,7 @@ export class PageNotificationService {
       return null;
     }
 
-    const basePageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}`;
+    const basePageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
 
     return { actor, pageTitle: getPageTitle(page.title), basePageUrl };
   }
