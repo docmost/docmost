@@ -78,6 +78,8 @@ export class CommentService {
       workspaceId,
     );
 
+    const isReply = !!createCommentDto.parentCommentId;
+
     await this.queueCommentNotification(
       commentContent,
       [],
@@ -86,7 +88,8 @@ export class CommentService {
       page.spaceId,
       workspaceId,
       userId,
-      true,
+      !isReply,
+      createCommentDto.parentCommentId,
     );
 
     return comment;
@@ -156,16 +159,18 @@ export class CommentService {
     workspaceId: string,
     actorId: string,
     notifyWatchers: boolean,
+    parentCommentId?: string,
   ) {
     const mentionedUserIds = extractUserMentionIdsFromJson(content);
     const newMentionIds = mentionedUserIds.filter(
       (id) => id !== actorId && !oldMentionIds.includes(id),
     );
 
-    if (newMentionIds.length === 0 && !notifyWatchers) return;
+    if (newMentionIds.length === 0 && !notifyWatchers && !parentCommentId) return;
 
     const jobData: ICommentNotificationJob = {
       commentId,
+      parentCommentId,
       pageId,
       spaceId,
       workspaceId,

@@ -20,7 +20,7 @@ export const PageMentionEmail = ({
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
           <strong>{actorName}</strong> mentioned you in{' '}
-          <strong>{pageTitle || 'Untitled'}</strong>.
+          <strong>{pageTitle}</strong>.
         </Text>
       </Section>
       <Section

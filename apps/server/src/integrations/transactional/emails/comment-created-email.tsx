@@ -20,7 +20,7 @@ export const CommentCreateEmail = ({
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
           <strong>{actorName}</strong> commented on{' '}
-          <strong>{pageTitle || 'Untitled'}</strong>.
+          <strong>{pageTitle}</strong>.
         </Text>
       </Section>
       <Section

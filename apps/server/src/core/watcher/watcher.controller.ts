@@ -1,4 +1,5 @@
-import {
+/***
+ import {
   Body,
   Controller,
   ForbiddenException,
@@ -13,7 +14,6 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WatcherPageDto } from './dto/watcher.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
@@ -21,6 +21,7 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
+
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -94,23 +95,5 @@ export class WatcherController {
     return { watching };
   }
 
-  @HttpCode(HttpStatus.OK)
-  @Post('watchers')
-  async getPageWatchers(
-    @Body() dto: WatcherPageDto,
-    @Body() pagination: PaginationOptions,
-    @AuthUser() user: User,
-  ) {
-    const page = await this.pageRepo.findById(dto.pageId);
-    if (!page) {
-      throw new NotFoundException('Page not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
-
-    return this.watcherService.getPageWatchers(page.id, pagination);
-  }
 }
+***/

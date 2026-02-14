@@ -28,6 +28,7 @@ export interface INotificationCreateJob {
 
 export interface ICommentNotificationJob {
   commentId: string;
+  parentCommentId?: string;
   pageId: string;
   spaceId: string;
   workspaceId: string;

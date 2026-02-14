@@ -13,6 +13,7 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 import { CommentMentionEmail } from '@docmost/transactional/emails/comment-mention-email';
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 import { CommentResolvedEmail } from '@docmost/transactional/emails/comment-resolved-email';
+import { getPageTitle } from '../../../common/helpers/constants';
 
 @Injectable()
 export class CommentNotificationService {
@@ -29,6 +30,7 @@ export class CommentNotificationService {
   async process(data: ICommentNotificationJob) {
     const {
       commentId,
+      parentCommentId,
       pageId,
       spaceId,
       workspaceId,
@@ -44,18 +46,20 @@ export class CommentNotificationService {
     const notifiedUserIds = new Set<string>();
     notifiedUserIds.add(actorId);
 
-    for (const userId of mentionedUserIds) {
-      const roles = await this.spaceMemberRepo.getUserSpaceRoles(
-        userId,
-        spaceId,
-      );
+    const recipientIds = parentCommentId
+      ? await this.getThreadParticipantIds(parentCommentId)
+      : notifyWatchers
+        ? await this.watcherRepo.getPageWatcherIds(pageId)
+        : [];
 
-      if (!roles) {
-        this.logger.debug(
-          `Skipping mention notification for user ${userId}: no access to space ${spaceId}`,
-        );
-        continue;
-      }
+    const allCandidateIds = [...new Set([...mentionedUserIds, ...recipientIds])];
+    const usersWithAccess = await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+      allCandidateIds,
+      spaceId,
+    );
+
+    for (const userId of mentionedUserIds) {
+      if (!usersWithAccess.has(userId)) continue;
 
       const notification = await this.notificationService.create({
         userId,
@@ -77,15 +81,12 @@ export class CommentNotificationService {
       notifiedUserIds.add(userId);
     }
 
-    if (!notifyWatchers) return;
-
-    const watcherIds = await this.watcherRepo.getPageWatcherIds(pageId);
-
-    for (const watcherId of watcherIds) {
-      if (notifiedUserIds.has(watcherId)) continue;
+    for (const recipientId of recipientIds) {
+      if (notifiedUserIds.has(recipientId)) continue;
+      if (!usersWithAccess.has(recipientId)) continue;
 
       const notification = await this.notificationService.create({
-        userId: watcherId,
+        userId: recipientId,
         workspaceId,
         type: NotificationType.COMMENT_CREATED,
         actorId,
@@ -95,7 +96,7 @@ export class CommentNotificationService {
       });
 
       await this.notificationService.queueEmail(
-        watcherId,
+        recipientId,
         notification.id,
         `${actor.name} commented on ${pageTitle}`,
         CommentCreateEmail({ actorName: actor.name, pageTitle, pageUrl }),
@@ -145,6 +146,21 @@ export class CommentNotificationService {
     );
   }
 
+  private async getThreadParticipantIds(parentCommentId: string): Promise<string[]> {
+    const participants = await this.db
+      .selectFrom('comments')
+      .select('creatorId')
+      .where((eb) =>
+        eb.or([
+          eb('id', '=', parentCommentId),
+          eb('parentCommentId', '=', parentCommentId),
+        ]),
+      )
+      .execute();
+
+    return [...new Set(participants.map((p) => p.creatorId))];
+  }
+
   private async getCommentContext(
     actorId: string,
     pageId: string,
@@ -178,7 +194,7 @@ export class CommentNotificationService {
 
     const pageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
 
-    return { actor, pageTitle: page.title || 'Untitled', pageUrl };
+    return { actor, pageTitle: getPageTitle(page.title), pageUrl };
   }
 
 }

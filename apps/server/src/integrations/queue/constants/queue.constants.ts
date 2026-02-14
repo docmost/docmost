@@ -12,7 +12,6 @@ export enum QueueName {
 
 export enum QueueJob {
   SEND_EMAIL = 'send-email',
-  NOTIFICATION_CREATE = 'notification-create',
   DELETE_SPACE_ATTACHMENTS = 'delete-space-attachments',
   ATTACHMENT_INDEX_CONTENT = 'attachment-index-content',
   ATTACHMENT_INDEXING = 'attachment-indexing',

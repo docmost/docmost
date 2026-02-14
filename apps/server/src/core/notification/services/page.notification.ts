@@ -7,6 +7,7 @@ import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
+import { getPageTitle } from '../../../common/helpers';
 
 @Injectable()
 export class PageNotificationService {
@@ -29,8 +30,17 @@ export class PageNotificationService {
 
     if (newMentions.length === 0) return;
 
+    const candidateUserIds = newMentions.map((m) => m.userId);
+    const usersWithAccess = await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+      candidateUserIds,
+      spaceId,
+    );
+
+    const accessibleMentions = newMentions.filter((m) => usersWithAccess.has(m.userId));
+    if (accessibleMentions.length === 0) return;
+
     const mentionsByCreator = new Map<string, { userId: string; mentionId: string }[]>();
-    for (const m of newMentions) {
+    for (const m of accessibleMentions) {
       const list = mentionsByCreator.get(m.creatorId) || [];
       list.push({ userId: m.userId, mentionId: m.mentionId });
       mentionsByCreator.set(m.creatorId, list);
@@ -54,18 +64,6 @@ export class PageNotificationService {
     const { actor, pageTitle, basePageUrl } = context;
 
     for (const { userId, mentionId } of mentions) {
-      const roles = await this.spaceMemberRepo.getUserSpaceRoles(
-        userId,
-        spaceId,
-      );
-
-      if (!roles) {
-        this.logger.debug(
-          `Skipping page mention notification for user ${userId}: no access to space ${spaceId}`,
-        );
-        continue;
-      }
-
       const notification = await this.notificationService.create({
         userId,
         workspaceId,
@@ -119,7 +117,7 @@ export class PageNotificationService {
 
     const basePageUrl = `${this.environmentService.getAppUrl()}/s/${space.slug}/p/${page.slugId}`;
 
-    return { actor, pageTitle: page.title || 'Untitled', basePageUrl };
+    return { actor, pageTitle: getPageTitle(page.title), basePageUrl };
   }
 
 }

@@ -18,6 +18,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { generateSlugId } from '../../../common/helpers';
+import { getPageTitle } from '../../../common/helpers/constants';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
@@ -452,7 +453,7 @@ export class PageService {
         // Add "Copy of " prefix to the root page title only for duplicates in same space
         let title = page.title;
         if (isDuplicateInSameSpace && page.id === rootPage.id) {
-          const originalTitle = page.title || 'Untitled';
+          const originalTitle = getPageTitle(page.title);
           title = `Copy of ${originalTitle}`;
         }
 

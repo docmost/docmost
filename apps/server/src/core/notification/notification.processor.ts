@@ -39,33 +39,6 @@ export class NotificationProcessor
   ): Promise<void> {
     try {
       switch (job.name) {
-        case QueueJob.NOTIFICATION_CREATE: {
-          const {
-            userId,
-            workspaceId,
-            type,
-            actorId,
-            pageId,
-            spaceId,
-            commentId,
-            data,
-          } = job.data as INotificationCreateJob;
-
-          await this.notificationService.create({
-            userId,
-            workspaceId,
-            type,
-            actorId,
-            pageId,
-            spaceId,
-            commentId,
-            data: data as JsonValue,
-          });
-
-          this.logger.debug(`Created notification for user ${userId}: ${type}`);
-          break;
-        }
-
         case QueueJob.COMMENT_NOTIFICATION: {
           await this.commentNotificationService.process(
             job.data as ICommentNotificationJob,
