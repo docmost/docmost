@@ -175,27 +175,19 @@ export class PersistenceExtension implements Extension {
 
       const userMentions = extractUserMentions(mentions);
       const oldMentions = page.content ? extractMentions(page.content) : [];
-      const oldUserMentionIds = new Set(
-        extractUserMentions(oldMentions).map((m) => m.entityId),
-      );
-      const newMentions = userMentions.filter(
-        (m) => !oldUserMentionIds.has(m.entityId) && m.creatorId !== m.entityId,
-      );
+      const oldMentionedUserIds = extractUserMentions(oldMentions).map((m) => m.entityId);
 
-      const mentionsByCreator = new Map<string, { userId: string; mentionId: string }[]>();
-      for (const m of newMentions) {
-        const list = mentionsByCreator.get(m.creatorId) || [];
-        list.push({ userId: m.entityId, mentionId: m.id });
-        mentionsByCreator.set(m.creatorId, list);
-      }
-
-      for (const [actorId, mentions] of mentionsByCreator) {
+      if (userMentions.length > 0) {
         await this.notificationQueue.add(QueueJob.PAGE_MENTION_NOTIFICATION, {
-          mentions,
+          userMentions: userMentions.map((m) => ({
+            userId: m.entityId,
+            mentionId: m.id,
+            creatorId: m.creatorId,
+          })),
+          oldMentionedUserIds,
           pageId,
           spaceId: page.spaceId,
           workspaceId: page.workspaceId,
-          actorId,
         } as IPageMentionNotificationJob);
       }
 

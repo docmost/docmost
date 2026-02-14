@@ -20,8 +20,34 @@ export class PageNotificationService {
   ) {}
 
   async processPageMention(data: IPageMentionNotificationJob) {
-    const { mentions, pageId, spaceId, workspaceId, actorId } = data;
+    const { userMentions, oldMentionedUserIds, pageId, spaceId, workspaceId } = data;
 
+    const oldIds = new Set(oldMentionedUserIds);
+    const newMentions = userMentions.filter(
+      (m) => !oldIds.has(m.userId) && m.creatorId !== m.userId,
+    );
+
+    if (newMentions.length === 0) return;
+
+    const mentionsByCreator = new Map<string, { userId: string; mentionId: string }[]>();
+    for (const m of newMentions) {
+      const list = mentionsByCreator.get(m.creatorId) || [];
+      list.push({ userId: m.userId, mentionId: m.mentionId });
+      mentionsByCreator.set(m.creatorId, list);
+    }
+
+    for (const [actorId, mentions] of mentionsByCreator) {
+      await this.notifyMentionedUsers(mentions, actorId, pageId, spaceId, workspaceId);
+    }
+  }
+
+  private async notifyMentionedUsers(
+    mentions: { userId: string; mentionId: string }[],
+    actorId: string,
+    pageId: string,
+    spaceId: string,
+    workspaceId: string,
+  ) {
     const context = await this.getPageContext(actorId, pageId, spaceId);
     if (!context) return;
 

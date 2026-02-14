@@ -46,9 +46,9 @@ export interface ICommentResolvedNotificationJob {
 }
 
 export interface IPageMentionNotificationJob {
-  mentions: { userId: string; mentionId: string }[];
+  userMentions: { userId: string; mentionId: string; creatorId: string }[];
+  oldMentionedUserIds: string[];
   pageId: string;
   spaceId: string;
   workspaceId: string;
-  actorId: string;
 }
