@@ -45,8 +45,12 @@ const mentionRenderItems = () => {
         return;
       }
 
+      const editorDom = props.editor?.view?.dom;
+      const asideEl = editorDom?.closest('.mantine-AppShell-aside');
+      const isInCommentContext = !!asideEl;
+
       component = new ReactRenderer(MentionList, {
-        props,
+        props: { ...props, isInCommentContext },
         editor: props.editor,
       });
 
@@ -58,6 +62,10 @@ const mentionRenderItems = () => {
 
       const { element } = component;
       document.body.appendChild(element);
+
+      const shiftMiddleware = isInCommentContext
+        ? shift({ boundary: asideEl, crossAxis: true, padding: 8 })
+        : shift();
 
       updatePositionCleanup = autoUpdate(
         {
@@ -76,7 +84,7 @@ const mentionRenderItems = () => {
             element,
             {
               placement: "bottom-start",
-              middleware: [offset(0), flip(), shift()],
+              middleware: [offset(4), flip(), shiftMiddleware],
             },
           ).then(({ x, y }) => {
             Object.assign(element.style, {
