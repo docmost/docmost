@@ -33,7 +33,7 @@ export const CommentResolvedEmail = ({
         }}
       >
         <Button href={pageUrl} style={button}>
-          View Comment
+          View
         </Button>
       </Section>
     </MailBody>

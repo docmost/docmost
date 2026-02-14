@@ -1,9 +1,7 @@
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { Underline } from "@tiptap/extension-underline";
-import { Link } from "@tiptap/extension-link";
 import { StarterKit } from "@tiptap/starter-kit";
-import { Mention } from "@docmost/editor-ext";
+import { Mention, LinkExtension } from "@docmost/editor-ext";
 import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
@@ -42,12 +40,12 @@ const CommentEditor = forwardRef(
         StarterKit.configure({
           gapcursor: false,
           dropcursor: false,
+          link: false,
         }),
         Placeholder.configure({
           placeholder: placeholder || t("Reply..."),
         }),
-        Underline,
-        Link,
+        LinkExtension,
         EmojiCommand,
         Mention.configure({
           suggestion: {
@@ -128,7 +126,11 @@ const CommentEditor = forwardRef(
     }));
 
     return (
-      <div ref={focusRef} className={classes.commentEditor} data-editable={editable || undefined}>
+      <div
+        ref={focusRef}
+        className={classes.commentEditor}
+        data-editable={editable || undefined}
+      >
         <EditorContent
           editor={commentEditor}
           className={clsx(classes.ProseMirror, { [classes.focused]: focused })}

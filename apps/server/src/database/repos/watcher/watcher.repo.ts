@@ -151,10 +151,14 @@ export class WatcherRepo {
   async deleteByUsersWithoutSpaceAccess(
     userIds: string[],
     spaceId: string,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<void> {
     if (userIds.length === 0) return;
 
-    const usersWithAccess = this.db
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    const usersWithAccess = db
       .selectFrom('spaceMembers')
       .select('userId')
       .where('spaceId', '=', spaceId)
@@ -162,11 +166,7 @@ export class WatcherRepo {
       .union(
         this.db
           .selectFrom('spaceMembers')
-          .innerJoin(
-            'groupUsers',
-            'groupUsers.groupId',
-            'spaceMembers.groupId',
-          )
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
           .select('groupUsers.userId')
           .where('spaceMembers.spaceId', '=', spaceId),
       );
@@ -182,8 +182,10 @@ export class WatcherRepo {
   async deleteByUserAndWorkspace(
     userId: string,
     workspaceId: string,
-    trx?: KyselyTransaction,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<void> {
+    const { trx } = opts;
+
     const db = dbOrTx(this.db, trx);
     await db
       .deleteFrom('watchers')

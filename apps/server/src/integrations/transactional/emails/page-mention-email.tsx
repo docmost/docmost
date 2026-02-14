@@ -9,11 +9,7 @@ interface Props {
   pageUrl: string;
 }
 
-export const PageMentionEmail = ({
-  actorName,
-  pageTitle,
-  pageUrl,
-}: Props) => {
+export const PageMentionEmail = ({ actorName, pageTitle, pageUrl }: Props) => {
   return (
     <MailBody>
       <Section style={content}>
@@ -33,7 +29,7 @@ export const PageMentionEmail = ({
         }}
       >
         <Button href={pageUrl} style={button}>
-          View Page
+          View
         </Button>
       </Section>
     </MailBody>

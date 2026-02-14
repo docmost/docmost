@@ -12,7 +12,8 @@ import { InjectKysely } from 'nestjs-kysely';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
-import { WatcherService } from '../../watcher/watcher.service';
+import { executeTx } from '@docmost/db/utils';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 
 @Injectable()
 export class GroupUserService {
@@ -22,7 +23,7 @@ export class GroupUserService {
     private userRepo: UserRepo,
     @Inject(forwardRef(() => GroupService))
     private groupService: GroupService,
-    private readonly watcherService: WatcherService,
+    private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -106,10 +107,16 @@ export class GroupUserService {
 
     const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
 
-    await this.groupUserRepo.delete(userId, groupId);
+    // TODO: use queue instead
+    await executeTx(this.db, async (trx) => {
+      await this.groupUserRepo.delete(userId, groupId, { trx });
 
-    for (const spaceId of spaceIds) {
-      await this.watcherService.cleanupOnSpaceAccessChange([userId], spaceId);
-    }
+      for (const spaceId of spaceIds) {
+        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          [userId],
+          spaceId,
+        );
+      }
+    });
   }
 }

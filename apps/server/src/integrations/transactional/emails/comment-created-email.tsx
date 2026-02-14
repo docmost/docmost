@@ -33,7 +33,7 @@ export const CommentCreateEmail = ({
         }}
       >
         <Button href={pageUrl} style={button}>
-          View Comment
+          View
         </Button>
       </Section>
     </MailBody>

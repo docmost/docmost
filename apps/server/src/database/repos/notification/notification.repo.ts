@@ -10,10 +10,14 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class NotificationRepo {
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+  ) {}
 
   async findById(notificationId: string): Promise<Notification | undefined> {
     return this.db
@@ -30,7 +34,13 @@ export class NotificationRepo {
       .select((eb) => this.withActor(eb))
       .select((eb) => this.withPage(eb))
       .select((eb) => this.withSpace(eb))
-      .where('userId', '=', userId);
+      .where('userId', '=', userId)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+        ]),
+      );
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,
@@ -47,6 +57,12 @@ export class NotificationRepo {
       .select((eb) => eb.fn.count('id').as('count'))
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+        ]),
+      )
       .executeTakeFirst();
 
     return Number(result?.count ?? 0);
@@ -67,6 +83,12 @@ export class NotificationRepo {
       .where('id', '=', notificationId)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+        ]),
+      )
       .execute();
   }
 
@@ -83,6 +105,12 @@ export class NotificationRepo {
       .where('id', 'in', notificationIds)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+        ]),
+      )
       .execute();
   }
 
@@ -101,6 +129,12 @@ export class NotificationRepo {
       .set({ readAt: new Date() })
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+        ]),
+      )
       .execute();
   }
 

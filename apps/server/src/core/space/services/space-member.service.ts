@@ -15,7 +15,8 @@ import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { WatcherService } from '../../watcher/watcher.service';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { executeTx } from '@docmost/db/utils';
 
 @Injectable()
 export class SpaceMemberService {
@@ -23,7 +24,7 @@ export class SpaceMemberService {
     private spaceMemberRepo: SpaceMemberRepo,
     private groupUserRepo: GroupUserRepo,
     private spaceRepo: SpaceRepo,
-    private readonly watcherService: WatcherService,
+    private watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -216,15 +217,19 @@ export class SpaceMemberService {
       );
     }
 
-    await this.spaceMemberRepo.removeSpaceMemberById(
-      spaceMember.id,
-      dto.spaceId,
-    );
+    await executeTx(this.db, async (trx) => {
+      await this.spaceMemberRepo.removeSpaceMemberById(
+        spaceMember.id,
+        dto.spaceId,
+        { trx },
+      );
 
-    await this.watcherService.cleanupOnSpaceAccessChange(
-      affectedUserIds,
-      dto.spaceId,
-    );
+      await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+        affectedUserIds,
+        dto.spaceId,
+        { trx },
+      );
+    });
   }
 
   async updateSpaceMemberRole(

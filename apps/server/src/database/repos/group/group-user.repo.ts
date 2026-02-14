@@ -56,7 +56,11 @@ export class GroupUserRepo {
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb(sql`f_unaccent(users.name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`),
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ),
       );
     }
 
@@ -157,8 +161,15 @@ export class GroupUserRepo {
     return rows.map((r) => r.userId);
   }
 
-  async delete(userId: string, groupId: string): Promise<void> {
-    await this.db
+  async delete(
+    userId: string,
+    groupId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    await db
       .deleteFrom('groupUsers')
       .where('userId', '=', userId)
       .where('groupId', '=', groupId)

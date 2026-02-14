@@ -25,7 +25,7 @@ export class CommentNotificationService {
     private readonly watcherRepo: WatcherRepo,
   ) {}
 
-  async process(data: ICommentNotificationJob, appUrl: string) {
+  async processComment(data: ICommentNotificationJob, appUrl: string) {
     const {
       commentId,
       parentCommentId,
@@ -212,7 +212,7 @@ export class CommentNotificationService {
       return null;
     }
 
-    const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}?commentId=${commentId}`;
+    const pageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
 
     return { actor, pageTitle: getPageTitle(page.title), pageUrl };
   }

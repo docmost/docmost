@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { IPageMentionNotificationJob } from '../../../integrations/queue/constants/queue.interface';
@@ -10,8 +10,6 @@ import { getPageTitle } from '../../../common/helpers';
 
 @Injectable()
 export class PageNotificationService {
-  private readonly logger = new Logger(PageNotificationService.name);
-
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
@@ -84,9 +82,10 @@ export class PageNotificationService {
         actorId,
         pageId,
         spaceId,
+        data: { mentionId },
       });
 
-      const pageUrl = `${basePageUrl}?mentionId=${mentionId}`;
+      const pageUrl = `${basePageUrl}`;
       const subject = `${actor.name} mentioned you in ${pageTitle}`;
 
       await this.notificationService.queueEmail(

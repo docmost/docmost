@@ -43,7 +43,7 @@ export class NotificationProcessor
 
       switch (job.name) {
         case QueueJob.COMMENT_NOTIFICATION: {
-          await this.commentNotificationService.process(
+          await this.commentNotificationService.processComment(
             job.data as ICommentNotificationJob,
             appUrl,
           );

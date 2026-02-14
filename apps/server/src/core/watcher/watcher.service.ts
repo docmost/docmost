@@ -76,15 +76,12 @@ export class WatcherService {
   async cleanupOnSpaceAccessChange(
     userIds: string[],
     spaceId: string,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<void> {
-    await this.watcherRepo.deleteByUsersWithoutSpaceAccess(userIds, spaceId);
+    const { trx } = opts;
+    await this.watcherRepo.deleteByUsersWithoutSpaceAccess(userIds, spaceId, {
+      trx,
+    });
   }
 
-  async cleanupOnWorkspaceRemoval(
-    userId: string,
-    workspaceId: string,
-    trx?: KyselyTransaction,
-  ): Promise<void> {
-    await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, trx);
-  }
 }

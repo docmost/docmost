@@ -50,13 +50,14 @@ export function NotificationPopover() {
         <Tooltip label={t("Notifications")} withArrow>
           <ActionIcon
             variant="subtle"
+            color="dark"
             size="sm"
             onClick={() => setOpened((o) => !o)}
           >
             <Indicator
-              size={6}
-              offset={3}
-              color="blue"
+              offset={5}
+              color="red"
+              withBorder
               disabled={unreadCount === 0}
             >
               <IconBell size={20} />
@@ -65,7 +66,10 @@ export function NotificationPopover() {
         </Tooltip>
       </Popover.Target>
 
-      <Popover.Dropdown p={0} style={{ width: "min(420px, calc(100vw - 24px))" }}>
+      <Popover.Dropdown
+        p={0}
+        style={{ width: "min(420px, calc(100vw - 24px))" }}
+      >
         <Group justify="space-between" px="md" py="sm">
           <Text fw={600} size="sm">
             {t("Notifications")}
@@ -74,7 +78,7 @@ export function NotificationPopover() {
             <Menu position="bottom-end" withArrow withinPortal={false}>
               <Menu.Target>
                 <Tooltip label={t("Filter")} withArrow>
-                  <ActionIcon variant="subtle" size="sm">
+                  <ActionIcon variant="subtle" color="dark" size="sm">
                     <IconFilter size={16} />
                   </ActionIcon>
                 </Tooltip>
@@ -103,7 +107,7 @@ export function NotificationPopover() {
             <Menu position="bottom-end" withArrow withinPortal={false}>
               <Menu.Target>
                 <Tooltip label={t("More options")} withArrow>
-                  <ActionIcon variant="subtle" size="sm">
+                  <ActionIcon variant="subtle" color="dark" size="sm">
                     <IconDots size={16} />
                   </ActionIcon>
                 </Tooltip>
@@ -121,7 +125,12 @@ export function NotificationPopover() {
           </Group>
         </Group>
 
-        <ScrollArea.Autosize mah={500} type="auto" offsetScrollbars scrollbarSize={6}>
+        <ScrollArea.Autosize
+          mah={500}
+          type="auto"
+          offsetScrollbars
+          scrollbarSize={6}
+        >
           <NotificationList
             filter={filter}
             onNavigate={() => setOpened(false)}

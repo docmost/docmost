@@ -17,8 +17,13 @@ const mentionRenderItems = () => {
   let component: ReactRenderer | null = null;
   let activeClientRect: (() => DOMRect) | null = null;
   let updatePositionCleanup: (() => void) | null = null;
+  let outsideClickHandler: ((e: MouseEvent) => void) | null = null;
 
   const destroy = () => {
+    if (outsideClickHandler) {
+      document.removeEventListener("pointerdown", outsideClickHandler);
+      outsideClickHandler = null;
+    }
     updatePositionCleanup?.();
     updatePositionCleanup = null;
     component?.destroy();
@@ -64,6 +69,14 @@ const mentionRenderItems = () => {
 
       const { element } = component;
       document.body.appendChild(element);
+
+      outsideClickHandler = (e: MouseEvent) => {
+        const target = e.target as Node;
+        if (element && !element.contains(target)) {
+          destroy();
+        }
+      };
+      document.addEventListener("pointerdown", outsideClickHandler);
 
       const shiftMiddleware = asideEl
         ? shift({ boundary: asideEl, crossAxis: true, padding: 8 })
