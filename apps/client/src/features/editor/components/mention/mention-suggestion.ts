@@ -46,8 +46,10 @@ const mentionRenderItems = () => {
       }
 
       const editorDom = props.editor?.view?.dom;
-      const asideEl = editorDom?.closest('.mantine-AppShell-aside');
-      const isInCommentContext = !!asideEl;
+      const asideEl = editorDom?.closest(".mantine-AppShell-aside");
+      const dialogEl = editorDom?.closest("[data-comment-dialog]");
+      const isInCommentContext = !!(asideEl || dialogEl);
+     // const isInCommentContext = !!asideEl;
 
       component = new ReactRenderer(MentionList, {
         props: { ...props, isInCommentContext },
@@ -63,7 +65,7 @@ const mentionRenderItems = () => {
       const { element } = component;
       document.body.appendChild(element);
 
-      const shiftMiddleware = isInCommentContext
+      const shiftMiddleware = asideEl
         ? shift({ boundary: asideEl, crossAxis: true, padding: 8 })
         : shift();
 
