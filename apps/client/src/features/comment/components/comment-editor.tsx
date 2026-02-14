@@ -128,7 +128,7 @@ const CommentEditor = forwardRef(
     }));
 
     return (
-      <div ref={focusRef} className={classes.commentEditor}>
+      <div ref={focusRef} className={classes.commentEditor} data-editable={editable || undefined}>
         <EditorContent
           editor={commentEditor}
           className={clsx(classes.ProseMirror, { [classes.focused]: focused })}
