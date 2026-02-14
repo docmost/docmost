@@ -22,6 +22,7 @@ import {
   searchSpotlight,
   shareSearchSpotlight,
 } from "@/features/search/constants.ts";
+import { NotificationPopover } from "@/features/notification/components/notification-popover.tsx";
 
 const links = [{ link: APP_ROUTE.HOME, label: "Home" }];
 
@@ -97,6 +98,7 @@ export function AppHeader() {
         </div>
 
         <Group px={"xl"} wrap="nowrap">
+          <NotificationPopover />
           {isCloud() && isTrial && trialDaysLeft !== 0 && (
             <Badge
               variant="light"
