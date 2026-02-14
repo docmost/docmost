@@ -79,7 +79,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       let items: MentionSuggestionItem[] = [];
 
       if (suggestion?.users?.length > 0) {
-        items.push({ entityType: "header", label: t("People") });
+        items.push({ entityType: "header", label: t("Users") });
 
         items = items.concat(
           suggestion.users.map((user) => ({
@@ -261,7 +261,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  const popupWidth = isInCommentContext ? 300 : 320;
+  const popupWidth = isInCommentContext ? 280 : 320;
 
   if (renderItems.length === 0) {
     return (
