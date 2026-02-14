@@ -21,7 +21,8 @@ export class PageNotificationService {
   ) {}
 
   async processPageMention(data: IPageMentionNotificationJob) {
-    const { userMentions, oldMentionedUserIds, pageId, spaceId, workspaceId } = data;
+    const { userMentions, oldMentionedUserIds, pageId, spaceId, workspaceId } =
+      data;
 
     const oldIds = new Set(oldMentionedUserIds);
     const newMentions = userMentions.filter(
@@ -31,15 +32,21 @@ export class PageNotificationService {
     if (newMentions.length === 0) return;
 
     const candidateUserIds = newMentions.map((m) => m.userId);
-    const usersWithAccess = await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
-      candidateUserIds,
-      spaceId,
-    );
+    const usersWithAccess =
+      await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+        candidateUserIds,
+        spaceId,
+      );
 
-    const accessibleMentions = newMentions.filter((m) => usersWithAccess.has(m.userId));
+    const accessibleMentions = newMentions.filter((m) =>
+      usersWithAccess.has(m.userId),
+    );
     if (accessibleMentions.length === 0) return;
 
-    const mentionsByCreator = new Map<string, { userId: string; mentionId: string }[]>();
+    const mentionsByCreator = new Map<
+      string,
+      { userId: string; mentionId: string }[]
+    >();
     for (const m of accessibleMentions) {
       const list = mentionsByCreator.get(m.creatorId) || [];
       list.push({ userId: m.userId, mentionId: m.mentionId });
@@ -47,7 +54,13 @@ export class PageNotificationService {
     }
 
     for (const [actorId, mentions] of mentionsByCreator) {
-      await this.notifyMentionedUsers(mentions, actorId, pageId, spaceId, workspaceId);
+      await this.notifyMentionedUsers(
+        mentions,
+        actorId,
+        pageId,
+        spaceId,
+        workspaceId,
+      );
     }
   }
 
@@ -119,5 +132,4 @@ export class PageNotificationService {
 
     return { actor, pageTitle: getPageTitle(page.title), basePageUrl };
   }
-
 }

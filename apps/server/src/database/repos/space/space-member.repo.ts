@@ -114,7 +114,11 @@ export class SpaceMemberRepo {
         'spaceMembers.createdAt',
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
-      .select(sql<number>`case when groups.id is not null then 1 else 0 end`.as('isGroup'))
+      .select(
+        sql<number>`case when groups.id is not null then 1 else 0 end`.as(
+          'isGroup',
+        ),
+      )
       .where('spaceId', '=', spaceId);
 
     if (pagination.query) {
