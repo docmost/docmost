@@ -64,6 +64,7 @@ async function bootstrap() {
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',
         '/api/sso/google',
+        '/api/sso/oidc',
         '/api/workspace/create',
         '/api/workspace/joined',
       ];

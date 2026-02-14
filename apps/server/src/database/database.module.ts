@@ -25,6 +25,8 @@ import { UserTokenRepo } from './repos/user-token/user-token.repo';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PageListener } from '@docmost/db/listeners/page.listener';
+import { AuthProviderRepo } from '@docmost/db/repos/auth-provider/auth-provider.repo';
+import { AuthAccountRepo } from '@docmost/db/repos/auth-provider/auth-account.repo';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
 import { normalizePostgresUrl } from '../common/helpers';
@@ -81,6 +83,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     BacklinkRepo,
     ShareRepo,
     PageListener,
+    AuthProviderRepo,
+    AuthAccountRepo,
   ],
   exports: [
     WorkspaceRepo,
@@ -96,6 +100,8 @@ import { normalizePostgresUrl } from '../common/helpers';
     UserTokenRepo,
     BacklinkRepo,
     ShareRepo,
+    AuthProviderRepo,
+    AuthAccountRepo,
   ],
 })
 export class DatabaseModule
