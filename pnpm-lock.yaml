@@ -17,6 +17,7 @@ overrides:
   dompurify: 3.3.1
   tmp: 0.2.5
   lodash-es: 4.17.23
+  markdown-it: 14.1.1
   '@tiptap/core': 3.17.1
   '@tiptap/pm': 3.17.1
   '@tiptap/starter-kit': 3.17.1
@@ -8177,8 +8178,8 @@ packages:
       '@mantine/form': '>=7.0.0'
       zod: '>=3.25.0'
 
-  markdown-it@14.1.0:
-    resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
+  markdown-it@14.1.1:
+    resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
     hasBin: true
 
   marked@13.0.3:
@@ -19226,7 +19227,7 @@ snapshots:
       '@mantine/form': 8.3.14(react@18.3.1)
       zod: 3.25.76
 
-  markdown-it@14.1.0:
+  markdown-it@14.1.1:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
@@ -20094,7 +20095,7 @@ snapshots:
   prosemirror-markdown@1.13.1:
     dependencies:
       '@types/markdown-it': 14.1.2
-      markdown-it: 14.1.0
+      markdown-it: 14.1.1
       prosemirror-model: 1.25.1
 
   prosemirror-menu@1.2.4:
