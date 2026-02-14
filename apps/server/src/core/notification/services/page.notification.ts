@@ -123,9 +123,6 @@ export class PageNotificationService {
     ]);
 
     if (!actor || !page || !space) {
-      this.logger.warn(
-        `Missing data for page notification: actor=${!!actor} page=${!!page} space=${!!space}`,
-      );
       return null;
     }
 

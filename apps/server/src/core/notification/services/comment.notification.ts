@@ -209,9 +209,6 @@ export class CommentNotificationService {
     ]);
 
     if (!actor || !page || !space) {
-      this.logger.warn(
-        `Missing data for comment notification: actor=${!!actor} page=${!!page} space=${!!space}`,
-      );
       return null;
     }
 
