@@ -374,6 +374,7 @@ export interface Notifications {
   data: Json | null;
   readAt: Timestamp | null;
   emailedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
   createdAt: Generated<Timestamp>;
 }
 

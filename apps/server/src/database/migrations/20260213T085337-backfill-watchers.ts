@@ -25,6 +25,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  // Remove all backfilled page watchers
   await sql`DELETE FROM watchers WHERE type = 'page'`.execute(db);
 }

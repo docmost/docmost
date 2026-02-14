@@ -28,6 +28,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('data', 'jsonb')
     .addColumn('read_at', 'timestamptz')
     .addColumn('emailed_at', 'timestamptz')
+    .addColumn('archived_at', 'timestamptz')
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),
     )
