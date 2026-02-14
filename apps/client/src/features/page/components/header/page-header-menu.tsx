@@ -79,8 +79,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
-          variant="default"
-          style={{ border: "none" }}
+          variant="subtle"
+          color="dark"
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
@@ -89,8 +89,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
         <ActionIcon
-          variant="default"
-          style={{ border: "none" }}
+          variant="subtle"
+          color="dark"
           onClick={() => toggleAside("toc")}
         >
           <IconList size={20} stroke={2} />
@@ -166,7 +166,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         arrowPosition="center"
       >
         <Menu.Target>
-          <ActionIcon variant="default" style={{ border: "none" }}>
+          <ActionIcon variant="subtle" color="dark">
             <IconDots size={20} />
           </ActionIcon>
         </Menu.Target>
