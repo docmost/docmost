@@ -30,10 +30,10 @@ export default function EnableGenerativeAi() {
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">{t("Generative AI")}</Text>
+        <Text size="md">{t("Generative AI (Ask AI)")}</Text>
         <Text size="sm" c="dimmed">
           {t(
-            "Enable AI-powered content generation in the editor. Allows users to use Ask AI to generate, improve, and transform text.",
+            "Enable AI-powered content generation in the editor. Allows users to generate, improve, translate and transform text.",
           )}
         </Text>
       </div>
