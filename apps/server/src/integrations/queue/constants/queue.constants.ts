@@ -20,6 +20,7 @@ export enum QueueJob {
   DELETE_USER_AVATARS = 'delete-user-avatars',
 
   PAGE_BACKLINKS = 'page-backlinks',
+  ADD_PAGE_WATCHERS = 'add-page-watchers',
 
   STRIPE_SEATS_SYNC = 'sync-stripe-seats',
   TRIAL_ENDED = 'trial-ended',

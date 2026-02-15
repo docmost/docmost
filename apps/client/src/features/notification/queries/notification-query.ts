@@ -32,7 +32,6 @@ export function useUnreadCountQuery() {
   return useQuery({
     queryKey: UNREAD_COUNT_KEY,
     queryFn: getUnreadCount,
-    refetchInterval: 60_000,
   });
 }
 

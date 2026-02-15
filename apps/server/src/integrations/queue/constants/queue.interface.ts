@@ -7,6 +7,13 @@ export interface IPageBacklinkJob {
   mentions: MentionNode[];
 }
 
+export interface IAddPageWatchersJob {
+  userIds: string[];
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+}
+
 export interface IStripeSeatsSyncJob {
   workspaceId: string;
 }

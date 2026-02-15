@@ -60,6 +60,7 @@ export class PageService {
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     private eventEmitter: EventEmitter2,
     private collaborationGateway: CollaborationGateway,
     private readonly watcherService: WatcherService,
@@ -131,12 +132,16 @@ export class PageService {
       ydoc,
     });
 
-    await this.watcherService.addPageWatchers(
-      [userId],
-      page.id,
-      createPageDto.spaceId,
-      workspaceId,
-    );
+    this.generalQueue
+      .add(QueueJob.ADD_PAGE_WATCHERS, {
+        userIds: [userId],
+        pageId: page.id,
+        spaceId: createPageDto.spaceId,
+        workspaceId,
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+      );
 
     return page;
   }
@@ -202,12 +207,16 @@ export class PageService {
       page.id,
     );
 
-    await this.watcherService.addPageWatchers(
-      [user.id],
-      page.id,
-      page.spaceId,
-      page.workspaceId,
-    );
+    this.generalQueue
+      .add(QueueJob.ADD_PAGE_WATCHERS, {
+        userIds: [user.id],
+        pageId: page.id,
+        spaceId: page.spaceId,
+        workspaceId: page.workspaceId,
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+      );
 
     if (
       updatePageDto.content &&
@@ -341,11 +350,9 @@ export class PageService {
         );
 
         // Update watchers and remove those without access to new space
-        await this.watcherService.movePageWatchersToSpace(
-          pageIds,
-          spaceId,
-          { trx },
-        );
+        await this.watcherService.movePageWatchersToSpace(pageIds, spaceId, {
+          trx,
+        });
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
           pageId: pageIds,
