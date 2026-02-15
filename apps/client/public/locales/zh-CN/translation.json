@@ -590,5 +590,21 @@
   "No answer available": "无可用答案",
   "Background color": "背景颜色",
   "Highlight color": "突出显示颜色",
-  "Remove color": "移除颜色"
+  "Remove color": "移除颜色",
+  "Notifications": "Notifications",
+  "No notifications": "No notifications",
+  "No unread notifications": "No unread notifications",
+  "All notifications": "All notifications",
+  "Unread only": "Unread only",
+  "Mark all as read": "Mark all as read",
+  "Mark as read": "Mark as read",
+  "More options": "More options",
+  "mentioned you in a comment": "mentioned you in a comment",
+  "commented on a page": "commented on a page",
+  "resolved a comment": "resolved a comment",
+  "mentioned you on a page": "mentioned you on a page",
+  "Today": "Today",
+  "Yesterday": "Yesterday",
+  "This week": "This week",
+  "Older": "Older"
 }
