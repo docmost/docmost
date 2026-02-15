@@ -9,6 +9,7 @@ import EnableGenerativeAi from "@/ee/ai/components/enable-generative-ai.tsx";
 import { Alert, Stack } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 export default function AiSettings() {
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ export default function AiSettings() {
       )}
 
       <Stack gap="md">
-        <EnableAiSearch />
+        {!isCloud() && <EnableAiSearch />}
         <EnableGenerativeAi />
       </Stack>
     </>
