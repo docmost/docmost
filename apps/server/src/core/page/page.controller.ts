@@ -36,6 +36,10 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
 import { DeletedPageDto } from './dto/deleted-page.dto';
+import {
+  jsonToHtml,
+  jsonToMarkdown,
+} from '../../collaboration/collaboration.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -64,6 +68,17 @@ export class PageController {
     }
 
     await this.pageAccessService.validateCanView(page, user);
+
+    if (dto.format && dto.format !== 'json' && page.content) {
+      const contentOutput =
+        dto.format === 'markdown'
+          ? jsonToMarkdown(page.content)
+          : jsonToHtml(page.content);
+      return {
+        ...page,
+        content: contentOutput,
+      };
+    }
 
     return page;
   }
@@ -99,7 +114,25 @@ export class PageController {
       }
     }
 
-    return this.pageService.create(user.id, workspace.id, createPageDto);
+    const page = await this.pageService.create(
+      user.id,
+      workspace.id,
+      createPageDto,
+    );
+
+    if (
+      createPageDto.format &&
+      createPageDto.format !== 'json' &&
+      page.content
+    ) {
+      const contentOutput =
+        createPageDto.format === 'markdown'
+          ? jsonToMarkdown(page.content)
+          : jsonToHtml(page.content);
+      return { ...page, content: contentOutput };
+    }
+
+    return page;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -113,7 +146,25 @@ export class PageController {
 
     await this.pageAccessService.validateCanEdit(page, user);
 
-    return this.pageService.update(page, updatePageDto, user.id);
+    const updatedPage = await this.pageService.update(
+      page,
+      updatePageDto,
+      user,
+    );
+
+    if (
+      updatePageDto.format &&
+      updatePageDto.format !== 'json' &&
+      updatedPage.content
+    ) {
+      const contentOutput =
+        updatePageDto.format === 'markdown'
+          ? jsonToMarkdown(updatedPage.content)
+          : jsonToHtml(updatedPage.content);
+      return { ...updatedPage, content: contentOutput };
+    }
+
+    return updatedPage;
   }
 
   @HttpCode(HttpStatus.OK)

@@ -15,11 +15,11 @@ export interface IAiSearchResponse {
   }>;
 }
 
-export async function askAi(
+export async function aiAnswers(
   params: IPageSearchParams,
   onChunk?: (chunk: { content?: string; sources?: any[] }) => void,
 ): Promise<IAiSearchResponse> {
-  const response = await fetch("/api/ai/ask", {
+  const response = await fetch("/api/ai/answers", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

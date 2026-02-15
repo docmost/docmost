@@ -8,6 +8,6 @@ import { TokenModule } from '../core/auth/token.module';
 @Module({
   imports: [TokenModule],
   providers: [WsGateway, WsService, WsTreeService],
-  exports: [WsService, WsTreeService],
+  exports: [WsGateway, WsService, WsTreeService],
 })
 export class WsModule {}

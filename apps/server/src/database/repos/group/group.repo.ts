@@ -152,8 +152,15 @@ export class GroupRepo {
       .as('memberCount');
   }
 
-  async delete(groupId: string, workspaceId: string): Promise<void> {
-    await this.db
+  async delete(
+    groupId: string,
+    workspaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    await db
       .deleteFrom('groups')
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)

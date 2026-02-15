@@ -9,8 +9,8 @@ import {
   FileTasks,
   Groups,
   GroupUsers,
+  Notifications,
   PageAccess,
-  PageHierarchy,
   PageHistory,
   PagePermissions,
   Pages,
@@ -20,6 +20,7 @@ import {
   UserMfa,
   Users,
   UserTokens,
+  Watchers,
   WorkspaceInvitations,
   Workspaces,
 } from '@docmost/db/types/db';
@@ -35,8 +36,8 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  notifications: Notifications;
   pageAccess: PageAccess;
-  pageHierarchy: PageHierarchy;
   pageEmbeddings: PageEmbeddings;
   pageHistory: PageHistory;
   pagePermissions: PagePermissions;
@@ -47,6 +48,7 @@ export interface DbInterface {
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
+  watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
   apiKeys: ApiKeys;

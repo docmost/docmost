@@ -197,12 +197,6 @@ export interface GroupUsers {
   userId: string;
 }
 
-export interface PageHierarchy {
-  ancestorId: string;
-  descendantId: string;
-  depth: Generated<number>;
-}
-
 export interface PageHistory {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
@@ -368,6 +362,34 @@ export interface Workspaces {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface Notifications {
+  id: Generated<string>;
+  userId: string;
+  workspaceId: string;
+  type: string;
+  actorId: string | null;
+  pageId: string | null;
+  spaceId: string | null;
+  commentId: string | null;
+  data: Json | null;
+  readAt: Timestamp | null;
+  emailedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface Watchers {
+  id: Generated<string>;
+  userId: string;
+  pageId: string | null;
+  spaceId: string;
+  workspaceId: string;
+  type: string;
+  addedById: string | null;
+  mutedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface PageAccess {
   id: Generated<string>;
   pageId: string;
@@ -400,6 +422,7 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  notifications: Notifications;
   pageAccess: PageAccess;
   pageHierarchy: PageHierarchy;
   pageHistory: PageHistory;
@@ -411,6 +434,7 @@ export interface DB {
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
+  watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
 }

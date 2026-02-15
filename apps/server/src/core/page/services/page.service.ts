@@ -4,8 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreatePageDto } from '../dto/create-page.dto';
-import { UpdatePageDto } from '../dto/update-page.dto';
+import { CreatePageDto, ContentFormat } from '../dto/create-page.dto';
+import { ContentOperation, UpdatePageDto } from '../dto/update-page.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { InsertablePage, Page, User } from '@docmost/db/types/entity.types';
@@ -19,6 +19,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { generateSlugId } from '../../../common/helpers';
+import { getPageTitle } from '../../../common/helpers';
 import { executeTx } from '@docmost/db/utils';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { v7 as uuid7 } from 'uuid';
@@ -29,7 +30,11 @@ import {
   isAttachmentNode,
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
-import { jsonToNode, jsonToText } from 'src/collaboration/collaboration.util';
+import {
+  htmlToJson,
+  jsonToNode,
+  jsonToText,
+} from 'src/collaboration/collaboration.util';
 import {
   CopyPageMapEntry,
   ICopyPageAttachment,
@@ -41,6 +46,9 @@ import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import { markdownToHtml } from '@docmost/editor-ext';
+import { WatcherService } from '../../watcher/watcher.service';
 
 @Injectable()
 export class PageService {
@@ -54,7 +62,10 @@ export class PageService {
     private readonly storageService: StorageService,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
+    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     private eventEmitter: EventEmitter2,
+    private collaborationGateway: CollaborationGateway,
+    private readonly watcherService: WatcherService,
   ) {}
 
   async findById(
@@ -94,7 +105,22 @@ export class PageService {
       parentPageId = parentPage.id;
     }
 
-    const createdPage = await this.pageRepo.insertPage({
+    let content = undefined;
+    let textContent = undefined;
+    let ydoc = undefined;
+
+    if (createPageDto?.content && createPageDto?.format) {
+      const prosemirrorJson = await this.parseProsemirrorContent(
+        createPageDto.content,
+        createPageDto.format,
+      );
+
+      content = prosemirrorJson;
+      textContent = jsonToText(prosemirrorJson);
+      ydoc = createYdocFromJson(prosemirrorJson);
+    }
+
+    const page = await this.pageRepo.insertPage({
       slugId: generateSlugId(),
       title: createPageDto.title,
       position: await this.nextPagePosition(
@@ -107,9 +133,23 @@ export class PageService {
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
+      content,
+      textContent,
+      ydoc,
     });
 
-    return createdPage;
+    this.generalQueue
+      .add(QueueJob.ADD_PAGE_WATCHERS, {
+        userIds: [userId],
+        pageId: page.id,
+        spaceId: createPageDto.spaceId,
+        workspaceId,
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+      );
+
+    return page;
   }
 
   async nextPagePosition(spaceId: string, parentPageId?: string) {
@@ -156,30 +196,72 @@ export class PageService {
   async update(
     page: Page,
     updatePageDto: UpdatePageDto,
-    userId: string,
+    user: User,
   ): Promise<Page> {
     const contributors = new Set<string>(page.contributorIds);
-    contributors.add(userId);
+    contributors.add(user.id);
     const contributorIds = Array.from(contributors);
 
     await this.pageRepo.updatePage(
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
-        lastUpdatedById: userId,
+        lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
       },
       page.id,
     );
 
-    return this.pageRepo.findById(page.id, {
+    this.generalQueue
+      .add(QueueJob.ADD_PAGE_WATCHERS, {
+        userIds: [user.id],
+        pageId: page.id,
+        spaceId: page.spaceId,
+        workspaceId: page.workspaceId,
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+      );
+
+    if (
+      updatePageDto.content &&
+      updatePageDto.operation &&
+      updatePageDto.format
+    ) {
+      await this.updatePageContent(
+        page.id,
+        updatePageDto.content,
+        updatePageDto.operation,
+        updatePageDto.format,
+        user,
+      );
+    }
+
+    return await this.pageRepo.findById(page.id, {
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
       includeLastUpdatedBy: true,
       includeContributors: true,
     });
+  }
+
+  async updatePageContent(
+    pageId: string,
+    content: string | object,
+    operation: ContentOperation,
+    format: ContentFormat,
+    user: User,
+  ): Promise<void> {
+    const prosemirrorJson = await this.parseProsemirrorContent(content, format);
+
+    const documentName = `page.${pageId}`;
+    await this.collaborationGateway.handleYjsEvent(
+      'updatePageContent',
+      documentName,
+      { operation, prosemirrorJson, user },
+    );
   }
 
   async getSidebarPages(
@@ -368,6 +450,11 @@ export class PageService {
           trx,
         );
 
+        // Update watchers and remove those without access to new space
+        await this.watcherService.movePageWatchersToSpace(pageIdsToMove, spaceId, {
+          trx,
+        });
+
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
           pageId: pageIdsToMove,
           workspaceId: rootPage.workspaceId,
@@ -489,7 +576,7 @@ export class PageService {
         // Add "Copy of " prefix to the root page title only for duplicates in same space
         let title = page.title;
         if (isDuplicateInSameSpace && page.id === rootPage.id) {
-          const originalTitle = page.title || 'Untitled';
+          const originalTitle = getPageTitle(page.title);
           title = `Copy of ${originalTitle}`;
         }
 
@@ -818,6 +905,38 @@ export class PageService {
     workspaceId: string,
   ): Promise<void> {
     await this.pageRepo.removePage(pageId, userId, workspaceId);
+  }
+
+  private async parseProsemirrorContent(
+    content: string | object,
+    format: ContentFormat,
+  ): Promise<any> {
+    let prosemirrorJson: any;
+
+    switch (format) {
+      case 'markdown': {
+        const html = await markdownToHtml(content as string);
+        prosemirrorJson = htmlToJson(html as string);
+        break;
+      }
+      case 'html': {
+        prosemirrorJson = htmlToJson(content as string);
+        break;
+      }
+      case 'json':
+      default: {
+        prosemirrorJson = content;
+        break;
+      }
+    }
+
+    try {
+      jsonToNode(prosemirrorJson);
+    } catch (err) {
+      throw new BadRequestException('Invalid content format');
+    }
+
+    return prosemirrorJson;
   }
 
   /**

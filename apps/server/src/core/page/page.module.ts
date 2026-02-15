@@ -6,6 +6,8 @@ import { TrashCleanupService } from './services/trash-cleanup.service';
 import { PagePermissionService } from './services/page-permission.service';
 import { PagePermissionController } from './page-permission.controller';
 import { StorageModule } from '../../integrations/storage/storage.module';
+import { CollaborationModule } from '../../collaboration/collaboration.module';
+import { WatcherModule } from '../watcher/watcher.module';
 
 @Module({
   controllers: [PageController, PagePermissionController],
@@ -16,6 +18,6 @@ import { StorageModule } from '../../integrations/storage/storage.module';
     PagePermissionService,
   ],
   exports: [PageService, PageHistoryService, PagePermissionService],
-  imports: [StorageModule],
+  imports: [StorageModule, CollaborationModule, WatcherModule],
 })
 export class PageModule {}

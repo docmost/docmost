@@ -1,24 +1,24 @@
 import { Helmet } from "react-helmet-async";
-import { getAppName, isCloud } from "@/lib/config.ts";
+import { getAppName } from "@/lib/config.ts";
 import SettingsTitle from "@/components/settings/settings-title.tsx";
 import React from "react";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
-import useLicense from "@/ee/hooks/use-license.tsx";
 import EnableAiSearch from "@/ee/ai/components/enable-ai-search.tsx";
-import { Alert } from "@mantine/core";
+import EnableGenerativeAi from "@/ee/ai/components/enable-generative-ai.tsx";
+import { Alert, Stack } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { isCloud } from "@/lib/config.ts";
 
 export default function AiSettings() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const { hasLicenseKey } = useLicense();
+  const hasAccess = useIsCloudEE();
 
   if (!isAdmin) {
     return null;
   }
-
-  const hasAccess = isCloud() || (!isCloud() && hasLicenseKey);
 
   return (
     <>
@@ -40,7 +40,10 @@ export default function AiSettings() {
         </Alert>
       )}
 
-      <EnableAiSearch />
+      <Stack gap="md">
+        {!isCloud() && <EnableAiSearch />}
+        <EnableGenerativeAi />
+      </Stack>
     </>
   );
 }

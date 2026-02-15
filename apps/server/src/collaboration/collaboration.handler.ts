@@ -1,5 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Hocuspocus, Document } from '@hocuspocus/server';
+import { TiptapTransformer } from '@hocuspocus/transformer';
+import {
+  prosemirrorNodeToYElement,
+  tiptapExtensions,
+} from './collaboration.util';
+import * as Y from 'yjs';
+import { User } from '@docmost/db/types/entity.types';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
@@ -19,6 +26,44 @@ export class CollaborationHandler {
         // await this.withYdocConnection(hocuspocus, documentName, {}, (doc) => {
         //   const fragment = doc.getXmlFragment('default');
         //});
+      },
+      updatePageContent: async (
+        documentName: string,
+        payload: {
+          prosemirrorJson: any;
+          operation: string;
+          user: User;
+        },
+      ) => {
+        const { prosemirrorJson, operation, user } = payload;
+        this.logger.debug('Updating page content via yjs', documentName);
+        await this.withYdocConnection(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            const fragment = doc.getXmlFragment('default');
+
+            if (operation === 'replace') {
+              if (fragment.length > 0) {
+                fragment.delete(0, fragment.length);
+              }
+
+              const newDoc = TiptapTransformer.toYdoc(
+                prosemirrorJson,
+                'default',
+                tiptapExtensions,
+              );
+              Y.applyUpdate(doc, Y.encodeStateAsUpdate(newDoc));
+            } else {
+              const newContent = prosemirrorJson.content || [];
+              const yElements = newContent.map(prosemirrorNodeToYElement);
+              const position =
+                operation === 'prepend' ? 0 : fragment.length;
+              fragment.insert(position, yElements);
+            }
+          },
+        );
       },
     };
   }

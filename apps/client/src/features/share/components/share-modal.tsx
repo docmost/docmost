@@ -45,8 +45,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
   const { isTrial } = useTrial();
   const [workspace] = useAtom(workspaceAtom);
   const { data: space } = useSpaceQuery(spaceSlug);
-  const workspaceDisabled =
-    workspace?.settings?.sharing?.disabled === true;
+  const workspaceDisabled = workspace?.settings?.sharing?.disabled === true;
   const spaceDisabled = space?.settings?.sharing?.disabled === true;
   const sharingDisabled = workspaceDisabled || spaceDisabled;
   const createShareMutation = useCreateShareMutation();
@@ -134,7 +133,6 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     <Popover width={350} position="bottom" withArrow shadow="md">
       <Popover.Target>
         <Button
-          style={{ border: "none" }}
           size="compact-sm"
           leftSection={
             <Indicator
@@ -146,7 +144,8 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
               <IconWorld size={20} stroke={1.5} />
             </Indicator>
           }
-          variant="default"
+          color="dark"
+          variant="subtle"
         >
           {t("Share")}
         </Button>

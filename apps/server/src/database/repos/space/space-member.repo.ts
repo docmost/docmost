@@ -73,8 +73,9 @@ export class SpaceMemberRepo {
   async removeSpaceMemberById(
     memberId: string,
     spaceId: string,
-    trx?: KyselyTransaction,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<void> {
+    const { trx } = opts;
     const db = dbOrTx(this.db, trx);
     await db
       .deleteFrom('spaceMembers')
@@ -114,7 +115,11 @@ export class SpaceMemberRepo {
         'spaceMembers.createdAt',
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
-      .select(sql<number>`case when groups.id is not null then 1 else 0 end`.as('isGroup'))
+      .select(
+        sql<number>`case when groups.id is not null then 1 else 0 end`.as(
+          'isGroup',
+        ),
+      )
       .where('spaceId', '=', spaceId);
 
     if (pagination.query) {
@@ -217,6 +222,40 @@ export class SpaceMemberRepo {
       return undefined;
     }
     return roles;
+  }
+
+  async getUserIdsWithSpaceAccess(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('userId', 'in', userIds)
+      .where('spaceId', '=', spaceId)
+      .unionAll(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('groupUsers.userId')
+          .where('groupUsers.userId', 'in', userIds)
+          .where('spaceMembers.spaceId', '=', spaceId),
+      )
+      .execute();
+
+    return new Set(rows.map((r) => r.userId));
+  }
+
+  async getSpaceIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('spaceId')
+      .where('groupId', '=', groupId)
+      .execute();
+
+    return rows.map((r) => r.spaceId);
   }
 
   getUserSpaceIdsQuery(userId: string) {
