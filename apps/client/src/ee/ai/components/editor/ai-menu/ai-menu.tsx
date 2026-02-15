@@ -145,7 +145,16 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
           chain.setTextSelection(editor.state.selection.to);
         }
 
-        chain.insertContent(marked.parse(output)).run();
+        const html = (marked.parse(output) as string).trim();
+        // Strip <p> wrapper for single-paragraph output to preserve inline context
+        const content =
+          html.startsWith("<p>") &&
+          html.endsWith("</p>") &&
+          html.lastIndexOf("<p>") === 0
+            ? html.slice(3, -4)
+            : html;
+
+        chain.insertContent(content).run();
 
         return setShowAiMenu(false);
       }
