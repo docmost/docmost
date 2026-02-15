@@ -340,6 +340,13 @@ export class PageService {
           trx,
         );
 
+        // Update watchers and remove those without access to new space
+        await this.watcherService.movePageWatchersToSpace(
+          pageIds,
+          spaceId,
+          { trx },
+        );
+
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
           pageId: pageIds,
           workspaceId: rootPage.workspaceId,

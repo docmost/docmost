@@ -179,6 +179,50 @@ export class WatcherRepo {
       .execute();
   }
 
+  async updateSpaceIdByPageIds(
+    spaceId: string,
+    pageIds: string[],
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+    await db
+      .updateTable('watchers')
+      .set({ spaceId })
+      .where('pageId', 'in', pageIds)
+      .execute();
+  }
+
+  async deleteByPageIdsWithoutSpaceAccess(
+    pageIds: string[],
+    spaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    if (pageIds.length === 0) return;
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    const usersWithAccess = db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('spaceId', '=', spaceId)
+      .where('userId', 'is not', null)
+      .union(
+        db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('groupUsers.userId')
+          .where('spaceMembers.spaceId', '=', spaceId),
+      );
+
+    await db
+      .deleteFrom('watchers')
+      .where('pageId', 'in', pageIds)
+      .where('userId', 'not in', usersWithAccess)
+      .execute();
+  }
+
   async deleteByUserAndWorkspace(
     userId: string,
     workspaceId: string,

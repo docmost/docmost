@@ -35,14 +35,17 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('idx_notifications_user_created')
+    .createIndex('idx_notifications_user_id')
     .on('notifications')
-    .columns(['user_id', 'created_at desc'])
+    .columns(['user_id', 'id desc'])
     .execute();
 
-  await sql`CREATE INDEX idx_notifications_user_unread ON notifications(user_id) WHERE read_at IS NULL`.execute(
-    db,
-  );
+  await db.schema
+    .createIndex('idx_notifications_user_unread')
+    .on('notifications')
+    .column('user_id')
+    .where(sql.ref('read_at'), 'is', null)
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

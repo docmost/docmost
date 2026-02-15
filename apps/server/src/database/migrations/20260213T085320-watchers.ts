@@ -18,7 +18,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    .addColumn('type', 'varchar(20)', (col) => col.notNull())
+    .addColumn('type', 'text', (col) => col.notNull())
     .addColumn('added_by_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -28,15 +28,21 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
-  // Unique index for page watchers (user can only watch a page once)
-  await sql`CREATE UNIQUE INDEX idx_watchers_user_page ON watchers (user_id, page_id) WHERE page_id IS NOT NULL`.execute(
-    db,
-  );
+  await db.schema
+    .createIndex('idx_watchers_user_page')
+    .on('watchers')
+    .columns(['user_id', 'page_id'])
+    .unique()
+    .where('page_id', 'is not', null)
+    .execute();
 
-  // Unique index for space watchers (user can only watch a space once)
-  await sql`CREATE UNIQUE INDEX idx_watchers_user_space ON watchers (user_id, space_id) WHERE page_id IS NULL`.execute(
-    db,
-  );
+  await db.schema
+    .createIndex('idx_watchers_user_space')
+    .on('watchers')
+    .columns(['user_id', 'space_id'])
+    .unique()
+    .where(sql.ref('page_id'), 'is', null)
+    .execute();
 
   // Query index for fetching watchers by page
   await db.schema

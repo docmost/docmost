@@ -84,4 +84,16 @@ export class WatcherService {
     });
   }
 
+  async movePageWatchersToSpace(
+    pageIds: string[],
+    spaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    await this.watcherRepo.updateSpaceIdByPageIds(spaceId, pageIds, opts);
+    await this.watcherRepo.deleteByPageIdsWithoutSpaceAccess(
+      pageIds,
+      spaceId,
+      opts,
+    );
+  }
 }
