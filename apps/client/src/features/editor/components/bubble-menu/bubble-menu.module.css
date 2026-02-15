@@ -8,6 +8,10 @@
   border-radius: 6px;
   border: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
 
   > * {
     flex-shrink: 0;
@@ -35,4 +39,15 @@
 .buttonSeparator {
   border-right: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  align-self: center;
+  margin: 0 4px;
+  background-color: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-3)
+  );
 }

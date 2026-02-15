@@ -12,7 +12,7 @@ import {
   IconListNumbers,
   IconTypography,
 } from "@tabler/icons-react";
-import { Popover, Button, ScrollArea } from "@mantine/core";
+import { Popover, Button, ScrollArea, Tooltip } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
@@ -133,16 +133,18 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
   return (
     <Popover opened={isOpen} withArrow>
       <Popover.Target>
-        <Button
-          className={classes.buttonRoot}
-          variant="default"
-          style={{ border: "none", height: "34px" }}
-          radius="0"
-          rightSection={<IconChevronDown size={16} />}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {t(activeItem?.name)}
-        </Button>
+        <Tooltip label={t("Turn into")} withArrow withinPortal={false} disabled={isOpen}>
+          <Button
+            className={classes.buttonRoot}
+            variant="default"
+            style={{ border: "none", height: "34px" }}
+            radius="0"
+            rightSection={<IconChevronDown size={16} />}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {t(activeItem?.name)}
+          </Button>
+        </Tooltip>
       </Popover.Target>
 
       <Popover.Dropdown>
