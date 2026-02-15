@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -13,17 +14,19 @@ import { Comment, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
-import { WatcherService } from '../watcher/watcher.service';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 
 @Injectable()
 export class CommentService {
+  private readonly logger = new Logger(CommentService.name);
+
   constructor(
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
-    private readonly watcherService: WatcherService,
+    @InjectQueue(QueueName.GENERAL_QUEUE)
+    private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private notificationQueue: Queue,
   ) {}
@@ -71,12 +74,16 @@ export class CommentService {
       spaceId: page.spaceId,
     });
 
-    await this.watcherService.addPageWatchers(
-      [userId],
-      page.id,
-      page.spaceId,
-      workspaceId,
-    );
+    this.generalQueue
+      .add(QueueJob.ADD_PAGE_WATCHERS, {
+        userIds: [userId],
+        pageId: page.id,
+        spaceId: page.spaceId,
+        workspaceId,
+      })
+      .catch((err) =>
+        this.logger.warn(`Failed to queue add-page-watchers: ${err.message}`),
+      );
 
     const isReply = !!createCommentDto.parentCommentId;
 
