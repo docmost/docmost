@@ -17,8 +17,13 @@ const mentionRenderItems = () => {
   let component: ReactRenderer | null = null;
   let activeClientRect: (() => DOMRect) | null = null;
   let updatePositionCleanup: (() => void) | null = null;
+  let outsideClickHandler: ((e: MouseEvent) => void) | null = null;
 
   const destroy = () => {
+    if (outsideClickHandler) {
+      document.removeEventListener("pointerdown", outsideClickHandler);
+      outsideClickHandler = null;
+    }
     updatePositionCleanup?.();
     updatePositionCleanup = null;
     component?.destroy();
@@ -45,8 +50,14 @@ const mentionRenderItems = () => {
         return;
       }
 
+      const editorDom = props.editor?.view?.dom;
+      const asideEl = editorDom?.closest(".mantine-AppShell-aside");
+      const dialogEl = editorDom?.closest("[data-comment-dialog]");
+      const isInCommentContext = !!(asideEl || dialogEl);
+     // const isInCommentContext = !!asideEl;
+
       component = new ReactRenderer(MentionList, {
-        props,
+        props: { ...props, isInCommentContext },
         editor: props.editor,
       });
 
@@ -58,6 +69,18 @@ const mentionRenderItems = () => {
 
       const { element } = component;
       document.body.appendChild(element);
+
+      outsideClickHandler = (e: MouseEvent) => {
+        const target = e.target as Node;
+        if (element && !element.contains(target)) {
+          destroy();
+        }
+      };
+      document.addEventListener("pointerdown", outsideClickHandler);
+
+      const shiftMiddleware = asideEl
+        ? shift({ boundary: asideEl, crossAxis: true, padding: 8 })
+        : shift();
 
       updatePositionCleanup = autoUpdate(
         {
@@ -76,7 +99,7 @@ const mentionRenderItems = () => {
             element,
             {
               placement: "bottom-start",
-              middleware: [offset(0), flip(), shift()],
+              middleware: [offset(4), flip(), shiftMiddleware],
             },
           ).then(({ x, y }) => {
             Object.assign(element.style, {

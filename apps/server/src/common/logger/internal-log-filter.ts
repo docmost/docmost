@@ -1,7 +1,8 @@
-import { ConsoleLogger } from '@nestjs/common';
+import { ConsoleLogger, LogLevel } from '@nestjs/common';
 
 export class InternalLogFilter extends ConsoleLogger {
   static contextsToIgnore = [
+    'NestFactory',
     'InstanceLoader',
     'RoutesResolver',
     'RouterExplorer',
@@ -11,14 +12,23 @@ export class InternalLogFilter extends ConsoleLogger {
   private allowedLogLevels: string[];
 
   constructor() {
-    super();
     const isProduction = process.env.NODE_ENV === 'production';
+    super({
+      json: isProduction,
+    });
     const isDebugMode = process.env.DEBUG_MODE === 'true';
-    
+
     if (isProduction && !isDebugMode) {
-      this.allowedLogLevels = ['log', 'error', 'fatal'];
+      this.allowedLogLevels = ['info', 'error', 'fatal'];
     } else {
-      this.allowedLogLevels = ['log', 'debug', 'verbose', 'warn', 'error', 'fatal'];
+      this.allowedLogLevels = [
+        'info',
+        'debug',
+        'verbose',
+        'warn',
+        'error',
+        'fatal',
+      ];
     }
   }
 
@@ -28,9 +38,8 @@ export class InternalLogFilter extends ConsoleLogger {
 
   log(_: any, context?: string): void {
     if (
-      this.isLogLevelAllowed('log') &&
-      (process.env.NODE_ENV !== 'production' ||
-        !InternalLogFilter.contextsToIgnore.includes(context))
+      this.isLogLevelAllowed('info') &&
+      !InternalLogFilter.contextsToIgnore.includes(context)
     ) {
       super.log.apply(this, arguments);
     }
@@ -58,5 +67,16 @@ export class InternalLogFilter extends ConsoleLogger {
     if (this.isLogLevelAllowed('verbose')) {
       super.verbose.apply(this, arguments);
     }
+  }
+
+  protected printMessages(
+    messages: unknown[],
+    context?: string,
+    logLevel?: LogLevel,
+    writeStreamType?: 'stdout' | 'stderr',
+    errorStack?: unknown,
+  ): void {
+    const level = logLevel === 'log' ? ('info' as LogLevel) : logLevel;
+    super.printMessages(messages, context, level, writeStreamType, errorStack);
   }
 }

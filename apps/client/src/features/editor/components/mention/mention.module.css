@@ -31,14 +31,14 @@
 
 .menuBtn {
   width: 100%;
-  padding: 4px;
-  margin-bottom: 2px;
+  padding: 6px 4px;
+  margin-bottom: 1px;
   color: var(--mantine-color-text);
   border-radius: var(--mantine-radius-sm);
 
   &:hover {
     @mixin light {
-      background: var(--mantine-color-gray-2);
+      background: var(--mantine-color-gray-1);
     }
 
     @mixin dark {
@@ -49,7 +49,7 @@
 
 .selectedItem {
   @mixin light {
-    background: var(--mantine-color-gray-2);
+    background: var(--mantine-color-gray-1);
   }
 
   @mixin dark {

@@ -5,4 +5,5 @@ export interface MailMessage {
   text?: string;
   html?: string;
   template?: any;
+  notificationId?: string;
 }

@@ -7,6 +7,7 @@ import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { isDeepStrictEqual } from 'node:util';
 import { CollabHistoryService } from '../services/collab-history.service';
+import { WatcherService } from '../../core/watcher/watcher.service';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -16,6 +17,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly pageHistoryRepo: PageHistoryRepo,
     private readonly pageRepo: PageRepo,
     private readonly collabHistory: CollabHistoryService,
+    private readonly watcherService: WatcherService,
   ) {
     super();
   }
@@ -49,6 +51,13 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
           await this.collabHistory.popContributors(pageId);
 
         try {
+          await this.watcherService.addPageWatchers(
+            contributorIds,
+            pageId,
+            page.spaceId,
+            page.workspaceId,
+          );
+
           await this.pageHistoryRepo.saveHistory(page, { contributorIds });
           this.logger.debug(`History created for page: ${pageId}`);
         } catch (err) {
