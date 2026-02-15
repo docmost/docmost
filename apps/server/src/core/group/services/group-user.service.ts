@@ -10,15 +10,20 @@ import { GroupService } from './group.service';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { executeTx } from '@docmost/db/utils';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 
 @Injectable()
 export class GroupUserService {
   constructor(
     private groupUserRepo: GroupUserRepo,
+    private spaceMemberRepo: SpaceMemberRepo,
     private userRepo: UserRepo,
     @Inject(forwardRef(() => GroupService))
     private groupService: GroupService,
+    private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -100,6 +105,18 @@ export class GroupUserService {
       throw new BadRequestException('Group member not found');
     }
 
-    await this.groupUserRepo.delete(userId, groupId);
+    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
+
+    // TODO: use queue instead
+    await executeTx(this.db, async (trx) => {
+      await this.groupUserRepo.delete(userId, groupId, { trx });
+
+      for (const spaceId of spaceIds) {
+        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          [userId],
+          spaceId,
+        );
+      }
+    });
   }
 }
