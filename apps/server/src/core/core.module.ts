@@ -16,6 +16,8 @@ import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { ShareModule } from './share/share.module';
+import { NotificationModule } from './notification/notification.module';
+import { WatcherModule } from './watcher/watcher.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ShareModule } from './share/share.module';
     GroupModule,
     CaslModule,
     ShareModule,
+    NotificationModule,
+    WatcherModule,
   ],
 })
 export class CoreModule implements NestModule {

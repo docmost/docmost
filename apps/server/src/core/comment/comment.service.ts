@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
@@ -11,12 +13,19 @@ import { Comment, Page, User } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { WatcherService } from '../watcher/watcher.service';
+import { QueueJob, QueueName } from '../../integrations/queue/constants';
+import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
+import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
 
 @Injectable()
 export class CommentService {
   constructor(
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
+    private readonly watcherService: WatcherService,
+    @InjectQueue(QueueName.NOTIFICATION_QUEUE)
+    private notificationQueue: Queue,
   ) {}
 
   async findById(commentId: string) {
@@ -51,7 +60,7 @@ export class CommentService {
       }
     }
 
-    return await this.commentRepo.insertComment({
+    const comment = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
       selection: createCommentDto?.selection?.substring(0, 250),
@@ -61,6 +70,29 @@ export class CommentService {
       workspaceId: workspaceId,
       spaceId: page.spaceId,
     });
+
+    await this.watcherService.addPageWatchers(
+      [userId],
+      page.id,
+      page.spaceId,
+      workspaceId,
+    );
+
+    const isReply = !!createCommentDto.parentCommentId;
+
+    await this.queueCommentNotification(
+      commentContent,
+      [],
+      comment.id,
+      page.id,
+      page.spaceId,
+      workspaceId,
+      userId,
+      !isReply,
+      createCommentDto.parentCommentId,
+    );
+
+    return comment;
   }
 
   async findByPageId(
@@ -87,6 +119,8 @@ export class CommentService {
       throw new ForbiddenException('You can only edit your own comments');
     }
 
+    const oldMentionIds = extractUserMentionIdsFromJson(comment.content);
+
     const editedAt = new Date();
 
     await this.commentRepo.updateComment(
@@ -97,10 +131,57 @@ export class CommentService {
       },
       comment.id,
     );
+
+    await this.queueCommentNotification(
+      commentContent,
+      oldMentionIds,
+      comment.id,
+      comment.pageId,
+      comment.spaceId,
+      comment.workspaceId,
+      authUser.id,
+      false,
+    );
+
     comment.content = commentContent;
     comment.editedAt = editedAt;
     comment.updatedAt = editedAt;
 
     return comment;
+  }
+
+  private async queueCommentNotification(
+    content: any,
+    oldMentionIds: string[],
+    commentId: string,
+    pageId: string,
+    spaceId: string,
+    workspaceId: string,
+    actorId: string,
+    notifyWatchers: boolean,
+    parentCommentId?: string,
+  ) {
+    const mentionedUserIds = extractUserMentionIdsFromJson(content);
+    const newMentionIds = mentionedUserIds.filter(
+      (id) => id !== actorId && !oldMentionIds.includes(id),
+    );
+
+    if (newMentionIds.length === 0 && !notifyWatchers && !parentCommentId) return;
+
+    const jobData: ICommentNotificationJob = {
+      commentId,
+      parentCommentId,
+      pageId,
+      spaceId,
+      workspaceId,
+      actorId,
+      mentionedUserIds: newMentionIds,
+      notifyWatchers,
+    };
+
+    await this.notificationQueue.add(
+      QueueJob.COMMENT_NOTIFICATION,
+      jobData,
+    );
   }
 }

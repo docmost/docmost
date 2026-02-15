@@ -8,18 +8,27 @@ import {
 import { CreateGroupDto, DefaultGroup } from '../dto/create-group.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { UpdateGroupDto } from '../dto/update-group.dto';
-import { KyselyTransaction } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { Group, InsertableGroup, User } from '@docmost/db/types/entity.types';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { GroupUserService } from './group-user.service';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { executeTx } from '@docmost/db/utils';
+import { InjectKysely } from 'nestjs-kysely';
 
 @Injectable()
 export class GroupService {
   constructor(
     private groupRepo: GroupRepo,
+    private groupUserRepo: GroupUserRepo,
+    private spaceMemberRepo: SpaceMemberRepo,
     @Inject(forwardRef(() => GroupUserService))
     private groupUserService: GroupUserService,
+    private readonly watcherRepo: WatcherRepo,
+    @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -66,20 +75,6 @@ export class GroupService {
     }
 
     return createdGroup;
-  }
-
-  async createDefaultGroup(
-    workspaceId: string,
-    userId?: string,
-    trx?: KyselyTransaction,
-  ): Promise<Group> {
-    const insertableGroup: InsertableGroup = {
-      name: DefaultGroup.EVERYONE,
-      isDefault: true,
-      creatorId: userId ?? null,
-      workspaceId: workspaceId,
-    };
-    return await this.groupRepo.insertGroup(insertableGroup, trx);
   }
 
   async updateGroup(
@@ -141,7 +136,24 @@ export class GroupService {
     if (group.isDefault) {
       throw new BadRequestException('You cannot delete a default group');
     }
-    await this.groupRepo.delete(groupId, workspaceId);
+
+    const [userIds, spaceIds] = await Promise.all([
+      this.groupUserRepo.getUserIdsByGroupId(groupId),
+      this.spaceMemberRepo.getSpaceIdsByGroupId(groupId),
+    ]);
+
+    // TODO: use queue instead
+    await executeTx(this.db, async (trx) => {
+      await this.groupRepo.delete(groupId, workspaceId, { trx });
+
+      for (const spaceId of spaceIds) {
+        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          userIds,
+          spaceId,
+          { trx },
+        );
+      }
+    });
   }
 
   async findAndValidateGroup(

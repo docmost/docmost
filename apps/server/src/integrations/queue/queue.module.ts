@@ -81,6 +81,9 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
         attempts: 2,
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.NOTIFICATION_QUEUE,
+    }),
   ],
   exports: [BullModule],
   providers: [BacklinksProcessor],

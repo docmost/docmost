@@ -31,6 +31,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
   const [currentUser] = useAtom(currentUserAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const useClickOutsideRef = useClickOutside(() => {
+    if (document.querySelector("#mention")) return;
     handleDialogClose();
   });
   const createCommentMutation = useCreateCommentMutation();
@@ -105,6 +106,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
       position={{ bottom: 500, right: 50 }}
       withCloseButton
       withBorder
+      data-comment-dialog
     >
       <Stack gap={2}>
         <Group>
