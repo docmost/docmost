@@ -590,5 +590,21 @@
   "No answer available": "Keine Antwort verfügbar",
   "Background color": "Hintergrundfarbe",
   "Highlight color": "Hervorhebungsfarbe",
-  "Remove color": "Farbe entfernen"
+  "Remove color": "Farbe entfernen",
+  "Notifications": "Notifications",
+  "No notifications": "No notifications",
+  "No unread notifications": "No unread notifications",
+  "All notifications": "All notifications",
+  "Unread only": "Unread only",
+  "Mark all as read": "Mark all as read",
+  "Mark as read": "Mark as read",
+  "More options": "More options",
+  "mentioned you in a comment": "mentioned you in a comment",
+  "commented on a page": "commented on a page",
+  "resolved a comment": "resolved a comment",
+  "mentioned you on a page": "mentioned you on a page",
+  "Today": "Today",
+  "Yesterday": "Yesterday",
+  "This week": "This week",
+  "Older": "Older"
 }
