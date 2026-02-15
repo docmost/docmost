@@ -1,6 +1,7 @@
 import React, { Dispatch, FC, SetStateAction } from "react";
 import {
   IconBlockquote,
+  IconCaretRightFilled,
   IconCheck,
   IconCheckbox,
   IconChevronDown,
@@ -8,6 +9,7 @@ import {
   IconH1,
   IconH2,
   IconH3,
+  IconInfoCircle,
   IconList,
   IconListNumbers,
   IconTypography,
@@ -55,6 +57,8 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
         isTaskItem: ctx.editor.isActive("taskItem"),
         isBlockquote: ctx.editor.isActive("blockquote"),
         isCodeBlock: ctx.editor.isActive("codeBlock"),
+        isCallout: ctx.editor.isActive("callout"),
+        isDetails: ctx.editor.isActive("details"),
       };
     },
   });
@@ -123,6 +127,18 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
       icon: IconCode,
       command: () => editor.chain().focus().toggleCodeBlock().run(),
       isActive: () => editorState?.isCodeBlock,
+    },
+    {
+      name: "Callout",
+      icon: IconInfoCircle,
+      command: () => editor.chain().focus().toggleCallout().run(),
+      isActive: () => editorState?.isCallout,
+    },
+    {
+      name: "Toggle block",
+      icon: IconCaretRightFilled,
+      command: () => editor.chain().focus().setDetails().run(),
+      isActive: () => editorState?.isDetails,
     },
   ];
 
