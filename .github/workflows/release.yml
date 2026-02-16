@@ -80,7 +80,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: docmost-${{ github.ref_name }}.tar.gz
-          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   docker:
     runs-on: ubuntu-latest
@@ -118,8 +118,8 @@ jobs:
           images: docmost/docmost
           tags: |
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref_name, '-') }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
