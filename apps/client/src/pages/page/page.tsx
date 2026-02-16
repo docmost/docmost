@@ -14,9 +14,10 @@ import {
 import { useTranslation } from "react-i18next";
 import React from "react";
 import { EmptyState } from "@/components/ui/empty-state.tsx";
-import { IconFileOff } from "@tabler/icons-react";
+import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
+import { ErrorBoundary } from "react-error-boundary";
 
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -25,6 +26,29 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+
+  return (
+    <ErrorBoundary
+      resetKeys={[pageSlug]}
+      fallbackRender={({ resetErrorBoundary }) => (
+        <EmptyState
+          icon={IconAlertTriangle}
+          title={t("Failed to load page. An error occurred.")}
+          action={
+            <Button variant="default" size="sm" mt="xs" onClick={resetErrorBoundary}>
+              {t("Try again")}
+            </Button>
+          }
+        />
+      )}
+    >
+      <PageContent pageSlug={pageSlug} />
+    </ErrorBoundary>
+  );
+}
+
+function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
+  const { t } = useTranslation();
 
   const {
     data: page,
