@@ -16,7 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Box, Menu, rem } from "@mantine/core";
+import { ActionIcon, Box, Menu, rem, Text } from "@mantine/core";
 import {
   IconArrowRight,
   IconChevronDown,
@@ -82,6 +82,7 @@ interface SpaceTreeProps {
 const openTreeNodesAtom = atom<OpenMap>({});
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
+  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
@@ -231,11 +232,18 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
   }, [setTreeApi]);
 
+  const filteredData = data.filter((node) => node?.spaceId === spaceId);
+
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
+      {isDataLoaded && filteredData.length === 0 && (
+        <Text size="xs" c="dimmed" py="xs" px="sm">
+          {t("No pages yet")}
+        </Text>
+      )}
       {isRootReady && rootElement.current && (
         <Tree
-          data={data.filter((node) => node?.spaceId === spaceId)}
+          data={filteredData}
           disableDrag={readOnly}
           disableDrop={readOnly}
           disableEdit={readOnly}

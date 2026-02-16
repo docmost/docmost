@@ -11,7 +11,8 @@ import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { formattedDate } from "@/lib/time.ts";
 import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
-import { IconFileDescription } from "@tabler/icons-react";
+import { IconFileDescription, IconFiles } from "@tabler/icons-react";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color.ts";
@@ -85,8 +86,10 @@ export default function RecentChanges({ spaceId }: Props) {
       </Table>
     </Table.ScrollContainer>
   ) : (
-    <Text size="md" ta="center">
-      {t("No pages yet")}
-    </Text>
+    <EmptyState
+      icon={IconFiles}
+      title={t("No pages yet")}
+      description={t("Pages you create will show up here.")}
+    />
   );
 }
