@@ -43,6 +43,7 @@ import {
   Highlight,
   UniqueID,
   SharedStorage,
+  MoveBlock,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -216,6 +217,7 @@ export const mainExtensions = [
     },
   }),
   Selection,
+  MoveBlock,
   Attachment.configure({
     view: AttachmentView,
   }),
