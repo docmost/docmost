@@ -5,6 +5,13 @@ import { Label } from '@docmost/db/types/entity.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
+export const LabelType = {
+  PAGE: 'page',
+  SPACE: 'space',
+} as const;
+
+export type LabelType = (typeof LabelType)[keyof typeof LabelType];
+
 @Injectable()
 export class LabelRepo {
   constructor(
@@ -27,6 +34,7 @@ export class LabelRepo {
   async findByNameAndWorkspace(
     name: string,
     workspaceId: string,
+    type: LabelType,
     trx?: KyselyTransaction,
   ): Promise<Label | undefined> {
     const db = dbOrTx(this.db, trx);
@@ -34,6 +42,7 @@ export class LabelRepo {
       .selectFrom('labels')
       .selectAll()
       .where('name', '=', name.toLowerCase())
+      .where('type', '=', type)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
@@ -41,6 +50,7 @@ export class LabelRepo {
   async findOrCreate(
     name: string,
     workspaceId: string,
+    type: LabelType,
     trx?: KyselyTransaction,
   ): Promise<Label> {
     const db = dbOrTx(this.db, trx);
@@ -48,9 +58,9 @@ export class LabelRepo {
 
     const result = await db
       .insertInto('labels')
-      .values({ name: normalizedName, workspaceId })
+      .values({ name: normalizedName, type, workspaceId })
       .onConflict((oc) =>
-        oc.columns(['name', 'workspaceId']).doNothing(),
+        oc.columns(['name', 'type', 'workspaceId']).doNothing(),
       )
       .returningAll()
       .executeTakeFirst();
@@ -59,15 +69,16 @@ export class LabelRepo {
       return result;
     }
 
-    return this.findByNameAndWorkspace(normalizedName, workspaceId, trx);
+    return this.findByNameAndWorkspace(normalizedName, workspaceId, type, trx);
   }
 
   async findLabelsByPageId(pageId: string): Promise<Label[]> {
     return this.db
       .selectFrom('labels')
       .innerJoin('pageLabels', 'pageLabels.labelId', 'labels.id')
-      .select(['labels.id', 'labels.name', 'labels.createdAt', 'labels.updatedAt', 'labels.workspaceId'])
+      .select(['labels.id', 'labels.name', 'labels.type', 'labels.createdAt', 'labels.updatedAt', 'labels.workspaceId'])
       .where('pageLabels.pageId', '=', pageId)
+      .where('labels.type', '=', LabelType.PAGE)
       .orderBy('labels.name', 'asc')
       .execute();
   }

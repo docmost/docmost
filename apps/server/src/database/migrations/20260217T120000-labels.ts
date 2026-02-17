@@ -7,6 +7,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('name', 'varchar', (col) => col.notNull())
+    .addColumn('type', 'varchar', (col) => col.notNull().defaultTo('page'))
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
@@ -21,7 +22,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createIndex('labels_workspace_id_name_unique')
     .on('labels')
-    .columns(['workspace_id', 'name'])
+    .columns(['workspace_id', 'name', 'type'])
     .unique()
     .execute();
 

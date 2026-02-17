@@ -393,6 +393,7 @@ export interface Watchers {
 export interface Labels {
   id: Generated<string>;
   name: string;
+  type: Generated<string>;
   workspaceId: string;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;

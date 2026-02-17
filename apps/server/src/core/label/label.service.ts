@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LabelRepo } from '@docmost/db/repos/label/label.repo';
+import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { Label } from '@docmost/db/types/entity.types';
@@ -22,6 +22,7 @@ export class LabelService {
         const label = await this.labelRepo.findOrCreate(
           name.trim(),
           workspaceId,
+          LabelType.PAGE,
           trx,
         );
         await this.labelRepo.addLabelToPage(pageId, label.id, trx);
