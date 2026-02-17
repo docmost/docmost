@@ -9,8 +9,10 @@ import {
   FileTasks,
   Groups,
   GroupUsers,
+  Labels,
   Notifications,
   PageHistory,
+  PageLabels,
   Pages,
   Shares,
   SpaceMembers,
@@ -34,9 +36,11 @@ export interface DbInterface {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  labels: Labels;
   notifications: Notifications;
   pageEmbeddings: PageEmbeddings;
   pageHistory: PageHistory;
+  pageLabels: PageLabels;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;
