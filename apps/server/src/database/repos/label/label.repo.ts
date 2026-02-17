@@ -3,7 +3,6 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { Label } from '@docmost/db/types/entity.types';
 import { dbOrTx } from '@docmost/db/utils';
-import { sql } from 'kysely';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
@@ -34,7 +33,7 @@ export class LabelRepo {
     return db
       .selectFrom('labels')
       .selectAll()
-      .where(sql`LOWER(name)`, '=', name.toLowerCase())
+      .where('name', '=', name.toLowerCase())
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
   }
@@ -45,15 +44,13 @@ export class LabelRepo {
     trx?: KyselyTransaction,
   ): Promise<Label> {
     const db = dbOrTx(this.db, trx);
-    const trimmedName = name.trim();
+    const normalizedName = name.trim().toLowerCase();
 
     const result = await db
       .insertInto('labels')
-      .values({ name: trimmedName, workspaceId })
+      .values({ name: normalizedName, workspaceId })
       .onConflict((oc) =>
-        oc
-          .expression(sql`workspace_id, LOWER(name)`)
-          .doNothing(),
+        oc.columns(['name', 'workspaceId']).doNothing(),
       )
       .returningAll()
       .executeTakeFirst();
@@ -62,7 +59,7 @@ export class LabelRepo {
       return result;
     }
 
-    return this.findByNameAndWorkspace(trimmedName, workspaceId, trx);
+    return this.findByNameAndWorkspace(normalizedName, workspaceId, trx);
   }
 
   async findLabelsByPageId(pageId: string): Promise<Label[]> {

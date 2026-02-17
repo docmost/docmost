@@ -6,8 +6,14 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+function normalizeLabel(name: string): string {
+  return name.trim().replace(/\s+/g, '-').toLowerCase();
+}
 
 export class AddLabelsDto {
   @IsString()
@@ -19,7 +25,14 @@ export class AddLabelsDto {
   @ArrayMaxSize(25)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value.map(normalizeLabel) : value,
+  )
   @MaxLength(100, { each: true })
+  @Matches(/^[a-z0-9_~-]+$/, {
+    each: true,
+    message: 'Label names can only contain letters, numbers, hyphens, underscores, and tildes',
+  })
   names: string[];
 }
 

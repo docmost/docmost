@@ -19,9 +19,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('labels_workspace_id_lower_name_unique')
+    .createIndex('labels_workspace_id_name_unique')
     .on('labels')
-    .expression(sql`workspace_id, LOWER(name)`)
+    .columns(['workspace_id', 'name'])
     .unique()
     .execute();
 
