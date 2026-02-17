@@ -4,6 +4,8 @@ import { KyselyDB, KyselyTransaction } from '../../types/kysely.types';
 import { Label } from '@docmost/db/types/entity.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
 export const LabelType = {
   PAGE: 'page',
@@ -72,15 +74,68 @@ export class LabelRepo {
     return this.findByNameAndWorkspace(normalizedName, workspaceId, type, trx);
   }
 
-  async findLabelsByPageId(pageId: string): Promise<Label[]> {
-    return this.db
+  async findLabelsByPageId(pageId: string, pagination: PaginationOptions) {
+    const query = this.db
       .selectFrom('labels')
       .innerJoin('pageLabels', 'pageLabels.labelId', 'labels.id')
-      .select(['labels.id', 'labels.name', 'labels.type', 'labels.createdAt', 'labels.updatedAt', 'labels.workspaceId'])
+      .select([
+        'labels.id',
+        'labels.name',
+        'labels.type',
+        'labels.createdAt',
+        'labels.updatedAt',
+        'labels.workspaceId',
+      ])
       .where('pageLabels.pageId', '=', pageId)
-      .where('labels.type', '=', LabelType.PAGE)
-      .orderBy('labels.name', 'asc')
-      .execute();
+      .where('labels.type', '=', LabelType.PAGE);
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'labels.name', direction: 'asc', key: 'name' },
+        { expression: 'labels.id', direction: 'asc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        name: cursor.name,
+        id: cursor.id,
+      }),
+    });
+  }
+
+  async findLabels(
+    workspaceId: string,
+    type: LabelType,
+    pagination: PaginationOptions,
+  ) {
+    let query = this.db
+      .selectFrom('labels')
+      .select(['id', 'name', 'type', 'createdAt', 'updatedAt', 'workspaceId'])
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', type);
+
+    if (pagination.query) {
+      query = query.where(
+        'name',
+        'like',
+        `%${pagination.query.toLowerCase()}%`,
+      );
+    }
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'name', direction: 'asc' },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({
+        name: cursor.name,
+        id: cursor.id,
+      }),
+    });
   }
 
   async addLabelToPage(

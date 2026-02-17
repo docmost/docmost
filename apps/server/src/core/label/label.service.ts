@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
-import { Label } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @Injectable()
 export class LabelService {
@@ -16,7 +16,7 @@ export class LabelService {
     pageId: string,
     names: string[],
     workspaceId: string,
-  ): Promise<Label[]> {
+  ) {
     await executeTx(this.db, async (trx) => {
       for (const name of names) {
         const label = await this.labelRepo.findOrCreate(
@@ -29,7 +29,7 @@ export class LabelService {
       }
     });
 
-    return this.labelRepo.findLabelsByPageId(pageId);
+    return this.labelRepo.findLabelsByPageId(pageId, { limit: 100 } as PaginationOptions);
   }
 
   async removeLabelFromPage(
@@ -46,8 +46,15 @@ export class LabelService {
     });
   }
 
-  async getPageLabels(pageId: string): Promise<Label[]> {
-    return this.labelRepo.findLabelsByPageId(pageId);
+  async getPageLabels(pageId: string, pagination: PaginationOptions) {
+    return this.labelRepo.findLabelsByPageId(pageId, pagination);
+  }
+
+  async getLabels(
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    return this.labelRepo.findLabels(workspaceId, LabelType.PAGE, pagination);
   }
 
   async searchPagesByLabel(

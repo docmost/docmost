@@ -26,6 +26,7 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { LabelRepo } from '@docmost/db/repos/label/label.repo';
+import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 
 @UseGuards(JwtAuthGuard)
 @Controller('labels')
@@ -36,6 +37,15 @@ export class LabelController {
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
+
+  @HttpCode(HttpStatus.OK)
+  @Post('/')
+  async getLabels(
+    @Body() pagination: PaginationOptions,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.labelService.getLabels(workspace.id, pagination);
+  }
 
   @HttpCode(HttpStatus.OK)
   @Post('add')
@@ -84,6 +94,7 @@ export class LabelController {
   @Post('page')
   async getPageLabels(
     @Body() dto: PageLabelsDto,
+    @Body() pagination: PaginationOptions,
     @AuthUser() user: User,
   ) {
     const page = await this.pageRepo.findById(dto.pageId);
@@ -96,7 +107,7 @@ export class LabelController {
       throw new ForbiddenException();
     }
 
-    return this.labelService.getPageLabels(page.id);
+    return this.labelService.getPageLabels(page.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)
