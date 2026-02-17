@@ -79,6 +79,25 @@ interface SpaceTreeProps {
   readOnly: boolean;
 }
 
+const STORAGE_KEY_PREFIX = "docmost:tree-open:";
+
+function loadOpenState(spaceId: string): OpenMap {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_PREFIX + spaceId);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveOpenState(spaceId: string, openState: OpenMap): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_PREFIX + spaceId, JSON.stringify(openState));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
 const openTreeNodesAtom = atom<OpenMap>({});
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
@@ -96,6 +115,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const [, setTreeApi] = useAtom<TreeApi<SpaceTreeNode>>(treeApiAtom);
   const treeApiRef = useRef<TreeApi<SpaceTreeNode>>();
   const [openTreeNodes, setOpenTreeNodes] = useAtom<OpenMap>(openTreeNodesAtom);
+  const [, appendChildren] = useAtom(appendNodeChildrenAtom);
   const rootElement = useRef<HTMLDivElement>();
   const [isRootReady, setIsRootReady] = useState(false);
   const { ref: sizeRef, width, height } = useElementSize();
@@ -134,6 +154,30 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
       });
     }
   }, [pagesData, hasNextPage]);
+
+  // Restore persisted open state after tree data loads
+  const hasRestoredOpenState = useRef(false);
+  useEffect(() => {
+    if (isDataLoaded && treeApiRef.current && !hasRestoredOpenState.current) {
+      hasRestoredOpenState.current = true;
+      const saved = loadOpenState(spaceId);
+      const nodeIds = Object.keys(saved).filter((id) => saved[id]);
+      if (nodeIds.length === 0) return;
+
+      for (const id of nodeIds) {
+        const node = treeApiRef.current.get(id);
+        if (node) {
+          treeApiRef.current.open(id);
+          if (node.data.hasChildren) {
+            fetchAllAncestorChildren({ pageId: node.data.id, spaceId: node.data.spaceId }).then((childrenTree) => {
+              appendChildren({ parentId: node.data.id, children: childrenTree });
+            });
+          }
+        }
+      }
+      setOpenTreeNodes(treeApiRef.current.openState);
+    }
+  }, [isDataLoaded, spaceId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -192,6 +236,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             setTimeout(() => {
               // focus on node and open all parents
               treeApiRef.current.select(currentPage.id);
+              saveOpenState(spaceId, treeApiRef.current?.openState);
             }, 100);
           });
         }
@@ -246,7 +291,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           overscanCount={10}
           dndRootElement={rootElement.current}
           onToggle={() => {
-            setOpenTreeNodes(treeApiRef.current?.openState);
+            const openState = treeApiRef.current?.openState;
+            setOpenTreeNodes(openState);
+            saveOpenState(spaceId, openState);
           }}
           initialOpenState={openTreeNodes}
         >
