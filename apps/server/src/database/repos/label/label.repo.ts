@@ -164,6 +164,20 @@ export class LabelRepo {
       .execute();
   }
 
+  async getPageLabelCount(
+    pageId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+    const result = await db
+      .selectFrom('pageLabels')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('pageId', '=', pageId)
+      .executeTakeFirst();
+
+    return Number(result?.count ?? 0);
+  }
+
   async getLabelPageCount(
     labelId: string,
     trx?: KyselyTransaction,

@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { LabelRepo, LabelType } from '@docmost/db/repos/label/label.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+
+const MAX_LABELS_PER_PAGE = 25;
 
 @Injectable()
 export class LabelService {
@@ -18,6 +20,13 @@ export class LabelService {
     workspaceId: string,
   ) {
     await executeTx(this.db, async (trx) => {
+      const currentCount = await this.labelRepo.getPageLabelCount(pageId, trx);
+      if (currentCount + names.length > MAX_LABELS_PER_PAGE) {
+        throw new BadRequestException(
+          `A page can have a maximum of ${MAX_LABELS_PER_PAGE} labels`,
+        );
+      }
+
       for (const name of names) {
         const label = await this.labelRepo.findOrCreate(
           name.trim(),
