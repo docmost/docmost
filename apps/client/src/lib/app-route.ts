@@ -29,4 +29,13 @@ const APP_ROUTE = {
   },
 };
 
+export function getPostLoginRedirect(): string {
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+    return redirect;
+  }
+  return APP_ROUTE.HOME;
+}
+
 export default APP_ROUTE;
