@@ -20,7 +20,7 @@ export const Heading = TiptapHeading.extend<TiptapHeadingOptions>({
             const { doc } = state;
 
             doc.descendants((node, pos) => {
-              if (node.type.name === "heading" && node.content.size > 0) {
+              if (node.type.name === "heading" && node.content.size > 1) {
                 const deco = Decoration.widget(
                   pos + node.nodeSize - 1,
                   () => {
