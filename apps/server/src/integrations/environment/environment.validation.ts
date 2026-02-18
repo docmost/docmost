@@ -91,7 +91,6 @@ export class EnvironmentVariables {
   @ValidateIf((obj) => obj.SEARCH_DRIVER === 'typesense')
   TYPESENSE_URL: string;
 
-  @IsOptional()
   @ValidateIf((obj) => obj.SEARCH_DRIVER === 'typesense')
   @IsNotEmpty()
   @IsString()
@@ -110,18 +109,14 @@ export class EnvironmentVariables {
   AI_DRIVER: string;
 
   @IsOptional()
-  @ValidateIf((obj) => obj.AI_DRIVER)
   @IsString()
-  @IsNotEmpty()
   AI_EMBEDDING_MODEL: string;
 
-  @IsOptional()
   @ValidateIf((obj) => obj.AI_EMBEDDING_DIMENSION)
   @IsIn(['768', '1024', '1536', '2000', '3072'])
   @IsString()
   AI_EMBEDDING_DIMENSION: string;
 
-  @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER)
   @IsString()
   @IsNotEmpty()
@@ -145,13 +140,11 @@ export class EnvironmentVariables {
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OPENAI_API_URL: string;
 
-  @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'gemini')
   @IsString()
   @IsNotEmpty()
   GEMINI_API_KEY: string;
 
-  @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER && obj.AI_DRIVER === 'ollama')
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   OLLAMA_API_URL: string;

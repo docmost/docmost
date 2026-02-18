@@ -1,4 +1,10 @@
-import { Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Global,
+  Logger,
+  Module,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AuthenticationExtension } from './extensions/authentication.extension';
 import { PersistenceExtension } from './extensions/persistence.extension';
 import { CollaborationGateway } from './collaboration.gateway';
@@ -11,6 +17,7 @@ import { HistoryProcessor } from './processors/history.processor';
 import { LoggerExtension } from './extensions/logger.extension';
 import { CollaborationHandler } from './collaboration.handler';
 import { CollabHistoryService } from './services/collab-history.service';
+import { WatcherModule } from '../core/watcher/watcher.module';
 
 @Module({
   providers: [
@@ -23,7 +30,7 @@ import { CollabHistoryService } from './services/collab-history.service';
     CollaborationHandler,
   ],
   exports: [CollaborationGateway],
-  imports: [TokenModule],
+  imports: [TokenModule, WatcherModule],
 })
 export class CollaborationModule implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CollaborationModule.name);

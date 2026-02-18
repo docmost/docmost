@@ -26,6 +26,7 @@
     "@tanstack/react-query": "^5.90.17",
     "alfaaz": "^1.1.0",
     "axios": "^1.13.5",
+    "blueimp-load-image": "^5.16.0",
     "clsx": "^2.1.1",
     "emoji-mart": "^5.6.0",
     "file-saver": "^2.0.5",
@@ -59,6 +60,7 @@
   "devDependencies": {
     "@eslint/js": "^9.16.0",
     "@tanstack/eslint-plugin-query": "^5.62.1",
+    "@types/blueimp-load-image": "^5.16.0",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",
     "@types/katex": "^0.16.7",

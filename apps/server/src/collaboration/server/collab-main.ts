@@ -7,6 +7,7 @@ import {
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
 import { Logger } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
+import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -19,7 +20,7 @@ async function bootstrap() {
       },
     }),
     {
-      logger: false,
+      logger: new InternalLogFilter(),
       bufferLogs: false,
     },
   );

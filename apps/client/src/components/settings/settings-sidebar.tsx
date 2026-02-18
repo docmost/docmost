@@ -115,7 +115,6 @@ const groupedData: DataGroup[] = [
         icon: IconSparkles,
         path: "/settings/ai",
         isAdmin: true,
-        isSelfhosted: true,
       },
     ],
   },
