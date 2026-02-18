@@ -45,6 +45,14 @@ export class EnvironmentService {
     return this.configService.get<string>('APP_SECRET');
   }
 
+  getAppChannel(): 'prod' | 'staging' {
+    const channel = this.configService
+      .get<string>('APP_CHANNEL', 'prod')
+      .toLowerCase();
+
+    return channel === 'staging' ? 'staging' : 'prod';
+  }
+
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
   }
@@ -108,7 +116,8 @@ export class EnvironmentService {
   }
 
   getAwsS3ForcePathStyle(): boolean {
-    return this.configService.get<boolean>('AWS_S3_FORCE_PATH_STYLE');
+    const v = this.configService.get<string>('AWS_S3_FORCE_PATH_STYLE');
+    return v === 'true' || v === '1';
   }
 
   getAwsS3Url(): string {

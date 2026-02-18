@@ -47,7 +47,7 @@ export default function SpaceList() {
                       color="initials"
                       avatarUrl={space.logo}
                       type={AvatarIconType.SPACE_ICON}
-                      variant="filled"
+                      variant="light"
                       name={space.name}
                     />
                     <div style={{ minWidth: 0, overflow: "hidden" }}>

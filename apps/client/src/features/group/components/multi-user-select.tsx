@@ -33,7 +33,7 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
-  const { data: users, isLoading } = useWorkspaceMembersQuery({
+  const { data: users } = useWorkspaceMembersQuery({
     query: debouncedQuery,
     limit: 50,
   });
@@ -73,7 +73,7 @@ export function MultiUserSelect({ onChange, label }: MultiUserSelectProps) {
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       clearable
-      variant="filled"
+      variant="default"
       onChange={onChange}
       nothingFoundMessage={t("No user found")}
       maxValues={50}

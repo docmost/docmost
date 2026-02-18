@@ -47,7 +47,7 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
           <PasswordInput
             label={t("New password")}
             placeholder={t("Your new password")}
-            variant="filled"
+            variant="default"
             mt="md"
             {...form.getInputProps("newPassword")}
           />

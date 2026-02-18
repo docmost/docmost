@@ -34,6 +34,7 @@ import { FastifyReply } from 'fastify';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { CheckHostnameDto } from '../dto/check-hostname.dto';
 import { RemoveWorkspaceUserDto } from '../dto/remove-workspace-user.dto';
+import { UpdateReleaseChannelDto } from '../dto/update-release-channel.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workspace')
@@ -88,6 +89,27 @@ export class WorkspaceController {
     }
 
     return updatedWorkspace;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('release-channel')
+  async updateReleaseChannel(
+    @Body() dto: UpdateReleaseChannelDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = this.workspaceAbility.createForUser(user, workspace);
+    if (
+      ability.cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Settings)
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return this.workspaceService.updateReleaseChannel(
+      workspace.id,
+      dto.releaseChannel,
+      user.id,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

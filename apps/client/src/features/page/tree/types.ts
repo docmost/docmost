@@ -11,11 +11,6 @@ export type SpaceTreeNode = {
   nodeType?: PageNodeType;
   isPinned?: boolean;
   pinnedAt?: Date | string | null;
-  directChildCount?: number;
-  directChildFolderCount?: number;
-  descendantFolderCount?: number;
-  descendantFileCount?: number;
-  descendantTotalCount?: number;
   hasChildren: boolean;
   children: SpaceTreeNode[];
 };

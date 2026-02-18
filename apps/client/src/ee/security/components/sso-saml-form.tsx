@@ -99,7 +99,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
           />
           <TextInput
             label="Entity ID"
-            variant="filled"
+            variant="default"
             value={buildSamlEntityId(provider.id)}
             rightSection={<CopyTextButton text={samlEntityId} />}
             pointer
@@ -107,7 +107,7 @@ export function SsoSamlForm({ provider, onClose }: SsoFormProps) {
           />
           <TextInput
             label="Callback URL (ACS)"
-            variant="filled"
+            variant="default"
             value={callbackUrl}
             pointer
             readOnly

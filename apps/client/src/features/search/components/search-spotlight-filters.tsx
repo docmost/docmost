@@ -163,8 +163,8 @@ export function SearchSpotlightFilters({
             variant="subtle"
             color="gray"
             size="sm"
-            rightSection={<IconChevronDown size={14} />}
-            leftSection={<IconBuilding size={16} />}
+            rightSection={<IconChevronDown size={14} stroke={1.75} />}
+            leftSection={<IconBuilding size={16} stroke={1.75} />}
             className={classes.filterButton}
             fw={500}
           >
@@ -182,7 +182,7 @@ export function SearchSpotlightFilters({
             value={spaceSearchQuery}
             onChange={(e) => setSpaceSearchQuery(e.target.value)}
             size="sm"
-            variant="filled"
+            variant="default"
             radius="sm"
             styles={{ input: { marginBottom: 8 } }}
           />
@@ -192,7 +192,7 @@ export function SearchSpotlightFilters({
               <Group flex="1" gap="xs">
                 <Avatar
                   color="initials"
-                  variant="filled"
+                  variant="light"
                   name={t("All spaces")}
                   size={20}
                 />
@@ -204,7 +204,7 @@ export function SearchSpotlightFilters({
                     {t("Search in all your spaces")}
                   </Text>
                 </div>
-                {!selectedSpaceId && <IconCheck size={20} />}
+                {!selectedSpaceId && <IconCheck size={18} stroke={1.75} />}
               </Group>
             </Menu.Item>
 
@@ -218,14 +218,16 @@ export function SearchSpotlightFilters({
                 <Group flex="1" gap="xs">
                   <Avatar
                     color="initials"
-                    variant="filled"
+                    variant="light"
                     name={space.name}
                     size={20}
                   />
                   <Text size="sm" fw={500} style={{ flex: 1 }} truncate>
                     {space.name}
                   </Text>
-                  {selectedSpaceId === space.id && <IconCheck size={20} />}
+                  {selectedSpaceId === space.id && (
+                    <IconCheck size={18} stroke={1.75} />
+                  )}
                 </Group>
               </Menu.Item>
             ))}
@@ -244,8 +246,8 @@ export function SearchSpotlightFilters({
             variant="subtle"
             color="gray"
             size="sm"
-            rightSection={<IconChevronDown size={14} />}
-            leftSection={<IconFileDescription size={16} />}
+            rightSection={<IconChevronDown size={14} stroke={1.75} />}
+            leftSection={<IconFileDescription size={16} stroke={1.75} />}
             className={classes.filterButton}
             fw={500}
           >

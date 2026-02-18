@@ -204,11 +204,19 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
   }));
 
   const createPage = async (title: string) => {
-    const payload: { spaceId: string; parentPageId?: string; title: string } = {
+    const payload: {
+      spaceId: string;
+      parentPageId?: string;
+      title: string;
+      nodeType: "file" | "folder";
+    } = {
       spaceId: space.id,
-      parentPageId: page.id || null,
-      title: title
+      title: title,
+      nodeType: page.id ? "file" : "folder",
     };
+    if (page.id) {
+      payload.parentPageId = page.id;
+    }
 
     let createdPage: IPage;
     try {
@@ -221,6 +229,11 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         position: createdPage.position,
         spaceId: createdPage.spaceId,
         parentPageId: createdPage.parentPageId,
+        icon: createdPage.icon,
+        hasChildren: createdPage.hasChildren,
+        nodeType: createdPage.nodeType ?? payload.nodeType,
+        isPinned: createdPage.isPinned ?? false,
+        pinnedAt: createdPage.pinnedAt ?? null,
         children: [],
       } as any;
 

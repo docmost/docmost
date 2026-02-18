@@ -36,6 +36,7 @@
     "@aws-sdk/client-s3": "3.982.0",
     "@aws-sdk/lib-storage": "3.982.0",
     "@aws-sdk/s3-request-presigner": "3.982.0",
+    "@fastify/compress": "^8.3.1",
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.4.0",
     "@fastify/static": "^9.0.0",

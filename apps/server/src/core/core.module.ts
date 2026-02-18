@@ -15,6 +15,7 @@ import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
+import { WorkspaceChannelMiddleware } from '../common/middlewares/workspace-channel.middleware';
 import { ShareModule } from './share/share.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
@@ -39,7 +40,7 @@ import { WatcherModule } from './watcher/watcher.module';
 export class CoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(DomainMiddleware)
+      .apply(DomainMiddleware, WorkspaceChannelMiddleware)
       .exclude(
         { path: 'auth/setup', method: RequestMethod.POST },
         { path: 'health', method: RequestMethod.GET },

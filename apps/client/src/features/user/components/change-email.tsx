@@ -35,7 +35,13 @@ export default function ChangeEmail() {
       </Button>
       */}
 
-      <Modal opened={opened} onClose={close} title={t("Change email")} centered>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={t("Change email")}
+        centered
+        overlayProps={{ blur: 1 }}
+      >
         <Text mb="md">
           {t(
             "To change your email, you have to enter your password and new email.",
@@ -77,7 +83,7 @@ function ChangeEmailForm() {
       <PasswordInput
         label={t("Password")}
         placeholder={t("Enter your password")}
-        variant="filled"
+        variant="default"
         mb="md"
         {...form.getInputProps("password")}
       />
@@ -87,7 +93,7 @@ function ChangeEmailForm() {
         label={t("Email")}
         description={t("Enter your new preferred email")}
         placeholder={t("New email")}
-        variant="filled"
+        variant="default"
         mb="md"
         {...form.getInputProps("email")}
       />

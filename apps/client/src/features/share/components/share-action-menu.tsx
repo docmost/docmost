@@ -76,25 +76,28 @@ export default function ShareActionMenu({ share }: Props) {
       >
         <Menu.Target>
           <ActionIcon variant="subtle" c="gray">
-            <IconDots size={20} stroke={2} />
+            <IconDots size={18} stroke={1.75} />
           </ActionIcon>
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item onClick={copyLink} leftSection={<IconCopy size={16} />}>
+          <Menu.Item
+            onClick={copyLink}
+            leftSection={<IconCopy size={16} stroke={1.75} />}
+          >
             {t("Copy link")}
           </Menu.Item>
 
           <Menu.Item
             onClick={openPage}
-            leftSection={<IconFileDescription size={16} />}
+            leftSection={<IconFileDescription size={16} stroke={1.75} />}
           >
             {t("Open page")}
           </Menu.Item>
           <Menu.Item
             c="red"
             onClick={openDeleteModal}
-            leftSection={<IconTrash size={16} />}
+            leftSection={<IconTrash size={16} stroke={1.75} />}
             disabled={share.space?.userRole === "reader"}
           >
             {t("Delete share")}

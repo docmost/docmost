@@ -54,7 +54,7 @@ export function SpaceMemberRole({
       onChange={onSelect}
       renderOption={renderSelectOption}
       allowDeselect={false}
-      variant="filled"
+      variant="default"
     />
   );
 }

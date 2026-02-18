@@ -1,11 +1,19 @@
 .header, .navbar, .aside {
-  background-color: light-dark(#f6f7f9, var(--mantine-color-dark-8));
+  background-color: var(--ui-bg-canvas);
 }
 
 .navbar, .aside {
   @media (max-width: $mantine-breakpoint-sm) {
     width: 350px;
   }
+}
+
+.navbar {
+  border-inline-end: 1px solid var(--ui-border-default);
+}
+
+.aside {
+  border-inline-start: 1px solid var(--ui-border-default);
 }
 
 .aside {
@@ -15,17 +23,17 @@
 }
 
 .resizeHandle {
-  width: 3px;
+  width: 4px;
   cursor: col-resize;
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
+  border-radius: 4px;
+  transition: background-color 120ms ease;
 
   &:hover, &:active {
-    width: 5px;
-    background: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-5))
+    width: 6px;
+    background: var(--ui-border-hover);
   }
 }
-
-

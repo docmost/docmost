@@ -48,7 +48,7 @@ export function ForgotPasswordForm() {
               type="email"
               label="Email"
               placeholder="email@example.com"
-              variant="filled"
+              variant="default"
               {...form.getInputProps("email")}
             />
           )}

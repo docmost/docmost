@@ -69,7 +69,7 @@ export default function AllowedDomains() {
             "Enter valid domain names separated by comma or space",
           )}
           placeholder={t("e.g acme.com")}
-          variant="filled"
+          variant="default"
           splitChars={[",", " "]}
           maxDropdownHeight={0}
           maxTags={20}

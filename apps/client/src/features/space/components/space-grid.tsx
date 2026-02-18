@@ -34,7 +34,7 @@ export default function SpaceGrid() {
         avatarUrl={space.logo}
         type={AvatarIconType.SPACE_ICON}
         color="initials"
-        variant="filled"
+        variant="light"
         size="md"
         mt={rem(-20)}
       />

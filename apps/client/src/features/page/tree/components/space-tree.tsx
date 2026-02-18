@@ -414,8 +414,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   }
 
   const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-  const directChildCount = node.data.directChildCount ?? 0;
-  const descendantTotalCount = node.data.descendantTotalCount ?? 0;
 
   const buildSubmittedName = (value: string) => value.trim() || "untitled";
 
@@ -424,7 +422,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       <Box style={style} className={clsx(classes.node, node.state)}>
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
 
-        <div onClick={handleEmojiIconClick} className={classes.nodeIcon}>
+        <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             icon={
@@ -480,12 +478,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         // @ts-ignore
         ref={dragHandle}
         onClick={() => {
-          if (node.data.nodeType === "folder" && !node.isOpen) {
-            node.open();
-            if (node.data.hasChildren && node.children.length === 0) {
-              handleLoadChildren(node);
-            }
-          }
           if (mobileSidebarOpened) {
             toggleMobileSidebar();
           }
@@ -495,7 +487,7 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       >
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
 
-        <div onClick={handleEmojiIconClick} className={classes.nodeIcon}>
+        <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             icon={
@@ -513,22 +505,6 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         </div>
 
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
-        {node.data.isPinned ? (
-          <span className={classes.pinnedBadge} title={t("Pinned")}>
-            <IconPin size={11} stroke={1.85} />
-            {node.data.nodeType === "folder" ? (
-              <IconFolder size={11} stroke={1.85} />
-            ) : (
-              <IconFileText size={11} stroke={1.85} />
-            )}
-          </span>
-        ) : null}
-        <span
-          className={classes.counts}
-          title={`Direct children (1 level): ${directChildCount} · All descendants: ${descendantTotalCount}`}
-        >
-          {directChildCount} · {descendantTotalCount}
-        </span>
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
@@ -553,7 +529,6 @@ interface CreateNodeProps {
 }
 
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  const { t } = useTranslation();
   const isFolderNode = node.data.nodeType === "folder";
 
   function handleCreate(type: "leaf" | "internal") {
@@ -611,7 +586,7 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
             handleCreate("leaf");
           }}
         >
-          {t("New file")}
+          New file
         </Menu.Item>
         <Menu.Item
           leftSection={<IconFolder size={16} stroke={1.75} />}
@@ -621,7 +596,7 @@ function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
             handleCreate("internal");
           }}
         >
-          {t("New folder")}
+          New folder
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
@@ -711,14 +686,6 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         nodeType: duplicatedPage.nodeType ?? node.data.nodeType ?? "file",
         isPinned: duplicatedPage.isPinned ?? false,
         pinnedAt: duplicatedPage.pinnedAt ?? null,
-        directChildCount:
-          duplicatedPage.directChildCount ??
-          duplicatedPage.directChildFolderCount ??
-          0,
-        directChildFolderCount: duplicatedPage.directChildFolderCount ?? 0,
-        descendantFolderCount: duplicatedPage.descendantFolderCount ?? 0,
-        descendantFileCount: duplicatedPage.descendantFileCount ?? 0,
-        descendantTotalCount: duplicatedPage.descendantTotalCount ?? 0,
         children: [],
       };
 
@@ -768,12 +735,11 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
       );
       setData(updatedTree);
       notifications.show({
-        message: result.isPinned ? t("Pinned") : t("Unpinned"),
+        message: result.isPinned ? "Pinned" : "Unpinned",
       });
     } catch (err) {
       notifications.show({
-        message:
-          err.response?.data.message || t("Failed to update pin status"),
+        message: err.response?.data.message || "Failed to update pin status",
         color: "red",
       });
     }
@@ -915,7 +881,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
                   treeApi.create({ type: "leaf", parentId: node.id });
                 }}
               >
-                {t("New file")}
+                New file
               </Menu.Item>
 
               {isFolder && (
@@ -927,7 +893,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
                     treeApi.create({ type: "internal", parentId: node.id });
                   }}
                 >
-                  {t("New folder")}
+                  New folder
                 </Menu.Item>
               )}
 
@@ -945,7 +911,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
                   handleTogglePin();
                 }}
               >
-                {node.data.isPinned ? t("Unpin") : t("Pin to top")}
+                {node.data.isPinned ? "Unpin" : "Pin to top"}
               </Menu.Item>
 
               {isFolder && (

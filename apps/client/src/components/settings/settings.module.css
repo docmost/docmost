@@ -2,13 +2,15 @@
     height: 100%;
     width: 100%;
     padding: var(--mantine-spacing-md);
+    padding-top: 8px;
     display: flex;
     flex-direction: column;
+    background: var(--ui-bg-canvas);
 }
 
 .title {
     padding-bottom: var(--mantine-spacing-sm);
-    border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    border-bottom: rem(1px) solid var(--ui-border-default);
 }
 
 .link {
@@ -17,32 +19,30 @@
     align-items: center;
     text-decoration: none;
     font-size: var(--mantine-font-size-sm);
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    color: var(--ui-text-secondary);
     padding-left: var(--mantine-spacing-xs) ;
-    min-height: 30px;
-    border-radius: var(--mantine-radius-sm);
+    min-height: 32px;
+    border-radius: rem(8px);
     font-weight: 500;
     user-select: none;
+    transition: background-color 120ms ease, color 120ms ease;
 
     @mixin hover {
-        background-color: light-dark(
-                var(--mantine-color-gray-1),
-                var(--mantine-color-dark-6)
-        );
-        color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+        background-color: var(--ui-bg-subtle);
+        color: var(--ui-text-primary);
     }
 
     &[data-active] {
         &,
         & :hover {
-            background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
-            color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+            background-color: var(--ui-bg-subtle);
+            color: var(--ui-text-primary);
         }
     }
 }
 
 .linkIcon {
-    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    color: var(--ui-text-tertiary);
     margin-right: var(--mantine-spacing-sm);
     width: rem(16px);
     height: rem(16px);
@@ -50,8 +50,8 @@
 
 .linkHeader {
     padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
-    font-size: var(--mantine-font-size-sm);
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    font-size: var(--mantine-font-size-xs);
+    color: var(--ui-text-tertiary);
     font-weight: 500;
     cursor: pointer;
     display: flex;

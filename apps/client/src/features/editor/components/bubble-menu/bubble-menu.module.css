@@ -1,53 +1,12 @@
 .bubbleMenu {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  max-width: 100vw;
   width: fit-content;
-  box-shadow: 0 4px 12px light-dark(#cfcfcf, #0f0f0f);
-  border-radius: 6px;
-  border: 1px solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
-  background-color: light-dark(
-    var(--mantine-color-white),
-    var(--mantine-color-dark-6)
-  );
-
-  > * {
-    flex-shrink: 0;
-  }
-
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  border-radius: 10px;
+  border: 1px solid var(--ui-border-default);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-sm);
 
   .active {
-    color: light-dark(var(--mantine-color-blue-8), var(--mantine-color-gray-5));
+    color: var(--ui-accent-primary);
   }
-}
-
-.buttonRoot {
-  height: 34px;
-  padding-left: rem(8);
-  padding-right: rem(4);
-  border: none;
-  border-radius: 6px;
-}
-
-.buttonSeparator {
-  border-right: 1px solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
-}
-
-.divider {
-  width: 1px;
-  height: 16px;
-  align-self: center;
-  margin: 0 4px;
-  background-color: light-dark(
-    var(--mantine-color-gray-3),
-    var(--mantine-color-dark-3)
-  );
 }

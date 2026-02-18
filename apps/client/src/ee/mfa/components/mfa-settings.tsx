@@ -3,13 +3,17 @@ import { Group, Text, Button, Tooltip } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
-import { getMfaStatus } from "@/ee/mfa";
-import { MfaSetupModal } from "@/ee/mfa";
-import { MfaDisableModal } from "@/ee/mfa";
-import { MfaBackupCodesModal } from "@/ee/mfa";
+import { getMfaStatus } from "@/ee/mfa/services/mfa-service";
+import { MfaSetupModal } from "@/ee/mfa/components/mfa-setup-modal";
+import { MfaDisableModal } from "@/ee/mfa/components/mfa-disable-modal";
+import { MfaBackupCodesModal } from "@/ee/mfa/components/mfa-backup-codes-modal";
 import { isCloud } from "@/lib/config.ts";
 import useLicense from "@/ee/hooks/use-license.tsx";
-import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
+import {
+  ResponsiveSettingsRow,
+  ResponsiveSettingsContent,
+  ResponsiveSettingsControl,
+} from "@/components/ui/responsive-settings-row";
 
 export function MfaSettings() {
   const { t } = useTranslation();

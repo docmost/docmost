@@ -2,8 +2,10 @@ import "@mantine/core/styles.css";
 import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
 import '@mantine/dates/styles.css';
+import "./styles/ui-refresh.css";
 
 import ReactDOM from "react-dom/client";
+import { ErrorBoundary } from "react-error-boundary";
 import App from "./App.tsx";
 import { mantineCssResolver, theme } from "@/theme";
 import { MantineProvider } from "@mantine/core";
@@ -33,18 +35,67 @@ export const queryClient = new QueryClient({
   },
 });
 
-if (isCloud() && isPostHogEnabled) {
-  posthog.init(getPostHogKey(), {
-    api_host: getPostHogHost(),
-    defaults: "2025-05-24",
-    disable_session_recording: true,
-    capture_pageleave: false,
-  });
+try {
+  if (isCloud() && isPostHogEnabled && getPostHogKey() && getPostHogHost()) {
+    posthog.init(getPostHogKey(), {
+      api_host: getPostHogHost(),
+      defaults: "2025-05-24",
+      disable_session_recording: true,
+      capture_pageleave: false,
+    });
+  }
+} catch {
+  // ignore posthog init errors to avoid white screen
 }
 
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement,
-);
+const rootEl = document.getElementById("root");
+if (!rootEl) throw new Error("Root element #root not found");
+
+const root = ReactDOM.createRoot(rootEl);
+
+function AppErrorFallback({
+  error,
+  resetErrorBoundary,
+}: {
+  error: Error;
+  resetErrorBoundary: () => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        padding: 24,
+        background: "#f6f7f9",
+        color: "#495057",
+        fontFamily: "system-ui, sans-serif",
+        textAlign: "center",
+      }}
+    >
+      <p style={{ marginBottom: 16 }}>页面加载出错</p>
+      <button
+        type="button"
+        onClick={() => {
+          resetErrorBoundary();
+          window.location.href = "/";
+        }}
+        style={{
+          padding: "8px 16px",
+          cursor: "pointer",
+          background: "#228be6",
+          color: "#fff",
+          border: "none",
+          borderRadius: 4,
+        }}
+      >
+        重新加载
+      </button>
+    </div>
+  );
+}
 
 root.render(
   <BrowserRouter>
@@ -54,7 +105,12 @@ root.render(
           <Notifications position="bottom-center" limit={3} zIndex={10000} />
           <HelmetProvider>
             <PostHogProvider client={posthog}>
-              <App />
+              <ErrorBoundary
+                FallbackComponent={AppErrorFallback}
+                onReset={() => {}}
+              >
+                <App />
+              </ErrorBoundary>
             </PostHogProvider>
           </HelmetProvider>
         </QueryClientProvider>

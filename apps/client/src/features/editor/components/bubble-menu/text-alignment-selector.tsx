@@ -7,7 +7,7 @@ import {
   IconCheck,
   IconChevronDown,
 } from "@tabler/icons-react";
-import { Popover, Button, ScrollArea, Tooltip, rem } from "@mantine/core";
+import { Popover, Button, ScrollArea, rem } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
@@ -84,18 +84,16 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
   return (
     <Popover opened={isOpen} withArrow>
       <Popover.Target>
-        <Tooltip label={t("Text align")} withArrow withinPortal={false} disabled={isOpen}>
-          <Button
-            variant="default"
-            style={{ border: "none", height: "34px" }}
-            px="5"
-            radius="0"
-            rightSection={<IconChevronDown size={16} />}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <activeItem.icon style={{ width: rem(16) }} stroke={2} />
-          </Button>
-        </Tooltip>
+        <Button
+          variant="subtle"
+          style={{ height: "34px" }}
+          px="5"
+          radius="0"
+          rightSection={<IconChevronDown size={16} stroke={1.75} />}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <activeItem.icon style={{ width: rem(16) }} stroke={1.75} />
+        </Button>
       </Popover.Target>
 
       <Popover.Dropdown>
@@ -104,7 +102,7 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
             {items.map((item, index) => (
               <Button
                 key={index}
-                variant="default"
+                variant="subtle"
                 leftSection={<item.icon size={16} />}
                 rightSection={
                   activeItem.name === item.name && <IconCheck size={16} />
@@ -115,7 +113,6 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
                   item.command();
                   setIsOpen(false);
                 }}
-                style={{ border: "none" }}
               >
                 {t(item.name)}
               </Button>

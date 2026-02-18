@@ -1,13 +1,5 @@
-import {
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUUID,
-  ValidateIf,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
-
-export type ContentFormat = 'json' | 'markdown' | 'html';
+import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PageNodeType } from '@docmost/db/repos/page/page-node-meta.repo';
 
 export class CreatePageDto {
   @IsOptional()
@@ -22,14 +14,10 @@ export class CreatePageDto {
   @IsString()
   parentPageId?: string;
 
+  @IsOptional()
+  @IsIn(['file', 'folder'])
+  nodeType?: PageNodeType;
+
   @IsUUID()
   spaceId: string;
-
-  @IsOptional()
-  content?: string | object;
-
-  @ValidateIf((o) => o.content !== undefined)
-  @Transform(({ value }) => value?.toLowerCase() ?? 'json')
-  @IsIn(['json', 'markdown', 'html'])
-  format?: ContentFormat;
 }

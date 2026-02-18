@@ -1,6 +1,7 @@
 .header {
   height: 45px;
-  background-color: var(--mantine-color-body);
+  background-color: var(--ui-bg-canvas);
+  border-bottom: rem(1px) solid var(--ui-border-default);
   padding-left: var(--mantine-spacing-md);
   padding-right: var(--mantine-spacing-md);
   position: fixed;

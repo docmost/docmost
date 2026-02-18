@@ -21,7 +21,7 @@ export const LinkEditorPanel = ({
         <Group gap="xs" style={{ flex: 1 }} wrap="nowrap">
           <TextInput
             leftSection={<IconLink size={16} />}
-            variant="filled"
+            variant="default"
             placeholder={t("Paste link")}
             value={state.url}
             onChange={state.onChange}

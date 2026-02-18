@@ -79,7 +79,7 @@ export function CreateSpaceForm() {
               id="name"
               label={t("Space name")}
               placeholder={t("e.g Product Team")}
-              variant="filled"
+              variant="default"
               {...form.getInputProps("name")}
             />
 
@@ -88,7 +88,7 @@ export function CreateSpaceForm() {
               id="slug"
               label={t("Space slug")}
               placeholder={t("e.g product")}
-              variant="filled"
+              variant="default"
               {...form.getInputProps("slug")}
             />
 
@@ -96,7 +96,7 @@ export function CreateSpaceForm() {
               id="description"
               label={t("Space description")}
               placeholder={t("e.g Space for product team")}
-              variant="filled"
+              variant="default"
               autosize
               minRows={2}
               maxRows={8}

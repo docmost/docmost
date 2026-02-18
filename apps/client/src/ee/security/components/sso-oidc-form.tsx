@@ -90,7 +90,7 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
           />
           <TextInput
             label="Callback URL"
-            variant="filled"
+            variant="default"
             value={callbackUrl}
             pointer
             readOnly

@@ -30,7 +30,7 @@ export default function WorkspaceInviteSection() {
 
       <Group>
         <div style={{ flex: 1 }}>
-          <TextInput variant="filled" value={inviteLink} readOnly />
+          <TextInput variant="default" value={inviteLink} readOnly />
         </div>
         <CopyButton value={inviteLink}>
           {({ copied, copy }) => (

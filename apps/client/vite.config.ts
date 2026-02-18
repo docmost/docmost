@@ -7,6 +7,7 @@ export const envPath = path.resolve(process.cwd(), "..", "..");
 export default defineConfig(({ mode }) => {
   const {
     APP_URL,
+    VITE_PROXY_TARGET,
     FILE_UPLOAD_SIZE_LIMIT,
     FILE_IMPORT_SIZE_LIMIT,
     DRAWIO_URL,
@@ -17,6 +18,8 @@ export default defineConfig(({ mode }) => {
     POSTHOG_HOST,
     POSTHOG_KEY,
   } = loadEnv(mode, envPath, "");
+
+  const proxyTarget = VITE_PROXY_TARGET || APP_URL;
 
   return {
     define: {
@@ -41,18 +44,20 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: process.env.VITE_DEV_HOST === "true" ? "0.0.0.0" : false,
+      allowedHosts: ["doc.superchat.help", "test-doc.superchat.help", "localhost", "127.0.0.1"],
       proxy: {
         "/api": {
-          target: APP_URL,
+          target: proxyTarget,
           changeOrigin: false,
         },
         "/socket.io": {
-          target: APP_URL,
+          target: proxyTarget,
           ws: true,
           rewriteWsOrigin: true,
         },
         "/collab": {
-          target: APP_URL,
+          target: proxyTarget,
           ws: true,
           rewriteWsOrigin: true,
         },

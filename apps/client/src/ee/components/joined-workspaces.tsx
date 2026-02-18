@@ -28,7 +28,7 @@ export default function JoinedWorkspaces() {
               <CustomAvatar
                 avatarUrl={workspace?.logo}
                 name={workspace?.name}
-                variant="filled"
+                variant="light"
                 size="md"
               />
 
@@ -42,7 +42,7 @@ export default function JoinedWorkspaces() {
                 </Text>
               </div>
 
-              <IconChevronRight size={16} />
+              <IconChevronRight size={16} stroke={1.75} />
             </Group>
           </UnstyledButton>
         ))}

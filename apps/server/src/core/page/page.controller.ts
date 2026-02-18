@@ -35,10 +35,13 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
 import { DeletedPageDto } from './dto/deleted-page.dto';
+import { BatchMovePageDto } from './dto/batch-move-page.dto';
+import { PinPageDto } from './dto/pin-page.dto';
 import {
-  jsonToHtml,
-  jsonToMarkdown,
-} from '../../collaboration/collaboration.util';
+  RollbackFolderMigrationDto,
+  StartFolderMigrationDto,
+} from './dto/folder-migration.dto';
+import { UserRole } from '../../common/helpers/types/permission';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -53,13 +56,7 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('/info')
   async getPage(@Body() dto: PageInfoDto, @AuthUser() user: User) {
-    const page = await this.pageRepo.findById(dto.pageId, {
-      includeSpace: true,
-      includeContent: true,
-      includeCreator: true,
-      includeLastUpdatedBy: true,
-      includeContributors: true,
-    });
+    const page = await this.pageService.getPageInfo(dto.pageId);
 
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -68,17 +65,6 @@ export class PageController {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
-    }
-
-    if (dto.format && dto.format !== 'json' && page.content) {
-      const contentOutput =
-        dto.format === 'markdown'
-          ? jsonToMarkdown(page.content)
-          : jsonToHtml(page.content);
-      return {
-        ...page,
-        content: contentOutput,
-      };
     }
 
     return page;
@@ -99,25 +85,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    const page = await this.pageService.create(
-      user.id,
-      workspace.id,
-      createPageDto,
-    );
-
-    if (
-      createPageDto.format &&
-      createPageDto.format !== 'json' &&
-      page.content
-    ) {
-      const contentOutput =
-        createPageDto.format === 'markdown'
-          ? jsonToMarkdown(page.content)
-          : jsonToHtml(page.content);
-      return { ...page, content: contentOutput };
-    }
-
-    return page;
+    return this.pageService.create(user.id, workspace.id, createPageDto);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -134,25 +102,7 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    const updatedPage = await this.pageService.update(
-      page,
-      updatePageDto,
-      user,
-    );
-
-    if (
-      updatePageDto.format &&
-      updatePageDto.format !== 'json' &&
-      updatedPage.content
-    ) {
-      const contentOutput =
-        updatePageDto.format === 'markdown'
-          ? jsonToMarkdown(updatedPage.content)
-          : jsonToHtml(updatedPage.content);
-      return { ...updatedPage, content: contentOutput };
-    }
-
-    return updatedPage;
+    return this.pageService.update(page, updatePageDto, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -423,6 +373,85 @@ export class PageController {
     }
 
     return this.pageService.movePage(dto, movedPage);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('batch-move')
+  async batchMovePages(@Body() dto: BatchMovePageDto, @AuthUser() user: User) {
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.batchMovePages(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('folder-migration/start')
+  async startFolderMigration(
+    @Body() dto: StartFolderMigrationDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (![UserRole.OWNER, UserRole.ADMIN].includes(user.role as UserRole)) {
+      throw new ForbiddenException();
+    }
+    const ability = await this.spaceAbility.createForUser(user, dto.spaceId);
+    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.startFolderMigration(
+      dto.spaceId,
+      workspace.id,
+      user.id,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('folder-migration/rollback')
+  async rollbackFolderMigration(
+    @Body() dto: RollbackFolderMigrationDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (![UserRole.OWNER, UserRole.ADMIN].includes(user.role as UserRole)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.rollbackFolderMigration(dto.jobId, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('pin')
+  async pinPage(@Body() dto: PinPageDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.setPagePinned(page.id, true);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('unpin')
+  async unpinPage(@Body() dto: PinPageDto, @AuthUser() user: User) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.pageService.setPagePinned(page.id, false);
   }
 
   @HttpCode(HttpStatus.OK)

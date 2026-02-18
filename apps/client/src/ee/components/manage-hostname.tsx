@@ -44,6 +44,7 @@ export default function ManageHostname() {
         onClose={close}
         title={t("Change hostname")}
         centered
+        overlayProps={{ blur: 1 }}
       >
         <ChangeHostnameForm onClose={close} />
       </Modal>
@@ -101,7 +102,7 @@ function ChangeHostnameForm({ onClose }: ChangeHostnameFormProps) {
         type="text"
         placeholder="e.g my-team"
         label="Hostname"
-        variant="filled"
+        variant="default"
         rightSection={<Text fw={500}>.{getSubdomainHost()}</Text>}
         rightSectionWidth={150}
         withErrorStyles={false}

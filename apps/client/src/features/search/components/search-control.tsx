@@ -22,8 +22,8 @@ export function SearchControl({ className, ...others }: SearchControlProps) {
   return (
     <UnstyledButton {...others} className={cx(classes.root, className)}>
       <Group gap="xs" wrap="nowrap">
-        <IconSearch style={{ width: rem(15), height: rem(15) }} stroke={1.5} />
-        <Text fz="sm" c="dimmed" pr={80}>
+        <IconSearch style={{ width: rem(15), height: rem(15) }} stroke={1.75} />
+        <Text fz="sm" className={classes.label}>
           {t("Search")}
         </Text>
         <Text fw={700} className={classes.shortcut}>
@@ -43,13 +43,8 @@ export function SearchMobileControl({ onSearch }: SearchMobileControlProps) {
 
   return (
     <Tooltip label={t("Search")} withArrow>
-      <ActionIcon
-        variant="subtle"
-        color="dark"
-        onClick={onSearch}
-        size="sm"
-      >
-        <IconSearch size={20} stroke={2} />
+      <ActionIcon variant="subtle" onClick={onSearch} size="sm">
+        <IconSearch size={18} stroke={1.75} />
       </ActionIcon>
     </Tooltip>
   );

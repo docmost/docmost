@@ -59,6 +59,7 @@ export default function DeleteSpaceModal({ space }: DeleteSpaceModalProps) {
         opened={opened}
         onClose={close}
         title={t("Are you sure you want to delete this space?")}
+        overlayProps={{ blur: 1 }}
       >
         <Divider size="xs" mb="xs" />
         <Text>
@@ -75,13 +76,13 @@ export default function DeleteSpaceModal({ space }: DeleteSpaceModalProps) {
         </Text>
         <TextInput
           {...confirmNameField.getInputProps()}
-          variant="filled"
+          variant="default"
           placeholder={t("Confirm space name")}
           py="sm"
           data-autofocus
         />
         <Group justify="flex-end" mt="md">
-          <Button onClick={close} variant="default">
+          <Button onClick={close} variant="subtle">
             {t("Cancel")}
           </Button>
           <Button onClick={handleDelete} color="red" loading={isDeleting}>

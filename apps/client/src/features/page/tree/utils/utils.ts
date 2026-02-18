@@ -56,11 +56,6 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       nodeType: page.nodeType,
       isPinned: page.isPinned,
       pinnedAt: page.pinnedAt,
-      directChildCount: page.directChildCount ?? page.directChildFolderCount ?? 0,
-      directChildFolderCount: page.directChildFolderCount ?? 0,
-      descendantFolderCount: page.descendantFolderCount ?? 0,
-      descendantFileCount: page.descendantFileCount ?? 0,
-      descendantTotalCount: page.descendantTotalCount ?? 0,
       children: [],
     };
   });

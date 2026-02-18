@@ -47,14 +47,6 @@ import {
 import { BatchMovePageDto } from '../dto/batch-move-page.dto';
 import { sql } from 'kysely';
 
-type SidebarCountFields = {
-  directChildCount: number;
-  directChildFolderCount: number;
-  descendantFolderCount: number;
-  descendantFileCount: number;
-  descendantTotalCount: number;
-};
-
 @Injectable()
 export class PageService {
   private readonly logger = new Logger(PageService.name);
@@ -75,17 +67,15 @@ export class PageService {
     includeContent?: boolean,
     includeYdoc?: boolean,
     includeSpace?: boolean,
-    workspaceId?: string,
   ): Promise<Page> {
     return this.pageRepo.findById(pageId, {
-      workspaceId,
       includeContent,
       includeYdoc,
       includeSpace,
     });
   }
 
-  async getPageInfo(pageId: string, workspaceId?: string): Promise<
+  async getPageInfo(pageId: string): Promise<
     | (Page & {
         nodeType: PageNodeType;
         isPinned: boolean;
@@ -94,7 +84,6 @@ export class PageService {
     | undefined
   > {
     const page = await this.pageRepo.findById(pageId, {
-      workspaceId,
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
@@ -136,7 +125,6 @@ export class PageService {
     if (createPageDto.parentPageId) {
       const parentPage = await this.pageRepo.findById(
         createPageDto.parentPageId,
-        { workspaceId },
       );
 
       if (!parentPage || parentPage.spaceId !== createPageDto.spaceId) {
@@ -243,12 +231,9 @@ export class PageService {
         contributorIds: contributorIds,
       },
       page.id,
-      undefined,
-      page.workspaceId,
     );
 
     return await this.pageRepo.findById(page.id, {
-      workspaceId: page.workspaceId,
       includeSpace: true,
       includeContent: true,
       includeCreator: true,
@@ -260,7 +245,6 @@ export class PageService {
   async getSidebarPages(
     spaceId: string,
     pagination: PaginationOptions,
-    workspaceId?: string,
     pageId?: string,
   ): Promise<
     CursorPaginationResult<
@@ -271,11 +255,6 @@ export class PageService {
         pinnedAt: Date | null;
         pinSortOrder: number;
         pinnedAtSort: Date;
-        directChildCount: number;
-        directChildFolderCount: number;
-        descendantFolderCount: number;
-        descendantFileCount: number;
-        descendantTotalCount: number;
       }
     >
   > {
@@ -343,9 +322,6 @@ export class PageService {
       .select(pinSortExpression.as('pinSortOrder'))
       .select(pinnedAtSortExpression.as('pinnedAtSort'))
       .select((eb) => this.pageRepo.withHasChildren(eb))
-      .$if(Boolean(workspaceId), (qb) =>
-        qb.where('pages.workspaceId', '=', workspaceId!),
-      )
       .where('pages.deletedAt', 'is', null)
       .where('pages.spaceId', '=', spaceId);
 
@@ -357,7 +333,7 @@ export class PageService {
     }
 
     try {
-      const paginatedResult = await executeWithCursorPagination(query, {
+      return await executeWithCursorPagination(query, {
         perPage: 250,
         cursor: pagination.cursor,
         beforeCursor: pagination.beforeCursor,
@@ -372,16 +348,6 @@ export class PageService {
           };
         },
       });
-
-      const enrichedItems = await this.enrichSidebarItemsWithCounts(
-        paginatedResult.items,
-        spaceId,
-      );
-
-      return {
-        ...paginatedResult,
-        items: enrichedItems,
-      };
     } catch (err) {
       if (!this.isMissingTableError(err)) {
         throw err;
@@ -406,9 +372,6 @@ export class PageService {
         .select(() => sql<number>`0`.as('pinSortOrder'))
         .select(() => sql<Date>`to_timestamp(0)`.as('pinnedAtSort'))
         .select((eb) => this.pageRepo.withHasChildren(eb))
-        .$if(Boolean(workspaceId), (qb) =>
-          qb.where('pages.workspaceId', '=', workspaceId!),
-        )
         .where('pages.deletedAt', 'is', null)
         .where('pages.spaceId', '=', spaceId);
 
@@ -427,7 +390,7 @@ export class PageService {
         { expression: 'pages.id', direction: 'asc' },
       ] as const;
 
-      const paginatedResult = await executeWithCursorPagination(legacyQuery, {
+      return executeWithCursorPagination(legacyQuery, {
         perPage: 250,
         cursor: pagination.cursor,
         beforeCursor: pagination.beforeCursor,
@@ -440,177 +403,6 @@ export class PageService {
           };
         },
       });
-
-      const enrichedItems = await this.enrichSidebarItemsWithCounts(
-        paginatedResult.items,
-        spaceId,
-      );
-
-      return {
-        ...paginatedResult,
-        items: enrichedItems,
-      };
-    }
-  }
-
-  private async enrichSidebarItemsWithCounts<T extends { id: string }>(
-    items: T[],
-    spaceId: string,
-  ): Promise<Array<T & SidebarCountFields>> {
-    if (!items.length) {
-      return [] as Array<T & SidebarCountFields>;
-    }
-
-    const pageIds = items.map((item) => item.id);
-    const rootValues = sql.join(pageIds.map((id) => sql`(${id}::uuid)`));
-    const pageIdInClause = sql.join(pageIds.map((id) => sql`${id}::uuid`));
-
-    try {
-      const directCountsResult = await sql<{
-        pageId: string;
-        directChildCount: number;
-        directChildFolderCount: number;
-      }>`
-        select
-          child.parent_page_id as "pageId",
-          count(*)::int as "directChildCount",
-          count(*) filter (where coalesce(meta.node_type, 'file') = 'folder')::int as "directChildFolderCount"
-        from pages child
-        left join page_node_meta meta on meta.page_id = child.id
-        where child.parent_page_id in (${pageIdInClause})
-          and child.deleted_at is null
-          and child.space_id = ${spaceId}
-        group by child.parent_page_id
-      `.execute(this.db);
-
-      const descendantCountsResult = await sql<{
-        pageId: string;
-        descendantFolderCount: number;
-        descendantFileCount: number;
-        descendantTotalCount: number;
-      }>`
-        with recursive roots(page_id) as (
-          values ${rootValues}
-        ),
-        descendants(root_id, id) as (
-          select roots.page_id, child.id
-          from roots
-          join pages child
-            on child.parent_page_id = roots.page_id
-           and child.deleted_at is null
-           and child.space_id = ${spaceId}
-          union all
-          select descendants.root_id, child.id
-          from descendants
-          join pages child
-            on child.parent_page_id = descendants.id
-           and child.deleted_at is null
-           and child.space_id = ${spaceId}
-        )
-        select
-          descendants.root_id as "pageId",
-          count(*) filter (where coalesce(meta.node_type, 'file') = 'folder')::int as "descendantFolderCount",
-          count(*) filter (where coalesce(meta.node_type, 'file') = 'file')::int as "descendantFileCount",
-          count(*)::int as "descendantTotalCount"
-        from descendants
-        left join page_node_meta meta on meta.page_id = descendants.id
-        group by descendants.root_id
-      `.execute(this.db);
-
-      const directCountMap = new Map<
-        string,
-        { directChildCount: number; directChildFolderCount: number }
-      >(
-        directCountsResult.rows.map((row) => [
-          row.pageId,
-          {
-            directChildCount: Number(row.directChildCount ?? 0),
-            directChildFolderCount: Number(row.directChildFolderCount ?? 0),
-          },
-        ]),
-      );
-      const descendantCountMap = new Map<
-        string,
-        {
-          descendantFolderCount: number;
-          descendantFileCount: number;
-          descendantTotalCount: number;
-        }
-      >(
-        descendantCountsResult.rows.map((row) => [
-          row.pageId,
-          {
-            descendantFolderCount: Number(row.descendantFolderCount ?? 0),
-            descendantFileCount: Number(row.descendantFileCount ?? 0),
-            descendantTotalCount: Number(row.descendantTotalCount ?? 0),
-          },
-        ]),
-      );
-
-      return items.map((item) => {
-        const direct = directCountMap.get(item.id);
-        const descendant = descendantCountMap.get(item.id);
-        return {
-          ...item,
-          directChildCount: direct?.directChildCount ?? 0,
-          directChildFolderCount: direct?.directChildFolderCount ?? 0,
-          descendantFolderCount: descendant?.descendantFolderCount ?? 0,
-          descendantFileCount: descendant?.descendantFileCount ?? 0,
-          descendantTotalCount: descendant?.descendantTotalCount ?? 0,
-        };
-      });
-    } catch (err) {
-      if (!this.isMissingTableError(err)) {
-        throw err;
-      }
-
-      const descendantTotalsResult = await sql<{
-        pageId: string;
-        descendantTotalCount: number;
-      }>`
-        with recursive roots(page_id) as (
-          values ${rootValues}
-        ),
-        descendants(root_id, id) as (
-          select roots.page_id, child.id
-          from roots
-          join pages child
-            on child.parent_page_id = roots.page_id
-           and child.deleted_at is null
-           and child.space_id = ${spaceId}
-          union all
-          select descendants.root_id, child.id
-          from descendants
-          join pages child
-            on child.parent_page_id = descendants.id
-           and child.deleted_at is null
-           and child.space_id = ${spaceId}
-        )
-        select
-          descendants.root_id as "pageId",
-          count(*)::int as "descendantTotalCount"
-        from descendants
-        group by descendants.root_id
-      `.execute(this.db);
-
-      const descendantTotalMap = new Map<string, number>(
-        descendantTotalsResult.rows.map((row) => [
-          row.pageId,
-          Number(row.descendantTotalCount ?? 0),
-        ]),
-      );
-
-      return items.map((item) => {
-        const descendantTotalCount = descendantTotalMap.get(item.id) ?? 0;
-        return {
-          ...item,
-          directChildCount: 0,
-          directChildFolderCount: 0,
-          descendantFolderCount: 0,
-          descendantFileCount: descendantTotalCount,
-          descendantTotalCount,
-        };
-      });
     }
   }
 
@@ -622,13 +414,9 @@ export class PageService {
         { spaceId, parentPageId: null, position: nextPosition },
         rootPage.id,
         trx,
-        rootPage.workspaceId,
       );
       const pageIds = await this.pageRepo
-        .getPageAndDescendants(rootPage.id, {
-          includeContent: false,
-          workspaceId: rootPage.workspaceId,
-        })
+        .getPageAndDescendants(rootPage.id, { includeContent: false })
         .then((pages) => pages.map((page) => page.id));
       // The first id is the root page id
       if (pageIds.length > 1) {
@@ -637,7 +425,6 @@ export class PageService {
           { spaceId },
           pageIds.filter((id) => id !== rootPage.id),
           trx,
-          rootPage.workspaceId,
         );
       }
 
@@ -646,7 +433,6 @@ export class PageService {
           await trx
             .updateTable('pageNodeMeta')
             .set({ spaceId, updatedAt: new Date() })
-            .where('workspaceId', '=', rootPage.workspaceId)
             .where('pageId', 'in', pageIds)
             .execute();
         } catch (err) {
@@ -659,7 +445,6 @@ export class PageService {
         await trx
           .updateTable('shares')
           .set({ spaceId: spaceId })
-          .where('workspaceId', '=', rootPage.workspaceId)
           .where('pageId', 'in', pageIds)
           .execute();
 
@@ -667,7 +452,6 @@ export class PageService {
         await trx
           .updateTable('comments')
           .set({ spaceId: spaceId })
-          .where('workspaceId', '=', rootPage.workspaceId)
           .where('pageId', 'in', pageIds)
           .execute();
 
@@ -675,10 +459,7 @@ export class PageService {
         await this.attachmentRepo.updateAttachmentsByPageId(
           { spaceId },
           pageIds,
-          {
-            workspaceId: rootPage.workspaceId,
-            trx,
-          },
+          trx,
         );
 
         await this.aiQueue.add(QueueJob.PAGE_MOVED_TO_SPACE, {
@@ -710,7 +491,6 @@ export class PageService {
 
     const pages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: true,
-      workspaceId: rootPage.workspaceId,
     });
 
     const pageMap = new Map<string, CopyPageMapEntry>();
@@ -927,7 +707,6 @@ export class PageService {
 
     const newPageId = pageMap.get(rootPage.id).newPageId;
     const duplicatedPage = await this.pageRepo.findById(newPageId, {
-      workspaceId: rootPage.workspaceId,
       includeSpace: true,
     });
 
@@ -959,9 +738,7 @@ export class PageService {
       // changing the page's parent
       let targetParentNodeType: PageNodeType | null = null;
       if (targetParentId) {
-        const parentPage = await this.pageRepo.findById(targetParentId, {
-          workspaceId: movedPage.workspaceId,
-        });
+        const parentPage = await this.pageRepo.findById(targetParentId);
         if (!parentPage || parentPage.spaceId !== movedPage.spaceId) {
           throw new NotFoundException('Parent page not found');
         }
@@ -983,15 +760,11 @@ export class PageService {
         parentPageId: parentPageId,
       },
       dto.pageId,
-      undefined,
-      movedPage.workspaceId,
     );
   }
 
-  async setPagePinned(pageId: string, isPinned: boolean, workspaceId?: string) {
-    const page = await this.pageRepo.findById(pageId, {
-      workspaceId,
-    });
+  async setPagePinned(pageId: string, isPinned: boolean) {
+    const page = await this.pageRepo.findById(pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
     }
@@ -1017,10 +790,8 @@ export class PageService {
     };
   }
 
-  async batchMovePages(dto: BatchMovePageDto, workspaceId?: string) {
-    const targetFolder = await this.pageRepo.findById(dto.targetFolderId, {
-      workspaceId,
-    });
+  async batchMovePages(dto: BatchMovePageDto) {
+    const targetFolder = await this.pageRepo.findById(dto.targetFolderId);
     if (!targetFolder || targetFolder.spaceId !== dto.spaceId) {
       throw new NotFoundException('Target folder not found');
     }
@@ -1030,10 +801,7 @@ export class PageService {
       throw new BadRequestException('Target must be a folder');
     }
 
-    const pagesToMove = await this.resolvePagesForBatchMove(
-      dto,
-      targetFolder.workspaceId,
-    );
+    const pagesToMove = await this.resolvePagesForBatchMove(dto);
     if (pagesToMove.length === 0) {
       return {
         taskId: null,
@@ -1049,13 +817,11 @@ export class PageService {
           .selectFrom('pages')
           .select(['id', 'parentPageId'])
           .where('id', '=', targetFolder.id)
-          .where('workspaceId', '=', targetFolder.workspaceId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
               .select(['p.id', 'p.parentPageId'])
-              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .where('p.workspaceId', '=', targetFolder.workspaceId),
+              .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id'),
           ),
       )
       .selectFrom('page_ancestors')
@@ -1067,7 +833,6 @@ export class PageService {
     const targetSiblings = await this.db
       .selectFrom('pages')
       .select(['id', 'title'])
-      .where('workspaceId', '=', targetFolder.workspaceId)
       .where('spaceId', '=', dto.spaceId)
       .where('parentPageId', '=', targetFolder.id)
       .where('deletedAt', 'is', null)
@@ -1116,7 +881,6 @@ export class PageService {
     const lastSibling = await this.db
       .selectFrom('pages')
       .select(['position'])
-      .where('workspaceId', '=', targetFolder.workspaceId)
       .where('spaceId', '=', dto.spaceId)
       .where('parentPageId', '=', targetFolder.id)
       .where('deletedAt', 'is', null)
@@ -1138,7 +902,6 @@ export class PageService {
             position: nextPosition,
             updatedAt: new Date(),
           })
-          .where('workspaceId', '=', targetFolder.workspaceId)
           .where('id', '=', page.id)
           .execute();
       }
@@ -1157,16 +920,10 @@ export class PageService {
     };
   }
 
-  private async resolvePagesForBatchMove(
-    dto: BatchMovePageDto,
-    workspaceId?: string,
-  ) {
+  private async resolvePagesForBatchMove(dto: BatchMovePageDto) {
     const baseQuery = this.db
       .selectFrom('pages')
       .select(['id', 'title', 'parentPageId', 'spaceId', 'workspaceId'])
-      .$if(Boolean(workspaceId), (qb) =>
-        qb.where('workspaceId', '=', workspaceId!),
-      )
       .where('spaceId', '=', dto.spaceId)
       .where('deletedAt', 'is', null);
 
@@ -1291,7 +1048,6 @@ export class PageService {
               position: nextPosition,
               updatedAt: new Date(),
             })
-            .where('workspaceId', '=', workspaceId)
             .where('id', '=', page.id)
             .execute();
 
@@ -1400,7 +1156,6 @@ export class PageService {
             position: item.oldPosition ?? null,
             updatedAt: new Date(),
           })
-          .where('workspaceId', '=', workspaceId)
           .where('id', '=', item.pageId)
           .execute();
 
@@ -1527,7 +1282,7 @@ export class PageService {
     return message.includes('relation') && message.includes('does not exist');
   }
 
-  async getPageBreadCrumbs(childPageId: string, workspaceId?: string) {
+  async getPageBreadCrumbs(childPageId: string) {
     const ancestors = await this.db
       .withRecursive('page_ancestors', (db) =>
         db
@@ -1543,9 +1298,6 @@ export class PageService {
             'deletedAt',
           ])
           .select((eb) => this.pageRepo.withHasChildren(eb))
-          .$if(Boolean(workspaceId), (qb) =>
-            qb.where('workspaceId', '=', workspaceId!),
-          )
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
           .unionAll((exp) =>
@@ -1580,9 +1332,6 @@ export class PageService {
               )
               //.select((eb) => this.withHasChildren(eb))
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
-              .$if(Boolean(workspaceId), (qb) =>
-                qb.where('p.workspaceId', '=', workspaceId!),
-              )
               .where('p.deletedAt', 'is', null),
           ),
       )
@@ -1596,29 +1345,22 @@ export class PageService {
   async getRecentSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
-    workspaceId?: string,
   ): Promise<CursorPaginationResult<Page>> {
-    return this.pageRepo.getRecentPagesInSpace(spaceId, pagination, workspaceId);
+    return this.pageRepo.getRecentPagesInSpace(spaceId, pagination);
   }
 
   async getRecentPages(
     userId: string,
-    workspaceId: string,
     pagination: PaginationOptions,
   ): Promise<CursorPaginationResult<Page>> {
-    return this.pageRepo.getRecentPages(userId, workspaceId, pagination);
+    return this.pageRepo.getRecentPages(userId, pagination);
   }
 
   async getDeletedSpacePages(
     spaceId: string,
     pagination: PaginationOptions,
-    workspaceId?: string,
   ): Promise<CursorPaginationResult<Page>> {
-    return this.pageRepo.getDeletedPagesInSpace(
-      spaceId,
-      pagination,
-      workspaceId,
-    );
+    return this.pageRepo.getDeletedPagesInSpace(spaceId, pagination);
   }
 
   async forceDelete(pageId: string, workspaceId: string): Promise<void> {
@@ -1629,13 +1371,11 @@ export class PageService {
           .selectFrom('pages')
           .select(['id'])
           .where('id', '=', pageId)
-          .where('workspaceId', '=', workspaceId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
               .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
-              .where('p.workspaceId', '=', workspaceId),
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
           ),
       )
       .selectFrom('page_descendants')
@@ -1650,7 +1390,6 @@ export class PageService {
         QueueJob.DELETE_PAGE_ATTACHMENTS,
         {
           pageId: id,
-          workspaceId,
         },
         {
           jobId: `delete-page-attachments-${id}`,
@@ -1664,11 +1403,7 @@ export class PageService {
     }
 
     if (pageIds.length > 0) {
-      await this.db
-        .deleteFrom('pages')
-        .where('workspaceId', '=', workspaceId)
-        .where('id', 'in', pageIds)
-        .execute();
+      await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
       this.eventEmitter.emit(EventName.PAGE_DELETED, {
         pageIds: pageIds,
         workspaceId,

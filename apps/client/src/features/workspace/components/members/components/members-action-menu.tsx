@@ -46,7 +46,7 @@ export default function MemberActionMenu({ userId }: Props) {
       >
         <Menu.Target>
           <ActionIcon variant="subtle" c="gray">
-            <IconDots size={20} stroke={2} />
+            <IconDots size={18} stroke={1.75} />
           </ActionIcon>
         </Menu.Target>
 
@@ -54,7 +54,7 @@ export default function MemberActionMenu({ userId }: Props) {
           <Menu.Item
             c="red"
             onClick={openRevokeModal}
-            leftSection={<IconTrash size={16} />}
+            leftSection={<IconTrash size={16} stroke={1.75} />}
             disabled={!isAdmin}
           >
             {t("Delete member")}

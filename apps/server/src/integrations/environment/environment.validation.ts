@@ -61,6 +61,11 @@ export class EnvironmentVariables {
   CLOUD: boolean;
 
   @IsOptional()
+  @IsIn(['prod', 'staging'])
+  @IsString()
+  APP_CHANNEL: string;
+
+  @IsOptional()
   @IsUrl(
     { protocols: [], require_tld: true },
     {

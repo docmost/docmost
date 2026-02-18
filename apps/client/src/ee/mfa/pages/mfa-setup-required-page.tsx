@@ -14,10 +14,10 @@ import {
 import { IconShieldCheck, IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import APP_ROUTE from "@/lib/app-route";
-import { MfaSetupModal } from "@/ee/mfa";
+import { MfaSetupModal } from "@/ee/mfa/components/mfa-setup-modal";
 import classes from "@/features/auth/components/auth.module.css";
 import { notifications } from "@mantine/notifications";
-import { useMfaPageProtection } from "@/ee/mfa";
+import { useMfaPageProtection } from "@/ee/mfa/hooks/use-mfa-page-protection";
 
 export function MfaSetupRequiredPage() {
   const { t } = useTranslation();

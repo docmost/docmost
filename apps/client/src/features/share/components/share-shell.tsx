@@ -143,25 +143,23 @@ export default function ShareShell({
 
               <Tooltip label={t("Table of contents")} withArrow>
                 <ActionIcon
-                  variant="default"
-                  style={{ border: "none" }}
+                  variant="subtle"
                   onClick={toggleTocMobile}
                   hiddenFrom="sm"
                   size="sm"
                 >
-                  <IconList size={20} stroke={2} />
+                  <IconList size={18} stroke={1.75} />
                 </ActionIcon>
               </Tooltip>
 
               <Tooltip label={t("Table of contents")} withArrow>
                 <ActionIcon
-                  variant="default"
-                  style={{ border: "none" }}
+                  variant="subtle"
                   onClick={toggleToc}
                   visibleFrom="sm"
                   size="sm"
                 >
-                  <IconList size={20} stroke={2} />
+                  <IconList size={18} stroke={1.75} />
                 </ActionIcon>
               </Tooltip>
             </>

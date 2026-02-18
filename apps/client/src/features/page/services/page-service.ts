@@ -1,7 +1,13 @@
 import api from "@/lib/api-client";
 import {
+  IBatchMovePages,
+  IBatchMoveResult,
   ICopyPageToSpace,
   IExportPageParams,
+  IFolderMigrationRollbackPayload,
+  IFolderMigrationRollbackResult,
+  IFolderMigrationStartPayload,
+  IFolderMigrationStartResult,
   IMovePage,
   IMovePageToSpace,
   IPage,
@@ -51,6 +57,47 @@ export async function restorePage(pageId: string): Promise<IPage> {
 
 export async function movePage(data: IMovePage): Promise<void> {
   await api.post<void>("/pages/move", data);
+}
+
+export async function batchMovePages(data: IBatchMovePages): Promise<IBatchMoveResult> {
+  const req = await api.post<IBatchMoveResult>("/pages/batch-move", data);
+  return req.data;
+}
+
+export async function pinPage(pageId: string): Promise<{ pageId: string; isPinned: boolean; pinnedAt: Date | null }> {
+  const req = await api.post<{ pageId: string; isPinned: boolean; pinnedAt: Date | null }>(
+    "/pages/pin",
+    { pageId },
+  );
+  return req.data;
+}
+
+export async function unpinPage(pageId: string): Promise<{ pageId: string; isPinned: boolean; pinnedAt: Date | null }> {
+  const req = await api.post<{ pageId: string; isPinned: boolean; pinnedAt: Date | null }>(
+    "/pages/unpin",
+    { pageId },
+  );
+  return req.data;
+}
+
+export async function startFolderMigration(
+  data: IFolderMigrationStartPayload,
+): Promise<IFolderMigrationStartResult> {
+  const req = await api.post<IFolderMigrationStartResult>(
+    "/pages/folder-migration/start",
+    data,
+  );
+  return req.data;
+}
+
+export async function rollbackFolderMigration(
+  data: IFolderMigrationRollbackPayload,
+): Promise<IFolderMigrationRollbackResult> {
+  const req = await api.post<IFolderMigrationRollbackResult>(
+    "/pages/folder-migration/rollback",
+    data,
+  );
+  return req.data;
 }
 
 export async function movePageToSpace(data: IMovePageToSpace): Promise<void> {

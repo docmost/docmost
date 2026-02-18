@@ -1,0 +1,164 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--ui-bg-canvas);
+  color: var(--ui-text-primary);
+}
+
+.mantine-AppShell-main {
+  background: var(--ui-bg-canvas);
+}
+
+.mantine-Paper-root[data-with-border="true"] {
+  border-color: var(--ui-border-default);
+  box-shadow: none;
+}
+
+.mantine-Menu-dropdown {
+  border: 1px solid var(--ui-border-default);
+  border-radius: 10px;
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.mantine-Menu-item {
+  border-radius: 8px;
+  color: var(--ui-text-primary);
+  font-weight: 500;
+}
+
+.mantine-Button-root {
+  border-radius: 10px;
+  font-weight: 600;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.mantine-Button-root[data-variant="filled"] {
+  background: var(--ui-accent-primary);
+}
+
+.mantine-Button-root[data-variant="filled"]:hover {
+  background: var(--ui-accent-hover);
+}
+
+.mantine-Button-root[data-variant="default"] {
+  background: var(--ui-bg-surface);
+  border-color: var(--ui-border-default);
+  color: var(--ui-text-primary);
+}
+
+.mantine-Button-root[data-variant="subtle"],
+.mantine-Button-root[data-variant="light"] {
+  color: var(--ui-text-primary);
+}
+
+.mantine-ActionIcon-root {
+  border-radius: 10px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.mantine-ActionIcon-root[data-variant="default"] {
+  border-color: var(--ui-border-default);
+  background: var(--ui-bg-surface);
+}
+
+.mantine-ActionIcon-root[data-variant="default"]:hover {
+  border-color: var(--ui-border-hover);
+  background: var(--ui-bg-subtle);
+}
+
+.mantine-ActionIcon-root[data-variant="transparent"]:hover {
+  background: var(--ui-bg-subtle);
+}
+
+.mantine-TextInput-input,
+.mantine-Textarea-input,
+.mantine-Input-input {
+  border-color: var(--ui-border-default);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  border-radius: 10px;
+}
+
+.mantine-TextInput-input[data-variant="filled"],
+.mantine-Textarea-input[data-variant="filled"],
+.mantine-Input-input[data-variant="filled"],
+.mantine-Select-input[data-variant="filled"],
+.mantine-PasswordInput-input[data-variant="filled"] {
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-default);
+}
+
+.mantine-TextInput-input:focus,
+.mantine-Textarea-input:focus,
+.mantine-Input-input:focus,
+.mantine-Select-input:focus,
+.mantine-PasswordInput-input:focus {
+  border-color: var(--ui-border-active);
+}
+
+.mantine-Select-input,
+.mantine-PasswordInput-input {
+  border-color: var(--ui-border-default);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  border-radius: 10px;
+}
+
+.mantine-Modal-content {
+  border: 1px solid var(--ui-border-default);
+  border-radius: 12px;
+  box-shadow: var(--ui-shadow-sm);
+  background: var(--ui-bg-surface);
+}
+
+.mantine-Modal-header {
+  border-bottom: 1px solid var(--ui-border-default);
+  background: var(--ui-bg-surface);
+  min-height: 46px;
+}
+
+.mantine-Modal-title {
+  color: var(--ui-text-primary);
+  font-weight: 600;
+}
+
+.mantine-Modal-body {
+  color: var(--ui-text-primary);
+}
+
+.mantine-Divider-root {
+  border-color: var(--ui-border-default);
+}
+
+.mantine-Combobox-dropdown {
+  border: 1px solid var(--ui-border-default);
+  border-radius: 10px;
+  box-shadow: var(--ui-shadow-sm);
+  background: var(--ui-bg-surface);
+}
+
+.mantine-Combobox-option {
+  border-radius: 8px;
+  color: var(--ui-text-primary);
+}
+
+.mantine-Combobox-option[data-combobox-selected="true"],
+.mantine-Combobox-option[data-combobox-selected="true"]:hover {
+  background: rgba(37, 99, 235, 0.10);
+}
+
+.mantine-Tabs-tab {
+  border-radius: 8px;
+}
+
+.mantine-Tabs-tab[data-active="true"] {
+  background: var(--ui-bg-subtle);
+}

@@ -102,12 +102,6 @@ export function useTreeMutation<T>(spaceId: string) {
       nodeType: createdPage.nodeType ?? nodeType,
       isPinned: createdPage.isPinned ?? false,
       pinnedAt: createdPage.pinnedAt ?? null,
-      directChildCount:
-        createdPage.directChildCount ?? createdPage.directChildFolderCount ?? 0,
-      directChildFolderCount: createdPage.directChildFolderCount ?? 0,
-      descendantFolderCount: createdPage.descendantFolderCount ?? 0,
-      descendantFileCount: createdPage.descendantFileCount ?? 0,
-      descendantTotalCount: createdPage.descendantTotalCount ?? 0,
       children: [],
     } as any;
 
@@ -256,12 +250,6 @@ export function useTreeMutation<T>(spaceId: string) {
       nodeType: nodeData.nodeType,
       isPinned: nodeData.isPinned,
       pinnedAt: nodeData.pinnedAt,
-      directChildCount:
-        nodeData.directChildCount ?? nodeData.directChildFolderCount ?? 0,
-      directChildFolderCount: nodeData.directChildFolderCount ?? 0,
-      descendantFolderCount: nodeData.descendantFolderCount ?? 0,
-      descendantFileCount: nodeData.descendantFileCount ?? 0,
-      descendantTotalCount: nodeData.descendantTotalCount ?? 0,
     };
 
     try {

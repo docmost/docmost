@@ -33,6 +33,7 @@ export function ApiKeyCreatedModal({
       onClose={onClose}
       title={t("API key created")}
       size="lg"
+      overlayProps={{ blur: 1 }}
     >
       <Stack gap="md">
         <Alert
@@ -51,7 +52,7 @@ export function ApiKeyCreatedModal({
           </Text>
           <Group gap="xs" wrap="nowrap">
             <TextInput
-              variant="filled"
+              variant="default"
               style={{
                 flex: 1,
               }}
