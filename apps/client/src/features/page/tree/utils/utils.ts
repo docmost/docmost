@@ -2,9 +2,38 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 
 export function sortPositionKeys(keys: any[]) {
+  const getNode = (entry: any) => entry?.data ?? entry;
+  const parsePinnedAt = (value: unknown): number => {
+    if (!value) return 0;
+    const date = value instanceof Date ? value : new Date(value as string);
+    const timestamp = date.getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  };
+
   return keys.sort((a, b) => {
-    if (a.position < b.position) return -1;
-    if (a.position > b.position) return 1;
+    const left = getNode(a);
+    const right = getNode(b);
+
+    const leftPinned = Boolean(left?.isPinned);
+    const rightPinned = Boolean(right?.isPinned);
+
+    if (leftPinned !== rightPinned) {
+      return leftPinned ? -1 : 1;
+    }
+
+    if (leftPinned && rightPinned) {
+      const leftPinnedAt = parsePinnedAt(left?.pinnedAt);
+      const rightPinnedAt = parsePinnedAt(right?.pinnedAt);
+      if (leftPinnedAt !== rightPinnedAt) {
+        return rightPinnedAt - leftPinnedAt;
+      }
+    }
+
+    const leftPosition = left?.position ?? "";
+    const rightPosition = right?.position ?? "";
+
+    if (leftPosition < rightPosition) return -1;
+    if (leftPosition > rightPosition) return 1;
     return 0;
   });
 }
@@ -24,6 +53,14 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
       hasChildren: page.hasChildren,
       spaceId: page.spaceId,
       parentPageId: page.parentPageId,
+      nodeType: page.nodeType,
+      isPinned: page.isPinned,
+      pinnedAt: page.pinnedAt,
+      directChildCount: page.directChildCount ?? page.directChildFolderCount ?? 0,
+      directChildFolderCount: page.directChildFolderCount ?? 0,
+      descendantFolderCount: page.descendantFolderCount ?? 0,
+      descendantFileCount: page.descendantFileCount ?? 0,
+      descendantTotalCount: page.descendantTotalCount ?? 0,
       children: [],
     };
   });
@@ -183,7 +220,7 @@ export function appendNodeChildren(
 
       return {
         ...node,
-        children: merged,
+        children: sortPositionKeys(merged),
       };
     }
 
@@ -215,3 +252,32 @@ export function mergeRootTrees(
 
   return sortPositionKeys(merged);
 }
+
+export const updateTreeNodePinnedState = (
+  nodes: SpaceTreeNode[],
+  nodeId: string,
+  isPinned: boolean,
+  pinnedAt: Date | string | null,
+): SpaceTreeNode[] => {
+  return sortPositionKeys(
+    nodes.map((node) => {
+      if (node.id === nodeId) {
+        return { ...node, isPinned, pinnedAt };
+      }
+
+      if (node.children?.length > 0) {
+        return {
+          ...node,
+          children: updateTreeNodePinnedState(
+            node.children,
+            nodeId,
+            isPinned,
+            pinnedAt,
+          ),
+        };
+      }
+
+      return node;
+    }),
+  );
+};

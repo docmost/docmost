@@ -9,6 +9,10 @@
   top: var(--app-shell-header-offset, 0rem);
   inset-inline-start: var(--app-shell-navbar-offset, 0rem);
   inset-inline-end: var(--app-shell-aside-offset, 0rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  column-gap: var(--mantine-spacing-sm);
 
   @media (max-width: $mantine-breakpoint-sm) {
     padding-left: var(--mantine-spacing-xs);
@@ -20,9 +24,42 @@
   }
 }
 
-.group {
+.left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--ui-border-default);
+  flex: 0 0 auto;
+}
+
+.toolbarSlot {
+  min-width: 0;
+  max-width: min(50vw, 680px);
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.right {
+  justify-self: end;
+  min-width: 0;
+
   @media (max-width: $mantine-breakpoint-sm) {
     gap: var(--mantine-spacing-sm);
-    padding-inline: 0 !important;
+  }
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+  .divider,
+  .toolbarSlot {
+    display: none;
   }
 }

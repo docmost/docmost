@@ -34,6 +34,7 @@ export interface TitleEditorProps {
   title: string;
   spaceSlug: string;
   editable: boolean;
+  className?: string;
 }
 
 export function TitleEditor({
@@ -42,6 +43,7 @@ export function TitleEditor({
   title,
   spaceSlug,
   editable,
+  className,
 }: TitleEditorProps) {
   const { t } = useTranslation();
   const { mutateAsync: updateTitlePageMutationAsync } =
@@ -241,15 +243,17 @@ export function TitleEditor({
   }
 
   return (
-    <EditorContent
-      editor={titleEditor}
-      onKeyDown={(event) => {
-        // First handle the search hotkey
-        getHotkeyHandler([["mod+F", openSearchDialog]])(event);
+    <div id="page-title-anchor" className={className}>
+      <EditorContent
+        editor={titleEditor}
+        onKeyDown={(event) => {
+          // First handle the search hotkey
+          getHotkeyHandler([["mod+F", openSearchDialog]])(event);
 
-        // Then handle other key events
-        handleTitleKeyDown(event);
-      }}
-    />
+          // Then handle other key events
+          handleTitleKeyDown(event);
+        }}
+      />
+    </div>
   );
 }

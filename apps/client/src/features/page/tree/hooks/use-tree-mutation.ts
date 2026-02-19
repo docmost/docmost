@@ -23,6 +23,8 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { notifications } from "@mantine/notifications";
+import { useRef } from "react";
 
 export function useTreeMutation<T>(spaceId: string) {
   const [data, setData] = useAtom(treeDataAtom);
@@ -35,10 +37,47 @@ export function useTreeMutation<T>(spaceId: string) {
   const { spaceSlug } = useParams();
   const { pageSlug } = useParams();
   const emit = useQueryEmit();
+  const pendingFolderNavigationRef = useRef<Record<string, string>>({});
 
   const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
-    const payload: { spaceId: string; parentPageId?: string } = {
+    const parentNode = parentId ? tree.find(parentId) : null;
+    const parentNodeType =
+      parentNode?.data?.nodeType === "folder" ? "folder" : "file";
+
+    const nodeType: "file" | "folder" =
+      parentId === null ? "folder" : type === "internal" ? "folder" : "file";
+
+    if (parentId && !parentNode) {
+      notifications.show({
+        color: "red",
+        message: "Parent node not found",
+      });
+      throw new Error("Parent node not found");
+    }
+
+    if (parentId === null && nodeType !== "folder") {
+      notifications.show({
+        color: "red",
+        message: "Root can only contain folders",
+      });
+      throw new Error("Root can only contain folders");
+    }
+
+    if (parentId !== null && parentNodeType === "file" && nodeType === "folder") {
+      notifications.show({
+        color: "red",
+        message: "Folders cannot be created under files",
+      });
+      throw new Error("Folders cannot be created under files");
+    }
+
+    const payload: {
+      spaceId: string;
+      parentPageId?: string;
+      nodeType: "file" | "folder";
+    } = {
       spaceId: spaceId,
+      nodeType,
     };
     if (parentId) {
       payload.parentPageId = parentId;
@@ -54,10 +93,21 @@ export function useTreeMutation<T>(spaceId: string) {
     const data = {
       id: createdPage.id,
       slugId: createdPage.slugId,
-      name: "",
+      name: createdPage.title ?? "",
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
+      icon: createdPage.icon,
+      hasChildren: createdPage.hasChildren,
+      nodeType: createdPage.nodeType ?? nodeType,
+      isPinned: createdPage.isPinned ?? false,
+      pinnedAt: createdPage.pinnedAt ?? null,
+      directChildCount:
+        createdPage.directChildCount ?? createdPage.directChildFolderCount ?? 0,
+      directChildFolderCount: createdPage.directChildFolderCount ?? 0,
+      descendantFolderCount: createdPage.descendantFolderCount ?? 0,
+      descendantFileCount: createdPage.descendantFileCount ?? 0,
+      descendantTotalCount: createdPage.descendantTotalCount ?? 0,
       children: [],
     } as any;
 
@@ -85,12 +135,18 @@ export function useTreeMutation<T>(spaceId: string) {
       });
     }, 50);
 
-    const pageUrl = buildPageUrl(
-      spaceSlug,
-      createdPage.slugId,
-      createdPage.title
-    );
-    navigate(pageUrl);
+    if (nodeType === "file") {
+      const pageUrl = buildPageUrl(
+        spaceSlug,
+        createdPage.slugId,
+        createdPage.title
+      );
+      navigate(pageUrl);
+    } else {
+      // Keep inline rename available for newly created folders.
+      pendingFolderNavigationRef.current[createdPage.id] = createdPage.slugId;
+    }
+
     return data;
   };
 
@@ -101,6 +157,15 @@ export function useTreeMutation<T>(spaceId: string) {
     parentNode: NodeApi<T> | null;
     index: number;
   }) => {
+    if (args.dragIds.length > 1) {
+      notifications.show({
+        color: "yellow",
+        message:
+          "Dragging multiple pages is not supported yet. Use batch move in folder menu.",
+      });
+      return;
+    }
+
     const draggedNodeId = args.dragIds[0];
 
     tree.move({
@@ -188,6 +253,15 @@ export function useTreeMutation<T>(spaceId: string) {
       spaceId: nodeData.spaceId,
       parentPageId: args.parentId,
       hasChildren: nodeData.hasChildren,
+      nodeType: nodeData.nodeType,
+      isPinned: nodeData.isPinned,
+      pinnedAt: nodeData.pinnedAt,
+      directChildCount:
+        nodeData.directChildCount ?? nodeData.directChildFolderCount ?? 0,
+      directChildFolderCount: nodeData.directChildFolderCount ?? 0,
+      descendantFolderCount: nodeData.descendantFolderCount ?? 0,
+      descendantFileCount: nodeData.descendantFileCount ?? 0,
+      descendantTotalCount: nodeData.descendantTotalCount ?? 0,
     };
 
     try {
@@ -218,11 +292,19 @@ export function useTreeMutation<T>(spaceId: string) {
     tree.update({ id, changes: { name } as any });
     setData(tree.data);
 
-    try {
-      updatePageMutation.mutateAsync({ pageId: id, title: name });
-    } catch (error) {
-      console.error("Error updating page title:", error);
-    }
+    updatePageMutation
+      .mutateAsync({ pageId: id, title: name })
+      .then(() => {
+        const createdFolderSlugId = pendingFolderNavigationRef.current[id];
+        if (!createdFolderSlugId) {
+          return;
+        }
+        delete pendingFolderNavigationRef.current[id];
+        navigate(buildPageUrl(spaceSlug, createdFolderSlugId, name));
+      })
+      .catch((error) => {
+        console.error("Error updating page title:", error);
+      });
   };
 
   const isPageInNode = (

@@ -1,18 +1,31 @@
 .editor {
     height: 100%;
-    padding: 8px 0;
-    margin: 48px auto;
+    padding: 0 0 28px;
+    margin: 24px auto 56px;
+    background: var(--ui-bg-surface);
+    border: 1px solid var(--ui-border-default);
+    border-radius: 14px;
+    box-shadow: var(--ui-shadow-sm);
+    overflow: visible;
+
+    :global(.ProseMirror) {
+        background: transparent;
+    }
 
     @media print {
         padding: 0;
         margin: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
     }
 }
 
 .editorDock {
     position: sticky;
     top: calc(var(--app-shell-header-offset, 0rem) + 45px);
-    z-index: 80;
+    z-index: 160;
     border-bottom: 1px solid var(--ui-border-default);
     background: var(--ui-bg-subtle);
 }

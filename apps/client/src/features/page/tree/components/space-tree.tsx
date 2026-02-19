@@ -16,17 +16,31 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "@/features/page/tree/styles/tree.module.css";
-import { ActionIcon, Box, Menu, rem, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Group,
+  Menu,
+  Modal,
+  Text,
+  TextInput,
+  rem,
+} from "@mantine/core";
 import {
   IconArrowRight,
   IconChevronDown,
   IconChevronRight,
   IconCopy,
   IconDotsVertical,
-  IconFileDescription,
+  IconFileText,
   IconFileExport,
+  IconFolder,
   IconLink,
+  IconPencil,
   IconPlus,
+  IconPin,
+  IconPinnedOff,
   IconPointFilled,
   IconTrash,
 } from "@tabler/icons-react";
@@ -42,23 +56,26 @@ import {
   buildTree,
   buildTreeWithChildren,
   mergeRootTrees,
+  updateTreeNodePinnedState,
   updateTreeNodeIcon,
 } from "@/features/page/tree/utils/utils.ts";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import {
+  batchMovePages,
+  pinPage,
+  unpinPage,
   getPageBreadcrumbs,
   getPageById,
-  getSidebarPages,
 } from "@/features/page/services/page-service.ts";
 import { IPage, SidebarPagesParams } from "@/features/page/types/page.types.ts";
 import { queryClient } from "@/main.tsx";
 import { OpenMap } from "react-arborist/dist/main/state/open-slice";
 import {
+  useClipboard,
   useDisclosure,
   useElementSize,
   useMergedRef,
 } from "@mantine/hooks";
-import { useClipboard } from "@/hooks/use-clipboard";
 import { dfs } from "react-arborist/dist/module/utils";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -82,7 +99,6 @@ interface SpaceTreeProps {
 const openTreeNodesAtom = atom<OpenMap>({});
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
-  const { t } = useTranslation();
   const { pageSlug } = useParams();
   const { data, setData, controllers } =
     useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
@@ -107,15 +123,9 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     }
   }, sizeRef);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const spaceIdRef = useRef(spaceId);
-  spaceIdRef.current = spaceId;
   const { data: currentPage } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
   });
-
-  useEffect(() => {
-    setIsDataLoaded(false);
-  }, [spaceId]);
 
   useEffect(() => {
     if (hasNextPage && !isFetching) {
@@ -124,28 +134,30 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   }, [hasNextPage, fetchNextPage, isFetching, spaceId]);
 
   useEffect(() => {
-    if (pagesData?.pages && !hasNextPage) {
-      const allItems = pagesData.pages.flatMap((page) => page.items);
-      const treeData = buildTree(allItems);
-
-      setData((prev) => {
-        // fresh space; full reset
-        if (prev.length === 0 || prev[0]?.spaceId !== spaceId) {
-          setIsDataLoaded(true);
-          setOpenTreeNodes({});
-          return treeData;
-        }
-
-        // same space; append only missing roots
-        setIsDataLoaded(true);
-        return mergeRootTrees(prev, treeData);
-      });
+    if (!pagesData?.pages) {
+      return;
     }
-  }, [pagesData, hasNextPage, spaceId]);
+
+    const allItems = pagesData.pages.flatMap((page) => page.items);
+    const treeData = buildTree(allItems);
+
+    setData((prev) => {
+      // fresh space; full reset
+      if (prev.length === 0 || prev[0]?.spaceId !== spaceId) {
+        setOpenTreeNodes({});
+        return treeData;
+      }
+
+      // same space; append only missing roots
+      return mergeRootTrees(prev, treeData);
+    });
+
+    if (!isDataLoaded) {
+      setIsDataLoaded(true);
+    }
+  }, [pagesData, isDataLoaded, setData, setOpenTreeNodes, spaceId]);
 
   useEffect(() => {
-    const effectSpaceId = spaceId;
-
     const fetchData = async () => {
       if (isDataLoaded && currentPage) {
         // check if pageId node is present in the tree
@@ -158,8 +170,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
         // if not found, fetch and build its ancestors and their children
         if (!currentPage.id) return;
         const ancestors = await getPageBreadcrumbs(currentPage.id);
-
-        if (spaceIdRef.current !== effectSpaceId) return;
 
         if (ancestors && ancestors?.length > 1) {
           let flatTreeItems = [...buildTree(ancestors)];
@@ -188,22 +198,22 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
           // Wait for all fetch operations to complete
           Promise.all(fetchPromises).then(() => {
-            if (spaceIdRef.current !== effectSpaceId) return;
-
             // build tree with children
             const ancestorsTree = buildTreeWithChildren(flatTreeItems);
             // child of root page we're attaching the built ancestors to
             const rootChild = ancestorsTree[0];
 
-            // attach built ancestors to tree using functional updater
-            // to avoid stale closure overwriting the current tree data
-            setData((currentData) =>
-              appendNodeChildren(currentData, rootChild.id, rootChild.children),
+            // attach built ancestors to tree
+            const updatedTree = appendNodeChildren(
+              data,
+              rootChild.id,
+              rootChild.children,
             );
+            setData(updatedTree);
 
             setTimeout(() => {
               // focus on node and open all parents
-              treeApiRef.current?.select(currentPage.id);
+              treeApiRef.current.select(currentPage.id);
             }, 100);
           });
         }
@@ -232,20 +242,37 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     };
   }, [setTreeApi]);
 
-  const filteredData = data.filter((node) => node?.spaceId === spaceId);
-
   return (
     <div ref={mergedRef} className={classes.treeContainer}>
-      {isDataLoaded && filteredData.length === 0 && (
-        <Text size="xs" c="dimmed" py="xs" px="sm">
-          {t("No pages yet")}
-        </Text>
-      )}
       {isRootReady && rootElement.current && (
         <Tree
-          data={filteredData}
+          data={data.filter((node) => node?.spaceId === spaceId)}
           disableDrag={readOnly}
-          disableDrop={readOnly}
+          disableDrop={(args) => {
+            if (readOnly) {
+              return true;
+            }
+
+            const isRootTarget =
+              args.parentNode.id === "__REACT_ARBORIST_INTERNAL_ROOT__";
+
+            if (isRootTarget) {
+              return args.dragNodes.some(
+                (dragNode) => dragNode.data?.nodeType !== "folder",
+              );
+            }
+
+            const parentNodeType =
+              args.parentNode.data?.nodeType === "folder" ? "folder" : "file";
+
+            if (parentNodeType === "folder") {
+              return false;
+            }
+
+            return args.dragNodes.some(
+              (dragNode) => dragNode.data?.nodeType === "folder",
+            );
+          }}
           disableEdit={readOnly}
           {...controllers}
           width={width}
@@ -258,10 +285,10 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             }
           }}
           openByDefault={false}
-          disableMultiSelection={true}
+          disableMultiSelection={readOnly}
           className={classes.tree}
           rowClassName={classes.row}
-          rowHeight={30}
+          rowHeight={34}
           overscanCount={10}
           dndRootElement={rootElement.current}
           onToggle={() => {
@@ -387,6 +414,61 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   }
 
   const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
+  const directChildCount = node.data.directChildCount ?? 0;
+  const descendantTotalCount = node.data.descendantTotalCount ?? 0;
+
+  const buildSubmittedName = (value: string) => value.trim() || "untitled";
+
+  if (node.isEditing) {
+    return (
+      <Box style={style} className={clsx(classes.node, node.state)}>
+        <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
+
+        <div onClick={handleEmojiIconClick} className={classes.nodeIcon}>
+          <EmojiPicker
+            onEmojiSelect={handleEmojiSelect}
+            icon={
+              node.data.icon ? (
+                node.data.icon
+              ) : node.data.nodeType === "folder" ? (
+                <IconFolder size={16} stroke={1.75} />
+              ) : (
+                <IconFileText size={16} stroke={1.75} />
+              )
+            }
+            readOnly={tree.props.disableEdit as boolean}
+            removeEmojiAction={handleRemoveEmoji}
+          />
+        </div>
+
+        <TextInput
+          size="xs"
+          variant="unstyled"
+          autoFocus
+          defaultValue={node.data.name || ""}
+          className={classes.text}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onBlur={(e) => {
+            node.submit(buildSubmittedName(e.currentTarget.value));
+          }}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              node.submit(buildSubmittedName(e.currentTarget.value));
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              node.reset();
+            }
+          }}
+        />
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -398,6 +480,12 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         // @ts-ignore
         ref={dragHandle}
         onClick={() => {
+          if (node.data.nodeType === "folder" && !node.isOpen) {
+            node.open();
+            if (node.data.hasChildren && node.children.length === 0) {
+              handleLoadChildren(node);
+            }
+          }
           if (mobileSidebarOpened) {
             toggleMobileSidebar();
           }
@@ -407,14 +495,16 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       >
         <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
 
-        <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
+        <div onClick={handleEmojiIconClick} className={classes.nodeIcon}>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             icon={
               node.data.icon ? (
                 node.data.icon
+              ) : node.data.nodeType === "folder" ? (
+                <IconFolder size={16} stroke={1.75} />
               ) : (
-                <IconFileDescription size="18" />
+                <IconFileText size={16} stroke={1.75} />
               )
             }
             readOnly={tree.props.disableEdit as boolean}
@@ -423,6 +513,22 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
         </div>
 
         <span className={classes.text}>{node.data.name || t("untitled")}</span>
+        {node.data.isPinned ? (
+          <span className={classes.pinnedBadge} title={t("Pinned")}>
+            <IconPin size={11} stroke={1.85} />
+            {node.data.nodeType === "folder" ? (
+              <IconFolder size={11} stroke={1.85} />
+            ) : (
+              <IconFileText size={11} stroke={1.85} />
+            )}
+          </span>
+        ) : null}
+        <span
+          className={classes.counts}
+          title={`Direct children (1 level): ${directChildCount} · All descendants: ${descendantTotalCount}`}
+        >
+          {directChildCount} · {descendantTotalCount}
+        </span>
 
         <div className={classes.actions}>
           <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
@@ -447,31 +553,78 @@ interface CreateNodeProps {
 }
 
 function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  function handleCreate() {
+  const { t } = useTranslation();
+  const isFolderNode = node.data.nodeType === "folder";
+
+  function handleCreate(type: "leaf" | "internal") {
     if (node.data.hasChildren && node.children.length === 0) {
       node.toggle();
       onExpandTree();
 
       setTimeout(() => {
-        treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
+        treeApi?.create({ type, parentId: node.id, index: 0 });
       }, 500);
     } else {
-      treeApi?.create({ type: "internal", parentId: node.id });
+      treeApi?.create({ type, parentId: node.id });
     }
   }
 
+  if (!isFolderNode) {
+    return (
+      <ActionIcon
+        variant="subtle"
+        c="gray"
+        size={20}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleCreate("leaf");
+        }}
+      >
+        <IconPlus style={{ width: rem(16), height: rem(16) }} stroke={1.75} />
+      </ActionIcon>
+    );
+  }
+
   return (
-    <ActionIcon
-      variant="transparent"
-      c="gray"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCreate();
-      }}
-    >
-      <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
-    </ActionIcon>
+    <Menu shadow="md" width={180}>
+      <Menu.Target>
+        <ActionIcon
+          variant="subtle"
+          c="gray"
+          size={20}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <IconPlus style={{ width: rem(16), height: rem(16) }} stroke={1.75} />
+        </ActionIcon>
+      </Menu.Target>
+
+      <Menu.Dropdown>
+        <Menu.Item
+          leftSection={<IconFileText size={16} stroke={1.75} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("leaf");
+          }}
+        >
+          {t("New file")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconFolder size={16} stroke={1.75} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("internal");
+          }}
+        >
+          {t("New folder")}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
@@ -488,6 +641,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
   const { openDeleteModal } = useDeletePageModal();
   const [data, setData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
+  const [filteredKeyword, setFilteredKeyword] = useState("");
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -498,6 +652,28 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
     copyPageModalOpened,
     { open: openCopyPageModal, close: closeCopySpaceModal },
   ] = useDisclosure(false);
+  const [
+    filteredMoveOpened,
+    { open: openFilteredMoveModal, close: closeFilteredMoveModal },
+  ] = useDisclosure(false);
+
+  const isFolder = node.data.nodeType === "folder";
+  const canEdit = !(treeApi.props.disableEdit as boolean);
+  const selectedPageIds = Array.from(treeApi.selectedIds ?? []);
+  const selectedMovableIds = selectedPageIds.filter((id) => id !== node.id);
+  const canBatchMoveSelected =
+    canEdit && isFolder && selectedMovableIds.length > 0;
+
+  const refreshSidebarTree = () => {
+    queryClient.removeQueries({
+      predicate: (item) =>
+        ["root-sidebar-pages", "sidebar-pages"].includes(
+          item.queryKey[0] as string,
+        ),
+    });
+    setData([]);
+    treeApi.deselectAll();
+  };
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -532,6 +708,17 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         parentPageId: duplicatedPage.parentPageId,
         icon: duplicatedPage.icon,
         hasChildren: duplicatedPage.hasChildren,
+        nodeType: duplicatedPage.nodeType ?? node.data.nodeType ?? "file",
+        isPinned: duplicatedPage.isPinned ?? false,
+        pinnedAt: duplicatedPage.pinnedAt ?? null,
+        directChildCount:
+          duplicatedPage.directChildCount ??
+          duplicatedPage.directChildFolderCount ??
+          0,
+        directChildFolderCount: duplicatedPage.directChildFolderCount ?? 0,
+        descendantFolderCount: duplicatedPage.descendantFolderCount ?? 0,
+        descendantFileCount: duplicatedPage.descendantFileCount ?? 0,
+        descendantTotalCount: duplicatedPage.descendantTotalCount ?? 0,
         children: [],
       };
 
@@ -568,21 +755,107 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
     }
   };
 
+  const handleTogglePin = async () => {
+    try {
+      const result = node.data.isPinned
+        ? await unpinPage(node.id)
+        : await pinPage(node.id);
+      const updatedTree = updateTreeNodePinnedState(
+        data,
+        node.id,
+        result.isPinned,
+        result.pinnedAt,
+      );
+      setData(updatedTree);
+      notifications.show({
+        message: result.isPinned ? t("Pinned") : t("Unpinned"),
+      });
+    } catch (err) {
+      notifications.show({
+        message:
+          err.response?.data.message || t("Failed to update pin status"),
+        color: "red",
+      });
+    }
+  };
+
+  const handleBatchMoveSelectedHere = async () => {
+    if (!canBatchMoveSelected) {
+      return;
+    }
+
+    try {
+      const result = await batchMovePages({
+        spaceId,
+        selectionMode: "ids",
+        pageIds: selectedMovableIds,
+        targetFolderId: node.id,
+      });
+      notifications.show({
+        message:
+          result.failedCount > 0
+            ? `Moved ${result.movedCount}, failed ${result.failedCount}`
+            : `Moved ${result.movedCount} pages`,
+      });
+      refreshSidebarTree();
+    } catch (err) {
+      notifications.show({
+        message: err.response?.data.message || "Batch move failed",
+        color: "red",
+      });
+    }
+  };
+
+  const handleBatchMoveFilteredHere = async () => {
+    const keyword = filteredKeyword.trim();
+    if (!keyword) {
+      notifications.show({
+        message: "Please enter a filter keyword",
+        color: "yellow",
+      });
+      return;
+    }
+
+    try {
+      const result = await batchMovePages({
+        spaceId,
+        selectionMode: "filtered",
+        titleContains: keyword,
+        targetFolderId: node.id,
+      });
+      notifications.show({
+        message:
+          result.failedCount > 0
+            ? `Moved ${result.movedCount}, failed ${result.failedCount}`
+            : `Moved ${result.movedCount} pages`,
+      });
+      closeFilteredMoveModal();
+      setFilteredKeyword("");
+      refreshSidebarTree();
+    } catch (err) {
+      notifications.show({
+        message: err.response?.data.message || "Filtered batch move failed",
+        color: "red",
+      });
+    }
+  };
+
   return (
     <>
       <Menu shadow="md" width={200}>
         <Menu.Target>
           <ActionIcon
-            variant="transparent"
+            variant="subtle"
             c="gray"
+            size={20}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
             }}
           >
             <IconDotsVertical
-              style={{ width: rem(20), height: rem(20) }}
-              stroke={2}
+              style={{ width: rem(16), height: rem(16) }}
+              stroke={1.75}
             />
           </ActionIcon>
         </Menu.Target>
@@ -624,6 +897,84 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
               </Menu.Item>
 
               <Menu.Item
+                leftSection={<IconPencil size={16} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  treeApi.edit(node.id);
+                }}
+              >
+                Rename
+              </Menu.Item>
+
+              <Menu.Item
+                leftSection={<IconFileText size={16} stroke={1.75} />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  treeApi.create({ type: "leaf", parentId: node.id });
+                }}
+              >
+                {t("New file")}
+              </Menu.Item>
+
+              {isFolder && (
+                <Menu.Item
+                  leftSection={<IconFolder size={16} stroke={1.75} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    treeApi.create({ type: "internal", parentId: node.id });
+                  }}
+                >
+                  {t("New folder")}
+                </Menu.Item>
+              )}
+
+              <Menu.Item
+                leftSection={
+                  node.data.isPinned ? (
+                    <IconPinnedOff size={16} />
+                  ) : (
+                    <IconPin size={16} />
+                  )
+                }
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleTogglePin();
+                }}
+              >
+                {node.data.isPinned ? t("Unpin") : t("Pin to top")}
+              </Menu.Item>
+
+              {isFolder && (
+                <Menu.Item
+                  leftSection={<IconArrowRight size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openFilteredMoveModal();
+                  }}
+                >
+                  Move filtered pages here
+                </Menu.Item>
+              )}
+
+              {canBatchMoveSelected && (
+                <Menu.Item
+                  leftSection={<IconArrowRight size={16} />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleBatchMoveSelectedHere();
+                  }}
+                >
+                  Move selected here ({selectedMovableIds.length})
+                </Menu.Item>
+              )}
+
+              <Menu.Item
                 leftSection={<IconArrowRight size={16} />}
                 onClick={(e) => {
                   e.preventDefault();
@@ -661,6 +1012,45 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <Modal.Root
+        opened={filteredMoveOpened}
+        onClose={closeFilteredMoveModal}
+        size={500}
+        padding="xl"
+        yOffset="10vh"
+        xOffset={0}
+        mah={400}
+      >
+        <Modal.Overlay blur={1} />
+        <Modal.Content style={{ overflow: "hidden" }}>
+          <Modal.Header py={0}>
+            <Modal.Title fw={500}>Move filtered pages here</Modal.Title>
+            <Modal.CloseButton />
+          </Modal.Header>
+          <Modal.Body>
+            <Text mb="xs" c="dimmed" size="sm">
+              Move all matched pages in this space to the selected folder.
+            </Text>
+
+            <TextInput
+              label="Title contains"
+              placeholder="e.g. PRD"
+              value={filteredKeyword}
+              onChange={(event) =>
+                setFilteredKeyword(event.currentTarget.value)
+              }
+            />
+
+            <Group justify="end" mt="md" gap="xs">
+              <Button variant="subtle" onClick={closeFilteredMoveModal}>
+                {t("Cancel")}
+              </Button>
+              <Button onClick={handleBatchMoveFilteredHere}>Move</Button>
+            </Group>
+          </Modal.Body>
+        </Modal.Content>
+      </Modal.Root>
 
       <MovePageModal
         pageId={node.id}
@@ -701,7 +1091,7 @@ function PageArrow({ node, onExpandTree }: PageArrowProps) {
 
   return (
     <ActionIcon
-      size={20}
+      size={18}
       variant="subtle"
       c="gray"
       onClick={(e) => {
@@ -714,9 +1104,9 @@ function PageArrow({ node, onExpandTree }: PageArrowProps) {
       {node.isInternal ? (
         node.children && (node.children.length > 0 || node.data.hasChildren) ? (
           node.isOpen ? (
-            <IconChevronDown stroke={2} size={18} />
+            <IconChevronDown stroke={1.75} size={16} />
           ) : (
-            <IconChevronRight stroke={2} size={18} />
+            <IconChevronRight stroke={1.75} size={16} />
           )
         ) : (
           <IconPointFilled size={8} />

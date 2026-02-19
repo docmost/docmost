@@ -1,0 +1,44 @@
+.stickyToolbar {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+}
+
+.toolbarInner {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  width: 100%;
+  height: 34px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  scrollbar-width: none;
+}
+
+.toolbarInner::-webkit-scrollbar {
+  display: none;
+}
+
+.active {
+  color: var(--ui-accent-primary);
+}
+
+@media (max-width: 768px) {
+  .toolbarInner {
+    width: 100%;
+  }
+}
+
+@media print {
+  .stickyToolbar {
+    display: none;
+  }
+}
