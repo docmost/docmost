@@ -20,6 +20,7 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconTag,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -378,6 +379,20 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .focus()
           .deleteRange(range)
           .insertContent(currentDate)
+          .run();
+      },
+    },
+    {
+      title: "Status",
+      description: "Insert inline status badge.",
+      searchTerms: ["status", "badge", "label", "lozenge"],
+      icon: IconTag,
+      command: ({ editor, range }: CommandProps) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setInlineStatus({ text: "STATUS", color: "gray" })
           .run();
       },
     },
