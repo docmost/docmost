@@ -392,7 +392,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .chain()
           .focus()
           .deleteRange(range)
-          .setInlineStatus({ text: "STATUS", color: "gray" })
+          .setInlineStatus({ text: "SET STATUS", color: "gray" })
           .run();
       },
     },
