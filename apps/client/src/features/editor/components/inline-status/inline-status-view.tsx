@@ -96,7 +96,7 @@ export default function InlineStatusView(props: NodeViewProps) {
             mb="xs"
           />
 
-          <Group gap={6}>
+          <Group gap={6} justify="center">
             {STATUS_COLORS.map(({ name, bg }) => (
               <Box
                 key={name}
