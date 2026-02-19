@@ -4,7 +4,8 @@
   padding-left: var(--mantine-spacing-md);
   padding-right: var(--mantine-spacing-md);
   position: fixed;
-  z-index: 99;
+  z-index: 220;
+  isolation: isolate;
   top: var(--app-shell-header-offset, 0rem);
   inset-inline-start: var(--app-shell-navbar-offset, 0rem);
   inset-inline-end: var(--app-shell-aside-offset, 0rem);
