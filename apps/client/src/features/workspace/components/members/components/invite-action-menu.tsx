@@ -8,7 +8,7 @@ import {
 } from "@/features/workspace/queries/workspace-query.ts";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
-import { useClipboard } from "@mantine/hooks";
+import { useClipboard } from "@/hooks/use-clipboard";
 import { getInviteLink } from "@/features/workspace/services/workspace-service.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { isCloud } from "@/lib/config.ts";

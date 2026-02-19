@@ -20,6 +20,7 @@ import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
+import { LoggerModule } from './common/logger/logger.module';
 import { ClsModule } from 'nestjs-cls';
 
 const enterpriseModules = [];
@@ -42,6 +43,7 @@ try {
       global: true,
       middleware: { mount: true },
     }),
+    LoggerModule,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,

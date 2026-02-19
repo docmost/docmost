@@ -1,5 +1,6 @@
 import { Group, Table, Text } from "@mantine/core";
 import React, { useState } from "react";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query.ts";
 import SpaceSettingsModal from "@/features/space/components/settings-modal.tsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -8,11 +9,12 @@ import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetSpacesQuery({ page });
+  const { cursor, goNext, goPrev } = useCursorPaginate();
+  const { data, isLoading } = useGetSpacesQuery({ cursor });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 
@@ -48,10 +50,10 @@ export default function SpaceList() {
                       variant="filled"
                       name={space.name}
                     />
-                    <div>
-                      <Text fz="sm" fw={500} lineClamp={1}>
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <AutoTooltipText fz="sm" fw={500} lineClamp={1}>
                         {space.name}
-                      </Text>
+                      </AutoTooltipText>
                       <Text fz="xs" c="dimmed" lineClamp={2}>
                         {space.description}
                       </Text>
@@ -71,10 +73,10 @@ export default function SpaceList() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
 

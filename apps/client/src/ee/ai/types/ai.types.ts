@@ -6,6 +6,7 @@ export enum AiAction {
   SIMPLIFY = "simplify",
   CHANGE_TONE = "change_tone",
   SUMMARIZE = "summarize",
+  EXPLAIN = "explain",
   CONTINUE_WRITING = "continue_writing",
   TRANSLATE = "translate",
   CUSTOM = "custom",

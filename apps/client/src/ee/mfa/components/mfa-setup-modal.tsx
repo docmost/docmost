@@ -11,7 +11,6 @@ import {
   PinInput,
   Alert,
   List,
-  CopyButton,
   ActionIcon,
   Tooltip,
   Paper,
@@ -20,6 +19,7 @@ import {
   Collapse,
   UnstyledButton,
 } from "@mantine/core";
+import { CopyButton } from "@/components/common/copy-button";
 import {
   IconQrcode,
   IconShieldCheck,

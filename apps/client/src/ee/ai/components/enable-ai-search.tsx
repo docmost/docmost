@@ -15,7 +15,7 @@ export default function EnableAiSearch() {
     <>
       <Group justify="space-between" wrap="nowrap" gap="xl">
         <div>
-          <Text size="md">{t("AI-powered search (Ask AI)")}</Text>
+          <Text size="md">{t("AI-powered search (AI Answers)")}</Text>
           <Text size="sm" c="dimmed">
             {t(
               "AI search uses vector embeddings to provide semantic search capabilities across your workspace content.",

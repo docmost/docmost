@@ -17,6 +17,8 @@ import { CaslModule } from './casl/casl.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { AuditContextMiddleware } from '../common/middlewares/audit-context.middleware';
 import { ShareModule } from './share/share.module';
+import { NotificationModule } from './notification/notification.module';
+import { WatcherModule } from './watcher/watcher.module';
 import {
   AUDIT_SERVICE,
   NoopAuditService,
@@ -36,6 +38,8 @@ import { ClsMiddleware } from 'nestjs-cls';
     GroupModule,
     CaslModule,
     ShareModule,
+    NotificationModule,
+    WatcherModule,
   ],
   providers: [
     {

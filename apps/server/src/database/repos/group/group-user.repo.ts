@@ -9,7 +9,7 @@ import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { sql } from 'kysely';
 import { GroupUser, InsertableGroupUser } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
@@ -52,18 +52,24 @@ export class GroupUserRepo {
       .selectFrom('groupUsers')
       .innerJoin('users', 'users.id', 'groupUsers.userId')
       .selectAll('users')
-      .where('groupId', '=', groupId)
-      .orderBy('createdAt', 'asc');
+      .where('groupId', '=', groupId);
 
     if (pagination.query) {
       query = query.where((eb) =>
-        eb(sql`f_unaccent(users.name)`, 'ilike', sql`f_unaccent(${'%' + pagination.query + '%'})`),
+        eb(
+          sql`f_unaccent(users.name)`,
+          'ilike',
+          sql`f_unaccent(${'%' + pagination.query + '%'})`,
+        ),
       );
     }
 
-    const result = await executeWithPagination(query, {
-      page: pagination.page,
+    const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'users.id', direction: 'asc', key: 'id' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
 
     result.items.map((user) => {
@@ -145,8 +151,25 @@ export class GroupUserRepo {
     );
   }
 
-  async delete(userId: string, groupId: string): Promise<void> {
-    await this.db
+  async getUserIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('groupUsers')
+      .select('userId')
+      .where('groupId', '=', groupId)
+      .execute();
+
+    return rows.map((r) => r.userId);
+  }
+
+  async delete(
+    userId: string,
+    groupId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    await db
       .deleteFrom('groupUsers')
       .where('userId', '=', userId)
       .where('groupId', '=', groupId)

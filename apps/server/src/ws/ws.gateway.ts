@@ -37,10 +37,11 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
 
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
+      const userRoom = `user-${userId}`;
       const workspaceRoom = `workspace-${workspaceId}`;
       const spaceRooms = userSpaceIds.map((id) => this.getSpaceRoomName(id));
 
-      client.join([workspaceRoom, ...spaceRooms]);
+      client.join([userRoom, workspaceRoom, ...spaceRooms]);
     } catch (err) {
       client.emit('Unauthorized');
       client.disconnect();

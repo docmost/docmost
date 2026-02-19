@@ -157,8 +157,10 @@ export function TitleEditor({
 
   useEffect(() => {
     setTimeout(() => {
-      titleEditor?.commands.focus("end");
-    }, 500);
+      // guard against Cannot access view['hasFocus'] error
+      if (!titleEditor?.isInitialized) return;
+      titleEditor?.commands?.focus("end");
+    }, 300);
   }, [titleEditor]);
 
   useEffect(() => {
