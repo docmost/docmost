@@ -3,10 +3,10 @@ import { CreateWorkspaceDto } from './create-workspace.dto';
 import {
   IsArray,
   IsBoolean,
-  IsNumber,
+  IsInt,
   IsOptional,
   IsString,
-  MinLength,
+  Min,
 } from 'class-validator';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
@@ -43,7 +43,7 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   disablePublicSharing: boolean;
 
   @IsOptional()
-  @IsNumber()
-  @MinLength(1)
+  @IsInt()
+  @Min(1)
   trashRetentionDays: number;
 }

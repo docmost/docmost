@@ -164,10 +164,10 @@ export class AuthService {
 
       await this.userTokenRepo.insertUserToken(
         {
-          token: token,
+          token,
           userId: user.id,
           workspaceId: user.workspaceId,
-          expiresAt: new Date(new Date().getTime() + 30 * 60 * 1000), // 30 minutes
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           type: UserTokenType.FORGOT_PASSWORD,
         },
         { trx },

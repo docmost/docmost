@@ -19,6 +19,7 @@ import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { diffAuditTrackedFields } from '../../../common/helpers';
 import {
   AUDIT_SERVICE,
   IAuditService,
@@ -113,8 +114,7 @@ export class GroupService {
       throw new BadRequestException('You cannot update a default group');
     }
 
-    const beforeName = group.name;
-    const beforeDescription = group.description;
+    const groupBefore = { name: group.name, description: group.description };
 
     if (updateGroupDto.name) {
       const existingGroup = await this.groupRepo.findByName(
@@ -142,15 +142,21 @@ export class GroupService {
       workspaceId,
     );
 
-    this.auditService.log({
-      event: AuditEvent.GROUP_UPDATED,
-      resourceType: AuditResource.GROUP,
-      resourceId: group.id,
-      changes: {
-        before: { name: beforeName, description: beforeDescription },
-        after: { name: group.name, description: group.description },
-      },
-    });
+    const changes = diffAuditTrackedFields(
+      ['name', 'description'],
+      updateGroupDto,
+      groupBefore,
+      group,
+    );
+
+    if (changes) {
+      this.auditService.log({
+        event: AuditEvent.GROUP_UPDATED,
+        resourceType: AuditResource.GROUP,
+        resourceId: group.id,
+        changes,
+      });
+    }
 
     return group;
   }
