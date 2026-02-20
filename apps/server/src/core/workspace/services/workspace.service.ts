@@ -321,17 +321,31 @@ export class WorkspaceService {
       }
     }
 
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+
     if (
       typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
       typeof updateWorkspaceDto.trashRetentionDays !== 'undefined'
     ) {
-      const ws = await this.workspaceRepo.findById(workspaceId, {
-        withLicenseKey: true,
-      });
+      const ws = await this.db
+        .selectFrom('workspaces')
+        .select(['id', 'licenseKey', 'trashRetentionDays'])
+        .where('id', '=', workspaceId)
+        .executeTakeFirst();
+
       if (!this.licenseCheckService.isValidEELicense(ws.licenseKey)) {
         throw new ForbiddenException(
           'This feature requires a valid enterprise license',
         );
+      }
+
+      if (
+        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' &&
+        updateWorkspaceDto.trashRetentionDays !== ws.trashRetentionDays
+      ) {
+        before.trashRetentionDays = ws.trashRetentionDays;
+        after.trashRetentionDays = updateWorkspaceDto.trashRetentionDays;
       }
     }
 
@@ -349,9 +363,6 @@ export class WorkspaceService {
       string,
       any
     >;
-
-    const before: Record<string, any> = {};
-    const after: Record<string, any> = {};
 
     await executeTx(this.db, async (trx) => {
       if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
@@ -455,7 +466,6 @@ export class WorkspaceService {
         'enforceSso',
         'enforceMfa',
         'emailDomains',
-        'trashRetentionDays',
       ],
       updateWorkspaceDto,
       workspaceBefore,

@@ -155,15 +155,26 @@ export class AuthService {
 
     const token = nanoIdGen(16);
 
-    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
+    await executeTx(this.db, async (trx) => {
+      await trx
+        .deleteFrom('userTokens')
+        .where('userId', '=', user.id)
+        .where('type', '=', UserTokenType.FORGOT_PASSWORD)
+        .execute();
 
-    await this.userTokenRepo.insertUserToken({
-      token: token,
-      userId: user.id,
-      workspaceId: user.workspaceId,
-      expiresAt: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour
-      type: UserTokenType.FORGOT_PASSWORD,
+      await this.userTokenRepo.insertUserToken(
+        {
+          token: token,
+          userId: user.id,
+          workspaceId: user.workspaceId,
+          expiresAt: new Date(new Date().getTime() + 30 * 60 * 1000), // 30 minutes
+          type: UserTokenType.FORGOT_PASSWORD,
+        },
+        { trx },
+      );
     });
+
+    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
 
     const emailTemplate = ForgotPasswordEmail({
       username: user.name,

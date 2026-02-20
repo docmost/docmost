@@ -338,19 +338,6 @@ export class WorkspaceInvitationService {
       },
     });
 
-    this.auditService.log({
-      event: AuditEvent.WORKSPACE_INVITE_ACCEPTED,
-      resourceType: AuditResource.WORKSPACE_INVITATION,
-      resourceId: invitation.id,
-      changes: {
-        after: {
-          email: invitation.email,
-          role: invitation.role,
-          userId: newUser.id,
-        },
-      },
-    });
-
     if (this.environmentService.isCloud()) {
       await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, {
         workspaceId: workspace.id,
