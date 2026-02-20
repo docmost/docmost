@@ -20,7 +20,7 @@ export default function Security() {
   const hasEnterpriseAccess = useEnterpriseAccess();
   const isCloudEE = useIsCloudEE();
 
-  if (!isAdmin) {
+  if (!isAdmin || !hasLicenseKey) {
     return null;
   }
 
