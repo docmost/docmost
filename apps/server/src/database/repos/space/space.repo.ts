@@ -94,8 +94,10 @@ export class SpaceRepo {
     workspaceId: string,
     prefKey: string,
     prefValue: string | boolean,
+    trx?: KyselyTransaction,
   ) {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('spaces')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)

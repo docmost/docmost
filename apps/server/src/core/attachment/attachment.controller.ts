@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Logger,
   NotFoundException,
   Param,
@@ -53,6 +54,11 @@ import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
 import { RemoveIconDto } from './dto/attachment.dto';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller()
 export class AttachmentController {
@@ -67,6 +73,7 @@ export class AttachmentController {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -134,6 +141,18 @@ export class AttachmentController {
         userId: user.id,
         workspaceId: workspace.id,
         attachmentId: attachmentId,
+      });
+
+      this.auditService.log({
+        event: AuditEvent.ATTACHMENT_UPLOADED,
+        resourceType: AuditResource.ATTACHMENT,
+        resourceId: fileResponse?.id ?? attachmentId,
+        spaceId,
+        metadata: {
+          fileName: fileResponse?.fileName,
+          pageId,
+          spaceId,
+        },
       });
 
       return res.send(fileResponse);

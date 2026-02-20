@@ -67,6 +67,7 @@ export interface AuditLogs {
   metadata: Json | null;
   resourceId: string | null;
   resourceType: string;
+  spaceId: string | null;
   workspaceId: string;
 }
 
@@ -350,6 +351,8 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
+  auditRetentionDays: Generated<number>;
+  trashRetentionDays: Generated<number>;
   billingEmail: string | null;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
@@ -415,7 +418,7 @@ export interface DB {
   groupUsers: GroupUsers;
   notifications: Notifications;
   pageHistory: PageHistory;
-  AuditLog: PagePermissions;
+  AuditLog: AuditLogs;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

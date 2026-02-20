@@ -49,7 +49,7 @@ export class ImportService {
     userId: string,
     spaceId: string,
     workspaceId: string,
-  ): Promise<void> {
+  ) {
     const file = await filePromise;
     const fileBuffer = await file.toBuffer();
     const fileExtension = path.extname(file.filename).toLowerCase();

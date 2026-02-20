@@ -34,7 +34,7 @@ import {
   validateAllowedEmail,
   validateSsoEnforcement,
 } from '../../auth/auth.util';
-import { AuditEvent } from '../../../common/events/audit-events';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
   IAuditService,
@@ -192,7 +192,7 @@ export class WorkspaceInvitationService {
       for (const invitation of invites) {
         this.auditService.log({
           event: AuditEvent.WORKSPACE_INVITE_CREATED,
-          resourceType: 'workspace_invitation',
+          resourceType: AuditResource.WORKSPACE_INVITATION,
           resourceId: invitation.id,
           changes: {
             after: {
@@ -321,6 +321,36 @@ export class WorkspaceInvitationService {
       });
     }
 
+    this.auditService.log({
+      event: AuditEvent.USER_CREATED,
+      resourceType: AuditResource.USER,
+      resourceId: newUser.id,
+      changes: {
+        after: {
+          name: newUser.name,
+          email: newUser.email,
+          role: invitation.role,
+        },
+      },
+      metadata: {
+        source: 'invitation',
+        invitationId: invitation.id,
+      },
+    });
+
+    this.auditService.log({
+      event: AuditEvent.WORKSPACE_INVITE_ACCEPTED,
+      resourceType: AuditResource.WORKSPACE_INVITATION,
+      resourceId: invitation.id,
+      changes: {
+        after: {
+          email: invitation.email,
+          role: invitation.role,
+          userId: newUser.id,
+        },
+      },
+    });
+
     if (this.environmentService.isCloud()) {
       await this.billingQueue.add(QueueJob.STRIPE_SEATS_SYNC, {
         workspaceId: workspace.id,
@@ -364,6 +394,16 @@ export class WorkspaceInvitationService {
       invitedByUser.name,
       workspace.hostname,
     );
+
+    this.auditService.log({
+      event: AuditEvent.WORKSPACE_INVITE_RESENT,
+      resourceType: AuditResource.WORKSPACE_INVITATION,
+      resourceId: invitation.id,
+      metadata: {
+        email: invitation.email,
+        role: invitation.role,
+      },
+    });
   }
 
   async revokeInvitation(
@@ -386,7 +426,7 @@ export class WorkspaceInvitationService {
     if (invitation) {
       this.auditService.log({
         event: AuditEvent.WORKSPACE_INVITE_REVOKED,
-        resourceType: 'workspace_invitation',
+        resourceType: AuditResource.WORKSPACE_INVITATION,
         resourceId: invitation.id,
         changes: {
           before: {

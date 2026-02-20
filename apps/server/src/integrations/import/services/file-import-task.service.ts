@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import { jsonToText } from '../../../collaboration/collaboration.util';
 import { InjectKysely } from 'nestjs-kysely';
@@ -36,6 +36,11 @@ import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class FileImportTaskService {
@@ -50,6 +55,7 @@ export class FileImportTaskService {
     private readonly importAttachmentService: ImportAttachmentService,
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -402,6 +408,7 @@ export class FileImportTaskService {
     // Process pages level by level sequentially to respect foreign key constraints
     const allBacklinks: any[] = [];
     const validPageIds = new Set<string>();
+    const pageTitles = new Map<string, string>();
     let totalPagesProcessed = 0;
 
     // Sort levels to process in order
@@ -478,8 +485,9 @@ export class FileImportTaskService {
 
             await trx.insertInto('pages').values(insertablePage).execute();
 
-            // Track valid page IDs and collect backlinks
+            // Track valid page IDs, titles, and collect backlinks
             validPageIds.add(insertablePage.id);
+            pageTitles.set(insertablePage.id, insertablePage.title);
             allBacklinks.push(...backlinks);
             totalPagesProcessed++;
 
@@ -522,6 +530,26 @@ export class FileImportTaskService {
           `Successfully imported ${totalPagesProcessed} pages with ${filteredBacklinks.length} backlinks`,
         );
       });
+
+      if (validPageIds.size > 0) {
+        const auditPayloads = Array.from(validPageIds).map((pageId) => ({
+          event: AuditEvent.PAGE_CREATED,
+          resourceType: AuditResource.PAGE,
+          resourceId: pageId,
+          spaceId: fileTask.spaceId,
+          metadata: {
+            source: fileTask.source,
+            fileTaskId: fileTask.id,
+            title: pageTitles.get(pageId),
+          },
+        }));
+
+        this.auditService.logBatchWithContext(auditPayloads, {
+          workspaceId: fileTask.workspaceId,
+          actorId: fileTask.creatorId,
+          actorType: 'user',
+        });
+      }
     } catch (error) {
       this.logger.error('Failed to import files:', error);
       throw new Error(`File import failed: ${error?.['message']}`);

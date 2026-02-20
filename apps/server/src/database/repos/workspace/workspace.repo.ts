@@ -33,6 +33,8 @@ export class WorkspaceRepo {
     'enforceSso',
     'plan',
     'enforceMfa',
+    'auditRetentionDays',
+    'trashRetentionDays',
   ];
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
@@ -162,8 +164,10 @@ export class WorkspaceRepo {
     workspaceId: string,
     prefKey: string,
     prefValue: string | boolean,
+    trx?: KyselyTransaction,
   ) {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('workspaces')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
@@ -180,8 +184,10 @@ export class WorkspaceRepo {
     workspaceId: string,
     prefKey: string,
     prefValue: string | boolean,
+    trx?: KyselyTransaction,
   ) {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('workspaces')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
@@ -198,8 +204,10 @@ export class WorkspaceRepo {
     workspaceId: string,
     prefKey: string,
     prefValue: string | boolean,
+    trx?: KyselyTransaction,
   ) {
-    return this.db
+    const db = dbOrTx(this.db, trx);
+    return db
       .updateTable('workspaces')
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
@@ -211,4 +219,5 @@ export class WorkspaceRepo {
       .returning(this.baseFields)
       .executeTakeFirst();
   }
+
 }

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Post,
   Res,
@@ -23,8 +24,13 @@ import {
 import { FastifyReply } from 'fastify';
 import { sanitize } from 'sanitize-filename-ts';
 import { getExportExtension } from './utils';
-import { getMimeType } from '../../common/helpers';
+import { getMimeType, getPageTitle } from '../../common/helpers';
 import * as path from 'path';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller()
 export class ExportController {
@@ -32,6 +38,7 @@ export class ExportController {
     private readonly exportService: ExportService,
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -62,6 +69,19 @@ export class ExportController {
       dto.includeChildren,
     );
 
+    this.auditService.log({
+      event: AuditEvent.PAGE_EXPORTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      metadata: {
+        title: getPageTitle(page.title),
+        format: dto.format,
+        includeChildren: dto.includeChildren,
+        spaceId: page.spaceId,
+      },
+    });
+
     const fileName = sanitize(page.title || 'untitled') + '.zip';
 
     res.headers({
@@ -91,6 +111,18 @@ export class ExportController {
       dto.format,
       dto.includeAttachments,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_EXPORTED,
+      resourceType: AuditResource.SPACE,
+      resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
+      metadata: {
+        format: dto.format,
+        includeAttachments: dto.includeAttachments ?? false,
+        spaceName: exportFile.spaceName,
+      },
+    });
 
     res.headers({
       'Content-Type': 'application/zip',

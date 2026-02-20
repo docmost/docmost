@@ -32,12 +32,15 @@ import { v4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { Queue } from 'bullmq';
-import { generateRandomSuffixNumbers } from '../../../common/helpers';
+import {
+  generateRandomSuffixNumbers,
+  diffAuditTrackedFields,
+} from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
-import { AuditEvent } from '../../../common/events/audit-events';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
   IAuditService,
@@ -287,7 +290,7 @@ export class WorkspaceService {
     if (updateWorkspaceDto.enforceSso) {
       const sso = await this.db
         .selectFrom('authProviders')
-        .selectAll()
+        .select(['id'])
         .where('isEnabled', '=', true)
         .where('workspaceId', '=', workspaceId)
         .execute();
@@ -302,9 +305,7 @@ export class WorkspaceService {
     if (updateWorkspaceDto.emailDomains) {
       const regex =
         /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/;
-
       const emailDomains = updateWorkspaceDto.emailDomains || [];
-
       updateWorkspaceDto.emailDomains = emailDomains
         .map((domain) => regex.exec(domain)?.[0])
         .filter(Boolean);
@@ -320,92 +321,159 @@ export class WorkspaceService {
       }
     }
 
-    if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
-      await this.workspaceRepo.updateApiSettings(
-        workspaceId,
-        'restrictToAdmins',
-        updateWorkspaceDto.restrictApiToAdmins,
-      );
-      delete updateWorkspaceDto.restrictApiToAdmins;
-    }
-
-    if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
-      await this.workspaceRepo.updateAiSettings(
-        workspaceId,
-        'search',
-        updateWorkspaceDto.aiSearch,
-      );
-
-      if (updateWorkspaceDto.aiSearch) {
-        const tableExists = await isPageEmbeddingsTableExists(this.db);
-        if (!tableExists) {
-          throw new BadRequestException(
-            'Failed to activate. Make sure pgvector postgres extension is installed.',
-          );
-        }
-
-        await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
-          workspaceId,
-        });
-      } else {
-        // Schedule deletion after 24 hours
-        const deleteJobId = `ai-search-disabled-${workspaceId}`;
-        await this.aiQueue.add(
-          QueueJob.WORKSPACE_DELETE_EMBEDDINGS,
-          { workspaceId },
-          {
-            jobId: deleteJobId,
-            delay: 24 * 60 * 60 * 1000,
-            removeOnComplete: true,
-            removeOnFail: true,
-          },
-        );
-      }
-
-      delete updateWorkspaceDto.aiSearch;
-    }
-
-    if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
-      await this.workspaceRepo.updateAiSettings(
-        workspaceId,
-        'generative',
-        updateWorkspaceDto.generativeAi,
-      );
-      delete updateWorkspaceDto.generativeAi;
-    }
-
-    if (typeof updateWorkspaceDto.disablePublicSharing !== 'undefined') {
-      const currentWorkspace = await this.workspaceRepo.findById(workspaceId, {
+    if (
+      typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
+      typeof updateWorkspaceDto.trashRetentionDays !== 'undefined'
+    ) {
+      const ws = await this.workspaceRepo.findById(workspaceId, {
         withLicenseKey: true,
       });
-
-      if (
-        !this.licenseCheckService.isValidEELicense(currentWorkspace.licenseKey)
-      ) {
+      if (!this.licenseCheckService.isValidEELicense(ws.licenseKey)) {
         throw new ForbiddenException(
           'This feature requires a valid enterprise license',
         );
       }
-
-      await this.workspaceRepo.updateSharingSettings(
-        workspaceId,
-        'disabled',
-        updateWorkspaceDto.disablePublicSharing,
-      );
-
-      if (updateWorkspaceDto.disablePublicSharing) {
-        await this.shareRepo.deleteByWorkspaceId(workspaceId);
-      }
-
-      delete updateWorkspaceDto.disablePublicSharing;
     }
 
-    await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
+    if (updateWorkspaceDto.aiSearch) {
+      const tableExists = await isPageEmbeddingsTableExists(this.db);
+      if (!tableExists) {
+        throw new BadRequestException(
+          'Failed to activate. Make sure pgvector postgres extension is installed.',
+        );
+      }
+    }
+
+    const workspaceBefore = await this.workspaceRepo.findById(workspaceId);
+    const settingsBefore = (workspaceBefore?.settings ?? {}) as Record<
+      string,
+      any
+    >;
+
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+
+    await executeTx(this.db, async (trx) => {
+      if (typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined') {
+        const prev = settingsBefore?.api?.restrictToAdmins ?? false;
+        if (prev !== updateWorkspaceDto.restrictApiToAdmins) {
+          before.restrictApiToAdmins = prev;
+          after.restrictApiToAdmins = updateWorkspaceDto.restrictApiToAdmins;
+        }
+        await this.workspaceRepo.updateApiSettings(
+          workspaceId,
+          'restrictToAdmins',
+          updateWorkspaceDto.restrictApiToAdmins,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.aiSearch !== 'undefined') {
+        const prev = settingsBefore?.ai?.search ?? false;
+        if (prev !== updateWorkspaceDto.aiSearch) {
+          before.aiSearch = prev;
+          after.aiSearch = updateWorkspaceDto.aiSearch;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'search',
+          updateWorkspaceDto.aiSearch,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.generativeAi !== 'undefined') {
+        const prev = settingsBefore?.ai?.generative ?? false;
+        if (prev !== updateWorkspaceDto.generativeAi) {
+          before.generativeAi = prev;
+          after.generativeAi = updateWorkspaceDto.generativeAi;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'generative',
+          updateWorkspaceDto.generativeAi,
+          trx,
+        );
+      }
+
+      if (typeof updateWorkspaceDto.disablePublicSharing !== 'undefined') {
+        const prev = settingsBefore?.sharing?.disabled ?? false;
+        if (prev !== updateWorkspaceDto.disablePublicSharing) {
+          before.disablePublicSharing = prev;
+          after.disablePublicSharing = updateWorkspaceDto.disablePublicSharing;
+        }
+        await this.workspaceRepo.updateSharingSettings(
+          workspaceId,
+          'disabled',
+          updateWorkspaceDto.disablePublicSharing,
+          trx,
+        );
+        if (updateWorkspaceDto.disablePublicSharing) {
+          await this.shareRepo.deleteByWorkspaceId(workspaceId, trx);
+        }
+      }
+
+      delete updateWorkspaceDto.restrictApiToAdmins;
+      delete updateWorkspaceDto.aiSearch;
+      delete updateWorkspaceDto.generativeAi;
+      delete updateWorkspaceDto.disablePublicSharing;
+
+      await this.workspaceRepo.updateWorkspace(
+        updateWorkspaceDto,
+        workspaceId,
+        trx,
+      );
+    });
+
+    if (after.aiSearch === true) {
+      await this.aiQueue.add(QueueJob.WORKSPACE_CREATE_EMBEDDINGS, {
+        workspaceId,
+      });
+    } else if (after.aiSearch === false) {
+      const deleteJobId = `ai-search-disabled-${workspaceId}`;
+      await this.aiQueue.add(
+        QueueJob.WORKSPACE_DELETE_EMBEDDINGS,
+        { workspaceId },
+        {
+          jobId: deleteJobId,
+          delay: 24 * 60 * 60 * 1000,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    }
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {
       withMemberCount: true,
       withLicenseKey: true,
     });
+
+    const columnChanges = diffAuditTrackedFields(
+      [
+        'name',
+        'logo',
+        'enforceSso',
+        'enforceMfa',
+        'emailDomains',
+        'trashRetentionDays',
+      ],
+      updateWorkspaceDto,
+      workspaceBefore,
+      workspace,
+    );
+    if (columnChanges) {
+      Object.assign(before, columnChanges.before);
+      Object.assign(after, columnChanges.after);
+    }
+
+    if (Object.keys(after).length > 0) {
+      this.auditService.log({
+        event: AuditEvent.WORKSPACE_UPDATED,
+        resourceType: AuditResource.WORKSPACE,
+        resourceId: workspaceId,
+        changes: { before, after },
+      });
+    }
 
     const { licenseKey, ...rest } = workspace;
     return {
@@ -467,15 +535,11 @@ export class WorkspaceService {
 
     this.auditService.log({
       event: AuditEvent.USER_ROLE_CHANGED,
-      resourceType: 'users',
+      resourceType: AuditResource.USER,
       resourceId: user.id,
       changes: {
         before: { role: user.role },
         after: { role: newRole },
-      },
-      metadata: {
-        userName: user.name,
-        userEmail: user.email,
       },
     });
   }
@@ -587,7 +651,7 @@ export class WorkspaceService {
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,
-      resourceType: 'users',
+      resourceType: AuditResource.USER,
       resourceId: user.id,
       changes: {
         before: {

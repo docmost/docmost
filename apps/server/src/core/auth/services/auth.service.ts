@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -29,6 +30,11 @@ import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +46,7 @@ export class AuthService {
     private mailService: MailService,
     private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
@@ -63,6 +70,13 @@ export class AuthService {
 
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
+
+    this.auditService.log({
+      event: AuditEvent.USER_LOGIN,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      metadata: { source: 'password' },
+    });
 
     return this.tokenService.generateAccessToken(user);
   }
@@ -111,6 +125,12 @@ export class AuthService {
       userId,
       workspaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.USER_PASSWORD_CHANGED,
+      resourceType: AuditResource.USER,
+      resourceId: userId,
+    });
 
     const emailTemplate = ChangePasswordEmail({ username: user.name });
     await this.mailService.sendToQueue({
@@ -199,6 +219,13 @@ export class AuthService {
         .where('userId', '=', user.id)
         .where('type', '=', UserTokenType.FORGOT_PASSWORD)
         .execute();
+    });
+
+    this.auditService.setActorId(user.id);
+    this.auditService.log({
+      event: AuditEvent.USER_PASSWORD_RESET,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
     });
 
     const emailTemplate = ChangePasswordEmail({ username: user.name });

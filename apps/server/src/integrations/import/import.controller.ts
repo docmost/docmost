@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   Logger,
   Post,
   Req,
@@ -24,6 +25,11 @@ import * as path from 'path';
 import { ImportService } from './services/import.service';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { EnvironmentService } from '../environment/environment.service';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller()
 export class ImportController {
@@ -33,6 +39,7 @@ export class ImportController {
     private readonly importService: ImportService,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly environmentService: EnvironmentService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @UseInterceptors(FileInterceptor)
@@ -83,7 +90,34 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
-    return this.importService.importPage(file, user.id, spaceId, workspace.id);
+    const createdPage = await this.importService.importPage(
+      file,
+      user.id,
+      spaceId,
+      workspace.id,
+    );
+
+    const ext = path.extname(file.filename).toLowerCase();
+    const sourceMap: Record<string, string> = {
+      '.md': 'markdown',
+      '.html': 'html',
+      '.docx': 'docx',
+    };
+
+    if (createdPage) {
+      this.auditService.log({
+        event: AuditEvent.PAGE_CREATED,
+        resourceType: AuditResource.PAGE,
+        resourceId: createdPage.id,
+        spaceId,
+        metadata: {
+          source: sourceMap[ext],
+          fileName: file.filename,
+        },
+      });
+    }
+
+    return createdPage;
   }
 
   @UseInterceptors(FileInterceptor)
@@ -141,6 +175,18 @@ export class ImportController {
     if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_IMPORTED,
+      resourceType: AuditResource.PAGE,
+      resourceId: spaceId,
+      spaceId,
+      metadata: {
+        fileName: file.filename,
+        source,
+        spaceId,
+      },
+    });
 
     return this.importService.importZip(
       file,

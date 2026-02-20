@@ -18,6 +18,11 @@ import { GroupUserService } from './group-user.service';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class GroupService {
@@ -29,6 +34,7 @@ export class GroupService {
     private groupUserService: GroupUserService,
     private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -74,6 +80,18 @@ export class GroupService {
       );
     }
 
+    this.auditService.log({
+      event: AuditEvent.GROUP_CREATED,
+      resourceType: AuditResource.GROUP,
+      resourceId: createdGroup.id,
+      changes: {
+        after: {
+          name: createdGroup.name,
+          description: createdGroup.description,
+        },
+      },
+    });
+
     return createdGroup;
   }
 
@@ -94,6 +112,9 @@ export class GroupService {
     if (group.isDefault) {
       throw new BadRequestException('You cannot update a default group');
     }
+
+    const beforeName = group.name;
+    const beforeDescription = group.description;
 
     if (updateGroupDto.name) {
       const existingGroup = await this.groupRepo.findByName(
@@ -120,6 +141,16 @@ export class GroupService {
       group.id,
       workspaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.GROUP_UPDATED,
+      resourceType: AuditResource.GROUP,
+      resourceId: group.id,
+      changes: {
+        before: { name: beforeName, description: beforeDescription },
+        after: { name: group.name, description: group.description },
+      },
+    });
 
     return group;
   }
@@ -153,6 +184,18 @@ export class GroupService {
           { trx },
         );
       }
+    });
+
+    this.auditService.log({
+      event: AuditEvent.GROUP_DELETED,
+      resourceType: AuditResource.GROUP,
+      resourceId: groupId,
+      changes: {
+        before: {
+          name: group.name,
+          description: group.description,
+        },
+      },
     });
   }
 

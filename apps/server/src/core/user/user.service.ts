@@ -1,6 +1,7 @@
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,10 +10,18 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { comparePasswordHash } from 'src/common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepo: UserRepo) {}
+  constructor(
+    private userRepo: UserRepo,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+  ) {}
 
   async findById(userId: string, workspaceId: string) {
     return this.userRepo.findById(userId, workspaceId);
@@ -36,20 +45,46 @@ export class UserService {
 
     // preference update
     if (typeof updateUserDto.fullPageWidth !== 'undefined') {
-      return this.userRepo.updatePreference(
+      const result = await this.userRepo.updatePreference(
         userId,
         'fullPageWidth',
         updateUserDto.fullPageWidth,
       );
+
+      this.auditService.log({
+        event: AuditEvent.USER_UPDATED,
+        resourceType: AuditResource.USER,
+        resourceId: userId,
+        changes: {
+          after: { fullPageWidth: updateUserDto.fullPageWidth },
+        },
+      });
+
+      return result;
     }
 
     if (typeof updateUserDto.pageEditMode !== 'undefined') {
-      return this.userRepo.updatePreference(
+      const result = await this.userRepo.updatePreference(
         userId,
         'pageEditMode',
         updateUserDto.pageEditMode.toLowerCase(),
       );
+
+      this.auditService.log({
+        event: AuditEvent.USER_UPDATED,
+        resourceType: AuditResource.USER,
+        resourceId: userId,
+        changes: {
+          after: { pageEditMode: updateUserDto.pageEditMode.toLowerCase() },
+        },
+      });
+
+      return result;
     }
+
+    const originalName = user.name;
+    const originalEmail = user.email;
+    const originalLocale = user.locale;
 
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
@@ -90,7 +125,33 @@ export class UserService {
 
     delete updateUserDto.confirmPassword;
 
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+
+    if (updateUserDto.name && updateUserDto.name !== originalName) {
+      before.name = originalName;
+      after.name = updateUserDto.name;
+    }
+    if (updateUserDto.email && updateUserDto.email !== originalEmail) {
+      before.email = originalEmail;
+      after.email = updateUserDto.email;
+    }
+    if (updateUserDto.locale && updateUserDto.locale !== originalLocale) {
+      before.locale = originalLocale;
+      after.locale = updateUserDto.locale;
+    }
+
     await this.userRepo.updateUser(updateUserDto, userId, workspace.id);
+
+    if (Object.keys(after).length > 0) {
+      this.auditService.log({
+        event: AuditEvent.USER_UPDATED,
+        resourceType: AuditResource.USER,
+        resourceId: userId,
+        changes: { before, after },
+      });
+    }
+
     return user;
   }
 }

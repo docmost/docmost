@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Post,
   UseGuards,
@@ -39,6 +40,12 @@ import {
   jsonToHtml,
   jsonToMarkdown,
 } from '../../collaboration/collaboration.util';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
+import { getPageTitle } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -48,6 +55,7 @@ export class PageController {
     private readonly pageRepo: PageRepo,
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -104,6 +112,19 @@ export class PageController {
       workspace.id,
       createPageDto,
     );
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_CREATED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: {
+          title: getPageTitle(page.title),
+          spaceId: page.spaceId,
+        },
+      },
+    });
 
     if (
       createPageDto.format &&
@@ -178,6 +199,19 @@ export class PageController {
         );
       }
       await this.pageService.forceDelete(deletePageDto.pageId, workspace.id);
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DELETED,
+        resourceType: AuditResource.PAGE,
+        resourceId: page.id,
+        spaceId: page.spaceId,
+        changes: {
+          before: {
+            title: getPageTitle(page.title),
+            spaceId: page.spaceId,
+          },
+        },
+      });
     } else {
       // Soft delete requires page manage permissions
       if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
@@ -188,6 +222,19 @@ export class PageController {
         user.id,
         workspace.id,
       );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_TRASHED,
+        resourceType: AuditResource.PAGE,
+        resourceId: page.id,
+        spaceId: page.spaceId,
+        changes: {
+          before: {
+            title: getPageTitle(page.title),
+            spaceId: page.spaceId,
+          },
+        },
+      });
     }
   }
 
@@ -210,6 +257,19 @@ export class PageController {
     }
 
     await this.pageRepo.restorePage(pageIdDto.pageId, workspace.id);
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_RESTORED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: {
+          title: getPageTitle(page.title),
+          spaceId: page.spaceId,
+        },
+      },
+    });
 
     return this.pageRepo.findById(pageIdDto.pageId, {
       includeHasChildren: true,
@@ -365,7 +425,25 @@ export class PageController {
       throw new ForbiddenException();
     }
 
-    return this.pageService.movePageToSpace(movedPage, dto.spaceId);
+    const { childPageIds } = await this.pageService.movePageToSpace(
+      movedPage,
+      dto.spaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_MOVED_TO_SPACE,
+      resourceType: AuditResource.PAGE,
+      resourceId: movedPage.id,
+      spaceId: movedPage.spaceId,
+      changes: {
+        before: { spaceId: movedPage.spaceId },
+        after: { spaceId: dto.spaceId },
+      },
+      metadata: {
+        title: getPageTitle(movedPage.title),
+        ...(childPageIds.length > 0 && { childPageIds }),
+      },
+    });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -375,6 +453,8 @@ export class PageController {
     if (!copiedPage) {
       throw new NotFoundException('Page to copy not found');
     }
+
+    let result;
 
     // If spaceId is provided, it's a copy to different space
     if (dto.spaceId) {
@@ -391,7 +471,27 @@ export class PageController {
         throw new ForbiddenException();
       }
 
-      return this.pageService.duplicatePage(copiedPage, dto.spaceId, user);
+      result = await this.pageService.duplicatePage(
+        copiedPage,
+        dto.spaceId,
+        user,
+      );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DUPLICATED,
+        resourceType: AuditResource.PAGE,
+        resourceId: result.id,
+        spaceId: dto.spaceId,
+        metadata: {
+          sourcePageId: copiedPage.id,
+          title: getPageTitle(copiedPage.title),
+          sourceSpaceId: copiedPage.spaceId,
+          targetSpaceId: dto.spaceId,
+          ...(result.childPageIds.length > 0 && {
+            childPageIds: result.childPageIds,
+          }),
+        },
+      });
     } else {
       // If no spaceId, it's a duplicate in same space
       const ability = await this.spaceAbility.createForUser(
@@ -402,8 +502,28 @@ export class PageController {
         throw new ForbiddenException();
       }
 
-      return this.pageService.duplicatePage(copiedPage, undefined, user);
+      result = await this.pageService.duplicatePage(
+        copiedPage,
+        undefined,
+        user,
+      );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DUPLICATED,
+        resourceType: AuditResource.PAGE,
+        resourceId: result.id,
+        spaceId: copiedPage.spaceId,
+        metadata: {
+          sourcePageId: copiedPage.id,
+          title: getPageTitle(copiedPage.title),
+          ...(result.childPageIds.length > 0 && {
+            childPageIds: result.childPageIds,
+          }),
+        },
+      });
     }
+
+    return result;
   }
 
   @HttpCode(HttpStatus.OK)

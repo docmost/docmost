@@ -22,6 +22,9 @@ import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { LoggerModule } from './common/logger/logger.module';
 import { ClsModule } from 'nestjs-cls';
+import { CacheModule } from '@nestjs/cache-manager';
+import { EnvironmentService } from './integrations/environment/environment.service';
+import KeyvRedis from '@keyv/redis';
 
 const enterpriseModules = [];
 try {
@@ -62,6 +65,17 @@ try {
     }),
     MailModule.forRootAsync({
       imports: [EnvironmentModule],
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async (environmentService: EnvironmentService) => {
+        const redisUrl = environmentService.getRedisUrl();
+        return {
+          ttl: 5 * 1000,
+          stores: [new KeyvRedis(redisUrl)],
+        };
+      },
+      inject: [EnvironmentService],
     }),
     EventEmitterModule.forRoot(),
     SecurityModule,

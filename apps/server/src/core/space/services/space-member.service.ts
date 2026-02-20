@@ -18,7 +18,7 @@ import { SpaceRole } from '../../../common/helpers/types/permission';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { executeTx } from '@docmost/db/utils';
-import { AuditEvent } from '../../../common/events/audit-events';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
   IAuditService,
@@ -175,8 +175,9 @@ export class SpaceMemberService {
       for (const user of validUsers) {
         this.auditService.log({
           event: AuditEvent.SPACE_MEMBER_ADDED,
-          resourceType: 'space_members',
+          resourceType: AuditResource.SPACE_MEMBER,
           resourceId: dto.spaceId,
+          spaceId: dto.spaceId,
           changes: {
             after: { role: dto.role },
           },
@@ -184,7 +185,6 @@ export class SpaceMemberService {
             spaceId: dto.spaceId,
             spaceName: space.name,
             userId: user.id,
-            userName: user.name,
             memberType: 'user',
           },
         });
@@ -193,8 +193,9 @@ export class SpaceMemberService {
       for (const group of validGroups) {
         this.auditService.log({
           event: AuditEvent.SPACE_MEMBER_ADDED,
-          resourceType: 'space_members',
+          resourceType: AuditResource.SPACE_MEMBER,
           resourceId: dto.spaceId,
+          spaceId: dto.spaceId,
           changes: {
             after: { role: dto.role },
           },
@@ -274,8 +275,9 @@ export class SpaceMemberService {
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_REMOVED,
-      resourceType: 'space_member',
+      resourceType: AuditResource.SPACE_MEMBER,
       resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
       changes: {
         before: { role: spaceMember.role },
       },
@@ -340,8 +342,9 @@ export class SpaceMemberService {
 
     this.auditService.log({
       event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
-      resourceType: 'space_members',
+      resourceType: AuditResource.SPACE_MEMBER,
       resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
       changes: {
         before: { role: spaceMember.role },
         after: { role: dto.role },
