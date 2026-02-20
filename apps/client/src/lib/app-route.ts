@@ -32,8 +32,15 @@ const APP_ROUTE = {
 export function getPostLoginRedirect(): string {
   const params = new URLSearchParams(window.location.search);
   const redirect = params.get("redirect");
-  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-    return redirect;
+  if (redirect) {
+    try {
+      const resolved = new URL(redirect, window.location.origin);
+      if (resolved.origin === window.location.origin) {
+        return resolved.pathname + resolved.search + resolved.hash;
+      }
+    } catch {
+      // malformed URL, fall through to default
+    }
   }
   return APP_ROUTE.HOME;
 }
