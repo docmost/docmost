@@ -88,7 +88,7 @@ export default function PageEditor({
   }, []);
 
   const [currentUser] = useAtom(currentUserAtom);
-  const [, setEditor] = useAtom(pageEditorAtom);
+  const [, setPageEditor] = useAtom(pageEditorAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
@@ -274,7 +274,7 @@ export default function PageEditor({
       onCreate({ editor }) {
         if (editor) {
           // @ts-ignore
-          setEditor(editor);
+          setPageEditor(editor);
           // @ts-ignore
           editor.storage.pageId = pageId;
           handleScrollTo(editor);

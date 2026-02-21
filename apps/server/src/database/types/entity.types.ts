@@ -19,9 +19,13 @@ import {
   AuthAccounts,
   Shares,
   FileTasks,
+  FolderMigrationJobItems as _FolderMigrationJobItems,
+  FolderMigrationJobs as _FolderMigrationJobs,
   UserMfa as _UserMFA,
+  PageNodeMeta as _PageNodeMeta,
   ApiKeys,
   Watchers,
+  WorkspaceReleaseChannel as _WorkspaceReleaseChannel,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -118,6 +122,34 @@ export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
 export type UpdatableFileTask = Updateable<Omit<FileTasks, 'id'>>;
+
+// Page Node Meta
+export type PageNodeMeta = Selectable<_PageNodeMeta>;
+export type InsertablePageNodeMeta = Insertable<_PageNodeMeta>;
+export type UpdatablePageNodeMeta = Updateable<Omit<_PageNodeMeta, 'pageId'>>;
+
+// Workspace Release Channel
+export type WorkspaceReleaseChannel = Selectable<_WorkspaceReleaseChannel>;
+export type InsertableWorkspaceReleaseChannel =
+  Insertable<_WorkspaceReleaseChannel>;
+export type UpdatableWorkspaceReleaseChannel = Updateable<
+  Omit<_WorkspaceReleaseChannel, 'workspaceId'>
+>;
+
+// Folder Migration Jobs
+export type FolderMigrationJob = Selectable<_FolderMigrationJobs>;
+export type InsertableFolderMigrationJob = Insertable<_FolderMigrationJobs>;
+export type UpdatableFolderMigrationJob = Updateable<
+  Omit<_FolderMigrationJobs, 'id'>
+>;
+
+// Folder Migration Job Items
+export type FolderMigrationJobItem = Selectable<_FolderMigrationJobItems>;
+export type InsertableFolderMigrationJobItem =
+  Insertable<_FolderMigrationJobItems>;
+export type UpdatableFolderMigrationJobItem = Updateable<
+  Omit<_FolderMigrationJobItems, 'id'>
+>;
 
 // UserMFA
 export type UserMFA = Selectable<_UserMFA>;

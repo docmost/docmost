@@ -89,7 +89,7 @@ export default function GroupMembersList() {
                     >
                       <Menu.Target>
                         <ActionIcon variant="subtle" c="gray">
-                          <IconDots size={20} stroke={2} />
+                          <IconDots size={18} stroke={1.75} />
                         </ActionIcon>
                       </Menu.Target>
                       <Menu.Dropdown>

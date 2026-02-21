@@ -37,8 +37,8 @@ function CommentMenu({
   return (
     <Menu shadow="md" width={200}>
       <Menu.Target>
-        <ActionIcon variant="default" style={{ border: "none" }}>
-          <IconDots size={20} stroke={2} />
+        <ActionIcon variant="subtle">
+          <IconDots size={18} stroke={1.75} />
         </ActionIcon>
       </Menu.Target>
 

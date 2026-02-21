@@ -72,7 +72,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
       >
         <Menu.Target>
           <ActionIcon variant="subtle" c="gray">
-            <IconDots size={20} stroke={2} />
+            <IconDots size={18} stroke={1.75} />
           </ActionIcon>
         </Menu.Target>
 
@@ -80,7 +80,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
           {!isCloud() && (
             <Menu.Item
               onClick={() => handleCopyLink(invitationId)}
-              leftSection={<IconCopy size={16} />}
+              leftSection={<IconCopy size={16} stroke={1.75} />}
               disabled={!isAdmin}
             >
               {t("Copy link")}
@@ -89,7 +89,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
 
           <Menu.Item
             onClick={onResend}
-            leftSection={<IconSend size={16} />}
+            leftSection={<IconSend size={16} stroke={1.75} />}
             disabled={!isAdmin}
           >
             {t("Resend invitation")}
@@ -98,7 +98,7 @@ export default function InviteActionMenu({ invitationId }: Props) {
           <Menu.Item
             c="red"
             onClick={openRevokeModal}
-            leftSection={<IconTrash size={16} />}
+            leftSection={<IconTrash size={16} stroke={1.75} />}
             disabled={!isAdmin}
           >
             {t("Revoke invitation")}

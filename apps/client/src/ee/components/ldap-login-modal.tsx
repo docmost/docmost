@@ -92,6 +92,7 @@ export function LdapLoginModal({
       onClose={handleClose}
       title={`LDAP Login - ${provider.name}`}
       size="md"
+      overlayProps={{ blur: 1 }}
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
@@ -100,7 +101,7 @@ export function LdapLoginModal({
             type="text"
             label={t("LDAP username")}
             placeholder="Enter your LDAP username"
-            variant="filled"
+            variant="default"
             disabled={isLoading}
             data-autofocus
             {...form.getInputProps("username")}
@@ -109,7 +110,7 @@ export function LdapLoginModal({
           <PasswordInput
             label={t("LDAP password")}
             placeholder={t("Enter your LDAP password")}
-            variant="filled"
+            variant="default"
             disabled={isLoading}
             {...form.getInputProps("password")}
           />

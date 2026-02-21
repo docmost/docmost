@@ -23,7 +23,7 @@ export default function HistoryModal({ pageId, pageTitle }: Props) {
         onClose={() => setModalOpen(false)}
         fullScreen
       >
-        <Modal.Overlay />
+        <Modal.Overlay blur={1} />
         <Modal.Content style={{ overflow: "hidden" }}>
           <Modal.Header>
             <Modal.Title>
@@ -50,7 +50,7 @@ export default function HistoryModal({ pageId, pageTitle }: Props) {
       opened={isModalOpen}
       onClose={() => setModalOpen(false)}
     >
-      <Modal.Overlay />
+      <Modal.Overlay blur={1} />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header>
           <Modal.Title>

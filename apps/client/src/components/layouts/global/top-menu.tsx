@@ -40,22 +40,25 @@ export default function TopMenu() {
     return <></>;
   }
 
+  const iconSize = 16;
+  const iconStroke = 1.75;
+
   return (
-    <Menu width={250} position="bottom-end" withArrow shadow={"lg"}>
+    <Menu width={250} position="bottom-end" withArrow shadow="sm">
       <Menu.Target>
         <UnstyledButton>
           <Group gap={7} wrap={"nowrap"}>
             <CustomAvatar
               avatarUrl={workspace?.logo}
               name={workspace?.name}
-              variant="filled"
+              variant="light"
               size="sm"
               type={AvatarIconType.WORKSPACE_ICON}
             />
             <Text fw={500} size="sm" lh={1} mr={3} lineClamp={1}>
               {workspace?.name}
             </Text>
-            <IconChevronDown size={16} />
+            <IconChevronDown size={iconSize} stroke={iconStroke} />
           </Group>
         </UnstyledButton>
       </Menu.Target>
@@ -65,7 +68,7 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.WORKSPACE.GENERAL}
-          leftSection={<IconSettings size={16} />}
+          leftSection={<IconSettings size={iconSize} stroke={iconStroke} />}
         >
           {t("Workspace settings")}
         </Menu.Item>
@@ -73,7 +76,7 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.WORKSPACE.MEMBERS}
-          leftSection={<IconUsers size={16} />}
+          leftSection={<IconUsers size={iconSize} stroke={iconStroke} />}
         >
           {t("Manage members")}
         </Menu.Item>
@@ -102,7 +105,7 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}
-          leftSection={<IconUserCircle size={16} />}
+          leftSection={<IconUserCircle size={iconSize} stroke={iconStroke} />}
         >
           {t("My profile")}
         </Menu.Item>
@@ -110,14 +113,18 @@ export default function TopMenu() {
         <Menu.Item
           component={Link}
           to={APP_ROUTE.SETTINGS.ACCOUNT.PREFERENCES}
-          leftSection={<IconBrush size={16} />}
+          leftSection={<IconBrush size={iconSize} stroke={iconStroke} />}
         >
           {t("My preferences")}
         </Menu.Item>
 
         <Menu.Sub>
           <Menu.Sub.Target>
-            <Menu.Sub.Item leftSection={<IconBrightnessFilled size={16} />}>
+            <Menu.Sub.Item
+              leftSection={
+                <IconBrightnessFilled size={iconSize} stroke={iconStroke} />
+              }
+            >
               {t("Theme")}
             </Menu.Sub.Item>
           </Menu.Sub.Target>
@@ -125,27 +132,35 @@ export default function TopMenu() {
           <Menu.Sub.Dropdown>
             <Menu.Item
               onClick={() => setColorScheme("light")}
-              leftSection={<IconSun size={16} />}
+              leftSection={<IconSun size={iconSize} stroke={iconStroke} />}
               rightSection={
-                colorScheme === "light" ? <IconCheck size={16} /> : null
+                colorScheme === "light" ? (
+                  <IconCheck size={iconSize} stroke={iconStroke} />
+                ) : null
               }
             >
               {t("Light")}
             </Menu.Item>
             <Menu.Item
               onClick={() => setColorScheme("dark")}
-              leftSection={<IconMoon size={16} />}
+              leftSection={<IconMoon size={iconSize} stroke={iconStroke} />}
               rightSection={
-                colorScheme === "dark" ? <IconCheck size={16} /> : null
+                colorScheme === "dark" ? (
+                  <IconCheck size={iconSize} stroke={iconStroke} />
+                ) : null
               }
             >
               {t("Dark")}
             </Menu.Item>
             <Menu.Item
               onClick={() => setColorScheme("auto")}
-              leftSection={<IconDeviceDesktop size={16} />}
+              leftSection={
+                <IconDeviceDesktop size={iconSize} stroke={iconStroke} />
+              }
               rightSection={
-                colorScheme === "auto" ? <IconCheck size={16} /> : null
+                colorScheme === "auto" ? (
+                  <IconCheck size={iconSize} stroke={iconStroke} />
+                ) : null
               }
             >
               {t("System settings")}
@@ -155,7 +170,10 @@ export default function TopMenu() {
 
         <Menu.Divider />
 
-        <Menu.Item onClick={logout} leftSection={<IconLogout size={16} />}>
+        <Menu.Item
+          onClick={logout}
+          leftSection={<IconLogout size={iconSize} stroke={iconStroke} />}
+        >
           {t("Logout")}
         </Menu.Item>
       </Menu.Dropdown>

@@ -13,11 +13,7 @@ import {
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
 import React from "react";
-import { EmptyState } from "@/components/ui/empty-state.tsx";
-import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
-import { Button } from "@mantine/core";
-import { Link } from "react-router-dom";
-import { ErrorBoundary } from "react-error-boundary";
+import FolderView from "./folder-view";
 
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -26,29 +22,6 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
-
-  return (
-    <ErrorBoundary
-      resetKeys={[pageSlug]}
-      fallbackRender={({ resetErrorBoundary }) => (
-        <EmptyState
-          icon={IconAlertTriangle}
-          title={t("Failed to load page. An error occurred.")}
-          action={
-            <Button variant="default" size="sm" mt="xs" onClick={resetErrorBoundary}>
-              {t("Try again")}
-            </Button>
-          }
-        />
-      )}
-    >
-      <PageContent pageSlug={pageSlug} />
-    </ErrorBoundary>
-  );
-}
-
-function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
-  const { t } = useTranslation();
 
   const {
     data: page,
@@ -67,32 +40,20 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   if (isError || !page) {
     if ([401, 403, 404].includes(error?.["status"])) {
-      return (
-        <EmptyState
-          icon={IconFileOff}
-          title={t("Page not found")}
-          description={t(
-            "This page may have been deleted, moved, or you may not have access.",
-          )}
-          action={
-            <Button component={Link} to="/home" variant="default" size="sm" mt="xs">
-              {t("Go to homepage")}
-            </Button>
-          }
-        />
-      );
+      return <div>{t("Page not found")}</div>;
     }
-    return (
-      <EmptyState
-        icon={IconFileOff}
-        title={t("Error fetching page data.")}
-      />
-    );
+    return <div>{t("Error fetching page data.")}</div>;
   }
 
   if (!space) {
     return <></>;
   }
+
+  const canManagePage = spaceAbility.can(
+    SpaceCaslAction.Manage,
+    SpaceCaslSubject.Page,
+  );
+  const isFolder = page.nodeType === "folder";
 
   return (
     page && (
@@ -102,24 +63,26 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
         </Helmet>
 
         <MemoizedPageHeader
-          readOnly={spaceAbility.cannot(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
-          )}
+          readOnly={!canManagePage}
         />
 
-        <MemoizedFullEditor
-          key={page.id}
-          pageId={page.id}
-          title={page.title}
-          content={page.content}
-          slugId={page.slugId}
-          spaceSlug={page?.space?.slug}
-          editable={spaceAbility.can(
-            SpaceCaslAction.Manage,
-            SpaceCaslSubject.Page,
-          )}
-        />
+        {isFolder ? (
+          <FolderView
+            folderPage={page}
+            readOnly={!canManagePage}
+            spaceSlug={page?.space?.slug}
+          />
+        ) : (
+          <MemoizedFullEditor
+            key={page.id}
+            pageId={page.id}
+            title={page.title}
+            content={page.content}
+            slugId={page.slugId}
+            spaceSlug={page?.space?.slug}
+            editable={canManagePage}
+          />
+        )}
         <MemoizedHistoryModal pageId={page.id} />
       </div>
     )

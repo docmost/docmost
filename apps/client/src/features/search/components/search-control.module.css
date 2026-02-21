@@ -1,25 +1,27 @@
 .root {
     height: 34px;
     padding-left: var(--mantine-spacing-sm);
-    padding-right: 4px;
+    padding-right: 6px;
     border-radius: var(--mantine-radius-md);
-    color: var(--mantine-color-placeholder);
-    border: 1px solid;
+    border: 1px solid var(--ui-border-default);
+    background-color: var(--ui-bg-surface);
+    color: var(--ui-text-secondary);
+    transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
 
-    @mixin light {
-        border-color: var(--mantine-color-gray-3);
-        background-color: var(--mantine-color-white);
-    }
-
-    @mixin dark {
-        border-color: var(--mantine-color-dark-4);
-        background-color: var(--mantine-color-dark-6);
+    &:hover {
+        border-color: var(--ui-border-hover);
+        color: var(--ui-text-primary);
     }
 
     @mixin rtl {
-        padding-left: 4px;
+        padding-left: 6px;
         padding-right: var(--mantine-spacing-sm);
     }
+}
+
+.label {
+    color: var(--ui-text-secondary);
+    padding-right: 80px;
 }
 
 .shortcut {
@@ -27,18 +29,8 @@
     line-height: 1;
     padding: 4px 7px;
     border-radius: var(--mantine-radius-sm);
-    border: 1px solid;
+    border: 1px solid var(--ui-border-default);
     font-weight: bold;
-
-    @mixin light {
-        color: var(--mantine-color-gray-7);
-        border-color: var(--mantine-color-gray-2);
-        background-color: var(--mantine-color-gray-0);
-    }
-
-    @mixin dark {
-        color: var(--mantine-color-dark-0);
-        border-color: var(--mantine-color-dark-7);
-        background-color: var(--mantine-color-dark-7);
-    }
+    color: var(--ui-text-secondary);
+    background-color: var(--ui-bg-subtle);
 }

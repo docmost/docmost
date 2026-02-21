@@ -69,7 +69,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
               id="name"
               label={t("Name")}
               placeholder={t("e.g Sales")}
-              variant="filled"
+              variant="default"
               readOnly={readOnly}
               {...form.getInputProps("name")}
             />
@@ -77,7 +77,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
             <TextInput
               id="slug"
               label={t("Slug")}
-              variant="filled"
+              variant="default"
               readOnly={readOnly}
               {...form.getInputProps("slug")}
             />
@@ -86,7 +86,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
               id="description"
               label={t("Description")}
               placeholder={t("e.g Space for sales team to collaborate")}
-              variant="filled"
+              variant="default"
               readOnly={readOnly}
               autosize
               minRows={1}

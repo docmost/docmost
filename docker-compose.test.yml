@@ -1,0 +1,42 @@
+# 测试热加载环境：只起一个 docmost（pnpm dev），复用正式栈的 DB/Redis（不启动 db/redis）
+# 使用：先确保正式栈已运行，再执行：
+#   docker compose -p test-doc -f docker-compose.test.yml up -d --build --force-recreate
+# .env 需有：DOCMOST_DB_PASSWORD、DOCMOST_PROD_NETWORK=docmost_default
+
+services:
+  docmost:
+    build:
+      context: /root/coderepository/docmost
+      dockerfile: Dockerfile.dev
+    image: docmost-test-dev:latest
+    working_dir: /app
+    environment:
+      APP_URL: 'https://test-doc.superchat.help'
+      APP_SECRET: '${APP_SECRET:-REPLACE_WITH_LONG_SECRET}'
+      DATABASE_URL: 'postgresql://docmost:${DOCMOST_DB_PASSWORD}@db:5432/docmost?schema=public'
+      REDIS_URL: 'redis://redis:6379'
+      PORT: '3000'
+      VITE_DEV_HOST: 'true'
+      VITE_PROXY_TARGET: 'http://127.0.0.1:3000'
+    ports:
+      - "127.0.0.1:3020:5173"
+    volumes:
+      - /root/coderepository/docmost:/app
+      - docmost_test:/app/data/storage
+    command: >
+      sh -c "pnpm install --frozen-lockfile
+      && pnpm --filter @docmost/editor-ext run build
+      && pnpm concurrently -n 'frontend,backend' -c 'cyan,green'
+      'pnpm --filter ./apps/client run dev'
+      'pnpm --filter ./apps/server run start:dev'"
+    networks:
+      - prod
+    restart: unless-stopped
+
+networks:
+  prod:
+    external: true
+    name: ${DOCMOST_PROD_NETWORK:-docmost_default}
+
+volumes:
+  docmost_test:

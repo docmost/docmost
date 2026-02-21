@@ -182,9 +182,9 @@ function PageArrow({ node }: PageArrowProps) {
       {node.isInternal ? (
         node.children && (node.children.length > 0 || node.data.hasChildren) ? (
           node.isOpen ? (
-            <IconChevronDown stroke={2} size={16} />
+            <IconChevronDown stroke={1.75} size={16} />
           ) : (
-            <IconChevronRight stroke={2} size={16} />
+            <IconChevronRight stroke={1.75} size={16} />
           )
         ) : (
           <IconPointFilled size={4} />

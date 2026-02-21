@@ -51,7 +51,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
           )}
           label={t("Invite by email")}
           placeholder={t("enter valid emails addresses")}
-          variant="filled"
+          variant="default"
           splitChars={[",", " "]}
           maxDropdownHeight={200}
           maxTags={50}
@@ -63,7 +63,7 @@ export function WorkspaceInviteForm({ onClose }: Props) {
           description={t("Select role to assign to all invited members")}
           label={t("Select role")}
           placeholder={t("Choose a role")}
-          variant="filled"
+          variant="default"
           data={userRoleData
             .filter((role) => role.value !== UserRole.OWNER)
             .map((role) => ({

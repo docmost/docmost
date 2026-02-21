@@ -83,7 +83,7 @@ export function InviteSignUpForm() {
                 type="text"
                 label={t("Name")}
                 placeholder={t("enter your full name")}
-                variant="filled"
+                variant="default"
                 {...form.getInputProps("name")}
               />
 
@@ -93,14 +93,14 @@ export function InviteSignUpForm() {
                 label={t("Email")}
                 value={invitation.email}
                 disabled
-                variant="filled"
+                variant="default"
                 mt="md"
               />
 
               <PasswordInput
                 label={t("Password")}
                 placeholder={t("Your password")}
-                variant="filled"
+                variant="default"
                 mt="md"
                 {...form.getInputProps("password")}
               />

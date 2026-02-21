@@ -254,7 +254,7 @@ export default function SettingsSidebar() {
                 cursor: isDisabled ? "not-allowed" : "pointer",
               }}
             >
-              <item.icon className={classes.linkIcon} stroke={2} />
+              <item.icon className={classes.linkIcon} stroke={1.75} />
               <span>{t(item.label)}</span>
             </Link>
           );
@@ -288,11 +288,11 @@ export default function SettingsSidebar() {
               toggleMobileSidebar();
             }
           }}
-          variant="transparent"
+          variant="subtle"
           c="gray"
           aria-label="Back"
         >
-          <IconArrowLeft stroke={2} />
+          <IconArrowLeft size={16} stroke={1.75} />
         </ActionIcon>
         <Text fw={500}>{t("Settings")}</Text>
       </Group>

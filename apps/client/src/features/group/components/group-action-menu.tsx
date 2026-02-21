@@ -53,8 +53,8 @@ export default function GroupActionMenu() {
             arrowPosition="center"
           >
             <Menu.Target>
-              <ActionIcon variant="light">
-                <IconDots size={20} stroke={2} />
+              <ActionIcon variant="subtle">
+                <IconDots size={18} stroke={1.75} />
               </ActionIcon>
             </Menu.Target>
 
@@ -67,7 +67,7 @@ export default function GroupActionMenu() {
                 c="red"
                 onClick={openDeleteModal}
                 disabled={group.isDefault}
-                leftSection={<IconTrash size={16} stroke={2} />}
+                leftSection={<IconTrash size={16} stroke={1.75} />}
               >
                 {t("Delete group")}
               </Menu.Item>

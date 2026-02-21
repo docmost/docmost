@@ -20,7 +20,7 @@ export default function TrashPageContentModal({
 
   return (
     <Modal.Root size={1200} opened={opened} onClose={onClose}>
-      <Modal.Overlay />
+      <Modal.Overlay blur={1} />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header>
           <Modal.Title>

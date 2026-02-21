@@ -21,7 +21,7 @@ export default function ChangePassword() {
         </Text>
       </div>
 
-      <Button onClick={open} variant="default" style={{ whiteSpace: "nowrap" }}>
+      <Button onClick={open} variant="subtle" style={{ whiteSpace: "nowrap" }}>
         {t("Change password")}
       </Button>
 
@@ -30,6 +30,7 @@ export default function ChangePassword() {
         onClose={close}
         title={t("Change password")}
         centered
+        overlayProps={{ blur: 1 }}
       >
         <Text mb="md">
           {t("Your password must be a minimum of 8 characters.")}
@@ -91,7 +92,7 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
         label={t("Current password")}
         name="oldPassword"
         placeholder={t("Enter your current password")}
-        variant="filled"
+        variant="default"
         mb="md"
         data-autofocus
         {...form.getInputProps("oldPassword")}
@@ -100,7 +101,7 @@ function ChangePasswordForm({ onClose }: ChangePasswordFormProps) {
       <PasswordInput
         label={t("New password")}
         placeholder={t("Enter your new password")}
-        variant="filled"
+        variant="default"
         mb="md"
         {...form.getInputProps("newPassword")}
       />

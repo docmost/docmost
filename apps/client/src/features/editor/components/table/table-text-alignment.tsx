@@ -88,7 +88,7 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
       <Popover.Target>
         <Tooltip label={t("Text alignment")} withArrow>
           <ActionIcon
-            variant="default"
+            variant="subtle"
             size="lg"
             aria-label={t("Text alignment")}
             onClick={() => setOpened(!opened)}
@@ -104,7 +104,7 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
             {items.map((item, index) => (
               <Button
                 key={index}
-                variant="default"
+                variant="subtle"
                 leftSection={<item.icon size={16} />}
                 rightSection={item.isActive() && <IconCheck size={16} />}
                 justify="left"
@@ -113,7 +113,6 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
                   item.command();
                   setOpened(false);
                 }}
-                style={{ border: "none" }}
               >
                 {t(item.name)}
               </Button>

@@ -22,6 +22,28 @@
   max-width: 200px;
 }
 
+.linkText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  color: var(--ui-text-primary);
+  transition: color 120ms ease;
+
+  &:hover {
+    color: var(--ui-accent-primary);
+  }
+}
+
+.currentText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  color: var(--ui-text-tertiary);
+  cursor: default;
+}
+
 .breadcrumbDiv {
   overflow: hidden;
   @media (max-width: $mantine-breakpoint-sm) {

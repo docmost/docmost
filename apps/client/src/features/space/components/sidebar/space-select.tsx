@@ -23,7 +23,7 @@ const renderSelectOption: SelectProps["renderOption"] = ({ option }) => (
       avatarUrl={option?.["icon"]}
       type={AvatarIconType.SPACE_ICON}
       color="initials"
-      variant="filled"
+      variant="light"
       size={20}
     />
     <div>
@@ -45,7 +45,7 @@ export function SpaceSelect({
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchValue, 500);
-  const { data: spaces, isLoading } = useGetSpacesQuery({
+  const { data: spaces } = useGetSpacesQuery({
     query: debouncedQuery,
     limit: 50,
   });
@@ -82,7 +82,7 @@ export function SpaceSelect({
       searchValue={searchValue}
       onSearchChange={setSearchValue}
       clearable={clearable}
-      variant="filled"
+      variant="default"
       onChange={(slug) =>
         onChange(spaces.items?.find((item) => item.slug === slug))
       }

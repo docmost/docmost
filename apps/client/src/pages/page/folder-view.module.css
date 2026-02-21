@@ -1,0 +1,93 @@
+.container {
+  height: 100%;
+  padding: 0;
+  margin: 46px auto 24px;
+
+  @media print {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.contentArea {
+  padding-top: 6px;
+}
+
+.toolbar {
+  margin-top: 2px;
+}
+
+.metaText {
+  color: var(--ui-text-secondary);
+  font-weight: 500;
+}
+
+.createActions {
+  align-items: center;
+}
+
+.itemsPanel {
+  min-height: 180px;
+  background: var(--ui-bg-surface);
+  border-color: var(--ui-border-default);
+  box-shadow: none;
+}
+
+.emptyState {
+  color: var(--ui-text-secondary);
+}
+
+.itemLink {
+  color: inherit;
+}
+
+.itemRow {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &:hover {
+    background: var(--ui-bg-subtle);
+    border-color: var(--ui-border-default);
+  }
+}
+
+.itemMain {
+  min-width: 0;
+}
+
+.systemIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-border-default);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.customIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.itemTitle {
+  color: var(--ui-text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pinIcon {
+  color: var(--ui-text-tertiary);
+  flex: 0 0 auto;
+}

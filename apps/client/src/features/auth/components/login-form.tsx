@@ -78,14 +78,14 @@ export function LoginForm() {
                 type="email"
                 label={t("Email")}
                 placeholder="email@example.com"
-                variant="filled"
+                variant="default"
                 {...form.getInputProps("email")}
               />
 
               <PasswordInput
                 label={t("Password")}
                 placeholder={t("Your password")}
-                variant="filled"
+                variant="default"
                 mt="md"
                 {...form.getInputProps("password")}
               />

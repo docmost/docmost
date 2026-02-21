@@ -177,6 +177,32 @@ export interface FileTasks {
   workspaceId: string;
 }
 
+export interface FolderMigrationJobItems {
+  errorCode: string | null;
+  id: Generated<string>;
+  jobId: string;
+  newPosition: string | null;
+  newParentPageId: string | null;
+  oldPosition: string | null;
+  oldParentPageId: string | null;
+  pageId: string;
+  status: string;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface FolderMigrationJobs {
+  createdAt: Generated<Timestamp>;
+  createdBy: string | null;
+  failedCount: Generated<number>;
+  id: Generated<string>;
+  spaceId: string;
+  status: Generated<string>;
+  successCount: Generated<number>;
+  totalCount: Generated<number>;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface Groups {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -212,6 +238,17 @@ export interface PageHistory {
   title: string | null;
   updatedAt: Generated<Timestamp>;
   version: number | null;
+  workspaceId: string;
+}
+
+export interface PageNodeMeta {
+  createdAt: Generated<Timestamp>;
+  isPinned: Generated<boolean>;
+  nodeType: Generated<string>;
+  pageId: string;
+  pinnedAt: Timestamp | null;
+  spaceId: string;
+  updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
 
@@ -338,6 +375,13 @@ export interface WorkspaceInvitations {
   workspaceId: string;
 }
 
+export interface WorkspaceReleaseChannel {
+  releaseChannel: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  updatedBy: string | null;
+  workspaceId: string;
+}
+
 export interface Workspaces {
   billingEmail: string | null;
   createdAt: Generated<Timestamp>;
@@ -399,10 +443,13 @@ export interface DB {
   billing: Billing;
   comments: Comments;
   fileTasks: FileTasks;
+  folderMigrationJobItems: FolderMigrationJobItems;
+  folderMigrationJobs: FolderMigrationJobs;
   groups: Groups;
   groupUsers: GroupUsers;
   notifications: Notifications;
   pageHistory: PageHistory;
+  pageNodeMeta: PageNodeMeta;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;
@@ -412,5 +459,6 @@ export interface DB {
   userTokens: UserTokens;
   watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
+  workspaceReleaseChannel: WorkspaceReleaseChannel;
   workspaces: Workspaces;
 }

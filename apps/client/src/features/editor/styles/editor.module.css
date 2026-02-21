@@ -1,11 +1,66 @@
 .editor {
     height: 100%;
-    padding: 8px 0;
-    margin: 48px auto;
+    padding: 0 0 28px;
+    margin: 24px auto 56px;
+    background: var(--ui-bg-surface);
+    border: 1px solid var(--ui-border-default);
+    border-radius: 14px;
+    box-shadow: var(--ui-shadow-sm);
+    overflow: visible;
+
+    :global(.ProseMirror) {
+        background: transparent;
+    }
 
     @media print {
         padding: 0;
         margin: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
     }
 }
 
+.editorDock {
+    position: sticky;
+    top: calc(var(--app-shell-header-offset, 0rem) + 45px);
+    z-index: 160;
+    border-bottom: 1px solid var(--ui-border-default);
+    background: var(--ui-bg-subtle);
+}
+
+.editorDockInner {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 6px 3rem 8px;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+.compactTitle {
+    min-width: 0;
+
+    :global(.ProseMirror) {
+        padding: 0;
+        line-height: 1.2;
+        min-height: auto;
+    }
+
+    :global(.ProseMirror h1) {
+        margin: 0;
+        font-size: rem(24px);
+        font-weight: 700;
+        line-height: 1.25;
+    }
+}
+
+@media print {
+    .editorDock {
+        display: none;
+    }
+}

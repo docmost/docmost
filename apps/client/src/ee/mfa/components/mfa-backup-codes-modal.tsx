@@ -101,6 +101,7 @@ export function MfaBackupCodesModal({
       onClose={handleClose}
       title={t("Backup codes")}
       size="md"
+      overlayProps={{ blur: 1 }}
     >
       <Stack gap="md">
         {!showNewCodes ? (
@@ -129,7 +130,7 @@ export function MfaBackupCodesModal({
                 <PasswordInput
                   label={t("Confirm password")}
                   placeholder={t("Enter your password")}
-                  variant="filled"
+                  variant="default"
                   {...form.getInputProps("confirmPassword")}
                   autoFocus
                   data-autofocus

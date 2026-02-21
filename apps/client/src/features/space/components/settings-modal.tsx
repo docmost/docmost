@@ -23,7 +23,7 @@ export default function SpaceSettingsModal({
   onClose,
 }: SpaceSettingsModalProps) {
   const { t } = useTranslation();
-  const { data: space, isLoading } = useSpaceQuery(spaceId);
+  const { data: space } = useSpaceQuery(spaceId);
 
   const spaceRules = space?.membership?.permissions;
   const spaceAbility = useSpaceAbility(spaceRules);
@@ -33,15 +33,14 @@ export default function SpaceSettingsModal({
       <Modal.Root
         opened={opened}
         onClose={onClose}
-        size={600}
-        padding="xl"
-        yOffset="10vh"
+        size={680}
+        padding={0}
+        yOffset="8vh"
         xOffset={0}
-        mah={400}
       >
-        <Modal.Overlay />
+        <Modal.Overlay blur={1} />
         <Modal.Content style={{ overflow: "hidden" }}>
-          <Modal.Header py={0}>
+          <Modal.Header py="xs">
             <Modal.Title>
               <Text fw={500} lineClamp={1}>
                 {space?.name}
@@ -49,8 +48,8 @@ export default function SpaceSettingsModal({
             </Modal.Title>
             <Modal.CloseButton />
           </Modal.Header>
-          <Modal.Body>
-            <div style={{ height: rem(600) }}>
+          <Modal.Body p={0}>
+            <div style={{ height: rem(560), maxHeight: "72vh", padding: rem(16) }}>
               <Tabs defaultValue="members">
                 <Tabs.List>
                   <Tabs.Tab fw={500} value="general">
@@ -61,9 +60,9 @@ export default function SpaceSettingsModal({
                   </Tabs.Tab>
                 </Tabs.List>
 
-                <Tabs.Panel value="general">
-                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
-                    <div style={{ paddingBottom: "100px"}}>
+                <Tabs.Panel value="general" pt="md">
+                  <ScrollArea h={"calc(72vh - 150px)"} scrollbarSize={6} pr={8}>
+                    <div style={{ paddingBottom: rem(32) }}>
                       <SpaceDetails
                         spaceId={space?.id}
                         readOnly={spaceAbility.cannot(
@@ -72,11 +71,10 @@ export default function SpaceSettingsModal({
                         )}
                       />
                     </div>
-
                   </ScrollArea>
                 </Tabs.Panel>
 
-                <Tabs.Panel value="members">
+                <Tabs.Panel value="members" pt="md">
                   <Group my="md" justify="flex-end">
                     {spaceAbility.can(
                       SpaceCaslAction.Manage,

@@ -57,7 +57,7 @@ export function CreateGroupForm() {
               id="name"
               label={t("Group name")}
               placeholder={t("e.g Developers")}
-              variant="filled"
+              variant="default"
               {...form.getInputProps("name")}
             />
 
@@ -65,7 +65,7 @@ export function CreateGroupForm() {
               id="description"
               label={t("Group description")}
               placeholder={t("e.g Group for developers")}
-              variant="filled"
+              variant="default"
               autosize
               minRows={2}
               maxRows={8}

@@ -65,10 +65,18 @@ export function usePageQuery(
 
 export function useCreatePageMutation() {
   const { t } = useTranslation();
-  return useMutation<IPage, Error, Partial<IPageInput>>({
+  return useMutation<IPage, Error, Partial<IPage>>({
     mutationFn: (data) => createPage(data),
-    onSuccess: (data) => {
-      invalidateOnCreatePage(data);
+    onSuccess: (data, variables) => {
+      const fallbackNodeType =
+        variables.nodeType ?? (variables.parentPageId ? "file" : "folder");
+
+      invalidateOnCreatePage({
+        ...data,
+        nodeType: data.nodeType ?? fallbackNodeType,
+        isPinned: data.isPinned ?? false,
+        pinnedAt: data.pinnedAt ?? null,
+      });
     },
     onError: (error) => {
       notifications.show({ message: t("Failed to create page"), color: "red" });
@@ -190,6 +198,11 @@ export function useRestorePageMutation() {
           spaceId: restoredPage.spaceId,
           parentPageId: restoredPage.parentPageId,
           hasChildren: restoredPage.hasChildren || false,
+          nodeType:
+            restoredPage.nodeType ??
+            (restoredPage.parentPageId ? "file" : "folder"),
+          isPinned: restoredPage.isPinned ?? false,
+          pinnedAt: restoredPage.pinnedAt ?? null,
           children: [],
         };
 
@@ -321,7 +334,10 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
     hasChildren: data.hasChildren,
     icon: data.icon,
     id: data.id,
+    isPinned: data.isPinned,
+    nodeType: data.nodeType,
     parentPageId: data.parentPageId,
+    pinnedAt: data.pinnedAt,
     position: data.position,
     slugId: data.slugId,
     spaceId: data.spaceId,
@@ -415,7 +431,7 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
 
 export function invalidateOnUpdatePage(
   spaceId: string,
-  parentPageId: string,
+  parentPageId: string | null,
   id: string,
   title: string,
   icon: string,

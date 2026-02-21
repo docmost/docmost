@@ -80,7 +80,7 @@ function EmojiPicker({
         </ActionIcon>
       </Popover.Target>
       <Suspense fallback={null}>
-        <Popover.Dropdown bg="000" style={{ border: "none" }} ref={setDropdown}>
+        <Popover.Dropdown p={0} ref={setDropdown}>
           <Picker
             data={async () => (await import("@emoji-mart/data")).default}
             onEmojiSelect={handleEmojiSelect}

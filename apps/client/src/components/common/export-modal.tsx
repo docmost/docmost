@@ -77,7 +77,7 @@ export default function ExportModal({
       mah={400}
       onClick={(e) => e.stopPropagation()}
     >
-      <Modal.Overlay />
+      <Modal.Overlay blur={1} />
       <Modal.Content style={{ overflow: "hidden" }}>
         <Modal.Header py={0}>
           <Modal.Title fw={500}>{t(`Export ${type}`)}</Modal.Title>
@@ -139,8 +139,8 @@ export default function ExportModal({
             </>
           )}
 
-          <Group justify="center" mt="md">
-            <Button onClick={onClose} variant="default">
+          <Group justify="end" mt="md" gap="xs">
+            <Button onClick={onClose} variant="subtle">
               {t("Cancel")}
             </Button>
             <Button onClick={handleExport} loading={isExporting}>{t("Export")}</Button>

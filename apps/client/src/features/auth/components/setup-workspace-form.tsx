@@ -66,7 +66,7 @@ export function SetupWorkspaceForm() {
                 type="text"
                 label={t("Workspace Name")}
                 placeholder={t("e.g ACME Inc")}
-                variant="filled"
+                variant="default"
                 mt="md"
                 {...form.getInputProps("workspaceName")}
               />
@@ -77,7 +77,7 @@ export function SetupWorkspaceForm() {
               type="text"
               label={t("Your Name")}
               placeholder={t("enter your full name")}
-              variant="filled"
+              variant="default"
               mt="md"
               {...form.getInputProps("name")}
             />
@@ -87,7 +87,7 @@ export function SetupWorkspaceForm() {
               type="email"
               label={t("Your Email")}
               placeholder="email@example.com"
-              variant="filled"
+              variant="default"
               mt="md"
               {...form.getInputProps("email")}
             />
@@ -95,7 +95,7 @@ export function SetupWorkspaceForm() {
             <PasswordInput
               label={t("Password")}
               placeholder={t("Enter a strong password")}
-              variant="filled"
+              variant="default"
               mt="md"
               {...form.getInputProps("password")}
             />

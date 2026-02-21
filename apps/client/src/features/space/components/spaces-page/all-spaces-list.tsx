@@ -94,7 +94,7 @@ export default function AllSpacesList({
                           avatarUrl={space.logo}
                           type={AvatarIconType.SPACE_ICON}
                           color="initials"
-                          variant="filled"
+                          variant="light"
                           size="md"
                         />
                         <div style={{ minWidth: 0, overflow: "hidden", maxWidth: 350 }}>
@@ -120,12 +120,12 @@ export default function AllSpacesList({
                       <Menu position="bottom-end">
                         <Menu.Target>
                           <ActionIcon variant="subtle" color="gray">
-                            <IconDots size={16} />
+                            <IconDots size={16} stroke={1.75} />
                           </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
                           <Menu.Item
-                            leftSection={<IconSettings size={16} />}
+                            leftSection={<IconSettings size={16} stroke={1.75} />}
                             onClick={() => handleOpenSettings(space.id)}
                           >
                             {t("Space settings")}

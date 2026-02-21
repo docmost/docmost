@@ -35,35 +35,36 @@ export const theme = createTheme({
     blue,
     red,
   },
-  /***
-  components: {
-    ActionIcon: ActionIcon.extend({
-      vars: (_theme, props) => {
-        return {
-          root: {
-            ...(props.variant === "subtle" &&
-              props.color === "dark" && {
-                "--ai-color": "var(--mantine-color-default-color)",
-                "--ai-hover": "var(--mantine-color-default-hover)",
-              }),
-          },
-        };
-      },
-    }),
+  primaryColor: "blue",
+  defaultRadius: "md",
+  fontFamily:
+    "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  headings: {
+    fontFamily:
+      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontWeight: "600",
   },
-  ***/
 });
 
 export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
   variables: {
     "--input-error-size": theme.fontSizes.sm,
+    "--ui-bg-canvas": "#f7f8fa",
+    "--ui-bg-surface": "#ffffff",
+    "--ui-bg-subtle": "#f2f4f7",
+    "--ui-text-primary": "#111827",
+    "--ui-text-secondary": "#5b6473",
+    "--ui-text-tertiary": "#8b95a7",
+    "--ui-border-default": "#e6e8ec",
+    "--ui-border-hover": "#d5dae1",
+    "--ui-border-active": "#99a2b3",
+    "--ui-accent-primary": "#2563eb",
+    "--ui-accent-hover": "#1d4ed8",
+    "--ui-shadow-sm": "0 4px 16px rgba(17, 24, 39, 0.06)",
   },
   light: {
-    "--mantine-color-dark-light-color": "#4e5359",
-    "--mantine-color-dark-light-hover": "var(--mantine-color-gray-light-hover)",
+    "--mantine-color-body": "var(--ui-bg-canvas)",
+    "--mantine-color-default-border": "var(--ui-border-default)",
   },
-  dark: {
-    "--mantine-color-dark-light-color": "var(--mantine-color-gray-4)",
-    "--mantine-color-dark-light-hover": "var(--mantine-color-default-hover)",
-  },
+  dark: {},
 });

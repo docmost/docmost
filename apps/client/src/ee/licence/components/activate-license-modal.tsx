@@ -28,6 +28,7 @@ export default function ActivateLicense() {
         onClose={close}
         title={t("Enterprise license")}
         centered
+        overlayProps={{ blur: 1 }}
       >
         <ActivateLicenseForm onClose={close} />
       </Modal>
@@ -67,7 +68,7 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
         label={t("License key")}
         description="Enter a valid enterprise license key. Contact sales@docmost.com to purchase one."
         placeholder={t("e.g eyJhb.....")}
-        variant="filled"
+        variant="default"
         autosize
         minRows={3}
         maxRows={5}

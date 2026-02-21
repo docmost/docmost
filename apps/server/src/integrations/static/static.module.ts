@@ -28,6 +28,10 @@ export class StaticModule implements OnModuleInit {
     const indexFilePath = join(clientDistPath, 'index.html');
 
     if (fs.existsSync(clientDistPath) && fs.existsSync(indexFilePath)) {
+      const IMMUTABLE_ASSET_CACHE_CONTROL =
+        'public, max-age=31536000, immutable';
+      const DEFAULT_STATIC_CACHE_CONTROL = 'public, max-age=300';
+      const NO_STORE_CACHE_CONTROL = 'no-store';
       const indexTemplateFilePath = join(clientDistPath, 'index-template.html');
       const windowVar = '<!--window-config-->';
 
@@ -67,11 +71,29 @@ export class StaticModule implements OnModuleInit {
       await app.register(fastifyStatic, {
         root: clientDistPath,
         wildcard: false,
+        setHeaders: (res, filePath) => {
+          const normalizedPath = filePath.replace(/\\/g, '/');
+
+          if (normalizedPath.endsWith('/index.html')) {
+            res.setHeader('Cache-Control', NO_STORE_CACHE_CONTROL);
+            return;
+          }
+
+          if (normalizedPath.includes('/assets/')) {
+            res.setHeader('Cache-Control', IMMUTABLE_ASSET_CACHE_CONTROL);
+            return;
+          }
+
+          res.setHeader('Cache-Control', DEFAULT_STATIC_CACHE_CONTROL);
+        },
       });
 
       app.get(RENDER_PATH, (req: any, res: any) => {
         const stream = fs.createReadStream(indexFilePath);
-        res.type('text/html').send(stream);
+        res
+          .header('Cache-Control', NO_STORE_CACHE_CONTROL)
+          .type('text/html')
+          .send(stream);
       });
     }
   }

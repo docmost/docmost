@@ -44,7 +44,13 @@ export function SwitchSpace({
           variant="subtle"
           fullWidth
           justify="space-between"
-          rightSection={opened ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
+          rightSection={
+            opened ? (
+              <IconChevronUp size={18} stroke={1.75} />
+            ) : (
+              <IconChevronDown size={18} stroke={1.75} />
+            )
+          }
           color="gray"
           onClick={toggle}
         >
@@ -53,7 +59,7 @@ export function SwitchSpace({
             avatarUrl={spaceIcon}
             type={AvatarIconType.SPACE_ICON}
             color="initials"
-            variant="filled"
+            variant="light"
             size={20}
           />
           <Text className={classes.spaceName} size="md" fw={500} lineClamp={1}>

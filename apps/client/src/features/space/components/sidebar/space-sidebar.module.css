@@ -1,5 +1,5 @@
 .navbar {
-    /*background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));*/
+    background-color: var(--ui-bg-canvas);
     height: 100%;
     width: 100%;
     padding: var(--mantine-spacing-md);
@@ -15,7 +15,7 @@
     margin-bottom: var(--mantine-spacing-md);
 
     &:not(:last-of-type) {
-        border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+        border-bottom: rem(1px) solid var(--ui-border-default);
     }
 }
 
@@ -33,6 +33,8 @@
     padding-left: calc(var(--mantine-spacing-md) - var(--mantine-spacing-xs));
     padding-right: calc(var(--mantine-spacing-md) - var(--mantine-spacing-xs));
     padding-bottom: var(--mantine-spacing-md);
+    gap: rem(2px);
+    display: grid;
 }
 
 .menu {
@@ -40,14 +42,15 @@
     align-items: center;
     width: 100%;
     font-size: var(--mantine-font-size-sm);
-    padding: rem(4px) var(--mantine-spacing-xs);
-    border-radius: var(--mantine-radius-sm);
+    padding: rem(6px) var(--mantine-spacing-xs);
+    border-radius: rem(8px);
     font-weight: 500;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    color: var(--ui-text-secondary);
+    transition: background-color 120ms ease, color 120ms ease;
 
     &:hover {
-        background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
-        color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+        background-color: var(--ui-bg-subtle);
+        color: var(--ui-text-primary);
     }
 }
 
@@ -59,7 +62,7 @@
 
 .menuItemIcon {
     margin-right: var(--mantine-spacing-sm);
-    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    color: var(--ui-text-tertiary);
 }
 
 .pages {
@@ -80,17 +83,17 @@
     text-decoration: none;
     border-radius: var(--mantine-radius-sm);
     font-size: var(--mantine-font-size-xs);
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    color: var(--ui-text-secondary);
     line-height: 1;
     font-weight: 500;
 
     &:hover {
-        background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
-        color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+        background-color: var(--ui-bg-subtle);
+        color: var(--ui-text-primary);
     }
 }
 
 .activeButton {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    background-color: var(--ui-bg-subtle);
+    color: var(--ui-text-primary);
 }

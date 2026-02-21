@@ -9,11 +9,10 @@ import {
   IconStrikethrough,
   IconUnderline,
   IconMessage,
-  IconSparkles,
 } from "@tabler/icons-react";
 import clsx from "clsx";
 import classes from "./bubble-menu.module.css";
-import { ActionIcon, Button, rem, Tooltip } from "@mantine/core";
+import { ActionIcon, rem, Tooltip } from "@mantine/core";
 import { ColorSelector } from "./color-selector";
 import { NodeSelector } from "./node-selector";
 import { TextAlignmentSelector } from "./text-alignment-selector";
@@ -21,13 +20,11 @@ import {
   draftCommentIdAtom,
   showCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { v7 as uuid7 } from "uuid";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { LinkSelector } from "@/features/editor/components/bubble-menu/link-selector.tsx";
 import { useTranslation } from "react-i18next";
-import { showAiMenuAtom } from "@/features/editor/atoms/editor-atoms";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
 
 export interface BubbleMenuItem {
   name: string;
@@ -42,21 +39,13 @@ type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children" | "editor"> & {
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const { t } = useTranslation();
-  const [showAiMenu, setShowAiMenu] = useAtom(showAiMenuAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
-  const workspace = useAtomValue(workspaceAtom);
-  const isGenerativeAiEnabled = workspace?.settings?.ai?.generative === true;
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
-  const showAiMenuRef = useRef(showAiMenu);
 
   useEffect(() => {
     showCommentPopupRef.current = showCommentPopup;
   }, [showCommentPopup]);
-
-  useEffect(() => {
-    showAiMenuRef.current = showAiMenu;
-  }, [showAiMenu]);
 
   const editorState = useEditorState({
     editor: props.editor,
@@ -134,7 +123,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
         empty ||
         isNodeSelection(selection) ||
         isCellSelection(selection) ||
-        showAiMenuRef.current ||
         showCommentPopupRef?.current
       ) {
         return false;
@@ -158,31 +146,9 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
 
-  // Hide the bubble menu immediately when AI menu is shown
-  if (showAiMenu) return;
-
   return (
-    <BubbleMenu
-      {...bubbleMenuProps}
-      style={{ zIndex: 200, position: "relative" }}
-    >
+    <BubbleMenu {...bubbleMenuProps} style={{ zIndex: 200, position: "relative"}}>
       <div className={classes.bubbleMenu}>
-        {isGenerativeAiEnabled && (
-          <>
-            <Button
-              variant="default"
-              className={clsx(classes.buttonRoot)}
-              radius="0"
-              leftSection={<IconSparkles size={16} />}
-              onClick={() => {
-                setShowAiMenu(true);
-              }}
-            >
-              {t("Ask AI")}
-            </Button>
-            <div className={classes.divider} />
-          </>
-        )}
         <NodeSelector
           editor={props.editor}
           isOpen={isNodeSelectorOpen}
@@ -210,15 +176,14 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
             <Tooltip key={index} label={t(item.name)} withArrow>
               <ActionIcon
                 key={index}
-                variant="default"
+                variant="subtle"
                 size="lg"
                 radius="0"
                 aria-label={t(item.name)}
                 className={clsx({ [classes.active]: item.isActive() })}
-                style={{ border: "none" }}
                 onClick={item.command}
               >
-                <item.icon style={{ width: rem(16) }} stroke={2} />
+                <item.icon style={{ width: rem(16) }} stroke={1.75} />
               </ActionIcon>
             </Tooltip>
           ))}
@@ -246,18 +211,15 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           }}
         />
 
-        <Tooltip label={t(commentItem.name)} withArrow withinPortal={false}>
-          <ActionIcon
-            variant="default"
-            size="lg"
-            radius="6px"
-            aria-label={t(commentItem.name)}
-            style={{ border: "none" }}
-            onClick={commentItem.command}
-          >
-            <IconMessage size={16} stroke={2} />
-          </ActionIcon>
-        </Tooltip>
+        <ActionIcon
+          variant="subtle"
+          size="lg"
+          radius="0"
+          aria-label={t(commentItem.name)}
+          onClick={commentItem.command}
+        >
+          <IconMessage size={16} stroke={1.75} />
+        </ActionIcon>
       </div>
     </BubbleMenu>
   );
