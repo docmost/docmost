@@ -28,17 +28,17 @@ Redis) and produce a single-binary, self-contained server.
 | AI | AI SDK (OpenAI, Google, Ollama) + LangChain embeddings |
 | Build | pnpm + Nx monorepo |
 | Frontend | React + Vite + Mantine UI + TipTap editor |
-| Enterprise | SSO, MFA, Billing (Stripe), API Keys |
+| Enterprise | SSO, MFA, API Keys |
 
 ### External Service Dependencies (to be removed)
 - **PostgreSQL** - primary database
 - **Redis** - pub/sub, queues, caching, WebSocket adapter, collab sync
 
-### Key Database Entities (20 tables)
+### Key Database Entities (19 tables)
 `workspaces`, `users`, `user_tokens`, `user_mfa`, `groups`, `group_users`,
 `spaces`, `space_members`, `pages`, `page_history`, `comments`, `attachments`,
 `backlinks`, `shares`, `workspace_invitations`, `auth_providers`, `auth_accounts`,
-`notifications`, `watchers`, `file_tasks`, `billing`, `api_keys`
+`notifications`, `watchers`, `file_tasks`, `api_keys`
 
 ---
 
@@ -179,7 +179,6 @@ Map each Kysely/PostgreSQL table to a Drizzle SQLite schema. Key translation rul
 - `schema/auth.ts` — auth_providers, auth_accounts (may be managed by Better Auth)
 - `schema/shares.ts` — shares
 - `schema/notifications.ts` — notifications, watchers
-- `schema/billing.ts` — billing
 - `schema/api-keys.ts` — api_keys
 
 Example schema file:
@@ -322,7 +321,7 @@ Table migration order (respecting foreign keys):
 10. `user_tokens`, `user_mfa`
 11. `shares`
 12. `notifications`, `watchers`
-13. `billing`, `api_keys`
+13. `api_keys`
 
 #### Deliverable
 Application runs with SQLite instead of PostgreSQL. All CRUD operations, pagination,
@@ -836,7 +835,6 @@ Redis is no longer needed for pub/sub. The collaboration server runs in the same
 | `AI_QUEUE` | Embeddings, completions | Low — async |
 | `HISTORY_QUEUE` | Save page history | Medium — debounced |
 | `NOTIFICATION_QUEUE` | Send notifications | Medium — can retry |
-| `BILLING_QUEUE` | Process billing events | High — needs reliability |
 | `FILE_TASK_QUEUE` | Import/export tasks | Low — deferred |
 
 #### 5.2 In-Process Task Queue Implementation
@@ -909,7 +907,7 @@ function enqueuePageHistory(pageId: string, delay: number) {
 
 #### 5.3 Optional: SQLite-Backed Persistent Queue
 
-For critical jobs (billing, email) that must survive server restarts:
+For critical jobs (email) that must survive server restarts:
 
 ```typescript
 // Store pending jobs in SQLite
@@ -938,7 +936,6 @@ Critical jobs are persisted to SQLite for crash recovery.
 - **Low-Medium risk** - Queues are mostly fire-and-forget
 - In-process queues lose Redis-based rate limiting (not critical for self-hosted)
 - Server restart loses in-flight non-persisted jobs (acceptable with SQLite fallback)
-- The billing queue may need extra reliability guarantees
 
 ---
 
@@ -1303,7 +1300,6 @@ These components remain unchanged or require minimal adaptation:
 | **S3 storage option** | AWS SDK works under Bun |
 | **Email templates (React Email)** | Rendering is runtime-agnostic |
 | **CASL authorization** | Framework-agnostic permission library |
-| **Stripe billing** | External API; minor wiring changes only |
 | **`editor-ext` package** | Shared TipTap extensions; no server dependency |
 
 ---
