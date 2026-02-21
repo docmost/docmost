@@ -11,6 +11,9 @@ import { randomBytes } from 'crypto';
 
 const DOCMOST_VERSION = process.env.npm_package_version ?? '0.0.0';
 
+// Prefer full path so backup works in containers where PATH may not include /usr/bin
+const PG_DUMP_BIN = process.env.PG_DUMP_PATH || '/usr/bin/pg_dump';
+
 export interface BackupResult {
   artifactPath: string;
   artifactSizeBytes: number;
@@ -129,12 +132,13 @@ export class BackupPackageService {
       const { host, port, db, user, password } = parsed;
 
       const pgDump = spawn(
-        'pg_dump',
+        PG_DUMP_BIN,
         ['-h', host, '-p', port, '-U', user, '-d', db, '-F', 'p', '-f', '-'],
         {
           env: { ...process.env, PGPASSWORD: password },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      );
 
       const gzip = createGzip();
       const out = createWriteStream(outPath);

@@ -149,7 +149,7 @@ export class BackupJobService {
     const hasNextPage = rows.length > limit;
     const nextCursor =
       hasNextPage && items.length > 0
-        ? String(items[items.length - 1].createdAt)
+        ? new Date(items[items.length - 1].createdAt).toISOString()
         : null;
 
     return {
