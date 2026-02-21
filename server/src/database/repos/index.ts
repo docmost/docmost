@@ -1,0 +1,10 @@
+export { WorkspaceRepo } from './workspace.repo';
+export { UserRepo } from './user.repo';
+export { GroupRepo, GroupUserRepo } from './group.repo';
+export { SpaceRepo, SpaceMemberRepo } from './space.repo';
+export { PageRepo, PageHistoryRepo, BacklinkRepo } from './page.repo';
+export { CommentRepo } from './comment.repo';
+export { AttachmentRepo } from './attachment.repo';
+export { ShareRepo } from './share.repo';
+export { NotificationRepo } from './notification.repo';
+export { WatcherRepo } from './watcher.repo';
