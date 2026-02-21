@@ -45,10 +45,17 @@ export async function getBackupJobs(params?: {
   cursor?: string;
   limit?: number;
 }): Promise<ListBackupJobsResult> {
+  const limit = params?.limit ?? 20;
   const res = await api.get("/backups/jobs", {
-    params: { cursor: params?.cursor, limit: params?.limit ?? 20 },
+    params: { cursor: params?.cursor, limit },
   });
-  return unwrap<ListBackupJobsResult>(res);
+  const raw = unwrap<ListBackupJobsResult>(res);
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    nextCursor: raw?.nextCursor ?? null,
+    hasNextPage: raw?.hasNextPage ?? false,
+    hasPrevPage: raw?.hasPrevPage ?? false,
+  };
 }
 
 export async function runBackup(): Promise<{ job: BackupJob }> {

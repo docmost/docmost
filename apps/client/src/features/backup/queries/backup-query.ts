@@ -28,7 +28,17 @@ export function useRunBackupMutation() {
 
   return useMutation({
     mutationFn: runBackup,
-    onSuccess: (_, __) => {
+    onSuccess: (result) => {
+      const job = result?.job;
+      if (job) {
+        const key: [string, undefined, number] = ["backupJobs", undefined, 20];
+        queryClient.setQueryData<ListBackupJobsResult>(key, (old) => ({
+          items: [job, ...(old?.items ?? [])],
+          nextCursor: old?.nextCursor ?? null,
+          hasNextPage: old?.hasNextPage ?? false,
+          hasPrevPage: false,
+        }));
+      }
       queryClient.invalidateQueries({ queryKey: ["backupJobs"] });
       notifications.show({ message: "Backup started" });
     },

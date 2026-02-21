@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class ListBackupJobsDto {
@@ -6,6 +7,9 @@ export class ListBackupJobsDto {
   cursor?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value === '' || value === undefined ? undefined : Number(value),
+  )
   @Min(1)
   limit?: number;
 }
