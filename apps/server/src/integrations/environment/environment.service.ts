@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
 import ms, { StringValue } from 'ms';
 
 @Injectable()
@@ -77,6 +78,13 @@ export class EnvironmentService {
 
   getStorageDriver(): string {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
+  }
+
+  getBackupLocalPath(): string {
+    return this.configService.get<string>(
+      'BACKUP_LOCAL_PATH',
+      path.join(process.cwd(), 'data', 'backups'),
+    );
   }
 
   getFileUploadSizeLimit(): string {

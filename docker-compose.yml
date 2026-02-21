@@ -1,9 +1,14 @@
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docmost:local
     depends_on:
       - db
       - redis
+    env_file:
+      - .env
     environment:
       APP_URL: 'http://localhost:3000'
       APP_SECRET: 'REPLACE_WITH_LONG_SECRET'

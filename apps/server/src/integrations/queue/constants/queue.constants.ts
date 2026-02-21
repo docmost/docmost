@@ -8,6 +8,7 @@ export enum QueueName {
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
+  BACKUP_QUEUE = '{backup-queue}',
 }
 
 export enum QueueJob {
@@ -67,4 +68,5 @@ export enum QueueJob {
   COMMENT_NOTIFICATION = 'comment-notification',
   COMMENT_RESOLVED_NOTIFICATION = 'comment-resolved-notification',
   PAGE_MENTION_NOTIFICATION = 'page-mention-notification',
+  BACKUP_JOB = 'backup-job',
 }

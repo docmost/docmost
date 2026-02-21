@@ -615,5 +615,21 @@
   "Today": "Today",
   "Yesterday": "Yesterday",
   "This week": "This week",
-  "Older": "Older"
+  "Older": "Older",
+  "Unpinned": "Unpinned",
+  "Unpin": "Unpin",
+  "Pin to top": "Pin to top",
+  "Failed to update pin status": "Failed to update pin status",
+  "Backup & Restore": "Backup & Restore",
+  "Run backup now": "Run backup now",
+  "Trigger a full backup or download a previous backup.": "Trigger a full backup or download a previous backup.",
+  "Started": "Started",
+  "Ended": "Ended",
+  "Size": "Size",
+  "Triggered by": "Triggered by",
+  "Actions": "Actions",
+  "Download": "Download",
+  "Running": "Running",
+  "Failed": "Failed",
+  "Canceled": "Canceled"
 }
