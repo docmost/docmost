@@ -68,10 +68,14 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.SIGNUP,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
+    APP_ROUTE.AUTH.MFA_CHALLENGE,
+    APP_ROUTE.AUTH.MFA_SETUP_REQUIRED,
     "/invites",
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
-    window.location.href = APP_ROUTE.AUTH.LOGIN;
+    const redirectTo = window.location.pathname;
+    const params = new URLSearchParams({ redirect: redirectTo });
+    window.location.href = `${APP_ROUTE.AUTH.LOGIN}?${params.toString()}`;
   }
 }
 
