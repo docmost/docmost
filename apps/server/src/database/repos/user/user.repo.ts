@@ -43,6 +43,7 @@ export class UserRepo {
     opts?: {
       includePassword?: boolean;
       includeUserMfa?: boolean;
+      includeScimExternalId?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<User> {
@@ -52,6 +53,7 @@ export class UserRepo {
       .select(this.baseFields)
       .$if(opts?.includePassword, (qb) => qb.select('password'))
       .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
+      .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where('id', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -63,6 +65,7 @@ export class UserRepo {
     opts?: {
       includePassword?: boolean;
       includeUserMfa?: boolean;
+      includeScimExternalId?: boolean;
       trx?: KyselyTransaction;
     },
   ): Promise<User> {
@@ -72,6 +75,7 @@ export class UserRepo {
       .select(this.baseFields)
       .$if(opts?.includePassword, (qb) => qb.select('password'))
       .$if(opts?.includeUserMfa, (qb) => qb.select(this.withUserMfa))
+      .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where(sql`LOWER(email)`, '=', sql`LOWER(${email})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();

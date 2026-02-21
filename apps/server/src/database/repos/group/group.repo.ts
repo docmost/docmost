@@ -9,7 +9,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { ExpressionBuilder, sql } from 'kysely';
 import { PaginationOptions } from '../../pagination/pagination-options';
-import { DB } from '@docmost/db/types/db';
+import { DB, Groups } from '@docmost/db/types/db';
 import { DefaultGroup } from '../../../core/group/dto/create-group.dto';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
@@ -17,16 +17,33 @@ import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagin
 export class GroupRepo {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
 
+  private baseFields: Array<keyof Groups> = [
+    'id',
+    'name',
+    'description',
+    'isDefault',
+    'creatorId',
+    'workspaceId',
+    'createdAt',
+    'updatedAt',
+    'deletedAt',
+  ];
+
   async findById(
     groupId: string,
     workspaceId: string,
-    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
+    opts?: {
+      includeMemberCount?: boolean;
+      includeScimExternalId?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<Group> {
     const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('groups')
-      .selectAll('groups')
+      .select(this.baseFields)
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -35,13 +52,18 @@ export class GroupRepo {
   async findByName(
     groupName: string,
     workspaceId: string,
-    opts?: { includeMemberCount?: boolean; trx?: KyselyTransaction },
+    opts?: {
+      includeMemberCount?: boolean;
+      includeScimExternalId?: boolean;
+      trx?: KyselyTransaction;
+    },
   ): Promise<Group> {
     const db = dbOrTx(this.db, opts?.trx);
     return db
       .selectFrom('groups')
-      .selectAll('groups')
+      .select(this.baseFields)
       .$if(opts?.includeMemberCount, (qb) => qb.select(this.withMemberCount))
+      .$if(opts?.includeScimExternalId, (qb) => qb.select('scimExternalId'))
       .where(sql`LOWER(name)`, '=', sql`LOWER(${groupName})`)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -71,7 +93,7 @@ export class GroupRepo {
     return db
       .insertInto('groups')
       .values(insertableGroup)
-      .returningAll()
+      .returning(this.baseFields)
       .executeTakeFirst();
   }
 
@@ -83,7 +105,7 @@ export class GroupRepo {
     return (
       db
         .selectFrom('groups')
-        .selectAll()
+        .select(this.baseFields)
         // .select((eb) => this.withMemberCount(eb))
         .where('isDefault', '=', true)
         .where('workspaceId', '=', workspaceId)
@@ -109,7 +131,7 @@ export class GroupRepo {
   async getGroupsPaginated(workspaceId: string, pagination: PaginationOptions) {
     let baseQuery = this.db
       .selectFrom('groups')
-      .selectAll('groups')
+      .select(this.baseFields)
       .select((eb) => this.withMemberCount(eb))
       .where('workspaceId', '=', workspaceId);
 
