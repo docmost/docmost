@@ -338,6 +338,61 @@ export interface WorkspaceInvitations {
   workspaceId: string;
 }
 
+export interface WorkspaceReleaseChannel {
+  releaseChannel: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  updatedBy: string | null;
+  workspaceId: string;
+}
+
+export interface BackupJobs {
+  id: Generated<string>;
+  workspaceId: string;
+  policyId: string | null;
+  triggerType: 'schedule' | 'manual' | 'api';
+  triggeredByUserId: string | null;
+  status: 'pending' | 'running' | 'success' | 'failed' | 'canceled';
+  startedAt: Timestamp | null;
+  endedAt: Timestamp | null;
+  durationMs: string | null;
+  artifactPath: string | null;
+  artifactSizeBytes: string | null;
+  checksum: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  metadata: Json | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface BackupPolicies {
+  id: Generated<string>;
+  workspaceId: string;
+  name: string;
+  enabled: Generated<boolean>;
+  cronExpr: string;
+  timezone: Generated<string>;
+  retentionDays: number | null;
+  retentionCount: number | null;
+  targetDriver: string;
+  targetConfig: Json | null;
+  lastRunAt: Timestamp | null;
+  createdBy: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface BackupRestores {
+  id: Generated<string>;
+  workspaceId: string;
+  jobId: string | null;
+  mode: 'dry-run' | 'apply';
+  status: 'pending' | 'running' | 'success' | 'failed';
+  startedAt: Timestamp | null;
+  endedAt: Timestamp | null;
+  report: Json | null;
+  operatorId: string | null;
+  createdAt: Generated<Timestamp>;
+}
 export interface Workspaces {
   billingEmail: string | null;
   createdAt: Generated<Timestamp>;
@@ -392,6 +447,9 @@ export interface Watchers {
 
 export interface DB {
   apiKeys: ApiKeys;
+  backupJobs: BackupJobs;
+  backupPolicies: BackupPolicies;
+  backupRestores: BackupRestores;
   attachments: Attachments;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;

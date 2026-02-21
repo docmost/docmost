@@ -7,6 +7,9 @@ FROM base AS builder
 
 WORKDIR /app
 
+# Short socket path for Nx daemon in Docker
+ENV NX_SOCKET_DIR=/tmp/nx-tmp
+
 COPY . .
 
 RUN pnpm install --frozen-lockfile

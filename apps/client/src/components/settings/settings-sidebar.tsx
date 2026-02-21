@@ -13,6 +13,7 @@ import {
   IconKey,
   IconWorld,
   IconSparkles,
+  IconDatabaseExport,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -121,6 +122,13 @@ const groupedData: DataGroup[] = [
   {
     heading: "System",
     items: [
+      {
+        label: "Backup & Restore",
+        icon: IconDatabaseExport,
+        path: "/settings/backup",
+        isSelfhosted: true,
+        isAdmin: true,
+      },
       {
         label: "License & Edition",
         icon: IconKey,
