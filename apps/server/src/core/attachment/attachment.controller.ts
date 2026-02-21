@@ -415,7 +415,15 @@ export class AttachmentController {
     const fileSize = Number(attachment.fileSize);
     const rangeHeader = req.headers.range;
 
+    // Derive Content-Type from the file extension, never trust the stored
+    // mimeType which originates from the client-provided multipart header.
+    // This prevents stored XSS via MIME type spoofing (e.g. uploading HTML
+    // as .jpg with Content-Type: text/html).
+    const safeContentType =
+      getMimeType(attachment.fileName) || 'application/octet-stream';
+
     res.header('Accept-Ranges', 'bytes');
+    res.header('X-Content-Type-Options', 'nosniff');
 
     if (!inlineFileExtensions.includes(attachment.fileExt)) {
       res.header(
@@ -445,7 +453,7 @@ export class AttachmentController {
 
         res.status(206);
         res.headers({
-          'Content-Type': attachment.mimeType,
+          'Content-Type': safeContentType,
           'Content-Range': `bytes ${start}-${end}/${fileSize}`,
           'Content-Length': end - start + 1,
           'Cache-Control': `${cacheScope}, max-age=3600`,
@@ -460,7 +468,7 @@ export class AttachmentController {
     );
 
     res.headers({
-      'Content-Type': attachment.mimeType,
+      'Content-Type': safeContentType,
       'Cache-Control': `${cacheScope}, max-age=3600`,
     });
 
