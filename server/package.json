@@ -7,7 +7,7 @@
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
     "db:generate": "bunx drizzle-kit generate",
-    "db:migrate": "bun run scripts/apply-migration.ts",
+    "db:migrate": "bunx drizzle-kit migrate",
     "db:push": "bunx drizzle-kit push",
     "db:studio": "bunx drizzle-kit studio",
     "test": "bun test"
@@ -21,8 +21,8 @@
     "@hono/zod-validator": "^0.4.3"
   },
   "devDependencies": {
+    "@libsql/client": "^0.17.0",
     "@types/bun": "^1.1.14",
-    "better-sqlite3": "^12.6.2",
     "drizzle-kit": "^0.30.1",
     "typescript": "^5.7.2"
   }
