@@ -7,13 +7,14 @@ import {
 } from '@nestjs/common';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { GroupService } from './group.service';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { executeTx } from '@docmost/db/utils';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { dbOrTx } from '@docmost/db/utils';
 
 @Injectable()
 export class GroupUserService {
@@ -46,16 +47,22 @@ export class GroupUserService {
     userIds: string[],
     groupId: string,
     workspaceId: string,
+    trx?: KyselyTransaction,
   ): Promise<void> {
-    await this.groupService.findAndValidateGroup(groupId, workspaceId);
+    const db = dbOrTx(this.db, trx);
+    await this.groupService.findAndValidateGroup(groupId, workspaceId, trx);
+
+    if (userIds.length === 0) return;
 
     // make sure we have valid workspace users
-    const validUsers = await this.db
+    const validUsers = await db
       .selectFrom('users')
       .select(['id', 'name'])
       .where('users.id', 'in', userIds)
       .where('users.workspaceId', '=', workspaceId)
       .execute();
+
+    if (validUsers.length === 0) return;
 
     // prepare users to add to group
     const groupUsersToInsert = [];
@@ -67,7 +74,7 @@ export class GroupUserService {
     }
 
     // batch insert new group users
-    await this.db
+    await db
       .insertInto('groupUsers')
       .values(groupUsersToInsert)
       .onConflict((oc) => oc.columns(['userId', 'groupId']).doNothing())
