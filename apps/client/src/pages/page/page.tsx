@@ -13,6 +13,11 @@ import {
 } from "@/features/space/permissions/permissions.type.ts";
 import { useTranslation } from "react-i18next";
 import React from "react";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
+import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
+import { Button } from "@mantine/core";
+import { Link } from "react-router-dom";
+import { ErrorBoundary } from "react-error-boundary";
 
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -21,6 +26,29 @@ const MemoizedHistoryModal = React.memo(HistoryModal);
 export default function Page() {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
+
+  return (
+    <ErrorBoundary
+      resetKeys={[pageSlug]}
+      fallbackRender={({ resetErrorBoundary }) => (
+        <EmptyState
+          icon={IconAlertTriangle}
+          title={t("Failed to load page. An error occurred.")}
+          action={
+            <Button variant="default" size="sm" mt="xs" onClick={resetErrorBoundary}>
+              {t("Try again")}
+            </Button>
+          }
+        />
+      )}
+    >
+      <PageContent pageSlug={pageSlug} />
+    </ErrorBoundary>
+  );
+}
+
+function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
+  const { t } = useTranslation();
 
   const {
     data: page,
@@ -39,9 +67,27 @@ export default function Page() {
 
   if (isError || !page) {
     if ([401, 403, 404].includes(error?.["status"])) {
-      return <div>{t("Page not found")}</div>;
+      return (
+        <EmptyState
+          icon={IconFileOff}
+          title={t("Page not found")}
+          description={t(
+            "This page may have been deleted, moved, or you may not have access.",
+          )}
+          action={
+            <Button component={Link} to="/home" variant="default" size="sm" mt="xs">
+              {t("Go to homepage")}
+            </Button>
+          }
+        />
+      );
     }
-    return <div>{t("Error fetching page data.")}</div>;
+    return (
+      <EmptyState
+        icon={IconFileOff}
+        title={t("Error fetching page data.")}
+      />
+    );
   }
 
   if (!space) {

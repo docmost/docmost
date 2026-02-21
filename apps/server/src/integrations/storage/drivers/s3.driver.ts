@@ -13,6 +13,7 @@ import { Readable } from 'stream';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getMimeType } from '../../../common/helpers';
 import { Upload } from '@aws-sdk/lib-storage';
+import { Logger } from '@nestjs/common';
 
 export class S3Driver implements StorageDriver {
   private readonly s3Client: S3Client;
@@ -39,6 +40,7 @@ export class S3Driver implements StorageDriver {
 
       await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     }
   }
@@ -73,6 +75,7 @@ export class S3Driver implements StorageDriver {
 
       await upload.done();
     } catch (err) {
+      Logger.error(err);
       throw new Error(`Failed to upload file: ${(err as Error).message}`);
     } finally {
       if (shouldDestroyClient && clientToUse) {
@@ -117,6 +120,25 @@ export class S3Driver implements StorageDriver {
       const command = new GetObjectCommand({
         Bucket: this.config.bucket,
         Key: filePath,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      return response.Body as Readable;
+    } catch (err) {
+      throw new Error(`Failed to read file from S3: ${(err as Error).message}`);
+    }
+  }
+
+  async readRangeStream(
+    filePath: string,
+    range: { start: number; end: number },
+  ): Promise<Readable> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: filePath,
+        Range: `bytes=${range.start}-${range.end}`,
       });
 
       const response = await this.s3Client.send(command);

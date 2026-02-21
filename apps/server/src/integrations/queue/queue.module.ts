@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EnvironmentService } from '../environment/environment.service';
 import { createRetryStrategy, parseRedisUrl } from '../../common/helpers';
 import { QueueName } from './constants';
-import { BacklinksProcessor } from './processors/backlinks.processor';
+import { GeneralQueueProcessor } from './processors/general-queue.processor';
 
 @Global()
 @Module({
@@ -73,8 +73,19 @@ import { BacklinksProcessor } from './processors/backlinks.processor';
         attempts: 1,
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.HISTORY_QUEUE,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 2,
+      },
+    }),
+    BullModule.registerQueue({
+      name: QueueName.NOTIFICATION_QUEUE,
+    }),
   ],
   exports: [BullModule],
-  providers: [BacklinksProcessor],
+  providers: [GeneralQueueProcessor],
 })
 export class QueueModule {}

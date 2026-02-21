@@ -8,7 +8,6 @@ import { Readable } from 'stream';
 import { StorageService } from '../../../integrations/storage/storage.service';
 import { MultipartFile } from '@fastify/multipart';
 import {
-  compressAndResizeIcon,
   getAttachmentFolderPath,
   PreparedFile,
   prepareFile,
@@ -99,6 +98,7 @@ export class AttachmentService {
       if (isUpdate) {
         attachment = await this.attachmentRepo.updateAttachment(
           {
+            fileSize: preparedFile.fileSize,
             updatedAt: new Date(),
           },
           attachmentId,
@@ -153,12 +153,6 @@ export class AttachmentService {
     const preparedFile: PreparedFile = await prepareFile(filePromise);
     validateFileType(preparedFile.fileExtension, validImageExtensions);
 
-    const processedBuffer = await compressAndResizeIcon(
-      preparedFile.buffer,
-      type,
-    );
-    preparedFile.buffer = processedBuffer;
-    preparedFile.fileSize = processedBuffer.length;
     preparedFile.fileName = uuid4() + preparedFile.fileExtension;
 
     const filePath = `${getAttachmentFolderPath(type, workspaceId)}/${preparedFile.fileName}`;

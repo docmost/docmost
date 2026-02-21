@@ -29,6 +29,7 @@ import { StorageService } from '../../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class ImportService {
@@ -40,6 +41,7 @@ export class ImportService {
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
+    private moduleRef: ModuleRef,
   ) {}
 
   async importPage(
@@ -59,11 +61,22 @@ export class ImportService {
     let prosemirrorState = null;
     let createdPage = null;
 
+    // For DOCX, we need the page ID upfront so images can reference it
+    const pageId = fileExtension === '.docx' ? uuid7() : undefined;
+
     try {
       if (fileExtension.endsWith('.md')) {
         prosemirrorState = await this.processMarkdown(fileContent);
       } else if (fileExtension.endsWith('.html')) {
         prosemirrorState = await this.processHTML(fileContent);
+      } else if (fileExtension.endsWith('.docx')) {
+        prosemirrorState = await this.processDocx(
+          fileBuffer,
+          workspaceId,
+          spaceId,
+          pageId,
+          userId,
+        );
       }
     } catch (err) {
       const message = 'Error processing file content';
@@ -87,6 +100,7 @@ export class ImportService {
         const pagePosition = await this.getNewPagePosition(spaceId);
 
         createdPage = await this.pageRepo.insertPage({
+          ...(pageId ? { id: pageId } : {}),
           slugId: generateSlugId(),
           title: pageTitle,
           content: prosemirrorJson,
@@ -127,6 +141,42 @@ export class ImportService {
     } catch (err) {
       throw err;
     }
+  }
+
+  async processDocx(
+    fileBuffer: Buffer,
+    workspaceId: string,
+    spaceId: string,
+    pageId: string,
+    userId: string,
+  ): Promise<any> {
+    let DocxImportModule: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      DocxImportModule = require('./../../../ee/docx-import/docx-import.service');
+    } catch (err) {
+      this.logger.error(
+        'DOCX import requested but EE module not bundled in this build',
+      );
+      throw new BadRequestException(
+        'This feature requires a valid enterprise license.',
+      );
+    }
+
+    const docxImportService = this.moduleRef.get(
+      DocxImportModule.DocxImportService,
+      { strict: false },
+    );
+
+    const html = await docxImportService.convertDocxToHtml(
+      fileBuffer,
+      workspaceId,
+      spaceId,
+      pageId,
+      userId,
+    );
+
+    return this.processHTML(html);
   }
 
   async createYdoc(prosemirrorJson: any): Promise<Buffer | null> {

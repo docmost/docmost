@@ -10,6 +10,7 @@ import { TransformHttpResponseInterceptor } from './common/interceptors/http-res
 import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
+import { InternalLogFilter } from './common/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -24,10 +25,10 @@ async function bootstrap() {
     }),
     {
       rawBody: true,
-      // disable Nest logger so pino handles all logs
+      // captures NestJS internal errors
+      logger: new InternalLogFilter(),
       // bufferLogs must be false else pino will fail
       // to log OnApplicationBootstrap logs
-      logger: false,
       bufferLogs: false,
     },
   );

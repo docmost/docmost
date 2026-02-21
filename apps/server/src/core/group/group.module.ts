@@ -4,6 +4,7 @@ import { GroupController } from './group.controller';
 import { GroupUserService } from './services/group-user.service';
 
 @Module({
+  imports: [],
   controllers: [GroupController],
   providers: [GroupService, GroupUserService],
   exports: [GroupService, GroupUserService],

@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
 import classes from "./mfa-challenge.module.css";
 import { verifyMfa } from "@/ee/mfa";
-import APP_ROUTE from "@/lib/app-route";
+import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route";
 import { useTranslation } from "react-i18next";
 import * as z from "zod";
 import { MfaBackupCodeInput } from "./mfa-backup-code-input";
@@ -53,7 +53,7 @@ export function MfaChallenge() {
     setIsLoading(true);
     try {
       await verifyMfa(values.code);
-      navigate(APP_ROUTE.HOME);
+      navigate(getPostLoginRedirect());
     } catch (error: any) {
       setIsLoading(false);
       notifications.show({

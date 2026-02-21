@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
@@ -33,6 +34,8 @@ import { Queue } from 'bullmq';
 import { generateRandomSuffixNumbers } from '../../../common/helpers';
 import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 
 @Injectable()
 export class WorkspaceService {
@@ -47,6 +50,9 @@ export class WorkspaceService {
     private userRepo: UserRepo,
     private environmentService: EnvironmentService,
     private domainService: DomainService,
+    private licenseCheckService: LicenseCheckService,
+    private shareRepo: ShareRepo,
+    private watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
@@ -112,6 +118,7 @@ export class WorkspaceService {
         let status = undefined;
         let plan = undefined;
         let billingEmail = undefined;
+        let settings = undefined;
 
         if (this.environmentService.isCloud()) {
           // generate unique hostname
@@ -125,6 +132,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
+          settings = { ai: { generative: true } };
         }
 
         // create workspace
@@ -137,6 +145,7 @@ export class WorkspaceService {
             trialEndAt,
             plan,
             billingEmail,
+            settings,
           },
           trx,
         );
@@ -358,6 +367,32 @@ export class WorkspaceService {
       delete updateWorkspaceDto.generativeAi;
     }
 
+    if (typeof updateWorkspaceDto.disablePublicSharing !== 'undefined') {
+      const currentWorkspace = await this.workspaceRepo.findById(workspaceId, {
+        withLicenseKey: true,
+      });
+
+      if (
+        !this.licenseCheckService.isValidEELicense(currentWorkspace.licenseKey)
+      ) {
+        throw new ForbiddenException(
+          'This feature requires a valid enterprise license',
+        );
+      }
+
+      await this.workspaceRepo.updateSharingSettings(
+        workspaceId,
+        'disabled',
+        updateWorkspaceDto.disablePublicSharing,
+      );
+
+      if (updateWorkspaceDto.disablePublicSharing) {
+        await this.shareRepo.deleteByWorkspaceId(workspaceId);
+      }
+
+      delete updateWorkspaceDto.disablePublicSharing;
+    }
+
     await this.workspaceRepo.updateWorkspace(updateWorkspaceDto, workspaceId);
 
     const workspace = await this.workspaceRepo.findById(workspaceId, {
@@ -523,6 +558,10 @@ export class WorkspaceService {
         .deleteFrom('authAccounts')
         .where('userId', '=', userId)
         .execute();
+
+      await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, {
+        trx,
+      });
     });
 
     try {

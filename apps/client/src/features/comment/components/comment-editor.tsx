@@ -1,14 +1,15 @@
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { Underline } from "@tiptap/extension-underline";
-import { Link } from "@tiptap/extension-link";
 import { StarterKit } from "@tiptap/starter-kit";
+import { Mention, LinkExtension } from "@docmost/editor-ext";
 import classes from "./comment.module.css";
 import { useFocusWithin } from "@mantine/hooks";
 import clsx from "clsx";
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import EmojiCommand from "@/features/editor/extensions/emoji-command";
+import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion";
+import MentionView from "@/features/editor/components/mention/mention-view";
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -39,13 +40,29 @@ const CommentEditor = forwardRef(
         StarterKit.configure({
           gapcursor: false,
           dropcursor: false,
+          link: false,
         }),
         Placeholder.configure({
           placeholder: placeholder || t("Reply..."),
         }),
-        Underline,
-        Link,
+        LinkExtension,
         EmojiCommand,
+        Mention.configure({
+          suggestion: {
+            allowSpaces: true,
+            items: () => [],
+            // @ts-ignore
+            render: mentionRenderItems,
+          },
+          HTMLAttributes: {
+            class: "mention",
+          },
+        }).extend({
+          addNodeView() {
+            this.editor.isInitialized = true;
+            return ReactNodeViewRenderer(MentionView);
+          },
+        }),
       ],
       editorProps: {
         handleDOMEvents: {
@@ -60,7 +77,8 @@ const CommentEditor = forwardRef(
               ].includes(event.key)
             ) {
               const emojiCommand = document.querySelector("#emoji-command");
-              if (emojiCommand) {
+              const mentionPopup = document.querySelector("#mention");
+              if (emojiCommand || mentionPopup) {
                 return true;
               }
             }
@@ -84,9 +102,14 @@ const CommentEditor = forwardRef(
       autofocus: (autofocus && "end") || false,
     });
 
+    // Sync content from props for read-only editors (e.g. when updated via
+    // websocket on another browser). Skip for editable editors to avoid
+    // resetting the cursor position on every keystroke.
     useEffect(() => {
-      commentEditor.commands.setContent(defaultContent);
-    }, [defaultContent]);
+      if (!editable && commentEditor && defaultContent) {
+        commentEditor.commands.setContent(defaultContent);
+      }
+    }, [defaultContent, editable, commentEditor]);
 
     useEffect(() => {
       setTimeout(() => {
@@ -103,7 +126,11 @@ const CommentEditor = forwardRef(
     }));
 
     return (
-      <div ref={focusRef} className={classes.commentEditor}>
+      <div
+        ref={focusRef}
+        className={classes.commentEditor}
+        data-editable={editable || undefined}
+      >
         <EditorContent
           editor={commentEditor}
           className={clsx(classes.ProseMirror, { [classes.focused]: focused })}

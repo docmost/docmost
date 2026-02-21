@@ -6,6 +6,7 @@ import {
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { Space, SpaceMember, User } from '@docmost/db/types/entity.types';
@@ -14,12 +15,16 @@ import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { executeTx } from '@docmost/db/utils';
 
 @Injectable()
 export class SpaceMemberService {
   constructor(
     private spaceMemberRepo: SpaceMemberRepo,
+    private groupUserRepo: GroupUserRepo,
     private spaceRepo: SpaceRepo,
+    private watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -203,10 +208,28 @@ export class SpaceMemberService {
       await this.validateLastAdmin(dto.spaceId);
     }
 
-    await this.spaceMemberRepo.removeSpaceMemberById(
-      spaceMember.id,
-      dto.spaceId,
-    );
+    let affectedUserIds: string[] = [];
+    if (dto.userId) {
+      affectedUserIds = [dto.userId];
+    } else if (dto.groupId) {
+      affectedUserIds = await this.groupUserRepo.getUserIdsByGroupId(
+        dto.groupId,
+      );
+    }
+
+    await executeTx(this.db, async (trx) => {
+      await this.spaceMemberRepo.removeSpaceMemberById(
+        spaceMember.id,
+        dto.spaceId,
+        { trx },
+      );
+
+      await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+        affectedUserIds,
+        dto.spaceId,
+        { trx },
+      );
+    });
   }
 
   async updateSpaceMemberRole(
