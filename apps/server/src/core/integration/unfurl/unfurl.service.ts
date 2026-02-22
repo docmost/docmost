@@ -34,7 +34,7 @@ export class UnfurlService {
     userId: string,
     workspaceId: string,
   ): Promise<UnfurlResult | null> {
-    const cacheKey = this.buildCacheKey(workspaceId, url);
+    const cacheKey = this.buildCacheKey(workspaceId, userId, url);
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
@@ -127,12 +127,12 @@ export class UnfurlService {
     return null;
   }
 
-  private buildCacheKey(workspaceId: string, url: string): string {
+  private buildCacheKey(workspaceId: string, userId: string, url: string): string {
     const hash = crypto
       .createHash('sha256')
       .update(url)
       .digest('hex')
       .slice(0, 16);
-    return `${UNFURL_CACHE_PREFIX}${workspaceId}:${hash}`;
+    return `${UNFURL_CACHE_PREFIX}${workspaceId}:${userId}:${hash}`;
   }
 }

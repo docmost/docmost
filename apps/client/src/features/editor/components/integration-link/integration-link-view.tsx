@@ -13,6 +13,28 @@ import { useEffect, useCallback, memo } from "react";
 import { unfurlUrl } from "@/features/integration/services/integration-service";
 import classes from "./integration-link-view.module.css";
 
+function toBadgeColor(raw?: string): string {
+  if (!raw) return "gray";
+  const hex = raw.toLowerCase().replace("#", "");
+  if (/^[0-9a-f]{6}$/.test(hex)) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2 / 255;
+    if (max - min < 30) return l > 0.6 ? "gray" : "dark";
+    if (r > g && r > b) return g > 160 ? "orange" : "red";
+    if (g > r && g > b) return r > 160 ? "lime" : "green";
+    if (b > r && b > g) return r > 100 ? "violet" : "blue";
+    if (r > 200 && g > 200) return "yellow";
+    if (r > 200 && b > 200) return "pink";
+    if (g > 200 && b > 200) return "cyan";
+    return "gray";
+  }
+  return raw;
+}
+
 const providerIcons: Record<string, string> = {
   github: "https://github.githubassets.com/favicons/favicon-dark.svg",
   gitlab: "https://gitlab.com/assets/favicon-72a2cad5025aa931d6ea56c3201d1f18e68a8571da3c2571592f63571e0c5571.png",
@@ -109,7 +131,7 @@ function IntegrationLinkView(props: any) {
                 <Badge
                   size="xs"
                   variant="light"
-                  color={unfurlData.statusColor ?? "gray"}
+                  color={toBadgeColor(unfurlData.statusColor)}
                   style={{ flexShrink: 0 }}
                 >
                   {unfurlData.status}
@@ -118,24 +140,15 @@ function IntegrationLinkView(props: any) {
             </Group>
 
             {unfurlData.description && (
-              <Text size="xs" c="dimmed" lineClamp={1}>
-                {unfurlData.description}
-              </Text>
-            )}
-
-            <Group gap="xs">
-              {iconUrl && (
-                <Avatar src={iconUrl} size={14} radius="sm" />
-              )}
-              <Text size="xs" c="dimmed">
-                {unfurlData.provider}
-              </Text>
-              {unfurlData.author && (
-                <Text size="xs" c="dimmed">
-                  · {unfurlData.author}
+              <Group gap={6} wrap="nowrap">
+                {iconUrl && (
+                  <Avatar src={iconUrl} size={14} radius="sm" style={{ flexShrink: 0 }} />
+                )}
+                <Text size="xs" c="dimmed" lineClamp={1}>
+                  {unfurlData.description}
                 </Text>
-              )}
-            </Group>
+              </Group>
+            )}
           </Stack>
         </Group>
       </Card>
