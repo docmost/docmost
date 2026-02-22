@@ -9,7 +9,14 @@ import {
   Anchor,
   Stack,
 } from "@mantine/core";
-import { useEffect, useCallback, memo } from "react";
+import { useEffect, useCallback, memo, type ReactNode } from "react";
+import { IconBrandGithub, IconBrandGitlab } from "@tabler/icons-react";
+import {
+  FigmaIcon,
+  LinearIcon,
+  JiraIcon,
+  GoogleDocsIcon,
+} from "@/components/icons";
 import { unfurlUrl } from "@/features/integration/services/integration-service";
 import classes from "./integration-link-view.module.css";
 
@@ -35,13 +42,13 @@ function toBadgeColor(raw?: string): string {
   return raw;
 }
 
-const providerIcons: Record<string, string> = {
-  github: "https://github.githubassets.com/favicons/favicon-dark.svg",
-  gitlab: "https://gitlab.com/assets/favicon-72a2cad5025aa931d6ea56c3201d1f18e68a8571da3c2571592f63571e0c5571.png",
-  jira: "https://wac-cdn.atlassian.com/assets/img/favicons/atlassian/favicon.png",
-  linear: "https://linear.app/favicon.ico",
-  google_docs: "https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico",
-  figma: "https://static.figma.com/app/icon/1/favicon.png",
+const providerIcons: Record<string, (size: number) => ReactNode> = {
+  github: (size) => <IconBrandGithub size={size} stroke={1.5} />,
+  gitlab: (size) => <IconBrandGitlab size={size} stroke={1.5} />,
+  figma: (size) => <FigmaIcon size={size} />,
+  linear: (size) => <LinearIcon size={size} />,
+  jira: (size) => <JiraIcon size={size} />,
+  google_docs: (size) => <GoogleDocsIcon size={size} />,
 };
 
 function IntegrationLinkView(props: any) {
@@ -100,7 +107,7 @@ function IntegrationLinkView(props: any) {
     );
   }
 
-  const iconUrl = providerIcons[provider] ?? undefined;
+  const renderIcon = providerIcons[provider];
 
   return (
     <NodeViewWrapper data-drag-handle="">
@@ -117,9 +124,9 @@ function IntegrationLinkView(props: any) {
       >
         <Group gap="sm" wrap="nowrap">
           {unfurlData.authorAvatarUrl ? (
-            <Avatar src={unfurlData.authorAvatarUrl} size={28} radius="xl" />
-          ) : iconUrl ? (
-            <Avatar src={iconUrl} size={28} radius="sm" />
+            <Avatar src={unfurlData.authorAvatarUrl} size={28} radius="xl" style={{ flexShrink: 0 }} />
+          ) : renderIcon ? (
+            <div style={{ flexShrink: 0 }}>{renderIcon(28)}</div>
           ) : null}
 
           <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
@@ -140,16 +147,17 @@ function IntegrationLinkView(props: any) {
             </Group>
 
             {unfurlData.description && (
-              <Group gap={6} wrap="nowrap">
-                {iconUrl && (
-                  <Avatar src={iconUrl} size={14} radius="sm" style={{ flexShrink: 0 }} />
-                )}
-                <Text size="xs" c="dimmed" lineClamp={1}>
-                  {unfurlData.description}
-                </Text>
-              </Group>
+              <Text size="xs" c="dimmed" lineClamp={1}>
+                {unfurlData.description}
+              </Text>
             )}
           </Stack>
+
+          {renderIcon && (
+            <div style={{ flexShrink: 0, alignSelf: "center" }}>
+              {renderIcon(18)}
+            </div>
+          )}
         </Group>
       </Card>
     </NodeViewWrapper>
