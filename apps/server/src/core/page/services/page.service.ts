@@ -49,6 +49,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
+import { sql } from 'kysely';
 
 @Injectable()
 export class PageService {
@@ -736,7 +737,6 @@ export class PageService {
             'spaceId',
             'deletedAt',
           ])
-          .select((eb) => this.pageRepo.withHasChildren(eb))
           .where('id', '=', childPageId)
           .where('deletedAt', 'is', null)
           .unionAll((exp) =>
@@ -752,30 +752,21 @@ export class PageService {
                 'p.spaceId',
                 'p.deletedAt',
               ])
-              .select(
-                exp
-                  .selectFrom('pages as child')
-                  .select((eb) =>
-                    eb
-                      .case()
-                      .when(eb.fn.countAll(), '>', 0)
-                      .then(true)
-                      .else(false)
-                      .end()
-                      .as('count'),
-                  )
-                  .whereRef('child.parentPageId', '=', 'id')
-                  .where('child.deletedAt', 'is', null)
-                  .limit(1)
-                  .as('hasChildren'),
-              )
-              //.select((eb) => this.withHasChildren(eb))
               .innerJoin('page_ancestors as pa', 'pa.parentPageId', 'p.id')
               .where('p.deletedAt', 'is', null),
           ),
       )
       .selectFrom('page_ancestors')
-      .selectAll()
+      .selectAll('page_ancestors')
+      .select((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('pages as child')
+            .select(sql`1`.as('one'))
+            .whereRef('child.parentPageId', '=', 'page_ancestors.id')
+            .where('child.deletedAt', 'is', null),
+        ).as('hasChildren'),
+      )
       .execute();
 
     return ancestors.reverse();
