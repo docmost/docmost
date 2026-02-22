@@ -1,0 +1,10 @@
+.card {
+  max-width: 100%;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+  margin: 4px 0;
+}
+
+.card:hover {
+  border-color: var(--mantine-color-blue-4);
+}

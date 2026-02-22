@@ -18,6 +18,7 @@ import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { ShareModule } from './share/share.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { WatcherModule } from './watcher/watcher.module';
     ShareModule,
     NotificationModule,
     WatcherModule,
+    IntegrationModule,
   ],
 })
 export class CoreModule implements NestModule {
@@ -45,6 +47,7 @@ export class CoreModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: 'health/live', method: RequestMethod.GET },
         { path: 'billing/stripe/webhook', method: RequestMethod.POST },
+        { path: 'integrations/oauth/*/callback', method: RequestMethod.GET },
       )
       .forRoutes('*');
   }

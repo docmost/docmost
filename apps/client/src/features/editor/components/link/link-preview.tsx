@@ -27,7 +27,7 @@ export const LinkPreviewPanel = ({
     <>
       <Card withBorder radius="md" padding="xs" bg="var(--mantine-color-body)">
         <Flex align="center">
-          <Tooltip label={url}>
+          <Tooltip label={url} withArrow withinPortal={false}>
             <Anchor
               href={url}
               target="_blank"

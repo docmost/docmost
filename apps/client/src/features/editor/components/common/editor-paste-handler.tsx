@@ -4,6 +4,7 @@ import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
+import { matchIntegrationLink } from "@docmost/editor-ext";
 
 export const handlePaste = (
   editor: Editor,
@@ -12,6 +13,21 @@ export const handlePaste = (
   creatorId?: string,
 ) => {
   const clipboardData = event.clipboardData.getData("text/plain");
+
+  const integrationMatch = matchIntegrationLink(clipboardData.trim());
+  if (integrationMatch && editor.state.selection.empty) {
+    event.preventDefault();
+    editor
+      .chain()
+      .focus()
+      .setIntegrationLink({
+        url: clipboardData.trim(),
+        provider: integrationMatch.provider,
+        status: "pending",
+      })
+      .run();
+    return true;
+  }
 
   if (INTERNAL_LINK_REGEX.test(clipboardData)) {
     // we have to do this validation here to allow the default link extension to takeover if needs be

@@ -390,6 +390,45 @@ export interface Watchers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Integrations {
+  id: Generated<string>;
+  workspaceId: string;
+  type: string;
+  isEnabled: Generated<boolean>;
+  settings: Json | null;
+  installedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface IntegrationConnections {
+  id: Generated<string>;
+  integrationId: string;
+  userId: string;
+  workspaceId: string;
+  providerUserId: string | null;
+  accessToken: string;
+  refreshToken: string | null;
+  tokenExpiresAt: Timestamp | null;
+  scopes: string | null;
+  metadata: Json | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface IntegrationWebhooks {
+  id: Generated<string>;
+  integrationId: string;
+  workspaceId: string;
+  eventType: string;
+  webhookUrl: string | null;
+  secret: string | null;
+  isEnabled: Generated<boolean>;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -401,6 +440,9 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  integrationConnections: IntegrationConnections;
+  integrationWebhooks: IntegrationWebhooks;
+  integrations: Integrations;
   notifications: Notifications;
   pageHistory: PageHistory;
   pages: Pages;

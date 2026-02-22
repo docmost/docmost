@@ -34,7 +34,7 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
       withArrow
     >
       <Popover.Target>
-        <Tooltip label={t("Add link")} withArrow>
+        <Tooltip label={t("Add link")} withArrow withinPortal={false}>
           <ActionIcon
             variant="default"
             size="lg"

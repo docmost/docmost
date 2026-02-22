@@ -211,6 +211,9 @@ importers:
       yjs:
         specifier: ^13.6.29
         version: 13.6.29
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@nx/js':
         specifier: 22.5.0

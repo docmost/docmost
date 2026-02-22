@@ -3,6 +3,9 @@ import {
   Attachments,
   Comments,
   Groups,
+  Integrations as _Integrations,
+  IntegrationConnections as _IntegrationConnections,
+  IntegrationWebhooks as _IntegrationWebhooks,
   Notifications,
   Pages,
   Spaces,
@@ -143,3 +146,23 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Integration
+export type Integration = Selectable<_Integrations>;
+export type InsertableIntegration = Insertable<_Integrations>;
+export type UpdatableIntegration = Updateable<Omit<_Integrations, 'id'>>;
+
+// Integration Connection
+export type IntegrationConnection = Selectable<_IntegrationConnections>;
+export type InsertableIntegrationConnection =
+  Insertable<_IntegrationConnections>;
+export type UpdatableIntegrationConnection = Updateable<
+  Omit<_IntegrationConnections, 'id'>
+>;
+
+// Integration Webhook
+export type IntegrationWebhook = Selectable<_IntegrationWebhooks>;
+export type InsertableIntegrationWebhook = Insertable<_IntegrationWebhooks>;
+export type UpdatableIntegrationWebhook = Updateable<
+  Omit<_IntegrationWebhooks, 'id'>
+>;

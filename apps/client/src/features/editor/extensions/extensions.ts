@@ -43,6 +43,7 @@ import {
   Highlight,
   UniqueID,
   SharedStorage,
+  IntegrationLink,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -60,6 +61,7 @@ import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import IntegrationLinkView from "@/features/editor/components/integration-link/integration-link-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import powershell from "highlight.js/lib/languages/powershell";
@@ -230,6 +232,9 @@ export const mainExtensions = [
   }),
   Subpages.configure({
     view: SubpagesView,
+  }),
+  IntegrationLink.configure({
+    view: IntegrationLinkView,
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,
