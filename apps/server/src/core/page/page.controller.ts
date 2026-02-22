@@ -67,7 +67,10 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanView(page, user);
+    const { canEdit } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
+
+    const permissions = { canEdit };
 
     if (dto.format && dto.format !== 'json' && page.content) {
       const contentOutput =
@@ -77,10 +80,11 @@ export class PageController {
       return {
         ...page,
         content: contentOutput,
+        permissions,
       };
     }
 
-    return page;
+    return { ...page, permissions };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -120,6 +124,11 @@ export class PageController {
       createPageDto,
     );
 
+    const { canEdit } =
+      await this.pageAccessService.validateCanViewWithPermissions(page, user);
+
+    const permissions = { canEdit };
+
     if (
       createPageDto.format &&
       createPageDto.format !== 'json' &&
@@ -129,10 +138,10 @@ export class PageController {
         createPageDto.format === 'markdown'
           ? jsonToMarkdown(page.content)
           : jsonToHtml(page.content);
-      return { ...page, content: contentOutput };
+      return { ...page, content: contentOutput, permissions };
     }
 
-    return page;
+    return { ...page, permissions };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -152,6 +161,8 @@ export class PageController {
       user,
     );
 
+    const permissions = { canEdit: true };
+
     if (
       updatePageDto.format &&
       updatePageDto.format !== 'json' &&
@@ -161,10 +172,10 @@ export class PageController {
         updatePageDto.format === 'markdown'
           ? jsonToMarkdown(updatedPage.content)
           : jsonToHtml(updatedPage.content);
-      return { ...updatedPage, content: contentOutput };
+      return { ...updatedPage, content: contentOutput, permissions };
     }
 
-    return updatedPage;
+    return { ...updatedPage, permissions };
   }
 
   @HttpCode(HttpStatus.OK)
