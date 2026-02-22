@@ -11,9 +11,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('token_last_four', 'varchar(4)', (col) => col.notNull())
     .addColumn('expires_at', 'timestamptz')
     .addColumn('last_used_at', 'timestamptz')
-    .addColumn('is_enabled', 'boolean', (col) =>
-      col.notNull().defaultTo(true),
-    )
+    .addColumn('is_enabled', 'boolean', (col) => col.notNull().defaultTo(true))
     .addColumn('creator_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -66,20 +64,35 @@ export async function up(db: Kysely<any>): Promise<void> {
     .where('scim_external_id', 'is not', null)
     .unique()
     .execute();
+
+  await db.schema
+    .alterTable('groups')
+    .addColumn('is_external', 'boolean', (col) =>
+      col.notNull().defaultTo(false),
+    )
+    .execute();
+
+  await db.schema
+    .alterTable('workspaces')
+    .addColumn('is_scim_enabled', 'boolean', (col) =>
+      col.notNull().defaultTo(false),
+    )
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('scim_tokens').execute();
 
   await db.schema.dropIndex('idx_users_workspace_scim_external_id').execute();
-  await db.schema
-    .alterTable('users')
-    .dropColumn('scim_external_id')
-    .execute();
+  await db.schema.alterTable('users').dropColumn('scim_external_id').execute();
 
   await db.schema.dropIndex('idx_groups_workspace_scim_external_id').execute();
+  await db.schema.alterTable('groups').dropColumn('scim_external_id').execute();
+
+  await db.schema.alterTable('groups').dropColumn('is_external').execute();
+
   await db.schema
-    .alterTable('groups')
-    .dropColumn('scim_external_id')
+    .alterTable('workspaces')
+    .dropColumn('is_scim_enabled')
     .execute();
 }

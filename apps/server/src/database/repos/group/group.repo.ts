@@ -22,6 +22,7 @@ export class GroupRepo {
     'name',
     'description',
     'isDefault',
+    'isExternal',
     'creatorId',
     'workspaceId',
     'createdAt',

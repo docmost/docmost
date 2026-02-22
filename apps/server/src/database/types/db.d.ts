@@ -184,6 +184,7 @@ export interface Groups {
   description: string | null;
   id: Generated<string>;
   isDefault: boolean;
+  isExternal: Generated<boolean>;
   name: string;
   scimExternalId: string | null;
   updatedAt: Generated<Timestamp>;
@@ -352,6 +353,7 @@ export interface Workspaces {
   enforceMfa: Generated<boolean | null>;
   enforceSso: Generated<boolean>;
   hostname: string | null;
+  isScimEnabled: Generated<boolean>;
   id: Generated<string>;
   licenseKey: string | null;
   logo: string | null;
