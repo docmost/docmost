@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { usePagePermission } from "@/ee/page-permission";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -34,10 +33,7 @@ function CommentListWithTabs() {
   const isCloudEE = useIsCloudEE();
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const { canEdit: canComment } = usePagePermission(
-    page?.id,
-    space?.membership?.permissions,
-  );
+  const canComment = page?.permissions?.canEdit ?? false;
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {

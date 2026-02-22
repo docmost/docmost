@@ -13,8 +13,6 @@ import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
-import { usePagePermission } from "@/ee/page-permission";
-
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
@@ -54,7 +52,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const { canEdit } = usePagePermission(page?.id, space?.membership?.permissions);
+  const canEdit = page?.permissions?.canEdit ?? false;
 
   if (isLoading) {
     return <></>;

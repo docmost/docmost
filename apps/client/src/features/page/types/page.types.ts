@@ -22,6 +22,10 @@ export interface IPage {
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
   space: Partial<ISpace>;
+  permissions?: {
+    canEdit: boolean;
+    hasRestriction: boolean;
+  };
 }
 
 interface ICreator {

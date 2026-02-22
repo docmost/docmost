@@ -26,7 +26,7 @@ import { IPagination, QueryParams } from "@/lib/types";
 import { useTranslation } from "react-i18next";
 
 export function usePageRestrictionInfoQuery(
-  pageId: string,
+  pageId: string | undefined,
 ): UseQueryResult<IPageRestrictionInfo, Error> {
   return useQuery({
     queryKey: ["page-restriction-info", pageId],

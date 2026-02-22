@@ -30,13 +30,10 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
 
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
+  const isRestricted = page?.permissions?.hasRestriction ?? false;
 
   const { data: restrictionInfo, isLoading: restrictionLoading } =
-    usePageRestrictionInfoQuery(pageId);
-
-  const isRestricted =
-    restrictionInfo?.hasDirectRestriction ||
-    restrictionInfo?.hasInheritedRestriction;
+    usePageRestrictionInfoQuery(opened ? pageId : undefined);
 
   return (
     <>
@@ -47,7 +44,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
           <Indicator
             color={isRestricted ? "red" : "green"}
             offset={5}
-            disabled={!restrictionInfo}
+            disabled={!page?.permissions}
             withBorder
           >
             {isRestricted ? (
