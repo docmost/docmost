@@ -3,7 +3,10 @@ import { IntegrationRegistry } from '../registry/integration-registry';
 import { IntegrationConnectionRepo } from '../repos/integration-connection.repo';
 import { IntegrationRepo } from '../repos/integration.repo';
 import { OAuthService } from '../oauth/oauth.service';
-import { UnfurlResult, IntegrationProvider } from '../registry/integration-provider.interface';
+import {
+  UnfurlResult,
+  IntegrationProvider,
+} from '../registry/integration-provider.interface';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import type { Redis } from 'ioredis';
 import * as crypto from 'crypto';
@@ -38,6 +41,7 @@ export class UnfurlService {
     }
 
     const resolved = await this.resolveProvider(url, workspaceId);
+
     if (!resolved) {
       return null;
     }
@@ -58,7 +62,8 @@ export class UnfurlService {
     }
 
     try {
-      const accessToken = await this.oauthService.getValidAccessToken(connection);
+      const accessToken =
+        await this.oauthService.getValidAccessToken(connection);
 
       const unfurlResult = await provider.unfurl({
         url,
@@ -123,7 +128,11 @@ export class UnfurlService {
   }
 
   private buildCacheKey(workspaceId: string, url: string): string {
-    const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 16);
+    const hash = crypto
+      .createHash('sha256')
+      .update(url)
+      .digest('hex')
+      .slice(0, 16);
     return `${UNFURL_CACHE_PREFIX}${workspaceId}:${hash}`;
   }
 }

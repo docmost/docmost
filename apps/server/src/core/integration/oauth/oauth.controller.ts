@@ -75,11 +75,11 @@ export class OAuthController {
       );
 
       const appUrl = this.environmentService.getAppUrl();
-      return res.redirect(`${appUrl}/settings/integrations`);
+      return res.redirect(`${appUrl}/settings/integrations`, 302).send();
     } catch (err) {
       this.logger.error(`OAuth callback error for ${type}: ${(err as Error).message}`);
       const appUrl = this.environmentService.getAppUrl();
-      return res.redirect(`${appUrl}/settings/integrations?error=oauth_failed`);
+      return res.redirect(`${appUrl}/settings/integrations?error=oauth_failed`, 302).send();
     }
   }
 

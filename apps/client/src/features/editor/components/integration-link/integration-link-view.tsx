@@ -18,6 +18,8 @@ const providerIcons: Record<string, string> = {
   gitlab: "https://gitlab.com/assets/favicon-72a2cad5025aa931d6ea56c3201d1f18e68a8571da3c2571592f63571e0c5571.png",
   jira: "https://wac-cdn.atlassian.com/assets/img/favicons/atlassian/favicon.png",
   linear: "https://linear.app/favicon.ico",
+  google_docs: "https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico",
+  figma: "https://static.figma.com/app/icon/1/favicon.png",
 };
 
 function IntegrationLinkView(props: any) {
