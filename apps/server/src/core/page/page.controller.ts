@@ -67,10 +67,10 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const { canEdit } =
+    const { canEdit, hasRestriction } =
       await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
-    const permissions = { canEdit };
+    const permissions = { canEdit, hasRestriction };
 
     if (dto.format && dto.format !== 'json' && page.content) {
       const contentOutput =
@@ -124,10 +124,10 @@ export class PageController {
       createPageDto,
     );
 
-    const { canEdit } =
+    const { canEdit, hasRestriction } =
       await this.pageAccessService.validateCanViewWithPermissions(page, user);
 
-    const permissions = { canEdit };
+    const permissions = { canEdit, hasRestriction };
 
     if (
       createPageDto.format &&
@@ -153,7 +153,8 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    const { hasRestriction } =
+      await this.pageAccessService.validateCanEdit(page, user);
 
     const updatedPage = await this.pageService.update(
       page,
@@ -161,7 +162,7 @@ export class PageController {
       user,
     );
 
-    const permissions = { canEdit: true };
+    const permissions = { canEdit: true, hasRestriction };
 
     if (
       updatePageDto.format &&

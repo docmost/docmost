@@ -44,7 +44,7 @@ export class PageAccessService {
   async validateCanViewWithPermissions(
     page: Page,
     user: User,
-  ): Promise<{ canEdit: boolean }> {
+  ): Promise<{ canEdit: boolean; hasRestriction: boolean }> {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
 
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
@@ -62,6 +62,7 @@ export class PageAccessService {
       canEdit: hasAnyRestriction
         ? canEdit
         : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+      hasRestriction: hasAnyRestriction,
     };
   }
 
@@ -70,7 +71,10 @@ export class PageAccessService {
    * If page has restrictions: page-level writer permission determines access.
    * If no restrictions: space-level edit permission determines access.
    */
-  async validateCanEdit(page: Page, user: User): Promise<void> {
+  async validateCanEdit(
+    page: Page,
+    user: User,
+  ): Promise<{ hasRestriction: boolean }> {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
 
     // User must be at least a space member
@@ -92,5 +96,7 @@ export class PageAccessService {
         throw new ForbiddenException();
       }
     }
+
+    return { hasRestriction: hasAnyRestriction };
   }
 }
