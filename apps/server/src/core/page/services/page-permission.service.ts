@@ -229,27 +229,34 @@ export class PagePermissionService {
     const userIds = dto.userIds ?? [];
     const groupIds = dto.groupIds ?? [];
 
-    if (userIds.length > 0) {
-      await this.pagePermissionRepo.deletePagePermissionsByUserIds(
-        pageAccess.id,
-        userIds,
-      );
-    }
+    await executeTx(this.db, async (trx) => {
+      if (userIds.length > 0) {
+        await this.pagePermissionRepo.deletePagePermissionsByUserIds(
+          pageAccess.id,
+          userIds,
+          trx,
+        );
+      }
 
-    if (groupIds.length > 0) {
-      await this.pagePermissionRepo.deletePagePermissionsByGroupIds(
-        pageAccess.id,
-        groupIds,
-      );
-    }
+      if (groupIds.length > 0) {
+        await this.pagePermissionRepo.deletePagePermissionsByGroupIds(
+          pageAccess.id,
+          groupIds,
+          trx,
+        );
+      }
 
-    const writerCount =
-      await this.pagePermissionRepo.countWritersByPageAccessId(pageAccess.id);
-    if (writerCount < 1) {
-      throw new BadRequestException(
-        'There must be at least one user with "Can edit" permission',
-      );
-    }
+      const writerCount =
+        await this.pagePermissionRepo.countWritersByPageAccessId(
+          pageAccess.id,
+          trx,
+        );
+      if (writerCount < 1) {
+        throw new BadRequestException(
+          'There must be at least one user with "Can edit" permission',
+        );
+      }
+    });
   }
 
   async updatePagePermissionRole(
@@ -486,7 +493,10 @@ export class PagePermissionService {
       throw new ForbiddenException();
     }
 
-    const canEdit = await this.canEditPage(user.id, page.id);
+    const { canAccess, canEdit } = await this.canEditPage(user.id, page.id);
+    if (!canAccess) {
+      throw new ForbiddenException();
+    }
     if (canEdit) {
       return;
     }
@@ -517,18 +527,22 @@ export class PagePermissionService {
   }
 
   /**
-   * Check if user can edit a page.
-   * User must have WRITER permission on EVERY restricted ancestor.
-   * Returns true if:
-   * - No ancestors are restricted (defer to space permission)
-   * - User has writer permission on all restricted ancestors
+   * Check if user can edit a page based on page-level permissions.
+   * Returns { hasAnyRestriction, canAccess, canEdit } from the nearest restricted ancestor logic.
    */
-  async canEditPage(userId: string, pageId: string): Promise<boolean> {
+  async canEditPage(
+    userId: string,
+    pageId: string,
+  ): Promise<{
+    hasAnyRestriction: boolean;
+    canAccess: boolean;
+    canEdit: boolean;
+  }> {
     return this.pagePermissionRepo.canUserEditPage(userId, pageId);
   }
 
   /**
-   * Check if user has writer permission on ALL restricted ancestors of a page.
+   * Check if user has writer permission on the nearest restricted ancestor.
    * Used for permission management operations.
    */
   async hasWritePermission(userId: string, pageId: string): Promise<boolean> {
@@ -539,7 +553,11 @@ export class PagePermissionService {
       return false; // no restrictions, defer to space permissions
     }
 
-    return this.pagePermissionRepo.canUserEditPage(userId, pageId);
+    const { canEdit } = await this.pagePermissionRepo.canUserEditPage(
+      userId,
+      pageId,
+    );
+    return canEdit;
   }
 
   async hasPageAccess(pageId: string): Promise<boolean> {

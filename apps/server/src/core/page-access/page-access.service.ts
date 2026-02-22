@@ -28,16 +28,13 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
-    const { hasAnyRestriction, canAccess } =
-      await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
-
-    if (hasAnyRestriction) {
-      // Page has restrictions - use page-level permission
-      if (!canAccess) {
-        throw new ForbiddenException();
-      }
+    const canAccess = await this.pagePermissionRepo.canUserAccessPage(
+      user.id,
+      page.id,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException();
     }
-    // No restriction - space membership (checked above) is sufficient for view
   }
 
   /**
@@ -54,7 +51,7 @@ export class PageAccessService {
     }
 
     const { hasAnyRestriction, canEdit } =
-      await this.pagePermissionRepo.getUserPageAccessLevel(user.id, page.id);
+      await this.pagePermissionRepo.canUserEditPage(user.id, page.id);
 
     if (hasAnyRestriction) {
       // Page has restrictions - use page-level permission

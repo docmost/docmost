@@ -393,54 +393,60 @@ export class PagePermissionRepo {
   }
 
   /**
-   * Check if user can edit a page by verifying they have WRITER permission on ALL restricted ancestors.
+   * Check if user can edit a page.
+   * Single query: builds ancestor chain once, checks both traversal and nearest-restricted writer.
+   * - bool_and(pp.id IS NOT NULL): false if any restricted ancestor has no permission (traversal denied)
+   * - array_agg(role ORDER BY depth)[1]: role on the nearest restricted ancestor
+   * - Zero rows (no restricted ancestors): both NULL → defer to space permissions (true)
    */
-  async canUserEditPage(userId: string, pageId: string): Promise<boolean> {
-    const deniedAncestor = await this.db
-      .withRecursive('ancestors', (qb) =>
-        qb
-          .selectFrom('pages')
-          .select(['pages.id as ancestorId', 'pages.parentPageId'])
-          .where('pages.id', '=', pageId)
-          .unionAll((eb) =>
-            eb
-              .selectFrom('pages')
-              .innerJoin('ancestors', 'ancestors.parentPageId', 'pages.id')
-              .select(['pages.id as ancestorId', 'pages.parentPageId']),
-          ),
+  async canUserEditPage(
+    userId: string,
+    pageId: string,
+  ): Promise<{ hasAnyRestriction: boolean; canAccess: boolean; canEdit: boolean }> {
+    const result = await sql<{ canAccess: boolean | null; canEdit: boolean | null }>`
+      WITH RECURSIVE ancestors AS (
+        SELECT id AS ancestor_id, parent_page_id, 0 AS depth
+        FROM pages
+        WHERE id = ${pageId}::uuid
+        UNION ALL
+        SELECT p.id, p.parent_page_id, a.depth + 1
+        FROM pages p
+        JOIN ancestors a ON a.parent_page_id = p.id
       )
-      .selectFrom('ancestors')
-      .innerJoin('pageAccess', 'pageAccess.pageId', 'ancestors.ancestorId')
-      .leftJoin('pagePermissions', (join) =>
-        join
-          .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
-          .on('pagePermissions.role', '=', 'writer')
-          .on((eb) =>
-            eb.or([
-              eb('pagePermissions.userId', '=', userId),
-              eb(
-                'pagePermissions.groupId',
-                'in',
-                this.userGroupIdsSubquery(eb, userId),
-              ),
-            ]),
-          ),
-      )
-      .select('pageAccess.pageId')
-      .where('pagePermissions.id', 'is', null)
-      .executeTakeFirst();
+      SELECT
+        bool_and(pp.id IS NOT NULL) AS "canAccess",
+        -- nearest restricted ancestor's highest role wins (DESC: 'writer' > 'reader', NULLS LAST: no-permission after real roles)
+        (array_agg(pp.role ORDER BY a.depth ASC, pp.role DESC NULLS LAST))[1] = 'writer' AS "canEdit"
+      FROM ancestors a
+      JOIN page_access pa ON pa.page_id = a.ancestor_id
+      LEFT JOIN page_permissions pp ON pp.page_access_id = pa.id
+        AND (
+          pp.user_id = ${userId}::uuid
+          OR pp.group_id IN (
+            SELECT gu.group_id FROM group_users gu WHERE gu.user_id = ${userId}::uuid
+          )
+        )
+    `.execute(this.db);
 
-    return !deniedAncestor;
+    const row = result.rows[0];
+    if (!row || row.canAccess === null) {
+      return { hasAnyRestriction: false, canAccess: true, canEdit: true };
+    }
+    return {
+      hasAnyRestriction: true,
+      canAccess: row.canAccess,
+      canEdit: row.canAccess && (row.canEdit ?? false),
+    };
   }
 
   /**
-   * Get user's access level for a page, checking ALL restricted ancestors.
+   * Get user's access level for a page.
    * Returns:
    * - hasDirectRestriction: whether this specific page has restrictions
    * - hasInheritedRestriction: whether any ancestor (not self) has restrictions
    * - hasAnyRestriction: hasDirectRestriction || hasInheritedRestriction
    * - canAccess: user has permission on all restricted ancestors (always true if no restrictions)
-   * - canEdit: user has writer permission on all restricted ancestors (always true if no restrictions)
+   * - canEdit: user has writer on nearest restricted ancestor (always true if no restrictions)
    */
   async getUserPageAccessLevel(
     userId: string,
@@ -550,9 +556,43 @@ export class PagePermissionRepo {
           .else(false)
           .end()
           .as('canAccess'),
-        // canEdit: no restricted ancestor without WRITER permission
+        // canEdit: nearest restricted ancestor determines edit capability
         eb
           .case()
+          // traversal denied: any restricted ancestor without any permission
+          .when(
+            eb.exists(
+              eb
+                .selectFrom('ancestors')
+                .innerJoin(
+                  'pageAccess',
+                  'pageAccess.pageId',
+                  'ancestors.ancestorId',
+                )
+                .leftJoin('pagePermissions', (join) =>
+                  join
+                    .onRef(
+                      'pagePermissions.pageAccessId',
+                      '=',
+                      'pageAccess.id',
+                    )
+                    .on((eb2) =>
+                      eb2.or([
+                        eb2('pagePermissions.userId', '=', userId),
+                        eb2(
+                          'pagePermissions.groupId',
+                          'in',
+                          this.userGroupIdsSubquery(eb2, userId),
+                        ),
+                      ]),
+                    ),
+                )
+                .select('pageAccess.pageId')
+                .where('pagePermissions.id', 'is', null),
+            ),
+          )
+          .then(false)
+          // no restricted ancestors at all → defer to space permissions
           .when(
             eb.not(
               eb.exists(
@@ -563,28 +603,38 @@ export class PagePermissionRepo {
                     'pageAccess.pageId',
                     'ancestors.ancestorId',
                   )
-                  .leftJoin('pagePermissions', (join) =>
-                    join
-                      .onRef(
-                        'pagePermissions.pageAccessId',
-                        '=',
-                        'pageAccess.id',
-                      )
-                      .on('pagePermissions.role', '=', 'writer')
-                      .on((eb2) =>
-                        eb2.or([
-                          eb2('pagePermissions.userId', '=', userId),
-                          eb2(
-                            'pagePermissions.groupId',
-                            'in',
-                            this.userGroupIdsSubquery(eb2, userId),
-                          ),
-                        ]),
-                      ),
-                  )
-                  .select('pageAccess.pageId')
-                  .where('pagePermissions.id', 'is', null),
+                  .select('pageAccess.id'),
               ),
+            ),
+          )
+          .then(true)
+          // nearest restricted ancestor has writer for this user
+          .when(
+            eb.exists(
+              eb
+                .selectFrom('pagePermissions')
+                .select('pagePermissions.id')
+                .where('pagePermissions.role', '=', 'writer')
+                .where(
+                  'pagePermissions.pageAccessId',
+                  '=',
+                  sql<string>`(
+                    SELECT pa.id FROM ancestors a_nr
+                    JOIN page_access pa ON pa.page_id = a_nr.ancestor_id
+                    ORDER BY a_nr.depth ASC
+                    LIMIT 1
+                  )`,
+                )
+                .where((eb2) =>
+                  eb2.or([
+                    eb2('pagePermissions.userId', '=', userId),
+                    eb2(
+                      'pagePermissions.groupId',
+                      'in',
+                      this.userGroupIdsSubquery(eb2, userId),
+                    ),
+                  ]),
+                ),
             ),
           )
           .then(true)
@@ -703,6 +753,7 @@ export class PagePermissionRepo {
             'pages.id as pageId',
             'pages.id as ancestorId',
             'pages.parentPageId',
+            sql<number>`0`.as('depth'),
           ])
           .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
           .unionAll((eb) =>
@@ -717,6 +768,7 @@ export class PagePermissionRepo {
                 'allAncestors.pageId',
                 'pages.id as ancestorId',
                 'pages.parentPageId',
+                sql<number>`"allAncestors".depth + 1`.as('depth'),
               ]),
           ),
       )
@@ -725,6 +777,7 @@ export class PagePermissionRepo {
       .select((eb) =>
         eb
           .case()
+          // no restricted ancestors for this page → defer to space
           .when(
             eb.not(
               eb.exists(
@@ -735,29 +788,40 @@ export class PagePermissionRepo {
                     'pageAccess.pageId',
                     'allAncestors.ancestorId',
                   )
-                  .leftJoin('pagePermissions', (join) =>
-                    join
-                      .onRef(
-                        'pagePermissions.pageAccessId',
-                        '=',
-                        'pageAccess.id',
-                      )
-                      .on('pagePermissions.role', '=', 'writer')
-                      .on((eb2) =>
-                        eb2.or([
-                          eb2('pagePermissions.userId', '=', userId),
-                          eb2(
-                            'pagePermissions.groupId',
-                            'in',
-                            this.userGroupIdsSubquery(eb2, userId),
-                          ),
-                        ]),
-                      ),
-                  )
-                  .select('pageAccess.pageId')
-                  .whereRef('allAncestors.pageId', '=', 'pages.id')
-                  .where('pagePermissions.id', 'is', null),
+                  .select('pageAccess.id')
+                  .whereRef('allAncestors.pageId', '=', 'pages.id'),
               ),
+            ),
+          )
+          .then(true)
+          // nearest restricted ancestor has writer for this user
+          .when(
+            eb.exists(
+              eb
+                .selectFrom('pagePermissions')
+                .select('pagePermissions.id')
+                .where('pagePermissions.role', '=', 'writer')
+                .where(
+                  'pagePermissions.pageAccessId',
+                  '=',
+                  sql<string>`(
+                    SELECT pa.id FROM "allAncestors" aa
+                    JOIN page_access pa ON pa.page_id = aa.ancestor_id
+                    WHERE aa.page_id = pages.id
+                    ORDER BY aa.depth ASC
+                    LIMIT 1
+                  )`,
+                )
+                .where((eb2) =>
+                  eb2.or([
+                    eb2('pagePermissions.userId', '=', userId),
+                    eb2(
+                      'pagePermissions.groupId',
+                      'in',
+                      this.userGroupIdsSubquery(eb2, userId),
+                    ),
+                  ]),
+                ),
             ),
           )
           .then(true)
@@ -766,6 +830,7 @@ export class PagePermissionRepo {
           .as('canEdit'),
       )
       .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      // view filter: no restricted ancestor without any permission
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
