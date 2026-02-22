@@ -10,12 +10,13 @@ import {
   Stack,
 } from "@mantine/core";
 import { useEffect, useCallback, memo, type ReactNode } from "react";
-import { IconBrandGithub, IconBrandGitlab } from "@tabler/icons-react";
 import {
   FigmaIcon,
-  LinearIcon,
-  JiraIcon,
+  GithubIcon,
+  GitlabIcon,
   GoogleDocsIcon,
+  JiraIcon,
+  LinearIcon,
 } from "@/components/icons";
 import { unfurlUrl } from "@/features/integration/services/integration-service";
 import classes from "./integration-link-view.module.css";
@@ -43,8 +44,8 @@ function toBadgeColor(raw?: string): string {
 }
 
 const providerIcons: Record<string, (size: number) => ReactNode> = {
-  github: (size) => <IconBrandGithub size={size} stroke={1.5} />,
-  gitlab: (size) => <IconBrandGitlab size={size} stroke={1.5} />,
+  github: (size) => <GithubIcon size={size} />,
+  gitlab: (size) => <GitlabIcon size={size} />,
   figma: (size) => <FigmaIcon size={size} />,
   linear: (size) => <LinearIcon size={size} />,
   jira: (size) => <JiraIcon size={size} />,
