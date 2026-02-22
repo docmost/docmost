@@ -16,6 +16,7 @@ import { usePageQuery } from "@/features/page/queries/page-query";
 import { usePageRestrictionInfoQuery } from "@/ee/page-permission/queries/page-permission-query";
 import { PagePermissionTab } from "@/ee/page-permission";
 import { PublishTab } from "./publish-tab";
+import { useShareForPageQuery } from "@/features/share/queries/share-query";
 
 type PageShareModalProps = {
   readOnly?: boolean;
@@ -32,6 +33,9 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
   const pageId = page?.id;
   const isRestricted = page?.permissions?.hasRestriction ?? false;
 
+  const { data: share } = useShareForPageQuery(pageId);
+  const isPubliclyShared = !!share;
+
   const { data: restrictionInfo, isLoading: restrictionLoading } =
     usePageRestrictionInfoQuery(opened ? pageId : undefined);
 
@@ -44,7 +48,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
           <Indicator
             color={isRestricted ? "red" : "green"}
             offset={5}
-            disabled={!page?.permissions}
+            disabled={!isRestricted && !isPubliclyShared}
             withBorder
           >
             {isRestricted ? (
