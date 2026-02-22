@@ -768,7 +768,7 @@ export class PagePermissionRepo {
                 'allAncestors.pageId',
                 'pages.id as ancestorId',
                 'pages.parentPageId',
-                sql<number>`"allAncestors".depth + 1`.as('depth'),
+                sql<number>`all_ancestors.depth + 1`.as('depth'),
               ]),
           ),
       )
@@ -805,7 +805,7 @@ export class PagePermissionRepo {
                   'pagePermissions.pageAccessId',
                   '=',
                   sql<string>`(
-                    SELECT pa.id FROM "allAncestors" aa
+                    SELECT pa.id FROM all_ancestors aa
                     JOIN page_access pa ON pa.page_id = aa.ancestor_id
                     WHERE aa.page_id = pages.id
                     ORDER BY aa.depth ASC
