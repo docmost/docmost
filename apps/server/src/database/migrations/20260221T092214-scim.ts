@@ -72,6 +72,15 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
+  // Backfill: mark all non-default groups as external in workspaces with SSO group sync enabled
+  await sql`
+    UPDATE groups SET is_external = true
+    WHERE is_default = false
+    AND workspace_id IN (
+      SELECT workspace_id FROM auth_providers WHERE group_sync = true
+    )
+  `.execute(db);
+
   await db.schema
     .alterTable('workspaces')
     .addColumn('is_scim_enabled', 'boolean', (col) =>
