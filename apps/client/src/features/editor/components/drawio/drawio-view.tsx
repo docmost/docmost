@@ -2,7 +2,6 @@ import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
   ActionIcon,
   Card,
-  Image,
   Modal,
   Text,
   useComputedColorScheme,
@@ -10,7 +9,7 @@ import {
 import { useRef, useState } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { useDisclosure } from "@mantine/hooks";
-import { getDrawioUrl, getFileUrl } from "@/lib/config.ts";
+import { getDrawioUrl } from "@/lib/config.ts";
 import {
   DrawIoEmbed,
   DrawIoEmbedRef,
@@ -26,7 +25,7 @@ import { useTranslation } from "react-i18next";
 export default function DrawioView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
-  const { src, title, width, attachmentId } = node.attrs;
+  const { attachmentId } = node.attrs;
   const drawioRef = useRef<DrawIoEmbedRef>(null);
   const [initialXML, setInitialXML] = useState<string>("");
   const [opened, { open, close }] = useDisclosure(false);
@@ -36,33 +35,11 @@ export default function DrawioView(props: NodeViewProps) {
     if (!editor.isEditable) {
       return;
     }
-
-    try {
-      if (src) {
-        const url = getFileUrl(src);
-        const request = await fetch(url, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        const blob = await request.blob();
-
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-          const base64data = (reader.result || "") as string;
-          setInitialXML(base64data);
-        };
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      open();
-    }
+    open();
   };
 
   const handleSave = async (data: EventSave) => {
     const svgString = decodeBase64ToSvgString(data.xml);
-
     const fileName = "diagram.drawio.svg";
     const drawioSVGFile = await svgStringToFile(svgString, fileName);
 
@@ -70,7 +47,6 @@ export default function DrawioView(props: NodeViewProps) {
     const pageId = editor.storage?.pageId;
 
     let attachment: IAttachment = null;
-
     if (attachmentId) {
       attachment = await uploadFile(drawioSVGFile, pageId, attachmentId);
     } else {
@@ -106,14 +82,12 @@ export default function DrawioView(props: NodeViewProps) {
                   noSaveBtn: true,
                 }}
                 onSave={(data: EventSave) => {
-                  // If the save is triggered by another event, then do nothing
                   if (data.parentEvent !== "save") {
                     return;
                   }
                   handleSave(data);
                 }}
                 onClose={(data: EventExit) => {
-                  // If the exit is triggered by another event, then do nothing
                   if (data.parentEvent) {
                     return;
                   }
@@ -125,62 +99,28 @@ export default function DrawioView(props: NodeViewProps) {
         </Modal.Content>
       </Modal.Root>
 
-      {src ? (
-        <div style={{ position: "relative" }}>
-          <Image
-            onClick={(e) => e.detail === 2 && handleOpen()}
-            radius="md"
-            fit="contain"
-            w={width}
-            src={getFileUrl(src)}
-            alt={title}
-            className={clsx(
-              selected ? "ProseMirror-selectednode" : "",
-              "alignCenter",
-            )}
-          />
+      <Card
+        radius="md"
+        onClick={(e) => e.detail === 2 && handleOpen()}
+        p="xs"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        withBorder
+        className={clsx(selected ? "ProseMirror-selectednode" : "")}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <ActionIcon variant="transparent" color="gray">
+            <IconEdit size={18} />
+          </ActionIcon>
 
-          {selected && editor.isEditable && (
-            <ActionIcon
-              onClick={handleOpen}
-              variant="default"
-              color="gray"
-              mx="xs"
-              className="print-hide"
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-              }}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-          )}
+          <Text component="span" size="lg" c="dimmed">
+            {t("Double-click to edit Draw.io diagram")}
+          </Text>
         </div>
-      ) : (
-        <Card
-          radius="md"
-          onClick={(e) => e.detail === 2 && handleOpen()}
-          p="xs"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          withBorder
-          className={clsx(selected ? "ProseMirror-selectednode" : "")}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <ActionIcon variant="transparent" color="gray">
-              <IconEdit size={18} />
-            </ActionIcon>
-
-            <Text component="span" size="lg" c="dimmed">
-              {t("Double-click to edit Draw.io diagram")}
-            </Text>
-          </div>
-        </Card>
-      )}
+      </Card>
     </NodeViewWrapper>
   );
 }

@@ -56,6 +56,10 @@ import {
   createImageHandle,
   imageResizeClasses,
 } from "@/features/editor/components/image/image-resize-handles.ts";
+import {
+  createResizeHandle,
+  buildResizeClasses,
+} from "@/features/editor/components/common/node-resize-handles.ts";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
@@ -236,9 +240,29 @@ export const mainExtensions = [
   }),
   Drawio.configure({
     view: DrawioView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-drawio"),
+    },
   }),
   Excalidraw.configure({
     view: ExcalidrawView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-excalidraw"),
+    },
   }),
   Embed.configure({
     view: EmbedView,

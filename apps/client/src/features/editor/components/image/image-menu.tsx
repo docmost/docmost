@@ -19,7 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
-import classes from "./image-menu.module.css";
+import classes from "../common/toolbar-menu.module.css";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
@@ -122,7 +122,8 @@ export function ImageMenu({ editor }: EditorMenuProps) {
       // @ts-ignore
       const pageId = editor.storage?.pageId;
       if (pageId) {
-        uploadImageAction(file, editor, pageId);
+        const pos = editor.state.selection.from;
+        uploadImageAction(file, editor, pos, pageId);
       }
       // Reset so the same file can be selected again
       e.target.value = "";

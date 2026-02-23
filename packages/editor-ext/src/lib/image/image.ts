@@ -212,20 +212,14 @@ export const TiptapImage = Image.extend<ImageOptions>({
       className,
     } = resize;
 
-    return ({ node, getPos, HTMLAttributes, editor }) => {
+    return (props) => {
+      const { node, getPos, HTMLAttributes, editor } = props;
+
       // If no src yet (placeholder/uploading), use React view for loading UI
       if (!HTMLAttributes.src) {
         editor.isInitialized = true;
         const reactView = ReactNodeViewRenderer(this.options.view);
-        const view = reactView({
-          node,
-          getPos,
-          HTMLAttributes,
-          editor,
-          extension: this,
-          decorations: [] as any,
-          innerDecorations: {} as any,
-        });
+        const view = reactView(props);
 
         // When the node gets a src, return false from update to force rebuild
         const originalUpdate = view.update?.bind(view);
