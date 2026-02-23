@@ -52,6 +52,10 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
 import MathBlockView from "@/features/editor/components/math/math-block.tsx";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
+import {
+  createImageHandle,
+  imageResizeClasses,
+} from "@/features/editor/components/image/image-resize-handles.ts";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
@@ -91,6 +95,7 @@ lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
 
+// @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
     heading: false,
@@ -200,6 +205,16 @@ export const mainExtensions = [
   TiptapImage.configure({
     view: ImageView,
     allowBase64: false,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createImageHandle,
+      className: imageResizeClasses,
+    },
   }),
   TiptapVideo.configure({
     view: VideoView,
