@@ -148,6 +148,19 @@ export class IntegrationConnectionRepo {
       .execute();
   }
 
+  async findExpiringTokens(
+    expiresBeforeMs: number,
+  ): Promise<IntegrationConnection[]> {
+    const threshold = new Date(Date.now() + expiresBeforeMs);
+    return this.db
+      .selectFrom('integrationConnections')
+      .selectAll()
+      .where('refreshToken', 'is not', null)
+      .where('tokenExpiresAt', 'is not', null)
+      .where('tokenExpiresAt', '<', threshold)
+      .execute();
+  }
+
   async deleteByIntegration(
     integrationId: string,
     trx?: KyselyTransaction,

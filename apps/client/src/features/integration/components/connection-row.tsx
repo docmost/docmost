@@ -6,8 +6,7 @@ import { getIntegrationIcon } from "./integration-icons";
 type ConnectionRowProps = {
   definition: IntegrationDefinition;
   connection?: UserConnection;
-  installed: boolean;
-  onConnect: (integrationId: string) => void;
+  onConnect: (type: string) => void;
   onDisconnect: (integrationId: string) => void;
   isDisconnecting?: boolean;
 };
@@ -15,14 +14,11 @@ type ConnectionRowProps = {
 export default function ConnectionRow({
   definition,
   connection,
-  installed,
   onConnect,
   onDisconnect,
   isDisconnecting,
 }: ConnectionRowProps) {
   const { t } = useTranslation();
-  const isConnected = !!connection;
-  const isAvailable = installed && (connection?.isEnabled ?? true);
 
   return (
     <Box
@@ -30,7 +26,6 @@ export default function ConnectionRow({
       px="xs"
       style={{
         borderBottom: "1px solid var(--mantine-color-default-border)",
-        opacity: isAvailable || isConnected ? 1 : 0.5,
       }}
     >
       <Group justify="space-between" wrap="nowrap">
@@ -47,7 +42,7 @@ export default function ConnectionRow({
         </Group>
 
         <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
-          {isConnected ? (
+          {connection ? (
             <>
               <Text size="xs" c="green">
                 {t("Connected")}
@@ -63,7 +58,7 @@ export default function ConnectionRow({
                 {t("Disconnect")}
               </Button>
             </>
-          ) : isAvailable ? (
+          ) : (
             <Button
               size="xs"
               variant="light"
@@ -71,10 +66,6 @@ export default function ConnectionRow({
             >
               {t("Connect")}
             </Button>
-          ) : (
-            <Text size="xs" c="dimmed">
-              {t("Not available")}
-            </Text>
           )}
         </Group>
       </Group>

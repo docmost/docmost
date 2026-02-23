@@ -70,4 +70,5 @@ export enum QueueJob {
   PAGE_MENTION_NOTIFICATION = 'page-mention-notification',
 
   INTEGRATION_EVENT = 'integration-event',
+  INTEGRATION_TOKEN_REFRESH = 'integration-token-refresh',
 }

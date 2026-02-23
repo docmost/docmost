@@ -80,9 +80,12 @@ export default function Connections() {
       ) : (
         <Stack gap={0}>
           {available
-            .filter((def) => def.capabilities.includes("oauth"))
-            .map((def) => {
+            .filter((def) => {
+              if (!def.capabilities.includes("oauth")) return false;
               const installation = installed?.find((i) => i.type === def.type);
+              return installation?.isEnabled;
+            })
+            .map((def) => {
               const connection = myConnections?.find(
                 (c) => c.type === def.type,
               );
@@ -92,7 +95,6 @@ export default function Connections() {
                   key={def.type}
                   definition={def}
                   connection={connection}
-                  installed={!!installation}
                   onConnect={handleConnect}
                   onDisconnect={handleDisconnect}
                   isDisconnecting={disconnectMutation.isPending}

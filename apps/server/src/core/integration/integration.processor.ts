@@ -7,6 +7,8 @@ import { IntegrationRepo } from './repos/integration.repo';
 import { IntegrationConnectionRepo } from './repos/integration-connection.repo';
 import { OAuthService } from './oauth/oauth.service';
 
+const TOKEN_REFRESH_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
 @Processor(QueueName.INTEGRATION_QUEUE)
 export class IntegrationProcessor extends WorkerHost {
   private readonly logger = new Logger(IntegrationProcessor.name);
@@ -25,8 +27,35 @@ export class IntegrationProcessor extends WorkerHost {
       case QueueJob.INTEGRATION_EVENT:
         await this.handleIntegrationEvent(job);
         break;
+      case QueueJob.INTEGRATION_TOKEN_REFRESH:
+        await this.handleTokenRefresh();
+        break;
       default:
         this.logger.warn(`Unknown job: ${job.name}`);
+    }
+  }
+
+  private async handleTokenRefresh(): Promise<void> {
+    const connections = await this.connectionRepo.findExpiringTokens(
+      TOKEN_REFRESH_WINDOW_MS,
+    );
+
+    if (connections.length === 0) {
+      return;
+    }
+
+    this.logger.log(
+      `Refreshing tokens for ${connections.length} connection(s)`,
+    );
+
+    for (const connection of connections) {
+      try {
+        await this.oauthService.getValidAccessToken(connection);
+      } catch (err) {
+        this.logger.error(
+          `Token refresh failed for connection ${connection.id}: ${(err as Error).message}`,
+        );
+      }
     }
   }
 
