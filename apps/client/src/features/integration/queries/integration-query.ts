@@ -76,6 +76,13 @@ export function useUpdateIntegrationSettings() {
   });
 }
 
+export function useMyConnections() {
+  return useQuery({
+    queryKey: ["my-connections"],
+    queryFn: integrationService.getMyConnections,
+  });
+}
+
 export function useConnectionStatus(integrationId: string | undefined) {
   return useQuery({
     queryKey: ["integration-connection", integrationId],

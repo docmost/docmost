@@ -72,6 +72,11 @@ const groupedData: DataGroup[] = [
         isEnterprise: true,
         showDisabledInNonEE: true,
       },
+      {
+        label: "Connections",
+        icon: IconPlug,
+        path: "/settings/account/connections",
+      },
     ],
   },
   {

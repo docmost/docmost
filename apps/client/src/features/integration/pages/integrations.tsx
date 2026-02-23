@@ -1,10 +1,10 @@
-import { SimpleGrid, Text, Loader, Center, Alert } from "@mantine/core";
+import { Text, Loader, Center, Alert, Stack } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useState, useCallback } from "react";
 import { getAppName } from "@/lib/config";
 import SettingsTitle from "@/components/settings/settings-title";
-import IntegrationCard from "../components/integration-card";
+import IntegrationRow from "../components/integration-row";
 import IntegrationSettingsModal from "../components/integration-settings-modal";
 import {
   useAvailableIntegrations,
@@ -68,6 +68,10 @@ export default function Integrations() {
 
       <SettingsTitle title={t("Integrations")} />
 
+      <Text size="sm" c="dimmed" mb="md">
+        {t("Manage workspace integrations.")}
+      </Text>
+
       {error === "oauth_failed" && (
         <Alert color="red" mb="md">
           {t("OAuth connection failed. Please try again.")}
@@ -83,11 +87,11 @@ export default function Integrations() {
           {t("No integrations available.")}
         </Text>
       ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+        <Stack gap={0}>
           {available.map((def) => {
             const installation = installed?.find((i) => i.type === def.type);
             return (
-              <IntegrationCard
+              <IntegrationRow
                 key={def.type}
                 definition={def}
                 installation={installation}
@@ -98,7 +102,7 @@ export default function Integrations() {
               />
             );
           })}
-        </SimpleGrid>
+        </Stack>
       )}
 
       <IntegrationSettingsModal

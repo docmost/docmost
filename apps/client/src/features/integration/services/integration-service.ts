@@ -3,6 +3,7 @@ import {
   IntegrationDefinition,
   Integration,
   ConnectionStatus,
+  UserConnection,
   UnfurlResult,
 } from "../types/integration.types";
 
@@ -39,6 +40,11 @@ export async function updateIntegrationSettings(data: {
   isEnabled?: boolean;
 }): Promise<Integration> {
   const req = await api.post<Integration>("/integrations/update", data);
+  return req.data;
+}
+
+export async function getMyConnections(): Promise<UserConnection[]> {
+  const req = await api.post<UserConnection[]>("/integrations/connections/mine");
   return req.data;
 }
 

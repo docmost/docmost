@@ -50,6 +50,21 @@ export class IntegrationConnectionService {
     );
   }
 
+  async getUserConnections(userId: string, workspaceId: string) {
+    const rows = await this.connectionRepo.findByUserAndWorkspace(
+      userId,
+      workspaceId,
+    );
+
+    return rows.map((row) => ({
+      integrationId: row.integrationId,
+      type: row.type,
+      isEnabled: row.isEnabled,
+      providerUserId: row.providerUserId ?? null,
+      connectedAt: row.createdAt,
+    }));
+  }
+
   async disconnect(
     integrationId: string,
     userId: string,

@@ -118,6 +118,16 @@ export class IntegrationController {
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @Post('connections/mine')
+  async getMyConnections(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.connectionService.getUserConnections(user.id, workspace.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('connection/status')
   async getConnectionStatus(
     @Body() dto: IntegrationIdDto,

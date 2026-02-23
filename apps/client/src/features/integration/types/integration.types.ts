@@ -24,6 +24,14 @@ export type ConnectionStatus = {
   providerUserId?: string;
 };
 
+export type UserConnection = {
+  integrationId: string;
+  type: string;
+  isEnabled: boolean;
+  providerUserId: string | null;
+  connectedAt: string;
+};
+
 export type UnfurlResult = {
   title: string;
   description?: string;

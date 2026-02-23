@@ -10,6 +10,7 @@ export { LinearIcon } from "./linear-icon.tsx";
 export { TypeformIcon } from "./typeform-icon.tsx";
 export { VimeoIcon } from "./vimeo-icon.tsx";
 export { MiroIcon } from "./miro-icon.tsx";
+export { SlackIcon } from "./slack-icon.tsx";
 export { FramerIcon } from "./framer-icon.tsx";
 export { LoomIcon } from "./loom-icon.tsx";
 export { YoutubeIcon } from "./youtube-icon.tsx";

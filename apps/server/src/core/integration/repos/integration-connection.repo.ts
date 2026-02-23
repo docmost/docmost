@@ -122,6 +122,32 @@ export class IntegrationConnectionRepo {
       .execute();
   }
 
+  async findByUserAndWorkspace(
+    userId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ) {
+    const db = dbOrTx(this.db, trx);
+    return db
+      .selectFrom('integrationConnections')
+      .innerJoin(
+        'integrations',
+        'integrations.id',
+        'integrationConnections.integrationId',
+      )
+      .select([
+        'integrationConnections.integrationId',
+        'integrations.type',
+        'integrations.isEnabled',
+        'integrationConnections.providerUserId',
+        'integrationConnections.createdAt',
+      ])
+      .where('integrationConnections.userId', '=', userId)
+      .where('integrations.workspaceId', '=', workspaceId)
+      .where('integrations.deletedAt', 'is', null)
+      .execute();
+  }
+
   async deleteByIntegration(
     integrationId: string,
     trx?: KyselyTransaction,

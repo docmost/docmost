@@ -9,15 +9,8 @@ import {
   Anchor,
   Stack,
 } from "@mantine/core";
-import { useEffect, useCallback, memo, type ReactNode } from "react";
-import {
-  FigmaIcon,
-  GithubIcon,
-  GitlabIcon,
-  GoogleDocsIcon,
-  JiraIcon,
-  LinearIcon,
-} from "@/components/icons";
+import { useEffect, useCallback, memo } from "react";
+import { getIntegrationIcon } from "@/features/integration/components/integration-icons";
 import { unfurlUrl } from "@/features/integration/services/integration-service";
 import classes from "./integration-link-view.module.css";
 
@@ -42,15 +35,6 @@ function toBadgeColor(raw?: string): string {
   }
   return raw;
 }
-
-const providerIcons: Record<string, (size: number) => ReactNode> = {
-  github: (size) => <GithubIcon size={size} />,
-  gitlab: (size) => <GitlabIcon size={size} />,
-  figma: (size) => <FigmaIcon size={size} />,
-  linear: (size) => <LinearIcon size={size} />,
-  jira: (size) => <JiraIcon size={size} />,
-  google_docs: (size) => <GoogleDocsIcon size={size} />,
-};
 
 function IntegrationLinkView(props: any) {
   const { node, updateAttributes, editor } = props;
@@ -108,8 +92,6 @@ function IntegrationLinkView(props: any) {
     );
   }
 
-  const renderIcon = providerIcons[provider];
-
   return (
     <NodeViewWrapper data-drag-handle="">
       <Card
@@ -126,9 +108,9 @@ function IntegrationLinkView(props: any) {
         <Group gap="sm" wrap="nowrap">
           {unfurlData.authorAvatarUrl ? (
             <Avatar src={unfurlData.authorAvatarUrl} size={28} radius="xl" style={{ flexShrink: 0 }} />
-          ) : renderIcon ? (
-            <div style={{ flexShrink: 0 }}>{renderIcon(28)}</div>
-          ) : null}
+          ) : (
+            <div style={{ flexShrink: 0 }}>{getIntegrationIcon(provider, 28)}</div>
+          )}
 
           <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
             <Group gap="xs" wrap="nowrap">
@@ -154,9 +136,9 @@ function IntegrationLinkView(props: any) {
             )}
           </Stack>
 
-          {renderIcon && (
+          {provider && (
             <div style={{ flexShrink: 0, alignSelf: "center" }}>
-              {renderIcon(18)}
+              {getIntegrationIcon(provider, 18)}
             </div>
           )}
         </Group>
