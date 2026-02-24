@@ -42,9 +42,9 @@ if (isCloud() && isPostHogEnabled) {
   });
 }
 
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement,
-);
+
+const container = document.getElementById("root") as HTMLElement;
+const root = (container as any).__reactRoot ??= ReactDOM.createRoot(container);
 
 root.render(
   <BrowserRouter>
