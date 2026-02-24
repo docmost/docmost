@@ -89,7 +89,6 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
         <Tooltip label={t("Text alignment")} withArrow>
           <ActionIcon
             variant="subtle"
-            c="dark"
             size="lg"
             aria-label={t("Text alignment")}
             onClick={() => setOpened(!opened)}

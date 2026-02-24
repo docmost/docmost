@@ -9,15 +9,21 @@
   box-shadow: 0 2px 12px light-dark(rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.35));
 }
 
+.toolbar :global(.mantine-ActionIcon-root) {
+  --ai-color: light-dark(var(--mantine-color-dark-7), var(--mantine-color-gray-4)) !important;
+  --ai-hover: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5)) !important;
+}
+
+.toolbar .active {
+    --ai-color: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-3)) !important;
+    --ai-hover: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5)) !important;
+    background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
+}
+
 .divider {
   width: 1px;
   height: 16px;
   align-self: center;
   margin: 0 2px;
   background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-3));
-}
-
-.active {
-  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
-  color: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-4));
 }

@@ -96,7 +96,6 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
         <Tooltip label={t("Background color")} withArrow>
           <ActionIcon
             variant="subtle"
-            c="dark"
             size="lg"
             aria-label={t("Background color")}
             onClick={() => setOpened(!opened)}

@@ -131,7 +131,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align left")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isAlignLeft })}
           >
             <IconLayoutAlignLeft size={18} />
@@ -144,7 +143,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align center")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isAlignCenter })}
           >
             <IconLayoutAlignCenter size={18} />
@@ -157,7 +155,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Align right")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isAlignRight })}
           >
             <IconLayoutAlignRight size={18} />
@@ -172,7 +169,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Download")}
             variant="subtle"
-            c="dark"
           >
             <IconDownload size={18} />
           </ActionIcon>
@@ -184,7 +180,6 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Delete")}
             variant="subtle"
-            c="dark"
           >
             <IconTrash size={18} />
           </ActionIcon>

@@ -124,7 +124,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={addColumnLeft}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Add left column")}
             >
@@ -136,7 +135,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={addColumnRight}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Add right column")}
             >
@@ -148,7 +146,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={deleteColumn}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Delete column")}
             >
@@ -162,7 +159,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={addRowAbove}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Add row above")}
             >
@@ -174,7 +170,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={addRowBelow}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Add row below")}
             >
@@ -186,7 +181,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={deleteRow}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Delete row")}
             >
@@ -200,7 +194,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={toggleHeaderRow}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Toggle header row")}
             >
@@ -212,7 +205,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={toggleHeaderColumn}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Toggle header column")}
             >
@@ -226,7 +218,6 @@ export const TableMenu = React.memo(
             <ActionIcon
               onClick={deleteTable}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Delete table")}
             >

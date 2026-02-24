@@ -80,7 +80,6 @@ export const TableCellMenu = React.memo(
             <ActionIcon
               onClick={mergeCells}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Merge cells")}
             >
@@ -92,7 +91,6 @@ export const TableCellMenu = React.memo(
             <ActionIcon
               onClick={splitCell}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Split cell")}
             >
@@ -106,7 +104,6 @@ export const TableCellMenu = React.memo(
             <ActionIcon
               onClick={deleteColumn}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Delete column")}
             >
@@ -118,7 +115,6 @@ export const TableCellMenu = React.memo(
             <ActionIcon
               onClick={deleteRow}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Delete row")}
             >
@@ -132,7 +128,6 @@ export const TableCellMenu = React.memo(
             <ActionIcon
               onClick={toggleHeaderCell}
               variant="subtle"
-              c="dark"
               size="lg"
               aria-label={t("Toggle header cell")}
             >

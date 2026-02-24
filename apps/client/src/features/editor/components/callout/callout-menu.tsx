@@ -135,7 +135,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Info")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isInfo })}
           >
             <IconInfoCircleFilled size={18} color="var(--mantine-color-blue-5)" />
@@ -148,7 +147,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Success")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isSuccess })}
           >
             <IconCircleCheckFilled size={18} color="var(--mantine-color-green-5)" />
@@ -161,7 +159,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Warning")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isWarning })}
           >
             <IconAlertTriangleFilled size={18} color="var(--mantine-color-orange-5)" />
@@ -174,7 +171,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             size="lg"
             aria-label={t("Danger")}
             variant="subtle"
-            c="dark"
             className={clsx({ [classes.active]: editorState?.isDanger })}
           >
             <IconCircleXFilled size={18} color="var(--mantine-color-red-5)" />
@@ -189,7 +185,6 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           actionIconProps={{
             size: "lg",
             variant: "subtle",
-            c: "dark",
           }}
         />
       </div>
