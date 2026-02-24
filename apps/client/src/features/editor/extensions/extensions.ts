@@ -1,4 +1,6 @@
+import { markInputRule } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
+import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
 import { Placeholder, CharacterCount } from "@tiptap/extensions";
@@ -113,10 +115,24 @@ export const mainExtensions = [
       color: "#70CFF8",
     },
     codeBlock: false,
-    code: {
-      HTMLAttributes: {
-        spellcheck: false,
-      },
+    code: false,
+  }),
+  // Override TipTap's Code extension to fix the inline code input rule.
+  // The upstream regex /(^|[^`])`([^`]+)`(?!`)$/ captures the character
+  // before the opening backtick as part of the match, causing markInputRule
+  // to delete it. Using a lookbehind avoids including it in the match.
+  Code.configure({
+    HTMLAttributes: {
+      spellcheck: false,
+    },
+  }).extend({
+    addInputRules() {
+      return [
+        markInputRule({
+          find: /(?:^|(?<=[^`]))`([^`]+)`(?!`)$/,
+          type: this.type,
+        }),
+      ];
     },
   }),
   SharedStorage,
