@@ -93,7 +93,7 @@ export const Column = Node.create<ColumnOptions>({
 
       const targetIndex = currentIndex + direction;
       if (targetIndex < 0 || targetIndex >= columns.node.childCount) {
-        return false;
+        return true;
       }
 
       let offset = 0;
