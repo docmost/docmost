@@ -1,6 +1,5 @@
 div[data-type="columns"] {
   display: flex;
-  gap: 1rem;
   margin: 0.75rem 0;
   padding: 0.5em;
 }
