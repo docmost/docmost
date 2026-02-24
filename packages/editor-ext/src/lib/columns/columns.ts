@@ -1,5 +1,6 @@
 import { Node, mergeAttributes, findParentNode } from "@tiptap/core";
 import { Fragment, Node as PMNode } from "prosemirror-model";
+import { TextSelection } from "prosemirror-state";
 
 export type ColumnsLayout =
   | "two_equal"
@@ -107,19 +108,36 @@ export const Columns = Node.create<ColumnsOptions>({
     return {
       insertColumns:
         (attributes) =>
-        ({ commands }) => {
+        ({ tr, state, dispatch }) => {
           const layout = attributes?.layout || "two_equal";
           const count = columnCountFromLayout(layout);
-          const columns = Array.from({ length: count }, () => ({
-            type: "column",
-            content: [{ type: "paragraph" }],
-          }));
 
-          return commands.insertContent({
-            type: this.name,
-            attrs: attributes,
-            content: columns,
-          });
+          const columnType = state.schema.nodes.column;
+          const paraType = state.schema.nodes.paragraph;
+          const children = Array.from({ length: count }, () =>
+            columnType.create(null, paraType.create()),
+          );
+          const columnsNode = this.type.create(
+            attributes,
+            Fragment.from(children),
+          );
+
+          const stepsBefore = tr.steps.length;
+          tr.replaceSelectionWith(columnsNode);
+
+          if (tr.steps.length > stepsBefore) {
+            const stepMap = tr.steps[tr.steps.length - 1].getMap();
+            let insertStart = 0;
+            stepMap.forEach((_from, _to, newFrom) => {
+              insertStart = newFrom;
+            });
+            tr.setSelection(
+              TextSelection.near(tr.doc.resolve(insertStart + 1), 1),
+            );
+          }
+
+          if (dispatch) dispatch(tr);
+          return true;
         },
 
       setColumnsWidthMode:
