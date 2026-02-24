@@ -20,6 +20,7 @@ import {
 import { BubbleMenu } from "@tiptap/react/menus";
 import { isCellSelection } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
+import classes from "../common/toolbar-menu.module.css";
 
 export const TableMenu = React.memo(
   ({ editor }: EditorMenuProps): JSX.Element => {
@@ -118,11 +119,12 @@ export const TableMenu = React.memo(
         }}
         shouldShow={shouldShow}
       >
-        <ActionIcon.Group>
+        <div className={classes.toolbar}>
           <Tooltip position="top" label={t("Add left column")}>
             <ActionIcon
               onClick={addColumnLeft}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Add left column")}
             >
@@ -133,7 +135,8 @@ export const TableMenu = React.memo(
           <Tooltip position="top" label={t("Add right column")}>
             <ActionIcon
               onClick={addColumnRight}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Add right column")}
             >
@@ -144,7 +147,8 @@ export const TableMenu = React.memo(
           <Tooltip position="top" label={t("Delete column")}>
             <ActionIcon
               onClick={deleteColumn}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Delete column")}
             >
@@ -152,10 +156,13 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Add row above")}>
             <ActionIcon
               onClick={addRowAbove}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Add row above")}
             >
@@ -166,7 +173,8 @@ export const TableMenu = React.memo(
           <Tooltip position="top" label={t("Add row below")}>
             <ActionIcon
               onClick={addRowBelow}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Add row below")}
             >
@@ -177,7 +185,8 @@ export const TableMenu = React.memo(
           <Tooltip position="top" label={t("Delete row")}>
             <ActionIcon
               onClick={deleteRow}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Delete row")}
             >
@@ -185,10 +194,13 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Toggle header row")}>
             <ActionIcon
               onClick={toggleHeaderRow}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Toggle header row")}
             >
@@ -199,7 +211,8 @@ export const TableMenu = React.memo(
           <Tooltip position="top" label={t("Toggle header column")}>
             <ActionIcon
               onClick={toggleHeaderColumn}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
               aria-label={t("Toggle header column")}
             >
@@ -207,18 +220,20 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Delete table")}>
             <ActionIcon
               onClick={deleteTable}
-              variant="default"
+              variant="subtle"
+              c="dark"
               size="lg"
-              color="red"
               aria-label={t("Delete table")}
             >
               <IconTrashX size={18} />
             </ActionIcon>
           </Tooltip>
-        </ActionIcon.Group>
+        </div>
       </BubbleMenu>
     );
   }

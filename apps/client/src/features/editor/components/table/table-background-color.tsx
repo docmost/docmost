@@ -95,7 +95,8 @@ export const TableBackgroundColor: FC<TableBackgroundColorProps> = ({
       <Popover.Target>
         <Tooltip label={t("Background color")} withArrow>
           <ActionIcon
-            variant="default"
+            variant="subtle"
+            c="dark"
             size="lg"
             aria-label={t("Background color")}
             onClick={() => setOpened(!opened)}

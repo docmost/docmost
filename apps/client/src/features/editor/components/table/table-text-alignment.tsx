@@ -88,7 +88,8 @@ export const TableTextAlignment: FC<TableTextAlignmentProps> = ({ editor }) => {
       <Popover.Target>
         <Tooltip label={t("Text alignment")} withArrow>
           <ActionIcon
-            variant="default"
+            variant="subtle"
+            c="dark"
             size="lg"
             aria-label={t("Text alignment")}
             onClick={() => setOpened(!opened)}
