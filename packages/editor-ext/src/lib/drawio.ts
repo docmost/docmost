@@ -262,6 +262,15 @@ export const Drawio = Node.create<DrawioOptions>({
             el.src = updatedNode.attrs.src || "";
           }
 
+          const w = updatedNode.attrs.width;
+          const h = updatedNode.attrs.height;
+          if (w != null) {
+            el.style.width = `${w}px`;
+          }
+          if (h != null) {
+            el.style.height = `${h}px`;
+          }
+
           const align = updatedNode.attrs.align || "center";
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);

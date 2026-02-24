@@ -294,6 +294,15 @@ export const TiptapImage = Image.extend<ImageOptions>({
             el.alt = updatedNode.attrs.alt || "";
           }
 
+          const w = updatedNode.attrs.width;
+          const h = updatedNode.attrs.height;
+          if (w != null) {
+            el.style.width = `${w}px`;
+          }
+          if (h != null) {
+            el.style.height = `${h}px`;
+          }
+
           // Update alignment on container
           const align = updatedNode.attrs.align || "center";
           const container = nodeView.dom as HTMLElement;
