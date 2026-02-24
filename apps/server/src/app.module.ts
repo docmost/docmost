@@ -19,6 +19,7 @@ import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
 import { LoggerModule } from './common/logger/logger.module';
+import { WebhookModule } from './integrations/webhook/webhook.module';
 
 const enterpriseModules = [];
 try {
@@ -59,6 +60,7 @@ try {
     EventEmitterModule.forRoot(),
     SecurityModule,
     TelemetryModule,
+    WebhookModule,
     ...enterpriseModules,
   ],
   controllers: [AppController],

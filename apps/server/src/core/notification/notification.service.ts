@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
@@ -6,6 +6,10 @@ import { InsertableNotification } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
+import {
+  WebhookService,
+  WebhookPayload,
+} from '../../integrations/webhook/webhook.service';
 
 @Injectable()
 export class NotificationService {
@@ -15,6 +19,7 @@ export class NotificationService {
     private readonly notificationRepo: NotificationRepo,
     private readonly wsGateway: WsGateway,
     private readonly mailService: MailService,
+    @Optional() @Inject(WebhookService) private readonly webhookService: WebhookService | null,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -74,6 +79,25 @@ export class NotificationService {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.logger.error(
         `Failed to queue email for notification ${notificationId}: ${message}`,
+      );
+    }
+  }
+
+  async queueWebhook(
+    userId: string,
+    workspaceId: string,
+    payload: WebhookPayload,
+  ) {
+    if (!this.webhookService) {
+      return;
+    }
+
+    try {
+      await this.webhookService.queueDelivery(userId, workspaceId, payload);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(
+        `Failed to queue webhook for user ${userId}: ${message}`,
       );
     }
   }
