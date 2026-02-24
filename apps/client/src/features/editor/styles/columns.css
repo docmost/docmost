@@ -105,7 +105,7 @@ div[data-type="columns"][data-width-mode="wide"] {
   }
 
   div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
-    border-left: 1px solid #dee2e6;
+    border-left: none;
     padding-left: 1rem;
   }
 
