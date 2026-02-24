@@ -1,4 +1,4 @@
-import Table from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
 import { Editor } from "@tiptap/core";
 import { DOMOutputSpec } from "@tiptap/pm/model";
 

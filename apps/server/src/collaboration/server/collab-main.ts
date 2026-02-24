@@ -5,21 +5,27 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
-import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 import { Logger } from '@nestjs/common';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     CollabAppModule,
     new FastifyAdapter({
-      ignoreTrailingSlash: true,
-      ignoreDuplicateSlashes: true,
-      maxParamLength: 500,
+      routerOptions: {
+        maxParamLength: 1000,
+        ignoreTrailingSlash: true,
+        ignoreDuplicateSlashes: true,
+      },
     }),
     {
       logger: new InternalLogFilter(),
+      bufferLogs: false,
     },
   );
+
+  app.useLogger(app.get(PinoLogger));
 
   app.setGlobalPrefix('api', { exclude: ['/'] });
 
@@ -32,7 +38,8 @@ async function bootstrap() {
   const logger = new Logger('CollabServer');
 
   const port = process.env.COLLAB_PORT || 3001;
-  await app.listen(port, '0.0.0.0', () => {
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
     logger.log(`Listening on http://127.0.0.1:${port}`);
   });
 }

@@ -5,26 +5,28 @@ import {
   Badge,
   Table,
   ActionIcon,
-} from '@mantine/core';
-import {Link} from 'react-router-dom';
-import PageListSkeleton from '@/components/ui/page-list-skeleton.tsx';
-import { buildPageUrl } from '@/features/page/page.utils.ts';
-import { formattedDate } from '@/lib/time.ts';
-import { useRecentChangesQuery } from '@/features/page/queries/page-query.ts';
-import { IconFileDescription } from '@tabler/icons-react';
-import { getSpaceUrl } from '@/lib/config.ts';
+} from "@mantine/core";
+import { Link } from "react-router-dom";
+import PageListSkeleton from "@/components/ui/page-list-skeleton.tsx";
+import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { formattedDate } from "@/lib/time.ts";
+import { useRecentChangesQuery } from "@/features/page/queries/page-query.ts";
+import { IconFileDescription, IconFiles } from "@tabler/icons-react";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
+import { getSpaceUrl } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
+import { getInitialsColor } from "@/lib/get-initials-color.ts";
 
 interface Props {
   spaceId?: string;
 }
 
-export default function RecentChanges({spaceId}: Props) {
+export default function RecentChanges({ spaceId }: Props) {
   const { t } = useTranslation();
-  const {data: pages, isLoading, isError} = useRecentChangesQuery(spaceId);
+  const { data: pages, isLoading, isError } = useRecentChangesQuery(spaceId);
 
   if (isLoading) {
-    return <PageListSkeleton/>;
+    return <PageListSkeleton />;
   }
 
   if (isError) {
@@ -44,8 +46,8 @@ export default function RecentChanges({spaceId}: Props) {
                 >
                   <Group wrap="nowrap">
                     {page.icon || (
-                      <ActionIcon variant='transparent' color='gray' size={18}>
-                        <IconFileDescription size={18}/>
+                      <ActionIcon variant="transparent" color="gray" size={18}>
+                        <IconFileDescription size={18} />
                       </ActionIcon>
                     )}
 
@@ -58,18 +60,23 @@ export default function RecentChanges({spaceId}: Props) {
               {!spaceId && (
                 <Table.Td>
                   <Badge
-                    color="blue"
+                    color={getInitialsColor(page?.space.name)}
                     variant="light"
                     component={Link}
                     to={getSpaceUrl(page?.space.slug)}
-                    style={{cursor: 'pointer'}}
+                    style={{ cursor: "pointer" }}
                   >
                     {page?.space.name}
                   </Badge>
                 </Table.Td>
               )}
               <Table.Td>
-                <Text c="dimmed" style={{whiteSpace: 'nowrap'}} size="xs" fw={500}>
+                <Text
+                  c="dimmed"
+                  style={{ whiteSpace: "nowrap" }}
+                  size="xs"
+                  fw={500}
+                >
                   {formattedDate(page.updatedAt)}
                 </Text>
               </Table.Td>
@@ -79,8 +86,10 @@ export default function RecentChanges({spaceId}: Props) {
       </Table>
     </Table.ScrollContainer>
   ) : (
-    <Text size="md" ta="center">
-      {t("No pages yet")}
-    </Text>
+    <EmptyState
+      icon={IconFiles}
+      title={t("No pages yet")}
+      description={t("Pages you create will show up here.")}
+    />
   );
 }

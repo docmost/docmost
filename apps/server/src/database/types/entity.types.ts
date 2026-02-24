@@ -3,7 +3,9 @@ import {
   Attachments,
   Comments,
   Groups,
-  PageHierarchy as _PageHierarchy,
+  Notifications,
+  PageAccess as _PageAccess,
+  PagePermissions as _PagePermissions,
   Pages,
   Spaces,
   Users,
@@ -21,6 +23,7 @@ import {
   FileTasks,
   UserMfa as _UserMFA,
   ApiKeys,
+  Watchers,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -133,6 +136,22 @@ export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
 export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
 
-// Page Hierarchy (closure table - composite primary key)
-export type PageHierarchy = Selectable<_PageHierarchy>;
-export type InsertablePageHierarchy = Insertable<_PageHierarchy>;
+// Notification
+export type Notification = Selectable<Notifications>;
+export type InsertableNotification = Insertable<Notifications>;
+export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
+
+// Watcher
+export type Watcher = Selectable<Watchers>;
+export type InsertableWatcher = Insertable<Watchers>;
+export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Page Access
+export type PageAccess = Selectable<_PageAccess>;
+export type InsertablePageAccess = Insertable<_PageAccess>;
+export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
+
+// Page Permission
+export type PagePermission = Selectable<_PagePermissions>;
+export type InsertablePagePermission = Insertable<_PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;

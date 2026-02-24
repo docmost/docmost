@@ -22,6 +22,10 @@ export interface IPage {
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
   space: Partial<ISpace>;
+  permissions?: {
+    canEdit: boolean;
+    hasRestriction: boolean;
+  };
 }
 
 interface ICreator {
@@ -62,7 +66,7 @@ export interface ICopyPageToSpace {
 export interface SidebarPagesParams {
   spaceId?: string;
   pageId?: string;
-  page?: number; // pagination
+  cursor?: string;
 }
 
 export interface IPageInput {

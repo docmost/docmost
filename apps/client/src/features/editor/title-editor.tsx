@@ -157,8 +157,10 @@ export function TitleEditor({
 
   useEffect(() => {
     setTimeout(() => {
-      titleEditor?.commands.focus("end");
-    }, 500);
+      // guard against Cannot access view['hasFocus'] error
+      if (!titleEditor?.isInitialized) return;
+      titleEditor?.commands?.focus("end");
+    }, 300);
   }, [titleEditor]);
 
   useEffect(() => {
@@ -169,11 +171,14 @@ export function TitleEditor({
   }, [pageId]);
 
   useEffect(() => {
-    // honor user default page edit mode preference
-    if (userPageEditMode && titleEditor && editable) {
-      if (userPageEditMode === PageEditMode.Edit) {
-        titleEditor.setEditable(true);
-      } else if (userPageEditMode === PageEditMode.Read) {
+    if (titleEditor) {
+      if (userPageEditMode && editable) {
+        if (userPageEditMode === PageEditMode.Edit) {
+          titleEditor.setEditable(true);
+        } else if (userPageEditMode === PageEditMode.Read) {
+          titleEditor.setEditable(false);
+        }
+      } else {
         titleEditor.setEditable(false);
       }
     }

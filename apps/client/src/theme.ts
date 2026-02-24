@@ -35,12 +35,35 @@ export const theme = createTheme({
     blue,
     red,
   },
+  /***
+  components: {
+    ActionIcon: ActionIcon.extend({
+      vars: (_theme, props) => {
+        return {
+          root: {
+            ...(props.variant === "subtle" &&
+              props.color === "dark" && {
+                "--ai-color": "var(--mantine-color-default-color)",
+                "--ai-hover": "var(--mantine-color-default-hover)",
+              }),
+          },
+        };
+      },
+    }),
+  },
+  ***/
 });
 
 export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
   variables: {
     "--input-error-size": theme.fontSizes.sm,
   },
-  light: {},
-  dark: {},
+  light: {
+    "--mantine-color-dark-light-color": "#4e5359",
+    "--mantine-color-dark-light-hover": "var(--mantine-color-gray-light-hover)",
+  },
+  dark: {
+    "--mantine-color-dark-light-color": "var(--mantine-color-gray-4)",
+    "--mantine-color-dark-light-hover": "var(--mantine-color-default-hover)",
+  },
 });

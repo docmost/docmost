@@ -4,11 +4,15 @@ import { QueueName } from '../../queue/constants';
 import { Job } from 'bullmq';
 import { MailService } from '../mail.service';
 import { MailMessage } from '../interfaces/mail.message';
+import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
 
 @Processor(QueueName.EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(EmailProcessor.name);
-  constructor(private readonly mailService: MailService) {
+  constructor(
+    private readonly mailService: MailService,
+    private readonly notificationRepo: NotificationRepo,
+  ) {
     super();
   }
 
@@ -17,6 +21,14 @@ export class EmailProcessor extends WorkerHost implements OnModuleDestroy {
       await this.mailService.sendEmail(job.data);
     } catch (err) {
       throw err;
+    }
+
+    if (job.data.notificationId) {
+      try {
+        await this.notificationRepo.markAsEmailed(job.data.notificationId);
+      } catch (err) {
+        this.logger.warn(`Failed to mark notification ${job.data.notificationId} as emailed`);
+      }
     }
   }
 

@@ -1,11 +1,7 @@
 import { StarterKit } from "@tiptap/starter-kit";
-import { Placeholder } from "@tiptap/extension-placeholder";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { CharacterCount } from "@tiptap/extension-character-count";
-import { TaskList } from "@tiptap/extension-task-list";
-import { ListKeymap } from "@tiptap/extension-list-keymap";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { Underline } from "@tiptap/extension-underline";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { Placeholder, CharacterCount } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
@@ -15,7 +11,7 @@ import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand from "@/features/editor/extensions/slash-command";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
-import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
+import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
   Comment,
@@ -41,11 +37,12 @@ import {
   Embed,
   SearchAndReplace,
   Mention,
-  Subpages,
   TableDndExtension,
+  Subpages,
   Heading,
   Highlight,
   UniqueID,
+  SharedStorage,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -97,7 +94,9 @@ lowlight.register("scala", scala);
 export const mainExtensions = [
   StarterKit.configure({
     heading: false,
-    history: false,
+    undoRedo: false,
+    link: false,
+    trailingNode: false,
     dropcursor: {
       width: 3,
       color: "#70CFF8",
@@ -109,6 +108,7 @@ export const mainExtensions = [
       },
     },
   }),
+  SharedStorage,
   Heading,
   UniqueID.configure({
     types: ["heading", "paragraph"],
@@ -134,8 +134,6 @@ export const mainExtensions = [
   TaskItem.configure({
     nested: true,
   }),
-  ListKeymap,
-  Underline,
   LinkExtension.configure({
     openOnClick: false,
   }),
@@ -170,6 +168,9 @@ export const mainExtensions = [
     },
   }).extend({
     addNodeView() {
+      // Force the react node view to render immediately using flush sync (https://github.com/ueberdosis/tiptap/blob/b4db352f839e1d82f9add6ee7fb45561336286d8/packages/react/src/ReactRenderer.tsx#L183-L191)
+      this.editor.isInitialized = true;
+
       return ReactNodeViewRenderer(MentionView);
     },
   }),
@@ -208,6 +209,7 @@ export const mainExtensions = [
   }),
   CustomCodeBlock.configure({
     view: CodeBlockView,
+    //@ts-ignore
     lowlight,
     HTMLAttributes: {
       spellcheck: false,
@@ -246,7 +248,7 @@ export const mainExtensions = [
         Escape: () => {
           const event = new CustomEvent("closeFindDialogFromEditor", {});
           document.dispatchEvent(event);
-          return true;
+          return false;
         },
       };
     },
@@ -258,8 +260,9 @@ type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
 export const collabExtensions: CollabExtensions = (provider, user) => [
   Collaboration.configure({
     document: provider.document,
+    provider,
   }),
-  CollaborationCursor.configure({
+  CollaborationCaret.configure({
     provider,
     user: {
       name: user.name,

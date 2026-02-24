@@ -1,7 +1,6 @@
 import React, { Dispatch, FC, SetStateAction } from "react";
-import { IconCheck, IconChevronDown, IconPalette } from "@tabler/icons-react";
+import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import {
-  ActionIcon,
   Button,
   Popover,
   rem,
@@ -15,6 +14,8 @@ import {
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
+import clsx from "clsx";
+import classes from "./bubble-menu.module.css";
 
 export interface BubbleColorMenuItem {
   name: string;
@@ -166,14 +167,10 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
             onClick={() => setIsOpen(!isOpen)}
             data-text-color={activeColorItem?.color || ""}
             data-highlight-color={activeHighlightItem?.color || ""}
-            className="color-selector-trigger"
+            className={clsx(["color-selector-trigger", classes.buttonRoot])}
             style={{
-              height: "34px",
-              border: "none",
               fontWeight: 500,
               fontSize: rem(16),
-              paddingLeft: rem(8),
-              paddingRight: rem(4),
             }}
           >
             A

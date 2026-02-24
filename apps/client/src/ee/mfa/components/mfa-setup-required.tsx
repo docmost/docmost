@@ -3,7 +3,7 @@ import { Container, Paper, Title, Text, Alert, Stack } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { MfaSetupModal } from "@/ee/mfa";
-import APP_ROUTE from "@/lib/app-route.ts";
+import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route.ts";
 import { useNavigate } from "react-router-dom";
 
 export default function MfaSetupRequired() {
@@ -11,7 +11,7 @@ export default function MfaSetupRequired() {
   const navigate = useNavigate();
 
   const handleSetupComplete = () => {
-    navigate(APP_ROUTE.HOME);
+    navigate(getPostLoginRedirect());
   };
 
   return (

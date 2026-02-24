@@ -197,14 +197,9 @@ export interface GroupUsers {
   userId: string;
 }
 
-export interface PageHierarchy {
-  ancestorId: string;
-  descendantId: string;
-  depth: Generated<number>;
-}
-
 export interface PageHistory {
   content: Json | null;
+  contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
   createdAt: Generated<Timestamp>;
   icon: string | null;
@@ -279,6 +274,7 @@ export interface Spaces {
   id: Generated<string>;
   logo: string | null;
   name: string | null;
+  settings: Json | null;
   slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;
@@ -366,6 +362,55 @@ export interface Workspaces {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface Notifications {
+  id: Generated<string>;
+  userId: string;
+  workspaceId: string;
+  type: string;
+  actorId: string | null;
+  pageId: string | null;
+  spaceId: string | null;
+  commentId: string | null;
+  data: Json | null;
+  readAt: Timestamp | null;
+  emailedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface Watchers {
+  id: Generated<string>;
+  userId: string;
+  pageId: string | null;
+  spaceId: string;
+  workspaceId: string;
+  type: string;
+  addedById: string | null;
+  mutedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
+export interface PageAccess {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  accessLevel: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PagePermissions {
+  id: Generated<string>;
+  pageAccessId: string;
+  userId: string | null;
+  groupId: string | null;
+  role: string;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -377,8 +422,11 @@ export interface DB {
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  notifications: Notifications;
+  pageAccess: PageAccess;
   pageHierarchy: PageHierarchy;
   pageHistory: PageHistory;
+  pagePermissions: PagePermissions;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;
@@ -386,6 +434,7 @@ export interface DB {
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
+  watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;
   workspaces: Workspaces;
 }

@@ -5,6 +5,14 @@ import {
 } from "@/features/space/permissions/permissions.type.ts";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 
+export interface ISpaceSharingSettings {
+  disabled?: boolean;
+}
+
+export interface ISpaceSettings {
+  sharing?: ISpaceSharingSettings;
+}
+
 export interface ISpace {
   id: string;
   name: string;
@@ -18,6 +26,9 @@ export interface ISpace {
   memberCount?: number;
   spaceId?: string;
   membership?: IMembership;
+  settings?: ISpaceSettings;
+  // for updates
+  disablePublicSharing?: boolean;
 }
 
 interface IMembership {

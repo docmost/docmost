@@ -1,11 +1,6 @@
-import {
-  BubbleMenu as BaseBubbleMenu,
-  findParentNode,
-  posToDOMRect,
-  useEditorState,
-} from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
-import { sticky } from "tippy.js";
 import { Node as PMNode } from "prosemirror-model";
 import {
   EditorMenuProps,
@@ -42,17 +37,26 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     },
   });
 
-  const getReferenceClientRect = useCallback(() => {
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
     const { selection } = editor.state;
     const predicate = (node: PMNode) => node.type.name === "excalidraw";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
       const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
-      return dom.getBoundingClientRect();
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    return posToDOMRect(editor.view, selection.from, selection.to);
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
   }, [editor]);
 
   const onWidthChange = useCallback(
@@ -65,17 +69,13 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`excalidraw-menu}`}
+      pluginKey={`excalidraw-menu`}
       updateDelay={0}
-      tippyOptions={{
-        getReferenceClientRect,
-        offset: [0, 8],
-        zIndex: 99,
-        popperOptions: {
-          modifiers: [{ name: "flip", enabled: false }],
-        },
-        plugins: [sticky],
-        sticky: "popper",
+      getReferencedVirtualElement={getReferencedVirtualElement}
+      options={{
+        placement: "top",
+        offset: 8,
+        flip: false,
       }}
       shouldShow={shouldShow}
     >

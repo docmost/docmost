@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { useState, useCallback } from "react";
-import { askAi, IAiSearchResponse } from "@/ee/ai/services/ai-search-service.ts";
+import { aiAnswers, IAiSearchResponse } from "@/ee/ai/services/ai-search-service.ts";
 import { IPageSearchParams } from "@/features/search/types/search.types.ts";
 
 // @ts-ignore
@@ -26,7 +26,7 @@ export function useAiSearch(): UseAiSearchResult {
 
       const { contentType, ...apiParams } = params;
 
-      return await askAi(apiParams, (chunk) => {
+      return await aiAnswers(apiParams, (chunk) => {
         if (chunk.content) {
           setStreamingAnswer((prev) => prev + chunk.content);
         }

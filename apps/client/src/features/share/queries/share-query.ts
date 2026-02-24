@@ -27,15 +27,13 @@ import {
   getShares,
   updateShare,
 } from "@/features/share/services/share-service.ts";
-import { IPage } from "@/features/page/types/page.types.ts";
 import { IPagination, QueryParams } from "@/lib/types.ts";
-import { useEffect } from "react";
 
 export function useGetSharesQuery(
   params?: QueryParams,
 ): UseQueryResult<IPagination<ISharedItem>, Error> {
   return useQuery({
-    queryKey: ["share-list"],
+    queryKey: ["share-list", params],
     queryFn: () => getShares(params),
     placeholderData: keepPreviousData,
   });
@@ -72,7 +70,7 @@ export function useShareForPageQuery(
     queryKey: ["share-for-page", pageId],
     queryFn: () => getShareForPage(pageId),
     enabled: !!pageId,
-    staleTime: 0,
+    staleTime: 60 * 1000,
     retry: false,
   });
 
@@ -92,7 +90,10 @@ export function useCreateShareMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: t("Failed to share page"), color: "red" });
+      notifications.show({
+        message: error?.["response"]?.data?.message || t("Failed to share page"),
+        color: "red",
+      });
     },
   });
 }

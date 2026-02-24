@@ -23,6 +23,9 @@ export class WsRedisIoAdapter extends IoAdapter {
     const pubClient = new Redis(process.env.REDIS_URL, options);
     const subClient = new Redis(process.env.REDIS_URL, options);
 
+    pubClient.on('error', (err) => () => {});
+    subClient.on('error', (err) => () => {});
+
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }
 
