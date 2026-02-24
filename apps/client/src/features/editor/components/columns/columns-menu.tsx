@@ -17,6 +17,7 @@ import {
   IconLayoutSidebarRight,
   IconLayoutAlignCenter,
 } from "@tabler/icons-react";
+import { isTextSelected } from "@docmost/editor-ext";
 import type { WidthMode, ColumnsLayout } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
@@ -80,6 +81,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
     ({ state }: ShouldShowProps) => {
       if (!state) return false;
       if (!editor.isActive("columns")) return false;
+      if (isTextSelected(editor)) return false;
       if (nodesWithMenus.some((name) => editor.isActive(name))) return false;
 
       const parent = findParentNode(

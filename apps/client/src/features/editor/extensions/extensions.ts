@@ -135,7 +135,13 @@ export const mainExtensions = [
       }
       if (node.type.name === "paragraph") {
         const $pos = editor.state.doc.resolve(pos);
-        if ($pos.parent.type.name === "column") {
+        const parentName = $pos.parent.type.name;
+        if (
+          parentName === "column" ||
+          parentName === "tableCell" ||
+          parentName === "tableHeader" ||
+          parentName === "callout"
+        ) {
           return i18n.t("Write...");
         }
         return i18n.t('Write anything. Enter "/" for commands');

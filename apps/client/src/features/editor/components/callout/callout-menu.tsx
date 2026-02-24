@@ -16,7 +16,7 @@ import {
   IconMoodSmile,
   IconNotes,
 } from "@tabler/icons-react";
-import { CalloutType } from "@docmost/editor-ext";
+import { CalloutType, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import classes from "../common/toolbar-menu.module.css";
@@ -29,6 +29,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       if (!state) {
         return false;
       }
+      if (isTextSelected(editor)) return false;
 
       return editor.isActive("callout");
     },

@@ -18,7 +18,7 @@ import {
   IconTrashX,
 } from "@tabler/icons-react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { isCellSelection } from "@docmost/editor-ext";
+import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
 
@@ -31,6 +31,7 @@ export const TableMenu = React.memo(
           return false;
         }
 
+        if (isTextSelected(editor)) return false;
         return editor.isActive("table") && !isCellSelection(state.selection);
       },
       [editor]
