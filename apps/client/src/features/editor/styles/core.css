@@ -82,13 +82,9 @@
   }
 
   blockquote {
-    padding-left: 25px;
-    padding-right: 25px;
-    border-left: 2px solid var(--mantine-color-gray-6);
-    background-color: light-dark(
-      var(--mantine-color-gray-0),
-      var(--mantine-color-dark-8)
-    );
+    padding-left: 1rem;
+    border-left: 3px solid
+      light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
     margin: 0;
   }
 
