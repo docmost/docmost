@@ -140,7 +140,8 @@ export const mainExtensions = [
           parentName === "column" ||
           parentName === "tableCell" ||
           parentName === "tableHeader" ||
-          parentName === "callout"
+          parentName === "callout" ||
+          parentName === "blockquote"
         ) {
           return i18n.t("Write...");
         }
