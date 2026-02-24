@@ -14,6 +14,7 @@ import {
   IconCircleXFilled,
   IconInfoCircleFilled,
   IconMoodSmile,
+  IconNotes,
 } from "@tabler/icons-react";
 import { CalloutType } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
@@ -44,6 +45,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       return {
         isCallout: ctx.editor.isActive("callout"),
         isInfo: ctx.editor.isActive("callout", { type: "info" }),
+        isNote: ctx.editor.isActive("callout", { type: "note" }),
         isSuccess: ctx.editor.isActive("callout", { type: "success" }),
         isWarning: ctx.editor.isActive("callout", { type: "warning" }),
         isDanger: ctx.editor.isActive("callout", { type: "danger" }),
@@ -137,7 +139,22 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             variant="subtle"
             className={clsx({ [classes.active]: editorState?.isInfo })}
           >
-            <IconInfoCircleFilled size={18} color="var(--mantine-color-blue-5)" />
+            <IconInfoCircleFilled
+              size={18}
+              color="var(--mantine-color-blue-5)"
+            />
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip position="top" label={t("Note")}>
+          <ActionIcon
+            onClick={() => setCalloutType("note")}
+            size="lg"
+            aria-label={t("Note")}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isNote })}
+          >
+            <IconNotes size={18} color="var(--mantine-color-grape-5)" />
           </ActionIcon>
         </Tooltip>
 
@@ -149,7 +166,10 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             variant="subtle"
             className={clsx({ [classes.active]: editorState?.isSuccess })}
           >
-            <IconCircleCheckFilled size={18} color="var(--mantine-color-green-5)" />
+            <IconCircleCheckFilled
+              size={18}
+              color="var(--mantine-color-green-5)"
+            />
           </ActionIcon>
         </Tooltip>
 
@@ -161,7 +181,10 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             variant="subtle"
             className={clsx({ [classes.active]: editorState?.isWarning })}
           >
-            <IconAlertTriangleFilled size={18} color="var(--mantine-color-orange-5)" />
+            <IconAlertTriangleFilled
+              size={18}
+              color="var(--mantine-color-orange-5)"
+            />
           </ActionIcon>
         </Tooltip>
 
