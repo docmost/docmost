@@ -4,10 +4,7 @@ import { useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
 import { modals } from "@mantine/modals";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
-import {
-  IPagePermissionMember,
-  PagePermissionRole,
-} from "@/ee/page-permission/types/page-permission.types";
+import { PagePermissionRole } from "@/ee/page-permission/types/page-permission.types";
 import {
   usePagePermissionsQuery,
   useRemovePagePermissionMutation,
@@ -32,13 +29,8 @@ export function PagePermissionList({
   const updateRoleMutation = useUpdatePagePermissionRoleMutation();
   const removeMutation = useRemovePagePermissionMutation();
 
-  const {
-    data,
-    isLoading,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = usePagePermissionsQuery(pageId);
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    usePagePermissionsQuery(pageId);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -77,7 +69,9 @@ export function PagePermissionList({
       title: t("Remove access"),
       children: (
         <Text size="sm">
-          {t("Are you sure you want to remove this member's access to the page?")}
+          {t(
+            "Are you sure you want to remove this member's access to the page?",
+          )}
         </Text>
       ),
       centered: true,
@@ -86,7 +80,9 @@ export function PagePermissionList({
       onConfirm: async () => {
         await removeMutation.mutateAsync({
           pageId,
-          ...(type === "user" ? { userIds: [memberId] } : { groupIds: [memberId] }),
+          ...(type === "user"
+            ? { userIds: [memberId] }
+            : { groupIds: [memberId] }),
         });
       },
     });
@@ -97,7 +93,9 @@ export function PagePermissionList({
       title: t("Remove all access"),
       children: (
         <Text size="sm">
-          {t("Are you sure you want to remove all specific access? This will make the page open to everyone in the space.")}
+          {t(
+            "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.",
+          )}
         </Text>
       ),
       centered: true,
@@ -136,10 +134,7 @@ export function PagePermissionList({
           {t("People with access")}
         </Text>
         {canManage && members.length > 0 && (
-          <Text
-            className={classes.removeAllLink}
-            onClick={handleRemoveAll}
-          >
+          <Text className={classes.removeAllLink} onClick={handleRemoveAll}>
             {t("Remove all")}
           </Text>
         )}

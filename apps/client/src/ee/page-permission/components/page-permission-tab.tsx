@@ -105,18 +105,18 @@ export function PagePermissionTab({
                 <Text size="xs" c="dimmed">
                   {t("Access limited by")}
                 </Text>
-                {restrictionInfo.restrictedBy && (
+                {restrictionInfo.inheritedFrom && (
                   <Link
                     to={buildPageUrl(
                       spaceSlug,
-                      restrictionInfo.restrictedBy.slugId,
-                      restrictionInfo.restrictedBy.title,
+                      restrictionInfo.inheritedFrom.slugId,
+                      restrictionInfo.inheritedFrom.title,
                     )}
                     style={{ textDecoration: "none" }}
                   >
                     <Group gap={2}>
                       <Text size="xs" fw={500} c="blue">
-                        {restrictionInfo.restrictedBy.title || t("Untitled")}
+                        {restrictionInfo.inheritedFrom.title || t("Untitled")}
                       </Text>
                       <IconArrowRight size={12} color="var(--mantine-color-blue-6)" />
                     </Group>

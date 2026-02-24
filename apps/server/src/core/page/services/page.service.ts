@@ -296,7 +296,7 @@ export class PageService {
     }
 
     const result = await executeWithCursorPagination(query, {
-      perPage: 250,
+      perPage: 200,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
@@ -339,7 +339,7 @@ export class PageService {
           .filter((p: any) => permissionMap.has(p.id))
           .map((p: any) => ({
             ...p,
-            canEdit: permissionMap.get(p.id),
+            canEdit: permissionMap.get(p.id) && (spaceCanEdit ?? true),
           }));
 
         const pagesWithChildren = result.items.filter(

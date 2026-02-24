@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-query";
 import {
   IAddPagePermission,
-  IPagePermissionMember,
   IPageRestrictionInfo,
   IRemovePagePermission,
   IUpdatePagePermissionRole,
@@ -23,7 +22,6 @@ import {
   updatePagePermissionRole,
 } from "@/ee/page-permission/services/page-permission-service";
 import { notifications } from "@mantine/notifications";
-import { IPagination } from "@/lib/types";
 import { useTranslation } from "react-i18next";
 
 export function usePageRestrictionInfoQuery(
@@ -41,6 +39,8 @@ export function usePagePermissionsQuery(pageId: string) {
     queryKey: ["page-permissions", pageId],
     queryFn: ({ pageParam }) => getPagePermissions(pageId, pageParam),
     enabled: !!pageId,
+    //gcTime: 5000,
+    placeholderData: keepPreviousData,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
@@ -59,6 +59,9 @@ export function useRestrictPageMutation() {
       });
       queryClient.invalidateQueries({
         queryKey: ["page-permissions", pageId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pages", pageId],
       });
     },
     onError: (error) => {
@@ -83,6 +86,9 @@ export function useUnrestrictPageMutation() {
       });
       queryClient.invalidateQueries({
         queryKey: ["page-permissions", pageId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pages", pageId],
       });
     },
     onError: (error) => {

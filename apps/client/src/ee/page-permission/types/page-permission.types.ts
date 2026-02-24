@@ -27,7 +27,7 @@ export type IPageRestrictionInfo = {
   restrictionId?: string;
   hasDirectRestriction: boolean;
   hasInheritedRestriction: boolean;
-  restrictedBy?: {
+  inheritedFrom?: {
     id: string;
     slugId: string;
     title: string;

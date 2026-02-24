@@ -18,6 +18,7 @@ export interface IPage {
   deletedAt: Date;
   position: string;
   hasChildren: boolean;
+  canEdit?: boolean;
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
