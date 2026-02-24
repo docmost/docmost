@@ -67,10 +67,20 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const [isCountOpen, setIsCountOpen] = useState(false);
 
+  const nodesWithMenus = [
+    "callout",
+    "image",
+    "video",
+    "drawio",
+    "excalidraw",
+    "table",
+  ];
+
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
       if (!state) return false;
       if (!editor.isActive("columns")) return false;
+      if (nodesWithMenus.some((name) => editor.isActive(name))) return false;
 
       const parent = findParentNode(
         (node: PMNode) => node.type.name === "columns",
