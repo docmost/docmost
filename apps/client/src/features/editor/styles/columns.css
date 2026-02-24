@@ -100,6 +100,15 @@ div[data-type="columns"][data-width-mode="wide"] {
 }
 
 @media print {
+  div[data-type="columns"] {
+    flex-direction: row !important;
+  }
+
+  div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
+    border-left: 1px solid #dee2e6;
+    padding-left: 1rem;
+  }
+
   div[data-type="columns"][data-width-mode="wide"] {
     margin-left: 0;
     margin-right: 0;
