@@ -222,6 +222,16 @@ export const mainExtensions = [
   }),
   TiptapVideo.configure({
     view: VideoView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-video"),
+    },
   }),
   Callout.configure({
     view: CalloutView,

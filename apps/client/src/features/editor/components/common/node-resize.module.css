@@ -9,7 +9,8 @@
   max-width: 100%;
 }
 
-.wrapper img {
+.wrapper img,
+.wrapper video {
   height: auto !important;
 }
 
