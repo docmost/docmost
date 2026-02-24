@@ -7,6 +7,7 @@ import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
 import { getPageTitle } from '../../../common/helpers';
+import { WebhookEvent } from '../../../integrations/webhook/webhook.service';
 
 @Injectable()
 export class PageNotificationService {
@@ -94,6 +95,17 @@ export class PageNotificationService {
         subject,
         PageMentionEmail({ actorName: actor.name, pageTitle, pageUrl }),
       );
+
+      // Queue webhook notification
+      await this.notificationService.queueWebhook(userId, workspaceId, {
+        event: WebhookEvent.MENTION,
+        timestamp: new Date().toISOString(),
+        workspace: { id: workspaceId, name: '' },
+        page: { id: pageId, title: pageTitle, url: pageUrl, slugId: '' },
+        space: { id: spaceId, name: '', slug: '' },
+        actor: { id: actorId, name: actor.name },
+        content: `${actor.name} mentioned you in ${pageTitle}`,
+      });
     }
   }
 

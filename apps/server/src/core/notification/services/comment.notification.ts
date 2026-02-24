@@ -13,6 +13,7 @@ import { CommentMentionEmail } from '@docmost/transactional/emails/comment-menti
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
 import { CommentResolvedEmail } from '@docmost/transactional/emails/comment-resolved-email';
 import { getPageTitle } from '../../../common/helpers';
+import { WebhookEvent } from '../../../integrations/webhook/webhook.service';
 
 @Injectable()
 export class CommentNotificationService {
@@ -85,6 +86,17 @@ export class CommentNotificationService {
         CommentMentionEmail({ actorName: actor.name, pageTitle, pageUrl }),
       );
 
+      // Queue webhook notification
+      await this.notificationService.queueWebhook(userId, workspaceId, {
+        event: WebhookEvent.MENTION,
+        timestamp: new Date().toISOString(),
+        workspace: { id: workspaceId, name: '' },
+        page: { id: pageId, title: pageTitle, url: pageUrl, slugId: '' },
+        space: { id: spaceId, name: '', slug: '' },
+        actor: { id: actorId, name: actor.name },
+        content: `${actor.name} mentioned you in a comment`,
+      });
+
       notifiedUserIds.add(userId);
     }
 
@@ -108,6 +120,17 @@ export class CommentNotificationService {
         `${actor.name} commented on ${pageTitle}`,
         CommentCreateEmail({ actorName: actor.name, pageTitle, pageUrl }),
       );
+
+      // Queue webhook notification
+      await this.notificationService.queueWebhook(recipientId, workspaceId, {
+        event: WebhookEvent.COMMENT,
+        timestamp: new Date().toISOString(),
+        workspace: { id: workspaceId, name: '' },
+        page: { id: pageId, title: pageTitle, url: pageUrl, slugId: '' },
+        space: { id: spaceId, name: '', slug: '' },
+        actor: { id: actorId, name: actor.name },
+        content: `${actor.name} commented on ${pageTitle}`,
+      });
     }
   }
 
