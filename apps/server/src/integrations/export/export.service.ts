@@ -293,7 +293,7 @@ export class ExportService {
             const fileBuffer = await this.storageService.read(
               attachment.filePath,
             );
-            const filePath = `/files/${attachment.id}/${attachment.fileName}`;
+            const filePath = `files/${attachment.id}/${attachment.fileName}`;
             zip.file(filePath, fileBuffer);
           } catch (err) {
             this.logger.debug(`Attachment export error ${attachment.id}`, err);

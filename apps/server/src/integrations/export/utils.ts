@@ -33,10 +33,10 @@ export function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any) {
 
   // Helper function to replace specific URL prefixes
   const replacePrefix = (url: string): string => {
-    const prefixes = ['/files', '/api/files'];
+    const prefixes = ['/api/files'];
     for (const prefix of prefixes) {
       if (url.startsWith(prefix)) {
-        return url.replace(prefix, 'files');
+        return url.replace(prefix, '/files');
       }
     }
     return url;
