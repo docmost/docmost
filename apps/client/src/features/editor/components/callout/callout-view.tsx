@@ -23,6 +23,7 @@ export default function CalloutView(props: NodeViewProps) {
         icon={getCalloutIcon(type, icon)}
         p="xs"
         classNames={{
+          root: classes.root,
           message: classes.message,
           icon: classes.icon,
         }}
