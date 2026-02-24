@@ -1,5 +1,5 @@
 import api from "@/lib/api-client";
-import { IPagination, QueryParams } from "@/lib/types";
+import { IPagination } from "@/lib/types";
 import {
   IAddPagePermission,
   IPagePermissionMember,
@@ -36,11 +36,11 @@ export async function unrestrictPage(pageId: string): Promise<void> {
 
 export async function getPagePermissions(
   pageId: string,
-  params?: QueryParams,
+  cursor?: string,
 ): Promise<IPagination<IPagePermissionMember>> {
   const req = await api.post<IPagination<IPagePermissionMember>>(
     "/pages/permissions",
-    { pageId, ...params },
+    { pageId, ...(cursor && { cursor }) },
   );
   return req.data;
 }

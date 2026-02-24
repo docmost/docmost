@@ -4,7 +4,6 @@ import {
   Button,
   Divider,
   Group,
-  Loader,
   Paper,
   Select,
   Stack,
@@ -21,7 +20,6 @@ import {
 } from "@/ee/page-permission/types/page-permission.types";
 import {
   useAddPagePermissionMutation,
-  usePagePermissionsQuery,
   useRestrictPageMutation,
   useUnrestrictPageMutation,
 } from "@/ee/page-permission/queries/page-permission-query";
@@ -45,7 +43,6 @@ export function PagePermissionTab({
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [role, setRole] = useState<string>(PagePermissionRole.WRITER);
 
-  const { data: permissionsData, isLoading } = usePagePermissionsQuery(pageId);
   const restrictMutation = useRestrictPageMutation();
   const unrestrictMutation = useUnrestrictPageMutation();
   const addPermissionMutation = useAddPagePermissionMutation();
@@ -180,18 +177,11 @@ export function PagePermissionTab({
             </Group>
           )}
 
-          {isLoading ? (
-            <Group justify="center" py="md">
-              <Loader size="sm" />
-            </Group>
-          ) : (
-            <PagePermissionList
-              pageId={pageId}
-              members={permissionsData?.items || []}
-              canManage={canManage}
-              onRemoveAll={handleRemoveAll}
-            />
-          )}
+          <PagePermissionList
+            pageId={pageId}
+            canManage={canManage}
+            onRemoveAll={handleRemoveAll}
+          />
         </>
       )}
     </Stack>

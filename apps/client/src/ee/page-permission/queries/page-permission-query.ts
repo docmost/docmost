@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,7 +23,7 @@ import {
   updatePagePermissionRole,
 } from "@/ee/page-permission/services/page-permission-service";
 import { notifications } from "@mantine/notifications";
-import { IPagination, QueryParams } from "@/lib/types";
+import { IPagination } from "@/lib/types";
 import { useTranslation } from "react-i18next";
 
 export function usePageRestrictionInfoQuery(
@@ -35,15 +36,14 @@ export function usePageRestrictionInfoQuery(
   });
 }
 
-export function usePagePermissionsQuery(
-  pageId: string,
-  params?: QueryParams,
-): UseQueryResult<IPagination<IPagePermissionMember>, Error> {
-  return useQuery({
-    queryKey: ["page-permissions", pageId, params],
-    queryFn: () => getPagePermissions(pageId, params),
+export function usePagePermissionsQuery(pageId: string) {
+  return useInfiniteQuery({
+    queryKey: ["page-permissions", pageId],
+    queryFn: ({ pageParam }) => getPagePermissions(pageId, pageParam),
     enabled: !!pageId,
-    placeholderData: keepPreviousData,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
   });
 }
 
