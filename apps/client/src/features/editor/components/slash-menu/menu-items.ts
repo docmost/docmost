@@ -20,6 +20,8 @@ import {
   IconCalendar,
   IconAppWindow,
   IconSitemap,
+  IconColumns3,
+  IconColumns2,
 } from "@tabler/icons-react";
 import {
   CommandProps,
@@ -31,6 +33,8 @@ import { uploadAttachmentAction } from "@/features/editor/components/attachment/
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
+import { IconColumns4 } from "@/components/icons/icon-columns-4";
+import { IconColumns5 } from "@/components/icons/icon-columns-5";
 import {
   AirtableIcon,
   FigmaIcon,
@@ -389,6 +393,58 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
       },
+    },
+    {
+      title: "2 Columns",
+      description: "Split content into two columns.",
+      searchTerms: ["columns", "layout", "split", "side"],
+      icon: IconColumns2,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ layout: "two_equal" })
+          .run(),
+    },
+    {
+      title: "3 Columns",
+      description: "Split content into three columns.",
+      searchTerms: ["columns", "layout", "split", "triple"],
+      icon: IconColumns3,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ layout: "three_equal" })
+          .run(),
+    },
+    {
+      title: "4 Columns",
+      description: "Split content into four columns.",
+      searchTerms: ["columns", "layout", "split"],
+      icon: IconColumns4,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ layout: "four_equal" })
+          .run(),
+    },
+    {
+      title: "5 Columns",
+      description: "Split content into five columns.",
+      searchTerms: ["columns", "layout", "split"],
+      icon: IconColumns5,
+      command: ({ editor, range }: CommandProps) =>
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .insertColumns({ layout: "five_equal" })
+          .run(),
     },
     {
       title: "Iframe embed",

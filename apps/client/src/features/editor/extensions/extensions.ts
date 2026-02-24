@@ -43,6 +43,8 @@ import {
   Highlight,
   UniqueID,
   SharedStorage,
+  Columns,
+  Column,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -124,7 +126,7 @@ export const mainExtensions = [
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
-    placeholder: ({ node }) => {
+    placeholder: ({ editor, node, pos }) => {
       if (node.type.name === "heading") {
         return i18n.t("Heading {{level}}", { level: node.attrs.level });
       }
@@ -132,6 +134,10 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
+        const $pos = editor.state.doc.resolve(pos);
+        if ($pos.parent.type.name === "column") {
+          return i18n.t("Write...");
+        }
         return i18n.t('Write anything. Enter "/" for commands');
       }
     },
@@ -302,6 +308,8 @@ export const mainExtensions = [
       };
     },
   }).configure(),
+  Columns,
+  Column,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
