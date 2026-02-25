@@ -4,7 +4,9 @@ import {
   Indicator,
   Loader,
   Modal,
+  Stack,
   Tabs,
+  Text,
   Center,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -17,6 +19,7 @@ import { usePageRestrictionInfoQuery } from "@/ee/page-permission/queries/page-p
 import { PagePermissionTab } from "@/ee/page-permission";
 import { PublishTab } from "./publish-tab";
 import { useShareForPageQuery } from "@/features/share/queries/share-query";
+import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
 
 type PageShareModalProps = {
   readOnly?: boolean;
@@ -27,7 +30,10 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
   const { pageSlug } = useParams();
   const pageSlugId = extractPageSlugId(pageSlug);
   const [opened, { open, close }] = useDisclosure(false);
-  const [activeTab, setActiveTab] = useState<string | null>("access");
+  const isCloudEE = useIsCloudEE();
+  const [activeTab, setActiveTab] = useState<string | null>(
+    isCloudEE ? "access" : "publish",
+  );
 
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
@@ -37,7 +43,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
   const isPubliclyShared = !!share;
 
   const { data: restrictionInfo, isLoading: restrictionLoading } =
-    usePageRestrictionInfoQuery(opened ? pageId : undefined);
+    usePageRestrictionInfoQuery(opened && isCloudEE ? pageId : undefined);
 
   return (
     <>
@@ -61,12 +67,7 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
         {t("Share")}
       </Button>
 
-      <Modal
-        opened={opened}
-        onClose={close}
-        title={t("Share")}
-        size={600}
-      >
+      <Modal opened={opened} onClose={close} title={t("Share")} size={600}>
         <Tabs value={activeTab} color="dark" onChange={setActiveTab}>
           <Tabs.List mb="md">
             <Tabs.Tab value="access">{t("Access")}</Tabs.Tab>
@@ -83,7 +84,19 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
           </Tabs.List>
 
           <Tabs.Panel value="access">
-            {restrictionLoading || !pageId || !restrictionInfo ? (
+            {!isCloudEE ? (
+              <Stack align="center" py="md">
+                <IconLock size={20} stroke={1.5} />
+                <Text size="sm" ta="center" fw={500}>
+                  {t("Page permissions")}
+                </Text>
+                <Text size="sm" c="dimmed" ta="center">
+                  {t(
+                    "Control who can view and edit individual pages. Available with an enterprise license.",
+                  )}
+                </Text>
+              </Stack>
+            ) : restrictionLoading || !pageId || !restrictionInfo ? (
               <Center py="xl">
                 <Loader size="sm" />
               </Center>
@@ -96,7 +109,11 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
           </Tabs.Panel>
 
           <Tabs.Panel value="publish">
-            <PublishTab pageId={pageId} readOnly={readOnly} isRestricted={isRestricted} />
+            <PublishTab
+              pageId={pageId}
+              readOnly={readOnly}
+              isRestricted={isRestricted}
+            />
           </Tabs.Panel>
         </Tabs>
       </Modal>

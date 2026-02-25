@@ -39,9 +39,7 @@ import { formattedDate } from "@/lib/time.ts";
 import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
-import ShareModal from "@/features/share/components/share-modal.tsx";
 import { PageShareModal } from "@/ee/page-permission";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -49,7 +47,6 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
-  const isCloudEE = useIsCloudEE();
 
   useHotkeys(
     [
@@ -78,11 +75,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
 
-      {isCloudEE ? (
-        <PageShareModal readOnly={readOnly} />
-      ) : (
-        <ShareModal readOnly={readOnly} />
-      )}
+      <PageShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon

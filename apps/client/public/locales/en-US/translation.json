@@ -429,6 +429,8 @@
   "Public sharing is disabled at the workspace level": "Public sharing is disabled at the workspace level",
   "Prevent pages in this space from being shared publicly.": "Prevent pages in this space from being shared publicly.",
   "Requires an enterprise license": "Requires an enterprise license",
+  "Page permissions": "Page permissions",
+  "Control who can view and edit individual pages. Available with an enterprise license.": "Control who can view and edit individual pages. Available with an enterprise license.",
   "Enable public sharing": "Enable public sharing",
   "Are you sure you want to enable public sharing? Members will be able to share pages publicly.": "Are you sure you want to enable public sharing? Members will be able to share pages publicly.",
   "Are you sure you want to disable public sharing? All existing shared links in this workspace will be deleted.": "Are you sure you want to disable public sharing? All existing shared links in this workspace will be deleted.",
