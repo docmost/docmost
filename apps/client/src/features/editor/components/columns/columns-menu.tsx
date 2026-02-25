@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import React, { useCallback, useState } from "react";
-import { Node as PMNode } from "prosemirror-model";
+import React, { useCallback, useRef, useState } from "react";
+import { DOMSerializer, Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -16,6 +16,8 @@ import {
   IconLayoutSidebar,
   IconLayoutSidebarRight,
   IconLayoutAlignCenter,
+  IconCopy,
+  IconTrash,
 } from "@tabler/icons-react";
 import { isTextSelected } from "@docmost/editor-ext";
 import type { WidthMode, ColumnsLayout } from "@docmost/editor-ext";
@@ -54,8 +56,7 @@ const threeColumnPresets: LayoutPreset[] = [
     label: "Left wide",
     icon: IconLayoutSidebarRight,
   },
-  { layout: "three_right_wide", label: "Right wide", icon: IconLayoutSidebar
-  },
+  { layout: "three_right_wide", label: "Right wide", icon: IconLayoutSidebar },
 ];
 
 function getPresetsForCount(count: number): LayoutPreset[] {
@@ -67,6 +68,8 @@ function getPresetsForCount(count: number): LayoutPreset[] {
 export function ColumnsMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const [isCountOpen, setIsCountOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const nodesWithMenus = [
     "callout",
@@ -187,6 +190,65 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
     [editor],
   );
 
+  const handleCopy = useCallback(() => {
+    const { state } = editor;
+    const parent = findParentNode(
+      (node: PMNode) => node.type.name === "columns",
+    )(state.selection);
+    if (!parent) return;
+
+    const serializer = DOMSerializer.fromSchema(state.schema);
+    const dom = serializer.serializeNode(parent.node);
+    const wrapper = document.createElement("div");
+    wrapper.appendChild(dom);
+
+    const onSuccess = () => {
+      clearTimeout(copyTimerRef.current);
+      setCopied(true);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
+    };
+
+    if (navigator.clipboard?.write) {
+      navigator.clipboard
+        .write([
+          new ClipboardItem({
+            "text/html": new Blob([wrapper.innerHTML], { type: "text/html" }),
+            "text/plain": new Blob([parent.node.textContent], {
+              type: "text/plain",
+            }),
+          }),
+        ])
+        .then(onSuccess)
+        .catch(execCommandFallback);
+    } else {
+      execCommandFallback();
+    }
+
+    function execCommandFallback() {
+      wrapper.style.position = "fixed";
+      wrapper.style.left = "-9999px";
+      document.body.appendChild(wrapper);
+      const range = document.createRange();
+      range.selectNodeContents(wrapper);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      document.execCommand("copy");
+      sel?.removeAllRanges();
+      document.body.removeChild(wrapper);
+      editor.view.focus();
+      onSuccess();
+    }
+  }, [editor]);
+
+  const handleDelete = useCallback(() => {
+    const parent = findParentNode(
+      (node: PMNode) => node.type.name === "columns",
+    )(editor.state.selection);
+    if (!parent) return;
+    editor.chain().focus().setNodeSelection(parent.pos).deleteSelection().run();
+  }, [editor]);
+
   const columnCount = editorState?.columnCount || 2;
   const currentLayout = editorState?.layout || "two_equal";
   const presets = getPresetsForCount(columnCount);
@@ -259,6 +321,38 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
             </ActionIcon>
           </Tooltip>
         ))}
+
+        <div className={classes.divider} />
+
+        <Tooltip
+          position="top"
+          label={copied ? t("Copied") : t("Copy")}
+          withinPortal={false}
+        >
+          <ActionIcon
+            onClick={handleCopy}
+            size="lg"
+            aria-label={t("Copy")}
+            variant="subtle"
+          >
+            {copied ? (
+              <IconCheck size={18} color="var(--mantine-color-green-6)" />
+            ) : (
+              <IconCopy size={18} />
+            )}
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
+          <ActionIcon
+            onClick={handleDelete}
+            size="lg"
+            aria-label={t("Delete")}
+            variant="subtle"
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Tooltip>
       </div>
     </BaseBubbleMenu>
   );

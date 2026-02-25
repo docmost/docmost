@@ -1,6 +1,7 @@
 import { Node, mergeAttributes, findParentNode } from "@tiptap/core";
-import { Fragment, Node as PMNode } from "prosemirror-model";
-import { TextSelection } from "prosemirror-state";
+import { Fragment, Node as PMNode } from "@tiptap/pm/model";
+import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 export type ColumnsLayout =
   | "two_equal"
@@ -173,7 +174,21 @@ export const Columns = Node.create<ColumnsOptions>({
             }
             let mergedContent = columnsNode.child(count - 1).content;
             for (let j = count; j < currentCount; j++) {
-              mergedContent = mergedContent.append(columnsNode.child(j).content);
+              const col = columnsNode.child(j);
+              const nonEmpty: PMNode[] = [];
+              col.content.forEach((child) => {
+                if (
+                  child.type.name !== "paragraph" ||
+                  child.content.size > 0
+                ) {
+                  nonEmpty.push(child);
+                }
+              });
+              if (nonEmpty.length > 0) {
+                mergedContent = mergedContent.append(
+                  Fragment.from(nonEmpty),
+                );
+              }
             }
             newChildren.push(columnType.create(null, mergedContent));
           }
@@ -184,6 +199,9 @@ export const Columns = Node.create<ColumnsOptions>({
             Fragment.from(newChildren),
           );
           tr.replaceWith(parentPos, parentPos + columnsNode.nodeSize, newNode);
+          tr.setSelection(
+            TextSelection.near(tr.doc.resolve(parentPos + 1), 1),
+          );
           return true;
         },
 
@@ -192,5 +210,28 @@ export const Columns = Node.create<ColumnsOptions>({
         ({ commands }) =>
           commands.updateAttributes("columns", { layout }),
     };
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("columnsFocus"),
+        props: {
+          decorations: (state) => {
+            const parent = findParentNode(
+              (node) => node.type.name === "columns",
+            )(state.selection);
+            if (!parent) return DecorationSet.empty;
+            return DecorationSet.create(state.doc, [
+              Decoration.node(
+                parent.pos,
+                parent.pos + parent.node.nodeSize,
+                { class: "has-focus" },
+              ),
+            ]);
+          },
+        },
+      }),
+    ];
   },
 });

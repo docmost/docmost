@@ -1,12 +1,17 @@
 div[data-type="columns"] {
   display: flex;
   margin: 0.75rem 0;
-  padding: 0.5em;
+  padding: 0.5em 0;
 }
 
 div[data-type="columns"] > div[data-type="column"] {
   flex: 1;
   min-width: 0;
+  padding-right: 1rem;
+}
+
+div[data-type="columns"] > div[data-type="column"]:last-child {
+  padding-right: 0;
 }
 
 div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
@@ -16,6 +21,9 @@ div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
 }
 
 div[data-type="columns"]:hover
+  > div[data-type="column"]
+  + div[data-type="column"],
+div[data-type="columns"].has-focus
   > div[data-type="column"]
   + div[data-type="column"] {
   border-left: 1px solid
@@ -66,7 +74,7 @@ div[data-type="columns"][data-layout="three_with_sidebars"]
 }
 
 /* Stack columns vertically on small viewports */
-@media (max-width: 820px) {
+@media (max-width: 680px) {
   div[data-type="columns"] {
     flex-direction: column;
   }
