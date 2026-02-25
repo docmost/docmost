@@ -4,28 +4,24 @@ import {
   Button,
   Card,
   Group,
-  Image,
   Text,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
 import { useDisclosure } from "@mantine/hooks";
-import { getFileUrl } from "@/lib/config.ts";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
 import ReactClearModal from "react-clear-modal";
 import clsx from "clsx";
 import { IconEdit } from "@tabler/icons-react";
-import { lazy } from "react";
-import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 
-const Excalidraw = lazy(() =>
+const ExcalidrawComponent = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
     default: module.Excalidraw,
   })),
@@ -34,7 +30,7 @@ const Excalidraw = lazy(() =>
 export default function ExcalidrawView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { node, updateAttributes, editor, selected } = props;
-  const { src, title, width, attachmentId } = node.attrs;
+  const { attachmentId } = node.attrs;
 
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
@@ -50,25 +46,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
     if (!editor.isEditable) {
       return;
     }
-
-    try {
-      if (src) {
-        const url = getFileUrl(src);
-        const request = await fetch(url, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        const { loadFromBlob } = await import("@excalidraw/excalidraw");
-
-        const data = await loadFromBlob(await request.blob(), null, null);
-        setExcalidrawData(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      open();
-    }
+    open();
   };
 
   const handleSave = async () => {
@@ -151,7 +129,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
         </Group>
         <div style={{ height: "90vh" }}>
           <Suspense fallback={null}>
-            <Excalidraw
+            <ExcalidrawComponent
               excalidrawAPI={(api) => setExcalidrawAPI(api)}
               initialData={{
                 ...excalidrawData,
@@ -163,62 +141,28 @@ export default function ExcalidrawView(props: NodeViewProps) {
         </div>
       </ReactClearModal>
 
-      {src ? (
-        <div style={{ position: "relative" }}>
-          <Image
-            onClick={(e) => e.detail === 2 && handleOpen()}
-            radius="md"
-            fit="contain"
-            w={width}
-            src={getFileUrl(src)}
-            alt={title}
-            className={clsx(
-              selected ? "ProseMirror-selectednode" : "",
-              "alignCenter",
-            )}
-          />
+      <Card
+        radius="md"
+        onClick={(e) => e.detail === 2 && handleOpen()}
+        p="xs"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        withBorder
+        className={clsx(selected ? "ProseMirror-selectednode" : "")}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <ActionIcon variant="transparent" color="gray">
+            <IconEdit size={18} />
+          </ActionIcon>
 
-          {selected && editor.isEditable && (
-            <ActionIcon
-              onClick={handleOpen}
-              variant="default"
-              color="gray"
-              mx="xs"
-              className="print-hide"
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-              }}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-          )}
+          <Text component="span" size="lg" c="dimmed">
+            {t("Double-click to edit Excalidraw diagram")}
+          </Text>
         </div>
-      ) : (
-        <Card
-          radius="md"
-          onClick={(e) => e.detail === 2 && handleOpen()}
-          p="xs"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          withBorder
-          className={clsx(selected ? "ProseMirror-selectednode" : "")}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <ActionIcon variant="transparent" color="gray">
-              <IconEdit size={18} />
-            </ActionIcon>
-
-            <Text component="span" size="lg" c="dimmed">
-              {t("Double-click to edit Excalidraw diagram")}
-            </Text>
-          </div>
-        </Card>
-      )}
+      </Card>
     </NodeViewWrapper>
   );
 }

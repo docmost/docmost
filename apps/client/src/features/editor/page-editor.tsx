@@ -67,6 +67,7 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 interface PageEditorProps {
   pageId: string;
@@ -416,6 +417,7 @@ export default function PageEditor({
             <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
+            <ColumnsMenu editor={editor} />
             <LinkMenu editor={editor} appendTo={menuContainerRef} />
           </div>
         )}

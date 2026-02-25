@@ -1,4 +1,6 @@
+import { markInputRule } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
+import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
 import { Placeholder, CharacterCount } from "@tiptap/extensions";
@@ -43,6 +45,8 @@ import {
   Highlight,
   UniqueID,
   SharedStorage,
+  Columns,
+  Column,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -52,6 +56,14 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
 import MathBlockView from "@/features/editor/components/math/math-block.tsx";
 import ImageView from "@/features/editor/components/image/image-view.tsx";
+import {
+  createImageHandle,
+  imageResizeClasses,
+} from "@/features/editor/components/image/image-resize-handles.ts";
+import {
+  createResizeHandle,
+  buildResizeClasses,
+} from "@/features/editor/components/common/node-resize-handles.ts";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
@@ -91,6 +103,7 @@ lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
 
+// @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
     heading: false,
@@ -102,10 +115,24 @@ export const mainExtensions = [
       color: "#70CFF8",
     },
     codeBlock: false,
-    code: {
-      HTMLAttributes: {
-        spellcheck: false,
-      },
+    code: false,
+  }),
+  // Override TipTap's Code extension to fix the inline code input rule.
+  // The upstream regex /(^|[^`])`([^`]+)`(?!`)$/ captures the character
+  // before the opening backtick as part of the match, causing markInputRule
+  // to delete it. Using a lookbehind avoids including it in the match.
+  Code.configure({
+    HTMLAttributes: {
+      spellcheck: false,
+    },
+  }).extend({
+    addInputRules() {
+      return [
+        markInputRule({
+          find: /(?:^|(?<=[^`]))`([^`]+)`(?!`)$/,
+          type: this.type,
+        }),
+      ];
     },
   }),
   SharedStorage,
@@ -115,7 +142,7 @@ export const mainExtensions = [
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({
-    placeholder: ({ node }) => {
+    placeholder: ({ editor, node, pos }) => {
       if (node.type.name === "heading") {
         return i18n.t("Heading {{level}}", { level: node.attrs.level });
       }
@@ -123,6 +150,17 @@ export const mainExtensions = [
         return i18n.t("Toggle title");
       }
       if (node.type.name === "paragraph") {
+        const $pos = editor.state.doc.resolve(pos);
+        const parentName = $pos.parent.type.name;
+        if (
+          parentName === "column" ||
+          parentName === "tableCell" ||
+          parentName === "tableHeader" ||
+          parentName === "callout" ||
+          parentName === "blockquote"
+        ) {
+          return i18n.t("Write...");
+        }
         return i18n.t('Write anything. Enter "/" for commands');
       }
     },
@@ -200,9 +238,29 @@ export const mainExtensions = [
   TiptapImage.configure({
     view: ImageView,
     allowBase64: false,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createImageHandle,
+      className: imageResizeClasses,
+    },
   }),
   TiptapVideo.configure({
     view: VideoView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-video"),
+    },
   }),
   Callout.configure({
     view: CalloutView,
@@ -221,9 +279,29 @@ export const mainExtensions = [
   }),
   Drawio.configure({
     view: DrawioView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-drawio"),
+    },
   }),
   Excalidraw.configure({
     view: ExcalidrawView,
+    resize: {
+      enabled: true,
+      directions: ["left", "right"],
+      minWidth: 80,
+      minHeight: 40,
+      alwaysPreserveAspectRatio: true,
+      //@ts-ignore
+      createCustomHandle: createResizeHandle,
+      className: buildResizeClasses("node-excalidraw"),
+    },
   }),
   Embed.configure({
     view: EmbedView,
@@ -253,6 +331,8 @@ export const mainExtensions = [
       };
     },
   }).configure(),
+  Columns,
+  Column,
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];

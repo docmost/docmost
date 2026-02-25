@@ -156,6 +156,14 @@ export class ShareController {
       throw new ForbiddenException('Public sharing is disabled');
     }
 
+    const sharingAllowed = await this.shareService.isSharingAllowed(
+      workspace.id,
+      page.spaceId,
+    );
+    if (!sharingAllowed) {
+      throw new ForbiddenException('Public sharing is disabled');
+    }
+
     return this.shareService.createShare({
       page,
       authUserId: user.id,

@@ -1,19 +1,23 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { Node as PMNode } from "prosemirror-model";
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
 import { ActionIcon, Tooltip } from "@mantine/core";
+import clsx from "clsx";
 import {
   IconLayoutAlignCenter,
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
+  IconDownload,
+  IconTrash,
 } from "@tabler/icons-react";
-import { NodeWidthResize } from "@/features/editor/components/common/node-width-resize.tsx";
 import { useTranslation } from "react-i18next";
+import { getFileUrl } from "@/lib/config.ts";
+import classes from "../common/toolbar-menu.module.css";
 
 export function VideoMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
@@ -32,7 +36,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         isAlignLeft: ctx.editor.isActive("video", { align: "left" }),
         isAlignCenter: ctx.editor.isActive("video", { align: "center" }),
         isAlignRight: ctx.editor.isActive("video", { align: "right" }),
-        width: videoAttrs?.width ? parseInt(videoAttrs.width) : null,
+        src: videoAttrs?.src || null,
       };
     },
   });
@@ -70,7 +74,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
     };
   }, [editor]);
 
-  const alignVideoLeft = useCallback(() => {
+  const alignLeft = useCallback(() => {
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
@@ -78,7 +82,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       .run();
   }, [editor]);
 
-  const alignVideoCenter = useCallback(() => {
+  const alignCenter = useCallback(() => {
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
@@ -86,7 +90,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       .run();
   }, [editor]);
 
-  const alignVideoRight = useCallback(() => {
+  const alignRight = useCallback(() => {
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
@@ -94,16 +98,18 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       .run();
   }, [editor]);
 
-  const onWidthChange = useCallback(
-    (value: number) => {
-      editor
-        .chain()
-        .focus(undefined, { scrollIntoView: false })
-        .setVideoWidth(value)
-        .run();
-    },
-    [editor],
-  );
+  const handleDownload = useCallback(() => {
+    if (!editorState?.src) return;
+    const url = getFileUrl(editorState.src);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    a.click();
+  }, [editorState?.src]);
+
+  const handleDelete = useCallback(() => {
+    editor.commands.deleteSelection();
+  }, [editor]);
 
   return (
     <BaseBubbleMenu
@@ -118,13 +124,14 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       }}
       shouldShow={shouldShow}
     >
-      <ActionIcon.Group className="actionIconGroup">
+      <div className={classes.toolbar}>
         <Tooltip position="top" label={t("Align left")}>
           <ActionIcon
-            onClick={alignVideoLeft}
+            onClick={alignLeft}
             size="lg"
             aria-label={t("Align left")}
-            variant={editorState?.isAlignLeft ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isAlignLeft })}
           >
             <IconLayoutAlignLeft size={18} />
           </ActionIcon>
@@ -132,10 +139,11 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
         <Tooltip position="top" label={t("Align center")}>
           <ActionIcon
-            onClick={alignVideoCenter}
+            onClick={alignCenter}
             size="lg"
             aria-label={t("Align center")}
-            variant={editorState?.isAlignCenter ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isAlignCenter })}
           >
             <IconLayoutAlignCenter size={18} />
           </ActionIcon>
@@ -143,19 +151,40 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
         <Tooltip position="top" label={t("Align right")}>
           <ActionIcon
-            onClick={alignVideoRight}
+            onClick={alignRight}
             size="lg"
             aria-label={t("Align right")}
-            variant={editorState?.isAlignRight ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isAlignRight })}
           >
             <IconLayoutAlignRight size={18} />
           </ActionIcon>
         </Tooltip>
-      </ActionIcon.Group>
 
-      {editorState?.width && (
-        <NodeWidthResize onChange={onWidthChange} value={editorState.width} />
-      )}
+        <div className={classes.divider} />
+
+        <Tooltip position="top" label={t("Download")}>
+          <ActionIcon
+            onClick={handleDownload}
+            size="lg"
+            aria-label={t("Download")}
+            variant="subtle"
+          >
+            <IconDownload size={18} />
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip position="top" label={t("Delete")}>
+          <ActionIcon
+            onClick={handleDelete}
+            size="lg"
+            aria-label={t("Delete")}
+            variant="subtle"
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
     </BaseBubbleMenu>
   );
 }

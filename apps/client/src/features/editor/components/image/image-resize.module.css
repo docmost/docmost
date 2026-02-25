@@ -1,0 +1,64 @@
+.container {
+  display: flex;
+}
+
+.wrapper {
+  position: relative;
+  border-radius: 8px;
+  overflow: visible;
+  max-width: 100%;
+}
+
+.wrapper img {
+  height: auto !important;
+}
+
+.resizing {
+  user-select: none;
+}
+
+.handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.handle[data-resize-handle="left"] {
+  left: -8px;
+}
+
+.handle[data-resize-handle="right"] {
+  right: -8px;
+}
+
+.wrapper:hover .handle {
+  opacity: 1;
+}
+
+.resizing .handle {
+  opacity: 1;
+}
+
+.handleBar {
+  width: 4px;
+  height: 48px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  background-color: light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-5));
+}
+
+.handle:hover .handleBar {
+  background-color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+}
+
+.resizing .handleBar {
+  background-color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+}

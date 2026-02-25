@@ -7,16 +7,19 @@ import {
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
 import { ActionIcon, Tooltip } from "@mantine/core";
+import clsx from "clsx";
 import {
   IconAlertTriangleFilled,
   IconCircleCheckFilled,
   IconCircleXFilled,
   IconInfoCircleFilled,
   IconMoodSmile,
+  IconNotes,
 } from "@tabler/icons-react";
-import { CalloutType } from "@docmost/editor-ext";
+import { CalloutType, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
+import classes from "../common/toolbar-menu.module.css";
 
 export function CalloutMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
@@ -26,6 +29,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       if (!state) {
         return false;
       }
+      if (isTextSelected(editor)) return false;
 
       return editor.isActive("callout");
     },
@@ -42,6 +46,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       return {
         isCallout: ctx.editor.isActive("callout"),
         isInfo: ctx.editor.isActive("callout", { type: "info" }),
+        isNote: ctx.editor.isActive("callout", { type: "note" }),
         isSuccess: ctx.editor.isActive("callout", { type: "success" }),
         isWarning: ctx.editor.isActive("callout", { type: "warning" }),
         isDanger: ctx.editor.isActive("callout", { type: "danger" }),
@@ -126,15 +131,31 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       }}
       shouldShow={shouldShow}
     >
-      <ActionIcon.Group className="actionIconGroup">
+      <div className={classes.toolbar}>
         <Tooltip position="top" label={t("Info")}>
           <ActionIcon
             onClick={() => setCalloutType("info")}
             size="lg"
             aria-label={t("Info")}
-            variant={editorState?.isInfo ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isInfo })}
           >
-            <IconInfoCircleFilled size={18} />
+            <IconInfoCircleFilled
+              size={18}
+              color="var(--mantine-color-blue-5)"
+            />
+          </ActionIcon>
+        </Tooltip>
+
+        <Tooltip position="top" label={t("Note")}>
+          <ActionIcon
+            onClick={() => setCalloutType("note")}
+            size="lg"
+            aria-label={t("Note")}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isNote })}
+          >
+            <IconNotes size={18} color="var(--mantine-color-grape-5)" />
           </ActionIcon>
         </Tooltip>
 
@@ -143,9 +164,13 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("success")}
             size="lg"
             aria-label={t("Success")}
-            variant={editorState?.isSuccess ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isSuccess })}
           >
-            <IconCircleCheckFilled size={18} />
+            <IconCircleCheckFilled
+              size={18}
+              color="var(--mantine-color-green-5)"
+            />
           </ActionIcon>
         </Tooltip>
 
@@ -154,9 +179,13 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("warning")}
             size="lg"
             aria-label={t("Warning")}
-            variant={editorState?.isWarning ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isWarning })}
           >
-            <IconAlertTriangleFilled size={18} />
+            <IconAlertTriangleFilled
+              size={18}
+              color="var(--mantine-color-orange-5)"
+            />
           </ActionIcon>
         </Tooltip>
 
@@ -165,9 +194,10 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
             onClick={() => setCalloutType("danger")}
             size="lg"
             aria-label={t("Danger")}
-            variant={editorState?.isDanger ? "light" : "default"}
+            variant="subtle"
+            className={clsx({ [classes.active]: editorState?.isDanger })}
           >
-            <IconCircleXFilled size={18} />
+            <IconCircleXFilled size={18} color="var(--mantine-color-red-5)" />
           </ActionIcon>
         </Tooltip>
 
@@ -178,11 +208,10 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           icon={currentIcon || <IconMoodSmile size={18} />}
           actionIconProps={{
             size: "lg",
-            variant: "default",
-            c: undefined,
+            variant: "subtle",
           }}
         />
-      </ActionIcon.Group>
+      </div>
     </BaseBubbleMenu>
   );
 }

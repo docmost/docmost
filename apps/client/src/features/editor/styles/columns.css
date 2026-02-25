@@ -1,0 +1,116 @@
+div[data-type="columns"] {
+  display: flex;
+  margin: 0.75rem 0;
+  padding: 0.5em;
+}
+
+div[data-type="columns"] > div[data-type="column"] {
+  flex: 1;
+  min-width: 0;
+}
+
+div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
+  border-left: 1px solid transparent;
+  padding-left: 1rem;
+  transition: border 0.3s;
+}
+
+div[data-type="columns"]:hover
+  > div[data-type="column"]
+  + div[data-type="column"] {
+  border-left: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-7));
+}
+
+/* Confluence layout types */
+div[data-type="columns"][data-layout="two_left_sidebar"]
+  > div[data-type="column"]:first-child {
+  flex: 1;
+}
+
+div[data-type="columns"][data-layout="two_left_sidebar"]
+  > div[data-type="column"]:last-child {
+  flex: 2;
+}
+
+div[data-type="columns"][data-layout="two_right_sidebar"]
+  > div[data-type="column"]:first-child {
+  flex: 2;
+}
+
+div[data-type="columns"][data-layout="two_right_sidebar"]
+  > div[data-type="column"]:last-child {
+  flex: 1;
+}
+
+div[data-type="columns"][data-layout="three_left_wide"]
+  > div[data-type="column"]:first-child {
+  flex: 2;
+}
+
+div[data-type="columns"][data-layout="three_right_wide"]
+  > div[data-type="column"]:last-child {
+  flex: 2;
+}
+
+div[data-type="columns"][data-layout="three_with_sidebars"]
+  > div[data-type="column"]:first-child,
+div[data-type="columns"][data-layout="three_with_sidebars"]
+  > div[data-type="column"]:last-child {
+  flex: 1;
+}
+
+div[data-type="columns"][data-layout="three_with_sidebars"]
+  > div[data-type="column"]:nth-child(2) {
+  flex: 2;
+}
+
+/* Stack columns vertically on small viewports */
+@media (max-width: 820px) {
+  div[data-type="columns"] {
+    flex-direction: column;
+  }
+
+  div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  div[data-type="columns"]:hover
+    > div[data-type="column"]
+    + div[data-type="column"] {
+    border-left: none;
+  }
+}
+
+/* Wide width mode — extends columns to full container width */
+div[data-type="columns"][data-width-mode="wide"] {
+  margin-left: -3rem;
+  margin-right: -3rem;
+  width: calc(100% + 6rem);
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+  div[data-type="columns"][data-width-mode="wide"] {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+  }
+}
+
+@media print {
+  div[data-type="columns"] {
+    flex-direction: row !important;
+  }
+
+  div[data-type="columns"] > div[data-type="column"] + div[data-type="column"] {
+    border-left: none;
+    padding-left: 1rem;
+  }
+
+  div[data-type="columns"][data-width-mode="wide"] {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+}
