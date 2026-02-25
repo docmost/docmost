@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { lazy, Suspense, useCallback, useState } from "react";
-import { Node as PMNode } from "prosemirror-model";
+import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,

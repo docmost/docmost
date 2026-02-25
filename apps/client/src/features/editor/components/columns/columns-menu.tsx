@@ -1,7 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef, useState } from "react";
-import { DOMSerializer, Node as PMNode } from "prosemirror-model";
+import { DOMSerializer, Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,
@@ -56,8 +56,7 @@ const threeColumnPresets: LayoutPreset[] = [
     label: "Left wide",
     icon: IconLayoutSidebarRight,
   },
-  { layout: "three_right_wide", label: "Right wide", icon: IconLayoutSidebar
-  },
+  { layout: "three_right_wide", label: "Right wide", icon: IconLayoutSidebar },
 ];
 
 function getPresetsForCount(count: number): LayoutPreset[] {
@@ -243,14 +242,11 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   }, [editor]);
 
   const handleDelete = useCallback(() => {
-    const { state } = editor;
     const parent = findParentNode(
       (node: PMNode) => node.type.name === "columns",
-    )(state.selection);
+    )(editor.state.selection);
     if (!parent) return;
-    const { tr } = state;
-    tr.delete(parent.pos, parent.pos + parent.node.nodeSize);
-    editor.view.dispatch(tr);
+    editor.chain().focus().setNodeSelection(parent.pos).deleteSelection().run();
   }, [editor]);
 
   const columnCount = editorState?.columnCount || 2;
@@ -328,7 +324,11 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
-        <Tooltip position="top" label={copied ? t("Copied") : t("Copy")} withinPortal={false}>
+        <Tooltip
+          position="top"
+          label={copied ? t("Copied") : t("Copy")}
+          withinPortal={false}
+        >
           <ActionIcon
             onClick={handleCopy}
             size="lg"

@@ -1,5 +1,5 @@
 import { Node, mergeAttributes, findParentNode } from "@tiptap/core";
-import { TextSelection } from "prosemirror-state";
+import { TextSelection } from "@tiptap/pm/state";
 
 export interface ColumnOptions {
   HTMLAttributes: Record<string, any>;

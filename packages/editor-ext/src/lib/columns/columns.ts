@@ -1,7 +1,7 @@
 import { Node, mergeAttributes, findParentNode } from "@tiptap/core";
-import { Fragment, Node as PMNode } from "prosemirror-model";
-import { Plugin, PluginKey, TextSelection } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
+import { Fragment, Node as PMNode } from "@tiptap/pm/model";
+import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 export type ColumnsLayout =
   | "two_equal"
