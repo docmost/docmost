@@ -20,6 +20,9 @@ import { PagePermissionTab } from "@/ee/page-permission";
 import { PublishTab } from "./publish-tab";
 import { useShareForPageQuery } from "@/features/share/queries/share-query";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
+import { useSpaceQuery } from "@/features/space/queries/space-query";
 
 type PageShareModalProps = {
   readOnly?: boolean;
@@ -27,13 +30,18 @@ type PageShareModalProps = {
 
 export function PageShareModal({ readOnly }: PageShareModalProps) {
   const { t } = useTranslation();
-  const { pageSlug } = useParams();
+  const { pageSlug, spaceSlug } = useParams();
   const pageSlugId = extractPageSlugId(pageSlug);
   const [opened, { open, close }] = useDisclosure(false);
   const isCloudEE = useIsCloudEE();
   const [activeTab, setActiveTab] = useState<string | null>(
     isCloudEE ? "access" : "publish",
   );
+
+  const [workspace] = useAtom(workspaceAtom);
+  const { data: space } = useSpaceQuery(spaceSlug);
+  const workspaceSharingDisabled = workspace?.settings?.sharing?.disabled === true;
+  const spaceSharingDisabled = space?.settings?.sharing?.disabled === true;
 
   const { data: page } = usePageQuery({ pageId: pageSlugId });
   const pageId = page?.id;
@@ -113,6 +121,8 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
               pageId={pageId}
               readOnly={readOnly}
               isRestricted={isRestricted}
+              workspaceSharingDisabled={workspaceSharingDisabled}
+              spaceSharingDisabled={spaceSharingDisabled}
             />
           </Tabs.Panel>
         </Tabs>

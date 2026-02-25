@@ -28,9 +28,11 @@ type PublishTabProps = {
   pageId: string;
   readOnly?: boolean;
   isRestricted?: boolean;
+  workspaceSharingDisabled?: boolean;
+  spaceSharingDisabled?: boolean;
 };
 
-export function PublishTab({ pageId, readOnly, isRestricted }: PublishTabProps) {
+export function PublishTab({ pageId, readOnly, isRestricted, workspaceSharingDisabled, spaceSharingDisabled }: PublishTabProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pageSlug, spaceSlug } = useParams();
@@ -129,6 +131,22 @@ export function PublishTab({ pageId, readOnly, isRestricted }: PublishTabProps) 
         <Button size="xs" onClick={() => navigate("/settings/billing")}>
           {t("Upgrade Plan")}
         </Button>
+      </Stack>
+    );
+  }
+
+  if (workspaceSharingDisabled || spaceSharingDisabled) {
+    return (
+      <Stack align="center" py="md">
+        <IconLock size={20} stroke={1.5} />
+        <Text size="sm" ta="center" fw={500}>
+          {t("Public sharing is disabled")}
+        </Text>
+        <Text size="sm" c="dimmed" ta="center">
+          {workspaceSharingDisabled
+            ? t("Public sharing has been disabled at the workspace level.")
+            : t("Public sharing has been disabled for this space.")}
+        </Text>
       </Stack>
     );
   }
