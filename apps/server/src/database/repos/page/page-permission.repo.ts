@@ -173,20 +173,15 @@ export class PagePermissionRepo {
 
   async countWritersByPageAccessId(
     pageAccessId: string,
-    trx?: KyselyTransaction,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<number> {
-    const db = dbOrTx(this.db, trx);
-    let query = db
+    const db = dbOrTx(this.db, opts?.trx);
+    const result = await db
       .selectFrom('pagePermissions')
       .select((eb) => eb.fn.count('id').as('count'))
       .where('pageAccessId', '=', pageAccessId)
-      .where('role', '=', 'writer');
-
-    if (trx) {
-      query = query.forUpdate();
-    }
-
-    const result = await query.executeTakeFirst();
+      .where('role', '=', 'writer')
+      .executeTakeFirst();
     return Number(result?.count ?? 0);
   }
 
@@ -320,9 +315,7 @@ export class PagePermissionRepo {
     return result;
   }
 
-  async findRestrictedAncestor(
-    pageId: string,
-  ): Promise<
+  async findRestrictedAncestor(pageId: string): Promise<
     | {
         pageAccessId: string;
         pageId: string;
@@ -414,8 +407,15 @@ export class PagePermissionRepo {
   async canUserEditPage(
     userId: string,
     pageId: string,
-  ): Promise<{ hasAnyRestriction: boolean; canAccess: boolean; canEdit: boolean }> {
-    const result = await sql<{ canAccess: boolean | null; canEdit: boolean | null }>`
+  ): Promise<{
+    hasAnyRestriction: boolean;
+    canAccess: boolean;
+    canEdit: boolean;
+  }> {
+    const result = await sql<{
+      canAccess: boolean | null;
+      canEdit: boolean | null;
+    }>`
       WITH RECURSIVE ancestors AS (
         SELECT id AS ancestor_id, parent_page_id, 0 AS depth
         FROM pages
@@ -583,11 +583,7 @@ export class PagePermissionRepo {
                 )
                 .leftJoin('pagePermissions', (join) =>
                   join
-                    .onRef(
-                      'pagePermissions.pageAccessId',
-                      '=',
-                      'pageAccess.id',
-                    )
+                    .onRef('pagePermissions.pageAccessId', '=', 'pageAccess.id')
                     .on((eb2) =>
                       eb2.or([
                         eb2('pagePermissions.userId', '=', userId),

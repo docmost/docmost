@@ -59,3 +59,12 @@ export interface IPageMentionNotificationJob {
   spaceId: string;
   workspaceId: string;
 }
+
+export interface IPermissionGrantedNotificationJob {
+  userIds: string[];
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  role: string;
+}

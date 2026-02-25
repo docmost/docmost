@@ -21,6 +21,7 @@ import {
   unrestrictPage,
   updatePagePermissionRole,
 } from "@/ee/page-permission/services/page-permission-service";
+import { IPage } from "@/features/page/types/page.types";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 
@@ -47,6 +48,31 @@ export function usePagePermissionsQuery(pageId: string) {
   });
 }
 
+function updatePageRestrictionCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  pageId: string,
+  hasRestriction: boolean,
+) {
+  queryClient.setQueriesData<IPage>(
+    { queryKey: ["pages"] },
+    (old) => {
+      if (old?.id === pageId) {
+        return {
+          ...old,
+          permissions: { ...old.permissions, hasRestriction },
+        };
+      }
+      return old;
+    },
+  );
+  queryClient.invalidateQueries({
+    queryKey: ["page-restriction-info", pageId],
+  });
+  queryClient.removeQueries({
+    queryKey: ["page-permissions", pageId],
+  });
+}
+
 export function useRestrictPageMutation() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -54,15 +80,7 @@ export function useRestrictPageMutation() {
   return useMutation<void, Error, string>({
     mutationFn: (pageId) => restrictPage(pageId),
     onSuccess: (_, pageId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["page-restriction-info", pageId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["page-permissions", pageId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["pages", pageId],
-      });
+      updatePageRestrictionCache(queryClient, pageId, true);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -81,15 +99,7 @@ export function useUnrestrictPageMutation() {
   return useMutation<void, Error, string>({
     mutationFn: (pageId) => unrestrictPage(pageId),
     onSuccess: (_, pageId) => {
-      queryClient.invalidateQueries({
-        queryKey: ["page-restriction-info", pageId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["page-permissions", pageId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["pages", pageId],
-      });
+      updatePageRestrictionCache(queryClient, pageId, false);
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
