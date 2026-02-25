@@ -2,6 +2,7 @@ import {
   createTheme,
   CSSVariablesResolver,
   MantineColorsTuple,
+  Tabs,
 } from "@mantine/core";
 
 const blue: MantineColorsTuple = [
@@ -34,6 +35,17 @@ export const theme = createTheme({
   colors: {
     blue,
     red,
+  },
+  components: {
+    Tabs: Tabs.extend({
+      vars: (theme, props) => ({
+        root: {
+          ...(props.color === "dark" && {
+            "--tabs-color": "var(--mantine-color-dark-default)",
+          }),
+        },
+      }),
+    }),
   },
   /***
   components: {
