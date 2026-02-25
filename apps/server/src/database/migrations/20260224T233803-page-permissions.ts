@@ -12,6 +12,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.notNull().references('workspaces.id').onDelete('cascade'),
     )
+    .addColumn('space_id', 'uuid', (col) =>
+      col.notNull().references('spaces.id').onDelete('cascade'),
+    )
     .addColumn('access_level', 'varchar', (col) => col.notNull())
     .addColumn('creator_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
@@ -63,15 +66,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('idx_page_access_workspace')
+    .createIndex('idx_page_access_space')
     .on('page_access')
-    .column('workspace_id')
-    .execute();
-
-  await db.schema
-    .createIndex('idx_page_permissions_page_access')
-    .on('page_permissions')
-    .column('page_access_id')
+    .column('space_id')
     .execute();
 
   await db.schema

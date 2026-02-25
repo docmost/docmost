@@ -394,6 +394,7 @@ export interface PageAccess {
   id: Generated<string>;
   pageId: string;
   workspaceId: string;
+  spaceId: string;
   accessLevel: string;
   creatorId: string | null;
   createdAt: Generated<Timestamp>;

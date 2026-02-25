@@ -176,12 +176,17 @@ export class PagePermissionRepo {
     trx?: KyselyTransaction,
   ): Promise<number> {
     const db = dbOrTx(this.db, trx);
-    const result = await db
+    let query = db
       .selectFrom('pagePermissions')
       .select((eb) => eb.fn.count('id').as('count'))
       .where('pageAccessId', '=', pageAccessId)
-      .where('role', '=', 'writer')
-      .executeTakeFirst();
+      .where('role', '=', 'writer');
+
+    if (trx) {
+      query = query.forUpdate();
+    }
+
+    const result = await query.executeTakeFirst();
     return Number(result?.count ?? 0);
   }
 
@@ -909,9 +914,8 @@ export class PagePermissionRepo {
           .exists(
             eb
               .selectFrom('pageAccess')
-              .innerJoin('pages', 'pages.id', 'pageAccess.pageId')
               .select(sql`1`.as('one'))
-              .where('pages.spaceId', '=', spaceId),
+              .where('pageAccess.spaceId', '=', spaceId),
           )
           .as('exists'),
       )
