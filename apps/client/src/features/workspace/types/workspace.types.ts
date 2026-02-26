@@ -25,6 +25,7 @@ export interface IWorkspace {
   aiSearch?: boolean;
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
+  mcpEnabled?: boolean;
 }
 
 export interface IWorkspaceSettings {
@@ -35,6 +36,7 @@ export interface IWorkspaceSettings {
 export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
+  mcp?: boolean;
 }
 
 export interface IWorkspaceSharingSettings {

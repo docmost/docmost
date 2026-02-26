@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Modal, TextInput, PasswordInput, Button, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
-import { z } from "zod";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -34,7 +34,7 @@ export function LdapLoginModal({
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       username: "",
       password: "",

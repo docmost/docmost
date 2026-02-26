@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Button, Group, Space } from "@mantine/core";
+import { Anchor, Alert, Button, Group, Space, Text } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
+import { getAppName, getAppUrl } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
 import { CreateApiKeyModal } from "@/ee/api-key/components/create-api-key-modal";
 import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-modal";
@@ -13,6 +13,8 @@ import Paginate from "@/components/common/paginate";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetApiKeysQuery } from "@/ee/api-key/queries/api-key-query.ts";
 import { IApiKey } from "@/ee/api-key";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 export default function UserApiKeys() {
   const { t } = useTranslation();
@@ -23,6 +25,8 @@ export default function UserApiKeys() {
   const [revokeModalOpened, setRevokeModalOpened] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<IApiKey | null>(null);
   const { data, isLoading } = useGetApiKeysQuery({ cursor });
+  const [workspace] = useAtom(workspaceAtom);
+  const mcpEnabled = workspace?.settings?.ai?.mcp === true;
 
   const handleCreateSuccess = (response: IApiKey) => {
     setCreatedApiKey(response);
@@ -47,6 +51,37 @@ export default function UserApiKeys() {
       </Helmet>
 
       <SettingsTitle title={t("API keys")} />
+
+      <Text size="sm" c="dimmed" mb="md">
+        {t("View the")}{" "}
+        <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm">
+          {t("API documentation")}
+        </Anchor>{" "}
+        {t("for usage details.")}
+      </Text>
+
+      {mcpEnabled && (
+        <Alert variant="light" color="blue" mb="md" p="sm">
+          <Text size="sm">
+            {t(
+              "Your workspace has MCP enabled. Use your API key to connect AI assistants.",
+            )}{" "}
+            <Anchor
+              href="https://docmost.com/docs/user-guide/mcp"
+              target="_blank"
+              size="sm"
+            >
+              {t("Learn more")}
+            </Anchor>
+          </Text>
+          <Text size="sm" mt={4}>
+            {t("MCP server URL:")}{" "}
+            <Text size="sm" fw={500} span ff="monospace">
+              {`${getAppUrl()}/api/mcp`}
+            </Text>
+          </Text>
+        </Alert>
+      )}
 
       <Group justify="flex-end" mb="md">
         <Button onClick={() => setCreateModalOpened(true)}>

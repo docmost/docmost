@@ -111,7 +111,7 @@ const groupedData: DataGroup[] = [
         showDisabledInNonEE: true,
       },
       {
-        label: "AI settings",
+        label: "AI",
         icon: IconSparkles,
         path: "/settings/ai",
         isAdmin: true,

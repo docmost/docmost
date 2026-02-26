@@ -34,4 +34,8 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsOptional()
   @IsBoolean()
   disablePublicSharing: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  mcpEnabled: boolean;
 }

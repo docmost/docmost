@@ -1,7 +1,8 @@
-import * as z from "zod";
+import { z } from "zod/v4";
 import React from "react";
 import { Button, Group, Modal, Textarea } from "@mantine/core";
-import { useForm, zodResolver } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useTranslation } from "react-i18next";
 import { useActivateMutation } from "@/ee/licence/queries/license-query.ts";
 import { useDisclosure } from "@mantine/hooks";
@@ -49,7 +50,7 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
   const activateLicenseMutation = useActivateMutation();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       licenseKey: "",
     },

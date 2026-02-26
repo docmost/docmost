@@ -1,7 +1,8 @@
 import { Group, Box, Button, TextInput, Stack, Textarea } from "@mantine/core";
 import React from "react";
-import { useForm, zodResolver } from "@mantine/form";
-import * as z from "zod";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { z } from "zod/v4";
 import { useUpdateSpaceMutation } from "@/features/space/queries/space-query.ts";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { useTranslation } from "react-i18next";
@@ -29,7 +30,7 @@ export function EditSpaceForm({ space, readOnly }: EditSpaceFormProps) {
   const updateSpaceMutation = useUpdateSpaceMutation();
 
   const form = useForm<FormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       name: space?.name,
       description: space?.description || "",
