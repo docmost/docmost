@@ -42,7 +42,6 @@ if (isCloud() && isPostHogEnabled) {
   });
 }
 
-
 const container = document.getElementById("root") as HTMLElement;
 const root = (container as any).__reactRoot ??= ReactDOM.createRoot(container);
 

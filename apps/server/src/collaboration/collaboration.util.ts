@@ -33,10 +33,10 @@ import {
   Subpages,
   Highlight,
   UniqueID,
-  addUniqueIdsToDoc,
-  htmlToMarkdown,
   Columns,
   Column,
+  addUniqueIdsToDoc,
+  htmlToMarkdown,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';

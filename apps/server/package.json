@@ -39,10 +39,12 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.4.0",
     "@fastify/static": "^9.0.0",
+    "@keyv/redis": "^5.1.6",
     "@langchain/core": "1.1.18",
     "@langchain/textsplitters": "1.0.1",
     "@nestjs-labs/nestjs-ioredis": "^11.0.4",
     "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.1.11",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.13",
@@ -156,6 +158,11 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@docmost/db/(.*)$": "<rootDir>/database/$1",
+      "^@docmost/transactional/(.*)$": "<rootDir>/integrations/transactional/$1",
+      "^@docmost/ee/(.*)$": "<rootDir>/ee/$1"
+    }
   }
 }

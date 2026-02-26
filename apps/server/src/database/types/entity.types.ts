@@ -4,6 +4,8 @@ import {
   Comments,
   Groups,
   Notifications,
+  PageAccess as _PageAccess,
+  PagePermissions as _PagePermissions,
   Pages,
   Spaces,
   Users,
@@ -143,3 +145,13 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Page Access
+export type PageAccess = Selectable<_PageAccess>;
+export type InsertablePageAccess = Insertable<_PageAccess>;
+export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
+
+// Page Permission
+export type PagePermission = Selectable<_PagePermissions>;
+export type InsertablePagePermission = Insertable<_PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
