@@ -33,6 +33,8 @@ import {
   Subpages,
   Highlight,
   UniqueID,
+  Columns,
+  Column,
   addUniqueIdsToDoc,
   htmlToMarkdown,
 } from '@docmost/editor-ext';
@@ -91,6 +93,8 @@ export const tiptapExtensions = [
   Embed,
   Mention,
   Subpages,
+  Columns,
+  Column,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
