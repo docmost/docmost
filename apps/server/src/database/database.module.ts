@@ -15,6 +15,7 @@ import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PageRepo } from './repos/page/page.repo';
+import { PagePermissionRepo } from './repos/page/page-permission.repo';
 import { CommentRepo } from './repos/comment/comment.repo';
 import { PageHistoryRepo } from './repos/page/page-history.repo';
 import { AttachmentRepo } from './repos/attachment/attachment.repo';
@@ -76,6 +77,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     SpaceRepo,
     SpaceMemberRepo,
     PageRepo,
+    PagePermissionRepo,
     PageHistoryRepo,
     CommentRepo,
     AttachmentRepo,
@@ -94,6 +96,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     SpaceRepo,
     SpaceMemberRepo,
     PageRepo,
+    PagePermissionRepo,
     PageHistoryRepo,
     CommentRepo,
     AttachmentRepo,

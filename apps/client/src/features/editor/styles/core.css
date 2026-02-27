@@ -82,13 +82,9 @@
   }
 
   blockquote {
-    padding-left: 25px;
-    padding-right: 25px;
-    border-left: 2px solid var(--mantine-color-gray-6);
-    background-color: light-dark(
-      var(--mantine-color-gray-0),
-      var(--mantine-color-dark-8)
-    );
+    padding-left: 1rem;
+    border-left: 3px solid
+      light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
     margin: 0;
   }
 
@@ -126,13 +122,14 @@
       margin-bottom: 0;
     }
 
-    &.node-callout {
-      div[style*="white-space: inherit;"] {
-        > :first-child {
-          margin: 0;
-        }
-      }
-    }
+  }
+
+  .react-renderer.node-callout div[style*="white-space: inherit;"] > :first-child {
+    margin-top: 0;
+  }
+
+  .react-renderer.node-callout + .react-renderer.node-callout {
+    margin-top: 0.75em;
   }
 
   .selection {

@@ -11,12 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { ShareService } from './share.service';
 import {
   CreateShareDto,
@@ -26,6 +21,8 @@ import {
   UpdateShareDto,
 } from './dto/share.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { PageAccessService } from '../page/page-access/page-access.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
@@ -38,9 +35,10 @@ import { hasLicenseOrEE } from '../../common/helpers';
 export class ShareController {
   constructor(
     private readonly shareService: ShareService,
-    private readonly spaceAbility: SpaceAbilityFactory,
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly pageAccessService: PageAccessService,
     private readonly environmentService: EnvironmentService,
   ) {}
 
@@ -119,10 +117,7 @@ export class ShareController {
       throw new NotFoundException('Shared page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
     return this.shareService.getShareForPage(page.id, workspace.id);
   }
@@ -140,9 +135,17 @@ export class ShareController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
+    // User must be able to edit the page to create a share
+    //TODO: i dont think this is neccessary if we prevent restricted pages from getting shared
+    // rather, use space level permission and workspace/space level sharing restriction
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    // Prevent sharing restricted pages
+    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+      page.id,
+    );
+    if (isRestricted) {
+      throw new BadRequestException('Cannot share a restricted page');
     }
 
     const sharingAllowed = await this.shareService.isSharingAllowed(
@@ -170,10 +173,13 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(share.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // User must be able to edit the page to update its share
+    await this.pageAccessService.validateCanEdit(page, user);
 
     return this.shareService.updateShare(share.id, updateShareDto);
   }
@@ -187,10 +193,13 @@ export class ShareController {
       throw new NotFoundException('Share not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, share.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Share)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(share.pageId);
+    if (!page) {
+      throw new NotFoundException('Page not found');
     }
+
+    // User must be able to edit the page to delete its share
+    await this.pageAccessService.validateCanEdit(page, user);
 
     await this.shareRepo.deleteShare(share.id);
   }

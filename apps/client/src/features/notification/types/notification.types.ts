@@ -2,7 +2,8 @@ export type NotificationType =
   | "comment.user_mention"
   | "comment.created"
   | "comment.resolved"
-  | "page.user_mention";
+  | "page.user_mention"
+  | "page.permission_granted";
 
 export type INotification = {
   id: string;

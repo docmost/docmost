@@ -4,10 +4,10 @@ import { Popover, TextInput, Group, Box } from "@mantine/core";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { IconCheck } from "@tabler/icons-react";
 import clsx from "clsx";
-import classes from "./inline-status.module.css";
-import type { InlineStatusColor } from "@docmost/editor-ext";
+import classes from "./status.module.css";
+import type { StatusColor } from "@docmost/editor-ext";
 
-const STATUS_COLORS: { name: InlineStatusColor; bg: string }[] = [
+const STATUS_COLORS: { name: StatusColor; bg: string }[] = [
   { name: "gray", bg: "var(--mantine-color-gray-4)" },
   { name: "blue", bg: "var(--mantine-color-blue-4)" },
   { name: "green", bg: "var(--mantine-color-green-4)" },
@@ -16,7 +16,7 @@ const STATUS_COLORS: { name: InlineStatusColor; bg: string }[] = [
   { name: "purple", bg: "var(--mantine-color-violet-4)" },
 ];
 
-const colorClassMap: Record<InlineStatusColor, string> = {
+const colorClassMap: Record<StatusColor, string> = {
   gray: classes.colorGray,
   blue: classes.colorBlue,
   green: classes.colorGreen,
@@ -25,16 +25,23 @@ const colorClassMap: Record<InlineStatusColor, string> = {
   purple: classes.colorPurple,
 };
 
-export default function InlineStatusView(props: NodeViewProps) {
-  const { node, updateAttributes, editor } = props;
+export default function StatusView(props: NodeViewProps) {
+  const { node, updateAttributes, deleteNode, editor } = props;
   const { text, color } = node.attrs as {
     text: string;
-    color: InlineStatusColor;
+    color: StatusColor;
   };
 
   const [opened, setOpened] = useState(false);
   const [inputValue, setInputValue] = useState(text);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editor.storage.status?.autoOpen) {
+      editor.storage.status.autoOpen = false;
+      setOpened(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (opened) {
@@ -45,7 +52,7 @@ export default function InlineStatusView(props: NodeViewProps) {
 
   const debouncedUpdateAttributes = useDebouncedCallback(
     (val: string) => updateAttributes({ text: val }),
-    300,
+    100,
   );
 
   const handleTextChange = (val: string) => {
@@ -53,7 +60,7 @@ export default function InlineStatusView(props: NodeViewProps) {
     debouncedUpdateAttributes(val);
   };
 
-  const handleColorChange = (newColor: InlineStatusColor) => {
+  const handleColorChange = (newColor: StatusColor) => {
     updateAttributes({ color: newColor });
   };
 
@@ -63,7 +70,13 @@ export default function InlineStatusView(props: NodeViewProps) {
     <NodeViewWrapper style={{ display: "inline" }} data-drag-handle>
       <Popover
         opened={opened}
-        onChange={setOpened}
+        onChange={(open) => {
+          if (!open && !text) {
+            deleteNode();
+            return;
+          }
+          setOpened(open);
+        }}
         width={220}
         position="bottom"
         withArrow
@@ -72,12 +85,16 @@ export default function InlineStatusView(props: NodeViewProps) {
       >
         <Popover.Target>
           <span
-            className={clsx("inline-status", classes.status, colorClassMap[color])}
+            className={clsx(
+              "status-badge",
+              classes.status,
+              colorClassMap[color],
+            )}
             onClick={() => isEditable && setOpened(true)}
             role="button"
             tabIndex={0}
           >
-            {text || "STATUS"}
+            {text || "SET STATUS"}
           </span>
         </Popover.Target>
 
@@ -85,7 +102,7 @@ export default function InlineStatusView(props: NodeViewProps) {
           <TextInput
             ref={inputRef}
             value={inputValue}
-            onChange={(e) => handleTextChange(e.currentTarget.value)}
+            onChange={(e) => handleTextChange(e.currentTarget.value.toUpperCase())}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 setOpened(false);

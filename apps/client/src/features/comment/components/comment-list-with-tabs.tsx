@@ -17,11 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
-import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from "@/features/space/permissions/permissions.type.ts";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -38,14 +33,7 @@ function CommentListWithTabs() {
   const isCloudEE = useIsCloudEE();
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const spaceRules = space?.membership?.permissions;
-  const spaceAbility = useSpaceAbility(spaceRules);
-
-
-  const canComment: boolean = spaceAbility.can(
-    SpaceCaslAction.Manage,
-    SpaceCaslSubject.Page
-  );
+  const canComment = page?.permissions?.canEdit ?? false;
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -54,14 +42,14 @@ function CommentListWithTabs() {
     }
 
     const parentComments = comments.items.filter(
-      (comment: IComment) => comment.parentCommentId === null
+      (comment: IComment) => comment.parentCommentId === null,
     );
 
     const active = parentComments.filter(
-      (comment: IComment) => !comment.resolvedAt
+      (comment: IComment) => !comment.resolvedAt,
     );
     const resolved = parentComments.filter(
-      (comment: IComment) => comment.resolvedAt
+      (comment: IComment) => comment.resolvedAt,
     );
 
     return { activeComments: active, resolvedComments: resolved };
@@ -89,7 +77,7 @@ function CommentListWithTabs() {
         setIsLoading(false);
       }
     },
-    [createCommentMutation, page?.id]
+    [createCommentMutation, page?.id],
   );
 
   const renderComments = useCallback(
@@ -131,7 +119,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading, space?.membership?.role]
+    [comments, handleAddReply, isLoading, space?.membership?.role],
   );
 
   if (isCommentsLoading) {
@@ -199,7 +187,14 @@ function CommentListWithTabs() {
   }
 
   return (
-    <div style={{ height: "85vh", display: "flex", flexDirection: "column", marginTop: '-15px' }}>
+    <div
+      style={{
+        height: "85vh",
+        display: "flex",
+        flexDirection: "column",
+        marginTop: "-15px",
+      }}
+    >
       <Tabs defaultValue="open" variant="default" style={{ flex: "0 0 auto" }}>
         <Tabs.List justify="center">
           <Tabs.Tab
@@ -273,9 +268,9 @@ const ChildComments = ({
   const getChildComments = useCallback(
     (parentId: string) =>
       comments.items.filter(
-        (comment: IComment) => comment.parentCommentId === parentId
+        (comment: IComment) => comment.parentCommentId === parentId,
       ),
-    [comments.items]
+    [comments.items],
   );
 
   return (

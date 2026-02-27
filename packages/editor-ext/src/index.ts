@@ -25,4 +25,5 @@ export * from "./lib/heading/heading";
 export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
 export * from "./lib/recreate-transform";
-export * from "./lib/inline-status";
+export * from "./lib/columns";
+export * from "./lib/status";

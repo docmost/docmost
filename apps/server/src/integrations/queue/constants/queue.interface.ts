@@ -1,5 +1,4 @@
-import { MentionNode } from "../../../common/helpers/prosemirror/utils";
-
+import { MentionNode } from '../../../common/helpers/prosemirror/utils';
 
 export interface IPageBacklinkJob {
   pageId: string;
@@ -59,4 +58,13 @@ export interface IPageMentionNotificationJob {
   pageId: string;
   spaceId: string;
   workspaceId: string;
+}
+
+export interface IPermissionGrantedNotificationJob {
+  userIds: string[];
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  role: string;
 }

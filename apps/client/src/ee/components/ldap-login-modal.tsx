@@ -7,7 +7,7 @@ import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IAuthProvider } from "@/ee/security/types/security.types";
-import APP_ROUTE from "@/lib/app-route";
+import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route";
 import { ldapLogin } from "@/ee/security/services/ldap-auth-service";
 
 const formSchema = z.object({
@@ -59,13 +59,13 @@ export function LdapLoginModal({
       // Handle MFA like the regular login
       if (response?.userHasMfa) {
         onClose();
-        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE);
+        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE + window.location.search);
       } else if (response?.requiresMfaSetup) {
         onClose();
-        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED);
+        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED + window.location.search);
       } else {
         onClose();
-        navigate(APP_ROUTE.HOME);
+        navigate(getPostLoginRedirect());
       }
     } catch (err: any) {
       setIsLoading(false);

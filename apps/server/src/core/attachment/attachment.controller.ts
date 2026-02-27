@@ -53,6 +53,7 @@ import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
 import { RemoveIconDto } from './dto/attachment.dto';
+import { PageAccessService } from '../page/page-access/page-access.service';
 
 @Controller()
 export class AttachmentController {
@@ -67,6 +68,7 @@ export class AttachmentController {
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -111,13 +113,7 @@ export class AttachmentController {
       throw new NotFoundException('Page not found');
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      page.spaceId,
-    );
-    if (spaceAbility.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanEdit(page, user);
 
     const spaceId = page.spaceId;
 
@@ -172,14 +168,12 @@ export class AttachmentController {
       throw new NotFoundException();
     }
 
-    const spaceAbility = await this.spaceAbility.createForUser(
-      user,
-      attachment.spaceId,
-    );
-
-    if (spaceAbility.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
+    const page = await this.pageRepo.findById(attachment.pageId);
+    if (!page) {
+      throw new NotFoundException();
     }
+
+    await this.pageAccessService.validateCanView(page, user);
 
     try {
       return await this.sendFileResponse(req, res, attachment, 'private');

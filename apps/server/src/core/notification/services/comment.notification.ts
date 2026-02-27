@@ -8,6 +8,7 @@ import {
 import { NotificationService } from '../notification.service';
 import { NotificationType } from '../notification.constants';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { CommentMentionEmail } from '@docmost/transactional/emails/comment-mention-email';
 import { CommentCreateEmail } from '@docmost/transactional/emails/comment-created-email';
@@ -22,6 +23,7 @@ export class CommentNotificationService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
   ) {}
 
@@ -59,11 +61,18 @@ export class CommentNotificationService {
     const allCandidateIds = [
       ...new Set([...mentionedUserIds, ...recipientIds]),
     ];
-    const usersWithAccess =
+    const usersWithSpaceAccess =
       await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
         allCandidateIds,
         spaceId,
       );
+
+    const usersWithPageAccess =
+      await this.pagePermissionRepo.getUserIdsWithPageAccess(
+        pageId,
+        [...usersWithSpaceAccess],
+      );
+    const usersWithAccess = new Set(usersWithPageAccess);
 
     for (const userId of mentionedUserIds) {
       if (!usersWithAccess.has(userId)) continue;
@@ -145,6 +154,13 @@ export class CommentNotificationService {
       );
       return;
     }
+
+    const hasPageAccess =
+      await this.pagePermissionRepo.getUserIdsWithPageAccess(
+        pageId,
+        [commentCreatorId],
+      );
+    if (hasPageAccess.length === 0) return;
 
     const notification = await this.notificationService.create({
       userId: commentCreatorId,
