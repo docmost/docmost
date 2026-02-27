@@ -37,8 +37,9 @@ export default function StatusView(props: NodeViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editor.storage.status?.autoOpen) {
-      editor.storage.status.autoOpen = false;
+    const storage = editor.storage?.status;
+    if (storage?.autoOpen) {
+      storage.autoOpen = false;
       setOpened(true);
     }
   }, []);
@@ -102,7 +103,9 @@ export default function StatusView(props: NodeViewProps) {
           <TextInput
             ref={inputRef}
             value={inputValue}
-            onChange={(e) => handleTextChange(e.currentTarget.value.toUpperCase())}
+            onChange={(e) =>
+              handleTextChange(e.currentTarget.value.toUpperCase())
+            }
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 setOpened(false);

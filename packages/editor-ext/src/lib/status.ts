@@ -1,14 +1,19 @@
 import { Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 
+export type StatusStorage = {
+  autoOpen: boolean;
+};
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     status: {
-      setStatus: (attributes?: {
-        text?: string;
-        color?: string;
-      }) => ReturnType;
+      setStatus: (attributes?: { text?: string; color?: string }) => ReturnType;
     };
+  }
+
+  interface Storage {
+    status: StatusStorage;
   }
 }
 
@@ -25,7 +30,7 @@ export interface StatusOption {
   view: any;
 }
 
-export const Status = Node.create<StatusOption>({
+export const Status = Node.create<StatusOption, StatusStorage>({
   name: 'status',
   group: 'inline',
   inline: true,
@@ -88,8 +93,8 @@ export const Status = Node.create<StatusOption>({
     return {
       setStatus:
         (attributes) =>
-        ({ commands, editor }) => {
-          editor.storage.status.autoOpen = true;
+        ({ commands }) => {
+          this.storage.autoOpen = true;
           return commands.insertContent({
             type: this.name,
             attrs: {
