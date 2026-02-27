@@ -46,8 +46,11 @@ export default function MathInlineView(props: NodeViewProps) {
   }, [preview, isEditing]);
 
   useEffect(() => {
-    setIsEditing(!!props.selected);
-    if (props.selected) setPreview(node.attrs.text);
+    const pos = getPos();
+    const { from, to } = editor.state.selection;
+    const nodeSelected = props.selected && from === pos && to === pos + node.nodeSize;
+    setIsEditing(nodeSelected);
+    if (nodeSelected) setPreview(node.attrs.text);
   }, [props.selected]);
 
   return (
