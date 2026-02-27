@@ -17,6 +17,14 @@ const Command = Extension.create({
         command: ({ editor, range, props }) => {
           props.command({ editor, range, props });
         },
+        allow: ({ state, range }) => {
+          const $from = state.doc.resolve(range.from);
+          // Disable slash menu inside code blocks
+          if ($from.parent.type.name === 'codeBlock') {
+            return false;
+          }
+          return true;
+        },
       } as Partial<SuggestionOptions>,
     };
   },
