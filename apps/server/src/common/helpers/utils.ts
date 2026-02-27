@@ -54,7 +54,10 @@ export function parseRedisUrl(redisUrl: string): RedisConfig {
     family = parseInt(familyParam, 10);
   }
 
-  return { host: hostname, port: portInt, password, db, family };
+  // URL.password returns percent-encoded values (e.g. '=' → '%3D'), decode before use
+  const decodedPassword = password ? decodeURIComponent(password) : password;
+
+  return { host: hostname, port: portInt, password: decodedPassword, db, family };
 }
 
 export function createRetryStrategy() {
