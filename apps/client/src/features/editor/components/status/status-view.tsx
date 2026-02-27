@@ -26,7 +26,7 @@ const colorClassMap: Record<StatusColor, string> = {
 };
 
 export default function StatusView(props: NodeViewProps) {
-  const { node, updateAttributes, deleteNode, editor } = props;
+  const { node, updateAttributes, deleteNode, editor, getPos } = props;
   const { text, color } = node.attrs as {
     text: string;
     color: StatusColor;
@@ -109,6 +109,7 @@ export default function StatusView(props: NodeViewProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 setOpened(false);
+                editor.commands.focus(getPos() + node.nodeSize);
               }
             }}
             placeholder="Status text"
