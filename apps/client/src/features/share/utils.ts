@@ -66,3 +66,20 @@ export function buildSharedPageTree(
 
   return sortTree(tree);
 }
+
+
+// Recursively checks if a page exists in the shared page tree.
+export function isPageInTree(
+  tree: SharedPageTreeNode[],
+  pageSlugId: string,
+): boolean {
+  for (const node of tree) {
+    if (node.slugId === pageSlugId) {
+      return true;
+    }
+    if (isPageInTree(node.children, pageSlugId)) {
+      return true;
+    }
+  }
+  return false;
+}
