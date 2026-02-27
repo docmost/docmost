@@ -52,7 +52,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { RemoveIconDto } from './dto/attachment.dto';
+import { AttachmentInfoDto, RemoveIconDto } from './dto/attachment.dto';
 import { PageAccessService } from '../page/page-access/page-access.service';
 
 @Controller()
@@ -347,6 +347,34 @@ export class AttachmentController {
       // this.logger.error(err);
       throw new NotFoundException('File not found');
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('files/info')
+  async getAttachmentInfo(
+    @Body() dto: AttachmentInfoDto,
+    @AuthWorkspace() workspace: Workspace,
+    @AuthUser() user: User,
+  ) {
+    const attachment = await this.attachmentRepo.findById(dto.attachmentId);
+    if (
+      !attachment ||
+      !attachment.pageId ||
+      attachment.workspaceId !== workspace.id ||
+      attachment.type !== AttachmentType.File
+    ) {
+      throw new NotFoundException('File not found');
+    }
+
+    const page = await this.pageRepo.findById(attachment.pageId);
+    if (!page) {
+      throw new NotFoundException('File not found');
+    }
+
+    await this.pageAccessService.validateCanView(page, user);
+
+    return attachment;
   }
 
   @UseGuards(JwtAuthGuard)
