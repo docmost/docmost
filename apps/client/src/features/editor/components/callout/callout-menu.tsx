@@ -132,7 +132,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Info")}>
+        <Tooltip position="top" label={t("Info")} withinPortal={false}>
           <ActionIcon
             onClick={() => setCalloutType("info")}
             size="lg"
@@ -147,7 +147,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Note")}>
+        <Tooltip position="top" label={t("Note")} withinPortal={false}>
           <ActionIcon
             onClick={() => setCalloutType("note")}
             size="lg"
@@ -159,7 +159,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Success")}>
+        <Tooltip position="top" label={t("Success")} withinPortal={false}>
           <ActionIcon
             onClick={() => setCalloutType("success")}
             size="lg"
@@ -174,7 +174,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Warning")}>
+        <Tooltip position="top" label={t("Warning")} withinPortal={false}>
           <ActionIcon
             onClick={() => setCalloutType("warning")}
             size="lg"
@@ -189,7 +189,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Danger")}>
+        <Tooltip position="top" label={t("Danger")} withinPortal={false}>
           <ActionIcon
             onClick={() => setCalloutType("danger")}
             size="lg"
