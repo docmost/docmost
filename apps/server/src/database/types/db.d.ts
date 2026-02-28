@@ -61,7 +61,7 @@ export interface Attachments {
   workspaceId: string;
 }
 
-export interface AuditLogs {
+export interface Audit {
   actorId: string | null;
   actorType: Generated<string>;
   changes: Json | null;
@@ -432,7 +432,7 @@ export interface PagePermissions {
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
-  auditLogs: AuditLogs;
+  audit: Audit;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;

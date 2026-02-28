@@ -24,7 +24,7 @@ import {
   UserMfa as _UserMFA,
   ApiKeys,
   Watchers,
-  AuditLogs,
+  Audit as _Audit,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -157,7 +157,7 @@ export type PagePermission = Selectable<_PagePermissions>;
 export type InsertablePagePermission = Insertable<_PagePermissions>;
 export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
 
-// Audit Log
-export type AuditLog = Selectable<AuditLogs>;
-export type InsertableAuditLog = Insertable<AuditLogs>;
-export type UpdatableAuditLog = Updateable<Omit<AuditLogs, 'id'>>;
+// Audit
+export type Audit = Selectable<_Audit>;
+export type InsertableAudit = Insertable<_Audit>;
+export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;

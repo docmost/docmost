@@ -2,7 +2,7 @@ import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
-    .createTable('audit_logs')
+    .createTable('audit')
     .ifNotExists()
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
@@ -27,9 +27,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('idx_audit_logs_workspace_id')
+    .createIndex('idx_audit_workspace_id')
     .ifNotExists()
-    .on('audit_logs')
+    .on('audit')
     .columns(['workspace_id', 'id desc'])
     .execute();
 
@@ -56,5 +56,5 @@ export async function down(db: Kysely<any>): Promise<void> {
     .dropColumn('trash_retention_days')
     .execute();
 
-  await db.schema.dropTable('audit_logs').ifExists().execute();
+  await db.schema.dropTable('audit').execute();
 }
