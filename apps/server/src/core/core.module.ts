@@ -14,6 +14,7 @@ import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
+import { PageAccessModule } from './page/page-access/page-access.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
 import { AuditContextMiddleware } from '../common/middlewares/audit-context.middleware';
 import { ShareModule } from './share/share.module';
@@ -37,6 +38,7 @@ import { ClsMiddleware } from 'nestjs-cls';
     SpaceModule,
     GroupModule,
     CaslModule,
+    PageAccessModule,
     ShareModule,
     NotificationModule,
     WatcherModule,

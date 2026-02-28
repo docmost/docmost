@@ -3,13 +3,18 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -27,13 +32,13 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
-  creatorId: string;
   deletedAt: Timestamp | null;
   expiresAt: Timestamp | null;
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
   updatedAt: Generated<Timestamp>;
+  creatorId: string;
   workspaceId: string;
 }
 
@@ -87,25 +92,25 @@ export interface AuthProviders {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
-  groupSync: Generated<boolean>;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
+  groupSync: Generated<boolean>;
   ldapBaseDn: string | null;
   ldapBindDn: string | null;
   ldapBindPassword: string | null;
-  ldapConfig: Json | null;
   ldapTlsCaCert: string | null;
   ldapTlsEnabled: Generated<boolean | null>;
   ldapUrl: string | null;
   ldapUserAttributes: Json | null;
   ldapUserSearchFilter: string | null;
+  ldapConfig: Json | null;
+  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
-  settings: Json | null;
   type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
@@ -236,11 +241,9 @@ export interface Pages {
   icon: string | null;
   id: Generated<string>;
   isLocked: Generated<boolean>;
-  isRestricted: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
   position: string | null;
-  restrictedById: string | null;
   slugId: string;
   spaceId: string;
   textContent: string | null;
@@ -312,12 +315,12 @@ export interface Users {
   deletedAt: Timestamp | null;
   email: string;
   emailVerifiedAt: Timestamp | null;
-  hasGeneratedPassword: Generated<boolean | null>;
   id: Generated<string>;
   invitedById: string | null;
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;
@@ -404,6 +407,28 @@ export interface Watchers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface PageAccess {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  spaceId: string;
+  accessLevel: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PagePermissions {
+  id: Generated<string>;
+  pageAccessId: string;
+  userId: string | null;
+  groupId: string | null;
+  role: string;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -417,8 +442,9 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   notifications: Notifications;
+  pageAccess: PageAccess;
+  pagePermissions: PagePermissions;
   pageHistory: PageHistory;
-  AuditLog: AuditLogs;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

@@ -1,0 +1,105 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 01d6999642c5ae990083798a1bf0ef87068e4192..891b13c6901f28a6ab413c6dbae0ea726a76a196 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -5463,7 +5463,10 @@ var ResizableNodeView = class {
+         this.container.classList.remove(this.classNames.resizing);
+       }
+       document.removeEventListener("mousemove", this.handleMouseMove);
++      document.removeEventListener("touchmove", this.handleTouchMove);
+       document.removeEventListener("mouseup", this.handleMouseUp);
++      document.removeEventListener("touchend", this.handleMouseUp);
++      window.removeEventListener("blur", this.handleMouseUp);
+       document.removeEventListener("keydown", this.handleKeyDown);
+       document.removeEventListener("keyup", this.handleKeyUp);
+     };
+@@ -5593,7 +5596,10 @@ var ResizableNodeView = class {
+         this.container.classList.remove(this.classNames.resizing);
+       }
+       document.removeEventListener("mousemove", this.handleMouseMove);
++      document.removeEventListener("touchmove", this.handleTouchMove);
+       document.removeEventListener("mouseup", this.handleMouseUp);
++      document.removeEventListener("touchend", this.handleMouseUp);
++      window.removeEventListener("blur", this.handleMouseUp);
+       document.removeEventListener("keydown", this.handleKeyDown);
+       document.removeEventListener("keyup", this.handleKeyUp);
+       this.isResizing = false;
+@@ -5796,6 +5802,8 @@ var ResizableNodeView = class {
+     document.addEventListener("mousemove", this.handleMouseMove);
+     document.addEventListener("touchmove", this.handleTouchMove);
+     document.addEventListener("mouseup", this.handleMouseUp);
++    document.addEventListener("touchend", this.handleMouseUp);
++    window.addEventListener("blur", this.handleMouseUp);
+     document.addEventListener("keydown", this.handleKeyDown);
+     document.addEventListener("keyup", this.handleKeyUp);
+   }
+diff --git a/dist/index.js b/dist/index.js
+index 6f357a03b038abeb5ed86967b7fc7c3e5eb1d2d6..2d2742532860821984e1ba82625821504538ebbe 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5330,7 +5330,10 @@ var ResizableNodeView = class {
+         this.container.classList.remove(this.classNames.resizing);
+       }
+       document.removeEventListener("mousemove", this.handleMouseMove);
++      document.removeEventListener("touchmove", this.handleTouchMove);
+       document.removeEventListener("mouseup", this.handleMouseUp);
++      document.removeEventListener("touchend", this.handleMouseUp);
++      window.removeEventListener("blur", this.handleMouseUp);
+       document.removeEventListener("keydown", this.handleKeyDown);
+       document.removeEventListener("keyup", this.handleKeyUp);
+     };
+@@ -5460,7 +5463,10 @@ var ResizableNodeView = class {
+         this.container.classList.remove(this.classNames.resizing);
+       }
+       document.removeEventListener("mousemove", this.handleMouseMove);
++      document.removeEventListener("touchmove", this.handleTouchMove);
+       document.removeEventListener("mouseup", this.handleMouseUp);
++      document.removeEventListener("touchend", this.handleMouseUp);
++      window.removeEventListener("blur", this.handleMouseUp);
+       document.removeEventListener("keydown", this.handleKeyDown);
+       document.removeEventListener("keyup", this.handleKeyUp);
+       this.isResizing = false;
+@@ -5663,6 +5669,8 @@ var ResizableNodeView = class {
+     document.addEventListener("mousemove", this.handleMouseMove);
+     document.addEventListener("touchmove", this.handleTouchMove);
+     document.addEventListener("mouseup", this.handleMouseUp);
++    document.addEventListener("touchend", this.handleMouseUp);
++    window.addEventListener("blur", this.handleMouseUp);
+     document.addEventListener("keydown", this.handleKeyDown);
+     document.addEventListener("keyup", this.handleKeyUp);
+   }
+diff --git a/src/lib/ResizableNodeView.ts b/src/lib/ResizableNodeView.ts
+index f13e210b0aa46aefe7c31105deee3d2aa8a26cd5..9bac138dbf17c6ae6c3c129cbedb3a81bd39b60c 100644
+--- a/src/lib/ResizableNodeView.ts
++++ b/src/lib/ResizableNodeView.ts
+@@ -523,7 +523,10 @@ export class ResizableNodeView {
+       }
+ 
+       document.removeEventListener('mousemove', this.handleMouseMove)
++      document.removeEventListener('touchmove', this.handleTouchMove)
+       document.removeEventListener('mouseup', this.handleMouseUp)
++      document.removeEventListener('touchend', this.handleMouseUp)
++      window.removeEventListener('blur', this.handleMouseUp)
+       document.removeEventListener('keydown', this.handleKeyDown)
+       document.removeEventListener('keyup', this.handleKeyUp)
+       this.isResizing = false
+@@ -774,6 +777,8 @@ export class ResizableNodeView {
+     document.addEventListener('mousemove', this.handleMouseMove)
+     document.addEventListener('touchmove', this.handleTouchMove)
+     document.addEventListener('mouseup', this.handleMouseUp)
++    document.addEventListener('touchend', this.handleMouseUp)
++    window.addEventListener('blur', this.handleMouseUp)
+     document.addEventListener('keydown', this.handleKeyDown)
+     document.addEventListener('keyup', this.handleKeyUp)
+   }
+@@ -859,7 +864,10 @@ export class ResizableNodeView {
+ 
+     // Clean up document-level listeners
+     document.removeEventListener('mousemove', this.handleMouseMove)
++    document.removeEventListener('touchmove', this.handleTouchMove)
+     document.removeEventListener('mouseup', this.handleMouseUp)
++    document.removeEventListener('touchend', this.handleMouseUp)
++    window.removeEventListener('blur', this.handleMouseUp)
+     document.removeEventListener('keydown', this.handleKeyDown)
+     document.removeEventListener('keyup', this.handleKeyUp)
+   }

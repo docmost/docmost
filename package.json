@@ -96,7 +96,8 @@
   "packageManager": "pnpm@10.4.0",
   "pnpm": {
     "patchedDependencies": {
-      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
+      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch",
+      "@tiptap/core": "patches/@tiptap__core.patch"
     },
     "overrides": {
       "jsdom": "25.0.1",
