@@ -47,6 +47,13 @@ RUN mkdir -p /app/data/storage
 
 VOLUME ["/app/data/storage"]
 
+# Distroless image for runtime environment
+FROM gcr.io/distroless/nodejs22-debian12:nonroot
+
+WORKDIR /app
+
+COPY --from=installer --chown=nonroot:nonroot /app /app
+
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["--trace-warnings", "--trace-exit", "apps/server/dist/main.js"]
