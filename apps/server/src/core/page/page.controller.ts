@@ -233,6 +233,8 @@ export class PageController {
         spaceId: page.spaceId,
         changes: {
           before: {
+            pageId: page.id,
+            slugId: page.slugId,
             title: getPageTitle(page.title),
             spaceId: page.spaceId,
           },
@@ -255,6 +257,8 @@ export class PageController {
         spaceId: page.spaceId,
         changes: {
           before: {
+            pageId: page.id,
+            slugId: page.slugId,
             title: getPageTitle(page.title),
             spaceId: page.spaceId,
           },
