@@ -125,7 +125,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Align left")}>
+        <Tooltip position="top" label={t("Align left")} withinPortal={false}>
           <ActionIcon
             onClick={alignLeft}
             size="lg"
@@ -137,7 +137,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Align center")}>
+        <Tooltip position="top" label={t("Align center")} withinPortal={false}>
           <ActionIcon
             onClick={alignCenter}
             size="lg"
@@ -149,7 +149,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Align right")}>
+        <Tooltip position="top" label={t("Align right")} withinPortal={false}>
           <ActionIcon
             onClick={alignRight}
             size="lg"
@@ -163,7 +163,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
-        <Tooltip position="top" label={t("Download")}>
+        <Tooltip position="top" label={t("Download")} withinPortal={false}>
           <ActionIcon
             onClick={handleDownload}
             size="lg"
@@ -174,7 +174,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Delete")}>
+        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon
             onClick={handleDelete}
             size="lg"
