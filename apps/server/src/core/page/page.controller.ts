@@ -26,7 +26,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { Page, User, Workspace } from '@docmost/db/types/entity.types';
 import { SidebarPageDto } from './dto/sidebar-page.dto';
 import {
   SpaceCaslAction,
@@ -174,8 +174,10 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const { hasRestriction } =
-      await this.pageAccessService.validateCanEdit(page, user);
+    const { hasRestriction } = await this.pageAccessService.validateCanEdit(
+      page,
+      user,
+    );
 
     const updatedPage = await this.pageService.update(
       page,
@@ -274,16 +276,13 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    //Todo: currently, this means if they are not admins, they need to add a space admin to the page, which is not possible as it was soft-deleted
-    // so page is virtually lost. Fix.
+    // only users with "can edit" space level permission can restore pages
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
-    //TODO: can users with page level edit, but no space level edit restore pages they can edit?
-
-    // Check page-level edit permission (if restoring to a restricted ancestor)
+    // make sure they have page level access to the page
     await this.pageAccessService.validateCanEdit(page, user);
 
     await this.pageRepo.restorePage(pageIdDto.pageId, workspace.id);
@@ -346,7 +345,7 @@ export class PageController {
         deletedPageDto.spaceId,
       );
 
-      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
 
@@ -473,7 +472,7 @@ export class PageController {
     const { childPageIds } = await this.pageService.movePageToSpace(
       movedPage,
       dto.spaceId,
-      user.id
+      user.id,
     );
 
     this.auditService.log({

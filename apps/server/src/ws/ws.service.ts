@@ -35,7 +35,6 @@ export class WsService {
 
     const pageId = this.extractPageId(data);
     if (!pageId) {
-      client.broadcast.to(room).emit('message', data);
       return;
     }
 
