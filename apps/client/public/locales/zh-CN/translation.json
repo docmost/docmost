@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "输入您的一个备份代码。每个备份代码只能使用一次。",
   "Verify": "验证",
   "Trash": "垃圾箱",
-  "Pages in trash will be permanently deleted after 30 days.": "垃圾箱中的页面将在30天后被永久删除。",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "已删除",
   "No pages in trash": "垃圾箱中没有页面",
   "Permanently delete page?": "永久删除页面？",
@@ -652,5 +652,12 @@
   "Remove access": "移除访问权限",
   "Remove all access": "移除所有访问权限",
   "Are you sure you want to remove this member's access to the page?": "您确定要移除此成员对该页面的访问权限吗？",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "您确定要删除所有特定访问权限吗？这将使该页面对该空间中的所有人开放。"
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "您确定要删除所有特定访问权限吗？这将使该页面对该空间中的所有人开放。",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
