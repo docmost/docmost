@@ -18,6 +18,12 @@ import { GroupUserService } from './group-user.service';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import { diffAuditTrackedFields } from '../../../common/helpers';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class GroupService {
@@ -29,6 +35,7 @@ export class GroupService {
     private groupUserService: GroupUserService,
     private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getGroupInfo(groupId: string, workspaceId: string): Promise<Group> {
@@ -74,6 +81,18 @@ export class GroupService {
       );
     }
 
+    this.auditService.log({
+      event: AuditEvent.GROUP_CREATED,
+      resourceType: AuditResource.GROUP,
+      resourceId: createdGroup.id,
+      changes: {
+        after: {
+          name: createdGroup.name,
+          description: createdGroup.description,
+        },
+      },
+    });
+
     return createdGroup;
   }
 
@@ -94,6 +113,8 @@ export class GroupService {
     if (group.isDefault) {
       throw new BadRequestException('You cannot update a default group');
     }
+
+    const groupBefore = { name: group.name, description: group.description };
 
     if (updateGroupDto.name) {
       const existingGroup = await this.groupRepo.findByName(
@@ -120,6 +141,22 @@ export class GroupService {
       group.id,
       workspaceId,
     );
+
+    const changes = diffAuditTrackedFields(
+      ['name', 'description'],
+      updateGroupDto,
+      groupBefore,
+      group,
+    );
+
+    if (changes) {
+      this.auditService.log({
+        event: AuditEvent.GROUP_UPDATED,
+        resourceType: AuditResource.GROUP,
+        resourceId: group.id,
+        changes,
+      });
+    }
 
     return group;
   }
@@ -153,6 +190,18 @@ export class GroupService {
           { trx },
         );
       }
+    });
+
+    this.auditService.log({
+      event: AuditEvent.GROUP_DELETED,
+      resourceType: AuditResource.GROUP,
+      resourceId: groupId,
+      changes: {
+        before: {
+          name: group.name,
+          description: group.description,
+        },
+      },
     });
   }
 

@@ -120,6 +120,30 @@ export function normalizePostgresUrl(url: string): string {
   return parsed.toString();
 }
 
+export function diffAuditTrackedFields(
+  fields: readonly string[],
+  dto: Record<string, any>,
+  before: Record<string, any> | undefined | null,
+  after: Record<string, any> | undefined | null,
+): { before: Record<string, any>; after: Record<string, any> } | null {
+  const beforeDiff: Record<string, any> = {};
+  const afterDiff: Record<string, any> = {};
+  let hasChanges = false;
+
+  for (const field of fields) {
+    if (typeof dto[field] === 'undefined') continue;
+    const oldVal = JSON.stringify(before?.[field] ?? null);
+    const newVal = JSON.stringify(after?.[field] ?? null);
+    if (oldVal !== newVal) {
+      beforeDiff[field] = before?.[field];
+      afterDiff[field] = after?.[field];
+      hasChanges = true;
+    }
+  }
+
+  return hasChanges ? { before: beforeDiff, after: afterDiff } : null;
+}
+
 export function createByteCountingStream(source: Readable) {
   let bytesRead = 0;
   const stream = new Transform({

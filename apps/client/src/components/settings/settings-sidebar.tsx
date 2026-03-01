@@ -13,6 +13,7 @@ import {
   IconKey,
   IconWorld,
   IconSparkles,
+  IconHistory,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -31,6 +32,7 @@ import {
   prefetchSpaces,
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
+  prefetchAuditLogs,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
@@ -115,6 +117,14 @@ const groupedData: DataGroup[] = [
         icon: IconSparkles,
         path: "/settings/ai",
         isAdmin: true,
+      },
+      {
+        label: "Audit log",
+        icon: IconHistory,
+        path: "/settings/audit",
+        isEnterprise: true,
+        isAdmin: true,
+        isSelfhosted: true,
       },
     ],
   },
@@ -226,6 +236,9 @@ export default function SettingsSidebar() {
               break;
             case "API management":
               prefetchHandler = prefetchApiKeyManagement;
+              break;
+            case "Audit log":
+              prefetchHandler = prefetchAuditLogs;
               break;
             default:
               break;

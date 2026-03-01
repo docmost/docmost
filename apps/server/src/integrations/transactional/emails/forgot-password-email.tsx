@@ -18,6 +18,9 @@ export const ForgotPasswordEmail = ({ username, resetLink }: Props) => {
         </Text>
           <Link href={resetLink}> Click here to set a new password</Link>
         <Text style={paragraph}>
+          This link is valid for 30 minutes.
+        </Text>
+        <Text style={paragraph}>
           If you did not request a password reset, please ignore this email.
         </Text>
       </Section>

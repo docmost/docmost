@@ -239,6 +239,7 @@ export class ExportService {
     return {
       fileStream: zipFile,
       fileName,
+      spaceName: space.name,
     };
   }
 

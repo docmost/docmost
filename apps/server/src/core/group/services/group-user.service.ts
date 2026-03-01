@@ -14,6 +14,11 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { executeTx } from '@docmost/db/utils';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class GroupUserService {
@@ -25,6 +30,7 @@ export class GroupUserService {
     private groupService: GroupService,
     private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getGroupUsers(
@@ -72,6 +78,20 @@ export class GroupUserService {
       .values(groupUsersToInsert)
       .onConflict((oc) => oc.columns(['userId', 'groupId']).doNothing())
       .execute();
+
+    for (const user of validUsers) {
+      this.auditService.log({
+        event: AuditEvent.GROUP_MEMBER_ADDED,
+        resourceType: AuditResource.GROUP,
+        resourceId: groupId,
+        changes: {
+          after: {
+            userId: user.id,
+            userName: user.name,
+          },
+        },
+      });
+    }
   }
 
   async removeUserFromGroup(
@@ -115,8 +135,24 @@ export class GroupUserService {
         await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
           [userId],
           spaceId,
+          { trx },
         );
       }
+    });
+
+    this.auditService.log({
+      event: AuditEvent.GROUP_MEMBER_REMOVED,
+      resourceType: AuditResource.GROUP,
+      resourceId: groupId,
+      changes: {
+        before: {
+          userId: user.id,
+          userName: user.name,
+        },
+      },
+      metadata: {
+        groupName: group.name,
+      },
     });
   }
 }

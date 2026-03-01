@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Inject,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -25,6 +26,11 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import { CommentRepo } from '@docmost/db/repos/comment/comment.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -35,6 +41,7 @@ export class CommentController {
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageAccessService: PageAccessService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -51,7 +58,7 @@ export class CommentController {
 
     await this.pageAccessService.validateCanEdit(page, user);
 
-    return this.commentService.create(
+    const comment = await this.commentService.create(
       {
         userId: user.id,
         page,
@@ -59,6 +66,18 @@ export class CommentController {
       },
       createCommentDto,
     );
+
+    this.auditService.log({
+      event: AuditEvent.COMMENT_CREATED,
+      resourceType: AuditResource.COMMENT,
+      resourceId: comment.id,
+      spaceId: page.spaceId,
+      metadata: {
+        pageId: page.id,
+      },
+    });
+
+    return comment;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -136,20 +155,32 @@ export class CommentController {
 
     if (isOwner) {
       await this.commentRepo.deleteComment(comment.id);
-      return;
-    }
-
-    const ability = await this.spaceAbility.createForUser(
-      user,
-      comment.spaceId,
-    );
-
-    // Space admin can delete any comment
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
-      throw new ForbiddenException(
-        'You can only delete your own comments or must be a space admin',
+    } else {
+      const ability = await this.spaceAbility.createForUser(
+        user,
+        comment.spaceId,
       );
+
+      // Space admin can delete any comment
+      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
+        throw new ForbiddenException(
+          'You can only delete your own comments or must be a space admin',
+        );
+      }
+      await this.commentRepo.deleteComment(comment.id);
     }
-    await this.commentRepo.deleteComment(comment.id);
+
+    this.auditService.log({
+      event: AuditEvent.COMMENT_DELETED,
+      resourceType: AuditResource.COMMENT,
+      resourceId: comment.id,
+      spaceId: comment.spaceId,
+      changes: {
+        before: {
+          pageId: comment.pageId,
+          creatorId: comment.creatorId,
+        },
+      },
+    });
   }
 }

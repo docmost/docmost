@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Enter one of your backup codes. Each backup code can only be used once.",
   "Verify": "Verify",
   "Trash": "Trash",
-  "Pages in trash will be permanently deleted after 30 days.": "Pages in trash will be permanently deleted after 30 days.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Deleted",
   "No pages in trash": "No pages in trash",
   "Permanently delete page?": "Permanently delete page?",
@@ -652,5 +652,13 @@
   "Remove access": "Remove access",
   "Remove all access": "Remove all access",
   "Are you sure you want to remove this member's access to the page?": "Are you sure you want to remove this member's access to the page?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Are you sure you want to remove all specific access? This will make the page open to everyone in the space."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Restricted page": "Restricted page",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }

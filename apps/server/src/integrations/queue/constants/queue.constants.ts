@@ -8,6 +8,7 @@ export enum QueueName {
   AI_QUEUE = '{ai-queue}',
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
+  AUDIT_QUEUE = '{audit-queue}',
 }
 
 export enum QueueJob {
@@ -68,4 +69,7 @@ export enum QueueJob {
   COMMENT_RESOLVED_NOTIFICATION = 'comment-resolved-notification',
   PAGE_MENTION_NOTIFICATION = 'page-mention-notification',
   PAGE_PERMISSION_GRANTED = 'page-permission-granted',
+
+  AUDIT_LOG = 'audit-log',
+  AUDIT_CLEANUP = 'audit-cleanup',
 }

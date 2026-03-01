@@ -11,6 +11,7 @@ import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
 import EnforceMfa from "@/ee/security/components/enforce-mfa.tsx";
 import DisablePublicSharing from "@/ee/security/components/disable-public-sharing.tsx";
+import TrashRetention from "@/ee/security/components/trash-retention.tsx";
 import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
 import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
 
@@ -38,6 +39,13 @@ export default function Security() {
       {(!isCloud() || hasEnterpriseAccess) && (
         <>
           <DisablePublicSharing />
+          <Divider my="lg" />
+        </>
+      )}
+
+      {!isCloud() && (
+        <>
+          <TrashRetention />
           <Divider my="lg" />
         </>
       )}
