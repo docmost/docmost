@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Geben Sie einen Ihrer Sicherungscodes ein. Jeder Sicherungscode kann nur einmal verwendet werden.",
   "Verify": "Überprüfen",
   "Trash": "Papierkorb",
-  "Pages in trash will be permanently deleted after 30 days.": "Seiten im Papierkorb werden nach 30 Tagen endgültig gelöscht.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Gelöscht",
   "No pages in trash": "Keine Seiten im Papierkorb",
   "Permanently delete page?": "Seite endgültig löschen?",
@@ -652,5 +652,12 @@
   "Remove access": "Zugriff entfernen",
   "Remove all access": "Alle Zugriffsrechte entfernen",
   "Are you sure you want to remove this member's access to the page?": "Sind Sie sicher, dass Sie den Zugriff dieses Mitglieds auf die Seite entfernen möchten?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Sind Sie sicher, dass Sie alle spezifischen Zugriffsrechte entfernen möchten? Dadurch wird die Seite für alle in diesem Bereich zugänglich."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Sind Sie sicher, dass Sie alle spezifischen Zugriffsrechte entfernen möchten? Dadurch wird die Seite für alle in diesem Bereich zugänglich.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
