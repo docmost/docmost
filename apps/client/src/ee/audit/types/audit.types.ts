@@ -18,6 +18,7 @@ export type IAuditLog = {
     id: string;
     name: string;
     email: string;
+    avatarUrl?: string;
   };
   resource?: {
     id: string;
