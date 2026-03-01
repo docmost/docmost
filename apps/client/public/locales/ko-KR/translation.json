@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "백업 코드 중 하나를 입력하세요. 각 백업 코드는 한 번만 사용할 수 있습니다.",
   "Verify": "확인",
   "Trash": "휴지통",
-  "Pages in trash will be permanently deleted after 30 days.": "휴지통의 페이지는 30일 후에 영구적으로 삭제됩니다.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "삭제됨",
   "No pages in trash": "휴지통에 페이지가 없습니다",
   "Permanently delete page?": "페이지를 영구적으로 삭제하시겠습니까?",
@@ -652,5 +652,12 @@
   "Remove access": "접근 권한 제거",
   "Remove all access": "모든 접근 권한 제거",
   "Are you sure you want to remove this member's access to the page?": "이 멤버의 페이지 접근 권한을 제거하시겠습니까?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "모든 특정 접근 권한을 제거하시겠습니까? 이렇게 하면 페이지가 공간의 모든 사용자에게 공개됩니다."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "모든 특정 접근 권한을 제거하시겠습니까? 이렇게 하면 페이지가 공간의 모든 사용자에게 공개됩니다.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
