@@ -1,10 +1,4 @@
-import {
-  Global,
-  Logger,
-  Module,
-  OnApplicationBootstrap,
-  BeforeApplicationShutdown,
-} from '@nestjs/common';
+import { Global, Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectKysely, KyselyModule } from 'nestjs-kysely';
 import { EnvironmentService } from '../integrations/environment/environment.service';
 import { CamelCasePlugin, LogEvent, sql } from 'kysely';
@@ -107,9 +101,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     WatcherRepo,
   ],
 })
-export class DatabaseModule
-  implements OnApplicationBootstrap, BeforeApplicationShutdown
-{
+export class DatabaseModule implements OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseModule.name);
 
   constructor(
@@ -123,12 +115,6 @@ export class DatabaseModule
 
     if (this.environmentService.getNodeEnv() === 'production') {
       await this.migrationService.migrateToLatest();
-    }
-  }
-
-  async beforeApplicationShutdown(): Promise<void> {
-    if (this.db) {
-      await this.db.destroy();
     }
   }
 

@@ -33,6 +33,7 @@ import slugify = require('@sindresorhus/slugify');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageJson = require('../../../package.json');
 import { EnvironmentService } from '../environment/environment.service';
+import { DomainService } from '../environment/domain.service';
 import {
   getAttachmentIds,
   getProsemirrorContent,
@@ -49,6 +50,7 @@ export class ExportService {
     @InjectKysely() private readonly db: KyselyDB,
     private readonly storageService: StorageService,
     private readonly environmentService: EnvironmentService,
+    private readonly domainService: DomainService,
   ) {}
 
   async exportPage(format: string, page: Page, singlePage?: boolean) {
@@ -61,9 +63,11 @@ export class ExportService {
     let prosemirrorJson: any;
 
     if (singlePage) {
+      const baseUrl = await this.getWorkspaceBaseUrl(page.workspaceId);
       prosemirrorJson = await this.turnPageMentionsToLinks(
         getProsemirrorContent(page.content),
         page.workspaceId,
+        baseUrl,
       );
     } else {
       // mentions is already turned to links during the zip process
@@ -149,12 +153,14 @@ export class ExportService {
 
     const tree = buildTree(pages as Page[]);
 
+    const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
     const zip = new JSZip();
     await this.zipPages(
       tree,
       format,
       zip,
       includeAttachments,
+      baseUrl,
       userId,
       ignorePermissions,
     );
@@ -218,6 +224,7 @@ export class ExportService {
 
     const tree = buildTree(pages as Page[]);
 
+    const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
     const zip = new JSZip();
 
     await this.zipPages(
@@ -225,6 +232,7 @@ export class ExportService {
       format,
       zip,
       includeAttachments,
+      baseUrl,
       userId,
       ignorePermissions,
     );
@@ -248,6 +256,7 @@ export class ExportService {
     format: string,
     zip: JSZip,
     includeAttachments: boolean,
+    baseUrl: string,
     userId?: string,
     ignorePermissions = false,
   ): Promise<void> {
@@ -271,6 +280,7 @@ export class ExportService {
         const prosemirrorJson = await this.turnPageMentionsToLinks(
           getProsemirrorContent(page.content),
           page.workspaceId,
+          baseUrl,
           userId,
           ignorePermissions,
         );
@@ -360,6 +370,7 @@ export class ExportService {
   async turnPageMentionsToLinks(
     prosemirrorJson: any,
     workspaceId: string,
+    baseUrl: string,
     userId?: string,
     ignorePermissions = false,
   ) {
@@ -429,8 +440,7 @@ export class ExportService {
       const truncatedTitle = linkTitle?.substring(0, 70);
       const pageSlug = `${slugify(truncatedTitle)}-${slugId}`;
 
-      // Create the link URL
-      const link = `${this.environmentService.getAppUrl()}/s/${spaceSlug}/p/${pageSlug}`;
+      const link = `${baseUrl}/s/${spaceSlug}/p/${pageSlug}`;
 
       // Create a link mark and a text node with that mark
       const linkMark = editorState.schema.marks.link.create({ href: link });
@@ -474,6 +484,16 @@ export class ExportService {
     const updatedDoc = editorState.doc;
 
     return updatedDoc.toJSON();
+  }
+
+  private async getWorkspaceBaseUrl(workspaceId: string): Promise<string> {
+    const workspace = await this.db
+      .selectFrom('workspaces')
+      .select('hostname')
+      .where('id', '=', workspaceId)
+      .executeTakeFirst();
+
+    return this.domainService.getUrl(workspace?.hostname);
   }
 
   private async filterPagesForExport(
