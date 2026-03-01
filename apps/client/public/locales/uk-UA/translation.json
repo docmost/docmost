@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Введіть один з ваших резервних кодів. Кожен резервний код можна використовувати лише один раз.",
   "Verify": "Перевірити",
   "Trash": "Кошик",
-  "Pages in trash will be permanently deleted after 30 days.": "Сторінки у кошику будуть остаточно видалені через 30 днів.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Видалено",
   "No pages in trash": "Немає сторінок у кошику",
   "Permanently delete page?": "Остаточно видалити сторінку?",
@@ -652,5 +652,12 @@
   "Remove access": "Видалити доступ",
   "Remove all access": "Видалити весь доступ",
   "Are you sure you want to remove this member's access to the page?": "Ви впевнені, що хочете видалити доступ цього учасника до сторінки?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Ви впевнені, що хочете видалити всі індивідуальні дозволи доступу? Це зробить сторінку доступною для всіх у просторі."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Ви впевнені, що хочете видалити всі індивідуальні дозволи доступу? Це зробить сторінку доступною для всіх у просторі.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
