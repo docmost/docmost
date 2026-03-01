@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "バックアップコードを入力してください。各コードは1回のみ使用可能です",
   "Verify": "確認",
   "Trash": "ごみ箱",
-  "Pages in trash will be permanently deleted after 30 days.": "ごみ箱内のページは30日後に完全に削除されます",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "削除",
   "No pages in trash": "ごみ箱にページがありません",
   "Permanently delete page?": "ページを完全に削除しますか?",
@@ -652,5 +652,12 @@
   "Remove access": "アクセス権を削除",
   "Remove all access": "すべてのアクセス権を削除",
   "Are you sure you want to remove this member's access to the page?": "このメンバーのページへのアクセス権を削除してもよろしいですか？",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "すべての特定のアクセスを削除してもよろしいですか？これによりページはスペース内の全員に公開されます。"
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "すべての特定のアクセスを削除してもよろしいですか？これによりページはスペース内の全員に公開されます。",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
