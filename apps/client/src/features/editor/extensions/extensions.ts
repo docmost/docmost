@@ -47,15 +47,13 @@ import {
   SharedStorage,
   Columns,
   Column,
+  Status
 } from "@docmost/editor-ext";
 import {
   randomElement,
   userColors,
 } from "@/features/editor/extensions/utils.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
-import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
-import MathBlockView from "@/features/editor/components/math/math-block.tsx";
-import ImageView from "@/features/editor/components/image/image-view.tsx";
 import {
   createImageHandle,
   imageResizeClasses,
@@ -64,7 +62,11 @@ import {
   createResizeHandle,
   buildResizeClasses,
 } from "@/features/editor/components/common/node-resize-handles.ts";
+import MathInlineView from "@/features/editor/components/math/math-inline.tsx";
+import MathBlockView from "@/features/editor/components/math/math-block.tsx";
+import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
+import StatusView from "@/features/editor/components/status/status-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
@@ -308,6 +310,9 @@ export const mainExtensions = [
   }),
   Subpages.configure({
     view: SubpagesView,
+  }),
+  Status.configure({
+    view: StatusView,
   }),
   MarkdownClipboard.configure({
     transformPastedText: true,

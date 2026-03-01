@@ -155,7 +155,9 @@ export function useDeletePageMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: t("Failed to delete page"), color: "red" });
+      const message =
+        error["response"]?.data?.message || t("Failed to delete page");
+      notifications.show({ message, color: "red" });
     },
   });
 }

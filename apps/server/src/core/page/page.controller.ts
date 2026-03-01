@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Post,
   UseGuards,
@@ -25,7 +26,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { Page, User, Workspace } from '@docmost/db/types/entity.types';
 import { SidebarPageDto } from './dto/sidebar-page.dto';
 import {
   SpaceCaslAction,
@@ -40,6 +41,12 @@ import {
   jsonToHtml,
   jsonToMarkdown,
 } from '../../collaboration/collaboration.util';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
+import { getPageTitle } from '../../common/helpers';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -50,6 +57,7 @@ export class PageController {
     private readonly pageHistoryService: PageHistoryService,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageAccessService: PageAccessService,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -129,6 +137,19 @@ export class PageController {
 
     const permissions = { canEdit, hasRestriction };
 
+    this.auditService.log({
+      event: AuditEvent.PAGE_CREATED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: {
+          title: getPageTitle(page.title),
+          spaceId: page.spaceId,
+        },
+      },
+    });
+
     if (
       createPageDto.format &&
       createPageDto.format !== 'json' &&
@@ -153,8 +174,10 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    const { hasRestriction } =
-      await this.pageAccessService.validateCanEdit(page, user);
+    const { hasRestriction } = await this.pageAccessService.validateCanEdit(
+      page,
+      user,
+    );
 
     const updatedPage = await this.pageService.update(
       page,
@@ -202,6 +225,21 @@ export class PageController {
         );
       }
       await this.pageService.forceDelete(deletePageDto.pageId, workspace.id);
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DELETED,
+        resourceType: AuditResource.PAGE,
+        resourceId: page.id,
+        spaceId: page.spaceId,
+        changes: {
+          before: {
+            pageId: page.id,
+            slugId: page.slugId,
+            title: getPageTitle(page.title),
+            spaceId: page.spaceId,
+          },
+        },
+      });
     } else {
       // User with edit permission can delete
       await this.pageAccessService.validateCanEdit(page, user);
@@ -211,6 +249,21 @@ export class PageController {
         user.id,
         workspace.id,
       );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_TRASHED,
+        resourceType: AuditResource.PAGE,
+        resourceId: page.id,
+        spaceId: page.spaceId,
+        changes: {
+          before: {
+            pageId: page.id,
+            slugId: page.slugId,
+            title: getPageTitle(page.title),
+            spaceId: page.spaceId,
+          },
+        },
+      });
     }
   }
 
@@ -227,19 +280,29 @@ export class PageController {
       throw new NotFoundException('Page not found');
     }
 
-    //Todo: currently, this means if they are not admins, they need to add a space admin to the page, which is not possible as it was soft-deleted
-    // so page is virtually lost. Fix.
+    // only users with "can edit" space level permission can restore pages
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
-    //TODO: can users with page level edit, but no space level edit restore pages they can edit?
-
-    // Check page-level edit permission (if restoring to a restricted ancestor)
+    // make sure they have page level access to the page
     await this.pageAccessService.validateCanEdit(page, user);
 
     await this.pageRepo.restorePage(pageIdDto.pageId, workspace.id);
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_RESTORED,
+      resourceType: AuditResource.PAGE,
+      resourceId: page.id,
+      spaceId: page.spaceId,
+      changes: {
+        after: {
+          title: getPageTitle(page.title),
+          spaceId: page.spaceId,
+        },
+      },
+    });
 
     return this.pageRepo.findById(pageIdDto.pageId, {
       includeHasChildren: true,
@@ -286,7 +349,7 @@ export class PageController {
         deletedPageDto.spaceId,
       );
 
-      if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Page)) {
+      if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
 
@@ -410,7 +473,26 @@ export class PageController {
     await this.pageAccessService.validateCanEdit(movedPage, user);
 
     // Moves only accessible pages; inaccessible child pages become root pages in original space
-    return this.pageService.movePageToSpace(movedPage, dto.spaceId, user.id);
+    const { childPageIds } = await this.pageService.movePageToSpace(
+      movedPage,
+      dto.spaceId,
+      user.id,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.PAGE_MOVED_TO_SPACE,
+      resourceType: AuditResource.PAGE,
+      resourceId: movedPage.id,
+      spaceId: movedPage.spaceId,
+      changes: {
+        before: { spaceId: movedPage.spaceId },
+        after: { spaceId: dto.spaceId },
+      },
+      metadata: {
+        title: getPageTitle(movedPage.title),
+        ...(childPageIds.length > 0 && { childPageIds }),
+      },
+    });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -424,6 +506,8 @@ export class PageController {
     // Check page-level view permission on the source page (need to read to copy)
     // Inaccessible child branches are automatically skipped during duplication
     await this.pageAccessService.validateCanView(copiedPage, user);
+
+    let result;
 
     // If spaceId is provided, it's a copy to different space
     if (dto.spaceId) {
@@ -440,7 +524,27 @@ export class PageController {
         throw new ForbiddenException();
       }
 
-      return this.pageService.duplicatePage(copiedPage, dto.spaceId, user);
+      result = await this.pageService.duplicatePage(
+        copiedPage,
+        dto.spaceId,
+        user,
+      );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DUPLICATED,
+        resourceType: AuditResource.PAGE,
+        resourceId: result.id,
+        spaceId: dto.spaceId,
+        metadata: {
+          sourcePageId: copiedPage.id,
+          title: getPageTitle(copiedPage.title),
+          sourceSpaceId: copiedPage.spaceId,
+          targetSpaceId: dto.spaceId,
+          ...(result.childPageIds.length > 0 && {
+            childPageIds: result.childPageIds,
+          }),
+        },
+      });
     } else {
       // If no spaceId, it's a duplicate in same space
       const ability = await this.spaceAbility.createForUser(
@@ -451,8 +555,28 @@ export class PageController {
         throw new ForbiddenException();
       }
 
-      return this.pageService.duplicatePage(copiedPage, undefined, user);
+      result = await this.pageService.duplicatePage(
+        copiedPage,
+        undefined,
+        user,
+      );
+
+      this.auditService.log({
+        event: AuditEvent.PAGE_DUPLICATED,
+        resourceType: AuditResource.PAGE,
+        resourceId: result.id,
+        spaceId: copiedPage.spaceId,
+        metadata: {
+          sourcePageId: copiedPage.id,
+          title: getPageTitle(copiedPage.title),
+          ...(result.childPageIds.length > 0 && {
+            childPageIds: result.childPageIds,
+          }),
+        },
+      });
     }
+
+    return result;
   }
 
   @HttpCode(HttpStatus.OK)

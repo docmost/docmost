@@ -26,6 +26,7 @@ export interface IWorkspace {
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
   mcpEnabled?: boolean;
+  trashRetentionDays?: number;
 }
 
 export interface IWorkspaceSettings {

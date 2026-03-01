@@ -368,6 +368,8 @@ export class PageService {
   }
 
   async movePageToSpace(rootPage: Page, spaceId: string, userId: string) {
+    let childPageIds: string[] = [];
+
     const allPages = await this.pageRepo.getPageAndDescendants(rootPage.id, {
       includeContent: false,
     });
@@ -413,11 +415,13 @@ export class PageService {
 
       const pageIdsToMove = accessiblePages.map((p) => p.id);
 
+      childPageIds = pageIdsToMove.filter((id) => id !== rootPage.id);
+
       if (pageIdsToMove.length > 1) {
         // Update sub pages (all accessible pages except root)
         await this.pageRepo.updatePages(
           { spaceId },
-          pageIdsToMove.filter((id) => id !== rootPage.id),
+          childPageIds,
           trx,
         );
       }
@@ -462,6 +466,8 @@ export class PageService {
         });
       }
     });
+
+    return { childPageIds };
   }
 
   async duplicatePage(
@@ -680,10 +686,12 @@ export class PageService {
     });
 
     const hasChildren = pages.length > 1;
+    const childPageIds = insertedPageIds.filter((id) => id !== newPageId);
 
     return {
       ...duplicatedPage,
       hasChildren,
+      childPageIds,
     };
   }
 

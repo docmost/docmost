@@ -198,6 +198,7 @@ export class SearchService {
       let pageSearch = this.db
         .selectFrom('pages')
         .select(['id', 'slugId', 'title', 'icon', 'spaceId'])
+        .select((eb) => this.pageRepo.withSpace(eb))
         .where((eb) =>
           eb(
             sql`LOWER(f_unaccent(pages.title))`,
@@ -209,17 +210,19 @@ export class SearchService {
         .where('workspaceId', '=', workspaceId)
         .limit(limit);
 
-      // only search spaces the user has access to
+      // search all spaces the user has access to, prioritizing the current space
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
-      if (suggestion?.spaceId) {
-        if (userSpaceIds.includes(suggestion.spaceId)) {
-          pageSearch = pageSearch.where('spaceId', '=', suggestion.spaceId);
-          pages = await pageSearch.execute();
-        }
-      } else if (userSpaceIds?.length > 0) {
-        // we need this check or the query will throw an error if the userSpaceIds array is empty
+      if (userSpaceIds?.length > 0) {
         pageSearch = pageSearch.where('spaceId', 'in', userSpaceIds);
+
+        if (suggestion?.spaceId) {
+          pageSearch = pageSearch.orderBy(
+            sql`CASE WHEN pages."space_id" = ${suggestion.spaceId} THEN 0 ELSE 1 END`,
+            'asc',
+          );
+        }
+
         pages = await pageSearch.execute();
       }
 
@@ -230,7 +233,6 @@ export class SearchService {
           await this.pagePermissionRepo.filterAccessiblePageIds({
             pageIds,
             userId,
-            spaceId: suggestion?.spaceId,
           });
         const accessibleSet = new Set(accessibleIds);
         pages = pages.filter((p) => accessibleSet.has(p.id));
