@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Inserisci uno dei tuoi codici di backup. Ogni codice di backup può essere utilizzato solo una volta.",
   "Verify": "Verifica",
   "Trash": "Cestino",
-  "Pages in trash will be permanently deleted after 30 days.": "Le pagine nel cestino verranno eliminate definitivamente dopo 30 giorni.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Eliminato",
   "No pages in trash": "Nessuna pagina nel cestino",
   "Permanently delete page?": "Eliminare definitivamente la pagina?",
@@ -652,5 +652,12 @@
   "Remove access": "Rimuovi accesso",
   "Remove all access": "Rimuovi tutti gli accessi",
   "Are you sure you want to remove this member's access to the page?": "Sei sicuro di voler rimuovere l'accesso di questo membro alla pagina?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Sei sicuro di voler rimuovere tutti gli accessi specifici? Questo renderà la pagina accessibile a tutti nello spazio."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Sei sicuro di voler rimuovere tutti gli accessi specifici? Questo renderà la pagina accessibile a tutti nello spazio.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
