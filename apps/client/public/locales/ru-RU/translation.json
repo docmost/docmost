@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Введите один из ваших резервных кодов. Каждый резервный код можно использовать только один раз.",
   "Verify": "Проверить",
   "Trash": "Корзина",
-  "Pages in trash will be permanently deleted after 30 days.": "Страницы в корзине будут окончательно удалены через 30 дней.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Удалено",
   "No pages in trash": "В корзине нет страниц",
   "Permanently delete page?": "Удалить страницу окончательно?",
@@ -652,5 +652,12 @@
   "Remove access": "Удалить доступ",
   "Remove all access": "Удалить весь доступ",
   "Are you sure you want to remove this member's access to the page?": "Вы уверены, что хотите удалить доступ этого участника к странице?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Вы уверены, что хотите удалить все специальные права доступа? Это сделает страницу доступной всем участникам пространства."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Вы уверены, что хотите удалить все специальные права доступа? Это сделает страницу доступной всем участникам пространства.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
