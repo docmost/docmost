@@ -158,21 +158,12 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsUrl(
     { protocols: ['http', 'https'], require_tld: false },
-    { message: 'CLICKHOUSE_URL must be a valid URL e.g http://localhost:8123' },
+    {
+      message:
+        'CLICKHOUSE_URL must be a valid URL e.g http://user:password@localhost:8123/docmost',
+    },
   )
   CLICKHOUSE_URL: string;
-
-  @IsOptional()
-  @IsString()
-  CLICKHOUSE_DATABASE: string;
-
-  @IsOptional()
-  @IsString()
-  CLICKHOUSE_USERNAME: string;
-
-  @IsOptional()
-  @IsString()
-  CLICKHOUSE_PASSWORD: string;
 }
 
 export function validate(config: Record<string, any>) {

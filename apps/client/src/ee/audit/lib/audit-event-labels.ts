@@ -54,6 +54,10 @@ export const auditEventLabels: Record<string, string> = {
   "page.duplicated": "Duplicated page",
   "page.imported": "Imported page",
   "page.exported": "Exported page",
+  "page.restricted": "Restricted page",
+  "page.restriction_removed": "Removed page restriction",
+  "page.permission_added": "Added page permission",
+  "page.permission_removed": "Removed page permission",
 
   "share.created": "Created share link",
   "share.deleted": "Deleted share link",
@@ -121,6 +125,10 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.moved_to_space", label: "Moved page" },
       { value: "page.imported", label: "Imported page" },
       { value: "page.exported", label: "Exported page" },
+      { value: "page.restricted", label: "Restricted page" },
+      { value: "page.restriction_removed", label: "Removed page restriction" },
+      { value: "page.permission_added", label: "Added page permission" },
+      { value: "page.permission_removed", label: "Removed page permission" },
     ],
   },
   {

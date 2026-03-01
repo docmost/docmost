@@ -71,13 +71,11 @@ export const AuditEvent = {
   LICENSE_ACTIVATED: 'license.activated',
   LICENSE_REMOVED: 'license.removed',
 
-  // Page lock
-  // PAGE_LOCKED: 'page.locked',
-  // PAGE_UNLOCKED: 'page.unlocked',
-
   // Page permission
-  // PAGE_RESTRICTED: 'page.restricted',
-  // PAGE_RESTRICTION_REMOVED: 'page.restriction_removed',
+  PAGE_RESTRICTED: 'page.restricted',
+  PAGE_RESTRICTION_REMOVED: 'page.restriction_removed',
+  PAGE_PERMISSION_ADDED: 'page.permission_added',
+  PAGE_PERMISSION_REMOVED: 'page.permission_removed',
 
   // Comment updates / resolve
   COMMENT_UPDATED: 'comment.updated',
@@ -92,12 +90,8 @@ export const AuditEvent = {
 export type AuditEventType = (typeof AuditEvent)[keyof typeof AuditEvent];
 
 export const EXCLUDED_AUDIT_EVENTS: Set<string> = new Set([
-  AuditEvent.PAGE_CREATED,
-  AuditEvent.COMMENT_CREATED,
-  AuditEvent.COMMENT_UPDATED,
-  AuditEvent.COMMENT_RESOLVED,
-  AuditEvent.COMMENT_REOPENED,
-  AuditEvent.ATTACHMENT_UPLOADED,
+  // AuditEvent.PAGE_MOVED_TO_SPACE,
+  //AuditEvent.PAGE_DUPLICATED,
 ]);
 
 export const AuditResource = {

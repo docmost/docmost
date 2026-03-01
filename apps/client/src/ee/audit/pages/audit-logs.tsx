@@ -27,13 +27,6 @@ import { eventFilterOptions } from "@/ee/audit/lib/audit-event-labels";
 import AuditLogsTable from "@/ee/audit/components/audit-logs-table";
 import useUserRole from "@/hooks/use-user-role";
 
-const datePresets = [
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-  { value: "all", label: "All time" },
-];
-
 type RetentionUnit = "days" | "months" | "years";
 
 function daysToRetention(days: number): { amount: number; unit: RetentionUnit } {
@@ -52,21 +45,12 @@ function retentionToDays(amount: number, unit: RetentionUnit): number {
   return amount;
 }
 
-function getStartDateFromPreset(preset: string | null): string | undefined {
-  if (!preset || preset === "all") return undefined;
-  const days = parseInt(preset, 10);
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString();
-}
-
 export default function AuditLogs() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
 
   const [eventFilter, setEventFilter] = useState<string | null>(null);
-  const [datePreset, setDatePreset] = useState<string | null>("30");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data: retentionData } = useAuditRetentionQuery();
@@ -96,9 +80,8 @@ export default function AuditLogs() {
       cursor,
       limit: 50,
       event: eventFilter ?? undefined,
-      startDate: getStartDateFromPreset(datePreset),
     }),
-    [cursor, eventFilter, datePreset],
+    [cursor, eventFilter],
   );
 
   const { data, isLoading } = useAuditLogsQuery(params);
@@ -109,11 +92,6 @@ export default function AuditLogs() {
 
   const handleEventChange = (value: string | null) => {
     setEventFilter(value);
-    resetCursor();
-  };
-
-  const handleDateChange = (value: string | null) => {
-    setDatePreset(value);
     resetCursor();
   };
 
@@ -142,17 +120,6 @@ export default function AuditLogs() {
           clearable
           searchable
           w={220}
-          size="sm"
-        />
-
-        <Select
-          data={datePresets.map((d) => ({
-            value: d.value,
-            label: t(d.label),
-          }))}
-          value={datePreset}
-          onChange={handleDateChange}
-          w={160}
           size="sm"
         />
 
@@ -225,7 +192,7 @@ export default function AuditLogs() {
                   const clamped = Math.max(1, num);
                   setRetentionAmount(clamped);
                   const days = retentionToDays(clamped, retentionUnit);
-                  if (days >= 15 && days !== currentDays) {
+                  if (days !== currentDays) {
                     updateRetention.mutate({ auditRetentionDays: days });
                   }
                   setSettingsOpen(false);

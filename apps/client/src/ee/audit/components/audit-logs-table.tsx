@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Table, Text, Group, Skeleton, Anchor, Collapse, Box } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -30,6 +30,7 @@ function getResourceUrl(entry: IAuditLog): string | null {
     case "group":
       return `/settings/groups/${entry.resource.id}`;
     case "space":
+    case "space_member":
       return entry.resource.slug ? `/s/${entry.resource.slug}` : null;
     default:
       return null;
@@ -215,9 +216,8 @@ export default function AuditLogsTable({
               const isExpanded = expanded.has(entry.id);
 
               return (
-                <>
+                <Fragment key={entry.id}>
                   <Table.Tr
-                    key={entry.id}
                     onClick={expandable ? () => toggleExpanded(entry.id) : undefined}
                     style={{ cursor: expandable ? "pointer" : undefined }}
                   >
@@ -274,7 +274,6 @@ export default function AuditLogsTable({
 
                   {expandable && (
                     <Table.Tr
-                      key={`${entry.id}-details`}
                       className={classes.detailRow}
                     >
                       <Table.Td colSpan={4} p={0}>
@@ -289,7 +288,7 @@ export default function AuditLogsTable({
                       </Table.Td>
                     </Table.Tr>
                   )}
-                </>
+                </Fragment>
               );
             })
           ) : (

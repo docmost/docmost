@@ -87,6 +87,7 @@ export class GroupUserService {
         changes: {
           after: {
             userId: user.id,
+            userName: user.name,
           },
         },
       });
@@ -134,6 +135,7 @@ export class GroupUserService {
         await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
           [userId],
           spaceId,
+          { trx },
         );
       }
     });
@@ -145,6 +147,7 @@ export class GroupUserService {
       changes: {
         before: {
           userId: user.id,
+          userName: user.name,
         },
       },
       metadata: {

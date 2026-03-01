@@ -185,6 +185,7 @@ export class SpaceMemberService {
             spaceId: dto.spaceId,
             spaceName: space.name,
             userId: user.id,
+            userName: user.name,
             memberType: 'user',
           },
         });
