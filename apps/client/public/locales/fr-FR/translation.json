@@ -130,6 +130,7 @@
   "pages": "pages",
   "Password": "Mot de passe",
   "Password changed successfully": "Mot de passe changé avec succès",
+  "People": "People",
   "Pending": "En attente",
   "Please confirm your action": "Veuillez confirmer votre action",
   "Preferences": "Préférences",
@@ -521,7 +522,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Entrez un de vos codes de sauvegarde. Chaque code de sauvegarde ne peut être utilisé qu'une seule fois.",
   "Verify": "Vérifier",
   "Trash": "Corbeille",
-  "Pages in trash will be permanently deleted after 30 days.": "Les pages dans la corbeille seront définitivement supprimées après 30 jours.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Supprimé",
   "No pages in trash": "Aucune page dans la corbeille",
   "Permanently delete page?": "Supprimer définitivement la page ?",
@@ -652,5 +653,12 @@
   "Remove access": "Retirer l'accès",
   "Remove all access": "Retirer tous les accès",
   "Are you sure you want to remove this member's access to the page?": "Êtes-vous sûr de vouloir retirer l'accès de ce membre à la page ?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Êtes-vous sûr de vouloir supprimer tous les accès spécifiques ? Cela rendra la page accessible à tous les membres de l'espace."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Êtes-vous sûr de vouloir supprimer tous les accès spécifiques ? Cela rendra la page accessible à tous les membres de l'espace.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
