@@ -521,7 +521,7 @@
   "Enter one of your backup codes. Each backup code can only be used once.": "Voer een van uw back-up codes in. Elke back-up code kan slechts één keer worden gebruikt.",
   "Verify": "Verifiëren",
   "Trash": "Prullenbak",
-  "Pages in trash will be permanently deleted after 30 days.": "Pagina's in de prullenbak worden na 30 dagen permanent verwijderd.",
+  "Pages in trash will be permanently deleted after {{count}} days.": "Pages in trash will be permanently deleted after {{count}} days.",
   "Deleted": "Verwijderd",
   "No pages in trash": "Geen pagina's in de prullenbak",
   "Permanently delete page?": "Pagina permanent verwijderen?",
@@ -652,5 +652,12 @@
   "Remove access": "Toegang verwijderen",
   "Remove all access": "Alle toegang verwijderen",
   "Are you sure you want to remove this member's access to the page?": "Weet u zeker dat u de toegang van dit lid tot de pagina wilt intrekken?",
-  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Weet u zeker dat u alle specifieke toegang wilt verwijderen? Hiermee wordt de pagina voor iedereen in de ruimte beschikbaar."
+  "Are you sure you want to remove all specific access? This will make the page open to everyone in the space.": "Weet u zeker dat u alle specifieke toegang wilt verwijderen? Hiermee wordt de pagina voor iedereen in de ruimte beschikbaar.",
+  "Trash retention": "Trash retention",
+  "Pages in trash will be permanently deleted after this period.": "Pages in trash will be permanently deleted after this period.",
+  "Trash retention updated": "Trash retention updated",
+  "Failed to update trash retention": "Failed to update trash retention",
+  "Removed page restriction": "Removed page restriction",
+  "Added page permission": "Added page permission",
+  "Removed page permission": "Removed page permission"
 }
