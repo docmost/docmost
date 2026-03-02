@@ -54,7 +54,10 @@ export const handlePaste = (
     return true;
   }
 
-  if (event.clipboardData?.files.length) {
+  const htmlData = event.clipboardData?.getData("text/html");
+  const hasHtmlTable = htmlData && /<table[\s>]/i.test(htmlData);
+
+  if (event.clipboardData?.files.length && !hasHtmlTable) {
     event.preventDefault();
     for (const file of event.clipboardData.files) {
       const pos = editor.state.selection.from;
@@ -65,7 +68,6 @@ export const handlePaste = (
     return true;
   }
 
-  const htmlData = event.clipboardData?.getData("text/html");
   if (htmlData && ATTACHMENT_URL_RE.test(htmlData)) {
     const pasteFrom = editor.state.selection.from;
     setTimeout(() => {
