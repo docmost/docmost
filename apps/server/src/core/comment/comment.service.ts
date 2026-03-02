@@ -63,7 +63,7 @@ export class CommentService {
       }
     }
 
-    const comment = await this.commentRepo.insertComment({
+    const inserted = await this.commentRepo.insertComment({
       pageId: page.id,
       content: commentContent,
       selection: createCommentDto?.selection?.substring(0, 250) ?? null,
@@ -72,6 +72,11 @@ export class CommentService {
       creatorId: userId,
       workspaceId: workspaceId,
       spaceId: page.spaceId,
+    });
+
+    const comment = await this.commentRepo.findById(inserted.id, {
+      includeCreator: true,
+      includeResolvedBy: true,
     });
 
     this.generalQueue

@@ -27,7 +27,7 @@ function CommentListWithTabs() {
     data: comments,
     isLoading: isCommentsLoading,
     isError,
-  } = useCommentsQuery({ pageId: page?.id, limit: 100 });
+  } = useCommentsQuery({ pageId: page?.id });
   const createCommentMutation = useCreateCommentMutation();
   const [isLoading, setIsLoading] = useState(false);
   const emit = useQueryEmit();
