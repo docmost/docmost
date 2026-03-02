@@ -104,6 +104,7 @@ export class SpaceMemberRepo {
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
       .select([
+        'spaceMembers.id as id',
         'users.id as userId',
         'users.name as userName',
         'users.avatarUrl as userAvatarUrl',
@@ -120,6 +121,12 @@ export class SpaceMemberRepo {
           'isGroup',
         ),
       )
+      .select(
+        sql<number>`case "space_members"."role" when 'admin' then 1 when 'writer' then 2 when 'reader' then 3 else 4 end`.as(
+          'roleOrder',
+        ),
+      )
+      .select(sql<string>`coalesce(users.name, groups.name)`.as('memberName'))
       .where('spaceId', '=', spaceId);
 
     if (pagination.query) {
@@ -149,12 +156,16 @@ export class SpaceMemberRepo {
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
+        { expression: 'sub.roleOrder', direction: 'asc', key: 'roleOrder' },
         { expression: 'sub.isGroup', direction: 'desc', key: 'isGroup' },
-        { expression: 'sub.createdAt', direction: 'asc', key: 'createdAt' },
+        { expression: 'sub.memberName', direction: 'asc', key: 'memberName' },
+        { expression: 'sub.id', direction: 'asc', key: 'id' },
       ],
       parseCursor: (cursor) => ({
+        roleOrder: parseInt(cursor.roleOrder, 10),
         isGroup: parseInt(cursor.isGroup, 10),
-        createdAt: new Date(cursor.createdAt),
+        memberName: cursor.memberName,
+        id: cursor.id,
       }),
     });
 
