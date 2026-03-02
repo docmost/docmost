@@ -50,6 +50,7 @@ export async function formatImportHtml(opts: {
   }
 
   notionFormatter($, $root);
+  xwikiFormatter($, $root);
   defaultHtmlFormatter($, $root);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
@@ -67,6 +68,14 @@ export async function formatImportHtml(opts: {
     backlinks,
     pageIcon: pageIcon || undefined,
   };
+}
+
+export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  const $content = $root.find('#xwikicontent');
+  if ($content.length) {
+    $root.children().remove();
+    $root.append($content.contents());
+  }
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {

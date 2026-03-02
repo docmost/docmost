@@ -6,6 +6,11 @@
       ],
       "cache": true
     },
+    "start:dev": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
     "lint": {
       "cache": true
     }

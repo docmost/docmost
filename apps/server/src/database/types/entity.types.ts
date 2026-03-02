@@ -3,6 +3,9 @@ import {
   Attachments,
   Comments,
   Groups,
+  Notifications,
+  PageAccess as _PageAccess,
+  PagePermissions as _PagePermissions,
   Pages,
   Spaces,
   Users,
@@ -20,6 +23,8 @@ import {
   FileTasks,
   UserMfa as _UserMFA,
   ApiKeys,
+  Watchers,
+  Audit as _Audit,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -131,3 +136,28 @@ export type UpdatableApiKey = Updateable<Omit<ApiKeys, 'id'>>;
 export type PageEmbedding = Selectable<PageEmbeddings>;
 export type InsertablePageEmbedding = Insertable<PageEmbeddings>;
 export type UpdatablePageEmbedding = Updateable<Omit<PageEmbeddings, 'id'>>;
+
+// Notification
+export type Notification = Selectable<Notifications>;
+export type InsertableNotification = Insertable<Notifications>;
+export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
+
+// Watcher
+export type Watcher = Selectable<Watchers>;
+export type InsertableWatcher = Insertable<Watchers>;
+export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Page Access
+export type PageAccess = Selectable<_PageAccess>;
+export type InsertablePageAccess = Insertable<_PageAccess>;
+export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
+
+// Page Permission
+export type PagePermission = Selectable<_PagePermissions>;
+export type InsertablePagePermission = Insertable<_PagePermissions>;
+export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
+
+// Audit
+export type Audit = Selectable<_Audit>;
+export type InsertableAudit = Insertable<_Audit>;
+export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;

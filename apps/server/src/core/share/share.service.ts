@@ -19,6 +19,7 @@ import {
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { updateAttachmentAttr } from './share.util';
 import { Page } from '@docmost/db/types/entity.types';
 import { validate as isValidUUID } from 'uuid';
@@ -31,6 +32,7 @@ export class ShareService {
   constructor(
     private readonly shareRepo: ShareRepo,
     private readonly pageRepo: PageRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly tokenService: TokenService,
   ) {}
@@ -41,12 +43,20 @@ export class ShareService {
       throw new NotFoundException('Share not found');
     }
 
-    if (share.includeSubPages) {
-      const pageList = await this.pageRepo.getPageAndDescendants(share.pageId, {
-        includeContent: false,
-      });
+    const isRestricted =
+      await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+    if (isRestricted) {
+      throw new NotFoundException('Share not found');
+    }
 
-      return { share, pageTree: pageList };
+    if (share.includeSubPages) {
+      const pageTree =
+        await this.pageRepo.getPageAndDescendantsExcludingRestricted(
+          share.pageId,
+          { includeContent: false },
+        );
+
+      return { share, pageTree };
     } else {
       return { share, pageTree: [] };
     }
@@ -109,6 +119,13 @@ export class ShareService {
     });
 
     if (!page || page.deletedAt) {
+      throw new NotFoundException('Shared page not found');
+    }
+
+    // Block access to restricted pages
+    const isRestricted =
+      await this.pagePermissionRepo.hasRestrictedAncestor(page.id);
+    if (isRestricted) {
       throw new NotFoundException('Shared page not found');
     }
 
@@ -262,6 +279,31 @@ export class ShareService {
     }
 
     return ancestor;
+  }
+
+  async isSharingAllowed(
+    workspaceId: string,
+    spaceId: string,
+  ): Promise<boolean> {
+    const result = await this.db
+      .selectFrom('workspaces')
+      .innerJoin('spaces', 'spaces.workspaceId', 'workspaces.id')
+      .select([
+        'workspaces.settings as workspaceSettings',
+        'spaces.settings as spaceSettings',
+      ])
+      .where('workspaces.id', '=', workspaceId)
+      .where('spaces.id', '=', spaceId)
+      .executeTakeFirst();
+
+    if (!result) return false;
+
+    const workspaceDisabled =
+      (result.workspaceSettings as any)?.sharing?.disabled === true;
+    const spaceDisabled =
+      (result.spaceSettings as any)?.sharing?.disabled === true;
+
+    return !workspaceDisabled && !spaceDisabled;
   }
 
   async updatePublicAttachments(page: Page): Promise<any> {

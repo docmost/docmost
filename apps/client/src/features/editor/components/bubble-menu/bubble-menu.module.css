@@ -1,11 +1,53 @@
 .bubbleMenu {
   display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100vw;
   width: fit-content;
-  border-radius: 2px;
+  box-shadow: 0 4px 12px light-dark(#cfcfcf, #0f0f0f);
+  border-radius: 6px;
   border: 1px solid
     light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8));
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .active {
     color: light-dark(var(--mantine-color-blue-8), var(--mantine-color-gray-5));
   }
+}
+
+.buttonRoot {
+  height: 34px;
+  padding-left: rem(8);
+  padding-right: rem(4);
+  border: none;
+  border-radius: 6px;
+}
+
+.buttonSeparator {
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4)) !important;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  align-self: center;
+  margin: 0 4px;
+  background-color: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-3)
+  );
 }

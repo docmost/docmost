@@ -136,6 +136,28 @@ export class ShareRepo {
     await query.execute();
   }
 
+  async deleteBySpaceId(
+    spaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('shares')
+      .where('spaceId', '=', spaceId)
+      .execute();
+  }
+
+  async deleteByWorkspaceId(
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ): Promise<void> {
+    const db = dbOrTx(this.db, trx);
+    await db
+      .deleteFrom('shares')
+      .where('workspaceId', '=', workspaceId)
+      .execute();
+  }
+
   async getShares(userId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('shares')

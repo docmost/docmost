@@ -64,6 +64,30 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
   return pageMentionList as MentionNode[];
 }
 
+export function extractUserMentionIdsFromJson(json: any): string[] {
+  const userIds: string[] = [];
+
+  function walk(node: any) {
+    if (!node) return;
+    if (
+      node.type === 'mention' &&
+      node.attrs?.entityType === 'user' &&
+      node.attrs?.entityId &&
+      !userIds.includes(node.attrs.entityId)
+    ) {
+      userIds.push(node.attrs.entityId);
+    }
+    if (Array.isArray(node.content)) {
+      for (const child of node.content) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(json);
+  return userIds;
+}
+
 export function getProsemirrorContent(content: any) {
   return (
     content ?? {

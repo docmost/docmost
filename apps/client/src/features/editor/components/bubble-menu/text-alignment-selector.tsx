@@ -7,7 +7,7 @@ import {
   IconCheck,
   IconChevronDown,
 } from "@tabler/icons-react";
-import { Popover, Button, ScrollArea, rem } from "@mantine/core";
+import { Popover, Button, ScrollArea, Tooltip, rem } from "@mantine/core";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
@@ -84,16 +84,18 @@ export const TextAlignmentSelector: FC<TextAlignmentProps> = ({
   return (
     <Popover opened={isOpen} withArrow>
       <Popover.Target>
-        <Button
-          variant="default"
-          style={{ border: "none", height: "34px" }}
-          px="5"
-          radius="0"
-          rightSection={<IconChevronDown size={16} />}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <activeItem.icon style={{ width: rem(16) }} stroke={2} />
-        </Button>
+        <Tooltip label={t("Text align")} withArrow withinPortal={false} disabled={isOpen}>
+          <Button
+            variant="default"
+            style={{ border: "none", height: "34px" }}
+            px="5"
+            radius="0"
+            rightSection={<IconChevronDown size={16} />}
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <activeItem.icon style={{ width: rem(16) }} stroke={2} />
+          </Button>
+        </Tooltip>
       </Popover.Target>
 
       <Popover.Dropdown>

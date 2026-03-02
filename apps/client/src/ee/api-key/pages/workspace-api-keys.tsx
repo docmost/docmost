@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Group, Space, Text } from "@mantine/core";
+import { Anchor, Button, Group, Space, Text } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -54,8 +54,13 @@ export default function WorkspaceApiKeys() {
 
       <SettingsTitle title={t("API management")} />
 
-      <Text size="md" c="dimmed" mb="md">
-        {t("Manage API keys for all users in the workspace")}
+      <Text size="sm" c="dimmed" mb="md">
+        {t("Manage API keys for all users in the workspace.")}{" "}
+        {t("View the")}{" "}
+        <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm">
+          {t("API documentation")}
+        </Anchor>{" "}
+        {t("for usage details.")}
       </Text>
 
       <Group justify="flex-end" mb="md">

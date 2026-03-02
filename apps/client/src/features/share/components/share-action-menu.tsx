@@ -13,7 +13,7 @@ import {
   buildPageUrl,
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
-import { useClipboard } from "@mantine/hooks";
+import { useClipboard } from "@/hooks/use-clipboard";
 import { notifications } from "@mantine/notifications";
 import { useNavigate } from "react-router-dom";
 import { useDeleteShareMutation } from "@/features/share/queries/share-query.ts";

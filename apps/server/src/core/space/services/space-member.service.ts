@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { AddSpaceMembersDto } from '../dto/add-space-members.dto';
 import { InjectKysely } from 'nestjs-kysely';
 import { Space, SpaceMember, User } from '@docmost/db/types/entity.types';
@@ -14,13 +16,23 @@ import { RemoveSpaceMemberDto } from '../dto/remove-space-member.dto';
 import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { executeTx } from '@docmost/db/utils';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class SpaceMemberService {
   constructor(
     private spaceMemberRepo: SpaceMemberRepo,
+    private groupUserRepo: GroupUserRepo,
     private spaceRepo: SpaceRepo,
+    private watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async addUserToSpace(
@@ -85,7 +97,6 @@ export class SpaceMemberService {
     authUser: User,
     workspaceId: string,
   ): Promise<void> {
-    // await this.spaceService.findAndValidateSpace(spaceId, workspaceId);
 
     const space = await this.spaceRepo.findById(dto.spaceId, workspaceId);
     if (!space) {
@@ -159,8 +170,45 @@ export class SpaceMemberService {
 
     if (membersToAdd.length > 0) {
       await this.spaceMemberRepo.insertSpaceMember(membersToAdd);
-    } else {
-      // either they are already members or do not exist on the workspace
+
+      // Audit log for each member added
+      for (const user of validUsers) {
+        this.auditService.log({
+          event: AuditEvent.SPACE_MEMBER_ADDED,
+          resourceType: AuditResource.SPACE_MEMBER,
+          resourceId: dto.spaceId,
+          spaceId: dto.spaceId,
+          changes: {
+            after: { role: dto.role },
+          },
+          metadata: {
+            spaceId: dto.spaceId,
+            spaceName: space.name,
+            userId: user.id,
+            userName: user.name,
+            memberType: 'user',
+          },
+        });
+      }
+
+      for (const group of validGroups) {
+        this.auditService.log({
+          event: AuditEvent.SPACE_MEMBER_ADDED,
+          resourceType: AuditResource.SPACE_MEMBER,
+          resourceId: dto.spaceId,
+          spaceId: dto.spaceId,
+          changes: {
+            after: { role: dto.role },
+          },
+          metadata: {
+            spaceId: dto.spaceId,
+            spaceName: space.name,
+            groupId: group.id,
+            groupName: group.name,
+            memberType: 'group',
+          },
+        });
+      }
     }
   }
 
@@ -203,10 +251,45 @@ export class SpaceMemberService {
       await this.validateLastAdmin(dto.spaceId);
     }
 
-    await this.spaceMemberRepo.removeSpaceMemberById(
-      spaceMember.id,
-      dto.spaceId,
-    );
+    let affectedUserIds: string[] = [];
+    if (dto.userId) {
+      affectedUserIds = [dto.userId];
+    } else if (dto.groupId) {
+      affectedUserIds = await this.groupUserRepo.getUserIdsByGroupId(
+        dto.groupId,
+      );
+    }
+
+    await executeTx(this.db, async (trx) => {
+      await this.spaceMemberRepo.removeSpaceMemberById(
+        spaceMember.id,
+        dto.spaceId,
+        { trx },
+      );
+
+      await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+        affectedUserIds,
+        dto.spaceId,
+        { trx },
+      );
+    });
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_MEMBER_REMOVED,
+      resourceType: AuditResource.SPACE_MEMBER,
+      resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
+      changes: {
+        before: { role: spaceMember.role },
+      },
+      metadata: {
+        spaceId: dto.spaceId,
+        spaceName: space.name,
+        userId: spaceMember.userId,
+        groupId: spaceMember.groupId,
+        memberType: spaceMember.userId ? 'user' : 'group',
+      },
+    });
   }
 
   async updateSpaceMemberRole(
@@ -257,6 +340,24 @@ export class SpaceMemberService {
       spaceMember.id,
       dto.spaceId,
     );
+
+    this.auditService.log({
+      event: AuditEvent.SPACE_MEMBER_ROLE_CHANGED,
+      resourceType: AuditResource.SPACE_MEMBER,
+      resourceId: dto.spaceId,
+      spaceId: dto.spaceId,
+      changes: {
+        before: { role: spaceMember.role },
+        after: { role: dto.role },
+      },
+      metadata: {
+        spaceId: dto.spaceId,
+        spaceName: space.name,
+        userId: spaceMember.userId,
+        groupId: spaceMember.groupId,
+        memberType: spaceMember.userId ? 'user' : 'group',
+      },
+    });
   }
 
   async validateLastAdmin(spaceId: string): Promise<void> {

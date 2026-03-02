@@ -33,7 +33,11 @@ import {
   Subpages,
   Highlight,
   UniqueID,
+  Columns,
+  Column,
+  Status,
   addUniqueIdsToDoc,
+  htmlToMarkdown,
 } from '@docmost/editor-ext';
 import { generateText, getSchema, JSONContent } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
@@ -42,6 +46,7 @@ import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 // see:https://github.com/ueberdosis/tiptap/issues/4089
 //import { generateJSON } from '@tiptap/html';
 import { Node, Schema } from '@tiptap/pm/model';
+import * as Y from 'yjs';
 import { Logger } from '@nestjs/common';
 
 export const tiptapExtensions = [
@@ -89,6 +94,9 @@ export const tiptapExtensions = [
   Embed,
   Mention,
   Subpages,
+  Columns,
+  Column,
+  Status,
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {
@@ -160,4 +168,38 @@ function stripUnknownNodes(
   }
 
   return json;
+}
+
+export function prosemirrorNodeToYElement(node: any): Y.XmlElement | Y.XmlText {
+  if (node.type === 'text') {
+    const ytext = new Y.XmlText();
+    ytext.insert(0, node.text || '');
+    if (node.marks?.length > 0) {
+      const attrs: Record<string, any> = {};
+      for (const mark of node.marks) {
+        attrs[mark.type] = mark.attrs || true;
+      }
+      ytext.format(0, node.text?.length || 0, attrs);
+    }
+    return ytext;
+  }
+
+  const element = new Y.XmlElement(node.type);
+  if (node.attrs) {
+    for (const [key, value] of Object.entries(node.attrs)) {
+      if (value !== null && value !== undefined) {
+        element.setAttribute(key, value as any);
+      }
+    }
+  }
+  if (node.content?.length > 0) {
+    const children = node.content.map(prosemirrorNodeToYElement);
+    element.insert(0, children);
+  }
+  return element;
+}
+
+export function jsonToMarkdown(tiptapJson: any): string {
+  const html = jsonToHtml(tiptapJson);
+  return htmlToMarkdown(html);
 }

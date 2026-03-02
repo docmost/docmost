@@ -10,23 +10,18 @@ export default function EnforceMfa() {
   const { t } = useTranslation();
 
   return (
-    <>
-      <Title order={4} my="sm">
-        MFA
-      </Title>
-      <Group justify="space-between" wrap="nowrap" gap="xl">
-        <div>
-          <Text size="md">{t("Enforce two-factor authentication")}</Text>
-          <Text size="sm" c="dimmed">
-            {t(
-              "Once enforced, all members must enable two-factor authentication to access the workspace.",
-            )}
-          </Text>
-        </div>
+    <Group justify="space-between" wrap="nowrap" gap="xl">
+      <div>
+        <Text size="md">{t("Enforce two-factor authentication")}</Text>
+        <Text size="sm" c="dimmed">
+          {t(
+            "Once enforced, all members must enable two-factor authentication to access the workspace.",
+          )}
+        </Text>
+      </div>
 
-        <EnforceMfaToggle />
-      </Group>
-    </>
+      <EnforceMfaToggle />
+    </Group>
   );
 }
 

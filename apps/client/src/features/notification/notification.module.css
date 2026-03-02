@@ -1,0 +1,13 @@
+.notificationItem {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.notificationItem:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.divider {
+  border-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}

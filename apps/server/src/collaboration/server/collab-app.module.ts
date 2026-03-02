@@ -9,6 +9,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from '../../integrations/health/health.module';
 import { CollaborationController } from './collaboration.controller';
 import { LoggerModule } from '../../common/logger/logger.module';
+import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
+import { RedisConfigService } from '../../integrations/redis/redis-config.service';
 
 @Module({
   imports: [
@@ -19,6 +21,9 @@ import { LoggerModule } from '../../common/logger/logger.module';
     QueueModule,
     HealthModule,
     EventEmitterModule.forRoot(),
+    RedisModule.forRootAsync({
+      useClass: RedisConfigService,
+    }),
   ],
   controllers: [
     AppController,

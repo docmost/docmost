@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Res,
   UseGuards,
@@ -24,6 +25,11 @@ import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { ModuleRef } from '@nestjs/core';
+import { AuditEvent, AuditResource } from '../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../integrations/audit/audit.service';
 
 @Controller('auth')
 export class AuthController {
@@ -33,6 +39,7 @@ export class AuthController {
     private authService: AuthService,
     private environmentService: EnvironmentService,
     private moduleRef: ModuleRef,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -169,8 +176,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  async logout(@Res({ passthrough: true }) res: FastifyReply) {
+  async logout(
+    @AuthUser() user: User,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
     res.clearCookie('authToken');
+
+    this.auditService.log({
+      event: AuditEvent.USER_LOGOUT,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+    });
   }
 
   setAuthCookie(res: FastifyReply, token: string) {
