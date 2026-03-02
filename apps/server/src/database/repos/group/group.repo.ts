@@ -135,10 +135,12 @@ export class GroupRepo {
           direction: 'desc',
           key: 'memberCount',
         },
+        { expression: 'sub.name', direction: 'asc', key: 'name' },
         { expression: 'sub.id', direction: 'asc', key: 'id' },
       ],
       parseCursor: (cursor) => ({
         memberCount: parseInt(cursor.memberCount, 10),
+        name: cursor.name,
         id: cursor.id,
       }),
     });
