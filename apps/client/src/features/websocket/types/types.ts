@@ -8,9 +8,28 @@ export type InvalidateEvent = {
   id?: string;
 };
 
-export type InvalidateCommentsEvent = {
-  operation: "invalidateComment";
+export type CommentCreatedEvent = {
+  operation: "commentCreated";
   pageId: string;
+  comment: import("@/features/comment/types/comment.types").IComment;
+};
+
+export type CommentUpdatedEvent = {
+  operation: "commentUpdated";
+  pageId: string;
+  comment: import("@/features/comment/types/comment.types").IComment;
+};
+
+export type CommentDeletedEvent = {
+  operation: "commentDeleted";
+  pageId: string;
+  commentId: string;
+};
+
+export type CommentResolvedEvent = {
+  operation: "commentResolved";
+  pageId: string;
+  comment: import("@/features/comment/types/comment.types").IComment;
 };
 
 export type UpdateEvent = {
@@ -65,27 +84,15 @@ export type RefetchRootTreeNodeEvent = {
   spaceId: string;
 };
 
-export type ResolveCommentEvent = {
-  operation: "resolveComment";
-  pageId: string;
-  commentId: string;
-  resolved: boolean;
-  resolvedAt?: Date;
-  resolvedById?: string;
-  resolvedBy?: {
-    id: string;
-    name: string;
-    avatarUrl?: string | null;
-  };
-};
-
 export type WebSocketEvent =
   | InvalidateEvent
-  | InvalidateCommentsEvent
+  | CommentCreatedEvent
+  | CommentUpdatedEvent
+  | CommentDeletedEvent
+  | CommentResolvedEvent
   | UpdateEvent
   | DeleteEvent
   | AddTreeNodeEvent
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
-  | RefetchRootTreeNodeEvent
-  | ResolveCommentEvent;
+  | RefetchRootTreeNodeEvent;

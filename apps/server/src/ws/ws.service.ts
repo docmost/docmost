@@ -45,13 +45,36 @@ export class WsService {
       return;
     }
 
-    await this.broadcastToAuthorizedUsers(client, room, pageId, data);
+    await this.broadcastToAuthorizedUsers(room, client.data.userId, pageId, data);
   }
 
   async invalidateSpaceRestrictionCache(spaceId: string): Promise<void> {
     await this.cacheManager.del(
       `${WS_SPACE_RESTRICTION_CACHE_PREFIX}${spaceId}`,
     );
+  }
+
+  async emitCommentEvent(
+    spaceId: string,
+    pageId: string,
+    data: any,
+  ): Promise<void> {
+    const room = getSpaceRoomName(spaceId);
+
+    const hasRestrictions = await this.spaceHasRestrictions(spaceId);
+    if (!hasRestrictions) {
+      this.server.to(room).emit('message', data);
+      return;
+    }
+
+    const isRestricted =
+      await this.pagePermissionRepo.hasRestrictedAncestor(pageId);
+    if (!isRestricted) {
+      this.server.to(room).emit('message', data);
+      return;
+    }
+
+    await this.broadcastToAuthorizedUsers(room, null, pageId, data);
   }
 
   async emitToUsers(userIds: string[], data: any): Promise<void> {
@@ -82,14 +105,16 @@ export class WsService {
   }
 
   private async broadcastToAuthorizedUsers(
-    sender: Socket,
     room: string,
+    excludeUserId: string | null,
     pageId: string,
     data: any,
   ): Promise<void> {
     const sockets = await this.server.in(room).fetchSockets();
 
-    const otherSockets = sockets.filter((s) => s.id !== sender.id);
+    const otherSockets = excludeUserId
+      ? sockets.filter((s) => s.data.userId !== excludeUserId)
+      : sockets;
     if (otherSockets.length === 0) return;
 
     const userSocketMap = new Map<string, typeof otherSockets>();

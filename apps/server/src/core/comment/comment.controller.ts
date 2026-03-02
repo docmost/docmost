@@ -31,6 +31,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { WsService } from '../../ws/ws.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('comments')
@@ -41,6 +42,7 @@ export class CommentController {
     private readonly pageRepo: PageRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageAccessService: PageAccessService,
+    private readonly wsService: WsService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
@@ -119,7 +121,10 @@ export class CommentController {
   @HttpCode(HttpStatus.OK)
   @Post('update')
   async update(@Body() dto: UpdateCommentDto, @AuthUser() user: User) {
-    const comment = await this.commentRepo.findById(dto.commentId);
+    const comment = await this.commentRepo.findById(dto.commentId, {
+      includeCreator: true,
+      includeResolvedBy: true,
+    });
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
@@ -169,6 +174,12 @@ export class CommentController {
       }
       await this.commentRepo.deleteComment(comment.id);
     }
+
+    this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
+      operation: 'commentDeleted',
+      pageId: comment.pageId,
+      commentId: comment.id,
+    });
 
     this.auditService.log({
       event: AuditEvent.COMMENT_DELETED,

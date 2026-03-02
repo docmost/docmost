@@ -11,7 +11,6 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
-import { useQueryEmit } from "@/features/websocket/use-query-emit";
 import { RQ_KEY } from "@/features/comment/queries/comment-query";
 
 function updateCommentInCache(
@@ -33,7 +32,6 @@ function updateCommentInCache(
 export function useResolveCommentMutation() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const emit = useQueryEmit();
 
   return useMutation({
     mutationFn: (data: IResolveComment) => resolveComment(data),
@@ -83,16 +81,6 @@ export function useResolveCommentMutation() {
           })),
         );
       }
-
-      emit({
-        operation: "resolveComment",
-        pageId: data.pageId,
-        commentId: variables.commentId,
-        resolved: variables.resolved,
-        resolvedAt: data.resolvedAt,
-        resolvedById: data.resolvedById,
-        resolvedBy: data.resolvedBy,
-      });
 
       notifications.show({
         message: variables.resolved

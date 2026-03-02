@@ -17,6 +17,7 @@ import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { extractUserMentionIdsFromJson } from '../../common/helpers/prosemirror/utils';
 import { ICommentNotificationJob } from '../../integrations/queue/constants/queue.interface';
+import { WsService } from '../../ws/ws.service';
 
 @Injectable()
 export class CommentService {
@@ -25,6 +26,7 @@ export class CommentService {
   constructor(
     private commentRepo: CommentRepo,
     private pageRepo: PageRepo,
+    private wsService: WsService,
     @InjectQueue(QueueName.GENERAL_QUEUE)
     private generalQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
@@ -104,6 +106,12 @@ export class CommentService {
       createCommentDto.parentCommentId,
     );
 
+    this.wsService.emitCommentEvent(page.spaceId, page.id, {
+      operation: 'commentCreated',
+      pageId: page.id,
+      comment,
+    });
+
     return comment;
   }
 
@@ -158,6 +166,12 @@ export class CommentService {
     comment.content = commentContent;
     comment.editedAt = editedAt;
     comment.updatedAt = editedAt;
+
+    this.wsService.emitCommentEvent(comment.spaceId, comment.pageId, {
+      operation: 'commentUpdated',
+      pageId: comment.pageId,
+      comment,
+    });
 
     return comment;
   }
