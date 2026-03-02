@@ -14,6 +14,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   comparePasswordHash,
   hashPassword,
+  isUserDisabled,
   nanoIdGen,
 } from '../../../common/helpers';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -55,7 +56,7 @@ export class AuthService {
     });
 
     const errorMessage = 'Email or password does not match';
-    if (!user || user?.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new UnauthorizedException(errorMessage);
     }
 
@@ -103,7 +104,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new NotFoundException('User not found');
     }
 
@@ -149,7 +150,7 @@ export class AuthService {
       workspace.id,
     );
 
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       return;
     }
 
@@ -208,7 +209,7 @@ export class AuthService {
     const user = await this.userRepo.findById(userToken.userId, workspace.id, {
       includeUserMfa: true,
     });
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new NotFoundException('User not found');
     }
 

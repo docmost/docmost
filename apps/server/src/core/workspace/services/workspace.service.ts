@@ -616,6 +616,105 @@ export class WorkspaceService {
     return { hostname: this.domainService.getUrl(hostname) };
   }
 
+  async deactivateUser(
+    authUser: User,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+
+    if (!user || user.deletedAt) {
+      throw new BadRequestException('Workspace member not found');
+    }
+
+    if (user.deactivatedAt) {
+      throw new BadRequestException('User is already deactivated');
+    }
+
+    if (authUser.id === userId) {
+      throw new BadRequestException('You cannot deactivate yourself');
+    }
+
+    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+      throw new BadRequestException(
+        'You cannot deactivate a user with owner role',
+      );
+    }
+
+    if (user.role === UserRole.OWNER) {
+      const workspaceOwnerCount = await this.userRepo.roleCountByWorkspaceId(
+        UserRole.OWNER,
+        workspaceId,
+      );
+
+      if (workspaceOwnerCount === 1) {
+        throw new BadRequestException(
+          'There must be at least one workspace owner',
+        );
+      }
+    }
+
+    await this.userRepo.updateUser(
+      { deactivatedAt: new Date() },
+      userId,
+      workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.USER_DEACTIVATED,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      changes: {
+        before: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
+    });
+  }
+
+  async activateUser(
+    authUser: User,
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findById(userId, workspaceId);
+
+    if (!user || user.deletedAt) {
+      throw new BadRequestException('Workspace member not found');
+    }
+
+    if (!user.deactivatedAt) {
+      throw new BadRequestException('User is not deactivated');
+    }
+
+    if (authUser.role === UserRole.ADMIN && user.role === UserRole.OWNER) {
+      throw new BadRequestException(
+        'You cannot activate a user with owner role',
+      );
+    }
+
+    await this.userRepo.updateUser(
+      { deactivatedAt: null },
+      userId,
+      workspaceId,
+    );
+
+    this.auditService.log({
+      event: AuditEvent.USER_ACTIVATED,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      changes: {
+        before: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
+    });
+  }
+
   async deleteUser(
     authUser: User,
     userId: string,

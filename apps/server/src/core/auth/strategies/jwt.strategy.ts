@@ -6,7 +6,7 @@ import { JwtApiKeyPayload, JwtPayload, JwtType } from '../dto/jwt-payload';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { FastifyRequest } from 'fastify';
-import { extractBearerTokenFromHeader } from '../../../common/helpers';
+import { extractBearerTokenFromHeader, isUserDisabled } from '../../../common/helpers';
 import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
@@ -53,7 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
     const user = await this.userRepo.findById(payload.sub, payload.workspaceId);
 
-    if (!user || user.deactivatedAt || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new UnauthorizedException();
     }
 
