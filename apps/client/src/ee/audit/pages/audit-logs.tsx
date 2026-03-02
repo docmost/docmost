@@ -47,7 +47,7 @@ function retentionToDays(amount: number, unit: RetentionUnit): number {
 
 export default function AuditLogs() {
   const { t } = useTranslation();
-  const { isAdmin } = useUserRole();
+  const { isOwner } = useUserRole();
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
 
   const [eventFilter, setEventFilter] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function AuditLogs() {
 
   const { data, isLoading } = useAuditLogsQuery(params);
 
-  if (!isAdmin) {
+  if (!isOwner) {
     return null;
   }
 
