@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v0.25.3)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  VERSION: ${{ inputs.version || github.ref_name }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            suffix: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Generate token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BUILD_APP_ID }}
+          private-key: ${{ secrets.BUILD_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=docmost/docmost,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+          cache-to: type=gha,scope=${{ matrix.suffix }},mode=max
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.suffix }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+
+      - name: Export Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: docmost/docmost:latest
+          outputs: type=docker,dest=docmost-${{ matrix.suffix }}.docker.tar
+          cache-from: type=gha,scope=${{ matrix.suffix }}
+
+      - name: Compress image
+        run: gzip docmost-${{ matrix.suffix }}.docker.tar
+
+      - name: Upload image archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ matrix.suffix }}
+          path: docmost-${{ matrix.suffix }}.docker.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: /tmp/digests
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata for tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: docmost/docmost
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }},enable=${{ !contains(env.VERSION, '-') }}
+            type=raw,value=latest,enable=${{ !contains(env.VERSION, '-') }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'docmost/docmost@sha256:%s ' *)
+
+      - name: Download image archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: docker-image-*
+          path: /tmp/images
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: |
+            /tmp/images/docmost-amd64.docker.tar.gz
+            /tmp/images/docmost-arm64.docker.tar.gz
+          draft: true
