@@ -12,7 +12,7 @@ import {
   ThemeIcon,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { zodResolver } from "mantine-form-zod-resolver";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import { IconDeviceMobile, IconLock } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
@@ -20,7 +20,7 @@ import classes from "./mfa-challenge.module.css";
 import { verifyMfa } from "@/ee/mfa";
 import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route";
 import { useTranslation } from "react-i18next";
-import * as z from "zod";
+import { z } from "zod/v4";
 import { MfaBackupCodeInput } from "./mfa-backup-code-input";
 
 const formSchema = z.object({
@@ -43,7 +43,7 @@ export function MfaChallenge() {
   const [useBackupCode, setUseBackupCode] = useState(false);
 
   const form = useForm<MfaChallengeFormValues>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       code: "",
     },

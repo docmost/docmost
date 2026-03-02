@@ -1,8 +1,8 @@
 import {
+  useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
-  UseQueryResult,
+  InfiniteData,
 } from "@tanstack/react-query";
 import {
   createComment,
@@ -17,17 +17,40 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
+import { useEffect, useMemo } from "react";
 
 export const RQ_KEY = (pageId: string) => ["comments", pageId];
 
-export function useCommentsQuery(
-  params: ICommentParams,
-): UseQueryResult<IPagination<IComment>, Error> {
-  return useQuery({
+export function useCommentsQuery(params: ICommentParams) {
+  const query = useInfiniteQuery({
     queryKey: RQ_KEY(params.pageId),
-    queryFn: () => getPageComments(params),
+    queryFn: ({ pageParam }) =>
+      getPageComments({ pageId: params.pageId, cursor: pageParam, limit: 100 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     enabled: !!params.pageId,
   });
+
+  useEffect(() => {
+    if (query.hasNextPage && !query.isFetchingNextPage) {
+      query.fetchNextPage();
+    }
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+
+  const data = useMemo<IPagination<IComment> | undefined>(() => {
+    if (!query.data) return undefined;
+    return {
+      items: query.data.pages.flatMap((p) => p.items),
+      meta: query.data.pages[query.data.pages.length - 1].meta,
+    };
+  }, [query.data]);
+
+  return {
+    data,
+    isLoading: query.isLoading || query.hasNextPage,
+    isError: query.isError,
+  };
 }
 
 export function useCreateCommentMutation() {
@@ -36,18 +59,26 @@ export function useCreateCommentMutation() {
 
   return useMutation<IComment, Error, Partial<IComment>>({
     mutationFn: (data) => createComment(data),
-    onSuccess: (data) => {
-      //const newComment = data;
-      // let comments = queryClient.getQueryData(RQ_KEY(data.pageId));
-      // if (comments) {
-      //comments = prevComments => [...prevComments, newComment];
-      //queryClient.setQueryData(RQ_KEY(data.pageId), comments);
-      //}
+    onSuccess: (newComment) => {
+      const cache = queryClient.getQueryData(
+        RQ_KEY(newComment.pageId),
+      ) as InfiniteData<IPagination<IComment>> | undefined;
 
-      queryClient.refetchQueries({ queryKey: RQ_KEY(data.pageId) });
+      if (cache && cache.pages.length > 0) {
+        const lastIdx = cache.pages.length - 1;
+        queryClient.setQueryData(RQ_KEY(newComment.pageId), {
+          ...cache,
+          pages: cache.pages.map((page, i) =>
+            i === lastIdx
+              ? { ...page, items: [...page.items, newComment] }
+              : page,
+          ),
+        });
+      }
+
       notifications.show({ message: t("Comment created successfully") });
     },
-    onError: (error) => {
+    onError: () => {
       notifications.show({
         message: t("Error creating comment"),
         color: "red",
@@ -57,14 +88,31 @@ export function useCreateCommentMutation() {
 }
 
 export function useUpdateCommentMutation() {
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
 
   return useMutation<IComment, Error, Partial<IComment>>({
     mutationFn: (data) => updateComment(data),
-    onSuccess: (data) => {
+    onSuccess: (updatedComment) => {
+      const cache = queryClient.getQueryData(
+        RQ_KEY(updatedComment.pageId),
+      ) as InfiniteData<IPagination<IComment>> | undefined;
+
+      if (cache) {
+        queryClient.setQueryData(RQ_KEY(updatedComment.pageId), {
+          ...cache,
+          pages: cache.pages.map((page) => ({
+            ...page,
+            items: page.items.map((comment) =>
+              comment.id === updatedComment.id ? updatedComment : comment,
+            ),
+          })),
+        });
+      }
+
       notifications.show({ message: t("Comment updated successfully") });
     },
-    onError: (error) => {
+    onError: () => {
       notifications.show({
         message: t("Failed to update comment"),
         color: "red",
@@ -79,25 +127,24 @@ export function useDeleteCommentMutation(pageId?: string) {
 
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
-    onSuccess: (data, variables) => {
-      const comments = queryClient.getQueryData(
+    onSuccess: (_data, commentId) => {
+      const cache = queryClient.getQueryData(
         RQ_KEY(pageId),
-      ) as IPagination<IComment>;
+      ) as InfiniteData<IPagination<IComment>> | undefined;
 
-      if (comments && comments.items) {
-        const commentId = variables;
-        const newComments = comments.items.filter(
-          (comment) => comment.id !== commentId,
-        );
+      if (cache) {
         queryClient.setQueryData(RQ_KEY(pageId), {
-          ...comments,
-          items: newComments,
+          ...cache,
+          pages: cache.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((comment) => comment.id !== commentId),
+          })),
         });
       }
 
       notifications.show({ message: t("Comment deleted successfully") });
     },
-    onError: (error) => {
+    onError: () => {
       notifications.show({
         message: t("Failed to delete comment"),
         color: "red",

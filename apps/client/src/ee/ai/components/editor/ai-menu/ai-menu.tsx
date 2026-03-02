@@ -1,5 +1,5 @@
 import { Editor } from "@tiptap/react";
-import { ActionIcon, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useMediaQuery } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -14,7 +14,7 @@ import { ResultPreview } from "./result-preview.tsx";
 import classes from "./ai-menu.module.css";
 import { marked } from "marked";
 import { DOMSerializer } from "@tiptap/pm/model";
-import { htmlToMarkdown } from "@docmost/editor-ext";
+import { copyToClipboard, htmlToMarkdown } from "@docmost/editor-ext";
 import { useLocation } from "react-router-dom";
 
 interface EditorAiMenuProps {
@@ -110,6 +110,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
           setOutput((output) => output + chunk.content);
         },
         onComplete: () => {
+          setPrompt("");
           setIsLoading(false);
           setActiveCommandSet("result");
         },
@@ -146,13 +147,18 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         }
 
         const html = (marked.parse(output) as string).trim();
-        // Strip <p> wrapper for single-paragraph output to preserve inline context
-        const content =
+        const isSingleParagraph =
           html.startsWith("<p>") &&
           html.endsWith("</p>") &&
-          html.lastIndexOf("<p>") === 0
-            ? html.slice(3, -4)
-            : html;
+          html.lastIndexOf("<p>") === 0;
+
+        // Strip <p> wrapper for single-paragraph output to preserve inline context,
+        // then decode HTML entities via DOMParser since TipTap would otherwise
+        // treat the tagless string as plain text and insert entities literally.
+        const content = isSingleParagraph
+          ? new DOMParser().parseFromString(html.slice(3, -4), "text/html")
+              .body.innerHTML
+          : html;
 
         chain.insertContent(content).run();
 
@@ -169,7 +175,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
         return setShowAiMenu(false);
       }
       if (item.id === "result-copy") {
-        navigator.clipboard.writeText(output);
+        copyToClipboard(output);
 
         return setShowAiMenu(false);
       }
@@ -271,7 +277,7 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
   return createPortal(
     <div
       style={{
-        zIndex: 200,
+        zIndex: 199,
         position: "absolute",
         top: menuPlacement.top,
         left: menuPlacement.left,

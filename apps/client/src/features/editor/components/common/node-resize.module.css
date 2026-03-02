@@ -44,6 +44,10 @@
   opacity: 1;
 }
 
+.container:global(.ProseMirror-selectednode) .handle {
+  opacity: 1;
+}
+
 .resizing .handle {
   opacity: 1;
 }
@@ -62,4 +66,10 @@
 
 .resizing .handleBar {
   background-color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+}
+
+@media print {
+  .handle {
+    display: none !important;
+  }
 }

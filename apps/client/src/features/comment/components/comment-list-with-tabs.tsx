@@ -1,6 +1,17 @@
 import React, { useState, useRef, useCallback, memo, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Divider, Paper, Tabs, Badge, Text, ScrollArea } from "@mantine/core";
+import {
+  ActionIcon,
+  Center,
+  Divider,
+  Group,
+  Paper,
+  Stack,
+  Tabs,
+  Badge,
+  Text,
+  ScrollArea,
+} from "@mantine/core";
 import CommentListItem from "@/features/comment/components/comment-list-item";
 import {
   useCommentsQuery,
@@ -14,9 +25,8 @@ import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { IPagination } from "@/lib/types.ts";
 import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
-import { useQueryEmit } from "@/features/websocket/use-query-emit";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
+import { IconArrowUp, IconMessageOff } from "@tabler/icons-react";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -26,11 +36,9 @@ function CommentListWithTabs() {
     data: comments,
     isLoading: isCommentsLoading,
     isError,
-  } = useCommentsQuery({ pageId: page?.id, limit: 100 });
+  } = useCommentsQuery({ pageId: page?.id });
   const createCommentMutation = useCreateCommentMutation();
   const [isLoading, setIsLoading] = useState(false);
-  const emit = useQueryEmit();
-  const isCloudEE = useIsCloudEE();
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const canComment = page?.permissions?.canEdit ?? false;
@@ -55,6 +63,34 @@ function CommentListWithTabs() {
     return { activeComments: active, resolvedComments: resolved };
   }, [comments]);
 
+  const [isPageCommentLoading, setIsPageCommentLoading] = useState(false);
+
+  const handleAddPageComment = useCallback(
+    async (_commentId: string, content: string) => {
+      try {
+        setIsPageCommentLoading(true);
+        const createdComment = await createCommentMutation.mutateAsync({
+          pageId: page?.id,
+          content: JSON.stringify(content),
+        });
+
+        setTimeout(() => {
+          const selector = `div[data-comment-id="${createdComment.id}"]`;
+          const commentElement = document.querySelector(selector);
+          commentElement?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 400);
+      } catch (error) {
+        console.error("Failed to post comment:", error);
+      } finally {
+        setIsPageCommentLoading(false);
+      }
+    },
+    [createCommentMutation, page?.id],
+  );
+
   const handleAddReply = useCallback(
     async (commentId: string, content: string) => {
       try {
@@ -66,11 +102,6 @@ function CommentListWithTabs() {
         };
 
         await createCommentMutation.mutateAsync(commentData);
-
-        emit({
-          operation: "invalidateComment",
-          pageId: page?.id,
-        });
       } catch (error) {
         console.error("Failed to post comment:", error);
       } finally {
@@ -132,70 +163,32 @@ function CommentListWithTabs() {
 
   const totalComments = activeComments.length + resolvedComments.length;
 
-  // If not cloud/enterprise, show simple list without tabs
-  if (!isCloudEE) {
-    if (totalComments === 0) {
-      return <>{t("No comments yet.")}</>;
-    }
-
-    return (
-      <ScrollArea style={{ height: "85vh" }} scrollbarSize={5} type="scroll">
-        <div style={{ paddingBottom: "200px" }}>
-          {comments?.items
-            .filter((comment: IComment) => comment.parentCommentId === null)
-            .map((comment) => (
-              <Paper
-                shadow="sm"
-                radius="md"
-                p="sm"
-                mb="sm"
-                withBorder
-                key={comment.id}
-                data-comment-id={comment.id}
-              >
-                <div>
-                  <CommentListItem
-                    comment={comment}
-                    pageId={page?.id}
-                    canComment={canComment}
-                    userSpaceRole={space?.membership?.role}
-                  />
-                  <MemoizedChildComments
-                    comments={comments}
-                    parentId={comment.id}
-                    pageId={page?.id}
-                    canComment={canComment}
-                    userSpaceRole={space?.membership?.role}
-                  />
-                </div>
-
-                {canComment && (
-                  <>
-                    <Divider my={4} />
-                    <CommentEditorWithActions
-                      commentId={comment.id}
-                      onSave={handleAddReply}
-                      isLoading={isLoading}
-                    />
-                  </>
-                )}
-              </Paper>
-            ))}
-        </div>
-      </ScrollArea>
-    );
-  }
+  const pageCommentInput = canComment ? (
+    <PageCommentInput
+      onSave={handleAddPageComment}
+      isLoading={isPageCommentLoading}
+    />
+  ) : null;
 
   return (
     <div
       style={{
-        height: "85vh",
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        marginTop: "-15px",
       }}
     >
-      <Tabs defaultValue="open" variant="default" style={{ flex: "0 0 auto" }}>
+      <Tabs
+        defaultValue="open"
+        variant="default"
+        style={{
+          flex: "1 1 auto",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <Tabs.List justify="center">
           <Tabs.Tab
             value="open"
@@ -220,16 +213,25 @@ function CommentListWithTabs() {
         </Tabs.List>
 
         <ScrollArea
-          style={{ flex: "1 1 auto", height: "calc(85vh - 60px)" }}
+          style={{ flex: "1 1 auto" }}
           scrollbarSize={5}
           type="scroll"
         >
-          <div style={{ paddingBottom: "200px" }}>
+          <div style={{ paddingBottom: "8px" }}>
             <Tabs.Panel value="open" pt="xs">
               {activeComments.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center" py="md">
-                  {t("No open comments.")}
-                </Text>
+                <Center py="xl">
+                  <Stack align="center" gap="xs">
+                    <IconMessageOff
+                      size={32}
+                      stroke={1.5}
+                      color="var(--mantine-color-dimmed)"
+                    />
+                    <Text size="sm" c="dimmed">
+                      {t("No open comments.")}
+                    </Text>
+                  </Stack>
+                </Center>
               ) : (
                 activeComments.map(renderComments)
               )}
@@ -237,9 +239,18 @@ function CommentListWithTabs() {
 
             <Tabs.Panel value="resolved" pt="xs">
               {resolvedComments.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center" py="md">
-                  {t("No resolved comments.")}
-                </Text>
+                <Center py="xl">
+                  <Stack align="center" gap="xs">
+                    <IconMessageOff
+                      size={32}
+                      stroke={1.5}
+                      color="var(--mantine-color-dimmed)"
+                    />
+                    <Text size="sm" c="dimmed">
+                      {t("No resolved comments.")}
+                    </Text>
+                  </Stack>
+                </Center>
               ) : (
                 resolvedComments.map(renderComments)
               )}
@@ -247,6 +258,7 @@ function CommentListWithTabs() {
           </div>
         </ScrollArea>
       </Tabs>
+      {pageCommentInput}
     </div>
   );
 }
@@ -298,7 +310,12 @@ const ChildComments = ({
 
 const MemoizedChildComments = memo(ChildComments);
 
-const CommentEditorWithActions = ({ commentId, onSave, isLoading }) => {
+const CommentEditorWithActions = ({
+  commentId,
+  onSave,
+  isLoading,
+  placeholder = undefined,
+}) => {
   const [content, setContent] = useState("");
   const { ref, focused } = useFocusWithin();
   const commentEditorRef = useRef(null);
@@ -316,8 +333,55 @@ const CommentEditorWithActions = ({ commentId, onSave, isLoading }) => {
         onUpdate={setContent}
         onSave={handleSave}
         editable={true}
+        placeholder={placeholder}
       />
       {focused && <CommentActions onSave={handleSave} isLoading={isLoading} />}
+    </div>
+  );
+};
+
+const PageCommentInput = ({ onSave, isLoading }) => {
+  const { t } = useTranslation();
+  const [content, setContent] = useState("");
+  const { ref, focused } = useFocusWithin();
+  const commentEditorRef = useRef(null);
+
+  const handleSave = useCallback(() => {
+    onSave(null, content);
+    setContent("");
+    commentEditorRef.current?.clearContent();
+  }, [content, onSave]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        flex: "0 0 auto",
+        borderTop: "1px solid var(--mantine-color-default-border)",
+        paddingTop: "var(--mantine-spacing-sm)",
+        paddingBottom: 25,
+        position: "relative",
+      }}
+    >
+      <CommentEditor
+        ref={commentEditorRef}
+        onUpdate={setContent}
+        onSave={handleSave}
+        editable={true}
+        placeholder={t("Add a comment...")}
+      />
+      {focused && (
+        <ActionIcon
+          variant="filled"
+          radius="xl"
+          size="sm"
+          onClick={handleSave}
+          loading={isLoading}
+          style={{ position: "absolute", right: 8, bottom: 30 }}
+        >
+          <IconArrowUp size={16} />
+        </ActionIcon>
+      )}
     </div>
   );
 };

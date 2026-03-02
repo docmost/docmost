@@ -68,6 +68,17 @@ export class WorkspaceRepo {
     return query.executeTakeFirst();
   }
 
+  async findLicenseKeyById(
+    workspaceId: string,
+  ): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('workspaces')
+      .select('licenseKey')
+      .where('id', '=', workspaceId)
+      .executeTakeFirst();
+    return row?.licenseKey;
+  }
+
   async findFirst(): Promise<Workspace> {
     return await this.db
       .selectFrom('workspaces')

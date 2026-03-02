@@ -164,7 +164,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   return (
     <BubbleMenu
       {...bubbleMenuProps}
-      style={{ zIndex: 200, position: "relative" }}
+      style={{ zIndex: 199, position: "relative" }}
     >
       <div className={classes.bubbleMenu}>
         {isGenerativeAiEnabled && (

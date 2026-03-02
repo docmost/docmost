@@ -235,6 +235,7 @@ export default function AuditLogsTable({
                         {entry.actor ? (
                           <Group gap="sm" wrap="nowrap">
                             <CustomAvatar
+                              avatarUrl={entry.actor.avatarUrl}
                               name={entry.actor.name}
                               size={36}
                             />
