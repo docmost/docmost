@@ -94,14 +94,17 @@ export default function WorkspaceMembersTable() {
                     )}
                   </Table.Td>
                   <Table.Td>
-                    <RoleSelectMenu
-                      roles={assignableUserRoles}
-                      roleName={getUserRoleLabel(user.role)}
-                      onChange={(newRole) =>
-                        handleRoleChange(user.id, user.role, newRole)
-                      }
-                      disabled={!isAdmin}
-                    />
+                    {isAdmin ? (
+                      <RoleSelectMenu
+                        roles={assignableUserRoles}
+                        roleName={getUserRoleLabel(user.role)}
+                        onChange={(newRole) =>
+                          handleRoleChange(user.id, user.role, newRole)
+                        }
+                      />
+                    ) : (
+                      <Text fz="sm">{t(getUserRoleLabel(user.role))}</Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     {isAdmin && (

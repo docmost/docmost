@@ -25,7 +25,6 @@ import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { IPagination } from "@/lib/types.ts";
 import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { IconArrowUp, IconMessageOff } from "@tabler/icons-react";
 
