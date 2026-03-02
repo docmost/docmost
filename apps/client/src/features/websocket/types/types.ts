@@ -1,5 +1,6 @@
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { IPage } from "@/features/page/types/page.types";
+import { IComment } from "@/features/comment/types/comment.types";
 
 export type InvalidateEvent = {
   operation: "invalidate";
@@ -11,13 +12,13 @@ export type InvalidateEvent = {
 export type CommentCreatedEvent = {
   operation: "commentCreated";
   pageId: string;
-  comment: import("@/features/comment/types/comment.types").IComment;
+  comment: IComment;
 };
 
 export type CommentUpdatedEvent = {
   operation: "commentUpdated";
   pageId: string;
-  comment: import("@/features/comment/types/comment.types").IComment;
+  comment: IComment;
 };
 
 export type CommentDeletedEvent = {
@@ -29,7 +30,7 @@ export type CommentDeletedEvent = {
 export type CommentResolvedEvent = {
   operation: "commentResolved";
   pageId: string;
-  comment: import("@/features/comment/types/comment.types").IComment;
+  comment: IComment;
 };
 
 export type UpdateEvent = {
