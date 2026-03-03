@@ -14,6 +14,7 @@ import { getAttachmentFolderPath } from '../../../core/attachment/attachment.uti
 import { AttachmentType } from '../../../core/attachment/attachment.constants';
 import { unwrapFromParagraph } from '../utils/import-formatter';
 import { resolveRelativeAttachmentPath } from '../utils/import.utils';
+import { imageDimensionsFromData } from 'image-dimensions';
 import { load } from 'cheerio';
 import pLimit from 'p-limit';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -271,15 +272,37 @@ export class ImportAttachmentService {
         continue;
       }
 
-      const { attachmentId, apiFilePath } = processFile(relPath);
+      const { attachmentId, apiFilePath, abs } = processFile(relPath);
 
-      const width = $img.attr('width') ?? '100%';
+      let width = $img.attr('width');
+      const height = $img.attr('height');
       const align = $img.attr('data-align') ?? 'center';
+
+      if (!width) {
+        try {
+          const buf = await fs.readFile(abs);
+          const natural = imageDimensionsFromData(new Uint8Array(buf));
+          if (natural) {
+            width = height
+              ? String(
+                  Math.round((natural.width / natural.height) * Number(height)),
+                )
+              : String(natural.width);
+          }
+        } catch {
+          /* empty */
+        }
+
+        if (!width) {
+          width = '600';
+        }
+      }
 
       $img
         .attr('src', apiFilePath)
         .attr('data-attachment-id', attachmentId)
         .attr('width', width)
+        .attr('height', height)
         .attr('data-align', align);
 
       unwrapFromParagraph($, $img);
@@ -420,7 +443,7 @@ export class ImportAttachmentService {
         const { attachmentId, apiFilePath, abs } = processFile(relPath);
         const fileName = path.basename(abs);
 
-        const width = $oldDiv.attr('data-width') || '100%';
+        const width = $oldDiv.attr('data-width') || '600';
         const align = $oldDiv.attr('data-align') || 'center';
 
         const $newDiv = $('<div>')
@@ -460,7 +483,7 @@ export class ImportAttachmentService {
         .attr('data-type', 'drawio')
         .attr('data-src', drawioSvg.apiFilePath)
         .attr('data-title', 'diagram')
-        .attr('data-width', '100%')
+        .attr('data-width', '600')
         .attr('data-align', 'center')
         .attr('data-attachment-id', drawioSvg.attachmentId);
 
@@ -531,7 +554,9 @@ export class ImportAttachmentService {
 
     // Post-process DOM elements to add file sizes after uploads complete
     // This avoids blocking file operations during initial DOM processing
-    const elementsNeedingSize = $('[data-attachment-id]:not([data-attachment-size])');
+    const elementsNeedingSize = $(
+      '[data-attachment-id]:not([data-attachment-size])',
+    );
     for (const element of elementsNeedingSize.toArray()) {
       const $el = $(element);
       const attachmentId = $el.attr('data-attachment-id');
