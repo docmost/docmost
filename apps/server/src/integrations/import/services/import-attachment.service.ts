@@ -531,7 +531,7 @@ export class ImportAttachmentService {
 
     // Post-process DOM elements to add file sizes after uploads complete
     // This avoids blocking file operations during initial DOM processing
-    const elementsNeedingSize = $('[data-attachment-id]:not([data-size])');
+    const elementsNeedingSize = $('[data-attachment-id]:not([data-attachment-size])');
     for (const element of elementsNeedingSize.toArray()) {
       const $el = $(element);
       const attachmentId = $el.attr('data-attachment-id');
@@ -545,7 +545,7 @@ export class ImportAttachmentService {
       if (processedEntry) {
         try {
           const stat = await fs.stat(processedEntry.abs);
-          $el.attr('data-size', stat.size.toString());
+          $el.attr('data-attachment-size', stat.size.toString());
         } catch (error) {
           this.logger.debug(
             `Could not get size for ${processedEntry.abs}:`,
