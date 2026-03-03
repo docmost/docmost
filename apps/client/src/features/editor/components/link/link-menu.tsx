@@ -1,5 +1,6 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import React, { useCallback, useState } from "react";
+import { TextSelection } from "@tiptap/pm/state";
 import { EditorMenuProps } from "@/features/editor/components/table/types/types.ts";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { LinkPreviewPanel } from "@/features/editor/components/link/link-preview.tsx";
@@ -37,6 +38,10 @@ export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
         .focus()
         .extendMarkRange("link")
         .setLink({ href: url })
+        .command(({ tr }) => {
+          tr.setSelection(TextSelection.create(tr.doc, tr.selection.to));
+          return true;
+        })
         .run();
       setShowEdit(false);
     },

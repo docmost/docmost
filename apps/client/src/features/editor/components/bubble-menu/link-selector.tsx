@@ -2,6 +2,7 @@ import { Dispatch, FC, SetStateAction, useCallback } from "react";
 import { IconLink } from "@tabler/icons-react";
 import { ActionIcon, Popover, Tooltip } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
+import { TextSelection } from "@tiptap/pm/state";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
 import { useTranslation } from "react-i18next";
 
@@ -20,7 +21,15 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
   const onLink = useCallback(
     (url: string) => {
       setIsOpen(false);
-      editor.chain().focus().setLink({ href: url }).run();
+      editor
+        .chain()
+        .focus()
+        .setLink({ href: url })
+        .command(({ tr }) => {
+          tr.setSelection(TextSelection.create(tr.doc, tr.selection.to));
+          return true;
+        })
+        .run();
     },
     [editor, setIsOpen],
   );
