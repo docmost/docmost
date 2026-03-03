@@ -75,13 +75,19 @@ jobs:
           path: /tmp/digests/*
           if-no-files-found: error
 
+      - name: Strip v prefix
+        id: strip-v
+        run: echo "version=${VERSION#v}" >> "$GITHUB_OUTPUT"
+        
       - name: Export Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: ${{ matrix.platform }}
           push: false
-          tags: docmost/docmost:latest
+          tags: |
+            docmost/docmost:latest
+            docmost/docmost:${{ steps.strip-v.outputs.version }}
           outputs: type=docker,dest=docmost-${{ matrix.suffix }}.docker.tar
           cache-from: type=gha,scope=${{ matrix.suffix }}
 
