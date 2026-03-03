@@ -52,16 +52,34 @@ const EditorAiMenu = ({ editor }: EditorAiMenuProps): JSX.Element | null => {
     if (!editor || !showAiMenu) return;
 
     const { view } = editor;
-    const { to } = editor.state.selection;
+    const { from, to } = editor.state.selection;
     const editorRect = view.dom.getBoundingClientRect();
-    const cursorCoords = view.coordsAtPos(to);
+    const fromCoords = view.coordsAtPos(from);
+    const toCoords = view.coordsAtPos(to);
     const topOffset = 8;
     const editorPadding = isSmBreakpoint ? 16 : 48;
 
+    const anchorBottom =
+      toCoords.bottom > 0 && toCoords.bottom < window.innerHeight
+        ? toCoords.bottom
+        : fromCoords.bottom;
+
+    const menuMaxWidth = 600;
+    const editorLeft = editorRect.left + editorPadding;
+    const editorRight = editorRect.right - editorPadding;
+    const availableWidth = editorRight - editorLeft;
+    const menuWidth = Math.min(menuMaxWidth, availableWidth);
+
+    let menuLeft = Math.max(editorLeft, fromCoords.left);
+    if (menuLeft + menuWidth > editorRight) {
+      menuLeft = editorRight - menuWidth;
+    }
+    menuLeft = Math.max(editorLeft, menuLeft);
+
     setMenuPlacement({
-      top: cursorCoords.bottom + topOffset + window.scrollY,
-      left: editorRect.left + editorPadding + window.scrollX,
-      width: editorRect.width - editorPadding * 2,
+      top: anchorBottom + topOffset + window.scrollY,
+      left: menuLeft + window.scrollX,
+      width: menuWidth,
     });
   }, [editor, showAiMenu, isSmBreakpoint]);
   const resetMenu = useCallback(() => {

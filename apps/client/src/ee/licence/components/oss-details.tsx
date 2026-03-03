@@ -3,12 +3,13 @@ import { IconCheck } from "@tabler/icons-react";
 
 const enterpriseFeatures = [
   "SSO (SAML, OIDC, LDAP)",
-  "Multi-factor Authentication",
+  "AI Integration (Search & Assistant)",
   "Page-level Permissions",
   "Audit Logs",
   "API Keys",
-  "AI Integration",
   "MCP Support",
+  "Multi-factor Authentication (2FA)",
+  "Enterprise Controls",
   "Advanced Search Engine Support",
   "Full-text Search in Attachments (PDF, DOCX)",
   "Resolve Comments",
@@ -67,8 +68,7 @@ export default function OssDetails() {
         </List>
 
         <Text size="sm" c="dimmed">
-          Contact <a href="mailto:sales@docmost.com">sales@docmost.com </a> for
-          enquiries.
+          Contact <a href="mailto:sales@docmost.com?subject=Enterprise%20License%20Inquiry">sales@docmost.com </a> to purchase an enterprise license.
         </Text>
       </Stack>
     </Stack>
