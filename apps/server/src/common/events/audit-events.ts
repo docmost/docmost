@@ -98,6 +98,7 @@ export const EXCLUDED_AUDIT_EVENTS: Set<string> = new Set([
   AuditEvent.COMMENT_UPDATED,
   AuditEvent.COMMENT_RESOLVED,
   AuditEvent.COMMENT_REOPENED,
+  AuditEvent.ATTACHMENT_UPLOADED
 ]);
 
 export const AuditResource = {
