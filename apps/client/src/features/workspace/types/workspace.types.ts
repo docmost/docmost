@@ -32,6 +32,11 @@ export interface IWorkspace {
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
+  api?: IWorkspaceApiSettings;
+}
+
+export interface IWorkspaceApiSettings {
+  restrictToAdmins?: boolean;
 }
 
 export interface IWorkspaceAiSettings {

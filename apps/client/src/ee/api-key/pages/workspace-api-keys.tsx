@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Anchor, Button, Group, Space, Text } from "@mantine/core";
+import { Anchor, Button, Divider, Group, Space, Text } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
@@ -14,6 +14,7 @@ import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetApiKeysQuery } from "@/ee/api-key/queries/api-key-query.ts";
 import { IApiKey } from "@/ee/api-key";
 import useUserRole from '@/hooks/use-user-role.tsx';
+import RestrictApiToAdmins from "@/ee/api-key/components/restrict-api-to-admins";
 
 export default function WorkspaceApiKeys() {
   const { t } = useTranslation();
@@ -62,6 +63,9 @@ export default function WorkspaceApiKeys() {
         </Anchor>{" "}
         {t("for usage details.")}
       </Text>
+
+      <RestrictApiToAdmins />
+      <Divider my="lg" />
 
       <Group justify="flex-end" mb="md">
         <Button onClick={() => setCreateModalOpened(true)}>
