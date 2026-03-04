@@ -6,6 +6,7 @@ import {
   Range,
   ResizableNodeView,
 } from "@tiptap/core";
+import { normalizeFileUrl } from "../media-utils";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type ImageResizeOptions = {
@@ -252,10 +253,17 @@ export const TiptapImage = Image.extend<ImageOptions>({
         }
       });
 
-      el.src = HTMLAttributes.src;
+      el.src = normalizeFileUrl(HTMLAttributes.src);
       el.style.display = "block";
       el.style.maxWidth = "100%";
       el.style.borderRadius = "8px";
+
+      if (typeof node.attrs.width === "number" && node.attrs.width > 0) {
+        el.style.width = `${node.attrs.width}px`;
+        if (typeof node.attrs.height === "number" && node.attrs.height > 0) {
+          el.style.height = `${node.attrs.height}px`;
+        }
+      }
 
       let currentNode = node;
 
@@ -287,7 +295,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
           }
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
-            el.src = updatedNode.attrs.src || "";
+            el.src = normalizeFileUrl(updatedNode.attrs.src);
           }
 
           if (updatedNode.attrs.alt !== currentNode.attrs.alt) {
@@ -352,12 +360,16 @@ export const TiptapImage = Image.extend<ImageOptions>({
         });
       }
 
-      // Hide until image loads (official TipTap pattern)
-      dom.style.visibility = "hidden";
+      // Show skeleton background while image loads from server
       dom.style.pointerEvents = "none";
+      dom.style.overflow = "hidden";
+      dom.style.borderRadius = "8px";
+      dom.style.background =
+        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
+
       el.onload = () => {
-        dom.style.visibility = "";
         dom.style.pointerEvents = "";
+        dom.style.background = "";
       };
 
       return nodeView;
