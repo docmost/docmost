@@ -328,8 +328,6 @@ export const TiptapVideo = Node.create<VideoOptions>({
 
       // Show skeleton background while video loads from server
       dom.style.pointerEvents = "none";
-      dom.style.overflow = "hidden";
-      dom.style.borderRadius = "8px";
       dom.style.background =
         "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
 

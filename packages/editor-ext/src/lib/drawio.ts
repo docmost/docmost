@@ -320,8 +320,6 @@ export const Drawio = Node.create<DrawioOptions>({
 
       // Show skeleton background while image loads from server
       dom.style.pointerEvents = "none";
-      dom.style.overflow = "hidden";
-      dom.style.borderRadius = "8px";
       dom.style.background =
         "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
 
