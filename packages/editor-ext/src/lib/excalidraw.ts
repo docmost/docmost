@@ -318,12 +318,16 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
         });
       }
 
-      // Hide until image loads
-      dom.style.visibility = "hidden";
+      // Show skeleton background while image loads from server
       dom.style.pointerEvents = "none";
+      dom.style.overflow = "hidden";
+      dom.style.borderRadius = "8px";
+      dom.style.background =
+        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
+
       el.onload = () => {
-        dom.style.visibility = "";
         dom.style.pointerEvents = "";
+        dom.style.background = "";
       };
 
       return nodeView;
