@@ -1,5 +1,6 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { Range, Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
+import { normalizeFileUrl } from "../media-utils";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type VideoResizeOptions = {
@@ -223,7 +224,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
       }
 
       const el = document.createElement("video");
-      el.src = node.attrs.src;
+      el.src = normalizeFileUrl(node.attrs.src);
       el.controls = true;
       el.preload = "metadata";
       el.style.display = "block";
@@ -260,7 +261,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
           }
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
-            el.src = updatedNode.attrs.src || "";
+            el.src = normalizeFileUrl(updatedNode.attrs.src);
           }
 
           const w = updatedNode.attrs.width;

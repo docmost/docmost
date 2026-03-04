@@ -1,6 +1,7 @@
 import { Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { normalizeFileUrl } from "./media-utils";
 
 export type DrawioResizeOptions = {
   enabled: boolean;
@@ -223,7 +224,7 @@ export const Drawio = Node.create<DrawioOptions>({
       }
 
       const el = document.createElement("img");
-      el.src = node.attrs.src;
+      el.src = normalizeFileUrl(node.attrs.src);
       el.alt = node.attrs.title || "";
       el.style.display = "block";
       el.style.maxWidth = "100%";
@@ -259,7 +260,7 @@ export const Drawio = Node.create<DrawioOptions>({
           }
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
-            el.src = updatedNode.attrs.src || "";
+            el.src = normalizeFileUrl(updatedNode.attrs.src);
           }
 
           const w = updatedNode.attrs.width;

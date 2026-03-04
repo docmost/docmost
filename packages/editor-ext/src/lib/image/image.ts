@@ -6,6 +6,7 @@ import {
   Range,
   ResizableNodeView,
 } from "@tiptap/core";
+import { normalizeFileUrl } from "../media-utils";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type ImageResizeOptions = {
@@ -252,7 +253,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
         }
       });
 
-      el.src = HTMLAttributes.src;
+      el.src = normalizeFileUrl(HTMLAttributes.src);
       el.style.display = "block";
       el.style.maxWidth = "100%";
       el.style.borderRadius = "8px";
@@ -287,7 +288,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
           }
 
           if (updatedNode.attrs.src !== currentNode.attrs.src) {
-            el.src = updatedNode.attrs.src || "";
+            el.src = normalizeFileUrl(updatedNode.attrs.src);
           }
 
           if (updatedNode.attrs.alt !== currentNode.attrs.alt) {
