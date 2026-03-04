@@ -1,6 +1,11 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { Range, Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
-import { normalizeFileUrl } from "../media-utils";
+import {
+  normalizeFileUrl,
+  applyAlignment,
+  createPlaceholderView,
+  setupMediaLoading,
+} from "../media-utils";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type VideoResizeOptions = {
@@ -205,22 +210,7 @@ export const TiptapVideo = Node.create<VideoOptions>({
       const { node, getPos, HTMLAttributes, editor } = props;
 
       if (!node.attrs.src) {
-        editor.isInitialized = true;
-        const reactView = ReactNodeViewRenderer(this.options.view);
-        const view = reactView(props);
-
-        const originalUpdate = view.update?.bind(view);
-        view.update = (updatedNode, decorations, innerDecorations) => {
-          if (updatedNode.attrs.src && !node.attrs.src) {
-            return false;
-          }
-          if (originalUpdate) {
-            return originalUpdate(updatedNode, decorations, innerDecorations);
-          }
-          return true;
-        };
-
-        return view;
+        return createPlaceholderView(this.options.view, props);
       }
 
       const el = document.createElement("video");
@@ -299,54 +289,10 @@ export const TiptapVideo = Node.create<VideoOptions>({
         },
       });
 
-      const dom = nodeView.dom as HTMLElement;
-
-      applyAlignment(dom, node.attrs.align || "center");
-
-      // Handle percentage width backward compat
-      const widthAttr = node.attrs.width;
-      if (typeof widthAttr === "string" && widthAttr.endsWith("%")) {
-        requestAnimationFrame(() => {
-          const parentEl = dom.parentElement;
-          if (parentEl) {
-            const containerWidth = parentEl.clientWidth;
-            const pctValue = parseInt(widthAttr, 10);
-            if (!isNaN(pctValue) && containerWidth > 0) {
-              const pxWidth = Math.round(
-                containerWidth * (pctValue / 100),
-              );
-              el.style.width = `${pxWidth}px`;
-              if (node.attrs.aspectRatio) {
-                el.style.height = `${Math.round(pxWidth / node.attrs.aspectRatio)}px`;
-              }
-            }
-          }
-          dom.style.visibility = "";
-          dom.style.pointerEvents = "";
-        });
-      }
-
-      // Show skeleton background while video loads from server
-      dom.style.pointerEvents = "none";
-      dom.style.background =
-        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
-
-      el.onloadedmetadata = () => {
-        dom.style.pointerEvents = "";
-        dom.style.background = "";
-      };
+      setupMediaLoading(nodeView.dom as HTMLElement, el, node, "loadedmetadata");
 
       return nodeView;
     };
   },
 });
 
-function applyAlignment(container: HTMLElement, align: string) {
-  if (align === "left") {
-    container.style.justifyContent = "flex-start";
-  } else if (align === "right") {
-    container.style.justifyContent = "flex-end";
-  } else {
-    container.style.justifyContent = "center";
-  }
-}

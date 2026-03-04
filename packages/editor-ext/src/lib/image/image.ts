@@ -6,7 +6,12 @@ import {
   Range,
   ResizableNodeView,
 } from "@tiptap/core";
-import { normalizeFileUrl } from "../media-utils";
+import {
+  normalizeFileUrl,
+  applyAlignment,
+  createPlaceholderView,
+  setupMediaLoading,
+} from "../media-utils";
 import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type ImageResizeOptions = {
@@ -216,25 +221,8 @@ export const TiptapImage = Image.extend<ImageOptions>({
     return (props) => {
       const { node, getPos, HTMLAttributes, editor } = props;
 
-      // If no src yet (placeholder/uploading), use React view for loading UI
       if (!HTMLAttributes.src) {
-        editor.isInitialized = true;
-        const reactView = ReactNodeViewRenderer(this.options.view);
-        const view = reactView(props);
-
-        // When the node gets a src, return false from update to force rebuild
-        const originalUpdate = view.update?.bind(view);
-        view.update = (updatedNode, decorations, innerDecorations) => {
-          if (updatedNode.attrs.src && !node.attrs.src) {
-            return false;
-          }
-          if (originalUpdate) {
-            return originalUpdate(updatedNode, decorations, innerDecorations);
-          }
-          return true;
-        };
-
-        return view;
+        return createPlaceholderView(this.options.view, props);
       }
 
       // Has src — use ResizableNodeView
@@ -331,56 +319,10 @@ export const TiptapImage = Image.extend<ImageOptions>({
         },
       });
 
-      const dom = nodeView.dom as HTMLElement;
-
-      // Apply initial alignment
-      applyAlignment(dom, node.attrs.align || "center");
-
-      // Handle percentage width backward compat
-      const widthAttr = node.attrs.width;
-      if (typeof widthAttr === "string" && widthAttr.endsWith("%")) {
-        // Defer conversion until we can measure the container
-        requestAnimationFrame(() => {
-          const parentEl = dom.parentElement;
-          if (parentEl) {
-            const containerWidth = parentEl.clientWidth;
-            const pctValue = parseInt(widthAttr, 10);
-            if (!isNaN(pctValue) && containerWidth > 0) {
-              const pxWidth = Math.round(
-                containerWidth * (pctValue / 100),
-              );
-              el.style.width = `${pxWidth}px`;
-              if (node.attrs.aspectRatio) {
-                el.style.height = `${Math.round(pxWidth / node.attrs.aspectRatio)}px`;
-              }
-            }
-          }
-          dom.style.visibility = "";
-          dom.style.pointerEvents = "";
-        });
-      }
-
-      // Show skeleton background while image loads from server
-      dom.style.pointerEvents = "none";
-      dom.style.background =
-        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
-
-      el.onload = () => {
-        dom.style.pointerEvents = "";
-        dom.style.background = "";
-      };
+      setupMediaLoading(nodeView.dom as HTMLElement, el, node);
 
       return nodeView;
     };
   },
 });
 
-function applyAlignment(container: HTMLElement, align: string) {
-  if (align === "left") {
-    container.style.justifyContent = "flex-start";
-  } else if (align === "right") {
-    container.style.justifyContent = "flex-end";
-  } else {
-    container.style.justifyContent = "center";
-  }
-}
