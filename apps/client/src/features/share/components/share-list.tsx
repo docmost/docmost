@@ -1,8 +1,10 @@
 import { Table, Group, Text, Anchor } from "@mantine/core";
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { IconWorld } from "@tabler/icons-react";
 import Paginate from "@/components/common/paginate.tsx";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetSharesQuery } from "@/features/share/queries/share-query.ts";
 import { ISharedItem } from "@/features/share/types/share.types.ts";
 import { format } from "date-fns";
@@ -10,12 +12,17 @@ import ShareActionMenu from "@/features/share/components/share-action-menu.tsx";
 import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { getPageIcon } from "@/lib";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
 import classes from "./share.module.css";
 
 export default function ShareList() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetSharesQuery({ page });
+  const { cursor, goNext, goPrev } = useCursorPaginate();
+  const { data, isLoading } = useGetSharesQuery({ cursor });
+
+  if (!isLoading && data?.items.length === 0) {
+    return <EmptyState icon={IconWorld} title={t("No shared pages")} />;
+  }
 
   return (
     <>
@@ -86,10 +93,10 @@ export default function ShareList() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
     </>

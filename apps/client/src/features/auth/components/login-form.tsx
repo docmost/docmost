@@ -1,7 +1,7 @@
-import * as z from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { z } from "zod/v4";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import useAuth from "@/features/auth/hooks/use-auth";
-import { ILogin } from "@/features/auth/types/auth.types";
 import {
   Container,
   Title,
@@ -24,11 +24,11 @@ import React from "react";
 
 const formSchema = z.object({
   email: z
-    .string()
-    .min(1, { message: "email is required" })
-    .email({ message: "Invalid email address" }),
+    .email()
+    .min(1, { message: "email is required" }),
   password: z.string().min(1, { message: "Password is required" }),
 });
+type FormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
   const { t } = useTranslation();
@@ -41,15 +41,15 @@ export function LoginForm() {
     error,
   } = useWorkspacePublicDataQuery();
 
-  const form = useForm<ILogin>({
-    validate: zodResolver(formSchema),
+  const form = useForm<FormValues>({
+    validate: zod4Resolver(formSchema),
     initialValues: {
       email: "",
       password: "",
     },
   });
 
-  async function onSubmit(data: ILogin) {
+  async function onSubmit(data: FormValues) {
     await signIn(data);
   }
 

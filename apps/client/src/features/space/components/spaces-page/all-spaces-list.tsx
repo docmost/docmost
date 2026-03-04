@@ -28,19 +28,19 @@ import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 interface AllSpacesListProps {
   spaces: any[];
   onSearch: (query: string) => void;
-  page: number;
   hasPrevPage?: boolean;
   hasNextPage?: boolean;
-  onPageChange: (page: number) => void;
+  onNext: () => void;
+  onPrev: () => void;
 }
 
 export default function AllSpacesList({
   spaces,
   onSearch,
-  page,
   hasPrevPage,
   hasNextPage,
-  onPageChange,
+  onNext,
+  onPrev,
 }: AllSpacesListProps) {
   const { t } = useTranslation();
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
@@ -145,10 +145,10 @@ export default function AllSpacesList({
 
       {spaces.length > 0 && (
         <Paginate
-          currentPage={page}
           hasPrevPage={hasPrevPage}
           hasNextPage={hasNextPage}
-          onPageChange={onPageChange}
+          onNext={onNext}
+          onPrev={onPrev}
         />
       )}
 

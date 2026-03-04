@@ -79,6 +79,8 @@ export class RedisSyncExtension<TCE extends CustomEvents> implements Extension {
     this.customEvents = (customEvents as any) ?? ({} as any as CustomEvents);
     this.sub.subscribe(this.msgChannel, `${this.msgChannel}:${this.serverId}`);
     this.sub.on('messageBuffer', this.handleRedisMessage);
+    this.pub.on('error', () => {});
+    this.sub.on('error', () => {});
   }
   private getKey(documentName: string) {
     return `${this.lockPrefix}:${documentName}`;

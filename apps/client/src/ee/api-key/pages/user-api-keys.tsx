@@ -1,28 +1,37 @@
 import React, { useState } from "react";
-import { Button, Group, Space } from "@mantine/core";
+import { Anchor, Alert, Button, Group, Space, Text } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
-import { getAppName } from "@/lib/config";
+import { getAppName, getAppUrl } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
 import { CreateApiKeyModal } from "@/ee/api-key/components/create-api-key-modal";
 import { ApiKeyCreatedModal } from "@/ee/api-key/components/api-key-created-modal";
 import { UpdateApiKeyModal } from "@/ee/api-key/components/update-api-key-modal";
 import { RevokeApiKeyModal } from "@/ee/api-key/components/revoke-api-key-modal";
 import Paginate from "@/components/common/paginate";
-import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetApiKeysQuery } from "@/ee/api-key/queries/api-key-query.ts";
 import { IApiKey } from "@/ee/api-key";
+import { useAtom } from "jotai";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import useUserRole from "@/hooks/use-user-role.tsx";
 
 export default function UserApiKeys() {
   const { t } = useTranslation();
-  const { page, setPage } = usePaginateAndSearch();
+  const { cursor, goNext, goPrev } = useCursorPaginate();
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<IApiKey | null>(null);
   const [updateModalOpened, setUpdateModalOpened] = useState(false);
   const [revokeModalOpened, setRevokeModalOpened] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<IApiKey | null>(null);
-  const { data, isLoading } = useGetApiKeysQuery({ page });
+  const { data, isLoading } = useGetApiKeysQuery({ cursor });
+  const [workspace] = useAtom(workspaceAtom);
+  const { isAdmin } = useUserRole();
+  const mcpEnabled = workspace?.settings?.ai?.mcp === true;
+  const restrictToAdmins = workspace?.settings?.api?.restrictToAdmins === true;
+  const canCreate = !restrictToAdmins || isAdmin;
 
   const handleCreateSuccess = (response: IApiKey) => {
     setCreatedApiKey(response);
@@ -48,11 +57,50 @@ export default function UserApiKeys() {
 
       <SettingsTitle title={t("API keys")} />
 
-      <Group justify="flex-end" mb="md">
-        <Button onClick={() => setCreateModalOpened(true)}>
-          {t("Create API Key")}
-        </Button>
-      </Group>
+      <Text size="sm" c="dimmed" mb="md">
+        {t("View the")}{" "}
+        <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm">
+          {t("API documentation")}
+        </Anchor>{" "}
+        {t("for usage details.")}
+      </Text>
+
+      {mcpEnabled && canCreate && (
+        <Alert variant="light" color="blue" mb="md" p="sm" icon={<IconInfoCircle />}>
+          <Text size="sm">
+            {t(
+              "Your workspace has MCP enabled. Use your API key to connect AI assistants.",
+            )}{" "}
+            <Anchor
+              href="https://docmost.com/docs/user-guide/mcp"
+              target="_blank"
+              size="sm"
+            >
+              {t("Learn more")}
+            </Anchor>
+          </Text>
+          <Text size="sm" mt={4}>
+            {t("MCP server URL:")}{" "}
+            <Text size="sm" fw={500} span ff="monospace">
+              {`${getAppUrl()}/mcp`}
+            </Text>
+          </Text>
+        </Alert>
+      )}
+
+      {canCreate ? (
+        <Group justify="flex-end" mb="md">
+          <Button onClick={() => setCreateModalOpened(true)}>
+            {t("Create API Key")}
+          </Button>
+        </Group>
+      ) : restrictToAdmins ? (
+        <Alert variant="light" color="yellow" mb="md" p="sm" icon={<IconInfoCircle />}>
+          <Text size="sm">
+            {t("API key creation is restricted to admins by your workspace administrator.")}
+          </Text>
+        </Alert>
+      ) : null}
 
       <ApiKeyTable
         apiKeys={data?.items || []}
@@ -65,10 +113,10 @@ export default function UserApiKeys() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
 

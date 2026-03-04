@@ -10,8 +10,8 @@ import {
 export async function searchPage(
   params: IPageSearchParams,
 ): Promise<IPageSearch[]> {
-  const req = await api.post<IPageSearch[]>("/search", params);
-  return req.data;
+  const req = await api.post<{ items: IPageSearch[] }>("/search", params);
+  return req.data.items;
 }
 
 export async function searchSuggestions(
@@ -24,13 +24,13 @@ export async function searchSuggestions(
 export async function searchShare(
   params: IPageSearchParams,
 ): Promise<IPageSearch[]> {
-  const req = await api.post<IPageSearch[]>("/search/share-search", params);
-  return req.data;
+  const req = await api.post<{ items: IPageSearch[] }>("/search/share-search", params);
+  return req.data.items;
 }
 
 export async function searchAttachments(
   params: IPageSearchParams,
 ): Promise<IAttachmentSearch[]> {
-  const req = await api.post<IAttachmentSearch[]>("/search-attachments", params);
-  return req.data;
+  const req = await api.post<{ items: IAttachmentSearch[] }>("/search-attachments", params);
+  return req.data.items;
 }

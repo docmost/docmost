@@ -4,7 +4,7 @@ import {
   useRemoveGroupMemberMutation,
 } from "@/features/group/queries/group-query";
 import { useParams } from "react-router-dom";
-import React, { useState } from "react";
+import React from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
@@ -12,12 +12,13 @@ import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 import { IUser } from "@/features/user/types/user.types.ts";
 import Paginate from "@/components/common/paginate.tsx";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 
 export default function GroupMembersList() {
   const { t } = useTranslation();
   const { groupId } = useParams();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useGroupMembersQuery(groupId, { page });
+  const { cursor, goNext, goPrev } = useCursorPaginate();
+  const { data, isLoading } = useGroupMembersQuery(groupId, { cursor });
   const removeGroupMember = useRemoveGroupMemberMutation();
   const { isAdmin } = useUserRole();
 
@@ -107,10 +108,10 @@ export default function GroupMembersList() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
     </>

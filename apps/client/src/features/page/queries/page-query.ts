@@ -155,7 +155,9 @@ export function useDeletePageMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: t("Failed to delete page"), color: "red" });
+      const message =
+        error["response"]?.data?.message || t("Failed to delete page");
+      notifications.show({ message, color: "red" });
     },
   });
 }
@@ -250,12 +252,10 @@ export function useGetSidebarPagesQuery(
   return useInfiniteQuery({
     queryKey: ["sidebar-pages", data],
     enabled: !!data?.pageId || !!data?.spaceId,
-    queryFn: ({ pageParam }) => getSidebarPages({ ...data, page: pageParam }),
-    initialPageParam: 1,
-    getPreviousPageParam: (firstPage) =>
-      firstPage.meta.hasPrevPage ? firstPage.meta.page - 1 : undefined,
+    queryFn: ({ pageParam }) => getSidebarPages({ ...data, cursor: pageParam }),
+    initialPageParam: undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+      lastPage.meta?.nextCursor ?? undefined,
   });
 }
 
@@ -263,13 +263,11 @@ export function useGetRootSidebarPagesQuery(data: SidebarPagesParams) {
   return useInfiniteQuery({
     queryKey: ["root-sidebar-pages", data.spaceId],
     queryFn: async ({ pageParam }) => {
-      return getSidebarPages({ spaceId: data.spaceId, page: pageParam });
+      return getSidebarPages({ spaceId: data.spaceId, cursor: pageParam });
     },
-    initialPageParam: 1,
-    getPreviousPageParam: (firstPage) =>
-      firstPage.meta.hasPrevPage ? firstPage.meta.page - 1 : undefined,
+    initialPageParam: undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+      lastPage.meta?.nextCursor ?? undefined,
   });
 }
 

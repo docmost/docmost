@@ -7,6 +7,7 @@ import {
 import { TransformHttpResponseInterceptor } from '../../common/interceptors/http-response.interceptor';
 import { Logger } from '@nestjs/common';
 import { Logger as PinoLogger } from 'nestjs-pino';
+import { InternalLogFilter } from '../../common/logger/internal-log-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -19,7 +20,8 @@ async function bootstrap() {
       },
     }),
     {
-      bufferLogs: true,
+      logger: new InternalLogFilter(),
+      bufferLogs: false,
     },
   );
 
@@ -36,7 +38,8 @@ async function bootstrap() {
   const logger = new Logger('CollabServer');
 
   const port = process.env.COLLAB_PORT || 3001;
-  await app.listen(port, '0.0.0.0', () => {
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host, () => {
     logger.log(`Listening on http://127.0.0.1:${port}`);
   });
 }

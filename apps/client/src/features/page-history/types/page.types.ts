@@ -18,4 +18,5 @@ export interface IPageHistory {
   createdAt: string;
   updatedAt: string;
   lastUpdatedBy: IPageHistoryUser;
+  contributors?: IPageHistoryUser[];
 }

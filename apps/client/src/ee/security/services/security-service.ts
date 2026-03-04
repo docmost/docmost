@@ -1,5 +1,6 @@
 import api from "@/lib/api-client.ts";
 import { IAuthProvider } from "@/ee/security/types/security.types.ts";
+import { IPagination } from "@/lib/types.ts";
 
 export async function getSsoProviderById(data: {
   providerId: string;
@@ -8,8 +9,8 @@ export async function getSsoProviderById(data: {
   return req.data;
 }
 
-export async function getSsoProviders(): Promise<IAuthProvider[]> {
-  const req = await api.post<IAuthProvider[]>("/sso/providers");
+export async function getSsoProviders(): Promise<IPagination<IAuthProvider>> {
+  const req = await api.post<IPagination<IAuthProvider>>("/sso/providers");
   return req.data;
 }
 

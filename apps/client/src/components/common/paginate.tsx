@@ -2,17 +2,17 @@ import { Button, Group } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 
 export interface PagePaginationProps {
-  currentPage: number;
   hasPrevPage: boolean;
   hasNextPage: boolean;
-  onPageChange: (newPage: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
 }
 
 export default function Paginate({
-  currentPage,
   hasPrevPage,
   hasNextPage,
-  onPageChange,
+  onPrev,
+  onNext,
 }: PagePaginationProps) {
   const { t } = useTranslation();
 
@@ -25,7 +25,7 @@ export default function Paginate({
       <Button
         variant="default"
         size="compact-sm"
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={onPrev}
         disabled={!hasPrevPage}
       >
         {t("Prev")}
@@ -34,7 +34,7 @@ export default function Paginate({
       <Button
         variant="default"
         size="compact-sm"
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={onNext}
         disabled={!hasNextPage}
       >
         {t("Next")}

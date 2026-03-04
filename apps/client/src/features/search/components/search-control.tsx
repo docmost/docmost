@@ -44,8 +44,8 @@ export function SearchMobileControl({ onSearch }: SearchMobileControlProps) {
   return (
     <Tooltip label={t("Search")} withArrow>
       <ActionIcon
-        variant="default"
-        style={{ border: "none" }}
+        variant="subtle"
+        color="dark"
         onClick={onSearch}
         size="sm"
       >

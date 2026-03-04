@@ -1,9 +1,13 @@
+.root {
+  overflow: visible;
+}
+
 .icon {
   font-size: 24px;
   line-height: 1;
   width: 20px;
   height: 20px;
-  margin-inline-end: var(--mantine-spacing-md);
+  margin-inline-end: var(--mantine-spacing-xs);
   margin-top: 4px;
   cursor: pointer;
 }
@@ -11,18 +15,8 @@
 .message {
   font-size: var(--mantine-font-size-md);
   color: var(--mantine-color-default-color);
-
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
   word-break: break-word;
   overflow-wrap: break-word;
 }
-
-/*
-    @mixin where-light {
-        color: var(--mantine-color-default-color);
-    }
-
-    @mixin where-dark {
-        color: var(--mantine-color-default-color);
-    }
-*/

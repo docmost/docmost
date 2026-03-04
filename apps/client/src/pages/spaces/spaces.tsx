@@ -11,10 +11,10 @@ import useUserRole from "@/hooks/use-user-role";
 export default function Spaces() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const { search, page, setPage, handleSearch } = usePaginateAndSearch();
+  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
 
   const { data, isLoading } = useGetSpacesQuery({
-    page,
+    cursor,
     limit: 30,
     query: search,
   });
@@ -41,10 +41,10 @@ export default function Spaces() {
           <AllSpacesList
             spaces={data?.items || []}
             onSearch={handleSearch}
-            page={page}
             hasPrevPage={data?.meta?.hasPrevPage}
             hasNextPage={data?.meta?.hasNextPage}
-            onPageChange={setPage}
+            onNext={() => goNext(data?.meta?.nextCursor)}
+            onPrev={goPrev}
           />
         </Box>
       </Container>

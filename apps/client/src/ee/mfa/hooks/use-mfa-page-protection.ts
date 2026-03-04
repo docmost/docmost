@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import APP_ROUTE from "@/lib/app-route";
+import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route";
 import { validateMfaAccess } from "@/ee/mfa";
 
 export function useMfaPageProtection() {
@@ -13,8 +13,10 @@ export function useMfaPageProtection() {
     const checkAccess = async () => {
       const result = await validateMfaAccess();
 
+      const search = location.search;
+
       if (!result.valid) {
-        navigate(APP_ROUTE.AUTH.LOGIN);
+        navigate(APP_ROUTE.AUTH.LOGIN + search);
         return;
       }
 
@@ -26,17 +28,17 @@ export function useMfaPageProtection() {
 
       if (result.requiresMfaSetup && !isOnSetupPage) {
         // User needs to set up MFA but is on challenge page
-        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED);
+        navigate(APP_ROUTE.AUTH.MFA_SETUP_REQUIRED + search);
       } else if (
         !result.requiresMfaSetup &&
         result.userHasMfa &&
         !isOnChallengePage
       ) {
         // User has MFA and should be on challenge page
-        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE);
+        navigate(APP_ROUTE.AUTH.MFA_CHALLENGE + search);
       } else if (!result.isTransferToken) {
         // User has a regular auth token, shouldn't be on MFA pages
-        navigate(APP_ROUTE.HOME);
+        navigate(getPostLoginRedirect());
       } else {
         setIsValid(true);
       }

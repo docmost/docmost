@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { TableBackgroundColor } from "./table-background-color";
 import { TableTextAlignment } from "./table-text-alignment";
 import { BubbleMenu } from "@tiptap/react/menus";
+import classes from "../common/toolbar-menu.module.css";
 
 export const TableCellMenu = React.memo(
   ({ editor, appendTo }: EditorMenuProps): JSX.Element => {
@@ -69,14 +70,16 @@ export const TableCellMenu = React.memo(
         }}
         shouldShow={shouldShow}
       >
-        <ActionIcon.Group>
+        <div className={classes.toolbar}>
           <TableBackgroundColor editor={editor} />
           <TableTextAlignment editor={editor} />
+
+          <div className={classes.divider} />
 
           <Tooltip position="top" label={t("Merge cells")}>
             <ActionIcon
               onClick={mergeCells}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Merge cells")}
             >
@@ -87,7 +90,7 @@ export const TableCellMenu = React.memo(
           <Tooltip position="top" label={t("Split cell")}>
             <ActionIcon
               onClick={splitCell}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Split cell")}
             >
@@ -95,10 +98,12 @@ export const TableCellMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Delete column")}>
             <ActionIcon
               onClick={deleteColumn}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Delete column")}
             >
@@ -109,7 +114,7 @@ export const TableCellMenu = React.memo(
           <Tooltip position="top" label={t("Delete row")}>
             <ActionIcon
               onClick={deleteRow}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Delete row")}
             >
@@ -117,17 +122,19 @@ export const TableCellMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Toggle header cell")}>
             <ActionIcon
               onClick={toggleHeaderCell}
-              variant="default"
+              variant="subtle"
               size="lg"
               aria-label={t("Toggle header cell")}
             >
               <IconTableRow size={18} />
             </ActionIcon>
           </Tooltip>
-        </ActionIcon.Group>
+        </div>
       </BubbleMenu>
     );
   }

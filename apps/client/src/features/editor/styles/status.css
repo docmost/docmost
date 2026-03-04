@@ -1,0 +1,17 @@
+.node-status {
+    margin-right: 2px;
+
+    &.ProseMirror-selectednode {
+        outline: none;
+    }
+
+    &.selection,
+    & *::selection {
+        background-color: transparent;
+    }
+
+    &.ProseMirror-selectednode .status-badge {
+        box-shadow: 0 0 0 2px light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-7));
+        border-radius: 3px;
+    }
+}

@@ -5,5 +5,10 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@docmost/db/(.*)$": "<rootDir>/../src/database/$1",
+    "^@docmost/transactional/(.*)$": "<rootDir>/../src/integrations/transactional/$1",
+    "^@docmost/ee/(.*)$": "<rootDir>/../src/ee/$1"
   }
 }

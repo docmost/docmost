@@ -1,0 +1,33 @@
+.table {
+  --table-border-color: var(--mantine-color-gray-2);
+
+  @mixin dark {
+    --table-border-color: var(--mantine-color-dark-5);
+  }
+}
+
+.resourceLinkText {
+  width: fit-content;
+
+  @mixin light {
+    border-bottom: 0.05em solid var(--mantine-color-dark-0);
+  }
+  @mixin dark {
+    border-bottom: 0.05em solid var(--mantine-color-dark-2);
+  }
+}
+
+.detailRow {
+  &:hover {
+    background: none !important;
+  }
+}
+
+.detailContent {
+  @mixin light {
+    background: var(--mantine-color-gray-0);
+  }
+  @mixin dark {
+    background: var(--mantine-color-dark-7);
+  }
+}

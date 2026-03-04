@@ -33,7 +33,7 @@ export function useGetSharesQuery(
   params?: QueryParams,
 ): UseQueryResult<IPagination<ISharedItem>, Error> {
   return useQuery({
-    queryKey: ["share-list"],
+    queryKey: ["share-list", params],
     queryFn: () => getShares(params),
     placeholderData: keepPreviousData,
   });
@@ -90,7 +90,10 @@ export function useCreateShareMutation() {
       });
     },
     onError: (error) => {
-      notifications.show({ message: t("Failed to share page"), color: "red" });
+      notifications.show({
+        message: error?.["response"]?.data?.message || t("Failed to share page"),
+        color: "red",
+      });
     },
   });
 }

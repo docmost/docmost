@@ -1,6 +1,6 @@
 import { Group, Table, Avatar, Text, Alert } from "@mantine/core";
 import { useWorkspaceInvitationsQuery } from "@/features/workspace/queries/workspace-query.ts";
-import React, { useState } from "react";
+import React from "react";
 import { getUserRoleLabel } from "@/features/workspace/types/user-role-data.ts";
 import InviteActionMenu from "@/features/workspace/components/members/components/invite-action-menu.tsx";
 import { IconInfoCircle } from "@tabler/icons-react";
@@ -8,12 +8,13 @@ import { timeAgo } from "@/lib/time.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useTranslation } from "react-i18next";
 import Paginate from "@/components/common/paginate.tsx";
+import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 
 export default function WorkspaceInvitesTable() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
+  const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data, isLoading } = useWorkspaceInvitationsQuery({
-    page,
+    cursor,
     limit: 100,
   });
   const { isAdmin } = useUserRole();
@@ -65,10 +66,10 @@ export default function WorkspaceInvitesTable() {
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
     </>

@@ -9,11 +9,14 @@ import Paginate from "@/components/common/paginate.tsx";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
+import { SearchInput } from "@/components/common/search-input.tsx";
+import NoTableResults from "@/components/common/no-table-results.tsx";
+import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 
 export default function SpaceList() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetSpacesQuery({ page });
+  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
+  const { data, isLoading } = useGetSpacesQuery({ cursor, query: search });
   const [opened, { open, close }] = useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(null);
 
@@ -24,6 +27,7 @@ export default function SpaceList() {
 
   return (
     <>
+      <SearchInput onSearch={handleSearch} />
       <Table.ScrollContainer minWidth={500}>
         <Table highlightOnHover verticalSpacing="sm" layout="fixed">
           <Table.Thead>
@@ -34,7 +38,8 @@ export default function SpaceList() {
           </Table.Thead>
 
           <Table.Tbody>
-            {data?.items.map((space, index) => (
+            {data?.items.length > 0 ? (
+            data?.items.map((space, index) => (
               <Table.Tr
                 key={index}
                 style={{ cursor: "pointer" }}
@@ -65,17 +70,20 @@ export default function SpaceList() {
                   </Text>
                 </Table.Td>
               </Table.Tr>
-            ))}
+            ))
+            ) : (
+              <NoTableResults colSpan={2} />
+            )}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
 
       {data?.items.length > 0 && (
         <Paginate
-          currentPage={page}
-          hasPrevPage={data?.meta.hasPrevPage}
-          hasNextPage={data?.meta.hasNextPage}
-          onPageChange={setPage}
+          hasPrevPage={data?.meta?.hasPrevPage}
+          hasNextPage={data?.meta?.hasNextPage}
+          onNext={() => goNext(data?.meta?.nextCursor)}
+          onPrev={goPrev}
         />
       )}
 

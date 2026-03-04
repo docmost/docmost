@@ -27,7 +27,7 @@ import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { FileTaskIdDto } from './dto/file-task-dto';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithPagination } from '@docmost/db/pagination/pagination';
+import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 
 @Controller('file-tasks')
 export class FileTaskController {
@@ -56,12 +56,14 @@ export class FileTaskController {
     const query = this.db
       .selectFrom('fileTasks')
       .selectAll()
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(user.id))
-      .orderBy('createdAt', 'desc');
+      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(user.id));
 
-    return executeWithPagination(query, {
-      page: pagination.page,
+    return executeWithCursorPagination(query, {
       perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'desc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
     });
   }
 

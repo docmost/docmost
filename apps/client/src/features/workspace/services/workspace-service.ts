@@ -42,7 +42,19 @@ export async function deleteWorkspaceMember(data: {
   await api.post("/workspace/members/delete", data);
 }
 
-export async function updateWorkspace(data: Partial<IWorkspace> & { aiSearch?: boolean }) {
+export async function deactivateWorkspaceMember(data: {
+  userId: string;
+}): Promise<void> {
+  await api.post("/workspace/members/deactivate", data);
+}
+
+export async function activateWorkspaceMember(data: {
+  userId: string;
+}): Promise<void> {
+  await api.post("/workspace/members/activate", data);
+}
+
+export async function updateWorkspace(data: Partial<IWorkspace>) {
   const req = await api.post<IWorkspace>("/workspace/update", data);
   return req.data;
 }
@@ -66,7 +78,9 @@ export async function createInvitation(data: ICreateInvite) {
   return req.data;
 }
 
-export async function acceptInvitation(data: IAcceptInvite): Promise<{ requiresLogin?: boolean; }> {
+export async function acceptInvitation(
+  data: IAcceptInvite,
+): Promise<{ requiresLogin?: boolean }> {
   const req = await api.post("/workspace/invites/accept", data);
   return req.data;
 }
@@ -108,4 +122,3 @@ export async function getAppVersion(): Promise<IVersion> {
   const req = await api.post("/version");
   return req.data;
 }
-
