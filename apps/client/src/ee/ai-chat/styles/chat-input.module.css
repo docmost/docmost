@@ -1,0 +1,163 @@
+.inputWrapper {
+  position: relative;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 16px;
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: border-color 150ms, box-shadow 150ms;
+
+  &:focus-within {
+    border-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.attachmentChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 0;
+}
+
+.attachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  font-size: var(--mantine-font-size-xs);
+  max-width: 200px;
+}
+
+.attachmentChipUploading {
+  opacity: 0.55;
+}
+
+.attachmentChipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachmentChipRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  border-radius: 50%;
+
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  }
+}
+
+.editorContent {
+  overflow: hidden;
+
+  :global(.ProseMirror) {
+    outline: none;
+    border: none;
+    padding: 14px 18px 8px;
+    font-size: 15px;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    min-height: 24px;
+    color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  }
+
+  :global(.ProseMirror p) {
+    margin-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  :global(.ProseMirror p.is-editor-empty:first-child::before) {
+    color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 12px 10px;
+  gap: var(--mantine-spacing-xs);
+}
+
+.sendButton {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms, opacity 150ms;
+  background: light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-0));
+  color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-9));
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  @mixin hover {
+    &:not(:disabled) {
+      opacity: 0.85;
+    }
+  }
+}
+
+.attachButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  transition: color 150ms;
+
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  }
+}
+
+.stopButton {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  cursor: pointer;
+  transition: background-color 150ms;
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+
+  @mixin hover {
+    background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+}

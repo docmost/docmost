@@ -1,5 +1,7 @@
 import { Insertable, Selectable, Updateable } from 'kysely';
 import {
+  AiChats,
+  AiChatMessages,
   Attachments,
   Comments,
   Groups,
@@ -27,6 +29,15 @@ import {
   Audit as _Audit,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
+
+// AI Chat
+export type AiChat = Selectable<AiChats>;
+export type InsertableAiChat = Insertable<AiChats>;
+export type UpdatableAiChat = Updateable<Omit<AiChats, 'id'>>;
+
+// AI Chat Message
+export type AiChatMessage = Selectable<AiChatMessages>;
+export type InsertableAiChatMessage = Insertable<AiChatMessages>;
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;

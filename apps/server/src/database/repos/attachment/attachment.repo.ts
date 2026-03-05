@@ -44,6 +44,21 @@ export class AttachmentRepo {
       .executeTakeFirst();
   }
 
+  async findByIdWithContent(
+    attachmentId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .select([...this.baseFields, 'textContent'])
+      .where('id', '=', attachmentId)
+      .executeTakeFirst();
+  }
+
   async insertAttachment(
     insertableAttachment: InsertableAttachment,
     trx?: KyselyTransaction,

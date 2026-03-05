@@ -429,7 +429,29 @@ export interface PagePermissions {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface AiChats {
+  id: Generated<string>;
+  workspaceId: string;
+  creatorId: string;
+  title: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface AiChatMessages {
+  id: Generated<string>;
+  chatId: string;
+  workspaceId: string;
+  role: string;
+  content: string | null;
+  toolCalls: Json | null;
+  metadata: Json | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
+  aiChats: AiChats;
+  aiChatMessages: AiChatMessages;
   apiKeys: ApiKeys;
   attachments: Attachments;
   audit: Audit;

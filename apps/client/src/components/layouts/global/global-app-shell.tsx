@@ -10,6 +10,7 @@ import {
   sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
+import AiChatSidebar from "@/ee/ai-chat/components/ai-chat-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
@@ -72,6 +73,7 @@ export default function GlobalAppShell({
   const location = useLocation();
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
+  const isAiRoute = location.pathname.startsWith("/ai");
   const isHomeRoute = location.pathname.startsWith("/home");
   const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
@@ -82,7 +84,7 @@ export default function GlobalAppShell({
       header={{ height: 45 }}
       navbar={
         !hideSidebar && {
-          width: isSpaceRoute ? sidebarWidth : 300,
+          width: isAiRoute ? 260 : isSpaceRoute ? sidebarWidth : 300,
           breakpoint: "sm",
           collapsed: {
             mobile: !mobileOpened,
@@ -108,9 +110,10 @@ export default function GlobalAppShell({
           withBorder={false}
           ref={sidebarRef}
         >
-          <div className={classes.resizeHandle} onMouseDown={startResizing} />
+          {!isAiRoute && <div className={classes.resizeHandle} onMouseDown={startResizing} />}
           {isSpaceRoute && <SpaceSidebar />}
           {isSettingsRoute && <SettingsSidebar />}
+          {isAiRoute && <AiChatSidebar />}
         </AppShell.Navbar>
       )}
       <AppShell.Main>

@@ -1,0 +1,231 @@
+.message {
+  margin-bottom: var(--mantine-spacing-lg);
+}
+
+.userMessage {
+  composes: message;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userBubble {
+  max-width: 75%;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+  font-size: 15px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.userBubble p {
+  margin: 0;
+}
+
+.messageAttachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.messageAttachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+  font-size: var(--mantine-font-size-xs);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistantMessage {
+  composes: message;
+}
+
+.messageContent {
+  font-size: 15px;
+  line-height: 1.7;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-1));
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.messageContent p {
+  margin: 0 0 0.75em 0;
+}
+
+.messageContent p:last-child {
+  margin-bottom: 0;
+}
+
+.messageContent ul,
+.messageContent ol {
+  margin: 0.5em 0 0.75em 0;
+  padding-left: 1.5em;
+}
+
+.messageContent li {
+  margin-bottom: 0.3em;
+}
+
+.messageContent h1,
+.messageContent h2,
+.messageContent h3 {
+  margin: 1em 0 0.5em 0;
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
+}
+
+.messageContent h1 {
+  font-size: 1.4em;
+}
+
+.messageContent h2 {
+  font-size: 1.2em;
+}
+
+.messageContent h3 {
+  font-size: 1.05em;
+}
+
+.messageContent pre {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+  overflow-x: auto;
+  font-size: var(--mantine-font-size-sm);
+  margin: 0.75em 0;
+}
+
+.messageContent code {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+.messageContent pre code {
+  background: none;
+  padding: 0;
+}
+
+.messageContent blockquote {
+  border-left: 3px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  padding-left: var(--mantine-spacing-md);
+  margin: 0.75em 0;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+}
+
+.messageContent a {
+  color: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-4));
+  text-decoration: none;
+
+  @mixin hover {
+    text-decoration: underline;
+  }
+}
+
+.messageContent a[href^="/s/"],
+.messageContent a[href^="/p/"] {
+  color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+
+  @mixin light {
+    border-bottom: 0.05em solid var(--mantine-color-dark-0);
+  }
+
+  @mixin dark {
+    border-bottom: 0.05em solid var(--mantine-color-dark-2);
+  }
+
+  @mixin hover {
+    text-decoration: none;
+    @mixin light {
+      border-bottom-color: var(--mantine-color-dark-2);
+    }
+    @mixin dark {
+      border-bottom-color: var(--mantine-color-dark-0);
+    }
+  }
+}
+
+.messageContent hr {
+  border: none;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  margin: 1em 0;
+}
+
+.toolCallCard {
+  margin: var(--mantine-spacing-xs) 0;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  font-size: var(--mantine-font-size-xs);
+}
+
+.toolCallHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolCallName {
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-4));
+}
+
+.toolCallDetails {
+  margin-top: var(--mantine-spacing-xs);
+  padding-top: var(--mantine-spacing-xs);
+  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.processingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  font-size: var(--mantine-font-size-sm);
+}
+
+.processingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.streamingCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
