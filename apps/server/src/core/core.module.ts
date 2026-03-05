@@ -20,10 +20,6 @@ import { AuditContextMiddleware } from '../common/middlewares/audit-context.midd
 import { ShareModule } from './share/share.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
-import {
-  AUDIT_SERVICE,
-  NoopAuditService,
-} from '../integrations/audit/audit.service';
 import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
@@ -43,13 +39,6 @@ import { ClsMiddleware } from 'nestjs-cls';
     NotificationModule,
     WatcherModule,
   ],
-  providers: [
-    {
-      provide: AUDIT_SERVICE,
-      useClass: NoopAuditService,
-    },
-  ],
-  exports: [AUDIT_SERVICE],
 })
 export class CoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
