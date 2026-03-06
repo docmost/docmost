@@ -26,10 +26,11 @@ import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
+  currentPageEditModeAtom,
   pageEditorAtom,
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -111,8 +112,7 @@ export default function PageEditor({
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
-  const userPageEditMode =
-    currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
+  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
   const canScroll = useCallback(
     () => Boolean(isComponentMounted.current && editorRef.current),
     [isComponentMounted],
@@ -372,19 +372,9 @@ export default function PageEditor({
     return () => clearTimeout(timeout);
   }, [yjsConnectionStatus, isSynced]);
   useEffect(() => {
-    // Only honor user default page edit mode preference and permissions
-    if (editor) {
-      if (userPageEditMode && editable) {
-        if (userPageEditMode === PageEditMode.Edit) {
-          editor.setEditable(true);
-        } else if (userPageEditMode === PageEditMode.Read) {
-          editor.setEditable(false);
-        }
-      } else {
-        editor.setEditable(false);
-      }
-    }
-  }, [userPageEditMode, editor, editable]);
+    if (!editor) return;
+    editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
+  }, [currentPageEditMode, editor, editable]);
 
   const hasConnectedOnceRef = useRef(false);
   const [showStatic, setShowStatic] = useState(true);
