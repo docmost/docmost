@@ -13,7 +13,7 @@ import {
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
 import { useHasFeature } from "@/ee/hooks/use-feature";
@@ -51,7 +51,7 @@ export default function McpSettings() {
       {!hasAccess && (
         <Alert icon={<IconInfoCircle />} title={upgradeLabel} color="blue">
           {t(
-            "MCP requires a paid plan. Visit docmost.com for more information.",
+            "MCP is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
           )}
         </Alert>
       )}
@@ -63,15 +63,12 @@ export default function McpSettings() {
             {t(
               "Enable the MCP server to allow AI assistants and tools to interact with your workspace content.",
             )}{" "}
-            {t("View the")}{" "}
-            <Anchor
-              href="https://docmost.com/docs/user-guide/mcp"
-              target="_blank"
-              size="sm"
-            >
-              {t("MCP documentation")}
-            </Anchor>
-            .
+            <Trans
+              i18nKey="View the <anchor>MCP documentation</anchor>."
+              components={{
+                anchor: <Anchor href="https://docmost.com/docs/user-guide/mcp" target="_blank" size="sm" />,
+              }}
+            />
           </Text>
         </div>
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Anchor, Alert, Button, Group, Space, Text } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { Helmet } from "react-helmet-async";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
 import { getAppName, getAppUrl } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
@@ -58,11 +58,12 @@ export default function UserApiKeys() {
       <SettingsTitle title={t("API keys")} />
 
       <Text size="sm" c="dimmed" mb="md">
-        {t("View the")}{" "}
-        <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm">
-          {t("API documentation")}
-        </Anchor>{" "}
-        {t("for usage details.")}
+        <Trans
+          i18nKey="View the <anchor>API documentation</anchor> for usage details."
+          components={{
+            anchor: <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm" />,
+          }}
+        />
       </Text>
 
       {mcpEnabled && canCreate && (
