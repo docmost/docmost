@@ -21,7 +21,9 @@ import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import {
   prefetchApiKeyManagement,
   prefetchApiKeys,
@@ -39,22 +41,19 @@ import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sideb
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { useSettingsNavigation } from "@/hooks/use-settings-navigation";
 
-interface DataItem {
+type DataItem = {
   label: string;
   icon: React.ElementType;
   path: string;
-  isCloud?: boolean;
-  isEnterprise?: boolean;
-  isAdmin?: boolean;
-  isOwner?: boolean;
-  isSelfhosted?: boolean;
-  showDisabledInNonEE?: boolean;
-}
+  feature?: string;
+  role?: "admin" | "owner";
+  env?: "cloud" | "selfhosted";
+};
 
-interface DataGroup {
+type DataGroup = {
   heading: string;
   items: DataItem[];
-}
+};
 
 const groupedData: DataGroup[] = [
   {
@@ -70,9 +69,7 @@ const groupedData: DataGroup[] = [
         label: "API keys",
         icon: IconKey,
         path: "/settings/account/api-keys",
-        isCloud: true,
-        isEnterprise: true,
-        showDisabledInNonEE: true,
+        feature: Feature.API_KEYS,
       },
     ],
   },
@@ -80,26 +77,20 @@ const groupedData: DataGroup[] = [
     heading: "Workspace",
     items: [
       { label: "General", icon: IconSettings, path: "/settings/workspace" },
-      {
-        label: "Members",
-        icon: IconUsers,
-        path: "/settings/members",
-      },
+      { label: "Members", icon: IconUsers, path: "/settings/members" },
       {
         label: "Billing",
         icon: IconCoin,
         path: "/settings/billing",
-        isCloud: true,
-        isAdmin: true,
+        role: "admin",
+        env: "cloud",
       },
       {
         label: "Security & SSO",
         icon: IconLock,
         path: "/settings/security",
-        isCloud: true,
-        isEnterprise: true,
-        isAdmin: true,
-        showDisabledInNonEE: true,
+        feature: Feature.SECURITY_SETTINGS,
+        role: "admin",
       },
       { label: "Groups", icon: IconUsersGroup, path: "/settings/groups" },
       { label: "Spaces", icon: IconSpaces, path: "/settings/spaces" },
@@ -108,25 +99,22 @@ const groupedData: DataGroup[] = [
         label: "API management",
         icon: IconKey,
         path: "/settings/api-keys",
-        isCloud: true,
-        isEnterprise: true,
-        isAdmin: true,
-        showDisabledInNonEE: true,
+        feature: Feature.API_KEYS,
+        role: "admin",
       },
       {
         label: "AI settings",
         icon: IconSparkles,
         path: "/settings/ai",
-        isAdmin: true,
+        role: "admin",
       },
       {
         label: "Audit log",
         icon: IconHistory,
         path: "/settings/audit",
-        isEnterprise: true,
-        isOwner: true,
-        isSelfhosted: true,
-        showDisabledInNonEE: true,
+        feature: Feature.AUDIT_LOGS,
+        role: "owner",
+        env: "selfhosted",
       },
     ],
   },
@@ -149,6 +137,7 @@ export default function SettingsSidebar() {
   const { goBack } = useSettingsNavigation();
   const { isAdmin, isOwner } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
+  const upgradeLabel = useUpgradeLabel();
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
@@ -156,43 +145,20 @@ export default function SettingsSidebar() {
     setActive(location.pathname);
   }, [location.pathname]);
 
-  const hasRoleAccess = (item: DataItem) => {
-    if (item.isOwner) return isOwner;
-    if (item.isAdmin) return isAdmin;
+  const hasFeature = (f: string) =>
+    workspace?.features?.includes(f) ?? false;
+
+  const canShowItem = (item: DataItem) => {
+    if (item.env === "cloud" && !isCloud()) return false;
+    if (item.env === "selfhosted" && isCloud()) return false;
+    if (item.role === "admin" && !isAdmin) return false;
+    if (item.role === "owner" && !isOwner) return false;
     return true;
   };
 
-  const canShowItem = (item: DataItem) => {
-    if (item.showDisabledInNonEE && item.isEnterprise) {
-      if (item.isSelfhosted && isCloud()) return false;
-      return hasRoleAccess(item);
-    }
-
-    if (item.isCloud && item.isEnterprise) {
-      if (!(isCloud() || workspace?.hasLicenseKey)) return false;
-      return hasRoleAccess(item);
-    }
-
-    if (item.isCloud) {
-      return isCloud() ? hasRoleAccess(item) : false;
-    }
-
-    if (item.isSelfhosted) {
-      return !isCloud() ? hasRoleAccess(item) : false;
-    }
-
-    if (item.isEnterprise) {
-      return workspace?.hasLicenseKey ? hasRoleAccess(item) : false;
-    }
-
-    return hasRoleAccess(item);
-  };
-
   const isItemDisabled = (item: DataItem) => {
-    if (item.showDisabledInNonEE && item.isEnterprise) {
-      return !(isCloud() || workspace?.hasLicenseKey);
-    }
-    return false;
+    if (!item.feature) return false;
+    return !hasFeature(item.feature);
   };
 
   const menuItems = groupedData.map((group) => {
@@ -280,7 +246,7 @@ export default function SettingsSidebar() {
             return (
               <Tooltip
                 key={item.label}
-                label={t("Available in enterprise edition")}
+                label={upgradeLabel}
                 position="right"
                 withArrow
               >

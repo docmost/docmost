@@ -12,14 +12,13 @@ import { useTranslation } from "react-i18next";
 import EnforceMfa from "@/ee/security/components/enforce-mfa.tsx";
 import DisablePublicSharing from "@/ee/security/components/disable-public-sharing.tsx";
 import TrashRetention from "@/ee/security/components/trash-retention.tsx";
-import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const hasEnterpriseAccess = useEnterpriseAccess();
-  const isCloudEE = useIsCloudEE();
+  const hasSecurityAccess = useHasFeature(Feature.SECURITY_SETTINGS);
 
   if (!isAdmin) {
     return null;
@@ -36,7 +35,7 @@ export default function Security() {
 
       <Divider my="lg" />
 
-      {(!isCloud() || hasEnterpriseAccess) && (
+      {(!isCloud() || hasSecurityAccess) && (
         <>
           <DisablePublicSharing />
           <Divider my="lg" />
@@ -54,21 +53,21 @@ export default function Security() {
         Single sign-on (SSO)
       </Title>
 
-      {hasEnterpriseAccess && (
+      {hasSecurityAccess && (
         <>
           <EnforceSso />
           <Divider my="lg" />
         </>
       )}
 
-      {isCloudEE && (
+      {hasSecurityAccess && (
         <>
           <AllowedDomains />
           <Divider my="lg" />
         </>
       )}
 
-      {hasEnterpriseAccess && (
+      {hasSecurityAccess && (
         <>
           <CreateSsoProvider />
           <Divider size={0} my="lg" />

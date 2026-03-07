@@ -139,10 +139,10 @@ export class SpaceService {
       });
 
       if (
-        !this.licenseCheckService.isValidEELicense(workspace.licenseKey)
+        !this.licenseCheckService.hasFeature(workspace.licenseKey, 'security:settings')
       ) {
         throw new ForbiddenException(
-          'This feature requires a valid enterprise license',
+          'This feature requires a valid license',
         );
       }
     }

@@ -21,6 +21,7 @@ export interface IWorkspace {
   memberCount?: number;
   plan?: string;
   hasLicenseKey?: boolean;
+  features?: string[];
   enforceMfa?: boolean;
   aiSearch?: boolean;
   generativeAi?: boolean;
@@ -84,7 +85,7 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
-  hasLicenseKey?: boolean;
+  features?: string[];
 }
 
 export interface IVersion {

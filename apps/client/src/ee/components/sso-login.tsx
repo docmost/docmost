@@ -6,7 +6,6 @@ import { IAuthProvider } from "@/ee/security/types/security.types.ts";
 import { buildSsoLoginUrl } from "@/ee/security/sso.utils.ts";
 import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 import { GoogleIcon } from "@/components/icons/google-icon.tsx";
-import { isCloud } from "@/lib/config.ts";
 import { LdapLoginModal } from "@/ee/components/ldap-login-modal.tsx";
 
 export default function SsoLogin() {
@@ -57,7 +56,7 @@ export default function SsoLogin() {
         />
       )}
 
-      {(isCloud() || data.hasLicenseKey) && (
+      {(data.features?.length > 0) && (
         <>
           <Stack align="stretch" justify="center" gap="sm">
             {data.authProviders.map((provider) => (

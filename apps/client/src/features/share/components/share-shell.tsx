@@ -180,7 +180,7 @@ export default function ShareShell({
       <AppShell.Main>
         {children}
 
-        {data && shareId && !data.hasLicenseKey && <ShareBranding />}
+        {data && shareId && !(data.features?.length > 0) && <ShareBranding />}
       </AppShell.Main>
 
       <AppShell.Aside

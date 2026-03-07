@@ -12,13 +12,18 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label.ts";
 
 type RetentionUnit = "days" | "months" | "years";
 
 const DEFAULT_RETENTION_DAYS = 30;
 
-function daysToRetention(days: number): { amount: number; unit: RetentionUnit } {
+function daysToRetention(days: number): {
+  amount: number;
+  unit: RetentionUnit;
+} {
   if (days >= 365 && days % 365 === 0) {
     return { amount: days / 365, unit: "years" };
   }
@@ -36,14 +41,19 @@ function retentionToDays(amount: number, unit: RetentionUnit): number {
 
 export default function TrashRetention() {
   const { t } = useTranslation();
-  const hasAccess = useEnterpriseAccess();
+  const hasAccess = useHasFeature(Feature.SECURITY_SETTINGS);
+  const upgradeLabel = useUpgradeLabel();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
 
   const currentDays = workspace?.trashRetentionDays ?? DEFAULT_RETENTION_DAYS;
   const parsed = daysToRetention(currentDays);
 
-  const [retentionAmount, setRetentionAmount] = useState<number | string>(parsed.amount);
-  const [retentionUnit, setRetentionUnit] = useState<RetentionUnit>(parsed.unit);
+  const [retentionAmount, setRetentionAmount] = useState<number | string>(
+    parsed.amount,
+  );
+  const [retentionUnit, setRetentionUnit] = useState<RetentionUnit>(
+    parsed.unit,
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -63,14 +73,17 @@ export default function TrashRetention() {
 
     setSaving(true);
     try {
-      const updatedWorkspace = await updateWorkspace({ trashRetentionDays: days });
+      const updatedWorkspace = await updateWorkspace({
+        trashRetentionDays: days,
+      });
       setWorkspace(updatedWorkspace);
       notifications.show({
         message: t("Trash retention updated"),
       });
     } catch (err: any) {
       notifications.show({
-        message: err?.response?.data?.message || t("Failed to update trash retention"),
+        message:
+          err?.response?.data?.message || t("Failed to update trash retention"),
         color: "red",
       });
       const { amount, unit } = daysToRetention(currentDays);
@@ -81,10 +94,11 @@ export default function TrashRetention() {
     }
   };
 
-  const isDirty = retentionToDays(
-    typeof retentionAmount === "number" ? retentionAmount : 1,
-    retentionUnit,
-  ) !== currentDays;
+  const isDirty =
+    retentionToDays(
+      typeof retentionAmount === "number" ? retentionAmount : 1,
+      retentionUnit,
+    ) !== currentDays;
 
   return (
     <div>
@@ -93,10 +107,7 @@ export default function TrashRetention() {
         {t("Pages in trash will be permanently deleted after this period.")}
       </Text>
 
-      <Tooltip
-        label={t("Requires an enterprise license")}
-        disabled={hasAccess}
-      >
+      <Tooltip label={upgradeLabel} disabled={hasAccess}>
         <Group gap="xs" wrap="nowrap" maw={320}>
           <NumberInput
             value={retentionAmount}

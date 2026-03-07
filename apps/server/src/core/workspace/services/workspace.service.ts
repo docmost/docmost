@@ -85,7 +85,7 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey'])
+      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -111,6 +111,7 @@ export class WorkspaceService {
     return {
       ...rest,
       hasLicenseKey: Boolean(licenseKey),
+      features: this.licenseCheckService.resolveFeatures(licenseKey, rest.plan),
     };
   }
 
@@ -336,9 +337,9 @@ export class WorkspaceService {
         .where('id', '=', workspaceId)
         .executeTakeFirst();
 
-      if (!this.licenseCheckService.isValidEELicense(ws.licenseKey)) {
+      if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings')) {
         throw new ForbiddenException(
-          'This feature requires a valid enterprise license',
+          'This feature requires a valid license',
         );
       }
 
@@ -506,6 +507,7 @@ export class WorkspaceService {
     return {
       ...rest,
       hasLicenseKey: Boolean(licenseKey),
+      features: this.licenseCheckService.resolveFeatures(licenseKey, rest.plan),
     };
   }
 

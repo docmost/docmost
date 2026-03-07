@@ -25,4 +25,48 @@ export class LicenseCheckService {
       return false;
     }
   }
+
+  hasFeature(licenseKey: string, feature: string): boolean {
+    if (this.environmentService.isCloud()) {
+      return true;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const LicenseModule = require('../../ee/licence/license.service');
+      const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
+        strict: false,
+      });
+      return licenseService.hasFeature(licenseKey, feature);
+    } catch {
+      return false;
+    }
+  }
+
+  getFeatures(licenseKey: string): string[] {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const LicenseModule = require('../../ee/licence/license.service');
+      const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
+        strict: false,
+      });
+      return licenseService.getFeatures(licenseKey);
+    } catch {
+      return [];
+    }
+  }
+
+  resolveFeatures(licenseKey: string, plan: string): string[] {
+    if (this.environmentService.isCloud()) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getFeaturesForCloudPlan } = require('../../ee/licence/feature-registry');
+        return [...getFeaturesForCloudPlan(plan)];
+      } catch {
+        return [];
+      }
+    }
+
+    return this.getFeatures(licenseKey);
+  }
 }
