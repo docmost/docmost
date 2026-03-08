@@ -81,12 +81,18 @@ export class ImportController {
 
     const spaceId = file.fields?.spaceId?.value;
 
+    const rawParentPageId = file.fields?.parentPageId?.value;
+    const parentPageId =
+      typeof rawParentPageId === 'string' && rawParentPageId.trim()
+        ? rawParentPageId.trim()
+        : undefined;
+
     if (!spaceId) {
       throw new BadRequestException('spaceId is required');
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
@@ -172,7 +178,7 @@ export class ImportController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 
