@@ -14,11 +14,14 @@ import { SearchModule } from './search/search.module';
 import { SpaceModule } from './space/space.module';
 import { GroupModule } from './group/group.module';
 import { CaslModule } from './casl/casl.module';
+import { PageAccessModule } from './page/page-access/page-access.module';
 import { DomainMiddleware } from '../common/middlewares/domain.middleware';
+import { AuditContextMiddleware } from '../common/middlewares/audit-context.middleware';
 import { ShareModule } from './share/share.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
 import { BaseModule } from './base/base.module';
+import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -32,6 +35,7 @@ import { BaseModule } from './base/base.module';
     SpaceModule,
     GroupModule,
     CaslModule,
+    PageAccessModule,
     ShareModule,
     NotificationModule,
     WatcherModule,
@@ -40,14 +44,21 @@ import { BaseModule } from './base/base.module';
 })
 export class CoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    const excludedRoutes = [
+      { path: 'auth/setup', method: RequestMethod.POST },
+      { path: 'health', method: RequestMethod.GET },
+      { path: 'health/live', method: RequestMethod.GET },
+      { path: 'billing/stripe/webhook', method: RequestMethod.POST },
+    ];
+
     consumer
       .apply(DomainMiddleware)
-      .exclude(
-        { path: 'auth/setup', method: RequestMethod.POST },
-        { path: 'health', method: RequestMethod.GET },
-        { path: 'health/live', method: RequestMethod.GET },
-        { path: 'billing/stripe/webhook', method: RequestMethod.POST },
-      )
+      .exclude(...excludedRoutes)
+      .forRoutes('*');
+
+    consumer
+      .apply(AuditContextMiddleware)
+      .exclude(...excludedRoutes)
       .forRoutes('*');
   }
 }

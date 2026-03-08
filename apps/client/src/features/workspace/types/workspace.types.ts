@@ -25,16 +25,25 @@ export interface IWorkspace {
   aiSearch?: boolean;
   generativeAi?: boolean;
   disablePublicSharing?: boolean;
+  mcpEnabled?: boolean;
+  trashRetentionDays?: number;
+  restrictApiToAdmins?: boolean;
 }
 
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
+  api?: IWorkspaceApiSettings;
+}
+
+export interface IWorkspaceApiSettings {
+  restrictToAdmins?: boolean;
 }
 
 export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
+  mcp?: boolean;
 }
 
 export interface IWorkspaceSharingSettings {

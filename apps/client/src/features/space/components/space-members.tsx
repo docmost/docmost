@@ -1,19 +1,21 @@
 import {
+  Center,
   Group,
+  Loader,
   Table,
   Text,
   Menu,
   ActionIcon,
   ScrollArea,
 } from "@mantine/core";
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IconDots } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import {
   useChangeSpaceMemberRoleMutation,
   useRemoveSpaceMemberMutation,
-  useSpaceMembersQuery,
+  useSpaceMembersInfiniteQuery,
 } from "@/features/space/queries/space-query.ts";
 import { IconGroupCircle } from "@/components/icons/icon-people-circle.tsx";
 import { IRemoveSpaceMember } from "@/features/space/types/space.types.ts";
@@ -24,9 +26,7 @@ import {
 } from "@/features/space/types/space-role-data.ts";
 import { formatMemberCount } from "@/lib";
 import { useTranslation } from "react-i18next";
-import Paginate from "@/components/common/paginate.tsx";
 import { SearchInput } from "@/components/common/search-input.tsx";
-import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search.tsx";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
 
 type MemberType = "user" | "group";
@@ -41,12 +41,32 @@ export default function SpaceMembersList({
   readOnly,
 }: SpaceMembersProps) {
   const { t } = useTranslation();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
-  const { data, isLoading } = useSpaceMembersQuery(spaceId, {
-    cursor,
-    limit: 100,
-    query: search,
-  });
+  const [search, setSearch] = useState("");
+  const handleSearch = useCallback((query: string) => setSearch(query), []);
+
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useSpaceMembersInfiniteQuery(spaceId, search);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { root: viewportRef.current, threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   const removeSpaceMember = useRemoveSpaceMemberMutation();
   const changeSpaceMemberRoleMutation = useChangeSpaceMemberRoleMutation();
 
@@ -111,10 +131,12 @@ export default function SpaceMembersList({
       onConfirm: () => onRemove(memberId, type),
     });
 
+  const members = data?.pages.flatMap((page) => page.items) ?? [];
+
   return (
     <>
       <SearchInput onSearch={handleSearch} />
-      <ScrollArea h={450}>
+      <ScrollArea h={450} viewportRef={viewportRef}>
         <Table.ScrollContainer minWidth={500}>
           <Table highlightOnHover verticalSpacing={8}>
             <Table.Thead>
@@ -126,7 +148,7 @@ export default function SpaceMembersList({
             </Table.Thead>
 
             <Table.Tbody>
-              {data?.items.map((member, index) => (
+              {members.map((member, index) => (
                 <Table.Tr key={index}>
                   <Table.Td>
                     <Group gap="sm" wrap="nowrap">
@@ -154,19 +176,24 @@ export default function SpaceMembersList({
                   </Table.Td>
 
                   <Table.Td>
-                    <RoleSelectMenu
-                      roles={spaceRoleData}
-                      roleName={getSpaceRoleLabel(member.role)}
-                      onChange={(newRole) =>
-                        handleRoleChange(
-                          member.id,
-                          member.type,
-                          newRole,
-                          member.role,
-                        )
-                      }
-                      disabled={readOnly}
-                    />
+                    {readOnly ? (
+                      <Text fz="sm">
+                        {t(getSpaceRoleLabel(member.role))}
+                      </Text>
+                    ) : (
+                      <RoleSelectMenu
+                        roles={spaceRoleData}
+                        roleName={getSpaceRoleLabel(member.role)}
+                        onChange={(newRole) =>
+                          handleRoleChange(
+                            member.id,
+                            member.type,
+                            newRole,
+                            member.role,
+                          )
+                        }
+                      />
+                    )}
                   </Table.Td>
 
                   <Table.Td>
@@ -202,16 +229,15 @@ export default function SpaceMembersList({
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
-      </ScrollArea>
 
-      {data?.items.length > 0 && (
-        <Paginate
-          hasPrevPage={data?.meta?.hasPrevPage}
-          hasNextPage={data?.meta?.hasNextPage}
-          onNext={() => goNext(data?.meta?.nextCursor)}
-          onPrev={goPrev}
-        />
-      )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
+
+        {isFetchingNextPage && (
+          <Center py="xs">
+            <Loader size="xs" />
+          </Center>
+        )}
+      </ScrollArea>
     </>
   );
 }

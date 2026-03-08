@@ -46,6 +46,10 @@ export function NotificationItem({
         return t("resolved a comment");
       case "page.user_mention":
         return t("mentioned you on a page");
+      case "page.permission_granted":
+        return notification.data?.role === "writer"
+          ? t("gave you edit access to a page")
+          : t("gave you view access to a page");
       default:
         return "";
     }

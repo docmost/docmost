@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -13,6 +14,7 @@ import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import {
   comparePasswordHash,
   hashPassword,
+  isUserDisabled,
   nanoIdGen,
 } from '../../../common/helpers';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -29,6 +31,11 @@ import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +47,7 @@ export class AuthService {
     private mailService: MailService,
     private domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async login(loginDto: LoginDto, workspaceId: string) {
@@ -48,7 +56,7 @@ export class AuthService {
     });
 
     const errorMessage = 'Email or password does not match';
-    if (!user || user?.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new UnauthorizedException(errorMessage);
     }
 
@@ -63,6 +71,13 @@ export class AuthService {
 
     user.lastLoginAt = new Date();
     await this.userRepo.updateLastLogin(user.id, workspaceId);
+
+    this.auditService.log({
+      event: AuditEvent.USER_LOGIN,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      metadata: { source: 'password' },
+    });
 
     return this.tokenService.generateAccessToken(user);
   }
@@ -89,7 +104,7 @@ export class AuthService {
       includePassword: true,
     });
 
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new NotFoundException('User not found');
     }
 
@@ -112,6 +127,12 @@ export class AuthService {
       workspaceId,
     );
 
+    this.auditService.log({
+      event: AuditEvent.USER_PASSWORD_CHANGED,
+      resourceType: AuditResource.USER,
+      resourceId: userId,
+    });
+
     const emailTemplate = ChangePasswordEmail({ username: user.name });
     await this.mailService.sendToQueue({
       to: user.email,
@@ -129,21 +150,32 @@ export class AuthService {
       workspace.id,
     );
 
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       return;
     }
 
     const token = nanoIdGen(16);
 
-    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
+    await executeTx(this.db, async (trx) => {
+      await trx
+        .deleteFrom('userTokens')
+        .where('userId', '=', user.id)
+        .where('type', '=', UserTokenType.FORGOT_PASSWORD)
+        .execute();
 
-    await this.userTokenRepo.insertUserToken({
-      token: token,
-      userId: user.id,
-      workspaceId: user.workspaceId,
-      expiresAt: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour
-      type: UserTokenType.FORGOT_PASSWORD,
+      await this.userTokenRepo.insertUserToken(
+        {
+          token,
+          userId: user.id,
+          workspaceId: user.workspaceId,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+          type: UserTokenType.FORGOT_PASSWORD,
+        },
+        { trx },
+      );
     });
+
+    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
 
     const emailTemplate = ForgotPasswordEmail({
       username: user.name,
@@ -177,7 +209,7 @@ export class AuthService {
     const user = await this.userRepo.findById(userToken.userId, workspace.id, {
       includeUserMfa: true,
     });
-    if (!user || user.deletedAt) {
+    if (!user || isUserDisabled(user)) {
       throw new NotFoundException('User not found');
     }
 
@@ -199,6 +231,13 @@ export class AuthService {
         .where('userId', '=', user.id)
         .where('type', '=', UserTokenType.FORGOT_PASSWORD)
         .execute();
+    });
+
+    this.auditService.setActorId(user.id);
+    this.auditService.log({
+      event: AuditEvent.USER_PASSWORD_RESET,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
     });
 
     const emailTemplate = ChangePasswordEmail({ username: user.name });

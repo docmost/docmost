@@ -11,6 +11,7 @@ import { getLicenseInfo } from "@/ee/licence/services/license-service.ts";
 import { getSsoProviders } from "@/ee/security/services/security-service.ts";
 import { getShares } from "@/features/share/services/share-service.ts";
 import { getApiKeys } from "@/ee/api-key";
+import { getAuditLogs } from "@/ee/audit/services/audit-service";
 
 export const prefetchWorkspaceMembers = () => {
   const params: QueryParams = { limit: 100, query: "" };
@@ -78,5 +79,13 @@ export const prefetchApiKeyManagement = () => {
   queryClient.prefetchQuery({
     queryKey: ["api-key-list", { adminView: true }],
     queryFn: () => getApiKeys({ adminView: true }),
+  });
+};
+
+export const prefetchAuditLogs = () => {
+  const params = { limit: 50 };
+  queryClient.prefetchQuery({
+    queryKey: ["audit-logs", params],
+    queryFn: () => getAuditLogs(params),
   });
 };

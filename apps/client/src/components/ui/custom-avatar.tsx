@@ -4,7 +4,7 @@ import { getAvatarUrl } from "@/lib/config.ts";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 
 interface CustomAvatarProps {
-  avatarUrl: string;
+  avatarUrl?: string;
   name: string;
   color?: string;
   size?: string | number;

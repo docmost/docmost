@@ -52,7 +52,34 @@
 
   h1,
   h2,
-  h3,
+  h3 {
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+
+  h1 strong,
+  h2 strong,
+  h3 strong {
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    margin-top: 1.875rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    margin-top: 1.25rem;
+  }
+
   h4,
   h5,
   h6 {
@@ -82,13 +109,9 @@
   }
 
   blockquote {
-    padding-left: 25px;
-    padding-right: 25px;
-    border-left: 2px solid var(--mantine-color-gray-6);
-    background-color: light-dark(
-      var(--mantine-color-gray-0),
-      var(--mantine-color-dark-8)
-    );
+    padding-left: 1rem;
+    border-left: 3px solid
+      light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
     margin: 0;
   }
 
@@ -126,13 +149,18 @@
       margin-bottom: 0;
     }
 
-    &.node-callout {
-      div[style*="white-space: inherit;"] {
-        > :first-child {
-          margin: 0;
-        }
-      }
-    }
+  }
+
+  .react-renderer.node-callout div[style*="white-space: inherit;"] > :first-child {
+    margin-top: 0;
+  }
+
+  .react-renderer.node-callout div[style*="white-space: inherit;"] > :last-child {
+    margin-bottom: 0;
+  }
+
+  .react-renderer.node-callout + .react-renderer.node-callout {
+    margin-top: 0.75em;
   }
 
   .selection {
@@ -241,4 +269,11 @@
 
 .actionIconGroup {
   background: var(--mantine-color-body);
+}
+
+.page-title .ProseMirror h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 0.75em;
 }

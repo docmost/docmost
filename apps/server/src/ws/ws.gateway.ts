@@ -1,6 +1,7 @@
 import {
   MessageBody,
   OnGatewayConnection,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -10,19 +11,29 @@ import { TokenService } from '../core/auth/services/token.service';
 import { JwtPayload, JwtType } from '../core/auth/dto/jwt-payload';
 import { OnModuleDestroy } from '@nestjs/common';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { WsService } from './ws.service';
+import { getSpaceRoomName, getUserRoomName } from './ws.utils';
 import * as cookie from 'cookie';
 
 @WebSocketGateway({
   cors: { origin: '*' },
   transports: ['websocket'],
 })
-export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
+export class WsGateway
+  implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy
+{
   @WebSocketServer()
   server: Server;
+
   constructor(
     private tokenService: TokenService,
     private spaceMemberRepo: SpaceMemberRepo,
+    private wsService: WsService,
   ) {}
+
+  afterInit(server: Server): void {
+    this.wsService.setServer(server);
+  }
 
   async handleConnection(client: Socket, ...args: any[]): Promise<void> {
     try {
@@ -35,11 +46,13 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
       const userId = token.sub;
       const workspaceId = token.workspaceId;
 
+      client.data.userId = userId;
+
       const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
 
-      const userRoom = `user-${userId}`;
+      const userRoom = getUserRoomName(userId);
       const workspaceRoom = `workspace-${workspaceId}`;
-      const spaceRooms = userSpaceIds.map((id) => this.getSpaceRoomName(id));
+      const spaceRooms = userSpaceIds.map((id) => getSpaceRoomName(id));
 
       client.join([userRoom, workspaceRoom, ...spaceRooms]);
     } catch (err) {
@@ -49,17 +62,9 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
   }
 
   @SubscribeMessage('message')
-  handleMessage(client: Socket, data: any): void {
-    const spaceEvents = [
-      'updateOne',
-      'addTreeNode',
-      'moveTreeNode',
-      'deleteTreeNode',
-    ];
-
-    if (spaceEvents.includes(data?.operation) && data?.spaceId) {
-      const room = this.getSpaceRoomName(data.spaceId);
-      client.broadcast.to(room).emit('message', data);
+  async handleMessage(client: Socket, data: any): Promise<void> {
+    if (this.wsService.isTreeEvent(data)) {
+      await this.wsService.handleTreeEvent(client, data);
       return;
     }
 
@@ -81,9 +86,5 @@ export class WsGateway implements OnGatewayConnection, OnModuleDestroy {
     if (this.server) {
       this.server.close();
     }
-  }
-
-  getSpaceRoomName(spaceId: string): string {
-    return `space-${spaceId}`;
   }
 }

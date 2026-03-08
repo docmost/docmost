@@ -61,6 +61,21 @@ export interface Attachments {
   workspaceId: string;
 }
 
+export interface Audit {
+  actorId: string | null;
+  actorType: Generated<string>;
+  changes: Json | null;
+  createdAt: Generated<Timestamp>;
+  event: string;
+  id: Generated<string>;
+  ipAddress: string | null;
+  metadata: Json | null;
+  resourceId: string | null;
+  resourceType: string;
+  spaceId: string | null;
+  workspaceId: string;
+}
+
 export interface AuthAccounts {
   authProviderId: string | null;
   createdAt: Generated<Timestamp>;
@@ -339,6 +354,8 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
+  auditRetentionDays: Generated<number>;
+  trashRetentionDays: Generated<number>;
   billingEmail: string | null;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
@@ -443,9 +460,32 @@ export interface BaseViews {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface PageAccess {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  spaceId: string;
+  accessLevel: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PagePermissions {
+  id: Generated<string>;
+  pageAccessId: string;
+  userId: string | null;
+  groupId: string | null;
+  role: string;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
+  audit: Audit;
   baseProperties: BaseProperties;
   baseRows: BaseRows;
   baseViews: BaseViews;
@@ -459,6 +499,8 @@ export interface DB {
   groups: Groups;
   groupUsers: GroupUsers;
   notifications: Notifications;
+  pageAccess: PageAccess;
+  pagePermissions: PagePermissions;
   pageHistory: PageHistory;
   pages: Pages;
   shares: Shares;

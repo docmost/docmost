@@ -13,6 +13,7 @@ import {
   IconKey,
   IconWorld,
   IconSparkles,
+  IconHistory,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -31,6 +32,7 @@ import {
   prefetchSpaces,
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
+  prefetchAuditLogs,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
@@ -44,6 +46,7 @@ interface DataItem {
   isCloud?: boolean;
   isEnterprise?: boolean;
   isAdmin?: boolean;
+  isOwner?: boolean;
   isSelfhosted?: boolean;
   showDisabledInNonEE?: boolean;
 }
@@ -116,6 +119,15 @@ const groupedData: DataGroup[] = [
         path: "/settings/ai",
         isAdmin: true,
       },
+      {
+        label: "Audit log",
+        icon: IconHistory,
+        path: "/settings/audit",
+        isEnterprise: true,
+        isOwner: true,
+        isSelfhosted: true,
+        showDisabledInNonEE: true,
+      },
     ],
   },
   {
@@ -135,7 +147,7 @@ export default function SettingsSidebar() {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const { goBack } = useSettingsNavigation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isOwner } = useUserRole();
   const [workspace] = useAtom(workspaceAtom);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
@@ -144,34 +156,36 @@ export default function SettingsSidebar() {
     setActive(location.pathname);
   }, [location.pathname]);
 
+  const hasRoleAccess = (item: DataItem) => {
+    if (item.isOwner) return isOwner;
+    if (item.isAdmin) return isAdmin;
+    return true;
+  };
+
   const canShowItem = (item: DataItem) => {
     if (item.showDisabledInNonEE && item.isEnterprise) {
-      // Check admin permission regardless of license
-      return item.isAdmin ? isAdmin : true;
+      if (item.isSelfhosted && isCloud()) return false;
+      return hasRoleAccess(item);
     }
 
     if (item.isCloud && item.isEnterprise) {
       if (!(isCloud() || workspace?.hasLicenseKey)) return false;
-      return item.isAdmin ? isAdmin : true;
+      return hasRoleAccess(item);
     }
 
     if (item.isCloud) {
-      return isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+      return isCloud() ? hasRoleAccess(item) : false;
     }
 
     if (item.isSelfhosted) {
-      return !isCloud() ? (item.isAdmin ? isAdmin : true) : false;
+      return !isCloud() ? hasRoleAccess(item) : false;
     }
 
     if (item.isEnterprise) {
-      return workspace?.hasLicenseKey ? (item.isAdmin ? isAdmin : true) : false;
+      return workspace?.hasLicenseKey ? hasRoleAccess(item) : false;
     }
 
-    if (item.isAdmin) {
-      return isAdmin;
-    }
-
-    return true;
+    return hasRoleAccess(item);
   };
 
   const isItemDisabled = (item: DataItem) => {
@@ -226,6 +240,9 @@ export default function SettingsSidebar() {
               break;
             case "API management":
               prefetchHandler = prefetchApiKeyManagement;
+              break;
+            case "Audit log":
+              prefetchHandler = prefetchAuditLogs;
               break;
             default:
               break;

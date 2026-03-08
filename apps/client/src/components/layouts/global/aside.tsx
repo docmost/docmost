@@ -31,7 +31,7 @@ export default function Aside() {
   }
 
   return (
-    <Box p="md">
+    <Box p="md" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {component && (
         <>
           <Text mb="md" fw={500}>
