@@ -390,9 +390,66 @@ export interface Watchers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Bases {
+  id: Generated<string>;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  pageId: string | null;
+  spaceId: string;
+  workspaceId: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface BaseProperties {
+  id: Generated<string>;
+  baseId: string;
+  name: string;
+  type: string;
+  position: string;
+  typeOptions: Json | null;
+  isPrimary: Generated<boolean>;
+  workspaceId: string;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface BaseRows {
+  id: Generated<string>;
+  baseId: string;
+  cells: Generated<Json>;
+  position: string;
+  creatorId: string | null;
+  lastUpdatedById: string | null;
+  workspaceId: string;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface BaseViews {
+  id: Generated<string>;
+  baseId: string;
+  name: string;
+  type: Generated<string>;
+  position: string;
+  config: Generated<Json>;
+  workspaceId: string;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
+  baseProperties: BaseProperties;
+  baseRows: BaseRows;
+  baseViews: BaseViews;
+  bases: Bases;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;

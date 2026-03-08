@@ -1,0 +1,154 @@
+import { useMutation } from "@tanstack/react-query";
+import {
+  createProperty,
+  updateProperty,
+  deleteProperty,
+  reorderProperty,
+} from "@/features/base/services/base-service";
+import {
+  IBase,
+  IBaseProperty,
+  CreatePropertyInput,
+  UpdatePropertyInput,
+  DeletePropertyInput,
+  ReorderPropertyInput,
+  UpdatePropertyResult,
+} from "@/features/base/types/base.types";
+import { notifications } from "@mantine/notifications";
+import { queryClient } from "@/main";
+import { useTranslation } from "react-i18next";
+
+export function useCreatePropertyMutation() {
+  const { t } = useTranslation();
+  return useMutation<IBaseProperty, Error, CreatePropertyInput>({
+    mutationFn: (data) => createProperty(data),
+    onSuccess: (newProperty) => {
+      queryClient.setQueryData<IBase>(
+        ["bases", newProperty.baseId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            properties: [...old.properties, newProperty],
+          };
+        },
+      );
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Failed to create property"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useUpdatePropertyMutation() {
+  const { t } = useTranslation();
+  return useMutation<UpdatePropertyResult, Error, UpdatePropertyInput>({
+    mutationFn: (data) => updateProperty(data),
+    onSuccess: (result, variables) => {
+      queryClient.setQueryData<IBase>(
+        ["bases", variables.baseId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            properties: old.properties.map((p) =>
+              p.id === result.property.id ? result.property : p,
+            ),
+          };
+        },
+      );
+
+      if (result.conversionSummary || variables.type) {
+        queryClient.invalidateQueries({
+          queryKey: ["base-rows", variables.baseId],
+        });
+      }
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Failed to update property"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useDeletePropertyMutation() {
+  const { t } = useTranslation();
+  return useMutation<void, Error, DeletePropertyInput>({
+    mutationFn: (data) => deleteProperty(data),
+    onSuccess: (_, variables) => {
+      queryClient.setQueryData<IBase>(
+        ["bases", variables.baseId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            properties: old.properties.filter(
+              (p) => p.id !== variables.propertyId,
+            ),
+          };
+        },
+      );
+
+      queryClient.invalidateQueries({
+        queryKey: ["base-rows", variables.baseId],
+      });
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Failed to delete property"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useReorderPropertyMutation() {
+  const { t } = useTranslation();
+  return useMutation<void, Error, ReorderPropertyInput, { previous: IBase | undefined }>({
+    mutationFn: (data) => reorderProperty(data),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({
+        queryKey: ["bases", variables.baseId],
+      });
+
+      const previous = queryClient.getQueryData<IBase>([
+        "bases",
+        variables.baseId,
+      ]);
+
+      queryClient.setQueryData<IBase>(
+        ["bases", variables.baseId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            properties: old.properties.map((p) =>
+              p.id === variables.propertyId
+                ? { ...p, position: variables.position }
+                : p,
+            ),
+          };
+        },
+      );
+
+      return { previous };
+    },
+    onError: (_, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(
+          ["bases", variables.baseId],
+          context.previous,
+        );
+      }
+      notifications.show({
+        message: t("Failed to reorder property"),
+        color: "red",
+      });
+    },
+  });
+}

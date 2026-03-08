@@ -4,6 +4,10 @@ import {
   AuthAccounts,
   AuthProviders,
   Backlinks,
+  BaseProperties,
+  BaseRows,
+  BaseViews,
+  Bases,
   Billing,
   Comments,
   FileTasks,
@@ -27,6 +31,10 @@ import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 export interface DbInterface {
   attachments: Attachments;
   authAccounts: AuthAccounts;
+  baseProperties: BaseProperties;
+  baseRows: BaseRows;
+  baseViews: BaseViews;
+  bases: Bases;
   authProviders: AuthProviders;
   backlinks: Backlinks;
   billing: Billing;

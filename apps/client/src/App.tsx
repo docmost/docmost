@@ -37,6 +37,7 @@ import SpaceTrash from "@/pages/space/space-trash.tsx";
 import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
+import BasePage from "@/pages/base/base-page.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -85,6 +86,8 @@ export default function App() {
             path={"/s/:spaceSlug/p/:pageSlug"}
             element={<Page />}
           />
+
+          <Route path={"/base/:baseId"} element={<BasePage />} />
 
           <Route path={"/settings"}>
             <Route path={"account/profile"} element={<AccountSettings />} />

@@ -1,6 +1,10 @@
 import { Insertable, Selectable, Updateable } from 'kysely';
 import {
   Attachments,
+  BaseProperties,
+  BaseRows,
+  BaseViews,
+  Bases,
   Comments,
   Groups,
   Notifications,
@@ -143,3 +147,23 @@ export type UpdatableNotification = Updateable<Omit<Notifications, 'id'>>;
 export type Watcher = Selectable<Watchers>;
 export type InsertableWatcher = Insertable<Watchers>;
 export type UpdatableWatcher = Updateable<Omit<Watchers, 'id'>>;
+
+// Base
+export type Base = Selectable<Bases>;
+export type InsertableBase = Insertable<Bases>;
+export type UpdatableBase = Updateable<Omit<Bases, 'id'>>;
+
+// Base Property
+export type BaseProperty = Selectable<BaseProperties>;
+export type InsertableBaseProperty = Insertable<BaseProperties>;
+export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
+
+// Base Row
+export type BaseRow = Selectable<BaseRows>;
+export type InsertableBaseRow = Insertable<BaseRows>;
+export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
+
+// Base View
+export type BaseView = Selectable<BaseViews>;
+export type InsertableBaseView = Insertable<BaseViews>;
+export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;

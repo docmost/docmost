@@ -1,0 +1,293 @@
+.gridWrapper {
+  position: relative;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.grid {
+  display: grid;
+  min-width: max-content;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+}
+
+.headerRow {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.headerCell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 8px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.headerCell:last-child {
+  border-right: none;
+}
+
+.headerCellPinned {
+  position: sticky;
+  z-index: 2;
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.headerCellContent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.headerCellName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerTypeIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 3;
+}
+
+.resizeHandle::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background-color: transparent;
+  transition: background-color 150ms ease;
+}
+
+.resizeHandle:hover::after,
+.resizeHandleActive::after {
+  background-color: var(--mantine-color-blue-5);
+}
+
+.rowContainer {
+  display: contents;
+}
+
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.row:hover .cell {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-7)
+  );
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 8px;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  overflow: hidden;
+  cursor: default;
+  outline: none;
+}
+
+.cell:last-child {
+  border-right: none;
+}
+
+.cellPinned {
+  position: sticky;
+  z-index: 1;
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-7)
+  );
+}
+
+.row:hover .cellPinned {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-7)
+  );
+}
+
+.cellEditing {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+  z-index: 1;
+  padding: 0;
+}
+
+.cellContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowNumberCell {
+  justify-content: center;
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.rowNumberDraggable {
+  cursor: grab;
+}
+
+.rowNumberDraggable:active {
+  cursor: grabbing;
+}
+
+.rowDragging .cell {
+  opacity: 0.4;
+}
+
+.rowDropAbove .cell {
+  box-shadow: inset 0 2px 0 0 var(--mantine-color-blue-5);
+}
+
+.rowDropBelow .cell {
+  box-shadow: inset 0 -2px 0 0 var(--mantine-color-blue-5);
+}
+
+.addRowButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 8px;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  border-top: 1px dashed
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms ease;
+  grid-column: 1 / -1;
+}
+
+.addRowButton:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.addColumnButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  min-width: 40px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms ease;
+}
+
+.addColumnButton:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  grid-column: 1 / -1;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) 0;
+  margin-bottom: var(--mantine-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.loadingOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mantine-spacing-xl);
+}
+
+.primaryCell {
+  font-weight: 500;
+}
