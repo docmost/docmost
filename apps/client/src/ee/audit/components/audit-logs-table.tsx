@@ -1,5 +1,13 @@
 import { Fragment, useState } from "react";
-import { Table, Text, Group, Skeleton, Anchor, Collapse, Box } from "@mantine/core";
+import {
+  Table,
+  Text,
+  Group,
+  Skeleton,
+  Anchor,
+  Collapse,
+  Box,
+} from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -67,7 +75,12 @@ function ChangesDiff({ changes }: { changes: IAuditLog["changes"] }) {
 
         return (
           <Group key={key} gap={6} mb={2} wrap="nowrap" align="center">
-            <Text fz="xs" c="dimmed" fw={500} style={{ minWidth: "fit-content" }}>
+            <Text
+              fz="xs"
+              c="dimmed"
+              fw={500}
+              style={{ minWidth: "fit-content" }}
+            >
               {key}:
             </Text>
             {hasBefore && (
@@ -143,7 +156,11 @@ function TableSkeleton() {
 
 function ResourceCell({ entry }: { entry: IAuditLog }) {
   if (!entry.resource?.name) {
-    return <Text fz="sm" c="dimmed">—</Text>;
+    return (
+      <Text fz="sm" c="dimmed">
+        —
+      </Text>
+    );
   }
 
   const url = getResourceUrl(entry);
@@ -218,16 +235,24 @@ export default function AuditLogsTable({
               return (
                 <Fragment key={entry.id}>
                   <Table.Tr
-                    onClick={expandable ? () => toggleExpanded(entry.id) : undefined}
+                    onClick={
+                      expandable ? () => toggleExpanded(entry.id) : undefined
+                    }
                     style={{ cursor: expandable ? "pointer" : undefined }}
                   >
                     <Table.Td>
                       <Group gap="sm" wrap="nowrap">
                         {expandable ? (
                           isExpanded ? (
-                            <IconChevronDown size={16} color="var(--mantine-color-dimmed)" />
+                            <IconChevronDown
+                              size={16}
+                              color="var(--mantine-color-dimmed)"
+                            />
                           ) : (
-                            <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
+                            <IconChevronRight
+                              size={16}
+                              color="var(--mantine-color-dimmed)"
+                            />
                           )
                         ) : (
                           <Box w={16} />
@@ -252,7 +277,7 @@ export default function AuditLogsTable({
                           <Text fz="sm" c="dimmed" fs="italic">
                             {entry.actorType === "system"
                               ? t("System")
-                              : t("API key")}
+                              : t("System")}
                           </Text>
                         )}
                       </Group>
@@ -274,15 +299,21 @@ export default function AuditLogsTable({
                   </Table.Tr>
 
                   {expandable && (
-                    <Table.Tr
-                      className={classes.detailRow}
-                    >
+                    <Table.Tr className={classes.detailRow}>
                       <Table.Td colSpan={4} p={0}>
                         <Collapse in={isExpanded}>
-                          <Box px="md" py="sm" className={classes.detailContent}>
+                          <Box
+                            px="md"
+                            py="sm"
+                            className={classes.detailContent}
+                          >
                             <Group gap="xl" align="flex-start">
-                              {entry.changes && <ChangesDiff changes={entry.changes} />}
-                              {entry.metadata && <MetadataDisplay metadata={entry.metadata} />}
+                              {entry.changes && (
+                                <ChangesDiff changes={entry.changes} />
+                              )}
+                              {entry.metadata && (
+                                <MetadataDisplay metadata={entry.metadata} />
+                              )}
                             </Group>
                           </Box>
                         </Collapse>

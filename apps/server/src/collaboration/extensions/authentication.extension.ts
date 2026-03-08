@@ -12,6 +12,7 @@ import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from '../../common/helpers/types/permission';
+import { isUserDisabled } from '../../common/helpers';
 import { getPageId } from '../collaboration.util';
 import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
 
@@ -48,7 +49,7 @@ export class AuthenticationExtension implements Extension {
       throw new UnauthorizedException();
     }
 
-    if (user.deactivatedAt || user.deletedAt) {
+    if (isUserDisabled(user)) {
       throw new UnauthorizedException();
     }
 

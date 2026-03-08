@@ -244,15 +244,17 @@ export function TitleEditor({
   }
 
   return (
-    <EditorContent
-      editor={titleEditor}
-      onKeyDown={(event) => {
-        // First handle the search hotkey
-        getHotkeyHandler([["mod+F", openSearchDialog]])(event);
+    <div className="page-title">
+      <EditorContent
+        editor={titleEditor}
+        onKeyDown={(event) => {
+          // First handle the search hotkey
+          getHotkeyHandler([["mod+F", openSearchDialog]])(event);
 
-        // Then handle other key events
-        handleTitleKeyDown(event);
-      }}
-    />
+          // Then handle other key events
+          handleTitleKeyDown(event);
+        }}
+      />
+    </div>
   );
 }

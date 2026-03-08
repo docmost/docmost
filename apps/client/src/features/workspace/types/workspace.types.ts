@@ -27,11 +27,17 @@ export interface IWorkspace {
   disablePublicSharing?: boolean;
   mcpEnabled?: boolean;
   trashRetentionDays?: number;
+  restrictApiToAdmins?: boolean;
 }
 
 export interface IWorkspaceSettings {
   ai?: IWorkspaceAiSettings;
   sharing?: IWorkspaceSharingSettings;
+  api?: IWorkspaceApiSettings;
+}
+
+export interface IWorkspaceApiSettings {
+  restrictToAdmins?: boolean;
 }
 
 export interface IWorkspaceAiSettings {

@@ -15,6 +15,8 @@ export const AuditEvent = {
   USER_PASSWORD_CHANGED: 'user.password_changed',
   USER_PASSWORD_RESET: 'user.password_reset',
   USER_UPDATED: 'user.updated',
+  USER_DEACTIVATED: 'user.deactivated',
+  USER_ACTIVATED: 'user.activated',
 
   // API Keys
   API_KEY_CREATED: 'api_key.created',
@@ -96,6 +98,7 @@ export const EXCLUDED_AUDIT_EVENTS: Set<string> = new Set([
   AuditEvent.COMMENT_UPDATED,
   AuditEvent.COMMENT_RESOLVED,
   AuditEvent.COMMENT_REOPENED,
+  AuditEvent.ATTACHMENT_UPLOADED
 ]);
 
 export const AuditResource = {
