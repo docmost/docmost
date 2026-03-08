@@ -204,32 +204,100 @@ export class BaseRowRepo {
       query = this.applyFilter(query, filter, propertyTypeMap);
     }
 
-    // Apply sorts
-    for (const sort of sorts) {
-      query = this.applySort(query, sort, propertyTypeMap);
+    // Build cursor-compatible sort fields.
+    // COALESCE sort expressions so NULLs never reach the cursor encoder/comparator.
+    // ASC NULLS LAST  → COALESCE(expr, <high sentinel>)
+    // DESC NULLS LAST → COALESCE(expr, <low sentinel>)
+    const sortMeta: Array<{
+      alias: string;
+      expression: ReturnType<typeof sql>;
+      direction: 'asc' | 'desc';
+      isNumeric: boolean;
+    }> = [];
+
+    for (let i = 0; i < sorts.length; i++) {
+      const sort = sorts[i];
+      const type = propertyTypeMap.get(sort.propertyId);
+      if (!type) continue;
+
+      const dir = (sort.direction === 'desc' ? 'desc' : 'asc') as 'asc' | 'desc';
+      const alias = `s${i}`;
+      let expression: ReturnType<typeof sql>;
+      let isNumeric = false;
+
+      const systemCol = SYSTEM_COLUMN_MAP[type];
+      if (systemCol) {
+        // System columns (createdAt, updatedAt) are NOT NULL — no COALESCE needed
+        expression = sql`"${sql.raw(systemCol)}"`;
+      } else if (type === 'number') {
+        isNumeric = true;
+        const sentinel = dir === 'asc' ? "'Infinity'::numeric" : "'-Infinity'::numeric";
+        expression = sql`COALESCE((cells->>'${sql.raw(sort.propertyId)}')::numeric, ${sql.raw(sentinel)})`;
+      } else {
+        // Text, date, select, etc.
+        const sentinel = dir === 'asc' ? 'chr(1114111)' : "''";
+        expression = sql`COALESCE(cells->>'${sql.raw(sort.propertyId)}', ${sql.raw(sentinel)})`;
+      }
+
+      sortMeta.push({ alias, expression, direction: dir, isNumeric });
+      query = query.select(expression.as(alias)) as any;
     }
 
-    // Always add position, id as tiebreaker
-    query = query.orderBy('position', 'asc').orderBy('id', 'asc');
+    // Cursor pagination fields: sort aliases + position + id tiebreakers.
+    // executeWithCursorPagination applies ORDER BY and builds the keyset WHERE from these.
+    const fields = [
+      ...sortMeta.map(({ alias, expression, direction }) => ({
+        expression,
+        direction,
+        key: alias,
+      })),
+      { expression: 'position' as any, direction: 'asc' as const, key: 'position' },
+      { expression: 'id' as any, direction: 'asc' as const, key: 'id' },
+    ];
 
-    // Simple limit-based pagination (cursor pagination is not used when filters/sorts are active
-    // because JSONB-based cursor expressions are complex)
-    const limit = pagination.limit ?? 20;
-    const rows = await query.limit(limit + 1).execute();
-
-    const hasNextPage = rows.length > limit;
-    if (hasNextPage) rows.pop();
-
-    return {
-      items: rows,
-      meta: {
-        limit,
-        hasNextPage,
-        hasPrevPage: false,
-        nextCursor: null,
-        prevCursor: null,
+    return executeWithCursorPagination(query as any, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: fields as any,
+      encodeCursor: (values: Array<[string, unknown]>) => {
+        const cursor = new URLSearchParams();
+        for (const [key, value] of values) {
+          if (value === null || value === undefined) {
+            cursor.set(key, '__null__');
+          } else if (value instanceof Date) {
+            cursor.set(key, value.toISOString());
+          } else {
+            cursor.set(key, String(value));
+          }
+        }
+        return Buffer.from(cursor.toString(), 'utf8').toString('base64url');
       },
-    };
+      decodeCursor: (cursorStr: string, fieldNames: string[]) => {
+        const parsed = new URLSearchParams(
+          Buffer.from(cursorStr, 'base64url').toString('utf8'),
+        );
+        const result: Record<string, string> = {};
+        for (const name of fieldNames) {
+          result[name] = parsed.get(name) ?? '';
+        }
+        return result;
+      },
+      parseCursor: (decoded: any) => {
+        const result: Record<string, unknown> = {};
+        for (const { alias, isNumeric } of sortMeta) {
+          const val = decoded[alias];
+          if (val === '__null__') {
+            result[alias] = null;
+          } else {
+            result[alias] = isNumeric ? parseFloat(val) : val;
+          }
+        }
+        result.position = decoded.position;
+        result.id = decoded.id;
+        return result;
+      },
+    } as any);
   }
 
   private applyFilter(
