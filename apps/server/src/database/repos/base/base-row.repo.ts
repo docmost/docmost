@@ -8,7 +8,20 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { sql } from 'kysely';
+import { sql, SelectQueryBuilder, SqlBool } from 'kysely';
+import { DB } from '@docmost/db/types/db';
+
+const SYSTEM_COLUMN_MAP: Record<string, string> = {
+  createdAt: 'createdAt',
+  lastEditedAt: 'updatedAt',
+  lastEditedBy: 'lastUpdatedById',
+};
+
+const ARRAY_TYPES = new Set(['multiSelect', 'person', 'file']);
+
+function escapeIlike(value: string): string {
+  return value.replace(/[%_\\]/g, '\\$&');
+}
 
 @Injectable()
 export class BaseRowRepo {
@@ -168,5 +181,262 @@ export class BaseRowRepo {
         .where('id', '=', update.id)
         .execute();
     }
+  }
+
+  async findByBaseIdFiltered(
+    baseId: string,
+    filters: Array<{ propertyId: string; operator: string; value?: unknown }>,
+    sorts: Array<{ propertyId: string; direction: string }>,
+    propertyTypeMap: Map<string, string>,
+    pagination: PaginationOptions,
+    opts?: { trx?: KyselyTransaction },
+  ) {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    let query = db
+      .selectFrom('baseRows')
+      .selectAll()
+      .where('baseId', '=', baseId)
+      .where('deletedAt', 'is', null) as SelectQueryBuilder<DB, 'baseRows', any>;
+
+    // Apply filters
+    for (const filter of filters) {
+      query = this.applyFilter(query, filter, propertyTypeMap);
+    }
+
+    // Apply sorts
+    for (const sort of sorts) {
+      query = this.applySort(query, sort, propertyTypeMap);
+    }
+
+    // Always add position, id as tiebreaker
+    query = query.orderBy('position', 'asc').orderBy('id', 'asc');
+
+    // Simple limit-based pagination (cursor pagination is not used when filters/sorts are active
+    // because JSONB-based cursor expressions are complex)
+    const limit = pagination.limit ?? 20;
+    const rows = await query.limit(limit + 1).execute();
+
+    const hasNextPage = rows.length > limit;
+    if (hasNextPage) rows.pop();
+
+    return {
+      items: rows,
+      meta: {
+        limit,
+        hasNextPage,
+        hasPrevPage: false,
+        nextCursor: null,
+        prevCursor: null,
+      },
+    };
+  }
+
+  private applyFilter(
+    query: SelectQueryBuilder<DB, 'baseRows', any>,
+    filter: { propertyId: string; operator: string; value?: unknown },
+    propertyTypeMap: Map<string, string>,
+  ): SelectQueryBuilder<DB, 'baseRows', any> {
+    const { propertyId, operator, value } = filter;
+    const propertyType = propertyTypeMap.get(propertyId);
+    if (!propertyType) return query;
+
+    // System property -> use actual column
+    const systemCol = SYSTEM_COLUMN_MAP[propertyType];
+    if (systemCol) {
+      return this.applyColumnFilter(query, systemCol, operator, value, propertyType);
+    }
+
+    const isArray = ARRAY_TYPES.has(propertyType);
+
+    // isEmpty / isNotEmpty don't need a value
+    if (operator === 'isEmpty') {
+      if (isArray) {
+        return query.where(({ or, eb }) =>
+          or([
+            eb(sql.raw(`cells->'${propertyId}'`), 'is', null),
+            eb(sql`jsonb_array_length(cells->'${sql.raw(propertyId)}')`, '=', 0),
+          ]),
+        );
+      }
+      return query.where(({ or, eb }) =>
+        or([
+          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
+          eb(sql.raw(`cells->>'${propertyId}'`), '=', ''),
+        ]),
+      );
+    }
+
+    if (operator === 'isNotEmpty') {
+      if (isArray) {
+        return query
+          .where(sql.raw(`cells->'${propertyId}'`), 'is not', null)
+          .where(sql`jsonb_array_length(cells->'${sql.raw(propertyId)}')`, '>', 0);
+      }
+      return query
+        .where(sql.raw(`cells->>'${propertyId}'`), 'is not', null)
+        .where(sql.raw(`cells->>'${propertyId}'`), '!=', '');
+    }
+
+    if (value === undefined || value === null) return query;
+
+    // contains / notContains - text search
+    if (operator === 'contains') {
+      return query.where(
+        sql.raw(`cells->>'${propertyId}'`),
+        'ilike',
+        `%${escapeIlike(String(value))}%`,
+      );
+    }
+    if (operator === 'notContains') {
+      return query.where(({ or, eb }) =>
+        or([
+          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
+          eb(
+            sql.raw(`cells->>'${propertyId}'`),
+            'not ilike',
+            `%${escapeIlike(String(value))}%`,
+          ),
+        ]),
+      );
+    }
+
+    // equals / notEquals
+    if (operator === 'equals') {
+      if (isArray) {
+        return query.where(
+          sql<SqlBool>`cells->'${sql.raw(propertyId)}' @> ${JSON.stringify([value])}::jsonb`,
+        );
+      }
+      if (propertyType === 'number') {
+        return query.where(
+          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric = ${Number(value)}`,
+        );
+      }
+      if (propertyType === 'checkbox') {
+        return query.where(
+          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::boolean = ${Boolean(value)}`,
+        );
+      }
+      return query.where(sql.raw(`cells->>'${propertyId}'`), '=', String(value));
+    }
+
+    if (operator === 'notEquals') {
+      if (isArray) {
+        return query.where(({ or, eb }) =>
+          or([
+            eb(sql.raw(`cells->'${propertyId}'`), 'is', null),
+            sql<SqlBool>`NOT (cells->'${sql.raw(propertyId)}' @> ${JSON.stringify([value])}::jsonb)`,
+          ]),
+        );
+      }
+      if (propertyType === 'number') {
+        return query.where(
+          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric != ${Number(value)}`,
+        );
+      }
+      if (propertyType === 'checkbox') {
+        return query.where(
+          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::boolean != ${Boolean(value)}`,
+        );
+      }
+      return query.where(({ or, eb }) =>
+        or([
+          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
+          eb(sql.raw(`cells->>'${propertyId}'`), '!=', String(value)),
+        ]),
+      );
+    }
+
+    // greaterThan / lessThan - number
+    if (operator === 'greaterThan') {
+      return query.where(
+        sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric > ${Number(value)}`,
+      );
+    }
+    if (operator === 'lessThan') {
+      return query.where(
+        sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric < ${Number(value)}`,
+      );
+    }
+
+    // before / after - date
+    if (operator === 'before') {
+      return query.where(sql.raw(`cells->>'${propertyId}'`), '<', String(value));
+    }
+    if (operator === 'after') {
+      return query.where(sql.raw(`cells->>'${propertyId}'`), '>', String(value));
+    }
+
+    return query;
+  }
+
+  private applyColumnFilter(
+    query: SelectQueryBuilder<DB, 'baseRows', any>,
+    column: string,
+    operator: string,
+    value: unknown,
+    propertyType: string,
+  ): SelectQueryBuilder<DB, 'baseRows', any> {
+    if (operator === 'isEmpty') {
+      return query.where(sql.raw(`"${column}"`), 'is', null);
+    }
+    if (operator === 'isNotEmpty') {
+      return query.where(sql.raw(`"${column}"`), 'is not', null);
+    }
+
+    if (value === undefined || value === null) return query;
+
+    if (operator === 'equals') {
+      return query.where(sql.raw(`"${column}"`), '=', value);
+    }
+    if (operator === 'notEquals') {
+      return query.where(({ or, eb }) =>
+        or([
+          eb(sql.raw(`"${column}"`), 'is', null),
+          eb(sql.raw(`"${column}"`), '!=', value),
+        ]),
+      );
+    }
+    if (operator === 'before') {
+      return query.where(sql.raw(`"${column}"`), '<', value);
+    }
+    if (operator === 'after') {
+      return query.where(sql.raw(`"${column}"`), '>', value);
+    }
+
+    return query;
+  }
+
+  private applySort(
+    query: SelectQueryBuilder<DB, 'baseRows', any>,
+    sort: { propertyId: string; direction: string },
+    propertyTypeMap: Map<string, string>,
+  ): SelectQueryBuilder<DB, 'baseRows', any> {
+    const { propertyId, direction } = sort;
+    const propertyType = propertyTypeMap.get(propertyId);
+    if (!propertyType) return query;
+
+    const dir = direction === 'desc' ? 'desc' : 'asc';
+
+    // System property -> use actual column
+    const systemCol = SYSTEM_COLUMN_MAP[propertyType];
+    if (systemCol) {
+      return query.orderBy(sql.raw(`"${systemCol}"`), sql`${sql.raw(dir)} NULLS LAST`);
+    }
+
+    // Number properties: cast to numeric for proper numeric ordering
+    if (propertyType === 'number') {
+      return query.orderBy(
+        sql`(cells->>'${sql.raw(propertyId)}')::numeric`,
+        sql`${sql.raw(dir)} NULLS LAST`,
+      );
+    }
+
+    // All other properties: use text extraction
+    return query.orderBy(
+      sql.raw(`cells->>'${propertyId}'`),
+      sql`${sql.raw(dir)} NULLS LAST`,
+    );
   }
 }

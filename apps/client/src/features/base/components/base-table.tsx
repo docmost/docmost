@@ -28,14 +28,6 @@ type BaseTableProps = {
 export function BaseTable({ baseId }: BaseTableProps) {
   const { t } = useTranslation();
   const { data: base, isLoading: baseLoading, error: baseError } = useBaseQuery(baseId);
-  const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useBaseRowsQuery(baseId);
-
-  const updateRowMutation = useUpdateRowMutation();
-  const createRowMutation = useCreateRowMutation();
-  const reorderRowMutation = useReorderRowMutation();
-  const createPropertyMutation = useCreatePropertyMutation();
-  const createViewMutation = useCreateViewMutation();
 
   const [activeViewId, setActiveViewId] = useAtom(activeViewIdAtom) as unknown as [string | null, (val: string | null) => void];
 
@@ -44,6 +36,17 @@ export function BaseTable({ baseId }: BaseTableProps) {
     if (!views.length) return undefined;
     return views.find((v) => v.id === activeViewId) ?? views[0];
   }, [views, activeViewId]);
+
+  const activeFilters = activeView?.config?.filters;
+  const activeSorts = activeView?.config?.sorts;
+  const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useBaseRowsQuery(baseId, activeFilters, activeSorts);
+
+  const updateRowMutation = useUpdateRowMutation();
+  const createRowMutation = useCreateRowMutation();
+  const reorderRowMutation = useReorderRowMutation();
+  const createPropertyMutation = useCreatePropertyMutation();
+  const createViewMutation = useCreateViewMutation();
 
   useEffect(() => {
     if (activeView && activeViewId !== activeView.id) {

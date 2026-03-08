@@ -47,6 +47,7 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
 import { validate as isValidUUID } from 'uuid';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
@@ -71,6 +72,7 @@ export class AttachmentController {
     private readonly workspaceAbility: WorkspaceAbilityFactory,
     private readonly spaceAbility: SpaceAbilityFactory,
     private readonly pageRepo: PageRepo,
+    private readonly baseRepo: BaseRepo,
     private readonly attachmentRepo: AttachmentRepo,
     private readonly environmentService: EnvironmentService,
     private readonly tokenService: TokenService,
@@ -149,6 +151,87 @@ export class AttachmentController {
           pageId,
           spaceId,
         },
+      });
+
+      return res.send(fileResponse);
+    } catch (err: any) {
+      if (err?.statusCode === 413) {
+        const errMessage = `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`;
+        this.logger.error(errMessage);
+        throw new BadRequestException(errMessage);
+      }
+      this.logger.error(err);
+      throw new BadRequestException('Error processing file upload.');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('bases/files/upload')
+  @UseInterceptors(FileInterceptor)
+  async uploadBaseFile(
+    @Req() req: any,
+    @Res() res: FastifyReply,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const maxFileSize = bytes(this.environmentService.getFileUploadSizeLimit());
+
+    let file = null;
+    try {
+      file = await req.file({
+        limits: { fileSize: maxFileSize, fields: 3, files: 1 },
+      });
+    } catch (err: any) {
+      this.logger.error(err.message);
+      if (err?.statusCode === 413) {
+        throw new BadRequestException(
+          `File too large. Exceeds the ${this.environmentService.getFileUploadSizeLimit()} limit`,
+        );
+      }
+    }
+
+    if (!file) {
+      throw new BadRequestException('Failed to upload file');
+    }
+
+    const baseId = file.fields?.baseId?.value;
+
+    if (!baseId) {
+      throw new BadRequestException('baseId is required');
+    }
+
+    if (!isValidUUID(baseId)) {
+      throw new BadRequestException('Invalid baseId');
+    }
+
+    const base = await this.baseRepo.findById(baseId);
+
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const spaceId = base.spaceId;
+
+    const spaceAbilityCheck = await this.spaceAbility.createForUser(
+      user,
+      spaceId,
+    );
+    if (
+      spaceAbilityCheck.cannot(
+        SpaceCaslAction.Edit,
+        SpaceCaslSubject.Base,
+      )
+    ) {
+      throw new ForbiddenException();
+    }
+
+    try {
+      const fileResponse = await this.attachmentService.uploadFile({
+        filePromise: file,
+        spaceId: spaceId,
+        userId: user.id,
+        workspaceId: workspace.id,
       });
 
       return res.send(fileResponse);

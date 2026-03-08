@@ -93,7 +93,23 @@ export class BaseRowService {
   }
 
   async list(dto: ListRowsDto, pagination: PaginationOptions) {
-    return this.baseRowRepo.findByBaseId(dto.baseId, pagination);
+    const hasFilters = dto.filters && dto.filters.length > 0;
+    const hasSorts = dto.sorts && dto.sorts.length > 0;
+
+    if (!hasFilters && !hasSorts) {
+      return this.baseRowRepo.findByBaseId(dto.baseId, pagination);
+    }
+
+    const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
+    const propertyTypeMap = new Map(properties.map((p) => [p.id, p.type]));
+
+    return this.baseRowRepo.findByBaseIdFiltered(
+      dto.baseId,
+      dto.filters ?? [],
+      dto.sorts ?? [],
+      propertyTypeMap,
+      pagination,
+    );
   }
 
   async reorder(dto: ReorderRowDto) {

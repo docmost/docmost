@@ -16,6 +16,8 @@ import {
   UpdateRowInput,
   DeleteRowInput,
   ReorderRowInput,
+  ViewFilterConfig,
+  ViewSortConfig,
 } from "@/features/base/types/base.types";
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
@@ -26,11 +28,15 @@ type RowCacheContext = {
   previous: InfiniteData<IPagination<IBaseRow>> | undefined;
 };
 
-export function useBaseRowsQuery(baseId: string | undefined) {
+export function useBaseRowsQuery(
+  baseId: string | undefined,
+  filters?: ViewFilterConfig[],
+  sorts?: ViewSortConfig[],
+) {
   return useInfiniteQuery({
-    queryKey: ["base-rows", baseId],
+    queryKey: ["base-rows", baseId, filters, sorts],
     queryFn: ({ pageParam }) =>
-      listRows(baseId!, { cursor: pageParam, limit: 100 }),
+      listRows(baseId!, { cursor: pageParam, limit: 100, filters, sorts }),
     enabled: !!baseId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: IPagination<IBaseRow>) =>

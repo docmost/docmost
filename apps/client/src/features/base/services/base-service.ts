@@ -18,6 +18,8 @@ import {
   UpdateViewInput,
   DeleteViewInput,
   UpdatePropertyResult,
+  ViewFilterConfig,
+  ViewSortConfig,
 } from "@/features/base/types/base.types";
 import { IPagination } from "@/lib/types";
 
@@ -105,7 +107,13 @@ export async function deleteRow(data: DeleteRowInput): Promise<void> {
 
 export async function listRows(
   baseId: string,
-  params?: { viewId?: string; cursor?: string; limit?: number },
+  params?: {
+    viewId?: string;
+    cursor?: string;
+    limit?: number;
+    filters?: ViewFilterConfig[];
+    sorts?: ViewSortConfig[];
+  },
 ): Promise<IPagination<IBaseRow>> {
   const req = await api.post("/bases/rows/list", { baseId, ...params });
   return req.data;

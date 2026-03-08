@@ -119,10 +119,10 @@ const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
 export function validateTypeOptions(
   type: BasePropertyTypeValue,
   typeOptions: unknown,
-): z.SafeParseReturnType<unknown, unknown> {
+): z.ZodSafeParseResult<unknown> {
   const schema = typeOptionsSchemaMap[type];
   if (!schema) {
-    return { success: false, error: new z.ZodError([{ code: 'custom', message: `Unknown property type: ${type}`, path: ['type'] }]) } as z.SafeParseError<unknown>;
+    return { success: false, error: new z.ZodError([{ code: 'custom', message: `Unknown property type: ${type}`, path: ['type'] }]) } as z.ZodSafeParseError<unknown>;
   }
   return schema.safeParse(typeOptions ?? {});
 }
@@ -146,7 +146,13 @@ const cellValueSchemaMap: Partial<Record<BasePropertyTypeValue, z.ZodType>> = {
   [BasePropertyType.MULTI_SELECT]: z.array(z.string().uuid()),
   [BasePropertyType.DATE]: z.string(),
   [BasePropertyType.PERSON]: z.array(z.string().uuid()),
-  [BasePropertyType.FILE]: z.array(z.string().uuid()),
+  [BasePropertyType.FILE]: z.array(z.object({
+    id: z.string().uuid(),
+    fileName: z.string(),
+    mimeType: z.string().optional(),
+    fileSize: z.number().optional(),
+    filePath: z.string().optional(),
+  })),
   [BasePropertyType.CHECKBOX]: z.boolean(),
   [BasePropertyType.URL]: z.string().url(),
   [BasePropertyType.EMAIL]: z.string().email(),
@@ -161,10 +167,10 @@ export function getCellValueSchema(
 export function validateCellValue(
   type: BasePropertyTypeValue,
   value: unknown,
-): z.SafeParseReturnType<unknown, unknown> {
+): z.ZodSafeParseResult<unknown> {
   const schema = cellValueSchemaMap[type];
   if (!schema) {
-    return { success: false, error: new z.ZodError([{ code: 'custom', message: `Unknown property type: ${type}`, path: [] }]) } as z.SafeParseError<unknown>;
+    return { success: false, error: new z.ZodError([{ code: 'custom', message: `Unknown property type: ${type}`, path: [] }]) } as z.ZodSafeParseError<unknown>;
   }
   return schema.safeParse(value);
 }
