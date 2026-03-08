@@ -89,25 +89,109 @@
   color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
 }
 
+/* Person cell — read mode (vertical list like Notion) */
+
 .personGroup {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow: hidden;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
 }
 
-.personAvatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+.personRow {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.personName {
+  font-size: var(--mantine-font-size-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Person cell — edit mode (tag input + dropdown) */
+
+.personTagArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  min-height: 34px;
+}
+
+.personTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 2px;
+  border-radius: 3px;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  font-size: var(--mantine-font-size-xs);
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.personTagName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personTagRemove {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.personTagRemove:hover {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+}
+
+.personTagInput {
+  flex: 1;
+  min-width: 60px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--mantine-font-size-xs);
+  font-family: inherit;
+  color: inherit;
+  padding: 2px 0;
+}
+
+.personTagInput::placeholder {
+  color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}
+
+.personDropdownDivider {
+  height: 1px;
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.personDropdownHint {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.personOptionName {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fileGroup {

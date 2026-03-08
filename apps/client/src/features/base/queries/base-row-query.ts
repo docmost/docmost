@@ -25,7 +25,7 @@ import { useTranslation } from "react-i18next";
 import { IPagination } from "@/lib/types";
 
 type RowCacheContext = {
-  previous: InfiniteData<IPagination<IBaseRow>> | undefined;
+  snapshots: [readonly unknown[], InfiniteData<IPagination<IBaseRow>> | undefined][];
 };
 
 export function useBaseRowsQuery(
@@ -57,8 +57,8 @@ export function useCreateRowMutation() {
   return useMutation<IBaseRow, Error, CreateRowInput>({
     mutationFn: (data) => createRow(data),
     onSuccess: (newRow) => {
-      queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-        ["base-rows", newRow.baseId],
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", newRow.baseId] },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -92,12 +92,12 @@ export function useUpdateRowMutation() {
         queryKey: ["base-rows", variables.baseId],
       });
 
-      const previous = queryClient.getQueryData<
+      const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >(["base-rows", variables.baseId]);
+      >({ queryKey: ["base-rows", variables.baseId] });
 
-      queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-        ["base-rows", variables.baseId],
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", variables.baseId] },
         (old) => {
           if (!old) return old;
           return {
@@ -117,14 +117,13 @@ export function useUpdateRowMutation() {
         },
       );
 
-      return { previous };
+      return { snapshots };
     },
     onError: (_, variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(
-          ["base-rows", variables.baseId],
-          context.previous,
-        );
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
       }
       notifications.show({
         message: t("Failed to update row"),
@@ -132,8 +131,8 @@ export function useUpdateRowMutation() {
       });
     },
     onSuccess: (updatedRow) => {
-      queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-        ["base-rows", updatedRow.baseId],
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", updatedRow.baseId] },
         (old) => {
           if (!old) return old;
           return {
@@ -162,12 +161,12 @@ export function useDeleteRowMutation() {
         queryKey: ["base-rows", variables.baseId],
       });
 
-      const previous = queryClient.getQueryData<
+      const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >(["base-rows", variables.baseId]);
+      >({ queryKey: ["base-rows", variables.baseId] });
 
-      queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-        ["base-rows", variables.baseId],
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", variables.baseId] },
         (old) => {
           if (!old) return old;
           return {
@@ -180,14 +179,13 @@ export function useDeleteRowMutation() {
         },
       );
 
-      return { previous };
+      return { snapshots };
     },
     onError: (_, variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(
-          ["base-rows", variables.baseId],
-          context.previous,
-        );
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
       }
       notifications.show({
         message: t("Failed to delete row"),
@@ -206,12 +204,12 @@ export function useReorderRowMutation() {
         queryKey: ["base-rows", variables.baseId],
       });
 
-      const previous = queryClient.getQueryData<
+      const snapshots = queryClient.getQueriesData<
         InfiniteData<IPagination<IBaseRow>>
-      >(["base-rows", variables.baseId]);
+      >({ queryKey: ["base-rows", variables.baseId] });
 
-      queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-        ["base-rows", variables.baseId],
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", variables.baseId] },
         (old) => {
           if (!old) return old;
           return {
@@ -228,14 +226,13 @@ export function useReorderRowMutation() {
         },
       );
 
-      return { previous };
+      return { snapshots };
     },
     onError: (_, variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(
-          ["base-rows", variables.baseId],
-          context.previous,
-        );
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
       }
       notifications.show({
         message: t("Failed to reorder row"),

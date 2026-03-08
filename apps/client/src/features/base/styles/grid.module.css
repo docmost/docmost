@@ -126,7 +126,7 @@
 .cell {
   display: flex;
   align-items: center;
-  height: 36px;
+  min-height: 36px;
   padding: 0 8px;
   font-size: var(--mantine-font-size-sm);
   color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));

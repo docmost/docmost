@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Popover, TextInput } from "@mantine/core";
+import { Popover } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { IBaseProperty } from "@/features/base/types/base.types";
 import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
@@ -25,7 +26,6 @@ export function CellPerson({
     : typeof value === "string"
       ? [value]
       : [];
-  const selectedSet = new Set(personIds);
 
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -37,7 +37,6 @@ export function CellPerson({
     }
   }, [isEditing]);
 
-  // Fetch members for display (always) and search (when editing)
   const { data: membersData } = useWorkspaceMembersQuery({ limit: 100 });
   const members = membersData?.items ?? [];
   const memberMap = useMemo(() => {
@@ -46,7 +45,6 @@ export function CellPerson({
     return map;
   }, [members]);
 
-  // Filtered members for editing
   const filteredMembers = search
     ? members.filter(
         (m) =>
@@ -55,14 +53,31 @@ export function CellPerson({
       )
     : members;
 
-  const handleToggle = useCallback(
+  const handleAdd = useCallback(
     (memberId: string) => {
-      const newIds = selectedSet.has(memberId)
-        ? personIds.filter((id) => id !== memberId)
-        : [...personIds, memberId];
+      if (personIds.includes(memberId)) return;
+      onCommit([...personIds, memberId]);
+    },
+    [personIds, onCommit],
+  );
+
+  const handleRemove = useCallback(
+    (memberId: string) => {
+      const newIds = personIds.filter((id) => id !== memberId);
       onCommit(newIds.length > 0 ? newIds : null);
     },
-    [personIds, selectedSet, onCommit],
+    [personIds, onCommit],
+  );
+
+  const handleToggle = useCallback(
+    (memberId: string) => {
+      if (personIds.includes(memberId)) {
+        handleRemove(memberId);
+      } else {
+        handleAdd(memberId);
+      }
+    },
+    [personIds, handleAdd, handleRemove],
   );
 
   const handleKeyDown = useCallback(
@@ -71,11 +86,15 @@ export function CellPerson({
         e.preventDefault();
         onCancel();
       }
+      if (e.key === "Backspace" && search === "" && personIds.length > 0) {
+        e.preventDefault();
+        handleRemove(personIds[personIds.length - 1]);
+      }
     },
-    [onCancel],
+    [onCancel, search, personIds, handleRemove],
   );
 
-  const MAX_VISIBLE = 4;
+  const selectedSet = new Set(personIds);
 
   if (isEditing) {
     return (
@@ -83,85 +102,79 @@ export function CellPerson({
         opened
         onClose={onCancel}
         position="bottom-start"
-        width={260}
+        width={300}
         trapFocus
       >
         <Popover.Target>
           <div style={{ width: "100%", height: "100%" }}>
-            <PersonAvatarList
-              personIds={personIds}
-              memberMap={memberMap}
-              maxVisible={MAX_VISIBLE}
-            />
+            <PersonReadList personIds={personIds} memberMap={memberMap} />
           </div>
         </Popover.Target>
-        <Popover.Dropdown p={4}>
-          <TextInput
-            ref={searchRef}
-            size="xs"
-            placeholder="Search members..."
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            onKeyDown={handleKeyDown}
-            mb={4}
-          />
+        <Popover.Dropdown p={0}>
+          {/* Tag input area */}
+          <div className={cellClasses.personTagArea}>
+            {personIds.map((id) => {
+              const member = memberMap.get(id);
+              const name = member?.name ?? id.substring(0, 8);
+              return (
+                <span key={id} className={cellClasses.personTag}>
+                  <CustomAvatar
+                    avatarUrl={member?.avatarUrl ?? ""}
+                    name={name}
+                    size={18}
+                    radius="xl"
+                  />
+                  <span className={cellClasses.personTagName}>{name}</span>
+                  <button
+                    type="button"
+                    className={cellClasses.personTagRemove}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemove(id);
+                    }}
+                  >
+                    <IconX size={10} />
+                  </button>
+                </span>
+              );
+            })}
+            <input
+              ref={searchRef}
+              className={cellClasses.personTagInput}
+              placeholder={personIds.length === 0 ? "Search for a person..." : ""}
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+
+          {/* Dropdown */}
+          <div className={cellClasses.personDropdownDivider} />
+          <div className={cellClasses.personDropdownHint}>
+            Select as many as you like
+          </div>
           <div className={cellClasses.selectDropdown}>
             {filteredMembers.map((member) => (
               <div
                 key={member.id}
                 className={`${cellClasses.selectOption} ${
-                  selectedSet.has(member.id)
-                    ? cellClasses.selectOptionActive
-                    : ""
+                  selectedSet.has(member.id) ? cellClasses.selectOptionActive : ""
                 }`}
                 onClick={() => handleToggle(member.id)}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
-                  <CustomAvatar
-                    avatarUrl={member.avatarUrl}
-                    name={member.name}
-                    size={22}
-                    radius="xl"
-                  />
-                  <div style={{ overflow: "hidden" }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {member.name}
-                    </div>
-                    {member.email && (
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "var(--mantine-color-dimmed)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {member.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <CustomAvatar
+                  avatarUrl={member.avatarUrl}
+                  name={member.name}
+                  size={24}
+                  radius="xl"
+                />
+                <span className={cellClasses.personOptionName}>
+                  {member.name}
+                </span>
               </div>
             ))}
             {filteredMembers.length === 0 && (
-              <div
-                style={{
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  color: "var(--mantine-color-dimmed)",
-                }}
-              >
+              <div className={cellClasses.personDropdownHint}>
                 No members found
               </div>
             )}
@@ -175,48 +188,36 @@ export function CellPerson({
     return <span className={cellClasses.emptyValue} />;
   }
 
-  return (
-    <PersonAvatarList
-      personIds={personIds}
-      memberMap={memberMap}
-      maxVisible={MAX_VISIBLE}
-    />
-  );
+  return <PersonReadList personIds={personIds} memberMap={memberMap} />;
 }
 
-function PersonAvatarList({
+function PersonReadList({
   personIds,
   memberMap,
-  maxVisible,
 }: {
   personIds: string[];
   memberMap: Map<
     string,
     { id: string; name: string; email?: string; avatarUrl?: string }
   >;
-  maxVisible: number;
 }) {
-  const visible = personIds.slice(0, maxVisible);
-  const overflow = personIds.length - maxVisible;
-
   return (
     <div className={cellClasses.personGroup}>
-      {visible.map((id) => {
+      {personIds.map((id) => {
         const member = memberMap.get(id);
-        const name = member?.name ?? id.substring(0, 2);
+        const name = member?.name ?? id.substring(0, 8);
         return (
-          <CustomAvatar
-            key={id}
-            avatarUrl={member?.avatarUrl ?? ""}
-            name={name}
-            size={22}
-            radius="xl"
-          />
+          <div key={id} className={cellClasses.personRow}>
+            <CustomAvatar
+              avatarUrl={member?.avatarUrl ?? ""}
+              name={name}
+              size={20}
+              radius="xl"
+            />
+            <span className={cellClasses.personName}>{name}</span>
+          </div>
         );
       })}
-      {overflow > 0 && (
-        <span className={cellClasses.overflowCount}>+{overflow}</span>
-      )}
     </div>
   );
 }
