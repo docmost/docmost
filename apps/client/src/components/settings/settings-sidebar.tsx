@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
 import { isCloud } from "@/lib/config.ts";
 import useUserRole from "@/hooks/use-user-role.tsx";
 import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import {
@@ -136,7 +136,7 @@ export default function SettingsSidebar() {
   const [active, setActive] = useState(location.pathname);
   const { goBack } = useSettingsNavigation();
   const { isAdmin, isOwner } = useUserRole();
-  const [workspace] = useAtom(workspaceAtom);
+  const [entitlements] = useAtom(entitlementAtom);
   const upgradeLabel = useUpgradeLabel();
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
@@ -146,7 +146,7 @@ export default function SettingsSidebar() {
   }, [location.pathname]);
 
   const hasFeature = (f: string) =>
-    workspace?.features?.includes(f) ?? false;
+    entitlements?.features?.includes(f) ?? false;
 
   const canShowItem = (item: DataItem) => {
     if (item.env === "cloud" && !isCloud()) return false;
@@ -191,7 +191,7 @@ export default function SettingsSidebar() {
               prefetchHandler = prefetchBilling;
               break;
             case "License & Edition":
-              if (workspace?.hasLicenseKey) {
+              if (entitlements?.tier !== "free") {
                 prefetchHandler = prefetchLicense;
               }
               break;

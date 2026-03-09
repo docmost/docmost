@@ -56,7 +56,7 @@ export default function SsoLogin() {
         />
       )}
 
-      {(data.features?.length > 0) && (
+      {data.authProviders.length > 0 && (
         <>
           <Stack align="stretch" justify="center" gap="sm">
             {data.authProviders.map((provider) => (

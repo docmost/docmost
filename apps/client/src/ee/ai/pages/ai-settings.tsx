@@ -63,7 +63,7 @@ export default function AiSettings() {
               mb="lg"
             >
               {t(
-                "AI features require a paid plan. Visit docmost.com for more information.",
+                "AI is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
               )}
             </Alert>
           )}

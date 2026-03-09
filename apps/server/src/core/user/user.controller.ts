@@ -13,7 +13,6 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
-import { LicenseCheckService } from '../../integrations/environment/license-check.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
@@ -21,7 +20,6 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly workspaceRepo: WorkspaceRepo,
-    private readonly licenseCheckService: LicenseCheckService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -36,16 +34,9 @@ export class UserController {
 
     const { licenseKey, ...rest } = workspace;
 
-    const features = this.licenseCheckService.resolveFeatures(
-      licenseKey,
-      rest.plan,
-    );
-
     const workspaceInfo = {
       ...rest,
       memberCount,
-      hasLicenseKey: Boolean(licenseKey),
-      features,
     };
 
     return { user: authUser, workspace: workspaceInfo };

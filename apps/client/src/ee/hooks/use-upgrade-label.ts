@@ -1,14 +1,14 @@
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { isCloud } from "@/lib/config";
 
 export function useUpgradeLabel(): string {
   const { t } = useTranslation();
-  const [workspace] = useAtom(workspaceAtom);
+  const [entitlements] = useAtom(entitlementAtom);
 
   if (!isCloud()) {
-    return workspace?.hasLicenseKey
+    return entitlements != null && entitlements.tier !== "free"
       ? t("Upgrade your license tier.")
       : t("Available with a paid license");
   }

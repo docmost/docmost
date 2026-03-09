@@ -106,13 +106,9 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { licenseKey, ...rest } = workspace;
+    const { licenseKey, plan, ...rest } = workspace;
 
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-      features: this.licenseCheckService.resolveFeatures(licenseKey, rest.plan),
-    };
+    return rest;
   }
 
   async create(
@@ -337,6 +333,10 @@ export class WorkspaceService {
         .where('id', '=', workspaceId)
         .executeTakeFirst();
 
+      if (!ws) {
+        throw new NotFoundException('Workspace not found');
+      }
+
       if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings')) {
         throw new ForbiddenException(
           'This feature requires a valid license',
@@ -504,11 +504,7 @@ export class WorkspaceService {
     }
 
     const { licenseKey, ...rest } = workspace;
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-      features: this.licenseCheckService.resolveFeatures(licenseKey, rest.plan),
-    };
+    return rest;
   }
 
   async getWorkspaceUsers(

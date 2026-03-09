@@ -69,4 +69,25 @@ export class LicenseCheckService {
 
     return this.getFeatures(licenseKey);
   }
+
+  resolveTier(licenseKey: string, plan: string): string {
+    if (this.environmentService.isCloud()) {
+      return plan ?? 'standard';
+    }
+
+    return this.getLicenseType(licenseKey) ?? 'free';
+  }
+
+  private getLicenseType(licenseKey: string): string | null {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const LicenseModule = require('../../ee/licence/license.service');
+      const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
+        strict: false,
+      });
+      return licenseService.getLicenseType(licenseKey);
+    } catch {
+      return null;
+    }
+  }
 }
