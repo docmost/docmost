@@ -1,4 +1,4 @@
-import { UnstyledButton, Group, Text } from "@mantine/core";
+import { UnstyledButton, Group, Text, TextInput } from "@mantine/core";
 import {
   IconLetterT,
   IconHash,
@@ -15,9 +15,11 @@ import {
   IconClockEdit,
   IconUserEdit,
   IconCheck,
+  IconSearch,
 } from "@tabler/icons-react";
 import { BasePropertyType } from "@/features/base/types/base.types";
 import { useTranslation } from "react-i18next";
+import { useState, useRef, useEffect } from "react";
 import classes from "@/features/base/styles/cells.module.css";
 
 const propertyTypes: {
@@ -45,21 +47,46 @@ type PropertyTypePickerProps = {
   onSelect: (type: BasePropertyType) => void;
   currentType?: BasePropertyType;
   excludeTypes?: Set<BasePropertyType>;
+  showSearch?: boolean;
 };
 
 export function PropertyTypePicker({
   onSelect,
   currentType,
   excludeTypes,
+  showSearch,
 }: PropertyTypePickerProps) {
   const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const types = excludeTypes
-    ? propertyTypes.filter(({ type }) => !excludeTypes.has(type))
-    : propertyTypes;
+  useEffect(() => {
+    if (showSearch) {
+      setTimeout(() => searchRef.current?.focus(), 0);
+    }
+  }, [showSearch]);
+
+  const types = propertyTypes
+    .filter(({ type }) => !excludeTypes?.has(type))
+    .filter(({ labelKey }) =>
+      !search || t(labelKey).toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
     <>
+      {showSearch && (
+        <TextInput
+          ref={searchRef}
+          size="xs"
+          placeholder={t("Find a field type")}
+          leftSection={<IconSearch size={14} />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          mx="sm"
+          mt="sm"
+          mb={4}
+        />
+      )}
       {types.map(({ type, icon: Icon, labelKey }) => (
         <UnstyledButton
           key={type}

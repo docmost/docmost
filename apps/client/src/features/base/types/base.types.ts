@@ -59,6 +59,10 @@ export type EmailTypeOptions = {
   defaultValue?: string | null;
 };
 
+export type PersonTypeOptions = {
+  allowMultiple?: boolean;
+};
+
 export type TypeOptions =
   | SelectTypeOptions
   | NumberTypeOptions
@@ -67,6 +71,7 @@ export type TypeOptions =
   | CheckboxTypeOptions
   | UrlTypeOptions
   | EmailTypeOptions
+  | PersonTypeOptions
   | Record<string, unknown>;
 
 export type IBaseProperty = {

@@ -54,6 +54,7 @@ type ChoiceEditorProps = {
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   showCategories?: boolean;
+  hideButtons?: boolean;
 };
 
 export function ChoiceEditor({
@@ -62,14 +63,28 @@ export function ChoiceEditor({
   onClose,
   onDirtyChange,
   showCategories = false,
+  hideButtons = false,
 }: ChoiceEditorProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<Choice[]>(initialChoices);
   const [focusChoiceId, setFocusChoiceId] = useState<string | null>(null);
 
+  // Sync from parent only when not in live mode (hideButtons = create flow)
   useEffect(() => {
-    setDraft(initialChoices);
-  }, [initialChoices]);
+    if (!hideButtons) {
+      setDraft(initialChoices);
+    }
+  }, [initialChoices, hideButtons]);
+
+  // In live mode, propagate draft changes to parent immediately
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  useEffect(() => {
+    if (hideButtons) {
+      onSaveRef.current(draft.filter((c) => c.name.trim()));
+    }
+  }, [hideButtons, draft]);
 
   const isDirty = useMemo(() => {
     if (draft.length !== initialChoices.length) return true;
@@ -195,16 +210,20 @@ export function ChoiceEditor({
         />
       )}
 
-      <Divider />
+      {!hideButtons && (
+        <>
+          <Divider />
 
-      <Group justify="flex-end" gap="xs">
-        <Button variant="default" size="xs" onClick={handleCancel}>
-          {t("Cancel")}
-        </Button>
-        <Button size="xs" onClick={handleSave} disabled={!isDirty || hasEmptyNames}>
-          {t("Save")}
-        </Button>
-      </Group>
+          <Group justify="flex-end" gap="xs">
+            <Button variant="default" size="xs" onClick={handleCancel}>
+              {t("Cancel")}
+            </Button>
+            <Button size="xs" onClick={handleSave} disabled={!isDirty || hasEmptyNames}>
+              {t("Save")}
+            </Button>
+          </Group>
+        </>
+      )}
     </Stack>
   );
 }

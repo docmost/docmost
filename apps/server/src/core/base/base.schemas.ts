@@ -97,6 +97,12 @@ export const emailTypeOptionsSchema = z
   })
   .passthrough();
 
+export const personTypeOptionsSchema = z
+  .object({
+    allowMultiple: z.boolean().default(true),
+  })
+  .passthrough();
+
 export const emptyTypeOptionsSchema = z.object({}).passthrough();
 
 const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
@@ -106,7 +112,7 @@ const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
   [BasePropertyType.STATUS]: selectTypeOptionsSchema,
   [BasePropertyType.MULTI_SELECT]: selectTypeOptionsSchema,
   [BasePropertyType.DATE]: dateTypeOptionsSchema,
-  [BasePropertyType.PERSON]: emptyTypeOptionsSchema,
+  [BasePropertyType.PERSON]: personTypeOptionsSchema,
   [BasePropertyType.FILE]: emptyTypeOptionsSchema,
   [BasePropertyType.CHECKBOX]: checkboxTypeOptionsSchema,
   [BasePropertyType.URL]: urlTypeOptionsSchema,
@@ -145,7 +151,7 @@ const cellValueSchemaMap: Partial<Record<BasePropertyTypeValue, z.ZodType>> = {
   [BasePropertyType.STATUS]: z.string().uuid(),
   [BasePropertyType.MULTI_SELECT]: z.array(z.string().uuid()),
   [BasePropertyType.DATE]: z.string(),
-  [BasePropertyType.PERSON]: z.array(z.string().uuid()),
+  [BasePropertyType.PERSON]: z.union([z.string().uuid(), z.array(z.string().uuid())]),
   [BasePropertyType.FILE]: z.array(z.object({
     id: z.string().uuid(),
     fileName: z.string(),

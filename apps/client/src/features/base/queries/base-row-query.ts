@@ -33,10 +33,19 @@ export function useBaseRowsQuery(
   filters?: ViewFilterConfig[],
   sorts?: ViewSortConfig[],
 ) {
+  // Normalize empty arrays to undefined so query keys stay stable
+  const activeFilters = filters?.length ? filters : undefined;
+  const activeSorts = sorts?.length ? sorts : undefined;
+
   return useInfiniteQuery({
-    queryKey: ["base-rows", baseId, filters, sorts],
+    queryKey: ["base-rows", baseId, activeFilters, activeSorts],
     queryFn: ({ pageParam }) =>
-      listRows(baseId!, { cursor: pageParam, limit: 100, filters, sorts }),
+      listRows(baseId!, {
+        cursor: pageParam,
+        limit: 100,
+        filters: activeFilters,
+        sorts: activeSorts,
+      }),
     enabled: !!baseId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: IPagination<IBaseRow>) =>

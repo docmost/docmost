@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { IBaseProperty } from "@/features/base/types/base.types";
+import {
+  IBaseProperty,
+  PersonTypeOptions,
+} from "@/features/base/types/base.types";
 import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import cellClasses from "@/features/base/styles/cells.module.css";
@@ -17,10 +20,14 @@ type CellPersonProps = {
 
 export function CellPerson({
   value,
+  property,
   isEditing,
   onCommit,
   onCancel,
 }: CellPersonProps) {
+  const allowMultiple =
+    (property.typeOptions as PersonTypeOptions)?.allowMultiple !== false;
+
   const personIds = Array.isArray(value)
     ? (value as string[])
     : typeof value === "string"
@@ -53,31 +60,38 @@ export function CellPerson({
       )
     : members;
 
-  const handleAdd = useCallback(
+  const handleSelect = useCallback(
     (memberId: string) => {
-      if (personIds.includes(memberId)) return;
-      onCommit([...personIds, memberId]);
+      if (allowMultiple) {
+        // Multi mode: toggle add/remove
+        if (personIds.includes(memberId)) {
+          const newIds = personIds.filter((id) => id !== memberId);
+          onCommit(newIds.length > 0 ? newIds : null);
+        } else {
+          onCommit([...personIds, memberId]);
+        }
+      } else {
+        // Single mode: replace or clear
+        if (personIds.includes(memberId)) {
+          onCommit(null);
+        } else {
+          onCommit(memberId);
+        }
+      }
     },
-    [personIds, onCommit],
+    [allowMultiple, personIds, onCommit],
   );
 
   const handleRemove = useCallback(
     (memberId: string) => {
-      const newIds = personIds.filter((id) => id !== memberId);
-      onCommit(newIds.length > 0 ? newIds : null);
-    },
-    [personIds, onCommit],
-  );
-
-  const handleToggle = useCallback(
-    (memberId: string) => {
-      if (personIds.includes(memberId)) {
-        handleRemove(memberId);
+      if (allowMultiple) {
+        const newIds = personIds.filter((id) => id !== memberId);
+        onCommit(newIds.length > 0 ? newIds : null);
       } else {
-        handleAdd(memberId);
+        onCommit(null);
       }
     },
-    [personIds, handleAdd, handleRemove],
+    [allowMultiple, personIds, onCommit],
   );
 
   const handleKeyDown = useCallback(
@@ -150,9 +164,11 @@ export function CellPerson({
 
           {/* Dropdown */}
           <div className={cellClasses.personDropdownDivider} />
-          <div className={cellClasses.personDropdownHint}>
-            Select as many as you like
-          </div>
+          {allowMultiple && (
+            <div className={cellClasses.personDropdownHint}>
+              Select as many as you like
+            </div>
+          )}
           <div className={cellClasses.selectDropdown}>
             {filteredMembers.map((member) => (
               <div
@@ -160,7 +176,7 @@ export function CellPerson({
                 className={`${cellClasses.selectOption} ${
                   selectedSet.has(member.id) ? cellClasses.selectOptionActive : ""
                 }`}
-                onClick={() => handleToggle(member.id)}
+                onClick={() => handleSelect(member.id)}
               >
                 <CustomAvatar
                   avatarUrl={member.avatarUrl}

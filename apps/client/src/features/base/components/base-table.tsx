@@ -13,7 +13,6 @@ import {
 import { useUpdateRowMutation } from "@/features/base/queries/base-row-query";
 import { useCreateRowMutation } from "@/features/base/queries/base-row-query";
 import { useReorderRowMutation } from "@/features/base/queries/base-row-query";
-import { useCreatePropertyMutation } from "@/features/base/queries/base-property-query";
 import { useCreateViewMutation } from "@/features/base/queries/base-view-query";
 import { activeViewIdAtom } from "@/features/base/atoms/base-atoms";
 import { useBaseTable } from "@/features/base/hooks/use-base-table";
@@ -45,7 +44,6 @@ export function BaseTable({ baseId }: BaseTableProps) {
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
   const reorderRowMutation = useReorderRowMutation();
-  const createPropertyMutation = useCreatePropertyMutation();
   const createViewMutation = useCreateViewMutation();
 
   useEffect(() => {
@@ -75,14 +73,6 @@ export function BaseTable({ baseId }: BaseTableProps) {
   const handleAddRow = useCallback(() => {
     createRowMutation.mutate({ baseId });
   }, [baseId, createRowMutation]);
-
-  const handleAddColumn = useCallback(() => {
-    createPropertyMutation.mutate({
-      baseId,
-      name: t("New property"),
-      type: "text",
-    });
-  }, [baseId, createPropertyMutation, t]);
 
   const handleViewChange = useCallback(
     (viewId: string) => {
@@ -188,7 +178,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
         table={table}
         onCellUpdate={handleCellUpdate}
         onAddRow={handleAddRow}
-        onAddColumn={handleAddColumn}
+        baseId={baseId}
         onColumnReorder={handleColumnReorder}
         onResizeEnd={handleResizeEnd}
         onRowReorder={handleRowReorder}

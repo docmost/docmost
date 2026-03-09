@@ -1,39 +1,38 @@
-import { memo, useCallback } from "react";
-import { Table } from "@tanstack/react-table";
+import { memo } from "react";
+import { Table, ColumnOrderState } from "@tanstack/react-table";
 import { IBaseRow } from "@/features/base/types/base.types";
 import { GridHeaderCell } from "./grid-header-cell";
-import { IconPlus } from "@tabler/icons-react";
+import { CreatePropertyPopover } from "@/features/base/components/property/create-property-popover";
 import classes from "@/features/base/styles/grid.module.css";
 
 type GridHeaderProps = {
   table: Table<IBaseRow>;
-  onAddColumn?: () => void;
+  baseId?: string;
+  // Passed explicitly to break memo when columns change
+  // (table ref is stable from useReactTable, so memo won't fire without this)
+  columnOrder: ColumnOrderState;
+  onPropertyCreated?: () => void;
 };
 
 export const GridHeader = memo(function GridHeader({
   table,
-  onAddColumn,
+  baseId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  columnOrder: _columnOrder,
+  onPropertyCreated,
 }: GridHeaderProps) {
   const headerGroups = table.getHeaderGroups();
-
-  const handleAddColumn = useCallback(() => {
-    onAddColumn?.();
-  }, [onAddColumn]);
 
   return (
     <div className={classes.headerRow} role="row">
       {headerGroups[0]?.headers.map((header) => (
         <GridHeaderCell key={header.id} header={header} />
       ))}
-      {onAddColumn && (
-        <div
-          className={classes.addColumnButton}
-          onClick={handleAddColumn}
-          role="button"
-          tabIndex={0}
-        >
-          <IconPlus size={16} />
-        </div>
+      {baseId && (
+        <CreatePropertyPopover
+          baseId={baseId}
+          onPropertyCreated={onPropertyCreated}
+        />
       )}
     </div>
   );

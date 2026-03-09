@@ -33,7 +33,7 @@ type GridContainerProps = {
   table: Table<IBaseRow>;
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   onAddRow?: () => void;
-  onAddColumn?: () => void;
+  baseId?: string;
   onColumnReorder?: (columnId: string, overColumnId: string) => void;
   onResizeEnd?: () => void;
   onRowReorder?: (rowId: string, targetRowId: string, position: "above" | "below") => void;
@@ -46,7 +46,7 @@ export function GridContainer({
   table,
   onCellUpdate,
   onAddRow,
-  onAddColumn,
+  baseId,
   onColumnReorder,
   onResizeEnd,
   onRowReorder,
@@ -115,8 +115,8 @@ export function GridContainer({
   const gridTemplateColumns = useMemo(() => {
     const visibleColumns = table.getVisibleLeafColumns();
     const columnWidths = visibleColumns.map((col) => `${col.getSize()}px`);
-    return columnWidths.join(" ") + (onAddColumn ? " 40px" : "");
-  }, [table, table.getState().columnSizing, table.getState().columnVisibility, onAddColumn]);
+    return columnWidths.join(" ") + (baseId ? " 40px" : "");
+  }, [table, table.getState().columnSizing, table.getState().columnVisibility, table.getState().columnOrder, baseId]);
 
   const totalHeight = virtualizer.getTotalSize();
 
@@ -147,6 +147,18 @@ export function GridContainer({
   const handleAddRow = useCallback(() => {
     onAddRow?.();
   }, [onAddRow]);
+
+  const handlePropertyCreated = useCallback(() => {
+    // Wait for React to re-render with the new column, then scroll to it
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({
+          left: scrollRef.current.scrollWidth,
+          behavior: "smooth",
+        });
+      });
+    });
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -194,7 +206,12 @@ export function GridContainer({
             items={sortableColumnIds}
             strategy={horizontalListSortingStrategy}
           >
-            <GridHeader table={table} onAddColumn={onAddColumn} />
+            <GridHeader
+              table={table}
+              baseId={baseId}
+              columnOrder={table.getState().columnOrder}
+              onPropertyCreated={handlePropertyCreated}
+            />
           </SortableContext>
 
           {paddingTop > 0 && (

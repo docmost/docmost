@@ -5,6 +5,7 @@ import {
   SelectTypeOptions,
   NumberTypeOptions,
   DateTypeOptions,
+  PersonTypeOptions,
   Choice,
 } from "@/features/base/types/base.types";
 import { ChoiceEditor } from "./choice-editor";
@@ -15,9 +16,10 @@ type PropertyOptionsProps = {
   onUpdate: (typeOptions: Record<string, unknown>) => void;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  hideButtons?: boolean;
 };
 
-export function PropertyOptions({ property, onUpdate, onClose, onDirtyChange }: PropertyOptionsProps) {
+export function PropertyOptions({ property, onUpdate, onClose, onDirtyChange, hideButtons }: PropertyOptionsProps) {
   const { t } = useTranslation();
 
   switch (property.type) {
@@ -29,6 +31,7 @@ export function PropertyOptions({ property, onUpdate, onClose, onDirtyChange }: 
           onUpdate={onUpdate}
           onClose={onClose}
           onDirtyChange={onDirtyChange}
+          hideButtons={hideButtons}
         />
       );
     case "status":
@@ -38,6 +41,7 @@ export function PropertyOptions({ property, onUpdate, onClose, onDirtyChange }: 
           onUpdate={onUpdate}
           onClose={onClose}
           onDirtyChange={onDirtyChange}
+          hideButtons={hideButtons}
         />
       );
     case "number":
@@ -50,6 +54,13 @@ export function PropertyOptions({ property, onUpdate, onClose, onDirtyChange }: 
     case "date":
       return (
         <DateOptions
+          property={property}
+          onUpdate={onUpdate}
+        />
+      );
+    case "person":
+      return (
+        <PersonOptions
           property={property}
           onUpdate={onUpdate}
         />
@@ -68,11 +79,13 @@ function SelectOptions({
   onUpdate,
   onClose,
   onDirtyChange,
+  hideButtons,
 }: {
   property: IBaseProperty;
   onUpdate: (typeOptions: Record<string, unknown>) => void;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  hideButtons?: boolean;
 }) {
   const options = property.typeOptions as SelectTypeOptions | undefined;
   const choices = options?.choices ?? [];
@@ -95,6 +108,7 @@ function SelectOptions({
       onClose={onClose}
       onDirtyChange={onDirtyChange}
       showCategories={false}
+      hideButtons={hideButtons}
     />
   );
 }
@@ -104,11 +118,13 @@ function StatusOptions({
   onUpdate,
   onClose,
   onDirtyChange,
+  hideButtons,
 }: {
   property: IBaseProperty;
   onUpdate: (typeOptions: Record<string, unknown>) => void;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  hideButtons?: boolean;
 }) {
   const options = property.typeOptions as SelectTypeOptions | undefined;
   const choices = options?.choices ?? [];
@@ -131,6 +147,7 @@ function StatusOptions({
       onClose={onClose}
       onDirtyChange={onDirtyChange}
       showCategories
+      hideButtons={hideButtons}
     />
   );
 }
@@ -212,6 +229,33 @@ function DateOptions({
           }
         />
       )}
+    </Stack>
+  );
+}
+
+function PersonOptions({
+  property,
+  onUpdate,
+}: {
+  property: IBaseProperty;
+  onUpdate: (typeOptions: Record<string, unknown>) => void;
+}) {
+  const { t } = useTranslation();
+  const options = property.typeOptions as PersonTypeOptions | undefined;
+
+  return (
+    <Stack gap="xs">
+      <Switch
+        size="xs"
+        label={t("Allow multiple people")}
+        checked={options?.allowMultiple !== false}
+        onChange={(e) =>
+          onUpdate({
+            ...property.typeOptions,
+            allowMultiple: e.currentTarget.checked,
+          })
+        }
+      />
     </Stack>
   );
 }
