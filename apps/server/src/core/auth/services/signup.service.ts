@@ -1,6 +1,4 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { WorkspaceService } from '../../workspace/services/workspace.service';
 import { CreateWorkspaceDto } from '../../workspace/dto/create-workspace.dto';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -21,7 +19,6 @@ import { CreateSpaceDto } from '../../space/dto/create-space.dto';
 export class SignupService {
   constructor(
     private userRepo: UserRepo,
-    private workspaceService: WorkspaceService,
     private workspaceRepo: WorkspaceRepo,
     private groupRepo: GroupRepo,
     private groupUserRepo: GroupUserRepo,
@@ -43,69 +40,10 @@ export class SignupService {
     }
   }
 
-  async signup(
-    createUserDto: CreateUserDto,
-    workspaceId: string,
-    trx?: KyselyTransaction,
-  ): Promise<User> {
-    // Validate email domain
-    this.validateEmailDomain(createUserDto.email);
-
-    // Validate workspace exists
-    const workspace = await this.db.selectFrom('workspaces').select(['id']).where('id', '=', workspaceId).executeTakeFirst();
-    if (!workspace) {
-      throw new BadRequestException('Workspace not found');
-    }
-
-    const userCheck = await this.userRepo.findByEmail(
-      createUserDto.email,
-      workspaceId,
-    );
-
-    if (userCheck) {
-      throw new BadRequestException(
-        'An account with this email already exists in this workspace',
-      );
-    }
-
-    return await executeTx(
-      this.db,
-      async (trx) => {
-        // create user
-        const user = await this.userRepo.insertUser(
-          {
-            ...createUserDto,
-            workspaceId: workspaceId,
-            role: UserRole.ADMIN,
-          },
-          trx,
-        );
-
-        // add user to workspace
-        await this.workspaceService.addUserToWorkspace(
-          user.id,
-          workspaceId,
-          undefined,
-          trx,
-        );
-
-        // add user to default group
-        await this.groupUserRepo.addUserToDefaultGroup(
-          user.id,
-          workspaceId,
-          trx,
-        );
-        return user;
-      },
-      trx,
-    );
-  }
-
   async initialSetup(
     createAdminUserDto: CreateAdminUserDto,
     trx?: KyselyTransaction,
   ) {
-    // Validate email domain
     this.validateEmailDomain(createAdminUserDto.email);
 
     let user: User,
@@ -114,13 +52,11 @@ export class SignupService {
     await executeTx(
       this.db,
       async (trx) => {
-        // create workspace first
         const workspaceData: CreateWorkspaceDto = {
           name: createAdminUserDto.workspaceName || 'My workspace',
           hostname: createAdminUserDto.hostname,
         };
 
-        // Create workspace without user (will be added later)
         workspace = await this.workspaceRepo.insertWorkspace(
           {
             name: workspaceData.name,
@@ -129,7 +65,6 @@ export class SignupService {
           trx,
         );
 
-        // create user with workspaceId
         user = await this.userRepo.insertUser(
           {
             name: createAdminUserDto.name,
@@ -142,13 +77,11 @@ export class SignupService {
           trx,
         );
 
-        // create default group
         const group = await this.groupRepo.createDefaultGroup(workspace.id, {
           userId: user.id,
           trx: trx,
         });
 
-        // add user to default group
         await this.groupUserRepo.insertGroupUser(
           {
             userId: user.id,
@@ -157,7 +90,6 @@ export class SignupService {
           trx,
         );
 
-        // create default space
         const spaceInfo: CreateSpaceDto = {
           name: 'General',
           slug: 'general',
@@ -170,7 +102,6 @@ export class SignupService {
           trx,
         );
 
-        // and add user to space as owner
         await this.spaceMemberService.addUserToSpace(
           user.id,
           createdSpace.id,
@@ -179,7 +110,6 @@ export class SignupService {
           trx,
         );
 
-        // add default group to space as writer
         await this.spaceMemberService.addGroupToSpace(
           group.id,
           createdSpace.id,
@@ -188,7 +118,6 @@ export class SignupService {
           trx,
         );
 
-        // update default spaceId
         await this.workspaceRepo.updateWorkspace(
           {
             defaultSpaceId: createdSpace.id,

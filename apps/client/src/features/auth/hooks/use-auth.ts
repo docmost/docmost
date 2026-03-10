@@ -4,6 +4,7 @@ import {
   login,
   logout,
   passwordReset,
+  register,
   setupWorkspace,
   verifyUserToken,
 } from "@/features/auth/services/auth-service";
@@ -14,6 +15,7 @@ import {
   IForgotPassword,
   ILogin,
   IPasswordReset,
+  IRegister,
   ISetupWorkspace,
   IVerifyUserToken,
 } from "@/features/auth/types/auth.types";
@@ -186,6 +188,25 @@ export default function useAuth() {
     }
   };
 
+  const handleRegister = async (data: IRegister) => {
+    setIsLoading(true);
+
+    try {
+      await register(data);
+      setIsLoading(false);
+      notifications.show({
+        message: t("Registration invitation sent! Please check your email to complete registration."),
+      });
+      navigate(APP_ROUTE.AUTH.LOGIN);
+    } catch (err) {
+      setIsLoading(false);
+      notifications.show({
+        message: err.response?.data.message,
+        color: "red",
+      });
+    }
+  };
+
   return {
     signIn: handleSignIn,
     invitationSignup: handleInvitationSignUp,
@@ -194,6 +215,7 @@ export default function useAuth() {
     passwordReset: handlePasswordReset,
     verifyUserToken: handleVerifyUserToken,
     logout: handleLogout,
+    register: handleRegister,
     isLoading,
   };
 }

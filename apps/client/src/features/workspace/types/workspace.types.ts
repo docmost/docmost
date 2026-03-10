@@ -67,6 +67,8 @@ export interface IPublicWorkspace {
   enforceSso: boolean;
   authProviders: IAuthProvider[];
   hasLicenseKey?: boolean;
+  enableRegistration?: boolean;
+  emailAllowedDomains?: string[];
 }
 
 export interface IVersion {

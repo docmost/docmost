@@ -327,16 +327,22 @@ export class WorkspaceInvitationService {
       throw new BadRequestException('Invitation not found');
     }
 
-    const invitedByUser = await this.userRepo.findById(
-      invitation.invitedById,
-      workspace.id,
-    );
+    let invitedByName = 'System';
+    if (invitation.invitedById) {
+      const invitedByUser = await this.userRepo.findById(
+        invitation.invitedById,
+        workspace.id,
+      );
+      if (invitedByUser) {
+        invitedByName = invitedByUser.name;
+      }
+    }
 
     await this.sendInvitationMail(
       invitation.id,
       invitation.email,
       invitation.token,
-      invitedByUser.name,
+      invitedByName,
       workspace.hostname,
     );
   }

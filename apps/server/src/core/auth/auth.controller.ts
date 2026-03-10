@@ -7,6 +7,7 @@ import {
   Res,
   UseGuards,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
@@ -24,6 +25,8 @@ import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
 import { FastifyReply } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { ModuleRef } from '@nestjs/core';
+import { Public } from '../../common/decorators/public.decorator';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -99,6 +102,28 @@ export class AuthController {
 
     this.setAuthCookie(res, authToken);
     return workspace;
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('register')
+  async register(
+    @AuthWorkspace() workspace: Workspace,
+    @Body() registerDto: RegisterDto,
+  ) {
+    if (!this.environmentService.isRegistrationEnabled()) {
+      throw new BadRequestException(
+        'Registration is not enabled. Please contact your administrator.',
+      );
+    }
+
+    validateSsoEnforcement(workspace);
+
+    await this.authService.register(registerDto.email, workspace);
+    
+    return {
+      message: 'Registration invitation sent. Please check your email to complete registration.',
+    };
   }
 
   @UseGuards(JwtAuthGuard)

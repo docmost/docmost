@@ -117,7 +117,7 @@ export function LoginForm() {
             <Group justify="center" mt="md">
               <Button
                 component={Link}
-                to={APP_ROUTE.AUTH.SIGNUP}
+                to={APP_ROUTE.AUTH.REGISTER}
                 variant="outline"
                 fullWidth
               >

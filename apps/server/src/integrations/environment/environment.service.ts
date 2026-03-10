@@ -285,4 +285,11 @@ export class EnvironmentService {
     }
     return domains.split(',').map(domain => domain.trim());
   }
+
+  isRegistrationEnabled(): boolean {
+    const enabled = this.configService
+      .get<string>('ENABLE_REGISTRATION', 'false')
+      .toLowerCase();
+    return enabled === 'true';
+  }
 }

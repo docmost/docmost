@@ -13,7 +13,6 @@ import {
 } from "@mantine/core";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { useParams, useSearchParams } from "react-router-dom";
-import { IRegister } from "@/features/auth/types/auth.types";
 import useAuth from "@/features/auth/hooks/use-auth";
 import classes from "@/features/auth/components/auth.module.css";
 import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-query.ts";
@@ -47,7 +46,7 @@ export function InviteSignUpForm() {
     },
   });
 
-  async function onSubmit(data: IRegister) {
+  async function onSubmit(data: FormValues) {
     const invitationToken = searchParams.get("token");
 
     await invitationSignup({

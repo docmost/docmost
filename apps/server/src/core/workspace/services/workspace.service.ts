@@ -100,6 +100,8 @@ export class WorkspaceService {
     return {
       ...rest,
       hasLicenseKey: Boolean(licenseKey),
+      enableRegistration: this.environmentService.isRegistrationEnabled(),
+      emailAllowedDomains: this.environmentService.getEmailAllowedDomains(),
     };
   }
 

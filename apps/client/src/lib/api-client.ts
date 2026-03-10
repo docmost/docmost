@@ -66,6 +66,7 @@ function redirectToLogin() {
   const exemptPaths = [
     APP_ROUTE.AUTH.LOGIN,
     APP_ROUTE.AUTH.SIGNUP,
+    APP_ROUTE.AUTH.REGISTER,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
     "/invites",

@@ -5,6 +5,7 @@ const APP_ROUTE = {
   AUTH: {
     LOGIN: "/login",
     SIGNUP: "/signup",
+    REGISTER: "/register",
     SETUP: "/setup/register",
     FORGOT_PASSWORD: "/forgot-password",
     PASSWORD_RESET: "/password-reset",

@@ -11,8 +11,6 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsArray()
   emailDomains: string[];
 
-
-
   @IsOptional()
   @IsBoolean()
   enforceMfa: boolean;

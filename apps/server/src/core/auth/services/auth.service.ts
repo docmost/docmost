@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
-import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
@@ -30,6 +29,8 @@ import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import InvitationEmail from '@docmost/transactional/emails/invitation-email';
 
 @Injectable()
 export class AuthService {
@@ -42,6 +43,7 @@ export class AuthService {
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
     private domainService: DomainService,
+    private environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
 
@@ -74,50 +76,80 @@ export class AuthService {
     return this.tokenService.generateAccessToken(user);
   }
 
-  async register(createUserDto: CreateUserDto, workspaceId?: string) {
-    // Find the first workspace if no workspaceId is provided
-    if (!workspaceId) {
-      const workspaces = await this.db.selectFrom('workspaces').select(['id']).execute();
-      if (workspaces.length > 0) {
-        workspaceId = workspaces[0].id;
-        this.logger.log(`Using first workspace: ${workspaceId}`);
-      } else {
-        this.logger.error('No workspace found for registration');
-        throw new BadRequestException('No workspace found. Please contact your administrator.');
+  async register(email: string, workspace: Workspace) {
+    this.logger.log(`Register called for email: ${email}, workspace: ${workspace.id}`);
+    
+    const allowedDomains = this.environmentService.getEmailAllowedDomains();
+    if (allowedDomains.length > 0) {
+      const emailDomain = email.split('@')[1];
+      if (!allowedDomains.includes(emailDomain)) {
+        throw new BadRequestException(
+          'Your email domain is not allowed to register. Please contact your administrator.',
+        );
       }
     }
+
+    const existingUser = await this.userRepo.findByEmail(email, workspace.id);
+    if (existingUser) {
+      throw new BadRequestException(
+        'An account with this email already exists in this workspace',
+      );
+    }
+
+    const existingInvitation = await this.db
+      .selectFrom('workspaceInvitations')
+      .select(['id'])
+      .where('email', '=', email)
+      .where('workspaceId', '=', workspace.id)
+      .executeTakeFirst();
+
+    if (existingInvitation) {
+      throw new BadRequestException(
+        'An invitation has already been sent to this email. Please check your inbox.',
+      );
+    }
+
+    const token = nanoIdGen(16);
+
+    const invitation = await this.db
+      .insertInto('workspaceInvitations')
+      .values({
+        email: email,
+        role: 'member',
+        token: token,
+        workspaceId: workspace.id,
+        invitedById: null,
+        groupIds: [],
+      })
+      .returningAll()
+      .executeTakeFirst();
+
+    this.logger.log(`Created invitation: ${JSON.stringify(invitation)}`);
+
+    const inviteLink = `${this.domainService.getUrl(workspace.hostname)}/invites/${invitation.id}?token=${token}`;
+    this.logger.log(`Invite link: ${inviteLink}`);
+
+    const emailTemplate = InvitationEmail({
+      inviteLink,
+    });
+
+    this.logger.log(`Sending email to: ${email}`);
     
-    const user = await this.signupService.signup(createUserDto, workspaceId);
-    return this.tokenService.generateAccessToken(user);
+    await this.mailService.sendToQueue({
+      to: email,
+      subject: 'You have been invited to join Docmost',
+      template: emailTemplate,
+    });
+    
+    this.logger.log(`Email queued successfully`);
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
-    // Check if any workspace already exists
-    const existingWorkspaces = await this.db.selectFrom('workspaces').select(['id']).execute();
-    
-    if (existingWorkspaces.length > 0) {
-      // Use existing workspace for registration
-      const workspaceId = existingWorkspaces[0].id;
-      this.logger.log(`Using existing workspace for registration: ${workspaceId}`);
-      
-      // Register user to existing workspace
-      const user = await this.signupService.signup({
-        name: createAdminUserDto.name,
-        email: createAdminUserDto.email,
-        password: createAdminUserDto.password,
-      }, workspaceId);
-      
-      const authToken = await this.tokenService.generateAccessToken(user);
-      const workspace = await this.db.selectFrom('workspaces').selectAll().where('id', '=', workspaceId).executeTakeFirst();
-      return { workspace, authToken };
-    } else {
-      // First user setup - create workspace
-      const { workspace, user } = 
-        await this.signupService.initialSetup(createAdminUserDto);
+    const { workspace, user } = 
+      await this.signupService.initialSetup(createAdminUserDto);
 
-      const authToken = await this.tokenService.generateAccessToken(user);
-      return { workspace, authToken };
-    }
+    const authToken = await this.tokenService.generateAccessToken(user);
+    return { workspace, authToken };
   }
 
   async changePassword(
