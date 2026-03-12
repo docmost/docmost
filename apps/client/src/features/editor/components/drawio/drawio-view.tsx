@@ -112,7 +112,7 @@ export default function DrawioView(props: NodeViewProps) {
       if (isDirtyRef.current && !isSavingRef.current && drawioRef.current) {
         drawioRef.current.exportDiagram({ format: "xmlsvg" });
       }
-    }, 60_000);
+    }, 30_000);
 
     return () => clearInterval(interval);
   }, [opened]);

@@ -162,7 +162,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
       if (isDirtyRef.current && !isSavingRef.current) {
         saveData(false).catch(() => {});
       }
-    }, 60_000);
+    }, 30_000);
 
     return () => clearInterval(interval);
   }, [opened, saveData]);
