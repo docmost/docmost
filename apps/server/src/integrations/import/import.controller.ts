@@ -96,11 +96,15 @@ export class ImportController {
       throw new ForbiddenException();
     }
 
+    const title = file.fields?.title?.value;
+
     const createdPage = await this.importService.importPage(
       file,
       user.id,
       spaceId,
       workspace.id,
+      parentPageId,
+      title,
     );
 
     const ext = path.extname(file.filename).toLowerCase();
