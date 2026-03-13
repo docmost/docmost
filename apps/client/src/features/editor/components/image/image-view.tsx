@@ -44,6 +44,17 @@ export default function ImageView(props: NodeViewProps) {
         .then((attachment) => {
           if (attachment.cropMetadata) {
             setCropMetadata(attachment.cropMetadata);
+
+            // Sync to node attributes if missing and in editable mode
+            if (!node.attrs.cropMetadata && editor.isEditable) {
+              const pos = getPos();
+              if (typeof pos === "number") {
+                editor.commands.updateAttributes(node.type.name, {
+                  cropMetadata: attachment.cropMetadata,
+                  updatedAt: Date.now(),
+                });
+              }
+            }
           } else {
             setCropMetadata(null);
           }

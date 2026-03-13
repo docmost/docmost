@@ -27,6 +27,7 @@ export type ImageResizeOptions = {
 export interface ImageOptions extends DefaultImageOptions {
   view: any;
   resize: ImageResizeOptions | false;
+  getAttachmentMetadata?: (id: string) => Promise<any>;
 }
 
 export interface ImageAttributes {
@@ -79,6 +80,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
       ...this.parent?.(),
       view: null,
       resize: false,
+      getAttachmentMetadata: null,
     };
   },
 
@@ -219,29 +221,43 @@ export const TiptapImage = Image.extend<ImageOptions>({
   },
 
   addNodeView() {
-    const resize = this.options.resize;
+    const { resize, getAttachmentMetadata } = this.options;
 
-    if (!resize || !resize.enabled) {
-      // Fallback to React node view (existing behavior)
-      this.editor.isInitialized = true;
-      return ReactNodeViewRenderer(this.options.view);
-    }
-
-    const {
-      directions,
-      minWidth,
-      minHeight,
-      alwaysPreserveAspectRatio,
-      createCustomHandle,
-      className,
-    } = resize;
-
-    return (props) => {
+    return (props: any) => {
       const { node, getPos, HTMLAttributes, editor } = props;
+
+      // Fetch metadata if missing but attachmentId is present
+      if (node.attrs.attachmentId && !node.attrs.cropMetadata && typeof getAttachmentMetadata === 'function') {
+        getAttachmentMetadata(node.attrs.attachmentId).then(metadata => {
+          if (metadata?.cropMetadata) {
+            const pos = getPos();
+            if (typeof pos === 'number') {
+              editor.commands.updateAttributes(node.type.name, {
+                cropMetadata: metadata.cropMetadata,
+                updatedAt: Date.now()
+              });
+            }
+          }
+        }).catch(() => {});
+      }
+
+      if (!resize || !resize.enabled) {
+        // Fallback to React node view (existing behavior)
+        this.editor.isInitialized = true;
+        return ReactNodeViewRenderer(this.options.view)(props);
+      }
+
+      const {
+        directions,
+        minWidth,
+        minHeight,
+        alwaysPreserveAspectRatio,
+        createCustomHandle,
+        className,
+      } = resize;
 
       // If no src yet (placeholder/uploading), use React view for loading UI
       if (!HTMLAttributes.src) {
-        editor.isInitialized = true;
         const reactView = ReactNodeViewRenderer(this.options.view);
         const view = reactView(props);
 
