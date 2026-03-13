@@ -27,6 +27,7 @@ export class AttachmentRepo {
     'createdAt',
     'updatedAt',
     'deletedAt',
+    'cropMetadata',
   ];
 
   async findById(

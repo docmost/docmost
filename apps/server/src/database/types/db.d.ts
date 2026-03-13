@@ -45,6 +45,7 @@ export interface ApiKeys {
 export interface Attachments {
   createdAt: Generated<Timestamp>;
   creatorId: string;
+  cropMetadata: Json | null;
   deletedAt: Timestamp | null;
   fileExt: string;
   fileName: string;
