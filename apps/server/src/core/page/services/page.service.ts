@@ -296,7 +296,7 @@ export class PageService {
     }
 
     const result = await executeWithCursorPagination(query, {
-      perPage: 200,
+      perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
@@ -817,6 +817,33 @@ export class PageService {
         await this.pagePermissionRepo.filterAccessiblePageIds({
           pageIds,
           userId,
+        });
+      const accessibleSet = new Set(accessibleIds);
+      result.items = result.items.filter((p) => accessibleSet.has(p.id));
+    }
+
+    return result;
+  }
+
+  async getCreatedByPages(
+    creatorId: string,
+    requestingUserId: string,
+    pagination: PaginationOptions,
+    spaceId?: string,
+  ): Promise<CursorPaginationResult<Page>> {
+    const result = await this.pageRepo.getCreatedByPages(
+      creatorId,
+      requestingUserId,
+      pagination,
+      spaceId,
+    );
+
+    if (result.items.length > 0) {
+      const pageIds = result.items.map((p) => p.id);
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds,
+          userId: requestingUserId,
         });
       const accessibleSet = new Set(accessibleIds);
       result.items = result.items.filter((p) => accessibleSet.has(p.id));
