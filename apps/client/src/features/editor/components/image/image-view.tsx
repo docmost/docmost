@@ -1,6 +1,6 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import { Group, Image, Loader, Text, Tooltip } from "@mantine/core";
-import { useMemo, useEffect, useState, useCallback } from "react";
+import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import { findParentNode } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
@@ -38,19 +38,21 @@ export default function ImageView(props: NodeViewProps) {
 
   // Fetch crop metadata when attachmentId is available
   useEffect(() => {
-    if (attachmentId && !cropMetadata) {
+    if (attachmentId) {
       pageService
         .getAttachmentInfo(attachmentId)
         .then((attachment) => {
           if (attachment.cropMetadata) {
             setCropMetadata(attachment.cropMetadata);
+          } else {
+            setCropMetadata(null);
           }
         })
         .catch(() => {
           // Ignore errors, crop metadata is optional
         });
     }
-  }, [attachmentId, cropMetadata]);
+  }, [attachmentId, node.attrs.updatedAt]);
 
   const handleDragStart = useCallback((event: React.DragEvent) => {
     if (!editor.isEditable) return;
@@ -211,21 +213,32 @@ export default function ImageView(props: NodeViewProps) {
     }
   };
 
-  const imageStyle = useMemo(() => {
-    const baseStyle: React.CSSProperties = { width };
+  const imageRef = useRef<HTMLImageElement>(null);
 
-    if (cropMetadata) {
-      // Apply crop using object-position and clip-path
-      const { x, y, width: cropWidth, height: cropHeight } = cropMetadata;
-      return {
-        ...baseStyle,
-        objectPosition: `${-x}px ${-y}px`,
-        clipPath: `inset(${y}px ${x + cropWidth}px ${y + cropHeight}px ${x}px)`,
-      };
+  const applyCropStyles = useCallback(() => {
+    const el = imageRef.current;
+    const metadata = node.attrs.cropMetadata || cropMetadata;
+    if (!el || !metadata) {
+      if (el) el.style.clipPath = "";
+      return;
     }
 
-    return baseStyle;
-  }, [width, cropMetadata]);
+    const { x, y, width: w, height: h } = metadata;
+    const nw = el.naturalWidth;
+    const nh = el.naturalHeight;
+
+    if (nw > 0 && nh > 0) {
+      const left = (x / nw) * 100;
+      const top = (y / nh) * 100;
+      const right = ((nw - (x + w)) / nw) * 100;
+      const bottom = ((nh - (y + h)) / nh) * 100;
+      el.style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
+    }
+  }, [cropMetadata, node.attrs.cropMetadata]);
+
+  useEffect(() => {
+    applyCropStyles();
+  }, [cropMetadata, node.attrs.cropMetadata, applyCropStyles]);
 
   return (
     <NodeViewWrapper
@@ -268,11 +281,13 @@ export default function ImageView(props: NodeViewProps) {
             disabled={!selected && !isDragging && !dragOver}
           >
             <Image
+              ref={imageRef}
               radius="md"
               fit="contain"
               src={getFileUrl(src)}
               alt={title}
-              style={imageStyle}
+              onLoad={applyCropStyles}
+              style={{ width: "100%" }}
             />
           </Tooltip>
         )}
@@ -283,7 +298,7 @@ export default function ImageView(props: NodeViewProps) {
               fit="contain"
               src={previewSrc}
               alt={placeholder?.name}
-              style={imageStyle}
+              style={{ width: "100%" }}
             />
             <Loader size={20} pos="absolute" bottom={6} right={6} />
           </Group>

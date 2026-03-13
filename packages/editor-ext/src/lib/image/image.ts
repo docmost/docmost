@@ -42,6 +42,13 @@ export interface ImageAttributes {
     id: string;
     name: string;
   };
+  updatedAt?: number;
+  cropMetadata?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 declare module "@tiptap/core" {
@@ -147,6 +154,22 @@ export const TiptapImage = Image.extend<ImageOptions>({
       placeholder: {
         default: null,
         rendered: false,
+      },
+      updatedAt: {
+        default: null,
+        rendered: false,
+      },
+      cropMetadata: {
+        default: null,
+        parseHTML: (element) => {
+          const raw = element.getAttribute("data-crop-metadata");
+          return raw ? JSON.parse(raw) : null;
+        },
+        renderHTML: (attributes: ImageAttributes) => ({
+          "data-crop-metadata": attributes.cropMetadata
+            ? JSON.stringify(attributes.cropMetadata)
+            : null,
+        }),
       },
     };
   },
@@ -265,6 +288,8 @@ export const TiptapImage = Image.extend<ImageOptions>({
         }
       }
 
+      applyCropStyles(el, node.attrs.cropMetadata);
+
       let currentNode = node;
 
       const nodeView = new ResizableNodeView({
@@ -315,6 +340,10 @@ export const TiptapImage = Image.extend<ImageOptions>({
           const align = updatedNode.attrs.align || "center";
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);
+
+          if (updatedNode.attrs.cropMetadata !== currentNode.attrs.cropMetadata) {
+            applyCropStyles(el, updatedNode.attrs.cropMetadata);
+          }
 
           currentNode = updatedNode;
           return true;
@@ -382,5 +411,37 @@ function applyAlignment(container: HTMLElement, align: string) {
     container.style.justifyContent = "flex-end";
   } else {
     container.style.justifyContent = "center";
+  }
+}
+
+function applyCropStyles(el: HTMLImageElement, cropMetadata: any) {
+  if (cropMetadata) {
+    const { x, y, width: w, height: h } = cropMetadata;
+    // We use object-fit and object-position for cropping in the editor view
+    // Note: This assumes the img element itself is sized to the crop dimensions
+    // but for now let's just use clip-path which is safer for varied widths.
+    // However, clip-path with percentages is best for responsive.
+    
+    // We need natural dimensions to calculate percentages
+    const nw = el.naturalWidth;
+    const nh = el.naturalHeight;
+    
+    if (nw > 0 && nh > 0) {
+        const left = (x / nw) * 100;
+        const top = (y / nh) * 100;
+        const right = ((nw - (x + w)) / nw) * 100;
+        const bottom = ((nh - (y + h)) / nh) * 100;
+        
+        el.style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
+        
+        // Scale the image up so that the cropped part fills the available width
+        // This is complex because of how Tiptap handles width.
+        // For now, let's just do the clip.
+    } else {
+        // Fallback or wait for load
+        el.addEventListener('load', () => applyCropStyles(el, cropMetadata), { once: true });
+    }
+  } else {
+    el.style.clipPath = "";
   }
 }

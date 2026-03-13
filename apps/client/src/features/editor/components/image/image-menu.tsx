@@ -145,6 +145,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
   const handleCropApplied = useCallback(() => {
     // Refresh the editor to show the cropped image
+    editor.commands.updateAttributes("image", { updatedAt: Date.now() });
     editor.commands.focus();
   }, [editor]);
 
@@ -260,6 +261,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         attachmentId={editorState?.attachmentId || ""}
         src={editorState?.src || ""}
         onCropApplied={handleCropApplied}
+        editor={editor}
       />
     </BaseBubbleMenu>
   );
