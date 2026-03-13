@@ -44,7 +44,8 @@ function CommentListWithTabs() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const canComment = page?.permissions?.canEdit ?? false;
+  const canEdit = page?.permissions?.canEdit ?? false;
+  const canComment = page?.permissions?.canComment ?? false;
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -130,6 +131,7 @@ function CommentListWithTabs() {
             comment={comment}
             pageId={page?.id}
             canComment={canComment}
+            canEdit={canEdit}
             userSpaceRole={space?.membership?.role}
           />
           <MemoizedChildComments
@@ -137,6 +139,7 @@ function CommentListWithTabs() {
             parentId={comment.id}
             pageId={page?.id}
             canComment={canComment}
+            canEdit={canEdit}
             userSpaceRole={space?.membership?.role}
           />
         </div>
@@ -271,6 +274,7 @@ interface ChildCommentsProps {
   parentId: string;
   pageId: string;
   canComment: boolean;
+  canEdit: boolean;
   userSpaceRole?: string;
 }
 const ChildComments = ({
@@ -278,6 +282,7 @@ const ChildComments = ({
   parentId,
   pageId,
   canComment,
+  canEdit,
   userSpaceRole,
 }: ChildCommentsProps) => {
   const getChildComments = useCallback(
@@ -296,6 +301,7 @@ const ChildComments = ({
             comment={childComment}
             pageId={pageId}
             canComment={canComment}
+            canEdit={canEdit}
             userSpaceRole={userSpaceRole}
           />
           <MemoizedChildComments
@@ -303,6 +309,7 @@ const ChildComments = ({
             parentId={childComment.id}
             pageId={pageId}
             canComment={canComment}
+            canEdit={canEdit}
             userSpaceRole={userSpaceRole}
           />
         </div>

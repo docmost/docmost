@@ -58,7 +58,7 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanComment(page, user);
 
     const comment = await this.commentService.create(
       {
@@ -134,7 +134,7 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanComment(page, user);
 
     return this.commentService.update(comment, dto, user);
   }
@@ -152,8 +152,8 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    // Check page-level edit permission first
-    await this.pageAccessService.validateCanEdit(page, user);
+    // Check page-level comment permission first
+    await this.pageAccessService.validateCanComment(page, user);
 
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;

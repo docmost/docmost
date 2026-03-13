@@ -38,13 +38,13 @@ export class PageAccessService {
   }
 
   /**
-   * Validate user can view page AND return effective canEdit permission.
+   * Validate user can view page AND return effective canEdit/canComment permissions.
    * Combines access check + edit permission in a single query pass.
    */
   async validateCanViewWithPermissions(
     page: Page,
     user: User,
-  ): Promise<{ canEdit: boolean; hasRestriction: boolean }> {
+  ): Promise<{ canEdit: boolean; canComment: boolean; hasRestriction: boolean }> {
     const ability = await this.spaceAbility.createForUser(user, page.spaceId);
 
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
@@ -58,12 +58,43 @@ export class PageAccessService {
       throw new ForbiddenException();
     }
 
+    const effectiveCanEdit = hasAnyRestriction
+      ? canEdit
+      : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page);
+
     return {
-      canEdit: hasAnyRestriction
-        ? canEdit
-        : ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page),
+      canEdit: effectiveCanEdit,
+      canComment: effectiveCanEdit || ability.can(SpaceCaslAction.Manage, SpaceCaslSubject.Comment),
       hasRestriction: hasAnyRestriction,
     };
+  }
+
+  /**
+   * Validate user can comment on page, throws ForbiddenException if not.
+   * Users with edit permission OR the Comment CASL ability can comment.
+   */
+  async validateCanComment(page: Page, user: User): Promise<void> {
+    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    const canAccess = await this.pagePermissionRepo.canUserAccessPage(
+      user.id,
+      page.id,
+    );
+    if (!canAccess) {
+      throw new ForbiddenException();
+    }
+
+    // Allow if user can edit pages OR has the Comment ability
+    const canEdit = ability.can(SpaceCaslAction.Edit, SpaceCaslSubject.Page);
+    const canComment = ability.can(SpaceCaslAction.Manage, SpaceCaslSubject.Comment);
+
+    if (!canEdit && !canComment) {
+      throw new ForbiddenException();
+    }
   }
 
   /**

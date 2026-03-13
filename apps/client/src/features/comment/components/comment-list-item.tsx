@@ -25,6 +25,7 @@ interface CommentListItemProps {
   comment: IComment;
   pageId: string;
   canComment: boolean;
+  canEdit: boolean;
   userSpaceRole?: string;
 }
 
@@ -32,6 +33,7 @@ function CommentListItem({
   comment,
   pageId,
   canComment,
+  canEdit,
   userSpaceRole,
 }: CommentListItemProps) {
   const { t } = useTranslation();
@@ -138,7 +140,7 @@ function CommentListItem({
             </Text>
 
             <div style={{ visibility: hovered ? "visible" : "hidden" }}>
-              {!comment.parentCommentId && canComment && canResolve && (
+              {!comment.parentCommentId && canEdit && canResolve && (
                 <ResolveComment
                   editor={editor}
                   commentId={comment.id}
