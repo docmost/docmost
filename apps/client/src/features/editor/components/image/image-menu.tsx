@@ -44,6 +44,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
         src: imageAttrs?.src || null,
         attachmentId: imageAttrs?.attachmentId || null,
+        cropMetadata: imageAttrs?.cropMetadata || null,
       };
     },
   });
@@ -260,6 +261,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         onClose={() => setCropModalOpened(false)}
         attachmentId={editorState?.attachmentId || ""}
         src={editorState?.src || ""}
+        initialCropData={editorState?.cropMetadata}
         onCropApplied={handleCropApplied}
         editor={editor}
       />

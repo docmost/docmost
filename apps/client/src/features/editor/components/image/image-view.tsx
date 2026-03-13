@@ -225,31 +225,47 @@ export default function ImageView(props: NodeViewProps) {
   };
 
   const imageRef = useRef<HTMLImageElement>(null);
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
 
-  const applyCropStyles = useCallback(() => {
-    const el = imageRef.current;
-    const metadata = node.attrs.cropMetadata || cropMetadata;
-    if (!el || !metadata) {
-      if (el) el.style.clipPath = "";
-      return;
+  const effectiveCropMetadata = node.attrs.cropMetadata || cropMetadata;
+
+  const cropStyles = useMemo(() => {
+    if (!effectiveCropMetadata || naturalSize.width === 0) {
+      return {
+        wrapper: {
+          aspectRatio: aspectRatio ? aspectRatio : src ? undefined : "16 / 9",
+          width,
+        },
+        img: { width: "100%", height: "auto" },
+        isCropped: false,
+      };
     }
 
-    const { x, y, width: w, height: h } = metadata;
-    const nw = el.naturalWidth;
-    const nh = el.naturalHeight;
+    const { x, y, width: w, height: h } = effectiveCropMetadata;
+    const nw = naturalSize.width;
+    const nh = naturalSize.height;
 
-    if (nw > 0 && nh > 0) {
-      const left = (x / nw) * 100;
-      const top = (y / nh) * 100;
-      const right = ((nw - (x + w)) / nw) * 100;
-      const bottom = ((nh - (y + h)) / nh) * 100;
-      el.style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
-    }
-  }, [cropMetadata, node.attrs.cropMetadata]);
+    const scale = 100 / ((w / nw) * 100);
 
-  useEffect(() => {
-    applyCropStyles();
-  }, [cropMetadata, node.attrs.cropMetadata, applyCropStyles]);
+    return {
+      wrapper: {
+        aspectRatio: `${w / h}`,
+        width,
+      },
+      img: {
+        width: `${scale * 100}%`,
+        height: "auto",
+        marginLeft: `-${(x / nw) * scale * 100}%`,
+        marginTop: `-${(y / nh) * scale * 100}%`,
+      },
+      isCropped: true,
+    };
+  }, [effectiveCropMetadata, naturalSize, width, aspectRatio, src]);
+
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+  }, []);
 
   return (
     <NodeViewWrapper
@@ -272,10 +288,7 @@ export default function ImageView(props: NodeViewProps) {
             [classes.canCreateColumns]: dragOver && canCreateColumns,
           }
         )}
-        style={{
-          aspectRatio: aspectRatio ? aspectRatio : src ? undefined : "16 / 9",
-          width,
-        }}
+        style={cropStyles.wrapper}
       >
         {src && (
           <Tooltip
@@ -291,14 +304,13 @@ export default function ImageView(props: NodeViewProps) {
             position="top"
             disabled={!selected && !isDragging && !dragOver}
           >
-            <Image
+            <img
               ref={imageRef}
-              radius="md"
-              fit="contain"
               src={getFileUrl(src)}
               alt={title}
-              onLoad={applyCropStyles}
-              style={{ width: "100%" }}
+              onLoad={handleImageLoad}
+              className={clsx(cropStyles.isCropped && classes.croppedImage)}
+              style={cropStyles.img}
             />
           </Tooltip>
         )}

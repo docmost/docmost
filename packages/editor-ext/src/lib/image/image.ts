@@ -431,33 +431,46 @@ function applyAlignment(container: HTMLElement, align: string) {
 }
 
 function applyCropStyles(el: HTMLImageElement, cropMetadata: any) {
+  if (!el) return;
+
   if (cropMetadata) {
     const { x, y, width: w, height: h } = cropMetadata;
-    // We use object-fit and object-position for cropping in the editor view
-    // Note: This assumes the img element itself is sized to the crop dimensions
-    // but for now let's just use clip-path which is safer for varied widths.
-    // However, clip-path with percentages is best for responsive.
-    
-    // We need natural dimensions to calculate percentages
     const nw = el.naturalWidth;
     const nh = el.naturalHeight;
     
     if (nw > 0 && nh > 0) {
-        const left = (x / nw) * 100;
-        const top = (y / nh) * 100;
-        const right = ((nw - (x + w)) / nw) * 100;
-        const bottom = ((nh - (y + h)) / nh) * 100;
+        const scale = 100 / ((w / nw) * 100);
         
-        el.style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
-        
-        // Scale the image up so that the cropped part fills the available width
-        // This is complex because of how Tiptap handles width.
-        // For now, let's just do the clip.
+        el.style.position = "absolute";
+        el.style.top = "0";
+        el.style.left = "0";
+        el.style.maxWidth = "none";
+        el.style.width = `${scale * 100}%`;
+        el.style.height = "auto";
+        el.style.marginLeft = `-${(x / nw) * scale * 100}%`;
+        el.style.marginTop = `-${(y / nh) * scale * 100}%`;
+        el.style.clipPath = ""; // Remove old clip-path if present
+
+        const wrapper = el.parentElement;
+        if (wrapper) {
+            wrapper.style.overflow = "hidden";
+            wrapper.style.position = "relative";
+            wrapper.style.aspectRatio = `${w / h}`;
+        }
     } else {
-        // Fallback or wait for load
+        // Wait for load
         el.addEventListener('load', () => applyCropStyles(el, cropMetadata), { once: true });
     }
   } else {
+    el.style.width = "100%";
+    el.style.height = "auto";
+    el.style.marginLeft = "0";
+    el.style.marginTop = "0";
+    el.style.position = "static";
     el.style.clipPath = "";
+    const wrapper = el.parentElement;
+    if (wrapper) {
+        wrapper.style.aspectRatio = "";
+    }
   }
 }

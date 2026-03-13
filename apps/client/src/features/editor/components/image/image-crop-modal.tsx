@@ -19,6 +19,7 @@ interface ImageCropModalProps {
   onClose: () => void;
   attachmentId: string;
   src: string;
+  initialCropData?: { x: number; y: number; width: number; height: number } | null;
   onCropApplied?: () => void;
   editor: Editor;
 }
@@ -30,6 +31,7 @@ export default function ImageCropModal({
   onClose,
   attachmentId,
   src,
+  initialCropData,
   onCropApplied,
   editor,
 }: ImageCropModalProps) {
@@ -43,6 +45,23 @@ export default function ImageCropModal({
     width: 100,
     height: 100,
   });
+
+  useEffect(() => {
+    if (opened) {
+      if (initialCropData) {
+        setCropData(initialCropData);
+      } else if (imageRef.current?.naturalWidth) {
+        // Reset to full image if no initial data
+        setCropData({
+          x: 0,
+          y: 0,
+          width: imageRef.current.naturalWidth,
+          height: imageRef.current.naturalHeight,
+        });
+      }
+    }
+  }, [initialCropData, opened]);
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -54,8 +73,8 @@ export default function ImageCropModal({
   const handleImageLoad = useCallback(() => {
     setImageLoaded(true);
     const img = imageRef.current;
-    if (img) {
-      // Default crop to full image size
+    if (img && !initialCropData) {
+      // Default crop to full image size ONLY if no initial data
       setCropData({
         x: 0,
         y: 0,
@@ -63,7 +82,7 @@ export default function ImageCropModal({
         height: img.naturalHeight,
       });
     }
-  }, []);
+  }, [initialCropData]);
 
   const getScaleFactors = useCallback(() => {
     const canvas = canvasRef.current;
