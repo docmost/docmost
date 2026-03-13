@@ -25,6 +25,7 @@ import {
   ApiKeys,
   Watchers,
   Audit as _Audit,
+  Todos,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -161,3 +162,8 @@ export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
 export type Audit = Selectable<_Audit>;
 export type InsertableAudit = Insertable<_Audit>;
 export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
+
+// Todo
+export type Todo = Selectable<Todos>;
+export type InsertableTodo = Insertable<Todos>;
+export type UpdatableTodo = Updateable<Omit<Todos, 'id'>>;

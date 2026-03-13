@@ -429,6 +429,19 @@ export interface PagePermissions {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface Todos {
+  id: Generated<string>;
+  title: string;
+  completed: Generated<boolean>;
+  pageId: string;
+  creatorId: string | null;
+  workspaceId: string;
+  spaceId: string | null;
+  completedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -449,6 +462,7 @@ export interface DB {
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  todos: Todos;
   userMfa: UserMfa;
   users: Users;
   userTokens: UserTokens;
