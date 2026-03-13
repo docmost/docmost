@@ -26,3 +26,14 @@
     }
   }
 }
+
+.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dragOver {
+  border: 2px dashed var(--mantine-color-blue-5);
+  background-color: var(--mantine-color-blue-0);
+}
