@@ -229,8 +229,15 @@ export default function ImageView(props: NodeViewProps) {
   const applyCropStyles = useCallback(() => {
     const el = imageRef.current;
     const metadata = node.attrs.cropMetadata || cropMetadata;
-    if (!el || !metadata) {
-      if (el) el.style.clipPath = "";
+
+    if (!el) return;
+
+    if (!metadata) {
+      el.style.width = "100%";
+      el.style.height = "auto";
+      el.style.marginLeft = "0";
+      el.style.marginTop = "0";
+      el.style.position = "static";
       return;
     }
 
@@ -239,11 +246,24 @@ export default function ImageView(props: NodeViewProps) {
     const nh = el.naturalHeight;
 
     if (nw > 0 && nh > 0) {
-      const left = (x / nw) * 100;
-      const top = (y / nh) * 100;
-      const right = ((nw - (x + w)) / nw) * 100;
-      const bottom = ((nh - (y + h)) / nh) * 100;
-      el.style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
+      // The imageWrapper has a fixed width (passed from Tiptap or 100%)
+      // We need to scale the image so that the cropped portion fills that width.
+      const scale = 100 / (w / nw * 100); // How much to zoom the image
+      
+      el.className = clsx(el.className, classes.croppedImage);
+      el.style.width = `${scale * 100}%`;
+      el.style.height = "auto";
+      el.style.marginLeft = `-${(x / nw) * scale * 100}%`;
+      el.style.marginTop = `-${(y / nh) * scale * 100}%`;
+      
+      // Calculate wrapper height based on crop aspect ratio
+      const wrapper = el.parentElement;
+      if (wrapper) {
+          const cropAspectRatio = w / h;
+          // We can't easily get the computed width here without potentially causing layout thrashing,
+          // but we can set the wrapper's aspect ratio.
+          wrapper.style.aspectRatio = `${cropAspectRatio}`;
+      }
     }
   }, [cropMetadata, node.attrs.cropMetadata]);
 
@@ -298,7 +318,6 @@ export default function ImageView(props: NodeViewProps) {
               src={getFileUrl(src)}
               alt={title}
               onLoad={applyCropStyles}
-              style={{ width: "100%" }}
             />
           </Tooltip>
         )}

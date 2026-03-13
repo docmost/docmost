@@ -5,7 +5,8 @@
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  animation: pulse 1.2s ease-in-out infinite;
+  position: relative;
+  line-height: 0;
 
   @mixin light {
     background: linear-gradient(-90deg, var(--mantine-color-gray-3) 0%, var(--mantine-color-gray-1) 50%, var(--mantine-color-gray-3) 100%);
@@ -16,15 +17,13 @@
     background: linear-gradient(-90deg, var(--mantine-color-dark-6) 0%, var(--mantine-color-dark-5) 50%, var(--mantine-color-dark-6) 100%);
     background-size: 400% 400%;
   }
+}
 
-  @keyframes pulse {
-    0% {
-      background-position: 0% 0%;
-    }
-    100% {
-      background-position: -135% 0%;
-    }
-  }
+.croppedImage {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  max-width: none !important;
 }
 
 .dragging {
@@ -41,4 +40,16 @@
 .dragOver.canCreateColumns {
   border: 2px solid var(--mantine-color-green-5);
   background-color: var(--mantine-color-green-0);
+}
+
+.alignLeft {
+  justify-content: flex-start;
+}
+
+.alignCenter {
+  justify-content: center;
+}
+
+.alignRight {
+  justify-content: flex-end;
 }
