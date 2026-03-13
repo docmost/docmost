@@ -65,14 +65,40 @@ export default function ImageCropModal({
   const getScaleFactors = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
-    if (!canvas || !img) return { scaleX: 1, scaleY: 1 };
+    if (!canvas || !img) return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
 
     const rect = canvas.getBoundingClientRect();
+    const containerWidth = rect.width;
+    const containerHeight = rect.height;
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+
+    const containerRatio = containerWidth / containerHeight;
+    const imageRatio = naturalWidth / naturalHeight;
+
+    let displayWidth, displayHeight, offsetX, offsetY;
+
+    if (imageRatio > containerRatio) {
+      // Image is wider than container ratio (letterboxed vertically)
+      displayWidth = containerWidth;
+      displayHeight = containerWidth / imageRatio;
+      offsetX = 0;
+      offsetY = (containerHeight - displayHeight) / 2;
+    } else {
+      // Image is taller than container ratio (pillarboxed horizontally)
+      displayHeight = containerHeight;
+      displayWidth = containerHeight * imageRatio;
+      offsetY = 0;
+      offsetX = (containerWidth - displayWidth) / 2;
+    }
+
     return {
-      scaleX: rect.width / img.naturalWidth,
-      scaleY: rect.height / img.naturalHeight,
-      canvasWidth: rect.width,
-      canvasHeight: rect.height,
+      scaleX: displayWidth / naturalWidth,
+      scaleY: displayHeight / naturalHeight,
+      offsetX,
+      offsetY,
+      canvasWidth: containerWidth,
+      canvasHeight: containerHeight,
     };
   }, []);
 
@@ -84,18 +110,18 @@ export default function ImageCropModal({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { scaleX, scaleY, canvasWidth, canvasHeight } = getScaleFactors();
+    const { scaleX, scaleY, offsetX, offsetY, canvasWidth, canvasHeight } = getScaleFactors();
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Semi-transparent overlay
+    // Semi-transparent overlay over the entire canvas
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const x = cropData.x * scaleX;
-    const y = cropData.y * scaleY;
+    const x = offsetX + cropData.x * scaleX;
+    const y = offsetY + cropData.y * scaleY;
     const w = cropData.width * scaleX;
     const h = cropData.height * scaleY;
 
@@ -112,14 +138,14 @@ export default function ImageCropModal({
     ctx.fillStyle = '#fff';
     
     const handles = [
-      { x: x, y: y }, // nw
-      { x: x + w / 2, y: y }, // n
-      { x: x + w, y: y }, // ne
-      { x: x + w, y: y + h / 2 }, // e
-      { x: x + w, y: y + h }, // se
-      { x: x + w / 2, y: y + h }, // s
-      { x: x, y: y + h }, // sw
-      { x: x, y: y + h / 2 }, // w
+      { x: x, y: y, type: 'nw' },
+      { x: x + w / 2, y: y, type: 'n' },
+      { x: x + w, y: y, type: 'ne' },
+      { x: x + w, y: y + h / 2, type: 'e' },
+      { x: x + w, y: y + h, type: 'se' },
+      { x: x + w / 2, y: y + h, type: 's' },
+      { x: x, y: y + h, type: 'sw' },
+      { x: x, y: y + h / 2, type: 'w' },
     ];
 
     handles.forEach(hPos => {
@@ -135,9 +161,9 @@ export default function ImageCropModal({
   }, [drawCropOverlay]);
 
   const getHandleAtPosition = (mouseX: number, mouseY: number): HandleType => {
-    const { scaleX, scaleY } = getScaleFactors();
-    const x = cropData.x * scaleX;
-    const y = cropData.y * scaleY;
+    const { scaleX, scaleY, offsetX, offsetY } = getScaleFactors();
+    const x = offsetX + cropData.x * scaleX;
+    const y = offsetY + cropData.y * scaleY;
     const w = cropData.width * scaleX;
     const h = cropData.height * scaleY;
     const threshold = 10;
@@ -194,7 +220,7 @@ export default function ImageCropModal({
       return;
     }
 
-    const { scaleX, scaleY } = getScaleFactors();
+    const { scaleX, scaleY, offsetX, offsetY } = getScaleFactors();
     const dx = (mouseX - dragStart.x) / scaleX;
     const dy = (mouseY - dragStart.y) / scaleY;
 

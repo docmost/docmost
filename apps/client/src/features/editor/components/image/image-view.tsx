@@ -38,19 +38,21 @@ export default function ImageView(props: NodeViewProps) {
 
   // Fetch crop metadata when attachmentId is available
   useEffect(() => {
-    if (attachmentId && !cropMetadata) {
+    if (attachmentId) {
       pageService
         .getAttachmentInfo(attachmentId)
         .then((attachment) => {
           if (attachment.cropMetadata) {
             setCropMetadata(attachment.cropMetadata);
+          } else {
+            setCropMetadata(null);
           }
         })
         .catch(() => {
           // Ignore errors, crop metadata is optional
         });
     }
-  }, [attachmentId, cropMetadata]);
+  }, [attachmentId, node.attrs.updatedAt]);
 
   const handleDragStart = useCallback((event: React.DragEvent) => {
     if (!editor.isEditable) return;
