@@ -1,5 +1,7 @@
-import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import type { Entitlements } from "./entitlement.types";
 
-const initialValue: Entitlements | null = null;
-export const entitlementAtom = atom(initialValue);
+export const entitlementAtom = atomWithStorage<Entitlements | null>(
+  "entitlements",
+  null,
+);

@@ -26,9 +26,15 @@ export class LicenseCheckService {
     }
   }
 
-  hasFeature(licenseKey: string, feature: string): boolean {
+  hasFeature(licenseKey: string, feature: string, plan?: string): boolean {
     if (this.environmentService.isCloud()) {
-      return true;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getFeaturesForCloudPlan } = require('../../ee/licence/feature-registry');
+        return getFeaturesForCloudPlan(plan).has(feature);
+      } catch {
+        return false;
+      }
     }
 
     try {

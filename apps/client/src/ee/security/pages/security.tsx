@@ -60,7 +60,7 @@ export default function Security() {
         </>
       )}
 
-      {hasSecurityAccess && (
+      {(isCloud() || hasSecurityAccess) && (
         <>
           <AllowedDomains />
           <Divider my="lg" />

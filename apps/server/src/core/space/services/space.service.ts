@@ -139,7 +139,7 @@ export class SpaceService {
       });
 
       if (
-        !this.licenseCheckService.hasFeature(workspace.licenseKey, 'security:settings')
+        !this.licenseCheckService.hasFeature(workspace.licenseKey, 'security:settings', workspace.plan)
       ) {
         throw new ForbiddenException(
           'This feature requires a valid license',

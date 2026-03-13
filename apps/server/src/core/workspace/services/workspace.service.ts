@@ -329,7 +329,7 @@ export class WorkspaceService {
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
-        .select(['id', 'licenseKey', 'trashRetentionDays'])
+        .select(['id', 'licenseKey', 'plan', 'trashRetentionDays'])
         .where('id', '=', workspaceId)
         .executeTakeFirst();
 
@@ -337,10 +337,24 @@ export class WorkspaceService {
         throw new NotFoundException('Workspace not found');
       }
 
-      if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings')) {
-        throw new ForbiddenException(
-          'This feature requires a valid license',
-        );
+      if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'mcp', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
+      }
+
+      if (
+        typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
+        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
+        typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined'
+      ) {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
       }
 
       if (
