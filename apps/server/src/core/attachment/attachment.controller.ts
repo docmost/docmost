@@ -53,7 +53,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { AttachmentInfoDto, RemoveIconDto, UpdateCropDto } from './dto/attachment.dto';
+import { AttachmentInfoDto, RemoveIconDto} from './dto/attachment.dto';
 import { PageAccessService } from '../page/page-access/page-access.service';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {

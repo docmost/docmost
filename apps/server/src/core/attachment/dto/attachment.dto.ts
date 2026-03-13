@@ -21,3 +21,4 @@ export class RemoveIconDto {
   @IsUUID()
   spaceId: string;
 }
+

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -272,6 +273,13 @@ export class AttachmentService {
   }
 
   async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {
+    try {
+      await this.storageService.upload(filePath, fileContent);
+    } catch (err) {
+      this.logger.error('Error uploading file to drive:', err);
+      throw new BadRequestException('Error uploading file to drive');
+    }
+  }
 
   async saveAttachment(opts: {
     attachmentId?: string;
