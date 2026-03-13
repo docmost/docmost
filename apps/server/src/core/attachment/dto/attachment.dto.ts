@@ -22,3 +22,12 @@ export class RemoveIconDto {
   spaceId: string;
 }
 
+export class UpdateCropMetadataDto {
+  @IsNotEmpty()
+  cropMetadata: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}

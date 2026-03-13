@@ -3,11 +3,11 @@ import { Group, Image, Loader, Text, Tooltip } from "@mantine/core";
 import { useMemo, useEffect, useState, useCallback } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import { findParentNode } from "@tiptap/core";
+import { TextSelection } from "@tiptap/pm/state";
 import clsx from "clsx";
 import classes from "./image-view.module.css";
 import { useTranslation } from "react-i18next";
 import { pageService } from "@/features/page/services/page-service.ts";
-import { IconColumns } from "@tabler/icons-react";
 
 export default function ImageView(props: NodeViewProps) {
   const { t } = useTranslation();
@@ -15,12 +15,14 @@ export default function ImageView(props: NodeViewProps) {
   const { src, width, align, title, aspectRatio, placeholder, attachmentId } = node.attrs;
   const [cropMetadata, setCropMetadata] = useState(null);
   const [canCreateColumns, setCanCreateColumns] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const alignClass = useMemo(() => {
-    if (align === "left") return "alignLeft";
-    if (align === "right") return "alignRight";
-    if (align === "center") return "alignCenter";
-    return "alignCenter";
+    if (align === "left") return classes.alignLeft;
+    if (align === "right") return classes.alignRight;
+    if (align === "center") return classes.alignCenter;
+    return classes.alignCenter;
   }, [align]);
 
   const previewSrc = useMemo(() => {
@@ -89,7 +91,8 @@ export default function ImageView(props: NodeViewProps) {
     setDragOver(true);
 
     // Check if multi-column creation is possible
-    const dropResolvedPos = editor.state.doc.resolve(getPos());
+    const pos = getPos();
+    const dropResolvedPos = editor.state.doc.resolve(pos);
     const prevNode = dropResolvedPos.nodeBefore;
     const nextNode = dropResolvedPos.nodeAfter;
 
@@ -121,34 +124,33 @@ export default function ImageView(props: NodeViewProps) {
     const draggedNode = editor.state.doc.nodeAt(draggedPos);
     if (!draggedNode || draggedNode.type.name !== 'image') return;
 
-    const { tr } = editor.state;
+    const { tr, schema } = editor.state;
     const dropResolvedPos = tr.doc.resolve(dropPos);
-    const dropParent = dropResolvedPos.parent;
-    const dropIndex = dropResolvedPos.index();
 
     // Check if we're dropping inside a columns node
-    const columnsNode = findParentNode(node => node.type.name === 'columns')(dropResolvedPos);
-    const isInColumns = !!columnsNode;
+    const selection = TextSelection.create(tr.doc, dropResolvedPos.pos);
+    const columnsNodeInfo = findParentNode(node => node.type.name === 'columns')(selection);
+    const isInColumns = !!columnsNodeInfo;
 
     if (isInColumns) {
       // We're dropping inside an existing columns layout
-      const columnsPos = columnsNode?.start || 0;
-      const columnCount = columnsNode?.node.childCount || 2;
+      const columnsPos = columnsNodeInfo.pos;
+      const columnCount = columnsNodeInfo.node.childCount;
 
       // If we have space for more columns, increase the count
       if (columnCount < 5) {
         const newLayout = getLayoutForColumnCount(columnCount + 1);
-        tr.setNodeMarkup(columnsPos - 1, undefined, { layout: newLayout });
+        tr.setNodeMarkup(columnsPos, undefined, { layout: newLayout });
 
-        // Add the dragged image to the new column
-        const columnPos = columnsPos + (columnCount * 2); // Approximate position for new column
-        tr.insert(columnPos, draggedNode);
+        // Add the dragged image to a new column
+        const column = schema.nodes.column.create(null, [draggedNode]);
+        tr.insert(columnsPos + columnsNodeInfo.node.nodeSize - 1, column);
       } else {
         // Maximum columns reached, just move the image within the columns
         tr.insert(dropPos, draggedNode);
       }
 
-      // Remove from old position
+      // Remove from old position (accounting for any changes if needed, but here simple delete works if we do it in one tr)
       tr.delete(draggedPos, draggedPos + draggedNode.nodeSize);
     } else {
       // Check if there are adjacent images to create columns with
@@ -166,26 +168,27 @@ export default function ImageView(props: NodeViewProps) {
         imagesToWrap.push(draggedNode);
         if (hasNextImage) imagesToWrap.push(nextNode);
 
-        // Remove all images from their current positions
-        const startPos = hasPrevImage ? dropPos - prevNode.nodeSize : dropPos;
-        const endPos = hasNextImage ? dropPos + nextNode.nodeSize : dropPos + draggedNode.nodeSize;
+        // Position to insert the new columns node
+        const startPos = hasPrevImage ? dropPos - (prevNode?.nodeSize || 0) : dropPos;
+        const endPos = hasNextImage ? dropPos + (nextNode?.nodeSize || 0) : dropPos + draggedNode.nodeSize;
 
+        // Remove the images from their current positions
         tr.delete(startPos, endPos);
+        // Also remove dragged node if it's elsewhere
+        if (draggedPos < startPos || draggedPos >= endPos) {
+          tr.delete(draggedPos, draggedPos + draggedNode.nodeSize);
+        }
 
         // Create columns layout
-        const columnCount = Math.min(imagesToWrap.length, 3); // Max 3 columns for readability
+        const columnCount = Math.min(imagesToWrap.length, 3);
         const layout = getLayoutForColumnCount(columnCount);
 
-        const columnsContent = imagesToWrap.map(image => ({
-          type: 'column',
-          content: [image.toJSON()]
-        }));
+        const columnsContent = imagesToWrap.map(image =>
+          schema.nodes.column.create(null, [image])
+        );
 
-        tr.insert(startPos, {
-          type: 'columns',
-          attrs: { layout },
-          content: columnsContent
-        });
+        const columnsNode = schema.nodes.columns.create({ layout }, columnsContent);
+        tr.insert(startPos, columnsNode);
       } else {
         // Simple move - no adjacent images, just reposition
         tr.delete(draggedPos, draggedPos + draggedNode.nodeSize);
@@ -209,7 +212,7 @@ export default function ImageView(props: NodeViewProps) {
   };
 
   const imageStyle = useMemo(() => {
-    const baseStyle = { width };
+    const baseStyle: React.CSSProperties = { width };
 
     if (cropMetadata) {
       // Apply crop using object-position and clip-path
@@ -256,10 +259,10 @@ export default function ImageView(props: NodeViewProps) {
               isDragging
                 ? "Drop to move image"
                 : dragOver && canCreateColumns
-                ? "Drop here to create multi-column layout"
-                : selected
-                ? t("Tip: Select multiple images and wrap them in columns for layout")
-                : ""
+                  ? "Drop here to create multi-column layout"
+                  : selected
+                    ? t("Tip: Select multiple images and wrap them in columns for layout")
+                    : ""
             }
             position="top"
             disabled={!selected && !isDragging && !dragOver}

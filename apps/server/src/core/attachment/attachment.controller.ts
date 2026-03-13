@@ -10,6 +10,7 @@ import {
   Logger,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -53,7 +54,7 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { TokenService } from '../auth/services/token.service';
 import { JwtAttachmentPayload, JwtType } from '../auth/dto/jwt-payload';
 import * as path from 'path';
-import { AttachmentInfoDto, RemoveIconDto} from './dto/attachment.dto';
+import { AttachmentInfoDto, RemoveIconDto, UpdateCropMetadataDto } from './dto/attachment.dto';
 import { PageAccessService } from '../page/page-access/page-access.service';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
@@ -394,6 +395,27 @@ export class AttachmentController {
     await this.pageAccessService.validateCanView(page, user);
 
     return attachment;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Patch('files/:fileId/crop')
+  async updateCropMetadata(
+    @Param('fileId') fileId: string,
+    @Body() dto: UpdateCropMetadataDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    if (!isValidUUID(fileId)) {
+      throw new BadRequestException('Invalid file id');
+    }
+
+    return await this.attachmentService.updateCropMetadata(
+      fileId,
+      dto.cropMetadata,
+      user.id,
+      workspace.id,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
