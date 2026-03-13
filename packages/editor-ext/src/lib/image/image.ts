@@ -187,36 +187,36 @@ export const TiptapImage = Image.extend<ImageOptions>({
     return {
       setImage:
         (attrs: ImageAttributes) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAt:
         (attrs) =>
-        ({ commands }) => {
-          return commands.insertContentAt(attrs.pos, {
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContentAt(attrs.pos, {
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAlign:
         (align) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { align }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { align }),
 
       setImageWidth:
         (width) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { width }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { width }),
 
       setImageSize:
         (width, height) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { width, height }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { width, height }),
     };
   },
 
@@ -238,7 +238,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
               });
             }
           }
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       if (!resize || !resize.enabled) {
@@ -437,29 +437,29 @@ function applyCropStyles(el: HTMLImageElement, cropMetadata: any) {
     const { x, y, width: w, height: h } = cropMetadata;
     const nw = el.naturalWidth;
     const nh = el.naturalHeight;
-    
-    if (nw > 0 && nh > 0) {
-        const scale = 100 / ((w / nw) * 100);
-        
-        el.style.position = "absolute";
-        el.style.top = "0";
-        el.style.left = "0";
-        el.style.maxWidth = "none";
-        el.style.width = `${scale * 100}%`;
-        el.style.height = "auto";
-        el.style.marginLeft = `-${(x / nw) * scale * 100}%`;
-        el.style.marginTop = `-${(y / nh) * scale * 100}%`;
-        el.style.clipPath = ""; // Remove old clip-path if present
 
-        const wrapper = el.parentElement;
-        if (wrapper) {
-            wrapper.style.overflow = "hidden";
-            wrapper.style.position = "relative";
-            wrapper.style.aspectRatio = `${w / h}`;
-        }
+    if (nw > 0 && nh > 0) {
+      const scale = 100 / ((w / nw) * 100);
+
+      el.style.position = "absolute";
+      el.style.top = "0";
+      el.style.left = "0";
+      el.style.maxWidth = "none";
+      el.style.width = `${scale * 100}%`;
+      el.style.height = "auto";
+      el.style.marginLeft = `-${(x / nw) * scale * 100}%`;
+      el.style.marginTop = `-${(y / nh) * scale * 100}%`;
+      el.style.clipPath = ""; // Remove old clip-path if present
+
+      const wrapper = el.parentElement;
+      if (wrapper) {
+        wrapper.style.overflow = "hidden";
+        wrapper.style.position = "relative";
+        wrapper.style.aspectRatio = `${w / h}`;
+      }
     } else {
-        // Wait for load
-        el.addEventListener('load', () => applyCropStyles(el, cropMetadata), { once: true });
+      // Wait for load
+      el.addEventListener('load', () => applyCropStyles(el, cropMetadata), { once: true });
     }
   } else {
     el.style.width = "100%";
@@ -470,7 +470,7 @@ function applyCropStyles(el: HTMLImageElement, cropMetadata: any) {
     el.style.clipPath = "";
     const wrapper = el.parentElement;
     if (wrapper) {
-        wrapper.style.aspectRatio = "";
+      wrapper.style.aspectRatio = "";
     }
   }
 }
