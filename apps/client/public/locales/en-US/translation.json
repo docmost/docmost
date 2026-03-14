@@ -692,5 +692,16 @@
   "Failed to update trash retention": "Failed to update trash retention",
   "Removed page restriction": "Removed page restriction",
   "Added page permission": "Added page permission",
-  "Removed page permission": "Removed page permission"
+  "Removed page permission": "Removed page permission",
+  "Verifying your email": "Verifying your email",
+  "Please wait...": "Please wait...",
+  "Verification failed. The link may have expired.": "Verification failed. The link may have expired.",
+  "Check your email": "Check your email",
+  "We sent a verification link to {{email}}.": "We sent a verification link to {{email}}.",
+  "We sent a verification link to your email.": "We sent a verification link to your email.",
+  "Click the link to verify your email and access your workspace.": "Click the link to verify your email and access your workspace.",
+  "Resend verification email": "Resend verification email",
+  "Verification email sent. Please check your inbox.": "Verification email sent. Please check your inbox.",
+  "Failed to resend verification email. Please try again.": "Failed to resend verification email. Please try again.",
+  "We've sent you an email with your associated workspaces.": "We've sent you an email with your associated workspaces."
 }

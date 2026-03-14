@@ -241,7 +241,7 @@ export class WorkspaceService {
         await this.billingQueue.add(
           QueueJob.WELCOME_EMAIL,
           { userId: user.id },
-          { delay: 60 * 1000 }, // 1m
+          { delay: 30 * 60 * 1000 }, // 30m
         );
       } catch (err) {
         this.logger.error(err);

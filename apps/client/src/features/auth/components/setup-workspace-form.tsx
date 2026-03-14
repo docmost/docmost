@@ -22,11 +22,11 @@ import APP_ROUTE from "@/lib/app-route.ts";
 
 const formSchema = z.object({
   workspaceName: z.string().trim().max(50).optional(),
-  name: z.string().min(1).max(50),
+  name: z.string().min(1, { message: "Name is required" }).max(50),
   email: z
-    .email()
-    .min(1, { message: "email is required" }),
-  password: z.string().min(8),
+    .email({ message: "Invalid email address" })
+    .min(1, { message: "Email is required" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
 });
 type FormValues = z.infer<typeof formSchema>;
 
