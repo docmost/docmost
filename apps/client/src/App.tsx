@@ -38,6 +38,7 @@ import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
 import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
+import VerifyEmail from "@/ee/pages/verify-email.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -63,6 +64,7 @@ export default function App() {
           <>
             <Route path={"/create"} element={<CreateWorkspace />} />
             <Route path={"/select"} element={<CloudLogin />} />
+            <Route path={"/verify-email"} element={<VerifyEmail />} />
           </>
         )}
 
