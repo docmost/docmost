@@ -100,6 +100,7 @@
       "@tiptap/core": "patches/@tiptap__core.patch"
     },
     "overrides": {
+      "openid-client>jose": "4.15.9",
       "jsdom": "25.0.1",
       "jsonwebtoken": "9.0.3",
       "prosemirror-changeset": "2.3.1",
