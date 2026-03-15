@@ -1,27 +1,11 @@
 .sourceEditorWrapper {
     width: 100%;
-}
-
-.sourceTextarea {
-    display: block;
-    width: 100%;
     min-height: 70vh;
-    /* Match ProseMirror's horizontal padding so the text aligns with the
-       rich-text editor above and below the toggle. */
-    padding: 0 3rem 20vh;
-    font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
-    font-size: var(--mantine-font-size-sm);
-    line-height: 1.65;
-    resize: none;
-    border: none;
-    outline: none;
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
-    color: light-dark(var(--mantine-color-default-color), var(--mantine-color-white));
-    tab-size: 2;
-    white-space: pre-wrap;
 
     @media (max-width: $mantine-breakpoint-sm) {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        :global(.cm-content) {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
     }
 }
