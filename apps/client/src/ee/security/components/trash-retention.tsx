@@ -41,7 +41,7 @@ function retentionToDays(amount: number, unit: RetentionUnit): number {
 
 export default function TrashRetention() {
   const { t } = useTranslation();
-  const hasAccess = useHasFeature(Feature.SECURITY_SETTINGS);
+  const hasRetention = useHasFeature(Feature.RETENTION);
   const upgradeLabel = useUpgradeLabel();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
 
@@ -107,7 +107,7 @@ export default function TrashRetention() {
         {t("Pages in trash will be permanently deleted after this period.")}
       </Text>
 
-      <Tooltip label={upgradeLabel} disabled={hasAccess}>
+      <Tooltip label={upgradeLabel} disabled={hasRetention}>
         <Group gap="xs" wrap="nowrap" maw={320}>
           <NumberInput
             value={retentionAmount}
@@ -116,7 +116,7 @@ export default function TrashRetention() {
             hideControls
             size="sm"
             w={60}
-            disabled={!hasAccess}
+            disabled={!hasRetention}
           />
           <Select
             data={[
@@ -132,13 +132,13 @@ export default function TrashRetention() {
             }}
             size="sm"
             style={{ flex: 1 }}
-            disabled={!hasAccess}
+            disabled={!hasRetention}
           />
           <Button
             size="sm"
             onClick={handleSave}
             loading={saving}
-            disabled={!hasAccess || !isDirty}
+            disabled={!hasRetention || !isDirty}
           >
             {t("Save")}
           </Button>

@@ -19,8 +19,6 @@ import {
   ResponsiveSettingsRow,
 } from "@/components/ui/responsive-settings-row.tsx";
 import SpacePublicSharingToggle from "@/ee/security/components/space-public-sharing-toggle.tsx";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { Feature } from "@/ee/features";
 
 interface SpaceDetailsProps {
   spaceId: string;
@@ -29,8 +27,7 @@ interface SpaceDetailsProps {
 export default function SpaceDetails({ spaceId, readOnly }: SpaceDetailsProps) {
   const { t } = useTranslation();
   const { data: space, isLoading, refetch } = useSpaceQuery(spaceId);
-  const hasEnterpriseAccess = useHasFeature(Feature.SECURITY_SETTINGS);
-  const showSharingToggle = !readOnly && hasEnterpriseAccess;
+  const showSharingToggle = !readOnly;
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [isIconUploading, setIsIconUploading] = useState(false);

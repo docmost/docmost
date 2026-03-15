@@ -33,7 +33,7 @@ function DisablePublicSharingToggle() {
   const [checked, setChecked] = useState(
     workspace?.settings?.sharing?.disabled === true,
   );
-  const hasAccess = useHasFeature(Feature.SECURITY_SETTINGS);
+  const hasSharingControls = useHasFeature(Feature.SHARING_CONTROLS);
   const upgradeLabel = useUpgradeLabel();
 
   const applyChange = async (value: boolean) => {
@@ -75,11 +75,11 @@ function DisablePublicSharingToggle() {
   };
 
   return (
-    <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+    <Tooltip label={upgradeLabel} disabled={hasSharingControls} refProp="rootRef">
       <Switch
         checked={checked}
         onChange={handleChange}
-        disabled={!hasAccess}
+        disabled={!hasSharingControls}
         aria-label={t("Toggle public sharing")}
       />
     </Tooltip>
