@@ -1,7 +1,7 @@
 import { BubbleMenu, BubbleMenuProps } from "@tiptap/react/menus";
 import { isNodeSelection, useEditorState } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
-import { FC, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import {
   IconBold,
   IconCode,
@@ -49,7 +49,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const [, setDraftCommentId] = useAtom(draftCommentIdAtom);
   const showCommentPopupRef = useRef(showCommentPopup);
   const showAiMenuRef = useRef(showAiMenu);
-  const isLinkSelectorOpenRef = useRef(false);
 
   useEffect(() => {
     showCommentPopupRef.current = showCommentPopup;
@@ -126,10 +125,6 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
   const bubbleMenuProps: EditorBubbleMenuProps = {
     ...props,
     shouldShow: ({ state, editor }) => {
-      if (isLinkSelectorOpenRef.current) {
-        return true;
-      }
-
       const { selection } = state;
       const { empty } = selection;
 
@@ -160,14 +155,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
 
   const [isNodeSelectorOpen, setIsNodeSelectorOpen] = useState(false);
   const [isTextAlignmentSelectorOpen, setIsTextAlignmentOpen] = useState(false);
-  const [isLinkSelectorOpen, _setIsLinkSelectorOpen] = useState(false);
-  const setIsLinkSelectorOpen = useCallback((value: SetStateAction<boolean>) => {
-    _setIsLinkSelectorOpen((prev) => {
-      const next = typeof value === 'function' ? value(prev) : value;
-      isLinkSelectorOpenRef.current = next;
-      return next;
-    });
-  }, []);
+  const [isLinkSelectorOpen, setIsLinkSelectorOpen] = useState(false);
   const [isColorSelectorOpen, setIsColorSelectorOpen] = useState(false);
 
   // Hide the bubble menu immediately when AI menu is shown
