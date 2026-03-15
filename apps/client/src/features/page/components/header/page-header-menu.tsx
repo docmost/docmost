@@ -2,6 +2,7 @@ import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
+  IconCode,
   IconDots,
   IconFileExport,
   IconHistory,
@@ -33,6 +34,7 @@ import ExportModal from "@/components/common/export-modal";
 import { htmlToMarkdown } from "@docmost/editor-ext";
 import {
   pageEditorAtom,
+  sourceModeAtom,
   yjsConnectionStatusAtom,
 } from "@/features/editor/atoms/editor-atoms.ts";
 import { formattedDate } from "@/lib/time.ts";
@@ -47,6 +49,7 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
+  const [sourceMode, setSourceMode] = useAtom(sourceModeAtom);
 
   useHotkeys(
     [
@@ -74,6 +77,22 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       <ConnectionWarning />
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
+
+      {!readOnly && (
+        <Tooltip
+          label={sourceMode ? t("Rich text") : t("Source")}
+          openDelay={250}
+          withArrow
+        >
+          <ActionIcon
+            variant={sourceMode ? "filled" : "default"}
+            style={{ border: "none" }}
+            onClick={() => setSourceMode((v) => !v)}
+          >
+            <IconCode size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       <PageShareModal readOnly={readOnly} />
 
