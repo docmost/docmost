@@ -22,6 +22,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
         avatarUrl={option["avatarUrl"]}
         size={20}
         name={option.label}
+        email={option["email"]}
       />
     )}
     {option["type"] === "group" && <IconGroupCircle />}

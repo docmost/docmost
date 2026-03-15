@@ -109,6 +109,7 @@ function CommentDialog({ editor, pageId }: CommentDialogProps) {
             size="sm"
             avatarUrl={currentUser.user.avatarUrl}
             name={currentUser.user.name}
+            email={currentUser.user.email}
           />
           <div style={{ flex: 1 }}>
             <Group justify="space-between" wrap="nowrap">

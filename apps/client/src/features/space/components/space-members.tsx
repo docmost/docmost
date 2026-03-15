@@ -156,6 +156,7 @@ export default function SpaceMembersList({
                         <CustomAvatar
                           avatarUrl={member?.avatarUrl}
                           name={member.name}
+                          email={member?.email}
                         />
                       )}
 
