@@ -164,6 +164,12 @@ export class FileImportTaskService {
     const attachmentCandidates = await buildAttachmentCandidates(extractDir);
     const docmostMetadata = await readDocmostMetadata(extractDir);
 
+    const space = await this.db
+      .selectFrom('spaces')
+      .select(['slug'])
+      .where('id', '=', fileTask.spaceId)
+      .executeTakeFirst();
+
     const pagesMap = new Map<string, ImportPageNode>();
 
     for (const absPath of allFiles) {
@@ -458,6 +464,7 @@ export class FileImportTaskService {
               creatorId: fileTask.creatorId,
               sourcePageId: page.id,
               workspaceId: fileTask.workspaceId,
+              spaceSlug: space?.slug,
             });
 
             const pmState = getProsemirrorContent(
