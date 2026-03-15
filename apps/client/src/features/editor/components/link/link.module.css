@@ -1,51 +1,102 @@
-.link {
-  color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .linkWrapper {
   position: relative;
   display: inline;
 }
 
-.linkText {
-  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
-  text-decoration: underline;
-  text-decoration-color: light-dark(
-    var(--mantine-color-blue-3),
-    var(--mantine-color-blue-7)
-  );
-  text-underline-offset: 2px;
-  cursor: pointer;
+.linkInput {
+  border: 1.5px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background: transparent;
 
-  &:hover {
-    text-decoration-color: light-dark(
-      var(--mantine-color-blue-6),
-      var(--mantine-color-blue-4)
+  &:focus {
+    border-color: light-dark(
+      var(--mantine-color-blue-4),
+      var(--mantine-color-blue-6)
     );
+    box-shadow: 0 0 0 1px
+      light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-6));
   }
 }
 
-.linkToolbar {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+.pageIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  font-size: 16px;
+  margin-top: 2px;
 }
 
-.editPanel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 101;
+.searchItem {
+  width: 100%;
+  padding: 7px 4px;
+  color: var(--mantine-color-text);
+  border-radius: var(--mantine-radius-sm);
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-1);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-gray-light);
+    }
+  }
 }
 
-.editPanelOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.selectedSearchItem {
+  @mixin light {
+    background: var(--mantine-color-gray-1);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-gray-light);
+  }
+}
+
+.linkChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+
+  @mixin light {
+    background: var(--mantine-color-gray-1);
+  }
+
+  @mixin dark {
+    background: var(--mantine-color-dark-5);
+  }
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-2);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-dark-4);
+    }
+  }
+}
+
+.removeLink {
+  width: 100%;
+  padding: 4px;
+  border-radius: var(--mantine-radius-sm);
+
+  &:hover {
+    @mixin light {
+      background: var(--mantine-color-gray-1);
+    }
+
+    @mixin dark {
+      background: var(--mantine-color-dark-5);
+    }
+  }
 }

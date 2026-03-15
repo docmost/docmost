@@ -1,61 +1,63 @@
 import { MarkViewContent, MarkViewProps } from "@tiptap/react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
   IconFileDescription,
   IconCopy,
   IconExternalLink,
   IconLinkOff,
+  IconPencil,
+  IconWorld,
 } from "@tabler/icons-react";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useLongPress } from "@/features/editor/hooks/use-long-press";
 import { notifications } from "@mantine/notifications";
 import {
-  Card,
+  Divider,
   Group,
-  Button,
-  TextInput,
+  Popover,
   Text,
+  TextInput,
   ActionIcon,
-  Stack,
-  CloseButton,
   Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import classes from "./link.module.css";
 import { useTranslation } from "react-i18next";
-import { createPortal } from "react-dom";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants";
+import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
+import { usePageQuery } from "@/features/page/queries/page-query.ts";
+import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
+import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
+import { extractPageSlugId } from "@/lib";
+import { sanitizeUrl, copyToClipboard } from "@docmost/editor-ext";
 
-const isTouchDevice = () => {
-  if (typeof window === "undefined") return false;
-  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+export const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  if (url.startsWith("/") || /^(\S+):(\/\/)?\S+$/.test(url)) return url;
+  return `https://${url}`;
 };
 
-const isInternalLink = (href: string): boolean => {
-  if (!href) return false;
-  const match = INTERNAL_LINK_REGEX.exec(href);
-  if (!match) return false;
-
-  return !(match[2] && match[2] !== window.location.host);
-};
-
-const extractLinkLabel = (href: string): string => {
-  if (!href) return "";
+const parseInternalLink = (
+  href: string,
+  internalAttr?: boolean,
+): { isInternal: boolean; slugId: string | null; label: string } => {
+  if (!href) return { isInternal: !!internalAttr, slugId: null, label: "" };
 
   const match = INTERNAL_LINK_REGEX.exec(href);
-  if (match) {
-    const slug = match[5];
-    // Extract page name from slug (remove the ID suffix)
-    const namePart = slug.split("-").slice(0, -1).join("-");
-    return namePart || slug;
+  if (!match) {
+    if (internalAttr) return { isInternal: true, slugId: null, label: href };
+    return { isInternal: false, slugId: null, label: href };
   }
 
-  // For external links, show domain
-  try {
-    const url = new URL(href);
-    return url.hostname.replace("www.", "");
-  } catch {
-    return href.slice(0, 30);
-  }
+  const isExternal = match[2] && match[2] !== window.location.host;
+  const slug = match[5];
+  const slugId = extractPageSlugId(slug);
+  const namePart = slug.split("-").slice(0, -1).join("-");
+
+  return {
+    isInternal: !isExternal,
+    slugId,
+    label: namePart || slug,
+  };
 };
 
 export default function LinkView(props: MarkViewProps) {
@@ -63,361 +65,519 @@ export default function LinkView(props: MarkViewProps) {
   const href = mark.attrs.href as string;
   const navigate = useNavigate();
   const location = useLocation();
+  const { shareId, pageSlug } = useParams();
   const { t } = useTranslation();
+  const isShareRoute = location.pathname.startsWith("/share");
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [showEditPanel, setShowEditPanel] = useState(false);
-  const [editUrl, setEditUrl] = useState(href);
-  const [editTitle, setEditTitle] = useState("");
+  const [popoverState, setPopoverState] = useState<
+    "closed" | "preview" | "edit"
+  >("closed");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const lastOpenState = useRef<"preview" | "edit">("preview");
   const wrapperRef = useRef<HTMLSpanElement>(null);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isTouch = isTouchDevice();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isEditable = editor.isEditable;
-  const isInternal = isInternalLink(href);
+  const {
+    isInternal,
+    slugId,
+    label: linkLabel,
+  } = parseInternalLink(href, mark.attrs.internal);
 
-  const getLinkText = useCallback(() => {
-    const { state } = editor;
-    let text = "";
-    state.doc.descendants((node) => {
+  const isPopoverVisible = popoverState !== "closed";
+  const activeView = isPopoverVisible ? popoverState : lastOpenState.current;
+
+  const { data: linkedPage } = usePageQuery({
+    pageId: isPopoverVisible && slugId && !isShareRoute ? slugId : null,
+  });
+
+  const { data: sharedPageData } = useSharePageQuery({
+    pageId: isPopoverVisible && slugId && isShareRoute ? slugId : null,
+  });
+
+  const pageTitle = isShareRoute
+    ? sharedPageData?.page?.title
+    : linkedPage?.title;
+
+  const pendingTitleRef = useRef<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const getLinkPos = useCallback((): number | null => {
+    if (!wrapperRef.current) return null;
+    try {
+      return editor.view.posAtDOM(wrapperRef.current, 0);
+    } catch {
+      return null;
+    }
+  }, [editor]);
+
+  const handleUpdateLinkTitle = useCallback(
+    (newTitle: string) => {
+      if (!newTitle) return;
+
+      const pos = getLinkPos();
+      if (pos === null) return;
+
+      const { state } = editor;
+      const resolved = state.doc.resolve(pos);
+      const node = resolved.nodeAfter;
+      if (!node?.isText) return;
+
       const linkMark = node.marks.find(
         (m) => m.type.name === "link" && m.attrs.href === href,
       );
-      if (linkMark && node.isText) {
-        text = node.text || "";
-        return false;
+      if (!linkMark || node.text === newTitle) return;
+
+      const from = pos;
+      const to = pos + node.nodeSize;
+      const { tr } = state;
+      tr.insertText(newTitle, from, to);
+      tr.addMark(from, from + newTitle.length, linkMark);
+      editor.view.dispatch(tr);
+    },
+    [editor, href, getLinkPos],
+  );
+
+  const handleEditLink = useCallback(
+    (url: string, internal?: boolean) => {
+      const normalizedUrl = internal ? url : normalizeUrl(url);
+
+      const pos = getLinkPos();
+      if (pos === null) {
+        setPopoverState("closed");
+        return;
       }
-    });
-    return text;
-  }, [editor, href]);
+
+      const { state } = editor;
+      const resolved = state.doc.resolve(pos);
+      const node = resolved.nodeAfter;
+      if (!node?.isText) {
+        setPopoverState("closed");
+        return;
+      }
+
+      const linkMark = node.marks.find(
+        (m) => m.type.name === "link" && m.attrs.href === href,
+      );
+      if (linkMark) {
+        const from = pos;
+        const to = pos + node.nodeSize;
+        const { tr } = state;
+        tr.removeMark(from, to, linkMark.type);
+        tr.addMark(
+          from,
+          to,
+          linkMark.type.create({ href: normalizedUrl, internal: !!internal }),
+        );
+        editor.view.dispatch(tr);
+      }
+
+      setPopoverState("closed");
+    },
+    [editor, href, getLinkPos],
+  );
 
   useEffect(() => {
-    if (showEditPanel) {
-      setEditUrl(href);
-      setEditTitle(getLinkText());
+    if (popoverState === "edit") {
+      const text = wrapperRef.current?.querySelector("a")?.textContent || "";
+      setLinkTitle(text);
+      setLinkUrl(href);
+      pendingTitleRef.current = null;
+      requestAnimationFrame(() => titleInputRef.current?.focus());
     }
-  }, [showEditPanel, href, getLinkText]);
-
-  const handleMouseEnter = useCallback(() => {
-    if (showEditPanel) return;
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
+    if (popoverState === "closed") {
+      if (pendingTitleRef.current !== null) {
+        handleUpdateLinkTitle(pendingTitleRef.current);
+        pendingTitleRef.current = null;
+      }
+      setShowSearch(false);
     }
-    setIsHovered(true);
-  }, [showEditPanel]);
+  }, [popoverState, href, isInternal, handleUpdateLinkTitle]);
 
-  const handleMouseLeave = useCallback(() => {
-    if (showEditPanel) return;
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 200);
-  }, [showEditPanel]);
+  useEffect(() => {
+    if (popoverState !== "closed") {
+      lastOpenState.current = popoverState;
+    }
+  }, [popoverState]);
+
+  useEffect(() => {
+    if (!isPopoverVisible) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        wrapperRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setPopoverState("closed");
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPopoverState("closed");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside, true);
+    document.addEventListener("keydown", handleEscape, true);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [isPopoverVisible]);
 
   const handleNavigate = useCallback(() => {
     if (!href) return;
 
     if (isInternal) {
-      // Get pathname for navigation (handle both relative and absolute URLs)
       let targetPath = href;
       let anchor = "";
 
       try {
         const url = new URL(href);
         targetPath = url.pathname;
-        anchor = url.hash.slice(1); // Remove the # prefix
+        anchor = url.hash.slice(1);
       } catch {
-        // Relative URL
         if (href.includes("#")) {
           [targetPath, anchor] = href.split("#");
         }
       }
 
-      // Handle anchor links on same page
       if (anchor) {
-        const currentPath = location.pathname;
-        if (!targetPath || targetPath === currentPath) {
-          const element = document.getElementById(anchor);
+        const currentPageSlugId = extractPageSlugId(pageSlug);
+        if (!slugId || currentPageSlugId === slugId) {
+          const element =
+            document.querySelector(`[id="${anchor}"]`) ||
+            document.querySelector(`[data-id="${anchor}"]`);
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "start" });
-            navigate(`${currentPath}#${anchor}`, { replace: true });
+            navigate(`${location.pathname}#${anchor}`, { replace: true });
             return;
           }
         }
       }
 
-      navigate(anchor ? `${targetPath}#${anchor}` : targetPath);
+      if (isShareRoute && slugId) {
+        const sharedUrl = buildSharedPageUrl({
+          shareId,
+          pageSlugId: slugId,
+          pageTitle: pageTitle,
+          anchorId: anchor || undefined,
+        });
+        navigate(sharedUrl);
+      } else {
+        navigate(anchor ? `${targetPath}#${anchor}` : targetPath);
+      }
     } else {
-      window.open(href, "_blank", "noopener,noreferrer");
+      window.open(
+        sanitizeUrl(normalizeUrl(href)),
+        "_blank",
+        "noopener,noreferrer",
+      );
     }
-  }, [href, navigate, location.pathname, isInternal]);
+  }, [
+    href,
+    navigate,
+    location.pathname,
+    isInternal,
+    isShareRoute,
+    slugId,
+    shareId,
+    pageTitle,
+    pageSlug,
+  ]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!showEditPanel) {
+      if (isEditable) {
+        setPopoverState("preview");
+      } else {
         handleNavigate();
       }
     },
-    [handleNavigate, showEditPanel],
+    [handleNavigate, isEditable],
   );
-
-  const handleLongPress = useCallback(() => {
-    if (isEditable) {
-      setShowEditPanel(true);
-      setIsHovered(false);
-    }
-  }, [isEditable]);
-
-  const handleTapNavigate = useCallback(
-    (e: React.TouchEvent | React.MouseEvent) => {
-      e.preventDefault();
-      if (!showEditPanel) {
-        handleNavigate();
-      }
-    },
-    [handleNavigate, showEditPanel],
-  );
-
-  const longPressHandlers = useLongPress({
-    threshold: 500,
-    onLongPress: handleLongPress,
-    onClick: handleTapNavigate,
-  });
-
-  const handleOpenEdit = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowEditPanel(true);
-    setIsHovered(false);
-  }, []);
-
-  const handleCloseEdit = useCallback(() => {
-    setShowEditPanel(false);
-  }, []);
 
   const handleCopy = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const fullUrl = isInternal ? `${window.location.origin}${href}` : href;
-      navigator.clipboard.writeText(fullUrl);
+      const fullUrl = sanitizeUrl(
+        isInternal ? `${window.location.origin}${href}` : href,
+      );
+      copyToClipboard(fullUrl);
       notifications.show({
-        message: t("Link copied to clipboard"),
-        color: "green",
-        autoClose: 2000,
+        message: t("Link copied"),
       });
+      setPopoverState("closed");
     },
     [href, isInternal, t],
   );
 
-  const handleSave = useCallback(() => {
-    const { state } = editor;
-    const { tr } = state;
-
-    let updated = false;
-    state.doc.descendants((node, pos) => {
-      if (updated) return false;
-
-      const linkMark = node.marks.find(
-        (m) => m.type.name === "link" && m.attrs.href === href,
-      );
-      if (linkMark && node.isText) {
-        const from = pos;
-        const to = pos + node.nodeSize;
-
-        if (editUrl !== href) {
-          tr.removeMark(from, to, linkMark.type);
-          tr.addMark(from, to, linkMark.type.create({ href: editUrl }));
-        }
-
-        const currentText = node.text || "";
-        if (editTitle && editTitle !== currentText) {
-          tr.replaceWith(
-            from,
-            to,
-            state.schema.text(editTitle, [
-              linkMark.type.create({ href: editUrl || href }),
-            ]),
-          );
-        }
-
-        updated = true;
-        return false;
-      }
-    });
-
-    if (updated) {
-      editor.view.dispatch(tr);
-    }
-
-    setShowEditPanel(false);
-  }, [editor, href, editUrl, editTitle]);
-
   const handleRemoveLink = useCallback(() => {
     editor.chain().focus().extendMarkRange("link").unsetLink().run();
-    setShowEditPanel(false);
+    setPopoverState("closed");
   }, [editor]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      // Stop all keyboard events from bubbling to TipTap editor
-      e.stopPropagation();
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleSave();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        handleCloseEdit();
-      }
-    },
-    [handleSave, handleCloseEdit],
+  const displayHref = sanitizeUrl(
+    isInternal
+      ? isShareRoute && slugId
+        ? buildSharedPageUrl({ shareId, pageSlugId: slugId, pageTitle })
+        : href
+      : normalizeUrl(href),
   );
 
-  const interactionProps = isTouch
-    ? { ...longPressHandlers }
-    : {
-        onClick: handleClick,
-        onMouseEnter: handleMouseEnter,
-        onMouseLeave: handleMouseLeave,
-      };
-
-  const linkLabel = extractLinkLabel(href);
+  const linkTitleInput = (
+    <>
+      <Text size="xs" fw={600} c="dimmed" mt="sm" mb={4}>
+        {t("Link title")}
+      </Text>
+      <TextInput
+        ref={titleInputRef}
+        classNames={{ input: classes.linkInput }}
+        value={linkTitle}
+        onChange={(e) => {
+          const val = e.currentTarget.value;
+          setLinkTitle(val);
+          pendingTitleRef.current = val;
+          const anchor = wrapperRef.current?.querySelector("a");
+          if (anchor && val) {
+            const walker = document.createTreeWalker(
+              anchor,
+              NodeFilter.SHOW_TEXT,
+            );
+            const textNode = walker.nextNode();
+            if (textNode) {
+              const view = editor.view as any;
+              view.domObserver.stop();
+              textNode.nodeValue = val;
+              view.domObserver.start();
+            }
+          }
+        }}
+        onBlur={() => {
+          if (pendingTitleRef.current !== null) {
+            handleUpdateLinkTitle(pendingTitleRef.current);
+            pendingTitleRef.current = null;
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleUpdateLinkTitle(linkTitle);
+            pendingTitleRef.current = null;
+            setPopoverState("closed");
+          }
+        }}
+        size="sm"
+      />
+    </>
+  );
 
   return (
-    <>
-      <span
-        ref={wrapperRef}
-        className={classes.linkWrapper}
-        {...interactionProps}
-      >
-        <a
-          href={href}
-          className={classes.linkText}
-          onClick={(e) => e.preventDefault()}
-          target={isInternal ? undefined : "_blank"}
-          rel={isInternal ? undefined : "noopener noreferrer"}
+    <Popover
+      opened={isPopoverVisible}
+      width={activeView === "edit" ? 320 : undefined}
+      position="bottom"
+      withArrow
+      shadow="md"
+      trapFocus={false}
+      closeOnClickOutside={false}
+    >
+      <Popover.Target>
+        <span
+          ref={wrapperRef}
+          className={classes.linkWrapper}
+          onClick={handleClick}
         >
-          <MarkViewContent />
-        </a>
-
-        {/* Hover Toolbar */}
-        {isEditable && !isTouch && isHovered && !showEditPanel && (
-          <span
-            contentEditable={false}
-            className={classes.linkToolbar}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+          <a
+            href={displayHref}
+            spellCheck={false}
+            onClick={(e) => e.preventDefault()}
+            target={isInternal ? undefined : "_blank"}
+            rel={isInternal ? undefined : "noopener noreferrer"}
           >
-            <Card shadow="md" padding="xs" radius="md" withBorder>
-              <Group gap="xs" wrap="nowrap">
-                <Group
-                  gap={6}
-                  wrap="nowrap"
-                  style={{ cursor: "pointer", maxWidth: 180 }}
-                  onClick={handleNavigate}
-                >
-                  {isInternal ? (
-                    <IconFileDescription size={18} color="gray" />
-                  ) : (
-                    <IconExternalLink size={18} color="gray" />
-                  )}
-                  <Text size="sm" truncate fw={500}>
-                    {linkLabel}
-                  </Text>
-                </Group>
+            <MarkViewContent />
+          </a>
+        </span>
+      </Popover.Target>
 
-                <Tooltip label={t("Copy link")} withArrow>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleCopy}
-                  >
-                    <IconCopy size={18} />
-                  </ActionIcon>
-                </Tooltip>
-
-                <Tooltip label={t("Remove link")} withArrow>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleRemoveLink}
-                  >
-                    <IconLinkOff size={18} />
-                  </ActionIcon>
-                </Tooltip>
-
-                <Button size="xs" variant="subtle" onClick={handleOpenEdit}>
-                  {t("Edit")}
-                </Button>
-              </Group>
-            </Card>
-          </span>
-        )}
-
-        {/* Edit Panel */}
-        {isEditable && showEditPanel && (
+      <Popover.Dropdown
+        ref={dropdownRef}
+        p={activeView === "edit" ? "sm" : 6}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {activeView === "edit" ? (
           <>
-            {createPortal(
-              <div
-                className={classes.editPanelOverlay}
-                onClick={handleCloseEdit}
-              />,
-              document.body,
-            )}
-            <div
-              contentEditable={false}
-              className={classes.editPanel}
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              onMouseUp={(e) => e.stopPropagation()}
-            >
-              <Card shadow="md" padding="md" radius="md" withBorder w={320}>
-                <Stack gap="md">
-                  <TextInput
-                    label={t("Search or paste a link")}
-                    placeholder="https://..."
-                    value={editUrl}
-                    onChange={(e) => setEditUrl(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rightSection={
-                      editUrl && (
-                        <CloseButton size="sm" onClick={() => setEditUrl("")} />
-                      )
+            <Text size="xs" fw={600} c="dimmed" mb={4}>
+              {t("Page or URL")}
+            </Text>
+
+            {isInternal ? (
+              !showSearch ? (
+                <>
+                  <UnstyledButton
+                    className={classes.linkChip}
+                    onClick={() => setShowSearch(true)}
+                  >
+                    <IconFileDescription
+                      size={16}
+                      stroke={1.5}
+                      color="var(--mantine-color-dimmed)"
+                      style={{ flexShrink: 0 }}
+                    />
+                    <Text size="sm" fw={500} truncate>
+                      {pageTitle || linkTitle}
+                    </Text>
+                  </UnstyledButton>
+
+                  {linkTitleInput}
+
+                  <Divider my="xs" />
+
+                  <UnstyledButton
+                    onClick={handleRemoveLink}
+                    className={classes.removeLink}
+                  >
+                    <Group gap={8}>
+                      <IconLinkOff size={16} stroke={1.5} />
+                      <Text size="sm">{t("Remove link")}</Text>
+                    </Group>
+                  </UnstyledButton>
+                </>
+              ) : (
+                <LinkEditorPanel
+                  onSetLink={handleEditLink}
+                  onUnsetLink={handleRemoveLink}
+                />
+              )
+            ) : (
+              <>
+                <TextInput
+                  leftSection={
+                    <IconWorld
+                      size={16}
+                      stroke={1.5}
+                      color="var(--mantine-color-dimmed)"
+                    />
+                  }
+                  classNames={{ input: classes.linkInput }}
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.currentTarget.value)}
+                  onBlur={() => {
+                    if (linkUrl && linkUrl !== href) {
+                      handleEditLink(linkUrl, false);
                     }
-                    autoFocus
-                    withAsterisk
-                  />
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (linkUrl && linkUrl !== href) {
+                        handleEditLink(linkUrl, false);
+                      }
+                    }
+                  }}
+                  size="sm"
+                />
 
-                  <TextInput
-                    label={t("Display text (optional)")}
-                    description={t("Give this link a title or description")}
-                    placeholder={t("Text to display")}
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
+                {linkTitleInput}
 
-                  <Group justify="flex-end" gap="xs">
-                    <Button
-                      variant="default"
-                      onClick={handleCloseEdit}
-                      size="sm"
-                    >
-                      {t("Cancel")}
-                    </Button>
-                    <Button onClick={handleSave} size="sm">
-                      {t("Save")}
-                    </Button>
+                <Divider my="xs" />
+
+                <UnstyledButton
+                  onClick={handleRemoveLink}
+                  className={classes.removeLink}
+                >
+                  <Group gap={8}>
+                    <IconLinkOff size={16} stroke={1.5} />
+                    <Text size="sm">{t("Remove link")}</Text>
                   </Group>
-                </Stack>
-              </Card>
-            </div>
+                </UnstyledButton>
+              </>
+            )}
           </>
+        ) : (
+          <Group gap={4} wrap="nowrap">
+            <Group
+              component="a"
+              //@ts-ignore
+              href={displayHref}
+              target={isInternal ? undefined : "_blank"}
+              rel={isInternal ? undefined : "noopener noreferrer"}
+              gap={6}
+              wrap="nowrap"
+              style={{
+                cursor: "pointer",
+                maxWidth: 250,
+                textDecoration: "none",
+                color: "inherit",
+                userSelect: "none",
+              }}
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                handleNavigate();
+              }}
+            >
+              {isInternal ? (
+                <IconFileDescription size={18} color="gray" />
+              ) : (
+                <IconExternalLink size={18} color="gray" />
+              )}
+              <Text size="sm" truncate fw={500}>
+                {isInternal ? pageTitle || linkLabel : href}
+              </Text>
+            </Group>
+
+            <Divider orientation="vertical" />
+
+            <Tooltip label={t("Edit link")} withArrow withinPortal={false}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowSearch(false);
+                  setPopoverState("edit");
+                }}
+              >
+                <IconPencil size={18} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label={t("Copy link")} withArrow withinPortal={false}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCopy(e);
+                }}
+              >
+                <IconCopy size={18} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label={t("Remove link")} withArrow withinPortal={false}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRemoveLink();
+                }}
+              >
+                <IconLinkOff size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         )}
-      </span>
-    </>
+      </Popover.Dropdown>
+    </Popover>
   );
 }

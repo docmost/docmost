@@ -4,6 +4,7 @@ import { ActionIcon, Popover, Tooltip } from "@mantine/core";
 import { useEditor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
+import { normalizeUrl } from "@/features/editor/components/link/link-view";
 import { useTranslation } from "react-i18next";
 
 interface LinkSelectorProps {
@@ -19,12 +20,12 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
   const onLink = useCallback(
-    (url: string) => {
+    (url: string, internal?: boolean) => {
       setIsOpen(false);
       editor
         .chain()
         .focus()
-        .setLink({ href: url })
+        .setLink({ href: internal ? url : normalizeUrl(url), internal: !!internal } as any)
         .command(({ tr }) => {
           tr.setSelection(TextSelection.create(tr.doc, tr.selection.to));
           return true;
@@ -36,11 +37,12 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
 
   return (
     <Popover
-      width={300}
+      width={320}
       opened={isOpen}
       trapFocus
       offset={{ mainAxis: 35, crossAxis: 0 }}
       withArrow
+      shadow="md"
     >
       <Popover.Target>
         <Tooltip label={t("Add link")} withArrow>
@@ -58,7 +60,7 @@ export const LinkSelector: FC<LinkSelectorProps> = ({
         </Tooltip>
       </Popover.Target>
 
-      <Popover.Dropdown>
+      <Popover.Dropdown p="sm">
         <LinkEditorPanel onSetLink={onLink} />
       </Popover.Dropdown>
     </Popover>
