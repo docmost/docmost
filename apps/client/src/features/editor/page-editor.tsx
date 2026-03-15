@@ -50,7 +50,6 @@ import {
   handleFileDrop,
   handlePaste,
 } from "@/features/editor/components/common/editor-paste-handler.tsx";
-import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
@@ -418,7 +417,6 @@ export default function PageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
-            <LinkMenu editor={editor} appendTo={menuContainerRef} />
           </div>
         )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
