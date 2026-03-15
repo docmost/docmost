@@ -1,6 +1,7 @@
 import { getEmbedUrlAndProvider } from '@docmost/editor-ext';
 import { Logger } from '@nestjs/common';
 import * as path from 'path';
+import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -344,14 +345,35 @@ export async function rewriteInternalLinksToMentionHtml(
     const meta = filePathToPageMetaMap.get(resolved);
     if (!meta) return;
 
-    const titleSlug = slugify(meta.title?.substring(0, 70) || 'untitled');
-    const pageSlug = `${titleSlug}-${meta.slugId}`;
-    const internalHref = spaceSlug
-      ? `/s/${spaceSlug}/p/${pageSlug}`
-      : `/p/${pageSlug}`;
+    const linkText = $a.text().trim();
+    const titleMatch =
+      linkText === meta.title ||
+      linkText === meta.title?.trim();
 
-    $a.attr('href', internalHref);
-    $a.attr('data-internal', 'true');
+    if (titleMatch) {
+      const mentionId = v7();
+      const $mention = $('<span>')
+        .attr({
+          'data-type': 'mention',
+          'data-id': mentionId,
+          'data-entity-type': 'page',
+          'data-entity-id': meta.id,
+          'data-label': meta.title,
+          'data-slug-id': meta.slugId,
+          'data-creator-id': creatorId,
+        })
+        .text(meta.title);
+      $a.replaceWith($mention);
+    } else {
+      const titleSlug = slugify(meta.title?.substring(0, 70) || 'untitled');
+      const pageSlug = `${titleSlug}-${meta.slugId}`;
+      const internalHref = spaceSlug
+        ? `/s/${spaceSlug}/p/${pageSlug}`
+        : `/p/${pageSlug}`;
+
+      $a.attr('href', internalHref);
+      $a.attr('data-internal', 'true');
+    }
 
     backlinks.push({ sourcePageId, targetPageId: meta.id, workspaceId });
   });
