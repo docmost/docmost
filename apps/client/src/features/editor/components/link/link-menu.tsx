@@ -7,6 +7,7 @@ import { showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel";
 import { normalizeUrl } from "@/features/editor/components/link/link-view";
 import { TextSelection } from "@tiptap/pm/state";
+import { Paper } from "@mantine/core";
 
 type EditorLinkMenuProps = {
   editor: Editor;
@@ -105,21 +106,9 @@ export const EditorLinkMenu: FC<EditorLinkMenuProps> = ({ editor }) => {
       }}
       style={{ zIndex: 198, position: "relative" }}
     >
-      <div
-        ref={containerRef}
-        style={{
-          width: 320,
-          padding: "var(--mantine-spacing-sm)",
-          boxShadow: "0 4px 12px light-dark(#cfcfcf, #0f0f0f)",
-          borderRadius: 6,
-          border:
-            "1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-gray-8))",
-          backgroundColor:
-            "light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))",
-        }}
-      >
+      <Paper ref={containerRef} w={320} p="sm" shadow="md" radius={6} withBorder>
         <LinkEditorPanel onSetLink={onSetLink} />
-      </div>
+      </Paper>
     </BubbleMenu>
   );
 };
