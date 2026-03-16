@@ -36,7 +36,7 @@ export const LinkEditorPanel = ({
     includeUsers: false,
     includePages: true,
     spaceId: space?.id,
-    limit: state.isSearchQuery ? 10 : 5,
+    limit: state.isSearchQuery ? 10 : 3,
     preload: true,
   });
 
@@ -105,6 +105,7 @@ export const LinkEditorPanel = ({
           value={state.url}
           onChange={state.onChange}
           onKeyDown={handleKeyDown}
+          data-autofocus
           autoFocus
         />
       </form>

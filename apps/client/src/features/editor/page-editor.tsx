@@ -66,6 +66,7 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 interface PageEditorProps {
@@ -407,6 +408,7 @@ export default function PageEditor({
         {editor && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
+            <EditorLinkMenu editor={editor} />
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
