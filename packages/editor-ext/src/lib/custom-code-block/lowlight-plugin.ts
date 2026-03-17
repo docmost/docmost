@@ -31,6 +31,9 @@ function registered(aliasOrLanguage: string) {
   return Boolean(highlight.getLanguage(aliasOrLanguage))
 }
 
+// Max characters to sample for auto-detection to avoid performance issues with large code blocks
+const AUTO_DETECT_SAMPLE_SIZE = 3000
+
 function getDecorations({
   doc,
   name,
@@ -48,11 +51,25 @@ function getDecorations({
     let from = block.pos + 1
     const language = block.node.attrs.language || defaultLanguage
     const languages = lowlight.listLanguages()
+    const textContent = block.node.textContent
 
-    const nodes =
-      language && (languages.includes(language) || registered(language) || lowlight.registered?.(language))
-        ? getHighlightNodes(lowlight.highlight(language, block.node.textContent))
-        : getHighlightNodes(lowlight.highlightAuto(block.node.textContent))
+    let nodes
+    if (language && (languages.includes(language) || registered(language) || lowlight.registered?.(language))) {
+      nodes = getHighlightNodes(lowlight.highlight(language, textContent))
+    } else {
+      // For auto-detection, sample a limited portion to detect the language,
+      // then highlight the full content with the detected language
+      const sample = textContent.length > AUTO_DETECT_SAMPLE_SIZE
+        ? textContent.slice(0, AUTO_DETECT_SAMPLE_SIZE)
+        : textContent
+      const autoResult = lowlight.highlightAuto(sample)
+      const detectedLanguage = autoResult.data?.language
+      if (detectedLanguage && textContent.length > AUTO_DETECT_SAMPLE_SIZE) {
+        nodes = getHighlightNodes(lowlight.highlight(detectedLanguage, textContent))
+      } else {
+        nodes = getHighlightNodes(autoResult)
+      }
+    }
 
     parseNodes(nodes).forEach(node => {
       const to = from + node.text.length
