@@ -2,6 +2,7 @@ import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
+  IconCheckbox,
   IconDots,
   IconFileExport,
   IconHistory,
@@ -84,6 +85,16 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
+
+      <Tooltip label={t("Todos")} openDelay={250} withArrow>
+        <ActionIcon
+          variant="subtle"
+          color="dark"
+          onClick={() => toggleAside("todos")}
+        >
+          <IconCheckbox size={20} stroke={2} />
         </ActionIcon>
       </Tooltip>
 
