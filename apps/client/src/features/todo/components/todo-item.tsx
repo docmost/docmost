@@ -11,54 +11,54 @@ import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface TodoItemProps {
-  todoItem: ITodo;
+  todo: ITodo;
   canEdit: boolean;
 }
 
-export default function TodoItem({ todoItem, canEdit }: TodoItemProps) {
+export default function TodoItem({ todo, canEdit }: TodoItemProps) {
   const { hovered, ref } = useHover();
   const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState(todoItem.title);
+  const [title, setTitle] = useState(todo.title);
   const [currentUser] = useAtom(currentUserAtom);
 
   const updateTodoMutation = useUpdateTodoMutation();
-  const deleteTodoMutation = useDeleteTodoMutation(todoItem.pageId);
+  const deleteTodoMutation = useDeleteTodoMutation(todo.pageId);
 
-  const isOwner = currentUser?.user?.id === todoItem.creatorId;
+  const isOwner = currentUser?.user?.id === todo.creatorId;
 
   async function handleToggle() {
     if (!canEdit) return;
     await updateTodoMutation.mutateAsync({
-      todoId: todoItem.id,
-      completed: !todoItem.completed,
-      pageId: todoItem.pageId,
+      todoId: todo.id,
+      completed: !todo.completed,
+      pageId: todo.pageId,
     });
   }
 
   async function handleTitleSave() {
-    if (title.trim() === "" || title === todoItem.title) {
-      setTitle(todoItem.title);
+    if (title.trim() === "" || title === todo.title) {
+      setTitle(todo.title);
       setIsEditing(false);
       return;
     }
 
     await updateTodoMutation.mutateAsync({
-      todoId: todoItem.id,
+      todoId: todo.id,
       title: title.trim(),
-      pageId: todoItem.pageId,
+      pageId: todo.pageId,
     });
     setIsEditing(false);
   }
 
   async function handleDelete() {
-    await deleteTodoMutation.mutateAsync(todoItem.id);
+    await deleteTodoMutation.mutateAsync(todo.id);
   }
 
   return (
     <Group ref={ref} justify="space-between" wrap="nowrap" py={4}>
       <Group wrap="nowrap" gap="xs" style={{ flex: 1, minWidth: 0 }}>
         <Checkbox
-          checked={todoItem.completed}
+          checked={todo.completed}
           onChange={handleToggle}
           disabled={!canEdit}
           size="sm"
@@ -72,7 +72,7 @@ export default function TodoItem({ todoItem, canEdit }: TodoItemProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter") handleTitleSave();
               if (e.key === "Escape") {
-                setTitle(todoItem.title);
+                setTitle(todo.title);
                 setIsEditing(false);
               }
             }}
@@ -83,8 +83,8 @@ export default function TodoItem({ todoItem, canEdit }: TodoItemProps) {
         ) : (
           <Text
             size="sm"
-            td={todoItem.completed ? "line-through" : undefined}
-            c={todoItem.completed ? "dimmed" : undefined}
+            td={todo.completed ? "line-through" : undefined}
+            c={todo.completed ? "dimmed" : undefined}
             style={{
               flex: 1,
               cursor: isOwner && canEdit ? "pointer" : "default",
@@ -94,7 +94,7 @@ export default function TodoItem({ todoItem, canEdit }: TodoItemProps) {
             }}
             lineClamp={2}
           >
-            {todoItem.title}
+            {todo.title}
           </Text>
         )}
       </Group>

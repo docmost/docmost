@@ -63,7 +63,7 @@ export default function TodoList({ pageId, canEdit }: TodoListProps) {
         {open.length > 0 && (
           <Box mb="xs">
             {open.map((todo) => (
-              <TodoItem key={todo.id} todoItem={todo} canEdit={canEdit} />
+              <TodoItem key={todo.id} todo={todo} canEdit={canEdit} />
             ))}
           </Box>
         )}
@@ -75,7 +75,7 @@ export default function TodoList({ pageId, canEdit }: TodoListProps) {
               {t("Completed")} ({done.length})
             </Text>
             {done.map((todo) => (
-              <TodoItem key={todo.id} todoItem={todo} canEdit={canEdit} />
+              <TodoItem key={todo.id} todo={todo} canEdit={canEdit} />
             ))}
           </>
         )}
