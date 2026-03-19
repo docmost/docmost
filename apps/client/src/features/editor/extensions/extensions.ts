@@ -2,7 +2,8 @@ import { markInputRule } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Code } from "@tiptap/extension-code";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TaskList, TaskItem } from "@tiptap/extension-list";
+import { TaskList } from "@tiptap/extension-list";
+import { SyncedTaskItem } from "@/features/editor/extensions/synced-task-item";
 import { Placeholder, CharacterCount } from "@tiptap/extensions";
 import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
@@ -172,7 +173,7 @@ export const mainExtensions = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
   TaskList,
-  TaskItem.configure({
+  SyncedTaskItem.configure({
     nested: true,
   }),
   LinkExtension.configure({

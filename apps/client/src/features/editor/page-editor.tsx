@@ -28,6 +28,7 @@ import {
 } from "@/features/editor/extensions/extensions";
 import { useAtom } from "jotai";
 import useCollaborationUrl from "@/features/editor/hooks/use-collaboration-url";
+import { useTaskSync } from "@/features/editor/hooks/use-task-sync";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import {
   pageEditorAtom,
@@ -288,9 +289,12 @@ export default function PageEditor({
         //update local page cache to reduce flickers
         debouncedUpdateContent(editorJson);
       },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [pageId, editable, extensions],
   );
+
+  useTaskSync(editor, pageId);
 
   const editorIsEditable = useEditorState({
     editor,
