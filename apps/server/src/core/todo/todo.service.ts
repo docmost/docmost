@@ -43,7 +43,7 @@ export class TodoService {
     pageId: string,
     pagination: PaginationOptions,
   ): Promise<CursorPaginationResult<Todo>> {
-    return this.todoRepo.loadTodos(pageId, pagination);
+    return this.todoRepo.findPageTodos(pageId, pagination);
   }
 
   async update(

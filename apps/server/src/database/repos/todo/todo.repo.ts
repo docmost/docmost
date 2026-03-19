@@ -29,8 +29,7 @@ export class TodoRepo {
       .executeTakeFirst();
   }
 
-  // loads todos for a given page
-  async loadTodos(pageId: string, pagination: PaginationOptions) {
+  async findPageTodos(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('todos')
       .selectAll('todos')
