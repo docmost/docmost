@@ -66,14 +66,14 @@ export const Embed = Node.create<EmbedOptions>({
         }),
       },
       width: {
-        default: 640,
+        default: null,
         parseHTML: (element) => element.getAttribute("data-width"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-width": attributes.width,
         }),
       },
       height: {
-        default: 480,
+        default: null,
         parseHTML: (element) => element.getAttribute("data-height"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-height": attributes.height,

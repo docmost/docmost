@@ -14,6 +14,7 @@ import {
   IconLayoutAlignRight,
   IconDownload,
   IconTrash,
+  IconRefresh,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
@@ -107,6 +108,14 @@ export function VideoMenu({ editor }: EditorMenuProps) {
     a.click();
   }, [editorState?.src]);
 
+  const handleResetSize = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .updateAttributes("video", { width: null, height: null })
+      .run();
+  }, [editor]);
+
   const handleDelete = useCallback(() => {
     editor.commands.deleteSelection();
   }, [editor]);
@@ -173,6 +182,19 @@ export function VideoMenu({ editor }: EditorMenuProps) {
             <IconDownload size={18} />
           </ActionIcon>
         </Tooltip>
+
+        <Tooltip position="top" label={t("Reset size")} withinPortal={false}>
+          <ActionIcon
+            onClick={handleResetSize}
+            size="lg"
+            aria-label={t("Reset size")}
+            variant="subtle"
+          >
+            <IconRefresh size={18} />
+          </ActionIcon>
+        </Tooltip>
+
+        <div className={classes.divider} />
 
         <Tooltip position="top" label={t("Delete")} withinPortal={false}>
           <ActionIcon

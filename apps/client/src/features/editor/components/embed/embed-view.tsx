@@ -144,7 +144,10 @@ export default function EmbedView(props: NodeViewProps) {
     <NodeViewWrapper data-drag-handle className={classes.embedNodeView}>
       {embedUrl ? (
         <div className={classes.embedContainer}>
-          {selected && editor.isEditable && provider && (
+          {selected &&
+            editor.isEditable &&
+            provider &&
+            !["youtube", "vimeo", "loom"].includes(provider.toLowerCase()) && (
             <div style={{ marginBottom: "8px" }}>
               <Menu position="bottom-start" shadow="md" withinPortal={false}>
                 <Menu.Target>

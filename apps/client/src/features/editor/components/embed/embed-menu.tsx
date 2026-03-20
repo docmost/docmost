@@ -113,7 +113,7 @@ export function EmbedMenu({ editor }: EditorMenuProps) {
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
-      .updateAttributes("embed", { width: 640, height: 480 })
+      .updateAttributes("embed", { width: null, height: null })
       .run();
   }, [editor]);
 
