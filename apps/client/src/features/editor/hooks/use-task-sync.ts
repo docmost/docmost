@@ -14,7 +14,7 @@ import { RQ_KEY } from "@/features/todo/queries/todo-query";
  */
 export function useTaskSync(editor: Editor | null, pageId: string) {
   const queryClient = useQueryClient();
-  // Track nodeKey → todoId for newly created items until they get an ID back
+  // Track nodeKey → true for API calls in flight to avoid duplicates
   const pendingRef = useRef<Map<string, boolean>>(new Map());
 
   useEffect(() => {
@@ -30,17 +30,42 @@ export function useTaskSync(editor: Editor | null, pageId: string) {
       try {
         const todo = await createTodo({ pageId, title });
 
-        // Write todoId back into the editor node
+        // Write todoId back into the editor node.
+        // Primary strategy: match by position (extracted from nodeKey "node:42").
+        // Fallback: match by text content in case position shifted.
+        const pos = parseInt((nodeKey as string).replace("node:", ""), 10);
+
         editor?.commands.command(({ tr, state }) => {
           let found = false;
-          state.doc.descendants((node: any, pos: number) => {
+
+          // 1. Position-based match
+          state.doc.descendants((node: any, posN: number) => {
+            if (found) return false;
+            if (
+              node.type.name === "taskItem" &&
+              posN === pos &&
+              !node.attrs.todoId
+            ) {
+              tr.setNodeMarkup(posN, undefined, {
+                ...node.attrs,
+                todoId: todo.id,
+                checked,
+              });
+              found = true;
+              return false;
+            }
+          });
+          if (found) return true;
+
+          // 2. Text-based fallback (position may have shifted)
+          state.doc.descendants((node: any, posN: number) => {
             if (found) return false;
             if (
               node.type.name === "taskItem" &&
               !node.attrs.todoId &&
-              node.textContent === title
+              node.textContent.trim() === title
             ) {
-              tr.setNodeMarkup(pos, undefined, {
+              tr.setNodeMarkup(posN, undefined, {
                 ...node.attrs,
                 todoId: todo.id,
                 checked,

@@ -9,6 +9,7 @@ import {
 } from "@/features/todo/queries/todo-query";
 import { useAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { pageEditorAtom } from "@/features/editor/atoms/editor-atoms";
 
 interface TodoItemProps {
   todo: ITodo;
@@ -20,6 +21,7 @@ export default function TodoItem({ todo, canEdit }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [currentUser] = useAtom(currentUserAtom);
+  const [editor] = useAtom(pageEditorAtom);
 
   const updateTodoMutation = useUpdateTodoMutation();
   const deleteTodoMutation = useDeleteTodoMutation(todo.pageId);
@@ -32,6 +34,23 @@ export default function TodoItem({ todo, canEdit }: TodoItemProps) {
       todoId: todo.id,
       completed: !todo.completed,
       pageId: todo.pageId,
+    });
+
+    // Sync checkbox state back to the corresponding editor node
+    editor?.commands.command(({ tr, state }) => {
+      let found = false;
+      state.doc.descendants((node: any, pos: number) => {
+        if (found) return false;
+        if (node.type.name === "taskItem" && node.attrs.todoId === todo.id) {
+          tr.setNodeMarkup(pos, undefined, {
+            ...node.attrs,
+            checked: !todo.completed,
+          });
+          found = true;
+          return false;
+        }
+      });
+      return found;
     });
   }
 
