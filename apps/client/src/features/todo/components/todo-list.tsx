@@ -13,6 +13,7 @@ import { useState } from "react";
 import {
   useTodosQuery,
   useCreateTodoMutation,
+  useDeleteTodoMutation,
 } from "@/features/todo/queries/todo-query";
 import TodoItem from "@/features/todo/components/todo-item";
 import { useTranslation } from "react-i18next";
@@ -26,9 +27,21 @@ export default function TodoList({ pageId, canEdit }: TodoListProps) {
   const { t } = useTranslation();
   const { data, isLoading } = useTodosQuery({ pageId });
   const createTodoMutation = useCreateTodoMutation();
+  const deleteTodoMutation = useDeleteTodoMutation(pageId);
+  const [isClearingCompleted, setIsClearingCompleted] = useState(false);
 
   const [newTitle, setNewTitle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  async function handleClearCompleted() {
+    if (!done.length) return;
+    setIsClearingCompleted(true);
+    try {
+      await Promise.all(done.map((todo) => deleteTodoMutation.mutateAsync(todo.id)));
+    } finally {
+      setIsClearingCompleted(false);
+    }
+  }
 
   async function handleCreate() {
     const trimmed = newTitle.trim();
@@ -71,9 +84,22 @@ export default function TodoList({ pageId, canEdit }: TodoListProps) {
         {done.length > 0 && (
           <>
             {open.length > 0 && <Divider my="xs" />}
-            <Text size="xs" c="dimmed" mb={4}>
-              {t("Completed")} ({done.length})
-            </Text>
+            <Group justify="space-between" mb={4}>
+              <Text size="xs" c="dimmed">
+                {t("Completed")} ({done.length})
+              </Text>
+              {canEdit && (
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  color="gray"
+                  loading={isClearingCompleted}
+                  onClick={handleClearCompleted}
+                >
+                  {t("Clear")}
+                </Button>
+              )}
+            </Group>
             {done.map((todo) => (
               <TodoItem key={todo.id} todo={todo} canEdit={canEdit} />
             ))}
