@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Indicator, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconArrowRight,
   IconArrowsHorizontal,
@@ -23,6 +23,7 @@ import { useClipboard } from "@/hooks/use-clipboard";
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
+import { useTodosQuery } from "@/features/todo/queries/todo-query";
 import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
@@ -48,6 +49,10 @@ interface PageHeaderMenuProps {
 export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const toggleAside = useToggleAside();
+  const { pageSlug } = useParams();
+  const pageId = extractPageSlugId(pageSlug);
+  const { data: todosData } = useTodosQuery({ pageId });
+  const openTodoCount = todosData?.items.filter((todo) => !todo.completed).length ?? 0;
 
   useHotkeys(
     [
@@ -89,13 +94,20 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       </Tooltip>
 
       <Tooltip label={t("Todos")} openDelay={250} withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="dark"
-          onClick={() => toggleAside("todos")}
+        <Indicator
+          label={openTodoCount > 99 ? "99+" : openTodoCount}
+          size={16}
+          disabled={openTodoCount === 0}
+          color="blue"
         >
-          <IconCheckbox size={20} stroke={2} />
-        </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            onClick={() => toggleAside("todos")}
+          >
+            <IconCheckbox size={20} stroke={2} />
+          </ActionIcon>
+        </Indicator>
       </Tooltip>
 
       <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
