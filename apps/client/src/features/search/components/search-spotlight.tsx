@@ -5,7 +5,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
-import { searchSpotlightStore } from "../constants.ts";
+import { Link, useNavigate } from "react-router-dom";
+import { searchSpotlight, searchSpotlightStore } from "../constants.ts";
 import { SearchSpotlightFilters } from "./search-spotlight-filters.tsx";
 import { useUnifiedSearch } from "../hooks/use-unified-search.ts";
 import { useAiSearch } from "../../../ee/ai/hooks/use-ai-search.ts";
@@ -19,6 +20,7 @@ interface SearchSpotlightProps {
 }
 export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const hasAiFeature = useHasFeature(Feature.AI);
   const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
   const [query, setQuery] = useState("");
@@ -110,9 +112,24 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     }
   };
 
+  const buildSearchPageUrl = () => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (filters.spaceId) params.set("spaceId", filters.spaceId);
+    if (filters.contentType && filters.contentType !== "page")
+      params.set("type", filters.contentType);
+    return `/search?${params.toString()}`;
+  };
+
+  const handleNavigateToSearchPage = () => {
+    if (query.trim()) {
+      searchSpotlight.close();
+      navigate(buildSearchPageUrl());
+    }
+  };
+
   return (
-    <>
-      <Spotlight.Root
+    <Spotlight.Root
         size="xl"
         maxHeight={600}
         store={searchSpotlightStore}
@@ -132,6 +149,9 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
               if (e.key === "Enter" && isAiMode && query.trim() && !isAiLoading) {
                 e.preventDefault();
                 handleAiSearchTrigger();
+              } else if (e.key === "Enter" && !isAiMode && query.trim()) {
+                e.preventDefault();
+                handleNavigateToSearchPage();
               }
             }}
           />
@@ -189,11 +209,28 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
                 <Spotlight.Empty>{t("No results found...")}</Spotlight.Empty>
               )}
 
-              {resultItems.length > 0 && <>{resultItems}</>}
+              {resultItems.length > 0 && (
+                <>
+                  {resultItems}
+                  <Spotlight.Action
+                    component={Link}
+                    //@ts-ignore
+                    to={buildSearchPageUrl()}
+                    onClick={() => searchSpotlight.close()}
+                    style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}
+                  >
+                    <Group gap="xs" justify="center" w="100%">
+                      <IconSearch size={14} />
+                      <span style={{ fontSize: 13 }}>
+                        {t("View all results for \"{{query}}\"", { query })}
+                      </span>
+                    </Group>
+                  </Spotlight.Action>
+                </>
+              )}
             </>
           )}
         </Spotlight.ActionsList>
       </Spotlight.Root>
-    </>
   );
 }
