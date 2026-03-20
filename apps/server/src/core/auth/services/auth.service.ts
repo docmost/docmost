@@ -110,7 +110,7 @@ export class AuthService {
     dto: ChangePasswordDto,
     userId: string,
     workspaceId: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const user = await this.userRepo.findById(userId, workspaceId, {
       includePassword: true,
     });
@@ -133,6 +133,7 @@ export class AuthService {
       {
         password: newPasswordHash,
         hasGeneratedPassword: false,
+        tokensValidAfter: new Date(),
       },
       userId,
       workspaceId,
@@ -150,6 +151,9 @@ export class AuthService {
       subject: 'Your password has been changed',
       template: emailTemplate,
     });
+
+    const updatedUser = await this.userRepo.findById(userId, workspaceId);
+    return this.tokenService.generateAccessToken(updatedUser);
   }
 
   async forgotPassword(
@@ -231,6 +235,7 @@ export class AuthService {
         {
           password: newPasswordHash,
           hasGeneratedPassword: false,
+          tokensValidAfter: new Date(),
         },
         user.id,
         workspace.id,
@@ -276,7 +281,8 @@ export class AuthService {
       };
     }
 
-    const authToken = await this.tokenService.generateAccessToken(user);
+    const updatedUser = await this.userRepo.findById(user.id, workspace.id);
+    const authToken = await this.tokenService.generateAccessToken(updatedUser);
     return { authToken };
   }
 
@@ -296,6 +302,17 @@ export class AuthService {
     ) {
       throw new BadRequestException('Invalid or expired token');
     }
+  }
+
+  async invalidateUserTokens(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    await this.userRepo.updateUser(
+      { tokensValidAfter: new Date() },
+      userId,
+      workspaceId,
+    );
   }
 
   async getCollabToken(user: User, workspaceId: string) {

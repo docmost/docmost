@@ -29,7 +29,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(req: any, payload: JwtPayload | JwtApiKeyPayload) {
+  async validate(
+    req: any,
+    payload: (JwtPayload | JwtApiKeyPayload) & { iat: number },
+  ) {
     if (!payload.workspaceId) {
       throw new UnauthorizedException();
     }
@@ -54,6 +57,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const user = await this.userRepo.findById(payload.sub, payload.workspaceId);
 
     if (!user || isUserDisabled(user)) {
+      throw new UnauthorizedException();
+    }
+
+    if (
+      user.tokensValidAfter &&
+      payload.iat < Math.floor(user.tokensValidAfter.getTime() / 1000)
+    ) {
       throw new UnauthorizedException();
     }
 

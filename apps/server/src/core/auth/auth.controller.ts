@@ -115,8 +115,14 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
+    @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.authService.changePassword(dto, user.id, workspace.id);
+    const authToken = await this.authService.changePassword(
+      dto,
+      user.id,
+      workspace.id,
+    );
+    this.setAuthCookie(res, authToken);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -178,8 +184,10 @@ export class AuthController {
   @Post('logout')
   async logout(
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    await this.authService.invalidateUserTokens(user.id, workspace.id);
     res.clearCookie('authToken');
 
     this.auditService.log({

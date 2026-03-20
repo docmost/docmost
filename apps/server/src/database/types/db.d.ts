@@ -326,6 +326,7 @@ export interface Users {
   role: string | null;
   settings: Json | null;
   timezone: string | null;
+  tokensValidAfter: Timestamp | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string | null;
 }
