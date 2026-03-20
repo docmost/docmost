@@ -68,7 +68,7 @@ export const handlePaste = (
 
     const embedResult = getEmbedUrlAndProvider(urlToCheck);
     // Check if it's a YouTube or Vimeo URL (provider detection)
-    const isYouTube = embedResult.provider.toLowerCase() === "youtube";
+    const isYouTube = ["youtube", "youtu"].includes(embedResult.provider.toLowerCase());
     const isVimeo = embedResult.provider.toLowerCase() === "vimeo";
 
     if (isYouTube || isVimeo) {
