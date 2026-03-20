@@ -146,7 +146,7 @@ export default function EmbedView(props: NodeViewProps) {
         <div className={classes.embedContainer}>
           {selected && editor.isEditable && provider && (
             <div style={{ marginBottom: "8px" }}>
-              <Menu position="bottom-start" shadow="md">
+              <Menu position="bottom-start" shadow="md" withinPortal={false}>
                 <Menu.Target>
                   <Button variant="default" size="sm">
                     {t("Paste Format")}
