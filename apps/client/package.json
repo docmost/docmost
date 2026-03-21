@@ -58,8 +58,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.16.0",
-    "@tanstack/eslint-plugin-query": "^5.62.1",
+    "@eslint/js": "^9.28.0",
+    "@tanstack/eslint-plugin-query": "^5.94.4",
     "@types/blueimp-load-image": "^5.16.6",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",
@@ -68,10 +68,10 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.0",
-    "eslint": "^9.39.2",
-    "eslint-plugin-react": "^7.37.2",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.16",
+    "eslint": "^9.28.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^15.13.0",
     "optics-ts": "^2.4.1",
     "postcss": "^8.5.8",
@@ -79,7 +79,7 @@
     "postcss-simple-vars": "^7.0.1",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.17.0",
+    "typescript-eslint": "^8.57.1",
     "vite": "^8.0.1"
   }
 }
