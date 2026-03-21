@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
   JwtApiKeyPayload,
@@ -96,7 +97,7 @@ export class TokenService {
     apiKeyId: string;
     user: User;
     workspaceId: string;
-    expiresIn?: string | number;
+    expiresIn?: StringValue | number;
   }): Promise<string> {
     const { apiKeyId, user, workspaceId, expiresIn } = opts;
     if (isUserDisabled(user)) {

@@ -35,6 +35,21 @@ export default defineConfig(({ mode }) => {
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },
     plugins: [react()],
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: "vendor-mantine", test: /@mantine/ },
+              { name: "vendor-tiptap", test: /tiptap|prosemirror/ },
+              { name: "vendor-mermaid", test: /mermaid|cytoscape|elkjs/ },
+              { name: "vendor-excalidraw", test: /excalidraw/ },
+              { name: "vendor-katex", test: /katex/ },
+            ],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": "/src",
