@@ -114,7 +114,10 @@
       "ajv@^8": "8.18.0",
       "underscore": "1.13.8",
       "immutable": "4.3.8",
-      "express-rate-limit": "8.2.2"
+      "express-rate-limit": "8.2.2",
+      "minimatch@^3": "3.1.5",
+      "minimatch@^5": "5.1.8",
+      "flatted": "3.4.2"
     },
     "neverBuiltDependencies": []
   }
