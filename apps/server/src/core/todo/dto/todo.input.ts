@@ -9,3 +9,8 @@ export class TodoIdDto {
   @IsUUID()
   todoId: string;
 }
+
+export class SpaceIdDto {
+  @IsUUID()
+  spaceId: string;
+}

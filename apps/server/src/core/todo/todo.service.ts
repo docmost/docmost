@@ -46,6 +46,14 @@ export class TodoService {
     return this.todoRepo.findPageTodos(pageId, pagination);
   }
 
+  async findBySpaceId(
+    spaceId: string,
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ): Promise<CursorPaginationResult<Todo>> {
+    return this.todoRepo.findSpaceTodos(spaceId, workspaceId, pagination);
+  }
+
   async update(
     todo: Todo,
     updateTodoDto: UpdateTodoDto,

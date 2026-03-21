@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -10,7 +11,7 @@ import {
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
-import { PageIdDto, TodoIdDto } from './dto/todo.input';
+import { PageIdDto, SpaceIdDto, TodoIdDto } from './dto/todo.input';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,6 +20,11 @@ import { User, Workspace } from '@docmost/db/types/entity.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { TodoRepo } from '@docmost/db/repos/todo/todo.repo';
 import { PageAccessService } from '../page/page-access/page-access.service';
+import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from '../casl/interfaces/space-ability.type';
 
 @UseGuards(JwtAuthGuard)
 @Controller('todos')
@@ -28,6 +34,7 @@ export class TodoController {
     private readonly todoRepo: TodoRepo,
     private readonly pageRepo: PageRepo,
     private readonly pageAccessService: PageAccessService,
+    private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -65,6 +72,22 @@ export class TodoController {
     await this.pageAccessService.validateCanView(page, user);
 
     return this.todoService.findByPageId(page.id, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('space')
+  async findSpaceTodos(
+    @Body() input: SpaceIdDto,
+    @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const ability = await this.spaceAbility.createForUser(user, input.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
+      throw new ForbiddenException();
+    }
+
+    return this.todoService.findBySpaceId(input.spaceId, workspace.id, pagination);
   }
 
   @HttpCode(HttpStatus.OK)

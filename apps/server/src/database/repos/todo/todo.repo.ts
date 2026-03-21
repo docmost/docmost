@@ -29,6 +29,28 @@ export class TodoRepo {
       .executeTakeFirst();
   }
 
+  async findSpaceTodos(
+    spaceId: string,
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    const query = this.db
+      .selectFrom('todos')
+      .selectAll('todos')
+      .select((eb) => this.withCreator(eb))
+      .select((eb) => this.withPage(eb))
+      .where('todos.spaceId', '=', spaceId)
+      .where('todos.workspaceId', '=', workspaceId);
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [{ expression: 'id', direction: 'asc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
+    });
+  }
+
   async findPageTodos(pageId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('todos')
@@ -81,5 +103,14 @@ export class TodoRepo {
         .select(['users.id', 'users.name', 'users.avatarUrl'])
         .whereRef('users.id', '=', 'todos.creatorId'),
     ).as('creator');
+  }
+
+  withPage(eb: ExpressionBuilder<DB, 'todos'>) {
+    return jsonObjectFrom(
+      eb
+        .selectFrom('pages')
+        .select(['pages.id', 'pages.title', 'pages.slugId', 'pages.icon'])
+        .whereRef('pages.id', '=', 'todos.pageId'),
+    ).as('page');
   }
 }
