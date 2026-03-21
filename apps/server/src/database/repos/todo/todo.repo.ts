@@ -40,8 +40,10 @@ export class TodoRepo {
       .select((eb) => this.withCreator(eb))
       .select((eb) => this.withPage(eb))
       .where('workspaceId', '=', workspaceId)
-      .where('pageId', 'in', (eb) =>
-        eb
+      .where(
+        'pageId',
+        'in',
+        this.db
           .selectFrom('pages')
           .select('pages.id')
           .where('pages.spaceId', '=', spaceId)
