@@ -39,8 +39,14 @@ export class TodoRepo {
       .selectAll('todos')
       .select((eb) => this.withCreator(eb))
       .select((eb) => this.withPage(eb))
-      .where('todos.spaceId', '=', spaceId)
-      .where('todos.workspaceId', '=', workspaceId);
+      .where('workspaceId', '=', workspaceId)
+      .where('pageId', 'in', (eb) =>
+        eb
+          .selectFrom('pages')
+          .select('pages.id')
+          .where('pages.spaceId', '=', spaceId)
+          .where('pages.deletedAt', 'is', null),
+      );
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,

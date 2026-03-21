@@ -106,6 +106,10 @@ export function useCreateTodoMutation() {
           ),
         });
       }
+
+      if (newTodo.spaceId) {
+        queryClient.invalidateQueries({ queryKey: SPACE_RQ_KEY(newTodo.spaceId) });
+      }
     },
     onError: () => {
       notifications.show({ message: "Error creating todo", color: "red" });
@@ -138,6 +142,24 @@ export function useUpdateTodoMutation() {
           })),
         });
       }
+
+      if (updatedTodo.spaceId) {
+        const spaceCache = queryClient.getQueryData(
+          SPACE_RQ_KEY(updatedTodo.spaceId),
+        ) as InfiniteData<IPagination<ITodo>> | undefined;
+
+        if (spaceCache) {
+          queryClient.setQueryData(SPACE_RQ_KEY(updatedTodo.spaceId), {
+            ...spaceCache,
+            pages: spaceCache.pages.map((page) => ({
+              ...page,
+              items: page.items.map((todo) =>
+                todo.id === updatedTodo.id ? updatedTodo : todo,
+              ),
+            })),
+          });
+        }
+      }
     },
     onError: () => {
       notifications.show({ message: "Failed to update todo", color: "red" });
@@ -145,7 +167,7 @@ export function useUpdateTodoMutation() {
   });
 }
 
-export function useDeleteTodoMutation(pageId?: string) {
+export function useDeleteTodoMutation(pageId?: string, spaceId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -163,6 +185,22 @@ export function useDeleteTodoMutation(pageId?: string) {
             items: page.items.filter((todo) => todo.id !== todoId),
           })),
         });
+      }
+
+      if (spaceId) {
+        const spaceCache = queryClient.getQueryData(
+          SPACE_RQ_KEY(spaceId),
+        ) as InfiniteData<IPagination<ITodo>> | undefined;
+
+        if (spaceCache) {
+          queryClient.setQueryData(SPACE_RQ_KEY(spaceId), {
+            ...spaceCache,
+            pages: spaceCache.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((todo) => todo.id !== todoId),
+            })),
+          });
+        }
       }
     },
     onError: () => {
