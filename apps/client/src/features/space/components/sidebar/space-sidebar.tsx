@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import {
   IconArrowDown,
+  IconCheckbox,
   IconDots,
   IconFileExport,
   IconHome,
@@ -255,6 +256,14 @@ function SpaceMenu({ spaceId, onSpaceSettings }: SpaceMenuProps) {
             leftSection={<IconSettings size={16} />}
           >
             {t("Space settings")}
+          </Menu.Item>
+
+          <Menu.Item
+            component={Link}
+            to={`/s/${spaceSlug}/todos`}
+            leftSection={<IconCheckbox size={16} />}
+          >
+            {t("Todos")}
           </Menu.Item>
 
           <Menu.Item

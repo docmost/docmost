@@ -1,5 +1,5 @@
 import api from "@/lib/api-client";
-import { ITodo, ITodoParams } from "@/features/todo/types/todo.types";
+import { ITodo, ITodoParams, ISpaceTodoParams } from "@/features/todo/types/todo.types";
 import { IPagination } from "@/lib/types.ts";
 
 export async function createTodo(data: {
@@ -28,4 +28,11 @@ export async function getPageTodos(
 
 export async function deleteTodo(todoId: string): Promise<void> {
   await api.post("/todos/delete", { todoId });
+}
+
+export async function getSpaceTodos(
+  data: ISpaceTodoParams,
+): Promise<IPagination<ITodo>> {
+  const req = await api.post("/todos/space", data);
+  return req.data;
 }

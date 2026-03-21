@@ -8,9 +8,10 @@ import {
   createTodo,
   deleteTodo,
   getPageTodos,
+  getSpaceTodos,
   updateTodo,
 } from "@/features/todo/services/todo-service";
-import { ITodoParams, ITodo } from "@/features/todo/types/todo.types";
+import { ITodoParams, ISpaceTodoParams, ITodo } from "@/features/todo/types/todo.types";
 import { notifications } from "@mantine/notifications";
 import { IPagination } from "@/lib/types.ts";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,40 @@ export function useTodosQuery(params: ITodoParams) {
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     enabled: !!params.pageId,
+  });
+
+  useEffect(() => {
+    if (query.hasNextPage && !query.isFetchingNextPage) {
+      query.fetchNextPage();
+    }
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+
+  const data = useMemo<IPagination<ITodo> | undefined>(() => {
+    if (!query.data) return undefined;
+    return {
+      items: query.data.pages.flatMap((p) => p.items),
+      meta: query.data.pages[query.data.pages.length - 1].meta,
+    };
+  }, [query.data]);
+
+  return {
+    data,
+    isLoading: query.isLoading || query.hasNextPage,
+    isError: query.isError,
+  };
+}
+
+export const SPACE_RQ_KEY = (spaceId: string) => ["space-todos", spaceId];
+
+export function useSpaceTodosQuery(params: ISpaceTodoParams) {
+  const query = useInfiniteQuery({
+    queryKey: SPACE_RQ_KEY(params.spaceId),
+    queryFn: ({ pageParam }) =>
+      getSpaceTodos({ spaceId: params.spaceId, cursor: pageParam, limit: 200 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+    enabled: !!params.spaceId,
   });
 
   useEffect(() => {
