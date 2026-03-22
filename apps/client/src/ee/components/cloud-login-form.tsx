@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import JoinedWorkspaces from "@/ee/components/joined-workspaces.tsx";
 import { useJoinedWorkspacesQuery } from "@/ee/cloud/query/cloud-query.ts";
 import { findWorkspacesByEmail } from "@/ee/cloud/service/cloud-service.ts";
+import { AuthLayout } from "@/features/auth/components/auth-layout.tsx";
 
 const formSchema = z.object({
   hostname: z.string().min(1, { message: "subdomain is required" }),
@@ -82,7 +83,7 @@ export function CloudLoginForm() {
   }
 
   return (
-    <div>
+    <AuthLayout>
       <Container size={420} className={classes.container}>
         <Box p="xl" className={classes.containerBox}>
           <Title order={2} ta="center" fw={500} mb="md">
@@ -151,6 +152,6 @@ export function CloudLoginForm() {
           {t("Create new workspace")}
         </Anchor>
       </Text>
-    </div>
+    </AuthLayout>
   );
 }

@@ -19,6 +19,7 @@ import SsoCloudSignup from "@/ee/components/sso-cloud-signup.tsx";
 import { isCloud } from "@/lib/config.ts";
 import { Link } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
+import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
   workspaceName: z.string().trim().max(50).optional(),
@@ -50,7 +51,7 @@ export function SetupWorkspaceForm() {
   }
 
   return (
-    <div>
+    <AuthLayout>
       <Container size={420} className={classes.container}>
         <Box p="xl" className={classes.containerBox}>
           <Title order={2} ta="center" fw={500} mb="md">
@@ -117,6 +118,6 @@ export function SetupWorkspaceForm() {
           </Anchor>
         </Text>
       )}
-    </div>
+    </AuthLayout>
   );
 }
