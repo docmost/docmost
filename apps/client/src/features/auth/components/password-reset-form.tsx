@@ -6,6 +6,7 @@ import { Box, Button, Container, PasswordInput, Title } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { useTranslation } from "react-i18next";
+import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
   newPassword: z
@@ -38,6 +39,7 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
   }
 
   return (
+    <AuthLayout>
     <Container size={420} className={classes.container}>
       <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
@@ -59,5 +61,6 @@ export function PasswordResetForm({ resetToken }: PasswordResetFormProps) {
         </form>
       </Box>
     </Container>
+    </AuthLayout>
   );
 }
