@@ -146,7 +146,7 @@ export function CloudLoginForm() {
         </Box>
       </Container>
 
-      <Text ta="center">
+      <Text ta="center" mb="xl">
         {t("Don't have a workspace?")}{" "}
         <Anchor component={Link} to={APP_ROUTE.AUTH.CREATE_WORKSPACE} fw={500}>
           {t("Create new workspace")}
