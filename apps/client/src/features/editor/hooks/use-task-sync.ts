@@ -6,13 +6,13 @@ import {
   deleteTodo,
 } from "@/features/todo/services/todo-service";
 import { useQueryClient } from "@tanstack/react-query";
-import { RQ_KEY } from "@/features/todo/queries/todo-query";
+import { RQ_KEY, SPACE_RQ_KEY } from "@/features/todo/queries/todo-query";
 
 /**
  * Listens to taskItem CustomEvents dispatched by SyncedTaskItem
  * and syncs changes to the todos API + React Query cache.
  */
-export function useTaskSync(editor: Editor | null, pageId: string) {
+export function useTaskSync(editor: Editor | null, pageId: string, spaceId?: string) {
   const queryClient = useQueryClient();
   // Track nodeKey → true for API calls in flight to avoid duplicates
   const pendingRef = useRef<Map<string, boolean>>(new Map());
@@ -91,6 +91,7 @@ export function useTaskSync(editor: Editor | null, pageId: string) {
       try {
         await updateTodo({ todoId, completed });
         queryClient.invalidateQueries({ queryKey: RQ_KEY(pageId) });
+        if (spaceId) queryClient.invalidateQueries({ queryKey: SPACE_RQ_KEY(spaceId) });
       } catch (err) {
         console.error("Failed to toggle todo:", err);
       }
@@ -101,6 +102,7 @@ export function useTaskSync(editor: Editor | null, pageId: string) {
       try {
         await updateTodo({ todoId, title });
         queryClient.invalidateQueries({ queryKey: RQ_KEY(pageId) });
+        if (spaceId) queryClient.invalidateQueries({ queryKey: SPACE_RQ_KEY(spaceId) });
       } catch (err) {
         console.error("Failed to rename todo:", err);
       }
@@ -111,6 +113,7 @@ export function useTaskSync(editor: Editor | null, pageId: string) {
       try {
         await deleteTodo(todoId);
         queryClient.invalidateQueries({ queryKey: RQ_KEY(pageId) });
+        if (spaceId) queryClient.invalidateQueries({ queryKey: SPACE_RQ_KEY(spaceId) });
       } catch (err) {
         console.error("Failed to delete todo:", err);
       }
@@ -127,5 +130,5 @@ export function useTaskSync(editor: Editor | null, pageId: string) {
       document.removeEventListener("taskitem:renamed", onRenamed);
       document.removeEventListener("taskitem:deleted", onDeleted);
     };
-  }, [editor, pageId, queryClient]);
+  }, [editor, pageId, spaceId, queryClient]);
 }

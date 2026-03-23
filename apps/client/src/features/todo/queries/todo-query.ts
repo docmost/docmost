@@ -57,7 +57,7 @@ export function useSpaceTodosQuery(params: ISpaceTodoParams) {
   const query = useInfiniteQuery({
     queryKey: SPACE_RQ_KEY(params.spaceId),
     queryFn: ({ pageParam }) =>
-      getSpaceTodos({ spaceId: params.spaceId, cursor: pageParam, limit: 200 }),
+      getSpaceTodos({ spaceId: params.spaceId, cursor: pageParam, limit: 100 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,

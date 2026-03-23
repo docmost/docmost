@@ -105,6 +105,7 @@ export default function PageEditor({
   const documentState = useDocumentVisibility();
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
+  const spaceId = queryClient.getQueryData<IPage>(["pages", slugId])?.spaceId;
   const userPageEditMode =
     currentUser?.user?.settings?.preferences?.pageEditMode ?? PageEditMode.Edit;
   const canScroll = useCallback(
@@ -294,7 +295,7 @@ export default function PageEditor({
     [pageId, editable, extensions],
   );
 
-  useTaskSync(editor, pageId);
+  useTaskSync(editor, pageId, spaceId);
 
   const editorIsEditable = useEditorState({
     editor,
