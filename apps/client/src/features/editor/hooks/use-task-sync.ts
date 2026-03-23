@@ -7,6 +7,8 @@ import {
 } from "@/features/todo/services/todo-service";
 import { useQueryClient } from "@tanstack/react-query";
 import { RQ_KEY, SPACE_RQ_KEY } from "@/features/todo/queries/todo-query";
+import { isChangeOrigin } from "@tiptap/extension-collaboration";
+import { pendingTodoUpdates } from "@/features/todo/utils/pending-todo-updates";
 
 /**
  * Listens to taskItem CustomEvents dispatched by SyncedTaskItem
@@ -16,6 +18,38 @@ export function useTaskSync(editor: Editor | null, pageId: string, spaceId?: str
   const queryClient = useQueryClient();
   // Track nodeKey → true for API calls in flight to avoid duplicates
   const pendingRef = useRef<Map<string, boolean>>(new Map());
+
+  // Drain pending todo updates (toggled from space board while editor was unmounted)
+  // on the first Yjs remote update — guarantees collab extension is active.
+  useEffect(() => {
+    if (!editor || !pageId) return;
+
+    function onEditorUpdate({ transaction }: { transaction: any }) {
+      if (!isChangeOrigin(transaction) || pendingTodoUpdates.size === 0) return;
+
+      const updates = new Map(pendingTodoUpdates);
+      pendingTodoUpdates.clear();
+
+      editor!.commands.command(({ tr, state }) => {
+        let hasChanges = false;
+        state.doc.descendants((node: any, pos: number) => {
+          if (node.type.name !== "taskItem" || !node.attrs.todoId) return;
+          const completed = updates.get(node.attrs.todoId);
+          if (completed !== undefined && node.attrs.checked !== completed) {
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked: completed });
+            hasChanges = true;
+          }
+        });
+        if (hasChanges) tr.setMeta("skipTodoSync", true);
+        return hasChanges;
+      });
+    }
+
+    editor.on("update", onEditorUpdate);
+    return () => {
+      editor.off("update", onEditorUpdate);
+    };
+  }, [editor, pageId]);
 
   useEffect(() => {
     if (!editor || !pageId) return;
@@ -79,6 +113,7 @@ export function useTaskSync(editor: Editor | null, pageId: string, spaceId?: str
 
         // Update React Query cache
         queryClient.invalidateQueries({ queryKey: RQ_KEY(pageId) });
+        if (spaceId) queryClient.invalidateQueries({ queryKey: SPACE_RQ_KEY(spaceId) });
       } catch (err) {
         console.error("Failed to create todo from editor task:", err);
       } finally {
@@ -119,16 +154,35 @@ export function useTaskSync(editor: Editor | null, pageId: string, spaceId?: str
       }
     }
 
+    function onTodoUpdated(e: Event) {
+      const { todoId, completed } = (e as CustomEvent).detail;
+      editor?.commands.command(({ tr, state }) => {
+        let found = false;
+        state.doc.descendants((node: any, pos: number) => {
+          if (found) return false;
+          if (node.type.name === "taskItem" && node.attrs.todoId === todoId) {
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked: completed });
+            tr.setMeta("skipTodoSync", true);
+            found = true;
+            return false;
+          }
+        });
+        return found;
+      });
+    }
+
     document.addEventListener("taskitem:created", onCreated);
     document.addEventListener("taskitem:toggled", onToggled);
     document.addEventListener("taskitem:renamed", onRenamed);
     document.addEventListener("taskitem:deleted", onDeleted);
+    document.addEventListener("todo:updated", onTodoUpdated);
 
     return () => {
       document.removeEventListener("taskitem:created", onCreated);
       document.removeEventListener("taskitem:toggled", onToggled);
       document.removeEventListener("taskitem:renamed", onRenamed);
       document.removeEventListener("taskitem:deleted", onDeleted);
+      document.removeEventListener("todo:updated", onTodoUpdated);
     };
   }, [editor, pageId, spaceId, queryClient]);
 }

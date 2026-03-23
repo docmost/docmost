@@ -15,6 +15,7 @@ import { buildPageUrl } from "@/features/page/page.utils";
 import { ITodo } from "@/features/todo/types/todo.types";
 import { useTranslation } from "react-i18next";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
+import { pendingTodoUpdates } from "@/features/todo/utils/pending-todo-updates";
 
 export default function SpaceTodoBoard() {
   const { t } = useTranslation();
@@ -42,11 +43,19 @@ export default function SpaceTodoBoard() {
   const done = todos.filter((t) => t.completed);
 
   async function handleToggle(todo: ITodo) {
+    const newCompleted = !todo.completed;
     await updateTodoMutation.mutateAsync({
       todoId: todo.id,
-      completed: !todo.completed,
+      completed: newCompleted,
       pageId: todo.pageId,
     });
+
+    pendingTodoUpdates.set(todo.id, newCompleted);
+    document.dispatchEvent(
+      new CustomEvent("todo:updated", {
+        detail: { todoId: todo.id, completed: newCompleted },
+      }),
+    );
   }
 
   function renderTodoRow(todo: ITodo) {

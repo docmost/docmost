@@ -76,6 +76,9 @@ export const SyncedTaskItem = TaskItem.extend({
             // Skip remote Yjs transactions to avoid duplicate API calls
             if (isChangeOrigin(tr)) return collectTaskItems(tr.doc);
 
+            // Skip programmatic changes from the todo panel (e.g. delete write-back)
+            if (tr.getMeta("skipTodoSync")) return collectTaskItems(tr.doc);
+
             const nextItems = collectTaskItems(tr.doc);
 
             // Quick lookup sets for move/split detection

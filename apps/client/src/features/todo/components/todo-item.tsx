@@ -24,7 +24,7 @@ export default function TodoItem({ todo, canEdit }: TodoItemProps) {
   const [editor] = useAtom(pageEditorAtom);
 
   const updateTodoMutation = useUpdateTodoMutation();
-  const deleteTodoMutation = useDeleteTodoMutation(todo.pageId);
+  const deleteTodoMutation = useDeleteTodoMutation(todo.pageId, todo.spaceId);
 
   const isOwner = currentUser?.user?.id === todo.creatorId;
 
@@ -71,6 +71,24 @@ export default function TodoItem({ todo, canEdit }: TodoItemProps) {
 
   async function handleDelete() {
     await deleteTodoMutation.mutateAsync(todo.id);
+
+    // Remove the corresponding node from the editor without triggering
+    // another API call (skipTodoSync prevents the delete event from firing)
+    editor?.commands.command(({ tr, state }) => {
+      let targetPos: number | null = null;
+      let targetSize: number | null = null;
+      state.doc.descendants((node: any, pos: number) => {
+        if (node.type.name === "taskItem" && node.attrs.todoId === todo.id) {
+          targetPos = pos;
+          targetSize = node.nodeSize;
+          return false;
+        }
+      });
+      if (targetPos === null) return false;
+      tr.setMeta("skipTodoSync", true);
+      tr.delete(targetPos, targetPos + targetSize!);
+      return true;
+    });
   }
 
   return (

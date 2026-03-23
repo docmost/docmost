@@ -69,6 +69,8 @@ import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { getPageTodos } from "@/features/todo/services/todo-service";
+import { reconcileEditorTodos } from "@/features/todo/utils/reconcile-editor";
 
 interface PageEditorProps {
   pageId: string;
@@ -84,6 +86,8 @@ export default function PageEditor({
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
+  // Always reflects the current editor instance, even after extensions change
+  const latestEditorRef = useRef<Editor | null>(null);
 
   useEffect(() => {
     isComponentMounted.current = true;
@@ -137,6 +141,19 @@ export default function PageEditor({
       };
       const onSyncedHandler = (event: onSyncedParameters) => {
         setIsRemoteSynced(event.state);
+        if (!event.state) return;
+        // Defer until after Yjs has finished applying all document updates.
+        // Use latestEditorRef (not editorRef) because editorRef is only set
+        // once in onCreate, while latestEditorRef always tracks the current
+        // editor instance even after extensions change and a new editor is created.
+        setTimeout(() => {
+          const currentEditor = latestEditorRef.current;
+          if (!currentEditor) return;
+          getPageTodos({ pageId, limit: 100 }).then((result) => {
+            if (latestEditorRef.current !== currentEditor) return;
+            reconcileEditorTodos(currentEditor, result.items);
+          });
+        }, 0);
       };
       const onAuthenticationFailedHandler = () => {
         const payload = jwtDecode(collabQuery?.token);
@@ -294,6 +311,11 @@ export default function PageEditor({
     },
     [pageId, editable, extensions],
   );
+
+  // Always keep latestEditorRef in sync – unlike editorRef which is only set
+  // once in onCreate, this ref is updated on every render so onSyncedHandler
+  // always has access to the current (possibly re-created) editor instance.
+  latestEditorRef.current = editor;
 
   useTaskSync(editor, pageId, spaceId);
 
