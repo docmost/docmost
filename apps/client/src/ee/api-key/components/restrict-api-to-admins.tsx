@@ -5,12 +5,14 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 import {
   ResponsiveSettingsRow,
   ResponsiveSettingsContent,
   ResponsiveSettingsControl,
 } from "@/components/ui/responsive-settings-row";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label.ts";
 
 export default function RestrictApiToAdmins() {
   const { t } = useTranslation();
@@ -18,7 +20,8 @@ export default function RestrictApiToAdmins() {
   const [checked, setChecked] = useState(
     workspace?.settings?.api?.restrictToAdmins === true,
   );
-  const hasAccess = useEnterpriseAccess();
+  const hasAccess = useHasFeature(Feature.API_KEYS);
+  const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
@@ -51,7 +54,7 @@ export default function RestrictApiToAdmins() {
 
       <ResponsiveSettingsControl>
         <Tooltip
-          label={t("Requires an enterprise license")}
+          label={upgradeLabel}
           disabled={hasAccess}
           refProp="rootRef"
         >

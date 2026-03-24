@@ -10,7 +10,7 @@ import {
   validateSync,
 } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { IsISO6391 } from '../../common/validator/is-iso6391';
+import { IsISO6391 } from '../../common/validators/is-iso6391';
 
 export class EnvironmentVariables {
   @IsNotEmpty()

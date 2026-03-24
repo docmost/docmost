@@ -51,3 +51,4 @@ export async function getCollabToken(): Promise<ICollabToken> {
   const req = await api.post<ICollabToken>("/auth/collab-token");
   return req.data;
 }
+

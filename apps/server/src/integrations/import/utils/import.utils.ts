@@ -81,7 +81,25 @@ export async function collectMarkdownAndHtmlFiles(
 export function stripNotionID(fileName: string): string {
   // Handle optional separator (space or dash) + 32 alphanumeric chars at end
   const notionIdPattern = /[ -]?[a-z0-9]{32}$/i;
-  return fileName.replace(notionIdPattern, '').trim();
+  // Handle partial UUID format used for duplicate names: "Name abcd-ef12"
+  const partialIdPattern = / [a-f0-9]{4}-[a-f0-9]{4}$/i;
+  return fileName
+    .replace(notionIdPattern, '')
+    .replace(partialIdPattern, '')
+    .trim();
+}
+
+/**
+ * Extract a partial Notion UUID suffix from a folder name.
+ * Notion adds "{first4}-{last4}" when multiple pages share the same title.
+ * e.g. "Cool 324d-35ab" → { prefix: "324d", suffix: "35ab" }
+ */
+export function extractNotionPartialId(
+  folderName: string,
+): { prefix: string; suffix: string } | null {
+  const match = folderName.match(/ ([a-f0-9]{4})-([a-f0-9]{4})$/i);
+  if (!match) return null;
+  return { prefix: match[1].toLowerCase(), suffix: match[2].toLowerCase() };
 }
 
 export function encodeFilePath(filePath: string): string {
