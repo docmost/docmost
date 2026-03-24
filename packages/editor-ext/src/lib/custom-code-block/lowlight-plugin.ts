@@ -1,35 +1,44 @@
-import { findChildren } from '@tiptap/core'
-import type { Node as ProsemirrorNode } from '@tiptap/pm/model'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { findChildren } from '@tiptap/core';
+import type { Node as ProsemirrorNode } from '@tiptap/pm/model';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 // @ts-ignore
-import highlight from 'highlight.js/lib/core'
+import highlight from 'highlight.js/lib/core';
 
-function parseNodes(nodes: any[], className: string[] = []): { text: string; classes: string[] }[] {
+function parseNodes(
+  nodes: any[],
+  className: string[] = [],
+): { text: string; classes: string[] }[] {
   return nodes
-    .map(node => {
-      const classes = [...className, ...(node.properties ? node.properties.className : [])]
+    .map((node) => {
+      const classes = [
+        ...className,
+        ...(node.properties ? node.properties.className : []),
+      ];
 
       if (node.children) {
-        return parseNodes(node.children, classes)
+        return parseNodes(node.children, classes);
       }
 
       return {
         text: node.value,
         classes,
-      }
+      };
     })
-    .flat()
+    .flat();
 }
 
 function getHighlightNodes(result: any) {
   // `.value` for lowlight v1, `.children` for lowlight v2
-  return result.value || result.children || []
+  return result.value || result.children || [];
 }
 
 function registered(aliasOrLanguage: string) {
-  return Boolean(highlight.getLanguage(aliasOrLanguage))
+  return Boolean(highlight.getLanguage(aliasOrLanguage));
 }
+
+// Max characters to sample for auto-detection to avoid performance issues with large code blocks
+const AUTO_DETECT_SAMPLE_SIZE = 3000;
 
 function getDecorations({
   doc,
@@ -37,44 +46,66 @@ function getDecorations({
   lowlight,
   defaultLanguage,
 }: {
-  doc: ProsemirrorNode
-  name: string
-  lowlight: any
-  defaultLanguage: string | null | undefined
+  doc: ProsemirrorNode;
+  name: string;
+  lowlight: any;
+  defaultLanguage: string | null | undefined;
 }) {
-  const decorations: Decoration[] = []
+  const decorations: Decoration[] = [];
 
-  findChildren(doc, node => node.type.name === name).forEach(block => {
-    let from = block.pos + 1
-    const language = block.node.attrs.language || defaultLanguage
-    const languages = lowlight.listLanguages()
+  findChildren(doc, (node) => node.type.name === name).forEach((block) => {
+    let from = block.pos + 1;
+    const language = block.node.attrs.language || defaultLanguage;
+    const languages = lowlight.listLanguages();
+    const textContent = block.node.textContent;
 
-    const nodes =
-      language && (languages.includes(language) || registered(language) || lowlight.registered?.(language))
-        ? getHighlightNodes(lowlight.highlight(language, block.node.textContent))
-        : getHighlightNodes(lowlight.highlightAuto(block.node.textContent))
+    let nodes;
+    if (
+      language &&
+      (languages.includes(language) ||
+        registered(language) ||
+        lowlight.registered?.(language))
+    ) {
+      nodes = getHighlightNodes(lowlight.highlight(language, textContent));
+    } else {
+      // For auto-detection, sample a limited portion to detect the language,
+      // then highlight the full content with the detected language
+      const sample =
+        textContent.length > AUTO_DETECT_SAMPLE_SIZE
+          ? textContent.slice(0, AUTO_DETECT_SAMPLE_SIZE)
+          : textContent;
+      const autoResult = lowlight.highlightAuto(sample);
+      const detectedLanguage = autoResult.data?.language;
+      if (detectedLanguage && textContent.length > AUTO_DETECT_SAMPLE_SIZE) {
+        nodes = getHighlightNodes(
+          lowlight.highlight(detectedLanguage, textContent),
+        );
+      } else {
+        nodes = getHighlightNodes(autoResult);
+      }
+    }
 
-    parseNodes(nodes).forEach(node => {
-      const to = from + node.text.length
+    parseNodes(nodes).forEach((node) => {
+      const to = from + node.text.length;
 
       if (node.classes.length) {
         const decoration = Decoration.inline(from, to, {
           class: node.classes.join(' '),
-        })
+        });
 
-        decorations.push(decoration)
+        decorations.push(decoration);
       }
 
-      from = to
-    })
-  })
+      from = to;
+    });
+  });
 
-  return DecorationSet.create(doc, decorations)
+  return DecorationSet.create(doc, decorations);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 function isFunction(param: any): param is Function {
-  return typeof param === 'function'
+  return typeof param === 'function';
 }
 
 export function LowlightPlugin({
@@ -82,12 +113,18 @@ export function LowlightPlugin({
   lowlight,
   defaultLanguage,
 }: {
-  name: string
-  lowlight: any
-  defaultLanguage: string | null | undefined
+  name: string;
+  lowlight: any;
+  defaultLanguage: string | null | undefined;
 }) {
-  if (!['highlight', 'highlightAuto', 'listLanguages'].every(api => isFunction(lowlight[api]))) {
-    throw Error('You should provide an instance of lowlight to use the code-block-lowlight extension')
+  if (
+    !['highlight', 'highlightAuto', 'listLanguages'].every((api) =>
+      isFunction(lowlight[api]),
+    )
+  ) {
+    throw Error(
+      'You should provide an instance of lowlight to use the code-block-lowlight extension',
+    );
   }
 
   const lowlightPlugin: Plugin<any> = new Plugin({
@@ -102,10 +139,16 @@ export function LowlightPlugin({
           defaultLanguage,
         }),
       apply: (transaction, decorationSet, oldState, newState) => {
-        const oldNodeName = oldState.selection.$head.parent.type.name
-        const newNodeName = newState.selection.$head.parent.type.name
-        const oldNodes = findChildren(oldState.doc, node => node.type.name === name)
-        const newNodes = findChildren(newState.doc, node => node.type.name === name)
+        const oldNodeName = oldState.selection.$head.parent.type.name;
+        const newNodeName = newState.selection.$head.parent.type.name;
+        const oldNodes = findChildren(
+          oldState.doc,
+          (node) => node.type.name === name,
+        );
+        const newNodes = findChildren(
+          newState.doc,
+          (node) => node.type.name === name,
+        );
 
         if (
           transaction.docChanged &&
@@ -117,23 +160,23 @@ export function LowlightPlugin({
             // OR transaction has changes that completely encapsulte a node
             // (for example, a transaction that affects the entire document).
             // Such transactions can happen during collab syncing via y-prosemirror, for example.
-            transaction.steps.some(step => {
+            transaction.steps.some((step) => {
               // @ts-ignore
               return (
                 // @ts-ignore
                 step.from !== undefined &&
                 // @ts-ignore
                 step.to !== undefined &&
-                oldNodes.some(node => {
+                oldNodes.some((node) => {
                   // @ts-ignore
                   return (
                     // @ts-ignore
                     node.pos >= step.from &&
                     // @ts-ignore
                     node.pos + node.node.nodeSize <= step.to
-                  )
+                  );
                 })
-              )
+              );
             }))
         ) {
           return getDecorations({
@@ -141,19 +184,19 @@ export function LowlightPlugin({
             name,
             lowlight,
             defaultLanguage,
-          })
+          });
         }
 
-        return decorationSet.map(transaction.mapping, transaction.doc)
+        return decorationSet.map(transaction.mapping, transaction.doc);
       },
     },
 
     props: {
       decorations(state) {
-        return lowlightPlugin.getState(state)
+        return lowlightPlugin.getState(state);
       },
     },
-  })
+  });
 
-  return lowlightPlugin
+  return lowlightPlugin;
 }

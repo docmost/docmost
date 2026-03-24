@@ -98,12 +98,12 @@
   a {
     color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-dark-1));
     @mixin light {
-      border-bottom: 0.05em solid var(--mantine-color-dark-0);
+      border-bottom: 0.07em solid var(--mantine-color-dark-0);
     }
     @mixin dark {
-      border-bottom: 0.05em solid var(--mantine-color-dark-2);
+      border-bottom: 0.07em solid var(--mantine-color-dark-2);
     }
-    /*font-weight: 500; */
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
   }
@@ -223,13 +223,13 @@
 .ProseMirror > h4,
 .ProseMirror > h5,
 .ProseMirror > h6 {
-  
+
   > .link-btn {
     cursor: pointer;
     position: relative;
 
   }
-  
+
   > .link-btn > .link-btn-content {
     opacity: 0;
     position: absolute;
@@ -241,7 +241,7 @@
     justify-content: center;
     flex-direction: column;
   }
-  
+
   &:hover > .link-btn > .link-btn-content {
     opacity: 1;
   }

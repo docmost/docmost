@@ -113,7 +113,7 @@ export async function getInvitationById(data: {
 
 export async function createWorkspace(
   data: ISetupWorkspace,
-): Promise<{ workspace: IWorkspace } & { exchangeToken: string }> {
+): Promise<{ workspace: IWorkspace; exchangeToken?: string; requiresEmailVerification?: boolean; emailSignature?: string }> {
   const req = await api.post("/workspace/create", data);
   return req.data;
 }

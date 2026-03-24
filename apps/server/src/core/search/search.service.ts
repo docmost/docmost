@@ -91,9 +91,15 @@ export class SearchService {
         return { items: [] };
       }
 
+      const isRestricted =
+        await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+      if (isRestricted) {
+        return { items: [] };
+      }
+
       const pageIdsToSearch = [];
       if (share.includeSubPages) {
-        const pageList = await this.pageRepo.getPageAndDescendants(
+        const pageList = await this.pageRepo.getPageAndDescendantsExcludingRestricted(
           share.pageId,
           {
             includeContent: false,

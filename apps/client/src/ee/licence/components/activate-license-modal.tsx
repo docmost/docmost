@@ -7,21 +7,22 @@ import { useTranslation } from "react-i18next";
 import { useActivateMutation } from "@/ee/licence/queries/license-query.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import RemoveLicense from "@/ee/licence/components/remove-license.tsx";
 
 export default function ActivateLicense() {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
-  const [workspace] = useAtom(workspaceAtom);
+  const [entitlements] = useAtom(entitlementAtom);
+  const hasLicense = entitlements != null && entitlements.tier !== "free";
 
   return (
     <Group justify="flex-end" wrap="nowrap" mb="sm">
       <Button onClick={open}>
-        {workspace?.hasLicenseKey ? t("Update license") : t("Add license")}
+        {hasLicense ? t("Update license") : t("Add license")}
       </Button>
 
-      {workspace?.hasLicenseKey && <RemoveLicense />}
+      {hasLicense && <RemoveLicense />}
 
       <Modal
         size="550"
@@ -59,7 +60,7 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
   async function handleSubmit(data: { licenseKey: string }) {
     await activateLicenseMutation.mutateAsync(data.licenseKey);
     form.reset();
-    onClose();
+    onClose?.();
   }
 
   return (
