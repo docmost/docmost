@@ -5,7 +5,7 @@ import { useAtom } from "jotai";
 import { isTextSelected } from "@docmost/editor-ext";
 import { showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
 import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel";
-import { normalizeUrl } from "@/features/editor/components/link/link-view";
+import { normalizeUrl } from "@/lib/utils";
 import { TextSelection } from "@tiptap/pm/state";
 import { Paper } from "@mantine/core";
 
