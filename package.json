@@ -108,6 +108,8 @@
       "mermaid": "11.13.0",
       "nanoid@^3": "3.3.8",
       "socket.io-parser": "4.2.6",
+      "serialize-javascript": "7.0.3",
+      "lodash-es": "4.17.23",
       "@hono/node-server": "1.19.10",
       "undici": "7.24.0",
       "ajv@^6": "6.14.0",
