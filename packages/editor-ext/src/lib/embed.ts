@@ -18,6 +18,8 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     embeds: {
       setEmbed: (attributes?: EmbedAttributes) => ReturnType;
+      convertEmbedToText: (url: string) => ReturnType;
+      convertEmbedToLink: (url: string) => ReturnType;
     };
   }
 }
@@ -64,14 +66,14 @@ export const Embed = Node.create<EmbedOptions>({
         }),
       },
       width: {
-        default: 640,
+        default: null,
         parseHTML: (element) => element.getAttribute("data-width"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-width": attributes.width,
         }),
       },
       height: {
-        default: 480,
+        default: null,
         parseHTML: (element) => element.getAttribute("data-height"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-height": attributes.height,
@@ -124,6 +126,43 @@ export const Embed = Node.create<EmbedOptions>({
           return commands.insertContent({
             type: "embed",
             attrs: validatedAttrs,
+          });
+        },
+
+      convertEmbedToText:
+        (url: string) =>
+        ({ commands }) => {
+          return commands.insertContent({
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: url,
+              },
+            ],
+          });
+        },
+
+      convertEmbedToLink:
+        (url: string) =>
+        ({ commands }) => {
+          return commands.insertContent({
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: url,
+                marks: [
+                  {
+                    type: "link",
+                    attrs: {
+                      href: url,
+                      target: "_blank",
+                    },
+                  },
+                ],
+              },
+            ],
           });
         },
     };

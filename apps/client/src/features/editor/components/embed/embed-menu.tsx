@@ -7,20 +7,17 @@ import {
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
 import { ActionIcon, Tooltip } from "@mantine/core";
-import clsx from "clsx";
 import {
-  IconLayoutAlignCenter,
-  IconLayoutAlignLeft,
-  IconLayoutAlignRight,
-  IconDownload,
+  IconLink,
+  IconCopy,
   IconTrash,
   IconRefresh,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { getFileUrl } from "@/lib/config.ts";
+import { notifications } from "@mantine/notifications";
 import classes from "../common/toolbar-menu.module.css";
 
-export function VideoMenu({ editor }: EditorMenuProps) {
+export function EmbedMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
 
   const editorState = useEditorState({
@@ -30,14 +27,12 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         return null;
       }
 
-      const videoAttrs = ctx.editor.getAttributes("video");
+      const embedAttrs = ctx.editor.getAttributes("embed");
 
       return {
-        isVideo: ctx.editor.isActive("video"),
-        isAlignLeft: ctx.editor.isActive("video", { align: "left" }),
-        isAlignCenter: ctx.editor.isActive("video", { align: "center" }),
-        isAlignRight: ctx.editor.isActive("video", { align: "right" }),
-        src: videoAttrs?.src || null,
+        isEmbed: ctx.editor.isActive("embed"),
+        src: embedAttrs?.src || null,
+        provider: embedAttrs?.provider || null,
       };
     },
   });
@@ -48,7 +43,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         return false;
       }
 
-      return editor.isActive("video") && editor.getAttributes("video").src;
+      return editor.isActive("embed") && editor.getAttributes("embed").src;
     },
     [editor],
   );
@@ -56,7 +51,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
   const getReferencedVirtualElement = useCallback(() => {
     if (!editor) return;
     const { selection } = editor.state;
-    const predicate = (node: PMNode) => node.type.name === "video";
+    const predicate = (node: PMNode) => node.type.name === "embed";
     const parent = findParentNode(predicate)(selection);
 
     if (parent) {
@@ -75,44 +70,50 @@ export function VideoMenu({ editor }: EditorMenuProps) {
     };
   }, [editor]);
 
-  const alignLeft = useCallback(() => {
-    editor
-      .chain()
-      .focus(undefined, { scrollIntoView: false })
-      .setVideoAlign("left")
-      .run();
-  }, [editor]);
-
-  const alignCenter = useCallback(() => {
-    editor
-      .chain()
-      .focus(undefined, { scrollIntoView: false })
-      .setVideoAlign("center")
-      .run();
-  }, [editor]);
-
-  const alignRight = useCallback(() => {
-    editor
-      .chain()
-      .focus(undefined, { scrollIntoView: false })
-      .setVideoAlign("right")
-      .run();
-  }, [editor]);
-
-  const handleDownload = useCallback(() => {
+  const handleConvertToLink = useCallback(() => {
     if (!editorState?.src) return;
-    const url = getFileUrl(editorState.src);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "";
-    a.click();
-  }, [editorState?.src]);
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .deleteSelection()
+      .command(({ commands }) => {
+        return commands.insertContent({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: editorState.src,
+              marks: [
+                {
+                  type: "link",
+                  attrs: {
+                    href: editorState.src,
+                    target: "_blank",
+                  },
+                },
+              ],
+            },
+          ],
+        });
+      })
+      .run();
+  }, [editor, editorState?.src]);
+
+  const handleCopyUrl = useCallback(() => {
+    if (!editorState?.src) return;
+    navigator.clipboard.writeText(editorState.src).then(() => {
+      notifications.show({
+        message: t("Copied!"),
+        color: "green",
+      });
+    });
+  }, [editorState?.src, t]);
 
   const handleResetSize = useCallback(() => {
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
-      .updateAttributes("video", { width: null, height: null })
+      .updateAttributes("embed", { width: null, height: null })
       .run();
   }, [editor]);
 
@@ -123,7 +124,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
   return (
     <BaseBubbleMenu
       editor={editor}
-      pluginKey={`video-menu`}
+      pluginKey={`embed-menu`}
       updateDelay={0}
       getReferencedVirtualElement={getReferencedVirtualElement}
       options={{
@@ -134,55 +135,28 @@ export function VideoMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Align left")} withinPortal={false}>
+        <Tooltip position="top" label={t("Convert to link")} withinPortal={false}>
           <ActionIcon
-            onClick={alignLeft}
+            onClick={handleConvertToLink}
             size="lg"
-            aria-label={t("Align left")}
+            aria-label={t("Convert to link")}
             variant="subtle"
-            className={clsx({ [classes.active]: editorState?.isAlignLeft })}
           >
-            <IconLayoutAlignLeft size={18} />
+            <IconLink size={18} />
           </ActionIcon>
         </Tooltip>
 
-        <Tooltip position="top" label={t("Align center")} withinPortal={false}>
+        <Tooltip position="top" label={t("Copy URL")} withinPortal={false}>
           <ActionIcon
-            onClick={alignCenter}
+            onClick={handleCopyUrl}
             size="lg"
-            aria-label={t("Align center")}
-            variant="subtle"
-            className={clsx({ [classes.active]: editorState?.isAlignCenter })}
-          >
-            <IconLayoutAlignCenter size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        <Tooltip position="top" label={t("Align right")} withinPortal={false}>
-          <ActionIcon
-            onClick={alignRight}
-            size="lg"
-            aria-label={t("Align right")}
-            variant="subtle"
-            className={clsx({ [classes.active]: editorState?.isAlignRight })}
-          >
-            <IconLayoutAlignRight size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        <div className={classes.divider} />
-
-        <Tooltip position="top" label={t("Download")} withinPortal={false}>
-          <ActionIcon
-            onClick={handleDownload}
-            size="lg"
-            aria-label={t("Download")}
+            aria-label={t("Copy URL")}
             variant="subtle"
           >
-            <IconDownload size={18} />
+            <IconCopy size={18} />
           </ActionIcon>
         </Tooltip>
-
+        
         <Tooltip position="top" label={t("Reset size")} withinPortal={false}>
           <ActionIcon
             onClick={handleResetSize}
@@ -196,11 +170,11 @@ export function VideoMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
-        <Tooltip position="top" label={t("Delete")} withinPortal={false}>
+        <Tooltip position="top" label={t("Remove")} withinPortal={false}>
           <ActionIcon
             onClick={handleDelete}
             size="lg"
-            aria-label={t("Delete")}
+            aria-label={t("Remove")}
             variant="subtle"
           >
             <IconTrash size={18} />
@@ -211,4 +185,4 @@ export function VideoMenu({ editor }: EditorMenuProps) {
   );
 }
 
-export default VideoMenu;
+export default EmbedMenu;
