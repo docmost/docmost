@@ -29,12 +29,7 @@ import { useSharePageQuery } from "@/features/share/queries/share-query.ts";
 import { buildSharedPageUrl } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
 import { sanitizeUrl, copyToClipboard } from "@docmost/editor-ext";
-
-export const normalizeUrl = (url: string): string => {
-  if (!url) return url;
-  if (url.startsWith("/") || /^(\S+):(\/\/)?\S+$/.test(url)) return url;
-  return `https://${url}`;
-};
+import { normalizeUrl } from "@/lib/utils";
 
 const parseInternalLink = (
   href: string,

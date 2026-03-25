@@ -2,6 +2,7 @@ import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
   ActionIcon,
   Card,
+  LoadingOverlay,
   Modal,
   Text,
   useComputedColorScheme,
@@ -34,6 +35,7 @@ export default function DrawioView(props: NodeViewProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleOpen = async () => {
     if (!editor.isEditable) {
@@ -47,6 +49,7 @@ export default function DrawioView(props: NodeViewProps) {
     if (isSavingRef.current) return;
 
     isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
       const svgString = decodeBase64ToSvgString(svgXml);
@@ -79,6 +82,7 @@ export default function DrawioView(props: NodeViewProps) {
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -136,7 +140,8 @@ export default function DrawioView(props: NodeViewProps) {
       <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
-          <Modal.Body>
+          <Modal.Body pos="relative">
+            <LoadingOverlay visible={isSaving} />
             <div style={{ height: "100vh" }}>
               <DrawIoEmbed
                 ref={drawioRef}
