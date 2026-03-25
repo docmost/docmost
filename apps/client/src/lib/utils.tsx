@@ -94,6 +94,12 @@ export function getPageIcon(icon: string, size = 18): string | ReactNode {
   );
 }
 
+export const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  if (url.startsWith("/") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return url;
+  return `https://${url}`;
+};
+
 export function castToBoolean(value: unknown): boolean {
   if (value == null) {
     return false;

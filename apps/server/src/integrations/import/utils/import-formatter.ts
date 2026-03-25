@@ -4,8 +4,7 @@ import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import slugify = require('@sindresorhus/slugify');
+import slugify from '@sindresorhus/slugify';
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {
