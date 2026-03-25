@@ -28,8 +28,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import slugify = require('@sindresorhus/slugify');
+import slugify from '@sindresorhus/slugify';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageJson = require('../../../package.json');
 import { EnvironmentService } from '../environment/environment.service';

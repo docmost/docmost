@@ -56,6 +56,8 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialLoadRef = useRef(true);
   const lastFingerprintRef = useRef("");
 
@@ -153,6 +155,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const handleOpen = useCallback(async () => {
     if (!editorState?.src) return;
 
+    setIsLoading(true);
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -166,6 +169,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     } catch (err) {
       console.error(err);
     } finally {
+      setIsLoading(false);
       isDirtyRef.current = false;
       isInitialLoadRef.current = true;
       open();
@@ -178,6 +182,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     }
 
     isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
       const { exportToSvg } = await import("@excalidraw/excalidraw");
@@ -223,6 +228,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
   }, [editor, excalidrawAPI, editorState?.attachmentId]);
 
@@ -339,6 +345,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
               size="lg"
               aria-label={t("Edit")}
               variant="subtle"
+              loading={isLoading}
             >
               <IconEdit size={18} />
             </ActionIcon>
@@ -390,7 +397,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button onClick={handleSaveAndExit} size={"compact-sm"}>
+          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
             {t("Save & Exit")}
           </Button>
           <Button onClick={handleClose} color="red" size={"compact-sm"}>

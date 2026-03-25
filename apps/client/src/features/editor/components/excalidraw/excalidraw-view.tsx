@@ -52,6 +52,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
   const isInitialLoadRef = useRef(true);
   const lastFingerprintRef = useRef("");
 
@@ -70,6 +71,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
     }
 
     isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
       const { exportToSvg } = await import("@excalidraw/excalidraw");
@@ -120,6 +122,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
   }, [excalidrawAPI, editor, attachmentId, updateAttributes]);
 
@@ -191,7 +194,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button onClick={handleSaveAndExit} size={"compact-sm"}>
+          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
             {t("Save & Exit")}
           </Button>
           <Button onClick={handleClose} color="red" size={"compact-sm"}>
