@@ -121,7 +121,10 @@
       "minimatch@^5": "5.1.8",
       "flatted": "3.4.2",
       "picomatch@<2.3.2": "2.3.2",
-      "fastify": "5.8.3"
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+      "fastify": "5.8.3",
+      "yaml@>=1.0.0 <1.10.3": "1.10.3",
+      "yaml@>=2.0.0 <2.8.3": "2.8.3"
     },
     "neverBuiltDependencies": []
   }
