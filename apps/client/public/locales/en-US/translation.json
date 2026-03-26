@@ -716,5 +716,12 @@
   "Unknown device": "Unknown device",
   "No active sessions": "No active sessions",
   "Session revoked": "Session revoked",
-  "All other sessions revoked": "All other sessions revoked"
+  "All other sessions revoked": "All other sessions revoked",
+  "Last used": "Last used",
+  "Created": "Created",
+  "Rename": "Rename",
+  "Publish": "Publish",
+  "Security": "Security",
+  "Enforce SSO": "Enforce SSO",
+  "Once enforced, members will not be able to login with email and password.": "Once enforced, members will not be able to login with email and password."
 }

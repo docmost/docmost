@@ -20,6 +20,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.notNull().defaultTo(sql`now()`),
     )
     .addColumn('expires_at', 'timestamptz', (col) => col.notNull())
+    .addColumn('metadata', 'jsonb')
     .addColumn('revoked_at', 'timestamptz')
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`now()`),

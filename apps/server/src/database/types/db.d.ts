@@ -437,6 +437,7 @@ export interface UserSessions {
   userAgent: string | null;
   ipAddress: string | null;
   geoLocation: string | null;
+  metadata: Json | null;
   lastActiveAt: Generated<Timestamp>;
   expiresAt: Timestamp;
   revokedAt: Timestamp | null;

@@ -669,13 +669,15 @@ export class WorkspaceService {
       }
     }
 
-    await this.userRepo.updateUser(
-      { deactivatedAt: new Date() },
-      userId,
-      workspaceId,
-    );
-
-    await this.userSessionRepo.revokeByUserId(userId, workspaceId);
+    await executeTx(this.db, async (trx) => {
+      await this.userRepo.updateUser(
+        { deactivatedAt: new Date() },
+        userId,
+        workspaceId,
+        trx,
+      );
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+    });
 
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
@@ -789,9 +791,9 @@ export class WorkspaceService {
       await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, {
         trx,
       });
-    });
 
-    await this.userSessionRepo.revokeByUserId(userId, workspaceId);
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+    });
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,

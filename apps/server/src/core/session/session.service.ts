@@ -51,7 +51,6 @@ export class SessionService {
     const mapped = sessions.map((s) => ({
       id: s.id,
       deviceName: s.deviceName,
-      ipAddress: s.ipAddress,
       geoLocation: s.geoLocation,
       lastActiveAt: s.lastActiveAt,
       createdAt: s.createdAt,
