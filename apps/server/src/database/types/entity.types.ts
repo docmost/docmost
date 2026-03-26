@@ -22,6 +22,7 @@ import {
   Shares,
   FileTasks,
   UserMfa as _UserMFA,
+  UserSessions,
   ApiKeys,
   Watchers,
   Audit as _Audit,
@@ -156,6 +157,11 @@ export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
 export type PagePermission = Selectable<_PagePermissions>;
 export type InsertablePagePermission = Insertable<_PagePermissions>;
 export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
+
+// User Session
+export type UserSession = Selectable<UserSessions>;
+export type InsertableUserSession = Insertable<UserSessions>;
+export type UpdatableUserSession = Updateable<Omit<UserSessions, 'id'>>;
 
 // Audit
 export type Audit = Selectable<_Audit>;

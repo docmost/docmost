@@ -5,12 +5,14 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Req,
   Res,
   UseGuards,
   Logger,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
+import { SessionService } from '../session/session.service';
 import { SetupGuard } from './guards/setup.guard';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
@@ -22,7 +24,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { ModuleRef } from '@nestjs/core';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
@@ -37,6 +39,7 @@ export class AuthController {
 
   constructor(
     private authService: AuthService,
+    private sessionService: SessionService,
     private environmentService: EnvironmentService,
     private moduleRef: ModuleRef,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
@@ -115,8 +118,15 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
+    @Req() req: FastifyRequest,
   ) {
-    return this.authService.changePassword(dto, user.id, workspace.id);
+    const currentSessionId = (req.raw as any).sessionId;
+    return this.authService.changePassword(
+      dto,
+      user.id,
+      workspace.id,
+      currentSessionId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -178,8 +188,18 @@ export class AuthController {
   @Post('logout')
   async logout(
     @AuthUser() user: User,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    const sessionId = (req.raw as any).sessionId;
+    if (sessionId) {
+      await this.sessionService.revokeSession(
+        sessionId,
+        user.id,
+        user.workspaceId,
+      );
+    }
+
     res.clearCookie('authToken');
 
     this.auditService.log({

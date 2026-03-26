@@ -708,5 +708,13 @@
   "Resend verification email": "Resend verification email",
   "Verification email sent. Please check your inbox.": "Verification email sent. Please check your inbox.",
   "Failed to resend verification email. Please try again.": "Failed to resend verification email. Please try again.",
-  "We've sent you an email with your associated workspaces.": "We've sent you an email with your associated workspaces."
+  "We've sent you an email with your associated workspaces.": "We've sent you an email with your associated workspaces.",
+  "Load more": "Load more",
+  "Log out of all devices": "Log out of all devices",
+  "Log out of all sessions except this device": "Log out of all sessions except this device",
+  "This Device": "This Device",
+  "Unknown device": "Unknown device",
+  "No active sessions": "No active sessions",
+  "Session revoked": "Session revoked",
+  "All other sessions revoked": "All other sessions revoked"
 }

@@ -7,6 +7,7 @@ export interface AuditContext {
   actorId: string | null;
   actorType: 'user' | 'system' | 'api_key';
   ipAddress: string | null;
+  userAgent: string | null;
 }
 
 export const AUDIT_CONTEXT_KEY = 'auditContext';
@@ -19,11 +20,15 @@ export class AuditContextMiddleware implements NestMiddleware {
     const workspaceId = (req as any).workspaceId ?? null;
     const ipAddress = this.extractIpAddress(req);
 
+    const userAgent =
+      (req.headers['user-agent'] as string) ?? null;
+
     const auditContext: AuditContext = {
       workspaceId,
       actorId: null,
       actorType: 'user',
       ipAddress,
+      userAgent,
     };
 
     this.cls.set(AUDIT_CONTEXT_KEY, auditContext);

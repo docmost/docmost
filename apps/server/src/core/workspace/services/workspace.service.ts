@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
@@ -67,6 +68,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private userSessionRepo: UserSessionRepo,
   ) {}
 
   async findById(workspaceId: string) {
@@ -673,6 +675,8 @@ export class WorkspaceService {
       workspaceId,
     );
 
+    await this.userSessionRepo.revokeByUserId(userId, workspaceId);
+
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
       resourceType: AuditResource.USER,
@@ -786,6 +790,8 @@ export class WorkspaceService {
         trx,
       });
     });
+
+    await this.userSessionRepo.revokeByUserId(userId, workspaceId);
 
     this.auditService.log({
       event: AuditEvent.USER_DELETED,

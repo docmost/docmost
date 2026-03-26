@@ -8,6 +8,8 @@ import {
 import { LoginDto } from '../dto/login.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { TokenService } from './token.service';
+import { SessionService } from '../../session/session.service';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { SignupService } from './signup.service';
 import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
@@ -44,6 +46,8 @@ export class AuthService {
   constructor(
     private signupService: SignupService,
     private tokenService: TokenService,
+    private sessionService: SessionService,
+    private userSessionRepo: UserSessionRepo,
     private userRepo: UserRepo,
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
@@ -90,19 +94,19 @@ export class AuthService {
       metadata: { source: 'password' },
     });
 
-    return this.tokenService.generateAccessToken(user);
+    return this.sessionService.createSessionAndToken(user);
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
     const user = await this.signupService.signup(createUserDto, workspaceId);
-    return this.tokenService.generateAccessToken(user);
+    return this.sessionService.createSessionAndToken(user);
   }
 
   async setup(createAdminUserDto: CreateAdminUserDto) {
     const { workspace, user } =
       await this.signupService.initialSetup(createAdminUserDto);
 
-    const authToken = await this.tokenService.generateAccessToken(user);
+    const authToken = await this.sessionService.createSessionAndToken(user);
     return { workspace, authToken };
   }
 
@@ -110,6 +114,7 @@ export class AuthService {
     dto: ChangePasswordDto,
     userId: string,
     workspaceId: string,
+    currentSessionId?: string,
   ): Promise<void> {
     const user = await this.userRepo.findById(userId, workspaceId, {
       includePassword: true,
@@ -137,6 +142,16 @@ export class AuthService {
       userId,
       workspaceId,
     );
+
+    if (currentSessionId) {
+      await this.userSessionRepo.deleteAllExceptCurrent(
+        currentSessionId,
+        userId,
+        workspaceId,
+      );
+    } else {
+      await this.userSessionRepo.deleteByUserId(userId, workspaceId);
+    }
 
     this.auditService.log({
       event: AuditEvent.USER_PASSWORD_CHANGED,
@@ -244,6 +259,8 @@ export class AuthService {
         .execute();
     });
 
+    await this.userSessionRepo.deleteByUserId(user.id, workspace.id);
+
     this.auditService.setActorId(user.id);
     this.auditService.log({
       event: AuditEvent.USER_PASSWORD_RESET,
@@ -276,7 +293,7 @@ export class AuthService {
       };
     }
 
-    const authToken = await this.tokenService.generateAccessToken(user);
+    const authToken = await this.sessionService.createSessionAndToken(user);
     return { authToken };
   }
 

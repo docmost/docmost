@@ -66,6 +66,7 @@
     "ai": "^6.0.134",
     "ai-sdk-ollama": "^3.8.1",
     "bcrypt": "^6.0.0",
+    "bowser": "^2.14.1",
     "bullmq": "^5.71.0",
     "cache-manager": "^7.2.8",
     "cheerio": "^1.2.0",
