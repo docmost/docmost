@@ -6,6 +6,7 @@ import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { sql } from 'kysely';
 
 @Injectable()
 export class UserSessionRepo {
@@ -123,5 +124,39 @@ export class UserSessionRepo {
       .where('workspaceId', '=', workspaceId)
       .where('id', '!=', currentSessionId)
       .execute();
+  }
+
+  async deleteStale(retentionDays: number): Promise<void> {
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    await this.db
+      .deleteFrom('userSessions')
+      .where((eb) =>
+        eb.or([
+          eb('revokedAt', '<', cutoff),
+          eb('expiresAt', '<', cutoff),
+        ]),
+      )
+      .execute();
+  }
+
+  async trimExcessSessions(maxPerUser: number): Promise<void> {
+    const overflowed = await this.db
+      .selectFrom('userSessions')
+      .select(['userId', 'workspaceId'])
+      .groupBy(['userId', 'workspaceId'])
+      .having(sql`COUNT(*)`, '>', maxPerUser)
+      .execute();
+
+    for (const { userId, workspaceId } of overflowed) {
+      await sql`
+        DELETE FROM user_sessions
+        WHERE id IN (
+          SELECT id FROM user_sessions
+          WHERE user_id = ${userId} AND workspace_id = ${workspaceId}
+          ORDER BY last_active_at DESC
+          OFFSET ${maxPerUser}
+        )
+      `.execute(this.db);
+    }
   }
 }

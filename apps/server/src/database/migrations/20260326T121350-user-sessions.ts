@@ -27,17 +27,19 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
-  await db.schema
-    .createIndex('idx_user_sessions_user_workspace')
-    .on('user_sessions')
-    .columns(['user_id', 'workspace_id'])
-    .execute();
+  // Partial index for active session queries (list, validate)
+  await sql`
+    CREATE INDEX idx_user_sessions_active
+    ON user_sessions (user_id, workspace_id, last_active_at DESC)
+    WHERE revoked_at IS NULL
+  `.execute(db);
 
-  await db.schema
-    .createIndex('idx_user_sessions_expires_at')
-    .on('user_sessions')
-    .column('expires_at')
-    .execute();
+  // For session cleanup
+  await sql`
+    CREATE INDEX idx_user_sessions_cleanup
+    ON user_sessions (revoked_at, expires_at)
+    WHERE revoked_at IS NOT NULL OR expires_at < now()
+  `.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

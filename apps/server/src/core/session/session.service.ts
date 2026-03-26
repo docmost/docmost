@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { TokenService } from '../auth/services/token.service';
 import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
@@ -10,14 +11,30 @@ import {
 } from '../../common/middlewares/audit-context.middleware';
 import * as Bowser from 'bowser';
 
+const MAX_SESSIONS_PER_USER = 25;
+const RETENTION_DAYS = 7;
+
 @Injectable()
 export class SessionService {
+  private readonly logger = new Logger(SessionService.name);
+
   constructor(
     private readonly tokenService: TokenService,
     private readonly userSessionRepo: UserSessionRepo,
     private readonly environmentService: EnvironmentService,
     private readonly cls: ClsService,
   ) {}
+
+  @Interval('session-cleanup', 24 * 60 * 60 * 1000)
+  async cleanupSessions() {
+    try {
+      await this.userSessionRepo.deleteStale(RETENTION_DAYS);
+      await this.userSessionRepo.trimExcessSessions(MAX_SESSIONS_PER_USER);
+      this.logger.debug('Session cleanup completed');
+    } catch (err) {
+      this.logger.error('Session cleanup failed', err);
+    }
+  }
 
   async createSessionAndToken(user: User): Promise<string> {
     const auditContext = this.cls.get<AuditContext>(AUDIT_CONTEXT_KEY);
