@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
-import React from "react";
-import { Button, Group, Modal, Textarea } from "@mantine/core";
+import React, { useRef } from "react";
+import { Button, Divider, Group, Modal, Stack, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useTranslation } from "react-i18next";
@@ -49,6 +49,7 @@ interface ActivateLicenseFormProps {
 export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
   const { t } = useTranslation();
   const activateLicenseMutation = useActivateMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     validate: zod4Resolver(formSchema),
@@ -63,29 +64,68 @@ export function ActivateLicenseForm({ onClose }: ActivateLicenseFormProps) {
     onClose?.();
   }
 
+  function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = (e.target?.result as string)?.trim();
+      if (content) {
+        form.setFieldValue("licenseKey", content);
+        handleSubmit({ licenseKey: content });
+      }
+    };
+    reader.readAsText(file);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
-      <Textarea
-        label={t("License key")}
-        description="Enter a valid enterprise license key. Contact sales@docmost.com to purchase one."
-        placeholder={t("e.g eyJhb.....")}
-        variant="filled"
-        autosize
-        minRows={3}
-        maxRows={5}
-        data-autofocus
-        {...form.getInputProps("licenseKey")}
+      <input
+        type="file"
+        accept=".txt"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        hidden
       />
 
-      <Group justify="flex-end" mt="md">
-        <Button
-          type="submit"
-          disabled={activateLicenseMutation.isPending}
-          loading={activateLicenseMutation.isPending}
-        >
-          {t("Save")}
-        </Button>
-      </Group>
+      <Stack gap="xs">
+        <Textarea
+          label={t("License key")}
+          placeholder={t("e.g eyJhb.....")}
+          variant="filled"
+          autosize
+          minRows={3}
+          maxRows={5}
+          data-autofocus
+          {...form.getInputProps("licenseKey")}
+        />
+
+        <Group justify="flex-end">
+          <Button
+            type="submit"
+            disabled={activateLicenseMutation.isPending}
+            loading={activateLicenseMutation.isPending}
+          >
+            {t("Save")}
+          </Button>
+        </Group>
+
+        <Divider label={t("Or")} labelPosition="center" />
+
+        <Group justify="center">
+          <Button
+            variant="light"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {t("Upload license file")}
+          </Button>
+        </Group>
+      </Stack>
     </form>
   );
 }
