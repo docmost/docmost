@@ -65,7 +65,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       const sessionId = (payload as JwtPayload).sessionId;
       const session = await this.userSessionRepo.findActiveById(sessionId);
       if (!session || session.userId !== payload.sub || session.workspaceId !== payload.workspaceId) {
-        throw new UnauthorizedException('Session revoked');
+        throw new UnauthorizedException();
       }
       req.raw.sessionId = sessionId;
       this.sessionActivityService.trackActivity(sessionId, payload.sub, payload.workspaceId);
