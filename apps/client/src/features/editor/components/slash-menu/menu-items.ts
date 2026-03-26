@@ -48,6 +48,7 @@ import {
   VimeoIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import i18n from "@/i18n.ts";
 
 const CommandGroups: SlashMenuGroupedItemsType = {
   basic: [
@@ -372,7 +373,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["date", "today"],
       icon: IconCalendar,
       command: ({ editor, range }: CommandProps) => {
-        const currentDate = new Date().toLocaleDateString("en-US", {
+        const currentDate = new Date().toLocaleDateString(i18n.language || "en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
