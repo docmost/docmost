@@ -68,7 +68,11 @@ export default function OssDetails() {
         </List>
 
         <Text size="sm" c="dimmed">
-          Contact <a href="mailto:sales@docmost.com?subject=Enterprise%20License%20Inquiry">sales@docmost.com </a> to purchase an enterprise license.
+          Get an enterprise trial key at <a href="https://customers.docmost.com/" target="_blank" rel="noopener noreferrer">customers.docmost.com</a>.
+        </Text>
+
+        <Text size="sm" c="dimmed">
+          Visit <a href="https://docmost.com/pricing" target="_blank" rel="noopener noreferrer">docmost.com/pricing</a> to purchase an enterprise license.
         </Text>
       </Stack>
     </Stack>
