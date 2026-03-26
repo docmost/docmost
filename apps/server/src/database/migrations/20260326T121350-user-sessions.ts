@@ -27,18 +27,16 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
-  // Partial index for active session queries (list, validate)
   await sql`
     CREATE INDEX idx_user_sessions_active
     ON user_sessions (user_id, workspace_id, last_active_at DESC)
     WHERE revoked_at IS NULL
   `.execute(db);
 
-  // For session cleanup
   await sql`
-    CREATE INDEX idx_user_sessions_cleanup
-    ON user_sessions (revoked_at, expires_at)
-    WHERE revoked_at IS NOT NULL OR expires_at < now()
+    CREATE INDEX idx_user_sessions_revoked
+    ON user_sessions (expires_at)
+    WHERE revoked_at IS NOT NULL
   `.execute(db);
 }
 
