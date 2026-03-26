@@ -4,5 +4,5 @@ export type ISession = {
   geoLocation: string | null;
   lastActiveAt: string;
   createdAt: string;
-  isCurrent: boolean;
+  isCurrentDevice?: boolean;
 };

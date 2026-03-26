@@ -71,12 +71,12 @@ export class SessionService {
       geoLocation: s.geoLocation,
       lastActiveAt: s.lastActiveAt,
       createdAt: s.createdAt,
-      isCurrent: s.id === currentSessionId,
+      isCurrentDevice: s.id === currentSessionId,
     }));
 
     return mapped.sort((a, b) => {
-      if (a.isCurrent) return -1;
-      if (b.isCurrent) return 1;
+      if (a.isCurrentDevice) return -1;
+      if (b.isCurrentDevice) return 1;
       return 0;
     });
   }

@@ -26,7 +26,7 @@ export default function SessionList() {
   const revokeAllSessionsMutation = useRevokeAllSessionsMutation();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const otherSessions = sessions?.filter((s) => !s.isCurrent) ?? [];
+  const otherSessions = sessions?.filter((s) => !s?.isCurrentDevice) ?? [];
   const visibleSessions = sessions?.slice(0, visibleCount) ?? [];
   const hasMore = sessions && visibleCount < sessions.length;
 
@@ -107,7 +107,7 @@ export default function SessionList() {
                     <Text size="sm">
                       {session.deviceName || t("Unknown device")}
                     </Text>
-                    {session.isCurrent && (
+                    {session?.isCurrentDevice && (
                       <Text size="xs" c="blue">
                         {t("This Device")}
                       </Text>
@@ -117,14 +117,14 @@ export default function SessionList() {
               </Table.Td>
               <Table.Td>
                 <Text size="sm">
-                  {session.isCurrent
+                  {session?.isCurrentDevice
                     ? t("Now")
                     : formattedDate(new Date(session.lastActiveAt))}
                 </Text>
               </Table.Td>
               {otherSessions.length > 0 && (
                 <Table.Td>
-                  {!session.isCurrent && (
+                  {!session?.isCurrentDevice && (
                     <Button
                       variant="outline"
                       size="xs"
