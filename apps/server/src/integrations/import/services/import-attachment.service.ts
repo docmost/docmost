@@ -335,6 +335,28 @@ export class ImportAttachmentService {
       unwrapFromParagraph($, $vid);
     }
 
+    // audio
+    for (const audEl of $('audio').toArray()) {
+      const $aud = $(audEl);
+      const src = cleanUrlString($aud.attr('src') ?? '')!;
+      if (!src || src.startsWith('http')) continue;
+
+      const relPath = resolveRelativeAttachmentPath(
+        src,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath } = processFile(relPath);
+
+      $aud
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId);
+
+      unwrapFromParagraph($, $aud);
+    }
+
     // <div data-type="attachment">
     for (const el of $('div[data-type="attachment"]').toArray()) {
       const $oldDiv = $(el);
@@ -401,6 +423,8 @@ export class ImportAttachmentService {
       const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const ext = path.extname(relPath).toLowerCase();
 
+      const audioExtensions = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.flac', '.aac']);
+
       if (ext === '.mp4') {
         const $video = $('<video>')
           .attr('src', apiFilePath)
@@ -409,6 +433,12 @@ export class ImportAttachmentService {
           .attr('data-align', 'center');
         $a.replaceWith($video);
         unwrapFromParagraph($, $video);
+      } else if (audioExtensions.has(ext)) {
+        const $audio = $('<audio>')
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId);
+        $a.replaceWith($audio);
+        unwrapFromParagraph($, $audio);
       } else {
         const confAliasName = $a.attr('data-linked-resource-default-alias');
         let attachmentName = path.basename(abs);
