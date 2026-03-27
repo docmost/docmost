@@ -18,3 +18,5 @@ export const Feature = {
   SHARING_CONTROLS: 'sharing:controls',
   VIEWER_COMMENTS: 'comment:viewer',
 } as const;
+
+export type FeatureKey = (typeof Feature)[keyof typeof Feature];
