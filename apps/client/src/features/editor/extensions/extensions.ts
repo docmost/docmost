@@ -30,6 +30,7 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  TiptapAudio,
   LinkExtension,
   Selection,
   Attachment,
@@ -68,6 +69,7 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import StatusView from "@/features/editor/components/status/status-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
@@ -268,6 +270,9 @@ export const mainExtensions = [
       createCustomHandle: createResizeHandle,
       className: buildResizeClasses("node-video"),
     },
+  }),
+  TiptapAudio.configure({
+    view: AudioView,
   }),
   Callout.configure({
     view: CalloutView,

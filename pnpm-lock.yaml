@@ -75,6 +75,9 @@ importers:
       '@tiptap/core':
         specifier: 3.20.4
         version: 3.20.4(@tiptap/pm@3.20.4)
+      '@tiptap/extension-audio':
+        specifier: 3.20.4
+        version: 3.20.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))
       '@tiptap/extension-code-block':
         specifier: 3.20.4
         version: 3.20.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))(@tiptap/pm@3.20.4)
@@ -4658,6 +4661,11 @@ packages:
     resolution: {integrity: sha512-3i/DG89TFY/b34T5P+j35UcjYuB5d3+9K8u6qID+iUqNPiza015HPIZLuPfE5elNwVdV3EXIoPo0LLeBLgXXAg==}
     peerDependencies:
       '@tiptap/pm': ^3.20.4
+
+  '@tiptap/extension-audio@3.20.4':
+    resolution: {integrity: sha512-zX90pxpEYpV5jSrwtQw8Nmh2uK4WC+xwSG5MXVh4VLG8SnSE/vg/vCCqFiSHjXNfw68dctd6HJ0MJigwnuS0lw==}
+    peerDependencies:
+      '@tiptap/core': ^3.20.4
 
   '@tiptap/extension-blockquote@3.20.4':
     resolution: {integrity: sha512-9sskyyhYj2oKat//lyZVXCp9YrPt4oJAZnGHYWXS0xlskjsLElrfKKlM4vpbhGss3VrhQRoEGqWLnIaJYPF1zw==}
@@ -15281,6 +15289,10 @@ snapshots:
   '@tiptap/core@3.20.4(@tiptap/pm@3.20.4)':
     dependencies:
       '@tiptap/pm': 3.20.4
+
+  '@tiptap/extension-audio@3.20.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))':
+    dependencies:
+      '@tiptap/core': 3.20.4(@tiptap/pm@3.20.4)
 
   '@tiptap/extension-blockquote@3.20.4(@tiptap/core@3.20.4(@tiptap/pm@3.20.4))':
     dependencies:

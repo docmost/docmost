@@ -30,6 +30,7 @@
     "@joplin/turndown-plugin-gfm": "^1.0.64",
     "@sindresorhus/slugify": "3.0.0",
     "@tiptap/core": "3.20.4",
+    "@tiptap/extension-audio": "3.20.4",
     "@tiptap/extension-code-block": "3.20.4",
     "@tiptap/extension-collaboration": "3.20.4",
     "@tiptap/extension-collaboration-caret": "3.20.4",
