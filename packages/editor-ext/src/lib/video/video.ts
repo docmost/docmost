@@ -1,7 +1,8 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { Range, Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
+import { Range, Node, mergeAttributes } from "@tiptap/core";
+import { ResizableNodeView } from "../resizable-nodeview";
+import type { ResizableNodeViewDirection } from "../resizable-nodeview";
 import { normalizeFileUrl } from "../media-utils";
-import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type VideoResizeOptions = {
   enabled: boolean;

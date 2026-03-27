@@ -1,5 +1,6 @@
-import { Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
-import type { ResizableNodeViewDirection } from "@tiptap/core";
+import { Node, mergeAttributes } from "@tiptap/core";
+import { ResizableNodeView } from "./resizable-nodeview";
+import type { ResizableNodeViewDirection } from "./resizable-nodeview";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { normalizeFileUrl } from "./media-utils";
 

@@ -94,8 +94,7 @@
   "packageManager": "pnpm@10.4.0",
   "pnpm": {
     "patchedDependencies": {
-      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch",
-      "@tiptap/core": "patches/@tiptap__core.patch"
+      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
     },
     "overrides": {
       "prosemirror-changeset": "2.4.0",

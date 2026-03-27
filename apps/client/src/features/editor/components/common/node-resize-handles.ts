@@ -1,4 +1,4 @@
-import type { ResizableNodeViewDirection } from "@tiptap/core";
+import type { ResizableNodeViewDirection } from "@docmost/editor-ext/lib/resizable-nodeview";
 import classes from "./node-resize.module.css";
 
 export function createResizeHandle(
