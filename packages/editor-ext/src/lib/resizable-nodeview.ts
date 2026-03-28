@@ -1093,9 +1093,3 @@ export class ResizableNodeView {
     };
   }
 }
-
-/**
- * Alias for ResizableNodeView to maintain consistent naming.
- * @deprecated Use ResizableNodeView instead - will be removed in future versions.
- */
-export const ResizableNodeview = ResizableNodeView;
