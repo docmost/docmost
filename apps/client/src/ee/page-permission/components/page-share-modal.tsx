@@ -71,7 +71,10 @@ export function PageShareModal({ readOnly }: PageShareModalProps) {
           ) : null
         }
         variant="default"
-        onClick={open}
+        onClick={() => {
+          setActiveTab(isPubliclyShared ? "publish" : hasPagePermissions ? "access" : "publish");
+          open();
+        }}
       >
         {t("Share")}
       </Button>
