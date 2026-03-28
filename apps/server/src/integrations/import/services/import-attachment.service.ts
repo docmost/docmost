@@ -190,13 +190,32 @@ export class ImportAttachmentService {
       }
     }
 
+    // Build a map from resolved archive path → real filename from Confluence
+    // metadata. Confluence Server archives often store files under numeric IDs
+    // (e.g. "attachments/65601/65602") instead of the original filename.
+    const pageDir = path.dirname(pageRelativePath);
+    const attachmentNameByRelPath = new Map<string, string>();
+    for (const attachment of pageAttachments) {
+      const relPath = resolveRelativeAttachmentPath(
+        attachment.href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (relPath && attachment.fileName) {
+        attachmentNameByRelPath.set(relPath, attachment.fileName);
+      }
+    }
+
     const uploadOnce = (relPath: string) => {
       const abs = attachmentCandidates.get(relPath)!;
       const attachmentId = v7();
-      const ext = path.extname(abs);
+
+      const realName = attachmentNameByRelPath.get(relPath);
+      const baseName = realName || path.basename(abs);
+      const ext = path.extname(baseName);
 
       const fileNameWithExt =
-        sanitizeFileName(path.basename(abs, ext)) + ext.toLowerCase();
+        sanitizeFileName(path.basename(baseName, ext)) + ext.toLowerCase();
 
       const storageFilePath = `${getAttachmentFolderPath(
         AttachmentType.File,
@@ -240,7 +259,6 @@ export class ImportAttachmentService {
       return fresh;
     };
 
-    const pageDir = path.dirname(pageRelativePath);
     const $ = load(html);
 
     // image
