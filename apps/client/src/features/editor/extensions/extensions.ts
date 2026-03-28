@@ -49,7 +49,7 @@ import {
   SharedStorage,
   Columns,
   Column,
-  Status
+  Status,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -97,6 +97,7 @@ import i18n from "@/i18n.ts";
 import { MarkdownClipboard } from "@/features/editor/extensions/markdown-clipboard.ts";
 import EmojiCommand from "./emoji-command";
 import { countWords } from "alfaaz";
+import AutoJoiner from "@/features/editor/extensions/autojoiner.ts";
 
 const lowlight = createLowlight(common);
 lowlight.register("mermaid", plaintext);
@@ -353,6 +354,9 @@ export const mainExtensions = [
   }).configure(),
   Columns,
   Column,
+  AutoJoiner.configure({
+    elementsToJoin: [],
+  }),
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
