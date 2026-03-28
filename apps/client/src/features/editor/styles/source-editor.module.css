@@ -1,0 +1,11 @@
+.sourceEditorWrapper {
+    width: 100%;
+    min-height: 70vh;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        :global(.cm-content) {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+    }
+}
