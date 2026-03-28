@@ -443,7 +443,16 @@ export class ImportAttachmentService {
 
       const audioExtensions = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.flac', '.aac']);
 
-      if (ext === '.mp4') {
+      if (ext === '.pdf') {
+        const $pdf = $('<div>')
+          .attr('data-type', 'pdf')
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId)
+          .attr('width', '800')
+          .attr('height', '600');
+        $a.replaceWith($pdf);
+        unwrapFromParagraph($, $pdf);
+      } else if (ext === '.mp4') {
         const $video = $('<video>')
           .attr('src', apiFilePath)
           .attr('data-attachment-id', attachmentId)
@@ -603,7 +612,7 @@ export class ImportAttachmentService {
     // Post-process DOM elements to add file sizes after uploads complete
     // This avoids blocking file operations during initial DOM processing
     const elementsNeedingSize = $(
-      '[data-attachment-id]:not([data-attachment-size])',
+      '[data-attachment-id]:not([data-attachment-size]):not([data-size])',
     );
     for (const element of elementsNeedingSize.toArray()) {
       const $el = $(element);
@@ -618,7 +627,14 @@ export class ImportAttachmentService {
       if (processedEntry) {
         try {
           const stat = await fs.stat(processedEntry.abs);
-          $el.attr('data-attachment-size', stat.size.toString());
+          const sizeStr = stat.size.toString();
+          const tagName = $el.prop('tagName')?.toLowerCase();
+          // audio and pdf nodes use data-size, attachment nodes use data-attachment-size
+          if (tagName === 'audio' || $el.attr('data-type') === 'pdf') {
+            $el.attr('data-size', sizeStr);
+          } else {
+            $el.attr('data-attachment-size', sizeStr);
+          }
         } catch (error) {
           this.logger.debug(
             `Could not get size for ${processedEntry.abs}:`,

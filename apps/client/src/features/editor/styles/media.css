@@ -8,7 +8,7 @@
     }
   }
 
-  .node-image, .node-video, .node-excalidraw, .node-drawio {
+  .node-image, .node-video, .node-pdf, .node-excalidraw, .node-drawio {
     &.ProseMirror-selectednode {
       outline: none;
     }
