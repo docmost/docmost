@@ -31,6 +31,10 @@ import {
   removeMarkTypeFromDoc,
 } from '../../../common/helpers/prosemirror/utils';
 import {
+  getAttachmentFolderPath,
+} from '../../../core/attachment/attachment.utils';
+import { AttachmentType } from '../../../core/attachment/attachment.constants';
+import {
   htmlToJson,
   jsonToNode,
   jsonToText,
@@ -643,10 +647,8 @@ export class PageService {
 
           const newPageId = pageAttachment.newPageId;
 
-          const newPathFile = attachment.filePath.replace(
-            attachment.id,
-            newAttachmentId,
-          );
+          // Construct new file path with sanitized filename to handle non-ASCII characters
+          const newPathFile = `${getAttachmentFolderPath(AttachmentType.File, attachment.workspaceId)}/${newAttachmentId}/${attachment.fileName}`;
 
           try {
             await this.storageService.copy(attachment.filePath, newPathFile);
