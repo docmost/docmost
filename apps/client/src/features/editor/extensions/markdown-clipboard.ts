@@ -20,6 +20,20 @@ export const MarkdownClipboard = Extension.create({
         key: new PluginKey("markdownClipboard"),
         props: {
           clipboardTextSerializer: (slice) => {
+            const listTypes = ["bulletList", "orderedList", "taskList"];
+            let topLevelCount = 0;
+            let hasList = false;
+            slice.content.forEach((node) => {
+              if (listTypes.includes(node.type.name)) {
+                hasList = true;
+                topLevelCount += node.childCount;
+              } else {
+                topLevelCount++;
+              }
+            });
+
+            if (!hasList || topLevelCount < 2) return null;
+
             const div = document.createElement("div");
             const serializer = DOMSerializer.fromSchema(this.editor.schema);
             const fragment = serializer.serializeFragment(slice.content);
