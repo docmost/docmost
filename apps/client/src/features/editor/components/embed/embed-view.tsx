@@ -86,8 +86,8 @@ export default function EmbedView(props: NodeViewProps) {
       {embedUrl ? (
         <div className={classes.embedContainer}>
           <ResizableWrapper
-            initialWidth={nodeWidth || 640}
-            initialHeight={nodeHeight || 480}
+            initialWidth={nodeWidth || 800}
+            initialHeight={nodeHeight || 600}
             minWidth={200}
             maxWidth={1200}
             minHeight={200}
