@@ -449,7 +449,10 @@ export class ResizableNodeView {
     this.container = this.createContainer();
 
     this.applyInitialSize();
-    this.attachHandles();
+
+    if (this.editor.isEditable) {
+      this.attachHandles();
+    }
 
     this.editor.on('update', this.handleEditorUpdate.bind(this));
   }
