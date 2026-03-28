@@ -13,7 +13,7 @@ import {
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { INotification } from "../types/notification.types";
 import { Trans, useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMarkReadMutation } from "../queries/notification-query";
 import { buildPageUrl } from "@/features/page/page.utils";
@@ -30,7 +30,6 @@ export function NotificationItem({
   onNavigate,
 }: NotificationItemProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const markRead = useMarkReadMutation();
   const [hovered, setHovered] = useState(false);
 
@@ -55,32 +54,39 @@ export function NotificationItem({
     }
   };
 
-  const handleClick = () => {
-    if (notification.page && notification.space) {
-      if (isUnread) {
-        markRead.mutate([notification.id]);
-      }
-      navigate(
-        buildPageUrl(
+  const pageUrl =
+    notification.page && notification.space
+      ? buildPageUrl(
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
-        ),
-      );
-      onNavigate();
-    }
-  };
+        )
+      : undefined;
 
-  const handleMarkRead = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const markReadIfNeeded = () => {
     if (isUnread) {
       markRead.mutate([notification.id]);
     }
   };
 
+  const handleClick = () => {
+    markReadIfNeeded();
+    onNavigate();
+  };
+
+  const handleMarkRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    markReadIfNeeded();
+  };
+
   return (
     <UnstyledButton
+      component={Link}
+      to={pageUrl ?? ""}
       onClick={handleClick}
+      // auxclick fires for all non-primary buttons; guard to middle-click only (button 1)
+      // so that right-click (button 2, context menu) does not mark as read
+      onAuxClick={(e: React.MouseEvent) => e.button === 1 && markReadIfNeeded()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       w="100%"
