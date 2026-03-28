@@ -1,5 +1,5 @@
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { Group, Loader, Text } from "@mantine/core";
+import { ActionIcon, Group, Loader, Text, Tooltip } from "@mantine/core";
 import { useCallback, useMemo, useState } from "react";
 import { getFileUrl } from "@/lib/config.ts";
 import { ResizableWrapper } from "../common/resizable-wrapper";
@@ -7,7 +7,11 @@ import clsx from "clsx";
 import classes from "./pdf-view.module.css";
 import { useTranslation } from "react-i18next";
 import { isInternalFileUrl } from "@docmost/editor-ext";
-import { IconFileTypePdf } from "@tabler/icons-react";
+import {
+  IconFileTypePdf,
+  IconPaperclip,
+  IconTrash,
+} from "@tabler/icons-react";
 
 export default function PdfView(props: NodeViewProps) {
   const { t } = useTranslation();
@@ -34,6 +38,38 @@ export default function PdfView(props: NodeViewProps) {
     [updateAttributes],
   );
 
+  const handleConvertToAttachment = useCallback(() => {
+    if (!src) return;
+    const pos = getPos();
+    if (pos === undefined) return;
+    const currentNode = editor.state.doc.nodeAt(pos);
+    if (!currentNode || currentNode.type.name !== "pdf") return;
+
+    editor
+      .chain()
+      .insertContentAt(
+        { from: pos, to: pos + currentNode.nodeSize },
+        {
+          type: "attachment",
+          attrs: {
+            url: currentNode.attrs.src,
+            name: currentNode.attrs.name,
+            attachmentId: currentNode.attrs.attachmentId,
+            size: currentNode.attrs.size,
+            mime: "application/pdf",
+          },
+        },
+      )
+      .run();
+  }, [editor, src, getPos]);
+
+  const handleDelete = useCallback(() => {
+    const pos = getPos();
+    if (pos === undefined) return;
+    editor.commands.setNodeSelection(pos);
+    editor.commands.deleteSelection();
+  }, [editor, getPos]);
+
   if (!src || !safeSrc) {
     return (
       <NodeViewWrapper data-drag-handle>
@@ -54,7 +90,7 @@ export default function PdfView(props: NodeViewProps) {
   if (hasError) {
     return (
       <NodeViewWrapper data-drag-handle>
-        <div className={classes.pdfError} onClick={handleSelect}>
+        <div data-pdf-error className={clsx(classes.pdfError, { "ProseMirror-selectednode": selected })} onClick={handleSelect}>
           <IconFileTypePdf size={32} stroke={1.5} />
           <Text size="sm" c="dimmed">
             {t("Failed to load PDF")}
@@ -99,7 +135,32 @@ export default function PdfView(props: NodeViewProps) {
               }
             }}
           />
-          {!selected && <div className={classes.clickOverlay} onClick={handleSelect} />}
+          {editor.isEditable && (
+            <div className={classes.hoverMenu}>
+              <Tooltip position="top" label={t("Convert to attachment")} withinPortal>
+                <ActionIcon
+                  size="sm"
+                  variant="filled"
+                  color="dark"
+                  onClick={handleConvertToAttachment}
+                  aria-label={t("Convert to attachment")}
+                >
+                  <IconPaperclip size={14} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip position="top" label={t("Delete")} withinPortal>
+                <ActionIcon
+                  size="sm"
+                  variant="filled"
+                  color="dark"
+                  onClick={handleDelete}
+                  aria-label={t("Delete")}
+                >
+                  <IconTrash size={14} />
+                </ActionIcon>
+              </Tooltip>
+            </div>
+          )}
         </ResizableWrapper>
       </div>
     </NodeViewWrapper>

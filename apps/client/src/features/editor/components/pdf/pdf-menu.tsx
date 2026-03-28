@@ -8,13 +8,10 @@ import {
 } from "@/features/editor/components/table/types/types.ts";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import {
-  IconDownload,
   IconPaperclip,
   IconTrash,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { getFileUrl } from "@/lib/config.ts";
-import { isInternalFileUrl } from "@docmost/editor-ext";
 import classes from "../common/toolbar-menu.module.css";
 
 export function PdfMenu({ editor }: EditorMenuProps) {
@@ -40,11 +37,15 @@ export function PdfMenu({ editor }: EditorMenuProps) {
 
   const shouldShow = useCallback(
     ({ state }: ShouldShowProps) => {
-      if (!state) {
+      if (!state || !editor.isActive("pdf")) {
         return false;
       }
 
-      return editor.isActive("pdf") && editor.getAttributes("pdf").src;
+      const { selection } = state;
+      const dom = editor.view.nodeDOM(selection.from) as HTMLElement | null;
+      if (!dom) return false;
+
+      return !!dom.querySelector("[data-pdf-error]");
     },
     [editor],
   );
@@ -70,15 +71,6 @@ export function PdfMenu({ editor }: EditorMenuProps) {
       getClientRects: () => [domRect],
     };
   }, [editor]);
-
-  const handleDownload = useCallback(() => {
-    if (!editorState?.src || !isInternalFileUrl(editorState.src)) return;
-    const url = getFileUrl(editorState.src);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "";
-    a.click();
-  }, [editorState?.src]);
 
   const handleConvertToAttachment = useCallback(() => {
     if (!editorState?.src) return;
@@ -124,17 +116,6 @@ export function PdfMenu({ editor }: EditorMenuProps) {
       shouldShow={shouldShow}
     >
       <div className={classes.toolbar}>
-        <Tooltip position="top" label={t("Download")} withinPortal={false}>
-          <ActionIcon
-            onClick={handleDownload}
-            size="lg"
-            aria-label={t("Download")}
-            variant="subtle"
-          >
-            <IconDownload size={18} />
-          </ActionIcon>
-        </Tooltip>
-
         <Tooltip position="top" label={t("Convert to attachment")} withinPortal={false}>
           <ActionIcon
             onClick={handleConvertToAttachment}

@@ -52,10 +52,32 @@
   border-radius: 8px;
 }
 
-.clickOverlay {
+.hoverMenu {
   position: absolute;
-  inset: 0;
-  cursor: pointer;
+  top: 56px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.hoverMenu::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+
+.hoverMenu:hover {
+  opacity: 1;
+}
+
+.pdfResizeWrapper:hover .hoverMenu {
+  opacity: 1;
 }
 
 .pdfError {
