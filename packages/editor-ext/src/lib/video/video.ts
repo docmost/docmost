@@ -329,12 +329,11 @@ export const TiptapVideo = Node.create<VideoOptions>({
 
       // Show skeleton background while video loads from server
       dom.style.pointerEvents = "none";
-      dom.style.background =
-        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
+      el.classList.add("media-pulse");
 
       el.onloadedmetadata = () => {
         dom.style.pointerEvents = "";
-        dom.style.background = "";
+        el.classList.remove("media-pulse");
       };
 
       return nodeView;
