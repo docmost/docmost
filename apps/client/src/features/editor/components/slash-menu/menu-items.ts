@@ -163,7 +163,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Image",
       description: "Upload any image from your device.",
-      searchTerms: ["photo", "picture", "media"],
+      searchTerms: ["photo", "picture", "media", "file", "attachment"],
       icon: IconPhoto,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -196,7 +196,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Video",
       description: "Upload any video from your device.",
-      searchTerms: ["video", "mp4", "media"],
+      searchTerms: ["video", "mp4", "media", "file", "attachment"],
       icon: IconMovie,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -229,7 +229,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Audio",
       description: "Upload any audio from your device.",
-      searchTerms: ["audio", "music", "sound", "mp3"],
+      searchTerms: ["audio", "music", "sound", "mp3", "media", "file", "attachment"],
       icon: IconMusic,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -394,7 +394,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         editor.chain().focus().deleteRange(range).setDrawio().run(),
     },
     {
-      title: "Excalidraw diagram",
+      title: "Excalidraw diagram (Whiteboard)",
       description: "Draw and sketch excalidraw diagrams",
       searchTerms: ["diagrams", "draw", "sketch", "whiteboard"],
       icon: IconExcalidraw,
@@ -583,7 +583,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "YouTube",
       description: "Embed YouTube video",
-      searchTerms: ["youtube", "yt"],
+      searchTerms: ["youtube", "yt", "media"],
       icon: YoutubeIcon,
       command: ({ editor, range }: CommandProps) => {
         editor
