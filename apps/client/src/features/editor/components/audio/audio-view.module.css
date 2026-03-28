@@ -1,4 +1,4 @@
-.imageWrapper {
+.audioWrapper {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -28,4 +28,10 @@
       background-position: -135% 0%;
     }
   }
+}
+
+.audio {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
 }

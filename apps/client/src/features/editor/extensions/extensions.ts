@@ -30,6 +30,7 @@ import {
   TiptapImage,
   Callout,
   TiptapVideo,
+  TiptapAudio,
   LinkExtension,
   Selection,
   Attachment,
@@ -37,6 +38,7 @@ import {
   Drawio,
   Excalidraw,
   Embed,
+  TiptapPdf,
   SearchAndReplace,
   Mention,
   TableDndExtension,
@@ -68,11 +70,13 @@ import ImageView from "@/features/editor/components/image/image-view.tsx";
 import CalloutView from "@/features/editor/components/callout/callout-view.tsx";
 import StatusView from "@/features/editor/components/status/status-view.tsx";
 import VideoView from "@/features/editor/components/video/video-view.tsx";
+import AudioView from "@/features/editor/components/audio/audio-view.tsx";
 import AttachmentView from "@/features/editor/components/attachment/attachment-view.tsx";
 import CodeBlockView from "@/features/editor/components/code-block/code-block-view.tsx";
 import DrawioView from "../components/drawio/drawio-view";
 import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-view.tsx";
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
+import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
 import { common, createLowlight } from "lowlight";
 import plaintext from "highlight.js/lib/languages/plaintext";
@@ -269,6 +273,9 @@ export const mainExtensions = [
       className: buildResizeClasses("node-video"),
     },
   }),
+  TiptapAudio.configure({
+    view: AudioView,
+  }),
   Callout.configure({
     view: CalloutView,
   }),
@@ -312,6 +319,9 @@ export const mainExtensions = [
   }),
   Embed.configure({
     view: EmbedView,
+  }),
+  TiptapPdf.configure({
+    view: PdfView,
   }),
   Subpages.configure({
     view: SubpagesView,

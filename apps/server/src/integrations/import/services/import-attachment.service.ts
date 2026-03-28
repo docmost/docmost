@@ -190,13 +190,32 @@ export class ImportAttachmentService {
       }
     }
 
+    // Build a map from resolved archive path → real filename from Confluence
+    // metadata. Confluence Server archives often store files under numeric IDs
+    // (e.g. "attachments/65601/65602") instead of the original filename.
+    const pageDir = path.dirname(pageRelativePath);
+    const attachmentNameByRelPath = new Map<string, string>();
+    for (const attachment of pageAttachments) {
+      const relPath = resolveRelativeAttachmentPath(
+        attachment.href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (relPath && attachment.fileName) {
+        attachmentNameByRelPath.set(relPath, attachment.fileName);
+      }
+    }
+
     const uploadOnce = (relPath: string) => {
       const abs = attachmentCandidates.get(relPath)!;
       const attachmentId = v7();
-      const ext = path.extname(abs);
+
+      const realName = attachmentNameByRelPath.get(relPath);
+      const baseName = realName || path.basename(abs);
+      const ext = path.extname(baseName);
 
       const fileNameWithExt =
-        sanitizeFileName(path.basename(abs, ext)) + ext.toLowerCase();
+        sanitizeFileName(path.basename(baseName, ext)) + ext.toLowerCase();
 
       const storageFilePath = `${getAttachmentFolderPath(
         AttachmentType.File,
@@ -240,7 +259,6 @@ export class ImportAttachmentService {
       return fresh;
     };
 
-    const pageDir = path.dirname(pageRelativePath);
     const $ = load(html);
 
     // image
@@ -335,6 +353,28 @@ export class ImportAttachmentService {
       unwrapFromParagraph($, $vid);
     }
 
+    // audio
+    for (const audEl of $('audio').toArray()) {
+      const $aud = $(audEl);
+      const src = cleanUrlString($aud.attr('src') ?? '')!;
+      if (!src || src.startsWith('http')) continue;
+
+      const relPath = resolveRelativeAttachmentPath(
+        src,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!relPath) continue;
+
+      const { attachmentId, apiFilePath } = processFile(relPath);
+
+      $aud
+        .attr('src', apiFilePath)
+        .attr('data-attachment-id', attachmentId);
+
+      unwrapFromParagraph($, $aud);
+    }
+
     // <div data-type="attachment">
     for (const el of $('div[data-type="attachment"]').toArray()) {
       const $oldDiv = $(el);
@@ -401,7 +441,18 @@ export class ImportAttachmentService {
       const { attachmentId, apiFilePath, abs } = processFile(relPath);
       const ext = path.extname(relPath).toLowerCase();
 
-      if (ext === '.mp4') {
+      const audioExtensions = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.webm', '.flac', '.aac']);
+
+      if (ext === '.pdf') {
+        const $pdf = $('<div>')
+          .attr('data-type', 'pdf')
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId)
+          .attr('width', '800')
+          .attr('height', '600');
+        $a.replaceWith($pdf);
+        unwrapFromParagraph($, $pdf);
+      } else if (ext === '.mp4') {
         const $video = $('<video>')
           .attr('src', apiFilePath)
           .attr('data-attachment-id', attachmentId)
@@ -409,6 +460,12 @@ export class ImportAttachmentService {
           .attr('data-align', 'center');
         $a.replaceWith($video);
         unwrapFromParagraph($, $video);
+      } else if (audioExtensions.has(ext)) {
+        const $audio = $('<audio>')
+          .attr('src', apiFilePath)
+          .attr('data-attachment-id', attachmentId);
+        $a.replaceWith($audio);
+        unwrapFromParagraph($, $audio);
       } else {
         const confAliasName = $a.attr('data-linked-resource-default-alias');
         let attachmentName = path.basename(abs);
@@ -555,7 +612,7 @@ export class ImportAttachmentService {
     // Post-process DOM elements to add file sizes after uploads complete
     // This avoids blocking file operations during initial DOM processing
     const elementsNeedingSize = $(
-      '[data-attachment-id]:not([data-attachment-size])',
+      '[data-attachment-id]:not([data-attachment-size]):not([data-size])',
     );
     for (const element of elementsNeedingSize.toArray()) {
       const $el = $(element);
@@ -570,7 +627,14 @@ export class ImportAttachmentService {
       if (processedEntry) {
         try {
           const stat = await fs.stat(processedEntry.abs);
-          $el.attr('data-attachment-size', stat.size.toString());
+          const sizeStr = stat.size.toString();
+          const tagName = $el.prop('tagName')?.toLowerCase();
+          // audio and pdf nodes use data-size, attachment nodes use data-attachment-size
+          if (tagName === 'audio' || $el.attr('data-type') === 'pdf') {
+            $el.attr('data-size', sizeStr);
+          } else {
+            $el.attr('data-attachment-size', sizeStr);
+          }
         } catch (error) {
           this.logger.debug(
             `Could not get size for ${processedEntry.abs}:`,

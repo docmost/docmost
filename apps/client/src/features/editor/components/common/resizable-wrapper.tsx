@@ -74,6 +74,15 @@ export const ResizableWrapper: React.FC<ResizableWrapperProps> = ({
   const constraintsRef = useRef({ minWidth, maxWidth, minHeight, maxHeight });
   constraintsRef.current = { minWidth, maxWidth, minHeight, maxHeight };
 
+  useEffect(() => {
+    if (!dragRef.current && wrapperRef.current) {
+      widthRef.current = initialWidth;
+      heightRef.current = initialHeight;
+      wrapperRef.current.style.width = `${initialWidth}px`;
+      wrapperRef.current.style.height = `${initialHeight}px`;
+    }
+  }, [initialWidth, initialHeight]);
+
   const handleMouseMove = useRef((e: MouseEvent) => {
     const drag = dragRef.current;
     if (!drag || !wrapperRef.current) return;

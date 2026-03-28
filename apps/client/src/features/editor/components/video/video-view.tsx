@@ -33,6 +33,7 @@ export default function VideoView(props: NodeViewProps) {
         className={clsx(
           selected && "ProseMirror-selectednode",
           classes.videoWrapper,
+          !src && classes.skeleton,
           alignClass,
         )}
         style={{

@@ -30,6 +30,7 @@
     "@joplin/turndown-plugin-gfm": "^1.0.64",
     "@sindresorhus/slugify": "3.0.0",
     "@tiptap/core": "3.20.4",
+    "@tiptap/extension-audio": "3.20.4",
     "@tiptap/extension-code-block": "3.20.4",
     "@tiptap/extension-collaboration": "3.20.4",
     "@tiptap/extension-collaboration-caret": "3.20.4",
@@ -94,8 +95,7 @@
   "packageManager": "pnpm@10.4.0",
   "pnpm": {
     "patchedDependencies": {
-      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch",
-      "@tiptap/core": "patches/@tiptap__core.patch"
+      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
     },
     "overrides": {
       "prosemirror-changeset": "2.4.0",
