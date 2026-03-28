@@ -733,7 +733,5 @@
   "Publish": "Publish.",
   "Security": "Security.",
   "Enforce SSO": "Enforce SSO.",
-  "Once enforced, members will not be able to login with email and password.": "Once enforced, members will not be able to log in with email and password.",
-  "Uploading {{name}}": "Uploading {{name}}",
-  "Uploading file": "Uploading file"
+  "Once enforced, members will not be able to login with email and password.": "Once enforced, members will not be able to log in with email and password."
 }
