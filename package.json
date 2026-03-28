@@ -124,7 +124,9 @@
       "picomatch@>=4.0.0 <4.0.4": "4.0.4",
       "fastify": "5.8.3",
       "yaml@>=1.0.0 <1.10.3": "1.10.3",
-      "yaml@>=2.0.0 <2.8.3": "2.8.3"
+      "yaml@>=2.0.0 <2.8.3": "2.8.3",
+      "path-to-regexp@^8": "8.4.0",
+      "brace-expansion@^5": "5.0.5"
     },
     "neverBuiltDependencies": []
   }
