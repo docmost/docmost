@@ -583,7 +583,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "YouTube",
       description: "Embed YouTube video",
-      searchTerms: ["youtube", "yt", "media"],
+      searchTerms: ["youtube", "yt", "media", "video"],
       icon: YoutubeIcon,
       command: ({ editor, range }: CommandProps) => {
         editor
