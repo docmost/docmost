@@ -682,7 +682,11 @@ export const getSuggestionItems = ({
     });
 
     if (filteredItems.length) {
-      filteredGroups[group] = filteredItems;
+      filteredGroups[group] = filteredItems.sort((a, b) => {
+        const aTitle = a.title.toLowerCase().includes(search) ? 0 : 1;
+        const bTitle = b.title.toLowerCase().includes(search) ? 0 : 1;
+        return aTitle - bTitle;
+      });
     }
   }
 
