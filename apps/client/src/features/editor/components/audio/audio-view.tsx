@@ -23,7 +23,7 @@ export default function AudioView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <div className={classes.audioWrapper}>
+      <div className={`${classes.audioWrapper} ${!src ? classes.skeleton : ''}`}>
         {src && (
           <audio
             className={classes.audio}

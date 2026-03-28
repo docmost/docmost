@@ -33,6 +33,7 @@ export default function ImageView(props: NodeViewProps) {
         className={clsx(
           selected && "ProseMirror-selectednode",
           classes.imageWrapper,
+          !src && classes.skeleton,
           alignClass,
         )}
         style={{
