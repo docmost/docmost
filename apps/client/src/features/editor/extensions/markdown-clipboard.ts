@@ -1,9 +1,9 @@
 // adapted from: https://github.com/aguingand/tiptap-markdown/blob/main/src/extensions/tiptap/clipboard.js - MIT
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { DOMParser, Fragment, Slice } from "@tiptap/pm/model";
+import { DOMParser, DOMSerializer, Fragment, Slice } from "@tiptap/pm/model";
 import { find } from "linkifyjs";
-import { markdownToHtml } from "@docmost/editor-ext";
+import { markdownToHtml, htmlToMarkdown } from "@docmost/editor-ext";
 
 export const MarkdownClipboard = Extension.create({
   name: "markdownClipboard",
@@ -19,6 +19,27 @@ export const MarkdownClipboard = Extension.create({
       new Plugin({
         key: new PluginKey("markdownClipboard"),
         props: {
+          clipboardTextSerializer: (slice) => {
+            const listTypes = ["bulletList", "orderedList", "taskList"];
+            let topLevelCount = 0;
+            let hasList = false;
+            slice.content.forEach((node) => {
+              if (listTypes.includes(node.type.name)) {
+                hasList = true;
+                topLevelCount += node.childCount;
+              } else {
+                topLevelCount++;
+              }
+            });
+
+            if (!hasList || topLevelCount < 2) return null;
+
+            const div = document.createElement("div");
+            const serializer = DOMSerializer.fromSchema(this.editor.schema);
+            const fragment = serializer.serializeFragment(slice.content);
+            div.appendChild(fragment);
+            return htmlToMarkdown(div.innerHTML);
+          },
           handlePaste: (view, event, slice) => {
             if (!event.clipboardData) {
               return false;

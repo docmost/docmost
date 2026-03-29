@@ -150,6 +150,13 @@ export class ExportService {
     // set to null to make export of pages with parentId work
     pages[parentPageIndex].parentPageId = null;
 
+    const isSinglePage = pages.length === 1 && !includeAttachments;
+
+    if (isSinglePage) {
+      const pageContent = await this.exportPage(format, pages[0], true);
+      return { type: 'file' as const, content: pageContent, page: pages[0] };
+    }
+
     const tree = buildTree(pages as Page[]);
 
     const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
@@ -170,7 +177,7 @@ export class ExportService {
       compression: 'DEFLATE',
     });
 
-    return zipFile;
+    return { type: 'zip' as const, stream: zipFile, page: pages[0] };
   }
 
   async exportSpace(
