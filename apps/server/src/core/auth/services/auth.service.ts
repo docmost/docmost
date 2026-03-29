@@ -283,16 +283,6 @@ export class AuthService {
       );
     }
 
-    // Check if user has MFA enabled or workspace enforces MFA
-    const userHasMfa = user?.['mfa']?.isEnabled || false;
-    const workspaceEnforcesMfa = workspace.enforceMfa || false;
-
-    if (userHasMfa || workspaceEnforcesMfa) {
-      return {
-        requiresLogin: true,
-      };
-    }
-
     const authToken = await this.sessionService.createSessionAndToken(user);
     return { authToken };
   }

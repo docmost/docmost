@@ -153,4 +153,4 @@ export function useDeleteCommentMutation(pageId?: string) {
   });
 }
 
-// EE: useResolveCommentMutation has been moved to @/ee/comment/queries/comment-query
+// Comment resolution has been removed from the community build.

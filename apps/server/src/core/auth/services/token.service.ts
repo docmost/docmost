@@ -4,14 +4,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { StringValue } from 'ms';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
-  JwtApiKeyPayload,
   JwtAttachmentPayload,
   JwtCollabPayload,
   JwtExchangePayload,
-  JwtMfaTokenPayload,
   JwtPayload,
   JwtType,
 } from '../dto/jwt-payload';
@@ -79,40 +76,6 @@ export class TokenService {
       type: JwtType.ATTACHMENT,
     };
     return this.jwtService.sign(payload, { expiresIn: '1h' });
-  }
-
-  async generateMfaToken(user: User, workspaceId: string): Promise<string> {
-    if (isUserDisabled(user)) {
-      throw new ForbiddenException();
-    }
-
-    const payload: JwtMfaTokenPayload = {
-      sub: user.id,
-      workspaceId,
-      type: JwtType.MFA_TOKEN,
-    };
-    return this.jwtService.sign(payload, { expiresIn: '5m' });
-  }
-
-  async generateApiToken(opts: {
-    apiKeyId: string;
-    user: User;
-    workspaceId: string;
-    expiresIn?: StringValue | number;
-  }): Promise<string> {
-    const { apiKeyId, user, workspaceId, expiresIn } = opts;
-    if (isUserDisabled(user)) {
-      throw new ForbiddenException();
-    }
-
-    const payload: JwtApiKeyPayload = {
-      sub: user.id,
-      apiKeyId: apiKeyId,
-      workspaceId,
-      type: JwtType.API_KEY,
-    };
-
-    return this.jwtService.sign(payload, expiresIn ? { expiresIn } : {});
   }
 
   async verifyJwt(token: string, tokenType: string) {

@@ -5,11 +5,9 @@ import {
   Text,
   TextInput,
   Divider,
-  Badge,
   ScrollArea,
   Avatar,
   Group,
-  Switch,
   getDefaultZIndex,
 } from "@mantine/core";
 import {
@@ -22,34 +20,24 @@ import {
 import { useTranslation } from "react-i18next";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { Feature } from "@/ee/features";
 import classes from "./search-spotlight-filters.module.css";
-import { useAtom } from "jotai";
-import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 interface SearchSpotlightFiltersProps {
   onFiltersChange?: (filters: any) => void;
-  onAskClick?: () => void;
   spaceId?: string;
-  isAiMode?: boolean;
 }
 
 export function SearchSpotlightFilters({
   onFiltersChange,
-  onAskClick,
   spaceId,
-  isAiMode = false,
 }: SearchSpotlightFiltersProps) {
   const { t } = useTranslation();
-  const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(
     spaceId || null,
   );
   const [spaceSearchQuery, setSpaceSearchQuery] = useState("");
   const [debouncedSpaceQuery] = useDebouncedValue(spaceSearchQuery, 300);
-  const [contentType, setContentType] = useState<string | null>("page");
-  const [workspace] = useAtom(workspaceAtom);
+  const [contentType, setContentType] = useState<string | null>(null);
 
   const { data: spacesData } = useGetSpacesQuery({
     limit: 100,
@@ -80,15 +68,11 @@ export function SearchSpotlightFilters({
         contentType,
       });
     }
-  }, []);
+  }, [contentType, onFiltersChange, selectedSpaceId]);
 
   const contentTypeOptions = [
     { value: "page", label: t("Pages") },
-    {
-      value: "attachment",
-      label: t("Attachments"),
-      disabled: !hasAttachmentIndexing,
-    },
+    { value: "attachment", label: t("Attachments") },
   ];
 
   const handleSpaceSelect = (spaceId: string | null) => {
@@ -127,31 +111,6 @@ export function SearchSpotlightFilters({
 
   return (
     <div className={classes.filtersContainer}>
-      {workspace?.settings?.ai?.search === true && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: "32px",
-            paddingLeft: "8px",
-            paddingRight: "8px",
-          }}
-        >
-          <Switch
-            checked={isAiMode}
-            onChange={(event) => onAskClick()}
-            label={t("AI Answers")}
-            size="sm"
-            color="blue"
-            labelPosition="left"
-            styles={{
-              root: { display: "flex", alignItems: "center" },
-              label: { paddingRight: "8px", fontSize: "13px", fontWeight: 500 },
-            }}
-          />
-        </div>
-      )}
-
       <Menu
         shadow="md"
         width={250}
@@ -259,29 +218,13 @@ export function SearchSpotlightFilters({
             <Menu.Item
               key={option.value}
               onClick={() =>
-                !option.disabled &&
                 contentType !== option.value &&
                 handleFilterChange("contentType", option.value)
-              }
-              disabled={
-                option.disabled || (isAiMode && option.value === "attachment")
               }
             >
               <Group flex="1" gap="xs">
                 <div>
                   <Text size="sm">{option.label}</Text>
-                  {option.disabled && (
-                    <Badge size="xs" mt={4}>
-                      {t("Enterprise")}
-                    </Badge>
-                  )}
-                  {!option.disabled &&
-                    isAiMode &&
-                    option.value === "attachment" && (
-                      <Text size="xs" mt={4}>
-                        {t("AI Answers not available for attachments")}
-                      </Text>
-                    )}
                 </div>
                 {contentType === option.value && <IconCheck size={20} />}
               </Group>

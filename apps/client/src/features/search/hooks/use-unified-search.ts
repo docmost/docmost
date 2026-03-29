@@ -8,8 +8,6 @@ import {
   IPageSearch,
   IPageSearchParams,
 } from "@/features/search/types/search.types";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { Feature } from "@/ee/features";
 
 export type UnifiedSearchResult = IPageSearch | IAttachmentSearch;
 
@@ -21,10 +19,7 @@ export function useUnifiedSearch(
   params: UseUnifiedSearchParams,
   enabled: boolean = true,
 ): UseQueryResult<UnifiedSearchResult[], Error> {
-  const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
-
-  const isAttachmentSearch =
-    params.contentType === "attachment" && hasAttachmentIndexing;
+  const isAttachmentSearch = params.contentType === "attachment";
   const searchType = isAttachmentSearch ? "attachment" : "page";
 
   return useQuery({

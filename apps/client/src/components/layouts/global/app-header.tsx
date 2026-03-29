@@ -1,4 +1,4 @@
-import { Badge, Group, Text, Tooltip } from "@mantine/core";
+import { Group, Text, Tooltip } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
@@ -12,15 +12,12 @@ import {
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import SidebarToggle from "@/components/ui/sidebar-toggle-button.tsx";
 import { useTranslation } from "react-i18next";
-import useTrial from "@/ee/hooks/use-trial.tsx";
-import { isCloud } from "@/lib/config.ts";
 import {
   SearchControl,
   SearchMobileControl,
 } from "@/features/search/components/search-control.tsx";
 import {
   searchSpotlight,
-  shareSearchSpotlight,
 } from "@/features/search/constants.ts";
 import { NotificationPopover } from "@/features/notification/components/notification-popover.tsx";
 
@@ -33,7 +30,6 @@ export function AppHeader() {
 
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
-  const { isTrial, trialDaysLeft } = useTrial();
 
   const isHomeRoute = location.pathname.startsWith("/home");
   const isSpacesRoute = location.pathname === "/spaces";
@@ -99,19 +95,6 @@ export function AppHeader() {
 
         <Group px={"xl"} wrap="nowrap">
           <NotificationPopover />
-          {isCloud() && isTrial && trialDaysLeft !== 0 && (
-            <Badge
-              variant="light"
-              style={{ cursor: "pointer" }}
-              component={Link}
-              to={APP_ROUTE.SETTINGS.WORKSPACE.BILLING}
-              visibleFrom="xs"
-            >
-              {trialDaysLeft === 1
-                ? "1 day left"
-                : `${trialDaysLeft} days left`}
-            </Badge>
-          )}
           <TopMenu />
         </Group>
       </Group>

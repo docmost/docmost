@@ -1,6 +1,8 @@
 import React from "react";
-import { MfaSettings } from "@/ee/mfa";
+import { Text } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 export function AccountMfaSection() {
-  return <MfaSettings />;
+  const { t } = useTranslation();
+  return <Text c="dimmed">{t("Two-factor authentication is not available.")}</Text>;
 }

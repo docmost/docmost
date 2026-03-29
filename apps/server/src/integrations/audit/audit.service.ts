@@ -32,18 +32,18 @@ export const AUDIT_SERVICE = Symbol('AUDIT_SERVICE');
 @Injectable()
 export class NoopAuditService implements IAuditService {
   log(_payload: AuditLogPayload): void {
-    // No-op: swallow the log when EE module is not available
+    // No-op for the community build.
   }
 
   logWithContext(_payload: AuditLogPayload, _context: AuditLogContext): void {
-    // No-op: swallow the log when EE module is not available
+    // No-op for the community build.
   }
 
   logBatchWithContext(
     _payloads: AuditLogPayload[],
     _context: AuditLogContext,
   ): void {
-    // No-op: swallow the log when EE module is not available
+    // No-op for the community build.
   }
 
   setActorId(_actorId: string): void {

@@ -32,7 +32,6 @@ import {
 import { executeTx } from '@docmost/db/utils';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ImportAttachmentService } from './import-attachment.service';
-import { ModuleRef } from '@nestjs/core';
 import { PageService } from '../../../core/page/services/page.service';
 import { ImportPageNode } from '../dto/file-task-dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -54,7 +53,6 @@ export class FileImportTaskService {
     private readonly backlinkRepo: BacklinkRepo,
     @InjectKysely() private readonly db: KyselyDB,
     private readonly importAttachmentService: ImportAttachmentService,
-    private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -116,25 +114,15 @@ export class FileImportTaskService {
       }
 
       if (fileTask.source === FileImportSource.Confluence) {
-        let ConfluenceModule: any;
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          ConfluenceModule = require('./../../../ee/confluence-import/confluence-import.service');
-        } catch (err) {
-          this.logger.error(
-            'Confluence import requested but EE module not bundled in this build',
-          );
-          return;
-        }
-        const confluenceImportService = this.moduleRef.get(
-          ConfluenceModule.ConfluenceImportService,
-          { strict: false },
+        await this.updateTaskStatus(
+          fileTaskId,
+          FileTaskStatus.Failed,
+          'Confluence import is no longer supported.',
         );
-
-        await confluenceImportService.processConfluenceImport({
-          extractDir: tmpExtractDir,
-          fileTask,
-        });
+        await cleanupTmpFile();
+        await cleanupTmpDir();
+        await this.storageService.delete(fileTask.filePath);
+        return;
       }
       try {
         await this.updateTaskStatus(fileTaskId, FileTaskStatus.Success, null);

@@ -51,7 +51,7 @@ export class ImportController {
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const validFileExtensions = ['.md', '.html', '.docx'];
+    const validFileExtensions = ['.md', '.html'];
 
     const maxFileSize = bytes('20mb');
 
@@ -101,7 +101,6 @@ export class ImportController {
     const sourceMap: Record<string, string> = {
       '.md': 'markdown',
       '.html': 'html',
-      '.docx': 'docx',
     };
 
     if (createdPage) {
@@ -160,10 +159,10 @@ export class ImportController {
     const spaceId = file.fields?.spaceId?.value;
     const source = file.fields?.source?.value;
 
-    const validZipSources = ['generic', 'notion', 'confluence'];
+    const validZipSources = ['generic', 'notion'];
     if (!validZipSources.includes(source)) {
       throw new BadRequestException(
-        'Invalid import source. Import source must either be generic, notion or confluence.',
+        'Invalid import source. Import source must either be generic or notion.',
       );
     }
 

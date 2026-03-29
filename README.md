@@ -37,12 +37,6 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 
 ### License
 Docmost core is licensed under the open-source AGPL 3.0 license.  
-Enterprise features are available under an enterprise license (Enterprise Edition).  
-
-All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
-  - apps/server/src/ee
-  - apps/client/src/ee
-  - packages/ee
 
 ### Contributing
 
@@ -59,4 +53,3 @@ Special thanks to;
 <img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
 
 [Algolia](https://www.algolia.com/) for providing full-text search to the docs.
-

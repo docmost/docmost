@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
-  Logger,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -25,19 +24,13 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
-import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { ModuleRef } from '@nestjs/core';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
 export class SearchController {
-  private readonly logger = new Logger(SearchController.name);
-
   constructor(
     private readonly searchService: SearchService,
     private readonly spaceAbility: SpaceAbilityFactory,
-    private readonly environmentService: EnvironmentService,
-    private moduleRef: ModuleRef,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -58,13 +51,6 @@ export class SearchController {
       if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
-    }
-
-    if (this.environmentService.getSearchDriver() === 'typesense') {
-      return this.searchTypesense(searchDto, {
-        userId: user.id,
-        workspaceId: workspace.id,
-      });
     }
 
     return this.searchService.searchPage(searchDto, {
@@ -95,47 +81,8 @@ export class SearchController {
       throw new BadRequestException('shareId is required');
     }
 
-    if (this.environmentService.getSearchDriver() === 'typesense') {
-      return this.searchTypesense(searchDto, {
-        workspaceId: workspace.id,
-      });
-    }
-
     return this.searchService.searchPage(searchDto, {
       workspaceId: workspace.id,
     });
-  }
-
-  async searchTypesense(
-    searchParams: SearchDTO,
-    opts: {
-      userId?: string;
-      workspaceId: string;
-    },
-  ) {
-    const { userId, workspaceId } = opts;
-    let TypesenseModule: any;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      TypesenseModule = require('./../../ee/typesense/services/page-search.service');
-
-      const PageSearchService = this.moduleRef.get(
-        TypesenseModule.PageSearchService,
-        {
-          strict: false,
-        },
-      );
-
-      return PageSearchService.searchPage(searchParams, {
-        userId: userId,
-        workspaceId,
-      });
-    } catch (err) {
-      this.logger.debug(
-        'Typesense module requested but enterprise module not bundled in this build',
-      );
-    }
-
-    throw new BadRequestException('Enterprise Typesense search module missing');
   }
 }

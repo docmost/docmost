@@ -18,7 +18,6 @@ import classes from "@/features/auth/components/auth.module.css";
 import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { useTranslation } from "react-i18next";
-import SsoLogin from "@/ee/components/sso-login.tsx";
 import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
@@ -74,43 +73,39 @@ export function InviteSignUpForm() {
           {t("Join the workspace")}
         </Title>
 
-        <SsoLogin />
+        <Stack align="stretch" justify="center" gap="xl">
+          <form onSubmit={form.onSubmit(onSubmit)}>
+            <TextInput
+              id="name"
+              type="text"
+              label={t("Name")}
+              placeholder={t("enter your full name")}
+              variant="filled"
+              {...form.getInputProps("name")}
+            />
 
-        {!invitation.enforceSso && (
-          <Stack align="stretch" justify="center" gap="xl">
-            <form onSubmit={form.onSubmit(onSubmit)}>
-              <TextInput
-                id="name"
-                type="text"
-                label={t("Name")}
-                placeholder={t("enter your full name")}
-                variant="filled"
-                {...form.getInputProps("name")}
-              />
+            <TextInput
+              id="email"
+              type="email"
+              label={t("Email")}
+              value={invitation.email}
+              disabled
+              variant="filled"
+              mt="md"
+            />
 
-              <TextInput
-                id="email"
-                type="email"
-                label={t("Email")}
-                value={invitation.email}
-                disabled
-                variant="filled"
-                mt="md"
-              />
-
-              <PasswordInput
-                label={t("Password")}
-                placeholder={t("Your password")}
-                variant="filled"
-                mt="md"
-                {...form.getInputProps("password")}
-              />
-              <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-                {t("Sign Up")}
-              </Button>
-            </form>
-          </Stack>
-        )}
+            <PasswordInput
+              label={t("Password")}
+              placeholder={t("Your password")}
+              variant="filled"
+              mt="md"
+              {...form.getInputProps("password")}
+            />
+            <Button type="submit" fullWidth mt="xl" loading={isLoading}>
+              {t("Sign Up")}
+            </Button>
+          </form>
+        </Stack>
       </Box>
     </Container>
     </AuthLayout>
