@@ -1,6 +1,6 @@
 // adapted from: https://github.com/aguingand/tiptap-markdown/blob/main/src/extensions/tiptap/clipboard.js - MIT
 import { Extension } from "@tiptap/core";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { DOMParser, DOMSerializer, Fragment, Slice } from "@tiptap/pm/model";
 import { find } from "linkifyjs";
 import { markdownToHtml, htmlToMarkdown } from "@docmost/editor-ext";
@@ -50,26 +50,46 @@ export const MarkdownClipboard = Extension.create({
             }
 
             const text = event.clipboardData.getData("text/plain");
+            const html = event.clipboardData.getData("text/html");
             const vscode = event.clipboardData.getData("vscode-editor-data");
             const vscodeData = vscode ? JSON.parse(vscode) : undefined;
             const language = vscodeData?.mode;
 
-            if (language !== "markdown") {
+            const isVscodeMarkdown = language === "markdown";
+            const isPlainTextOnly = !html && !vscode && !!text;
+
+            if (!isVscodeMarkdown && !isPlainTextOnly) {
               return false;
+            }
+
+            if (isPlainTextOnly) {
+              if ((view as any).input?.shiftKey || !this.options.transformPastedText) {
+                return false;
+              }
+
+              const link = find(text, {
+                defaultProtocol: "http",
+              }).find((item) => item.isLink && item.value === text);
+
+              if (link) {
+                return false;
+              }
             }
 
             const { tr } = view.state;
             const { from, to } = view.state.selection;
 
-            const html = markdownToHtml(text.replace(/\n+$/, ""));
+            const parsed = markdownToHtml(text.replace(/\n+$/, ""));
 
             const contentNodes = DOMParser.fromSchema(
               this.editor.schema,
-            ).parseSlice(elementFromString(html), {
+            ).parseSlice(elementFromString(parsed), {
               preserveWhitespace: true,
             });
 
             tr.replaceRange(from, to, contentNodes);
+            const insertEnd = tr.mapping.map(from, 1);
+            tr.setSelection(TextSelection.near(tr.doc.resolve(Math.max(from, insertEnd - 2)), -1));
             tr.setMeta('paste', true)
             view.dispatch(tr);
             return true;
@@ -104,26 +124,6 @@ export const MarkdownClipboard = Extension.create({
             }
 
             return slice;
-          },
-          clipboardTextParser: (text, context, plainText) => {
-            const link = find(text, {
-              defaultProtocol: "http",
-            }).find((item) => item.isLink && item.value === text);
-
-            if (plainText || !this.options.transformPastedText || link) {
-              // don't parse plaintext link to allow link paste handler to work
-              // pasting with shift key prevents formatting
-              return null;
-            }
-
-            const parsed = markdownToHtml(text.replace(/\n+$/, ""));
-            return DOMParser.fromSchema(this.editor.schema).parseSlice(
-              elementFromString(parsed),
-              {
-                preserveWhitespace: true,
-                context,
-              },
-            );
           },
         },
       }),
