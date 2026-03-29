@@ -21,6 +21,7 @@ export function htmlToMarkdown(html: string): string {
     callout,
     preserveDetail,
     listParagraph,
+    orderedListItem,
     mathInline,
     mathBlock,
     iframeEmbed,
@@ -37,6 +38,38 @@ function listParagraph(turndownService: _TurndownService) {
         return content;
       }
       return `\n\n${content}\n\n`;
+    },
+  });
+}
+
+function orderedListItem(turndownService: _TurndownService) {
+  turndownService.addRule('orderedListItem', {
+    filter: 'li',
+    replacement: (content: string, node: HTMLInputElement, options: any) => {
+      const parent = node.parentNode as HTMLElement;
+      if (parent.nodeName !== 'OL' && parent.nodeName !== 'UL') {
+        return content;
+      }
+
+      content = content
+        .replace(/^\n+/, '')
+        .replace(/\n+$/, '\n')
+        .replace(/\n/gm, '\n  ');
+
+      let prefix: string;
+      if (parent.nodeName === 'OL') {
+        const start = parseInt(parent.getAttribute('start') || '1', 10);
+        const index = Array.prototype.indexOf.call(parent.children, node);
+        prefix = `${start + index}. `;
+      } else {
+        prefix = `${options.bulletListMarker} `;
+      }
+
+      return (
+        prefix +
+        content +
+        (node.nextSibling && !/\n$/.test(content) ? '\n' : '')
+      );
     },
   });
 }
