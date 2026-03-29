@@ -44,7 +44,9 @@ function listParagraph(turndownService: _TurndownService) {
 
 function orderedListItem(turndownService: _TurndownService) {
   turndownService.addRule('orderedListItem', {
-    filter: 'li',
+    filter: function (node: HTMLInputElement) {
+      return node.nodeName === 'LI' && node.getAttribute('data-type') !== 'taskItem';
+    },
     replacement: (content: string, node: HTMLInputElement, options: any) => {
       const parent = node.parentNode as HTMLElement;
       if (parent.nodeName !== 'OL' && parent.nodeName !== 'UL') {
@@ -96,25 +98,17 @@ function taskList(turndownService: _TurndownService) {
         node.parentNode.nodeName === 'UL'
       );
     },
-    replacement: function (content: string, node: HTMLInputElement) {
-      const checkbox = node.querySelector(
-        'input[type="checkbox"]',
-      ) as HTMLInputElement;
-      const isChecked = checkbox.checked;
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const isChecked = node.getAttribute('data-checked') === 'true';
+      const div = node.querySelector('div');
+      const text = div ? div.textContent.trim() : node.textContent.trim();
 
-      // Process content like regular list items
-      content = content
-        .replace(/^\n+/, '') // remove leading newlines
-        .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
-        .replace(/\n/gm, '\n  '); // indent nested content with 2 spaces
-
-      // Create the checkbox prefix
       const prefix = `- ${isChecked ? '[x]' : '[ ]'} `;
 
       return (
         prefix +
-        content +
-        (node.nextSibling && !/\n$/.test(content) ? '\n' : '')
+        text +
+        (node.nextSibling && !/\n$/.test(text) ? '\n' : '')
       );
     },
   });
