@@ -102,19 +102,12 @@ export class AuthController {
     @Body() passwordResetDto: PasswordResetDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
-    const result = await this.authService.passwordReset(
+    const { authToken } = await this.authService.passwordReset(
       passwordResetDto,
       workspace,
     );
 
-    if (result.requiresLogin) {
-      return {
-        requiresLogin: true,
-      };
-    }
-
-    // Set auth cookie if no MFA is required
-    this.setAuthCookie(res, result.authToken);
+    this.setAuthCookie(res, authToken);
     return {
       requiresLogin: false,
     };

@@ -24,6 +24,7 @@ import {
   FileTaskType,
   getFileTaskFolderPath,
 } from '../utils/file.utils';
+import { v7 as uuid7 } from 'uuid';
 import { StorageService } from '../../storage/storage.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';

@@ -1,33 +1,50 @@
 services:
   docmost:
-    image: docmost/docmost:latest
+    build:
+      context: .
+      target: installer
+      network: host
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    network_mode: host
+    env_file:
+      - .env
     environment:
-      APP_URL: 'http://localhost:3000'
-      APP_SECRET: 'REPLACE_WITH_LONG_SECRET'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@db:5432/docmost'
-      REDIS_URL: 'redis://redis:6379'
-    ports:
-      - "3000:3000"
+      APP_URL: ${APP_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
     restart: unless-stopped
     volumes:
       - docmost:/app/data/storage
 
   db:
     image: postgres:18
+    network_mode: host
     environment:
       POSTGRES_DB: docmost
-      POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d docmost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     restart: unless-stopped
     volumes:
       - db_data:/var/lib/postgresql
 
   redis:
     image: redis:8
+    network_mode: host
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
     volumes:
       - redis_data:/data
