@@ -73,15 +73,17 @@ export default function PdfView(props: NodeViewProps) {
   if (!src || !safeSrc) {
     return (
       <NodeViewWrapper data-drag-handle>
-        <div className={`${classes.pdfWrapper} ${classes.skeleton}`} style={{ height: 600 }}>
-          <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
-            <Loader size={20} style={{ flexShrink: 0 }} />
-            <Text component="span" size="sm" truncate="end">
-              {placeholder?.name
-                ? t("Uploading {{name}}", { name: placeholder.name })
-                : t("Uploading file")}
-            </Text>
-          </Group>
+        <div className={`${classes.pdfWrapper} ${placeholder ? classes.skeleton : ''}`} style={{ height: placeholder ? 600 : undefined }}>
+          {placeholder && (
+            <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md">
+              <Loader size={20} style={{ flexShrink: 0 }} />
+              <Text component="span" size="sm" truncate="end">
+                {placeholder?.name
+                  ? t("Uploading {{name}}", { name: placeholder.name })
+                  : t("Uploading file")}
+              </Text>
+            </Group>
+          )}
         </div>
       </NodeViewWrapper>
     );

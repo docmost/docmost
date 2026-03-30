@@ -29,7 +29,7 @@ export default function AudioView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper data-drag-handle>
-      <div className={`${classes.audioWrapper} ${!safeSrc ? classes.skeleton : ''}`}>
+      <div className={`${classes.audioWrapper} ${!safeSrc && placeholder ? classes.skeleton : ''}`}>
         {safeSrc && (
           <audio
             className={classes.audio}
@@ -49,7 +49,7 @@ export default function AudioView(props: NodeViewProps) {
             <Loader size={20} pos="absolute" top={6} right={6} />
           </Group>
         )}
-        {!safeSrc && !previewSrc && (
+        {!safeSrc && !previewSrc && placeholder && (
           <Group justify="center" wrap="nowrap" gap="xs" maw="100%" px="md" h={54}>
             <Loader size={20} style={{ flexShrink: 0 }} />
             <Text component="span" size="sm" truncate="end">
@@ -58,6 +58,9 @@ export default function AudioView(props: NodeViewProps) {
                 : t("Uploading file")}
             </Text>
           </Group>
+        )}
+        {!safeSrc && !previewSrc && !placeholder && (
+          <audio className={classes.audio} controls />
         )}
       </div>
     </NodeViewWrapper>
