@@ -15,6 +15,7 @@ import Redis from 'ioredis';
 
         return {
           throttlers: [{ name: 'auth', ttl: 60_000, limit: 10 }],
+          errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(
             new Redis({
               host: redisConfig.host,

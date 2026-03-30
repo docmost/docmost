@@ -75,6 +75,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie": "^1.1.1",
+    "fastify-ip": "^2.0.0",
     "fs-extra": "^11.3.4",
     "happy-dom": "20.8.9",
     "ioredis": "^5.10.1",

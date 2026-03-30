@@ -586,6 +586,9 @@ importers:
       cookie:
         specifier: ^1.1.1
         version: 1.1.1
+      fastify-ip:
+        specifier: ^2.0.0
+        version: 2.0.0
       fs-extra:
         specifier: ^11.3.4
         version: 11.3.4
@@ -7037,6 +7040,10 @@ packages:
   fast-xml-parser@5.5.8:
     resolution: {integrity: sha512-Z7Fh2nVQSb2d+poDViM063ix2ZGt9jmY1nWhPfHBOK2Hgnb/OW3P4Et3P/81SEej0J7QbWtJqxO05h8QYfK7LQ==}
     hasBin: true
+
+  fastify-ip@2.0.0:
+    resolution: {integrity: sha512-7mQyAc7sapawpiriEFoJyQIs41nNIO42UCzgMKrjNGsIegnevj2VhOlXLLTa+q7cxXfJ5fDGmOAdQpaIgA9ObA==}
+    engines: {node: '>=20.x'}
 
   fastify-plugin@5.0.1:
     resolution: {integrity: sha512-HCxs+YnRaWzCl+cWRYFnHmeRFyR5GVnJTAaCJQiYzQSDwK9MgJdyAsuL3nh0EWRCYMgQ5MeziymvmAhUHYHDUQ==}
@@ -18108,6 +18115,10 @@ snapshots:
       fast-xml-builder: 1.1.4
       path-expression-matcher: 1.2.0
       strnum: 2.2.1
+
+  fastify-ip@2.0.0:
+    dependencies:
+      fastify-plugin: 5.1.0
 
   fastify-plugin@5.0.1: {}
 
