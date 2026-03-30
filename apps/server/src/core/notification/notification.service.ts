@@ -6,6 +6,7 @@ import { InsertableNotification } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
+import { NotificationType } from './notification.constants';
 
 @Injectable()
 export class NotificationService {
@@ -19,6 +20,16 @@ export class NotificationService {
   ) {}
 
   async create(data: InsertableNotification) {
+    const user = await this.db
+      .selectFrom('users')
+      .select(['id'])
+      .where('id', '=', data.userId)
+      .where('deletedAt', 'is', null)
+      .where('deactivatedAt', 'is', null)
+      .executeTakeFirst();
+
+    if (!user) return null;
+
     const notification = await this.notificationRepo.insert(data);
 
     this.wsGateway.server
@@ -53,16 +64,23 @@ export class NotificationService {
     notificationId: string,
     subject: string,
     template: any,
+    type?: NotificationType,
   ) {
     try {
       const user = await this.db
         .selectFrom('users')
-        .select(['email'])
+        .select(['email', 'settings'])
         .where('id', '=', userId)
         .where('deletedAt', 'is', null)
+        .where('deactivatedAt', 'is', null)
         .executeTakeFirst();
 
       if (!user?.email) return;
+
+      if (type) {
+        const settings = user.settings as any;
+        if (settings?.notifications?.[type] === false) return;
+      }
 
       await this.mailService.sendToQueue({
         to: user.email,

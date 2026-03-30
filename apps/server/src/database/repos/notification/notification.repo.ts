@@ -138,6 +138,29 @@ export class NotificationRepo {
       .execute();
   }
 
+  async getRecentlyNotifiedUserIds(
+    userIds: string[],
+    pageId: string,
+    type: string,
+    withinHours: number,
+  ): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+
+    const cutoff = new Date(Date.now() - withinHours * 60 * 60 * 1000);
+
+    const rows = await this.db
+      .selectFrom('notifications')
+      .select('userId')
+      .where('userId', 'in', userIds)
+      .where('pageId', '=', pageId)
+      .where('type', '=', type)
+      .where('createdAt', '>', cutoff)
+      .groupBy('userId')
+      .execute();
+
+    return new Set(rows.map((r) => r.userId));
+  }
+
   withActor(eb: ExpressionBuilder<DB, 'notifications'>) {
     return jsonObjectFrom(
       eb

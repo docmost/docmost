@@ -60,6 +60,24 @@ export class UserService {
       );
     }
 
+    const notificationSettings: Record<string, string> = {
+      notificationPageUpdates: 'page.updated',
+      notificationPageUserMention: 'page.user_mention',
+      notificationCommentUserMention: 'comment.user_mention',
+      notificationCommentCreated: 'comment.created',
+      notificationCommentResolved: 'comment.resolved',
+    };
+
+    for (const [dtoField, settingKey] of Object.entries(notificationSettings)) {
+      if (typeof updateUserDto[dtoField] !== 'undefined') {
+        return this.userRepo.updateNotificationSetting(
+          userId,
+          settingKey as any,
+          updateUserDto[dtoField],
+        );
+      }
+    }
+
     const userBefore = { name: user.name, email: user.email, locale: user.locale };
 
     if (updateUserDto.name) {

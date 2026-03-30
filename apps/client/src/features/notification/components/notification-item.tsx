@@ -49,6 +49,8 @@ export function NotificationItem({
         return notification.data?.role === "writer"
           ? "<bold>{{name}}</bold> gave you edit access to a page"
           : "<bold>{{name}}</bold> gave you view access to a page";
+      case "page.updated":
+        return "<bold>{{name}}</bold> updated a page";
       default:
         return "";
     }

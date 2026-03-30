@@ -191,6 +191,24 @@ export class UserRepo {
       .executeTakeFirst();
   }
 
+  async updateNotificationSetting(
+    userId: string,
+    settingKey: 'page.updated' | 'page.user_mention' | 'comment.user_mention' | 'comment.created' | 'comment.resolved',
+    settingValue: boolean,
+  ) {
+    return await this.db
+      .updateTable('users')
+      .set({
+        settings: sql`COALESCE(settings, '{}'::jsonb)
+                || jsonb_build_object('notifications', COALESCE(settings->'notifications', '{}'::jsonb)
+                || jsonb_build_object(${settingKey}, ${sql.lit(settingValue)}))`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', userId)
+      .returning(this.baseFields)
+      .executeTakeFirst();
+  }
+
   withUserMfa(eb: ExpressionBuilder<DB, 'users'>) {
     return jsonObjectFrom(
       eb

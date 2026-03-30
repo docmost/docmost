@@ -60,6 +60,13 @@ export interface IPageMentionNotificationJob {
   workspaceId: string;
 }
 
+export interface IPageUpdateNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorIds: string[];
+}
+
 export interface IPermissionGrantedNotificationJob {
   userIds: string[];
   pageId: string;
