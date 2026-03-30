@@ -12,7 +12,6 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { isDeepStrictEqual } from 'node:util';
 import { CollabHistoryService } from '../services/collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
-import { NotificationType } from '../../core/notification/notification.constants';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -72,7 +71,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
 
         if (contributorIds.length > 0 && lastHistory?.content) {
           await this.notificationQueue
-            .add(NotificationType.PAGE_UPDATED, {
+            .add(QueueJob.PAGE_UPDATED, {
               pageId,
               spaceId: page.spaceId,
               workspaceId: page.workspaceId,

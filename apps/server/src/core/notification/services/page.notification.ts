@@ -392,7 +392,7 @@ export class PageNotificationService {
     await this.notificationService.queueEmail(
       userId,
       notificationIds[0],
-      `Your digest: ${pageUpdates.length} page updates`,
+      `Your digest: ${pageUpdates.length} page ${pageUpdates.length === 1 ? 'update' : 'updates'}`,
       PageUpdateDigestEmail({
         userName: user.name,
         pageUpdates,

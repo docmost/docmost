@@ -24,10 +24,9 @@ export class PageUpdateEmailRateLimiter {
 
   async addToDigest(userId: string, notificationId: string): Promise<boolean> {
     const key = DIGEST_PREFIX + userId;
-    const isNew = (await this.redis.llen(key)) === 0;
-    await this.redis.rpush(key, notificationId);
+    const len = await this.redis.rpush(key, notificationId);
     await this.redis.expire(key, TTL_SECONDS);
-    return isNew;
+    return len === 1;
   }
 
   async popDigest(userId: string): Promise<string[]> {

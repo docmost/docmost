@@ -14,7 +14,6 @@ import {
 import { CommentNotificationService } from './services/comment.notification';
 import { PageNotificationService } from './services/page.notification';
 import { DomainService } from '../../integrations/environment/domain.service';
-import { NotificationType } from './notification.constants';
 
 @Processor(QueueName.NOTIFICATION_QUEUE)
 export class NotificationProcessor
@@ -79,7 +78,7 @@ export class NotificationProcessor
           break;
         }
 
-        case NotificationType.PAGE_UPDATED: {
+        case QueueJob.PAGE_UPDATED: {
           await this.pageNotificationService.processPageUpdate(
             job.data as IPageUpdateNotificationJob,
             appUrl,
