@@ -13,6 +13,7 @@ import { PaginationOptions } from '../../pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { ExpressionBuilder, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { NotificationSettingKey } from '../../../core/notification/notification.constants';
 
 @Injectable()
 export class UserRepo {
@@ -193,7 +194,7 @@ export class UserRepo {
 
   async updateNotificationSetting(
     userId: string,
-    settingKey: 'page.updated' | 'page.user_mention' | 'comment.user_mention' | 'comment.created' | 'comment.resolved',
+    settingKey: NotificationSettingKey,
     settingValue: boolean,
   ) {
     return await this.db
@@ -201,7 +202,7 @@ export class UserRepo {
       .set({
         settings: sql`COALESCE(settings, '{}'::jsonb)
                 || jsonb_build_object('notifications', COALESCE(settings->'notifications', '{}'::jsonb)
-                || jsonb_build_object(${settingKey}, ${sql.lit(settingValue)}))`,
+                || jsonb_build_object(${sql.lit(settingKey)}, ${sql.lit(settingValue)}))`,
         updatedAt: new Date(),
       })
       .where('id', '=', userId)

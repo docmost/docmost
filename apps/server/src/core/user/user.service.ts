@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { NotificationSettingKey } from '../notification/notification.constants';
 import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
@@ -60,7 +61,7 @@ export class UserService {
       );
     }
 
-    const notificationSettings: Record<string, string> = {
+    const notificationSettings: Record<string, NotificationSettingKey> = {
       notificationPageUpdates: 'page.updated',
       notificationPageUserMention: 'page.user_mention',
       notificationCommentUserMention: 'comment.user_mention',
@@ -72,7 +73,7 @@ export class UserService {
       if (typeof updateUserDto[dtoField] !== 'undefined') {
         return this.userRepo.updateNotificationSetting(
           userId,
-          settingKey as any,
+          settingKey,
           updateUserDto[dtoField],
         );
       }

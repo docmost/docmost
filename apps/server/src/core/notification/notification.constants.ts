@@ -9,3 +9,10 @@ export const NotificationType = {
 
 export type NotificationType =
   (typeof NotificationType)[keyof typeof NotificationType];
+
+export type NotificationSettingKey =
+  | 'page.updated'
+  | 'page.user_mention'
+  | 'comment.user_mention'
+  | 'comment.created'
+  | 'comment.resolved';
