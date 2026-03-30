@@ -10,7 +10,7 @@ import { useCallback } from "react";
 export default function AttachmentView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { editor, node, getPos, selected } = props;
-  const { url, name, size, mime, attachmentId } = node.attrs;
+  const { url, name, size, mime, attachmentId, placeholder } = node.attrs;
   const { hovered, ref } = useHover();
 
   const isPdf = mime === "application/pdf" || name?.toLowerCase().endsWith(".pdf");
@@ -49,14 +49,14 @@ export default function AttachmentView(props: NodeViewProps) {
           h={25}
         >
           <Group wrap="nowrap" gap="sm" style={{ minWidth: 0, flex: 1 }}>
-            {url ? (
-              <IconPaperclip size={20} style={{ flexShrink: 0 }} />
-            ) : (
+            {!url && placeholder ? (
               <Loader size={20} style={{ flexShrink: 0 }} />
+            ) : (
+              <IconPaperclip size={20} style={{ flexShrink: 0 }} />
             )}
 
             <Text component="span" size="md" truncate="end" style={{ minWidth: 0 }}>
-              {url ? name : t("Uploading {{name}}", { name })}
+              {!url && placeholder ? t("Uploading {{name}}", { name }) : name}
             </Text>
 
             <Text component="span" size="sm" c="dimmed" style={{ flexShrink: 0 }}>
