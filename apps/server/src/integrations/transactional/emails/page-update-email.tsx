@@ -1,6 +1,6 @@
-import { Section, Text } from '@react-email/components';
+import { Link, Section, Text } from '@react-email/components';
 import * as React from 'react';
-import { content, paragraph } from '../css/styles';
+import { content, link, paragraph } from '../css/styles';
 import { EmailButton, MailBody } from '../partials/partials';
 
 interface Props {
@@ -20,10 +20,13 @@ export const PageUpdateEmail = ({
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
           <strong>{actorName}</strong> updated{' '}
-          <strong>{pageTitle}</strong>.
+          <Link href={pageUrl} style={link}>
+            <strong>{pageTitle}</strong>
+          </Link>
+          .
         </Text>
       </Section>
-      <EmailButton href={pageUrl}>View</EmailButton>
+      <EmailButton href={pageUrl}>View page</EmailButton>
     </MailBody>
   );
 };
