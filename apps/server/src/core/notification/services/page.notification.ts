@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import {
   IPageMentionNotificationJob,
@@ -12,15 +14,21 @@ import { NotificationRepo } from '@docmost/db/repos/notification/notification.re
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { PageUpdateEmailRateLimiter } from './page-update-email-rate-limiter';
 import { PageMentionEmail } from '@docmost/transactional/emails/page-mention-email';
 import { PageUpdateEmail } from '@docmost/transactional/emails/page-update-email';
+import { PageUpdateDigestEmail } from '@docmost/transactional/emails/page-update-digest-email';
 import { PermissionGrantedEmail } from '@docmost/transactional/emails/permission-granted-email';
 import { getPageTitle } from '../../../common/helpers';
+import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
+const DIGEST_DELAY_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 @Injectable()
 export class PageNotificationService {
+  private readonly logger = new Logger(PageNotificationService.name);
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
@@ -28,6 +36,8 @@ export class PageNotificationService {
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly watcherRepo: WatcherRepo,
+    private readonly rateLimiter: PageUpdateEmailRateLimiter,
+    @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
   ) {}
 
   async processPageMention(data: IPageMentionNotificationJob, appUrl: string) {
@@ -220,17 +230,28 @@ export class PageNotificationService {
       });
       if (!notification) continue;
 
-      await this.notificationService.queueEmail(
-        userId,
-        notification.id,
-        `${actor.name} updated ${pageTitle}`,
-        PageUpdateEmail({
-          actorName: actor.name,
-          pageTitle,
-          pageUrl: basePageUrl,
-        }),
-        NotificationType.PAGE_UPDATED,
-      );
+      const canSend = await this.rateLimiter.canSendEmail(userId);
+      if (canSend) {
+        await this.notificationService.queueEmail(
+          userId,
+          notification.id,
+          `${actor.name} updated ${pageTitle}`,
+          PageUpdateEmail({
+            actorName: actor.name,
+            pageTitle,
+            pageUrl: basePageUrl,
+          }),
+          NotificationType.PAGE_UPDATED,
+        );
+      } else {
+        const isFirst = await this.rateLimiter.addToDigest(
+          userId,
+          notification.id,
+        );
+        if (isFirst) {
+          await this.scheduleDigest(userId, workspaceId);
+        }
+      }
     }
   }
 
@@ -253,6 +274,66 @@ export class PageNotificationService {
         return settings?.notifications?.['page.updated'] !== false;
       })
       .map((u) => u.id);
+  }
+
+  private async scheduleDigest(
+    userId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    const jobId = `page-update-digest:${userId}`;
+    await this.notificationQueue
+      .add(
+        QueueJob.PAGE_UPDATE_DIGEST,
+        { userId, workspaceId },
+        { jobId, delay: DIGEST_DELAY_MS },
+      )
+      .catch((err) => {
+        this.logger.error(
+          `Failed to schedule digest for ${userId}: ${err.message}`,
+        );
+      });
+  }
+
+  async processDigest(userId: string, appUrl: string): Promise<void> {
+    const notificationIds = await this.rateLimiter.popDigest(userId);
+    if (notificationIds.length === 0) return;
+
+    const notifications = await this.db
+      .selectFrom('notifications')
+      .select(['id', 'pageId'])
+      .where('id', 'in', notificationIds)
+      .execute();
+
+    if (notifications.length === 0) return;
+
+    const pageIds = [...new Set(notifications.map((n) => n.pageId).filter(Boolean))];
+
+    const pages = await this.db
+      .selectFrom('pages')
+      .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
+      .select([
+        'pages.id',
+        'pages.title',
+        'pages.slugId',
+        'spaces.slug as spaceSlug',
+      ])
+      .where('pages.id', 'in', pageIds)
+      .execute();
+
+    const pageUpdates = pages.map((p) => ({
+      title: getPageTitle(p.title),
+      url: `${appUrl}/s/${p.spaceSlug}/p/${p.slugId}`,
+    }));
+
+    if (pageUpdates.length === 0) return;
+
+    await this.notificationService.queueEmail(
+      userId,
+      notificationIds[0],
+      `${pageUpdates.length} pages were updated`,
+      PageUpdateDigestEmail({ pageUpdates }),
+      NotificationType.PAGE_UPDATED,
+    );
   }
 
   private async getPageContext(

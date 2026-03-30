@@ -87,6 +87,12 @@ export class NotificationProcessor
           break;
         }
 
+        case QueueJob.PAGE_UPDATE_DIGEST: {
+          const { userId } = job.data as unknown as { userId: string };
+          await this.pageNotificationService.processDigest(userId, appUrl);
+          break;
+        }
+
         default:
           this.logger.warn(`Unknown notification job: ${job.name}`);
       }
