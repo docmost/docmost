@@ -253,8 +253,8 @@ export const mainExtensions = [
     resize: {
       enabled: true,
       directions: ["left", "right"],
-      minWidth: 80,
-      minHeight: 40,
+      minWidth: 24,
+      minHeight: 16,
       alwaysPreserveAspectRatio: true,
       //@ts-ignore
       createCustomHandle: createImageHandle,
@@ -266,8 +266,8 @@ export const mainExtensions = [
     resize: {
       enabled: true,
       directions: ["left", "right"],
-      minWidth: 80,
-      minHeight: 40,
+      minWidth: 24,
+      minHeight: 16,
       alwaysPreserveAspectRatio: true,
       //@ts-ignore
       createCustomHandle: createResizeHandle,
@@ -297,8 +297,8 @@ export const mainExtensions = [
     resize: {
       enabled: true,
       directions: ["left", "right"],
-      minWidth: 80,
-      minHeight: 40,
+      minWidth: 24,
+      minHeight: 16,
       alwaysPreserveAspectRatio: true,
       //@ts-ignore
       createCustomHandle: createResizeHandle,
@@ -310,8 +310,8 @@ export const mainExtensions = [
     resize: {
       enabled: true,
       directions: ["left", "right"],
-      minWidth: 80,
-      minHeight: 40,
+      minWidth: 24,
+      minHeight: 16,
       alwaysPreserveAspectRatio: true,
       //@ts-ignore
       createCustomHandle: createResizeHandle,
