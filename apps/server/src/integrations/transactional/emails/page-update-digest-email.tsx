@@ -43,7 +43,7 @@ export const PageUpdateDigestEmail = ({
             </Text>
             {page.updatedBy.length > 0 && (
               <Text style={updatedByText}>
-                {page.updatedBy.join(', ')} made edits
+                Edited by {page.updatedBy.join(', ')}
               </Text>
             )}
           </Section>
