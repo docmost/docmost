@@ -4,9 +4,14 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
+  IPageBacklinkJob,
   IPageHistoryJob,
   IPageUpdateNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
+import {
+  extractMentions,
+  extractPageMentions,
+} from '../../common/helpers/prosemirror/utils';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { isDeepStrictEqual } from 'node:util';
@@ -23,6 +28,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly collabHistory: CollabHistoryService,
     private readonly watcherService: WatcherService,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
+    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
   ) {
     super();
   }
@@ -68,6 +74,21 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
           await this.collabHistory.addContributors(pageId, contributorIds);
           throw err;
         }
+
+        const mentions = extractMentions(page.content);
+        const pageMentions = extractPageMentions(mentions);
+
+        await this.generalQueue
+          .add(QueueJob.PAGE_BACKLINKS, {
+            pageId,
+            workspaceId: page.workspaceId,
+            mentions: pageMentions,
+          } as IPageBacklinkJob)
+          .catch((err) => {
+            this.logger.error(
+              `Failed to queue backlinks for ${pageId}: ${err.message}`,
+            );
+          });
 
         if (contributorIds.length > 0 && lastHistory?.content) {
           await this.notificationQueue
