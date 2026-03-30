@@ -64,7 +64,6 @@ async function bootstrap() {
         '/api/health',
         '/api/billing/stripe/webhook',
         '/api/workspace/check-hostname',
-        '/api/sso/google',
         '/api/workspace/create',
         '/api/workspace/joined',
         '/api/workspace/find-by-email',

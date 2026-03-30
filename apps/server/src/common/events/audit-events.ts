@@ -69,11 +69,6 @@ export const AuditEvent = {
   PAGE_EXPORTED: 'page.exported',
   SPACE_EXPORTED: 'space.exported',
 
-  // SSO provider management
-  SSO_PROVIDER_CREATED: 'sso.provider_created',
-  SSO_PROVIDER_UPDATED: 'sso.provider_updated',
-  SSO_PROVIDER_DELETED: 'sso.provider_deleted',
-
   // MFA
   USER_MFA_ENABLED: 'user.mfa_enabled',
   USER_MFA_DISABLED: 'user.mfa_disabled',
@@ -111,7 +106,6 @@ export const AuditResource = {
   COMMENT: 'comment',
   SHARE: 'share',
   API_KEY: 'api_key',
-  SSO_PROVIDER: 'sso_provider',
   WORKSPACE_INVITATION: 'workspace_invitation',
   ATTACHMENT: 'attachment',
   LICENSE: 'license',

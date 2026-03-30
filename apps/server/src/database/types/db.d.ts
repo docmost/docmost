@@ -77,10 +77,12 @@ export interface Audit {
 }
 
 export interface AuthAccounts {
-  authProviderId: string | null;
+  authProviderId: string;
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
   id: Generated<string>;
+  metadata: Generated<Json>;
+  providerEmail: string | null;
   providerUserId: string;
   updatedAt: Generated<Timestamp>;
   userId: string;
@@ -88,30 +90,23 @@ export interface AuthAccounts {
 }
 
 export interface AuthProviders {
-  allowSignup: Generated<boolean>;
+  autoCreateUsers: Generated<boolean>;
+  autoJoinByEmail: Generated<boolean>;
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
+  domains: string[] | null;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
-  groupSync: Generated<boolean>;
-  ldapBaseDn: string | null;
-  ldapBindDn: string | null;
-  ldapBindPassword: string | null;
-  ldapTlsCaCert: string | null;
-  ldapTlsEnabled: Generated<boolean | null>;
-  ldapUrl: string | null;
-  ldapUserAttributes: Json | null;
-  ldapUserSearchFilter: string | null;
-  ldapConfig: Json | null;
-  settings: Json | null;
+  lastUsedAt: Timestamp | null;
   name: string;
-  oidcClientId: string | null;
-  oidcClientSecret: string | null;
-  oidcIssuer: string | null;
-  samlCertificate: string | null;
-  samlUrl: string | null;
-  type: string;
+  oidcClientId: string;
+  oidcClientSecret: string;
+  oidcIssuer: string;
+  oidcRedirectUri: string;
+  scopes: Generated<string[]>;
+  slug: string;
+  type: Generated<string>;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

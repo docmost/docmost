@@ -16,6 +16,7 @@ const APP_ROUTE = {
     },
     WORKSPACE: {
       GENERAL: "/settings/workspace",
+      OIDC: "/settings/workspace/oidc",
       MEMBERS: "/settings/members",
       GROUPS: "/settings/groups",
       SPACES: "/settings/spaces",

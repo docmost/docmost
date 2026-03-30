@@ -6,6 +6,7 @@ import Page from "@/pages/page/page";
 import AccountSettings from "@/pages/settings/account/account-settings";
 import WorkspaceMembers from "@/pages/settings/workspace/workspace-members";
 import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
+import OidcSettings from "@/pages/settings/workspace/oidc-settings";
 import Groups from "@/pages/settings/group/groups";
 import GroupInfo from "./pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
@@ -66,6 +67,7 @@ export default function App() {
               element={<AccountPreferences />}
             />
             <Route path={"workspace"} element={<WorkspaceSettings />} />
+            <Route path={"workspace/oidc"} element={<OidcSettings />} />
             <Route path={"members"} element={<WorkspaceMembers />} />
             <Route path={"groups"} element={<Groups />} />
             <Route path={"groups/:groupId"} element={<GroupInfo />} />

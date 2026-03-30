@@ -45,6 +45,24 @@ export class EnvironmentService {
     return this.configService.get<string>('APP_SECRET');
   }
 
+  getOidcStateTtlSeconds(): number {
+    return parseInt(
+      this.configService.get<string>('OIDC_STATE_TTL_SECONDS', '600'),
+      10,
+    );
+  }
+
+  getOidcDefaultRedirectPath(): string {
+    return this.configService.get<string>('OIDC_DEFAULT_REDIRECT_PATH', '/');
+  }
+
+  isOidcStrictEmailVerified(): boolean {
+    const raw = this.configService
+      .get<string>('OIDC_STRICT_EMAIL_VERIFIED', 'true')
+      .toLowerCase();
+    return raw === 'true';
+  }
+
   getDatabaseURL(): string {
     return this.configService.get<string>('DATABASE_URL');
   }

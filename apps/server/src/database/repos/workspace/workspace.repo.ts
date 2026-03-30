@@ -30,8 +30,8 @@ export class WorkspaceRepo {
     'status',
     'billingEmail',
     'trialEndAt',
-    'enforceSso',
     'plan',
+    'enforceSso',
     'enforceMfa',
     'trashRetentionDays',
   ];

@@ -33,9 +33,11 @@ export function throwIfEmailNotVerified(opts: {
   });
 }
 
-export function validateSsoEnforcement(workspace: Workspace) {
+export function validateOidcEnforcement(workspace: Workspace) {
   if (workspace.enforceSso) {
-    throw new BadRequestException('This workspace has enforced SSO login.');
+    throw new BadRequestException(
+      'This workspace requires OIDC login. Please continue with OIDC.',
+    );
   }
 }
 

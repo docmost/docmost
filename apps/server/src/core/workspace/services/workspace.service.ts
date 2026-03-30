@@ -42,6 +42,7 @@ import { isPageEmbeddingsTableExists } from '@docmost/db/helpers/helpers';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { OidcProviderRepo } from '@docmost/db/repos/oidc/oidc-provider.repo';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
@@ -64,6 +65,7 @@ export class WorkspaceService {
     private licenseCheckService: LicenseCheckService,
     private shareRepo: ShareRepo,
     private watcherRepo: WatcherRepo,
+    private oidcProviderRepo: OidcProviderRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @InjectQueue(QueueName.ATTACHMENT_QUEUE) private attachmentQueue: Queue,
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
@@ -88,7 +90,15 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
+      .select([
+        'id',
+        'name',
+        'logo',
+        'hostname',
+        'enforceSso',
+        'licenseKey',
+        'plan',
+      ])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -96,10 +106,12 @@ export class WorkspaceService {
             .select([
               'authProviders.id',
               'authProviders.name',
+              'authProviders.slug',
               'authProviders.type',
             ])
-            .where('authProviders.isEnabled', '=', true)
-            .where('workspaceId', '=', workspaceId),
+            .where('workspaceId', '=', workspaceId)
+            .where('isEnabled', '=', true)
+            .where('deletedAt', 'is', null),
         ).as('authProviders'),
       )
       .where('id', '=', workspaceId)
@@ -288,16 +300,12 @@ export class WorkspaceService {
 
   async update(workspaceId: string, updateWorkspaceDto: UpdateWorkspaceDto) {
     if (updateWorkspaceDto.enforceSso) {
-      const sso = await this.db
-        .selectFrom('authProviders')
-        .select(['id'])
-        .where('isEnabled', '=', true)
-        .where('workspaceId', '=', workspaceId)
-        .execute();
-
-      if (sso && sso?.length === 0) {
+      const enabledProviders = await this.oidcProviderRepo.countEnabledByWorkspace(
+        workspaceId,
+      );
+      if (enabledProviders < 1) {
         throw new BadRequestException(
-          'There must be at least one active SSO provider to enforce SSO.',
+          'There must be at least one enabled OIDC provider to enforce OIDC login.',
         );
       }
     }

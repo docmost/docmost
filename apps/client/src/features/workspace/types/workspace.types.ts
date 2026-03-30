@@ -1,6 +1,7 @@
-export interface IAuthProvider {
+export interface IOidcPublicProvider {
   id: string;
   name: string;
+  slug: string;
   type: string;
 }
 
@@ -66,7 +67,6 @@ export interface IInvitation {
   workspaceId: string;
   invitedById: string;
   createdAt: Date;
-  enforceSso: boolean;
 }
 
 export interface IInvitationLink {
@@ -86,7 +86,7 @@ export interface IPublicWorkspace {
   logo: string;
   hostname: string;
   enforceSso: boolean;
-  authProviders: IAuthProvider[];
+  authProviders: IOidcPublicProvider[];
 }
 
 export interface IVersion {

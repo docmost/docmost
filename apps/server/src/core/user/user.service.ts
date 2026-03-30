@@ -9,7 +9,6 @@ import {
 import { UpdateUserDto } from './dto/update-user.dto';
 import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
-import { validateSsoEnforcement } from '../auth/auth.util';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
 import {
   AUDIT_SERVICE,
@@ -67,8 +66,6 @@ export class UserService {
     }
 
     if (updateUserDto.email && user.email != updateUserDto.email) {
-      validateSsoEnforcement(workspace);
-
       if (!updateUserDto.confirmPassword) {
         throw new BadRequestException(
           'You must provide a password to change your email',

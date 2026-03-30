@@ -1,6 +1,4 @@
 export const Feature = {
-  SSO_CUSTOM: 'sso:custom',
-  SSO_GOOGLE: 'sso:google',
   MFA: 'mfa',
   API_KEYS: 'api:keys',
   COMMENT_RESOLUTION: 'comment:resolution',
