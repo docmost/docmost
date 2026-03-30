@@ -193,6 +193,8 @@ export class ImportAttachmentService {
     // Build a map from resolved archive path → real filename from Confluence
     // metadata. Confluence Server archives often store files under numeric IDs
     // (e.g. "attachments/65601/65602") instead of the original filename.
+    // Also register aliases so HTML references using the original filename
+    // (e.g. "attachments/pageId/original.mp3") resolve to the numeric path.
     const pageDir = path.dirname(pageRelativePath);
     const attachmentNameByRelPath = new Map<string, string>();
     for (const attachment of pageAttachments) {
@@ -203,6 +205,13 @@ export class ImportAttachmentService {
       );
       if (relPath && attachment.fileName) {
         attachmentNameByRelPath.set(relPath, attachment.fileName);
+
+        const dir = path.posix.dirname(relPath);
+        const aliasKey = `${dir}/${attachment.fileName}`;
+        if (!attachmentCandidates.has(aliasKey)) {
+          attachmentCandidates.set(aliasKey, attachmentCandidates.get(relPath)!);
+          attachmentNameByRelPath.set(aliasKey, attachment.fileName);
+        }
       }
     }
 
@@ -562,18 +571,31 @@ export class ImportAttachmentService {
         continue;
       }
 
-      // Check if already processed (was referenced in HTML)
-      if (processed.has(href)) {
-        continue;
-      }
+      // Resolve the metadata href to the actual archive path
+      const resolvedHref = resolveRelativeAttachmentPath(
+        href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!resolvedHref) continue;
 
-      // Skip if the file doesn't exist
-      if (!attachmentCandidates.has(href)) {
+      // Check if already processed (was referenced in HTML).
+      // Inline elements may have been processed under an alias key (original
+      // filename) rather than the numeric archive path, so also check whether
+      // the underlying absolute file path has already been uploaded.
+      const absPath = attachmentCandidates.get(resolvedHref);
+      const alreadyProcessed =
+        processed.has(resolvedHref) ||
+        (absPath &&
+          Array.from(processed.values()).some(
+            (entry) => entry.abs === absPath,
+          ));
+      if (alreadyProcessed) {
         continue;
       }
 
       // This attachment was in the list but not referenced in HTML - add it
-      const { attachmentId, apiFilePath, abs } = processFile(href);
+      const { attachmentId, apiFilePath, abs } = processFile(resolvedHref);
       const mime = mimeType || getMimeType(abs);
 
       // Add as attachment node at the end
