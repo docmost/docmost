@@ -571,18 +571,31 @@ export class ImportAttachmentService {
         continue;
       }
 
-      // Check if already processed (was referenced in HTML)
-      if (processed.has(href)) {
-        continue;
-      }
+      // Resolve the metadata href to the actual archive path
+      const resolvedHref = resolveRelativeAttachmentPath(
+        href,
+        pageDir,
+        attachmentCandidates,
+      );
+      if (!resolvedHref) continue;
 
-      // Skip if the file doesn't exist
-      if (!attachmentCandidates.has(href)) {
+      // Check if already processed (was referenced in HTML).
+      // Inline elements may have been processed under an alias key (original
+      // filename) rather than the numeric archive path, so also check whether
+      // the underlying absolute file path has already been uploaded.
+      const absPath = attachmentCandidates.get(resolvedHref);
+      const alreadyProcessed =
+        processed.has(resolvedHref) ||
+        (absPath &&
+          Array.from(processed.values()).some(
+            (entry) => entry.abs === absPath,
+          ));
+      if (alreadyProcessed) {
         continue;
       }
 
       // This attachment was in the list but not referenced in HTML - add it
-      const { attachmentId, apiFilePath, abs } = processFile(href);
+      const { attachmentId, apiFilePath, abs } = processFile(resolvedHref);
       const mime = mimeType || getMimeType(abs);
 
       // Add as attachment node at the end
