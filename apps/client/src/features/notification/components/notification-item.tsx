@@ -77,6 +77,7 @@ export function NotificationItem({
   };
 
   const handleMarkRead = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     markReadIfNeeded();
   };

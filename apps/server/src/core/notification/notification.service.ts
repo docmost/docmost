@@ -6,7 +6,7 @@ import { InsertableNotification } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
-import { NotificationType, NotificationTypeToSettingKey } from './notification.constants';
+import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
 
 @Injectable()
 export class NotificationService {
@@ -39,8 +39,12 @@ export class NotificationService {
     return notification;
   }
 
-  async findByUserId(userId: string, pagination: PaginationOptions) {
-    return this.notificationRepo.findByUserId(userId, pagination);
+  async findByUserId(
+    userId: string,
+    pagination: PaginationOptions,
+    type: NotificationTab = 'all',
+  ) {
+    return this.notificationRepo.findByUserId(userId, pagination, type);
   }
 
   async getUnreadCount(userId: string) {

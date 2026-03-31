@@ -39,3 +39,5 @@ export type INotification = {
 };
 
 export type NotificationFilter = "all" | "unread";
+
+export type NotificationTab = "direct" | "updates" | "all";

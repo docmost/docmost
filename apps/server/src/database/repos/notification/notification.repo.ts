@@ -11,6 +11,7 @@ import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { NotificationTab, NotificationType } from '../../../core/notification/notification.constants';
 
 @Injectable()
 export class NotificationRepo {
@@ -27,8 +28,12 @@ export class NotificationRepo {
       .executeTakeFirst();
   }
 
-  async findByUserId(userId: string, pagination: PaginationOptions) {
-    const query = this.db
+  async findByUserId(
+    userId: string,
+    pagination: PaginationOptions,
+    type: NotificationTab = 'all',
+  ) {
+    let query = this.db
       .selectFrom('notifications')
       .selectAll('notifications')
       .select((eb) => this.withActor(eb))
@@ -41,6 +46,12 @@ export class NotificationRepo {
           eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
         ]),
       );
+
+    if (type === 'direct') {
+      query = query.where('type', '!=', NotificationType.PAGE_UPDATED);
+    } else if (type === 'updates') {
+      query = query.where('type', '=', NotificationType.PAGE_UPDATED);
+    }
 
     return executeWithCursorPagination(query, {
       perPage: pagination.limit,

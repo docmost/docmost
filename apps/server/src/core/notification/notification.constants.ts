@@ -26,3 +26,23 @@ export const NotificationTypeToSettingKey: Partial<
   [NotificationType.COMMENT_CREATED]: 'comment.created',
   [NotificationType.COMMENT_RESOLVED]: 'comment.resolved',
 };
+
+export type NotificationTab = 'direct' | 'updates' | 'all';
+
+export const DIRECT_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.COMMENT_USER_MENTION,
+  NotificationType.COMMENT_CREATED,
+  NotificationType.COMMENT_RESOLVED,
+  NotificationType.PAGE_USER_MENTION,
+  NotificationType.PAGE_PERMISSION_GRANTED,
+];
+
+export const UPDATES_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.PAGE_UPDATED,
+];
+
+export function getTypesForTab(tab: NotificationTab): NotificationType[] | undefined {
+  if (tab === 'direct') return DIRECT_NOTIFICATION_TYPES;
+  if (tab === 'updates') return UPDATES_NOTIFICATION_TYPES;
+  return undefined;
+}
