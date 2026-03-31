@@ -126,6 +126,13 @@ const groupedData: DataGroup[] = [
         icon: IconKey,
         path: "/settings/license",
       },
+      {
+        label: "License Generator",
+        icon: IconKey,
+        path: "/settings/license-generator",
+        role: "admin" as const,
+        env: "selfhosted" as const,
+      },
     ],
   },
 ];

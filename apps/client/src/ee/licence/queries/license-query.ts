@@ -8,6 +8,7 @@ import {
   activateLicense,
   removeLicense,
   getLicenseInfo,
+  generateLicenseKey,
 } from "@/ee/licence/services/license-service.ts";
 import { ILicenseInfo } from "@/ee/licence/types/license.types.ts";
 import { notifications } from "@mantine/notifications";
@@ -49,6 +50,20 @@ export function useRemoveLicenseMutation() {
       queryClient.refetchQueries({ queryKey: ["license"] });
       queryClient.refetchQueries({ queryKey: ["currentUser"] });
       queryClient.refetchQueries({ queryKey: ["entitlements"] });
+    },
+  });
+}
+
+export function useGenerateLicenseMutation() {
+  return useMutation<
+    { licenseKey: string },
+    Error,
+    { customerName: string; seatCount: number; expiresAt: string; trial: boolean }
+  >({
+    mutationFn: (data) => generateLicenseKey(data),
+    onError: (error) => {
+      const errorMessage = error["response"]?.data?.message;
+      notifications.show({ message: errorMessage ?? "Failed to generate license", color: "red" });
     },
   });
 }

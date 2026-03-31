@@ -24,6 +24,7 @@ import { isCloud } from "@/lib/config.ts";
 import { useTranslation } from "react-i18next";
 import Security from "@/ee/security/pages/security.tsx";
 import License from "@/ee/licence/pages/license.tsx";
+import LicenseGenerator from "@/ee/licence/pages/license-generator.tsx";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
 import SharedPage from "@/pages/share/shared-page.tsx";
 import SharedSpace from "@/pages/share/shared-space.tsx";
@@ -117,6 +118,7 @@ export default function App() {
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
+            {!isCloud() && <Route path={"license-generator"} element={<LicenseGenerator />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>
         </Route>

@@ -16,3 +16,13 @@ export async function activateLicense(
 export async function removeLicense(): Promise<void> {
   await api.post<void>("/license/remove");
 }
+
+export async function generateLicenseKey(data: {
+  customerName: string;
+  seatCount: number;
+  expiresAt: string;
+  trial: boolean;
+}): Promise<{ licenseKey: string }> {
+  const req = await api.post<{ licenseKey: string }>("/license/generate", data);
+  return req.data;
+}
