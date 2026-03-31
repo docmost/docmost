@@ -135,10 +135,12 @@ export class GroupRepo {
           direction: 'desc',
           key: 'memberCount',
         },
+        { expression: 'sub.name', direction: 'asc', key: 'name' },
         { expression: 'sub.id', direction: 'asc', key: 'id' },
       ],
       parseCursor: (cursor) => ({
         memberCount: parseInt(cursor.memberCount, 10),
+        name: cursor.name,
         id: cursor.id,
       }),
     });
@@ -152,8 +154,15 @@ export class GroupRepo {
       .as('memberCount');
   }
 
-  async delete(groupId: string, workspaceId: string): Promise<void> {
-    await this.db
+  async delete(
+    groupId: string,
+    workspaceId: string,
+    opts?: { trx?: KyselyTransaction },
+  ): Promise<void> {
+    const { trx } = opts;
+    const db = dbOrTx(this.db, trx);
+
+    await db
       .deleteFrom('groups')
       .where('id', '=', groupId)
       .where('workspaceId', '=', workspaceId)

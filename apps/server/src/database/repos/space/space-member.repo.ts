@@ -73,8 +73,9 @@ export class SpaceMemberRepo {
   async removeSpaceMemberById(
     memberId: string,
     spaceId: string,
-    trx?: KyselyTransaction,
+    opts?: { trx?: KyselyTransaction },
   ): Promise<void> {
+    const { trx } = opts;
     const db = dbOrTx(this.db, trx);
     await db
       .deleteFrom('spaceMembers')
@@ -103,6 +104,7 @@ export class SpaceMemberRepo {
       .leftJoin('users', 'users.id', 'spaceMembers.userId')
       .leftJoin('groups', 'groups.id', 'spaceMembers.groupId')
       .select([
+        'spaceMembers.id as id',
         'users.id as userId',
         'users.name as userName',
         'users.avatarUrl as userAvatarUrl',
@@ -114,7 +116,17 @@ export class SpaceMemberRepo {
         'spaceMembers.createdAt',
       ])
       .select((eb) => this.groupRepo.withMemberCount(eb))
-      .select(sql<number>`case when groups.id is not null then 1 else 0 end`.as('isGroup'))
+      .select(
+        sql<number>`case when groups.id is not null then 1 else 0 end`.as(
+          'isGroup',
+        ),
+      )
+      .select(
+        sql<number>`case "space_members"."role" when 'admin' then 1 when 'writer' then 2 when 'reader' then 3 else 4 end`.as(
+          'roleOrder',
+        ),
+      )
+      .select(sql<string>`coalesce(users.name, groups.name)`.as('memberName'))
       .where('spaceId', '=', spaceId);
 
     if (pagination.query) {
@@ -144,12 +156,16 @@ export class SpaceMemberRepo {
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
       fields: [
+        { expression: 'sub.roleOrder', direction: 'asc', key: 'roleOrder' },
         { expression: 'sub.isGroup', direction: 'desc', key: 'isGroup' },
-        { expression: 'sub.createdAt', direction: 'asc', key: 'createdAt' },
+        { expression: 'sub.memberName', direction: 'asc', key: 'memberName' },
+        { expression: 'sub.id', direction: 'asc', key: 'id' },
       ],
       parseCursor: (cursor) => ({
+        roleOrder: parseInt(cursor.roleOrder, 10),
         isGroup: parseInt(cursor.isGroup, 10),
-        createdAt: new Date(cursor.createdAt),
+        memberName: cursor.memberName,
+        id: cursor.id,
       }),
     });
 
@@ -219,6 +235,40 @@ export class SpaceMemberRepo {
     return roles;
   }
 
+  async getUserIdsWithSpaceAccess(
+    userIds: string[],
+    spaceId: string,
+  ): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('userId')
+      .where('userId', 'in', userIds)
+      .where('spaceId', '=', spaceId)
+      .unionAll(
+        this.db
+          .selectFrom('spaceMembers')
+          .innerJoin('groupUsers', 'groupUsers.groupId', 'spaceMembers.groupId')
+          .select('groupUsers.userId')
+          .where('groupUsers.userId', 'in', userIds)
+          .where('spaceMembers.spaceId', '=', spaceId),
+      )
+      .execute();
+
+    return new Set(rows.map((r) => r.userId));
+  }
+
+  async getSpaceIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('spaceMembers')
+      .select('spaceId')
+      .where('groupId', '=', groupId)
+      .execute();
+
+    return rows.map((r) => r.spaceId);
+  }
+
   getUserSpaceIdsQuery(userId: string) {
     return this.db
       .selectFrom('spaceMembers')
@@ -265,8 +315,11 @@ export class SpaceMemberRepo {
       perPage: pagination.limit,
       cursor: pagination.cursor,
       beforeCursor: pagination.beforeCursor,
-      fields: [{ expression: 'id', direction: 'asc' }],
-      parseCursor: (cursor) => ({ id: cursor.id }),
+      fields: [
+        { expression: 'name', direction: 'asc' },
+        { expression: 'id', direction: 'asc' },
+      ],
+      parseCursor: (cursor) => ({ name: cursor.name, id: cursor.id }),
     });
   }
 }

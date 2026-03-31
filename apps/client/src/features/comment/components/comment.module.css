@@ -32,11 +32,14 @@
         max-width: 100%;
         white-space: pre-wrap;
         word-break: break-word;
-        max-height: 20vh;
         padding-left: 6px;
         padding-right: 6px;
         margin-top: 10px;
         margin-bottom: 2px;
+    }
+
+    &[data-editable] .ProseMirror :global(.ProseMirror){
+        max-height: 50vh;
         overflow: hidden auto;
     }
 

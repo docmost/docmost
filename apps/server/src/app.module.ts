@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { EnvironmentService } from './integrations/environment/environment.service';
+import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
 import { CoreModule } from './core/core.module';
 import { EnvironmentModule } from './integrations/environment/environment.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
@@ -18,7 +21,10 @@ import { SecurityModule } from './integrations/security/security.module';
 import { TelemetryModule } from './integrations/telemetry/telemetry.module';
 import { RedisModule } from '@nestjs-labs/nestjs-ioredis';
 import { RedisConfigService } from './integrations/redis/redis-config.service';
+import { CacheModule } from '@nestjs/cache-manager';
+import KeyvRedis from '@keyv/redis';
 import { LoggerModule } from './common/logger/logger.module';
+import { ClsModule } from 'nestjs-cls';
 
 const enterpriseModules = [];
 try {
@@ -36,12 +42,28 @@ try {
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
     LoggerModule,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,
     RedisModule.forRootAsync({
       useClass: RedisConfigService,
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async (environmentService: EnvironmentService) => {
+        const redisUrl = environmentService.getRedisUrl();
+
+        return {
+          ttl: 5 * 1000,
+          stores: [new KeyvRedis(redisUrl)],
+        };
+      },
+      inject: [EnvironmentService],
     }),
     CollaborationModule,
     WsModule,
@@ -62,6 +84,12 @@ try {
     ...enterpriseModules,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditActorInterceptor,
+    },
+  ],
 })
 export class AppModule {}

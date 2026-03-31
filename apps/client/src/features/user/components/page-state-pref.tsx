@@ -40,12 +40,17 @@ export function PageStateSegmentedControl({
   const [value, setValue] = useState(pageEditMode);
 
   const handleChange = useCallback(
-    async (value: string) => {
-      const updatedUser = await updateUser({ pageEditMode: value });
-      setValue(value);
-      setUser(updatedUser);
+    async (newValue: string) => {
+      const prevValue = value;
+      setValue(newValue);
+      try {
+        const updatedUser = await updateUser({ pageEditMode: newValue });
+        setUser(updatedUser);
+      } catch {
+        setValue(prevValue);
+      }
     },
-    [user, setUser],
+    [value, setUser],
   );
 
   useEffect(() => {

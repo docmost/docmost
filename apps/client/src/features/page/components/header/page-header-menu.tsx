@@ -39,7 +39,7 @@ import { formattedDate } from "@/lib/time.ts";
 import { PageStateSegmentedControl } from "@/features/user/components/page-state-pref.tsx";
 import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
-import ShareModal from "@/features/share/components/share-modal.tsx";
+import { PageShareModal } from "@/ee/page-permission";
 
 interface PageHeaderMenuProps {
   readOnly?: boolean;
@@ -75,12 +75,12 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       {!readOnly && <PageStateSegmentedControl size="xs" />}
 
-      <ShareModal readOnly={readOnly} />
+      <PageShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
-          variant="default"
-          style={{ border: "none" }}
+          variant="subtle"
+          color="dark"
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
@@ -89,8 +89,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       <Tooltip label={t("Table of contents")} openDelay={250} withArrow>
         <ActionIcon
-          variant="default"
-          style={{ border: "none" }}
+          variant="subtle"
+          color="dark"
           onClick={() => toggleAside("toc")}
         >
           <IconList size={20} stroke={2} />
@@ -166,7 +166,7 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         arrowPosition="center"
       >
         <Menu.Target>
-          <ActionIcon variant="default" style={{ border: "none" }}>
+          <ActionIcon variant="subtle" color="dark">
             <IconDots size={20} />
           </ActionIcon>
         </Menu.Target>

@@ -45,8 +45,7 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
   const { isTrial } = useTrial();
   const [workspace] = useAtom(workspaceAtom);
   const { data: space } = useSpaceQuery(spaceSlug);
-  const workspaceDisabled =
-    workspace?.settings?.sharing?.disabled === true;
+  const workspaceDisabled = workspace?.settings?.sharing?.disabled === true;
   const spaceDisabled = space?.settings?.sharing?.disabled === true;
   const sharingDisabled = workspaceDisabled || spaceDisabled;
   const createShareMutation = useCreateShareMutation();
@@ -70,19 +69,20 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
+    setIsPagePublic(value);
 
-    if (value) {
-      createShareMutation.mutateAsync({
-        pageId: pageId,
-        includeSubPages: true,
-        searchIndexing: false,
-      });
-      setIsPagePublic(value);
-    } else {
-      if (share && share.id) {
-        deleteShareMutation.mutateAsync(share.id);
-        setIsPagePublic(value);
+    try {
+      if (value) {
+        await createShareMutation.mutateAsync({
+          pageId: pageId,
+          includeSubPages: true,
+          searchIndexing: false,
+        });
+      } else if (share && share.id) {
+        await deleteShareMutation.mutateAsync(share.id);
       }
+    } catch {
+      setIsPagePublic(!value);
     }
   };
 
@@ -90,20 +90,28 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = event.currentTarget.checked;
-    updateShareMutation.mutateAsync({
-      shareId: share.id,
-      includeSubPages: value,
-    });
+    try {
+      await updateShareMutation.mutateAsync({
+        shareId: share.id,
+        includeSubPages: value,
+      });
+    } catch {
+      // query invalidation will revert the UI
+    }
   };
 
   const handleIndexSearchChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = event.currentTarget.checked;
-    updateShareMutation.mutateAsync({
-      shareId: share.id,
-      searchIndexing: value,
-    });
+    try {
+      await updateShareMutation.mutateAsync({
+        shareId: share.id,
+        searchIndexing: value,
+      });
+    } catch {
+      // query invalidation will revert the UI
+    }
   };
 
   const shareLink = useMemo(
@@ -134,7 +142,6 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
     <Popover width={350} position="bottom" withArrow shadow="md">
       <Popover.Target>
         <Button
-          style={{ border: "none" }}
           size="compact-sm"
           leftSection={
             <Indicator
@@ -146,7 +153,8 @@ export default function ShareModal({ readOnly }: ShareModalProps) {
               <IconWorld size={20} stroke={1.5} />
             </Indicator>
           }
-          variant="default"
+          color="dark"
+          variant="subtle"
         >
           {t("Share")}
         </Button>

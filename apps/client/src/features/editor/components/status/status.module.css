@@ -1,0 +1,65 @@
+.status {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.6;
+  cursor: pointer;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.colorGray {
+  background-color: light-dark(rgb(223 223 215), rgba(168, 162, 158, 0.4));
+  color: light-dark(#3d3d3d, var(--mantine-color-gray-3));
+}
+
+.colorBlue {
+  background-color: light-dark(rgb(191 227 253), rgba(37, 99, 235, 0.4));
+  color: light-dark(#1a4d99, var(--mantine-color-blue-3));
+}
+
+.colorGreen {
+  background-color: light-dark(rgb(187 240 173), rgba(0, 138, 0, 0.4));
+  color: light-dark(#135c13, var(--mantine-color-green-3));
+}
+
+.colorYellow {
+  background-color: light-dark(rgb(249 238 148), rgba(234, 179, 8, 0.4));
+  color: light-dark(#6b5300, var(--mantine-color-yellow-3));
+}
+
+.colorRed {
+  background-color: light-dark(rgb(255 200 195), rgba(224, 0, 0, 0.4));
+  color: light-dark(#a10000, var(--mantine-color-red-3));
+}
+
+.colorPurple {
+  background-color: light-dark(rgb(225 207 245), rgba(147, 51, 234, 0.4));
+  color: light-dark(#5b21a6, var(--mantine-color-violet-3));
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swatch:hover {
+  opacity: 0.8;
+}
+
+.swatchActive {
+  border-color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-4));
+}

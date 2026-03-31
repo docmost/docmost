@@ -1,13 +1,11 @@
 .wrapper {
   position: relative;
-  width: 100%;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 8px;
 }
 
 .resizing {
   user-select: none;
-  cursor: ns-resize;
 }
 
 .overlay {
@@ -20,12 +18,118 @@
   background: transparent;
 }
 
+.cornerHandle {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-radius: 1px;
+    background-color: light-dark(
+      var(--mantine-color-blue-4),
+      var(--mantine-color-blue-5)
+    );
+    transition: background-color 0.15s ease;
+  }
+
+  &::before {
+    width: 28px;
+    height: 3px;
+  }
+
+  &::after {
+    width: 3px;
+    height: 28px;
+  }
+
+  &:hover::before,
+  &:hover::after {
+    background-color: light-dark(
+      var(--mantine-color-blue-6),
+      var(--mantine-color-blue-4)
+    );
+  }
+}
+
+.cornerHandleTL {
+  top: -2px;
+  left: -2px;
+  cursor: nwse-resize;
+
+  &::before {
+    top: 0;
+    left: 0;
+  }
+
+  &::after {
+    top: 0;
+    left: 0;
+  }
+}
+
+.cornerHandleTR {
+  top: -2px;
+  right: -2px;
+  cursor: nesw-resize;
+
+  &::before {
+    top: 0;
+    right: 0;
+  }
+
+  &::after {
+    top: 0;
+    right: 0;
+  }
+}
+
+.cornerHandleBL {
+  bottom: -2px;
+  left: -2px;
+  cursor: nesw-resize;
+
+  &::before {
+    bottom: 0;
+    left: 0;
+  }
+
+  &::after {
+    bottom: 0;
+    left: 0;
+  }
+}
+
+.cornerHandleBR {
+  bottom: -2px;
+  right: -2px;
+  cursor: nwse-resize;
+
+  &::before {
+    bottom: 0;
+    right: 0;
+  }
+
+  &::after {
+    bottom: 0;
+    right: 0;
+  }
+}
+
 .resizeHandleBottom {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 24px;
+  bottom: -4px;
+  left: 20px;
+  right: 20px;
+  height: 12px;
   cursor: ns-resize;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -36,61 +140,53 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-
-  @mixin light {
-    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05));
-  }
-
-  @mixin dark {
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(255, 255, 255, 0.05)
-    );
-  }
-
-  &:hover {
-    @mixin light {
-      background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
-    }
-
-    @mixin dark {
-      background: linear-gradient(
-        to bottom,
-        transparent,
-        rgba(255, 255, 255, 0.1)
-      );
-    }
-  }
-}
-
-.wrapper:hover .resizeHandleBottom,
-.resizing .resizeHandleBottom {
-  opacity: 1;
 }
 
 .resizeBar {
   width: 50px;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
-  transition: background-color 0.2s ease;
-
-  @mixin light {
-    background-color: var(--mantine-color-gray-5);
-  }
-
-  @mixin dark {
-    background-color: var(--mantine-color-gray-6);
-  }
+  transition: background-color 0.15s ease;
+  background-color: light-dark(
+    var(--mantine-color-blue-4),
+    var(--mantine-color-blue-5)
+  );
 }
 
-.resizeHandleBottom:hover .resizeBar,
-.resizing .resizeBar {
-  @mixin light {
-    background-color: var(--mantine-color-gray-7);
-  }
+.resizeHandleBottom:hover .resizeBar {
+  background-color: light-dark(
+    var(--mantine-color-blue-6),
+    var(--mantine-color-blue-4)
+  );
+}
 
-  @mixin dark {
-    background-color: var(--mantine-color-gray-4);
+.wrapper:hover .cornerHandle,
+.wrapper:hover .resizeHandleBottom,
+.wrapper:global(.ProseMirror-selectednode) .cornerHandle,
+.wrapper:global(.ProseMirror-selectednode) .resizeHandleBottom,
+.resizing .cornerHandle,
+.resizing .resizeHandleBottom {
+  opacity: 1;
+}
+
+.resizing .cornerHandle::before,
+.resizing .cornerHandle::after {
+  background-color: light-dark(
+    var(--mantine-color-blue-6),
+    var(--mantine-color-blue-4)
+  );
+}
+
+.resizing .resizeBar {
+  background-color: light-dark(
+    var(--mantine-color-blue-6),
+    var(--mantine-color-blue-4)
+  );
+}
+
+@media print {
+  .cornerHandle,
+  .resizeHandleBottom {
+    display: none !important;
   }
 }

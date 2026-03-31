@@ -1,5 +1,6 @@
-import * as z from "zod";
-import { useForm, zodResolver } from "@mantine/form";
+import { z } from "zod/v4";
+import { useForm } from "@mantine/form";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   Container,
   Title,
@@ -30,7 +31,7 @@ export function CloudLoginForm() {
   const { data: joinedWorkspaces } = useJoinedWorkspacesQuery();
 
   const form = useForm<any>({
-    validate: zodResolver(formSchema),
+    validate: zod4Resolver(formSchema),
     initialValues: {
       hostname: "",
     },

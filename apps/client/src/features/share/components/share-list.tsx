@@ -2,6 +2,7 @@ import { Table, Group, Text, Anchor, ActionIcon } from "@mantine/core";
 import React from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { IconWorld } from "@tabler/icons-react";
 import Paginate from "@/components/common/paginate.tsx";
 import { useCursorPaginate } from "@/hooks/use-cursor-paginate";
 import { useGetSharesQuery } from "@/features/share/queries/share-query.ts";
@@ -12,12 +13,17 @@ import { buildSharedPageUrl, buildSharedSpaceUrl } from "@/features/page/page.ut
 import { getPageIcon } from "@/lib";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { IconFolder } from "@tabler/icons-react";
+import { EmptyState } from "@/components/ui/empty-state.tsx";
 import classes from "./share.module.css";
 
 export default function ShareList() {
   const { t } = useTranslation();
   const { cursor, goNext, goPrev } = useCursorPaginate();
   const { data, isLoading } = useGetSharesQuery({ cursor });
+
+  if (!isLoading && data?.items.length === 0) {
+    return <EmptyState icon={IconWorld} title={t("No shared pages")} />;
+  }
 
   return (
     <>

@@ -10,16 +10,27 @@ import { GroupService } from './group.service';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { InjectKysely } from 'nestjs-kysely';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { executeTx } from '@docmost/db/utils';
+import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
+import {
+  AUDIT_SERVICE,
+  IAuditService,
+} from '../../../integrations/audit/audit.service';
 
 @Injectable()
 export class GroupUserService {
   constructor(
     private groupUserRepo: GroupUserRepo,
+    private spaceMemberRepo: SpaceMemberRepo,
     private userRepo: UserRepo,
     @Inject(forwardRef(() => GroupService))
     private groupService: GroupService,
+    private readonly watcherRepo: WatcherRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
   async getGroupUsers(
@@ -67,6 +78,20 @@ export class GroupUserService {
       .values(groupUsersToInsert)
       .onConflict((oc) => oc.columns(['userId', 'groupId']).doNothing())
       .execute();
+
+    for (const user of validUsers) {
+      this.auditService.log({
+        event: AuditEvent.GROUP_MEMBER_ADDED,
+        resourceType: AuditResource.GROUP,
+        resourceId: groupId,
+        changes: {
+          after: {
+            userId: user.id,
+            userName: user.name,
+          },
+        },
+      });
+    }
   }
 
   async removeUserFromGroup(
@@ -100,6 +125,34 @@ export class GroupUserService {
       throw new BadRequestException('Group member not found');
     }
 
-    await this.groupUserRepo.delete(userId, groupId);
+    const spaceIds = await this.spaceMemberRepo.getSpaceIdsByGroupId(groupId);
+
+    // TODO: use queue instead
+    await executeTx(this.db, async (trx) => {
+      await this.groupUserRepo.delete(userId, groupId, { trx });
+
+      for (const spaceId of spaceIds) {
+        await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+          [userId],
+          spaceId,
+          { trx },
+        );
+      }
+    });
+
+    this.auditService.log({
+      event: AuditEvent.GROUP_MEMBER_REMOVED,
+      resourceType: AuditResource.GROUP,
+      resourceId: groupId,
+      changes: {
+        before: {
+          userId: user.id,
+          userName: user.name,
+        },
+      },
+      metadata: {
+        groupName: group.name,
+      },
+    });
   }
 }

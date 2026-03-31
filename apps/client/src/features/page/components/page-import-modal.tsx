@@ -34,6 +34,7 @@ import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { getFileTaskById } from "@/features/file-task/services/file-task-service.ts";
 import { queryClient } from "@/main.tsx";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import bytes from "bytes";
 
 interface PageImportModalProps {
   spaceId: string;
@@ -97,6 +98,17 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
   const handleZipUpload = async (selectedFile: File, source: string) => {
     if (!selectedFile) {
+      return;
+    }
+
+    const maxSize = getFileImportSizeLimit();
+    if (selectedFile.size > maxSize) {
+      notifications.show({
+        color: "red",
+        message: t("File exceeds the {{limit}} import limit", {
+          limit: formatBytes(maxSize),
+        }),
+      });
       return;
     }
 
@@ -230,8 +242,23 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
     }, 3000);
   }, [fileTaskId]);
 
+  const maxSingleFileSize = bytes("20mb");
+
   const handleFileUpload = async (selectedFiles: File[]) => {
     if (!selectedFiles) {
+      return;
+    }
+
+    const oversizedFiles = selectedFiles.filter(
+      (f) => f.size > maxSingleFileSize,
+    );
+    if (oversizedFiles.length > 0) {
+      notifications.show({
+        color: "red",
+        message: t("File exceeds the {{limit}} import limit", {
+          limit: formatBytes(maxSingleFileSize),
+        }),
+      });
       return;
     }
 
