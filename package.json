@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.25.2",
+  "version": "0.25.3",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -78,12 +78,12 @@
     "yjs": "^13.6.29"
   },
   "devDependencies": {
-    "@nx/js": "20.4.5",
+    "@nx/js": "22.5.0",
     "@types/bytes": "^3.1.5",
     "@types/turndown": "^5.0.6",
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.1.2",
-    "nx": "20.4.5",
+    "nx": "22.5.0",
     "tsx": "^4.19.3"
   },
   "workspaces": {

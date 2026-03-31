@@ -99,6 +99,7 @@ export class AttachmentService {
       if (isUpdate) {
         attachment = await this.attachmentRepo.updateAttachment(
           {
+            fileSize: preparedFile.fileSize,
             updatedAt: new Date(),
           },
           attachmentId,

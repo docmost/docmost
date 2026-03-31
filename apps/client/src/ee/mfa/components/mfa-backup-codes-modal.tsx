@@ -8,10 +8,10 @@ import {
   Group,
   List,
   Code,
-  CopyButton,
   Alert,
   PasswordInput,
 } from "@mantine/core";
+import { CopyButton } from "@/components/common/copy-button";
 import {
   IconRefresh,
   IconCopy,
