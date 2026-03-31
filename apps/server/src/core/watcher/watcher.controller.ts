@@ -1,8 +1,6 @@
-/***
- import {
+import {
   Body,
   Controller,
-  ForbiddenException,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -16,12 +14,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User, Workspace } from '@docmost/db/types/entity.types';
 import { WatcherPageDto } from './dto/watcher.dto';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
-import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
-import {
-  SpaceCaslAction,
-  SpaceCaslSubject,
-} from '../casl/interfaces/space-ability.type';
-
+import { PageAccessService } from '../page/page-access/page-access.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -29,7 +22,7 @@ export class WatcherController {
   constructor(
     private readonly watcherService: WatcherService,
     private readonly pageRepo: PageRepo,
-    private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly pageAccessService: PageAccessService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -44,10 +37,7 @@ export class WatcherController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
     await this.watcherService.watchPage(
       user.id,
@@ -67,10 +57,7 @@ export class WatcherController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
     await this.watcherService.unwatchPage(user.id, page.id);
 
@@ -85,15 +72,10 @@ export class WatcherController {
       throw new NotFoundException('Page not found');
     }
 
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
-      throw new ForbiddenException();
-    }
+    await this.pageAccessService.validateCanView(page, user);
 
     const watching = await this.watcherService.isWatchingPage(user.id, page.id);
 
     return { watching };
   }
-
 }
-***/
