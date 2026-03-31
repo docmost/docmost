@@ -1,103 +1,114 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
-import React, { useCallback, useState } from "react";
+import { FC, useCallback, useEffect, useRef } from "react";
+import { BubbleMenu } from "@tiptap/react/menus";
+import type { Editor } from "@tiptap/react";
+import { useAtom } from "jotai";
+import { isTextSelected } from "@docmost/editor-ext";
+import { showLinkMenuAtom } from "@/features/editor/atoms/editor-atoms";
+import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel";
+import { normalizeUrl } from "@/features/editor/components/link/link-view";
 import { TextSelection } from "@tiptap/pm/state";
-import { EditorMenuProps } from "@/features/editor/components/table/types/types.ts";
-import { LinkEditorPanel } from "@/features/editor/components/link/link-editor-panel.tsx";
-import { LinkPreviewPanel } from "@/features/editor/components/link/link-preview.tsx";
-import { Card } from "@mantine/core";
-import { useEditorState } from "@tiptap/react";
+import { Paper } from "@mantine/core";
 
-export function LinkMenu({ editor, appendTo }: EditorMenuProps) {
-  const [showEdit, setShowEdit] = useState(false);
+type EditorLinkMenuProps = {
+  editor: Editor;
+};
 
-  const shouldShow = useCallback(() => {
-    return editor.isActive("link");
-  }, [editor]);
+export const EditorLinkMenu: FC<EditorLinkMenuProps> = ({ editor }) => {
+  const [showLinkMenu, setShowLinkMenu] = useAtom(showLinkMenuAtom);
+  const showLinkMenuRef = useRef(showLinkMenu);
 
-  const editorState = useEditorState({
-    editor,
-    selector: (ctx) => {
-      if (!ctx.editor) {
-        return null;
-      }
-      const link = ctx.editor.getAttributes("link");
-      return {
-        href: link.href,
-      };
-    },
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleEdit = useCallback(() => {
-    setShowEdit(true);
+  useEffect(() => {
+    showLinkMenuRef.current = showLinkMenu;
+    if (showLinkMenu) {
+      editor.commands.focus();
+    }
+  }, [showLinkMenu, editor]);
+
+  const focusInput = useCallback(() => {
+    requestAnimationFrame(() => {
+      containerRef.current
+        ?.querySelector<HTMLInputElement>("input")
+        ?.focus({ preventScroll: true });
+    });
   }, []);
 
   const onSetLink = useCallback(
-    (url: string) => {
+    (url: string, internal?: boolean) => {
       editor
         .chain()
         .focus()
-        .extendMarkRange("link")
-        .setLink({ href: url })
+        .setLink({
+          href: internal ? url : normalizeUrl(url),
+          internal: !!internal,
+        } as any)
         .command(({ tr }) => {
           tr.setSelection(TextSelection.create(tr.doc, tr.selection.to));
           return true;
         })
         .run();
-      setShowEdit(false);
+      setShowLinkMenu(false);
     },
-    [editor],
+    [editor, setShowLinkMenu],
   );
 
-  const onUnsetLink = useCallback(() => {
-    editor.chain().focus().extendMarkRange("link").unsetLink().run();
-    setShowEdit(false);
-    return null;
-  }, [editor]);
+  useEffect(() => {
+    if (!showLinkMenu) return;
 
-  const onShowEdit = useCallback(() => {
-    setShowEdit(true);
-  }, []);
+    const dismiss = () => {
+      setShowLinkMenu(false);
+      editor.commands.focus();
+      editor.commands.setTextSelection(editor.state.selection.to);
+    };
 
-  const onHideEdit = useCallback(() => {
-    setShowEdit(false);
-  }, []);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        dismiss();
+      }
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        dismiss();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [showLinkMenu, setShowLinkMenu]);
+
+  if (!showLinkMenu) return null;
 
   return (
-    <BaseBubbleMenu
+    <BubbleMenu
       editor={editor}
-      pluginKey={`link-menu`}
-      updateDelay={0}
-      options={{
-        onHide: () => {
-          setShowEdit(false);
-        },
-        placement: "bottom",
-        offset: 5,
-        // zIndex: 101,
+      shouldShow={({ editor, state }) => {
+        const { empty } = state.selection;
+        return (
+          showLinkMenuRef.current &&
+          editor.isEditable &&
+          !empty &&
+          isTextSelected(editor)
+        );
       }}
-      shouldShow={shouldShow}
+      options={{
+        placement: "bottom",
+        offset: 8,
+        onShow: focusInput,
+        onHide: () => {
+          setShowLinkMenu(false);
+        },
+      }}
+      style={{ zIndex: 198, position: "relative" }}
     >
-      {showEdit ? (
-        <Card
-          withBorder
-          radius="md"
-          padding="xs"
-          bg="var(--mantine-color-body)"
-        >
-          <LinkEditorPanel
-            initialUrl={editorState?.href}
-            onSetLink={onSetLink}
-          />
-        </Card>
-      ) : (
-        <LinkPreviewPanel
-          url={editorState?.href}
-          onClear={onUnsetLink}
-          onEdit={handleEdit}
-        />
-      )}
-    </BaseBubbleMenu>
+      <Paper ref={containerRef} w={320} p="sm" shadow="md" radius={6} withBorder>
+        <LinkEditorPanel onSetLink={onSetLink} />
+      </Paper>
+    </BubbleMenu>
   );
-}
-
-export default LinkMenu;
+};

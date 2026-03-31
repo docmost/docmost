@@ -31,6 +31,7 @@ export function useActivateMutation() {
         queryKey: ["license"],
       });
       queryClient.refetchQueries({ queryKey: ["currentUser"] });
+      queryClient.refetchQueries({ queryKey: ["entitlements"] });
     },
     onError: (error) => {
       const errorMessage = error["response"]?.data?.message;
@@ -47,6 +48,7 @@ export function useRemoveLicenseMutation() {
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["license"] });
       queryClient.refetchQueries({ queryKey: ["currentUser"] });
+      queryClient.refetchQueries({ queryKey: ["entitlements"] });
     },
   });
 }

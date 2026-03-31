@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { INotification } from "../types/notification.types";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMarkReadMutation } from "../queries/notification-query";
@@ -36,20 +36,20 @@ export function NotificationItem({
 
   const isUnread = !notification.readAt;
 
-  const getNotificationMessage = (): string => {
+  const getNotificationMessageKey = (): string => {
     switch (notification.type) {
       case "comment.user_mention":
-        return t("mentioned you in a comment");
+        return "<bold>{{name}}</bold> mentioned you in a comment";
       case "comment.created":
-        return t("commented on a page");
+        return "<bold>{{name}}</bold> commented on a page";
       case "comment.resolved":
-        return t("resolved a comment");
+        return "<bold>{{name}}</bold> resolved a comment";
       case "page.user_mention":
-        return t("mentioned you on a page");
+        return "<bold>{{name}}</bold> mentioned you on a page";
       case "page.permission_granted":
         return notification.data?.role === "writer"
-          ? t("gave you edit access to a page")
-          : t("gave you view access to a page");
+          ? "<bold>{{name}}</bold> gave you edit access to a page"
+          : "<bold>{{name}}</bold> gave you view access to a page";
       default:
         return "";
     }
@@ -95,10 +95,11 @@ export function NotificationItem({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text size="sm" lineClamp={2}>
-            <Text span fw={600}>
-              {notification.actor?.name}
-            </Text>{" "}
-            {getNotificationMessage()}
+            <Trans
+              i18nKey={getNotificationMessageKey()}
+              values={{ name: notification.actor?.name }}
+              components={{ bold: <Text span fw={600} /> }}
+            />
           </Text>
 
           {notification.page && (

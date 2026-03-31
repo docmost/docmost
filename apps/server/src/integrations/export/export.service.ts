@@ -291,6 +291,7 @@ export class ExportService {
           prosemirrorJson,
           slugIdToPath,
           currentPagePath,
+          baseUrl,
         );
 
         if (includeAttachments) {

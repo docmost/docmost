@@ -85,7 +85,7 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey'])
+      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -106,12 +106,9 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { licenseKey, ...rest } = workspace;
+    const { licenseKey, plan, ...rest } = workspace;
 
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-    };
+    return rest;
   }
 
   async create(
@@ -244,7 +241,7 @@ export class WorkspaceService {
         await this.billingQueue.add(
           QueueJob.WELCOME_EMAIL,
           { userId: user.id },
-          { delay: 60 * 1000 }, // 1m
+          { delay: 30 * 60 * 1000 }, // 30m
         );
       } catch (err) {
         this.logger.error(err);
@@ -332,14 +329,32 @@ export class WorkspaceService {
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
-        .select(['id', 'licenseKey', 'trashRetentionDays'])
+        .select(['id', 'licenseKey', 'plan', 'trashRetentionDays'])
         .where('id', '=', workspaceId)
         .executeTakeFirst();
 
-      if (!this.licenseCheckService.isValidEELicense(ws.licenseKey)) {
-        throw new ForbiddenException(
-          'This feature requires a valid enterprise license',
-        );
+      if (!ws) {
+        throw new NotFoundException('Workspace not found');
+      }
+
+      if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'mcp', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
+      }
+
+      if (
+        typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
+        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
+        typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined'
+      ) {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
       }
 
       if (
@@ -503,10 +518,7 @@ export class WorkspaceService {
     }
 
     const { licenseKey, ...rest } = workspace;
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-    };
+    return rest;
   }
 
   async getWorkspaceUsers(

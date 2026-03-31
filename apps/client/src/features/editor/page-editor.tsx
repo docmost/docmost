@@ -50,7 +50,6 @@ import {
   handleFileDrop,
   handlePaste,
 } from "@/features/editor/components/common/editor-paste-handler.tsx";
-import LinkMenu from "@/features/editor/components/link/link-menu.tsx";
 import ExcalidrawMenu from "./components/excalidraw/excalidraw-menu";
 import DrawioMenu from "./components/drawio/drawio-menu";
 import { useCollabToken } from "@/features/auth/queries/auth-query.tsx";
@@ -67,6 +66,7 @@ import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 
 interface PageEditorProps {
@@ -408,6 +408,7 @@ export default function PageEditor({
         {editor && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
+            <EditorLinkMenu editor={editor} />
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
@@ -418,7 +419,6 @@ export default function PageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
-            <LinkMenu editor={editor} appendTo={menuContainerRef} />
           </div>
         )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
