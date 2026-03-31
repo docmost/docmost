@@ -95,15 +95,20 @@ export class SearchService {
 
       if (share.pageId) {
         // Page Share: search in shared page + optional subpages
+        const isRestricted =
+          await this.pagePermissionRepo.hasRestrictedAncestor(share.pageId);
+        if (isRestricted) {
+          return { items: [] };
+        }
+
         const pageIdsToSearch = [];
         if (share.includeSubPages) {
-          const pageList = await this.pageRepo.getPageAndDescendants(
+          const pageList = await this.pageRepo.getPageAndDescendantsExcludingRestricted(
             share.pageId,
             {
               includeContent: false,
             },
           );
-
           pageIdsToSearch.push(...pageList.map((page) => page.id));
         } else {
           pageIdsToSearch.push(share.pageId);
