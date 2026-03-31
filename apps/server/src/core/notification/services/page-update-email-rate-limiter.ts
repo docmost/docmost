@@ -4,7 +4,7 @@ import type { Redis } from 'ioredis';
 
 const KEY_PREFIX = 'page-update:emails:';
 const DIGEST_PREFIX = 'page-update:digest:';
-const TTL_SECONDS = 28800; // 8 hours
+const TTL_SECONDS = 86400; // 24 hours
 const MAX_IMMEDIATE_EMAILS = 4;
 
 @Injectable()

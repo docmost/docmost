@@ -23,7 +23,7 @@ import { getPageTitle } from '../../../common/helpers';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 
 const PAGE_UPDATE_COOLDOWN_HOURS = 7;
-const DIGEST_DELAY_MS = 3 * 60 * 60 * 1000; // 3 hours
+const DIGEST_DELAY_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 @Injectable()
 export class PageNotificationService {
