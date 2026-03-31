@@ -170,6 +170,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         input.type = "file";
         input.accept = "image/*";
         input.multiple = true;
+        input.style.display = "none";
+        document.body.appendChild(input);
         input.onchange = async () => {
           if (input.files?.length) {
             for (const file of input.files) {
@@ -179,8 +181,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             }
           }
 
-          // Reset the input value to allow uploading the same file again if needed
-          input.value = "";
+          input.remove();
         };
         input.click();
       },
@@ -202,6 +203,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         input.type = "file";
         input.accept = "video/*";
         input.multiple = true;
+        input.style.display = "none";
+        document.body.appendChild(input);
         input.onchange = async () => {
           if (input.files?.length) {
             for (const file of input.files) {
@@ -211,8 +214,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             }
           }
 
-          // Reset the input value to allow uploading the same file again if needed
-          input.value = "";
+          input.remove();
         };
         input.click();
       },
@@ -234,6 +236,8 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         input.type = "file";
         input.accept = "";
         input.multiple = true;
+        input.style.display = "none";
+        document.body.appendChild(input);
         input.onchange = async () => {
           if (input.files?.length) {
             for (const file of input.files) {
@@ -243,8 +247,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
             }
           }
 
-          // Reset the input value to allow uploading the same file again if needed
-          input.value = "";
+          input.remove();
         };
         input.click();
       },

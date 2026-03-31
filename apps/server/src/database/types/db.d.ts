@@ -273,6 +273,7 @@ export interface Spaces {
   id: Generated<string>;
   logo: string | null;
   name: string | null;
+  settings: Json | null;
   slug: string;
   updatedAt: Generated<Timestamp>;
   visibility: Generated<string>;

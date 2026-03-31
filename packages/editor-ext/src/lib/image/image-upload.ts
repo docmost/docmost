@@ -1,9 +1,9 @@
-import { imageDimensionsFromStream } from "image-dimensions";
-import { MediaUploadOptions, UploadFn } from "../media-utils";
-import { IAttachment } from "../types";
-import { generateNodeId } from "../utils";
-import { Node } from "@tiptap/pm/model";
-import { Command } from "@tiptap/core";
+import { imageDimensionsFromData } from 'image-dimensions';
+import { MediaUploadOptions, UploadFn } from '../media-utils';
+import { IAttachment } from '../types';
+import { generateNodeId } from '../utils';
+import { Node } from '@tiptap/pm/model';
+import { Command } from '@tiptap/core';
 
 const findImageNodeByPlaceholderId = (
   doc: Node,
@@ -14,7 +14,7 @@ const findImageNodeByPlaceholderId = (
   doc.descendants((node, pos) => {
     if (result) return false;
     if (
-      node.type.name === "image" &&
+      node.type.name === 'image' &&
       node.attrs.placeholder?.id === placeholderId
     ) {
       result = { node, pos };
@@ -34,7 +34,11 @@ const handleImageUpload =
     if (!validated) return;
 
     const objectUrl = URL.createObjectURL(file);
-    const imageDimensions = await imageDimensionsFromStream(file.stream());
+
+    const imageDimensions = imageDimensionsFromData(
+      new Uint8Array(await file.arrayBuffer()),
+    );
+
     const placeholderId = generateNodeId();
     const aspectRatio = imageDimensions
       ? imageDimensions.width / imageDimensions.height

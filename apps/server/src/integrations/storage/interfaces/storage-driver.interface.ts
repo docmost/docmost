@@ -11,6 +11,11 @@ export interface StorageDriver {
 
   readStream(filePath: string): Promise<Readable>;
 
+  readRangeStream(
+    filePath: string,
+    range: { start: number; end: number },
+  ): Promise<Readable>;
+
   exists(filePath: string): Promise<boolean>;
 
   getUrl(filePath: string): string;

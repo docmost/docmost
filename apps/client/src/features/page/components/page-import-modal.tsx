@@ -11,6 +11,7 @@ import {
   IconBrandNotion,
   IconCheck,
   IconFileCode,
+  IconFileTypeDocx,
   IconFileTypeZip,
   IconMarkdown,
   IconX,
@@ -86,11 +87,13 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
   const markdownFileRef = useRef<() => void>(null);
   const htmlFileRef = useRef<() => void>(null);
+  const docxFileRef = useRef<() => void>(null);
   const notionFileRef = useRef<() => void>(null);
   const confluenceFileRef = useRef<() => void>(null);
   const zipFileRef = useRef<() => void>(null);
 
   const canUseConfluence = isCloud() || workspace?.hasLicenseKey;
+  const canUseDocx = isCloud() || workspace?.hasLicenseKey;
 
   const handleZipUpload = async (selectedFile: File, source: string) => {
     if (!selectedFile) {
@@ -265,6 +268,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       // Reset file inputs after successful upload
       if (markdownFileRef.current) markdownFileRef.current();
       if (htmlFileRef.current) htmlFileRef.current();
+      if (docxFileRef.current) docxFileRef.current();
 
       const pageCountText =
         pageCount === 1 ? `1 ${t("page")}` : `${pageCount} ${t("pages")}`;
@@ -318,6 +322,30 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             >
               HTML
             </Button>
+          )}
+        </FileButton>
+
+        <FileButton
+          onChange={handleFileUpload}
+          accept=".docx"
+          multiple
+          resetRef={docxFileRef}
+        >
+          {(props) => (
+            <Tooltip
+              label={t("Available in enterprise edition")}
+              disabled={canUseDocx}
+            >
+              <Button
+                disabled={!canUseDocx}
+                justify="start"
+                variant="default"
+                leftSection={<IconFileTypeDocx size={18} />}
+                {...props}
+              >
+                Word (DOCX)
+              </Button>
+            </Tooltip>
           )}
         </FileButton>
 

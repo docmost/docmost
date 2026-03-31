@@ -9,15 +9,16 @@ import CreateSsoProvider from "@/ee/security/components/create-sso-provider.tsx"
 import EnforceSso from "@/ee/security/components/enforce-sso.tsx";
 import AllowedDomains from "@/ee/security/components/allowed-domains.tsx";
 import { useTranslation } from "react-i18next";
-import useLicense from "@/ee/hooks/use-license.tsx";
-import usePlan from "@/ee/hooks/use-plan.tsx";
 import EnforceMfa from "@/ee/security/components/enforce-mfa.tsx";
+import DisablePublicSharing from "@/ee/security/components/disable-public-sharing.tsx";
+import useEnterpriseAccess from "@/ee/hooks/use-enterprise-access.tsx";
+import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
 
 export default function Security() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const { hasLicenseKey } = useLicense();
-  const { isBusiness } = usePlan();
+  const hasEnterpriseAccess = useEnterpriseAccess();
+  const isCloudEE = useIsCloudEE();
 
   if (!isAdmin) {
     return null;
@@ -30,26 +31,41 @@ export default function Security() {
       </Helmet>
       <SettingsTitle title={t("Security")} />
 
-      <AllowedDomains />
-
-      <Divider my="lg" />
-
       <EnforceMfa />
 
       <Divider my="lg" />
+
+      {(!isCloud() || hasEnterpriseAccess) && (
+        <>
+          <DisablePublicSharing />
+          <Divider my="lg" />
+        </>
+      )}
 
       <Title order={4} my="lg">
         Single sign-on (SSO)
       </Title>
 
-      {(isCloud() && isBusiness) || (!isCloud() && hasLicenseKey) ? (
+      {hasEnterpriseAccess && (
         <>
           <EnforceSso />
           <Divider my="lg" />
+        </>
+      )}
+
+      {isCloudEE && (
+        <>
+          <AllowedDomains />
+          <Divider my="lg" />
+        </>
+      )}
+
+      {hasEnterpriseAccess && (
+        <>
           <CreateSsoProvider />
           <Divider size={0} my="lg" />
         </>
-      ) : null}
+      )}
 
       <SsoProviderList />
     </>
