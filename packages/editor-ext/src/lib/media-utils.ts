@@ -1,5 +1,12 @@
 import { Editor } from "@tiptap/core";
 
+export function normalizeFileUrl(src: string): string {
+  if (src && src.startsWith("/files/")) {
+    return "/api" + src;
+  }
+  return src || "";
+}
+
 export type UploadFn = (
   file: File,
   editor: Editor,
