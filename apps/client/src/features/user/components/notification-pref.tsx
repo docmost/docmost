@@ -2,7 +2,7 @@ import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
 import { IUser, IUserSettings } from "@/features/user/types/user.types.ts";
 import { Switch, Text, Title, Stack } from "@mantine/core";
-import { useAtom } from "jotai/index";
+import { useAtom } from "jotai";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,13 +26,13 @@ const notificationItems: {
     description: "Get notified when pages you watch are updated.",
   },
   {
-    key: "page.user_mention",
+    key: "page.userMention",
     dtoField: "notificationPageUserMention",
     label: "Page mentions",
     description: "Get notified when someone mentions you on a page.",
   },
   {
-    key: "comment.user_mention",
+    key: "comment.userMention",
     dtoField: "notificationCommentUserMention",
     label: "Comment mentions",
     description: "Get notified when someone mentions you in a comment.",
@@ -41,7 +41,8 @@ const notificationItems: {
     key: "comment.created",
     dtoField: "notificationCommentCreated",
     label: "New comments",
-    description: "Get notified about new comments on threads you participate in.",
+    description:
+      "Get notified about new comments on threads you participate in.",
   },
   {
     key: "comment.resolved",

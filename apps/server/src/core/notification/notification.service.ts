@@ -6,7 +6,7 @@ import { InsertableNotification } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
-import { NotificationType } from './notification.constants';
+import { NotificationType, NotificationTypeToSettingKey } from './notification.constants';
 
 @Injectable()
 export class NotificationService {
@@ -78,8 +78,11 @@ export class NotificationService {
       if (!user?.email) return;
 
       if (type) {
-        const settings = user.settings as any;
-        if (settings?.notifications?.[type] === false) return;
+        const settingKey = NotificationTypeToSettingKey[type];
+        if (settingKey) {
+          const settings = user.settings as any;
+          if (settings?.notifications?.[settingKey] === false) return;
+        }
       }
 
       await this.mailService.sendToQueue({

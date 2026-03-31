@@ -39,11 +39,11 @@ export interface IUserSettings {
     pageEditMode: string;
   };
   notifications?: {
-    'page.updated'?: boolean;
-    'page.user_mention'?: boolean;
-    'comment.user_mention'?: boolean;
-    'comment.created'?: boolean;
-    'comment.resolved'?: boolean;
+    "page.updated"?: boolean;
+    "page.userMention"?: boolean;
+    "comment.userMention"?: boolean;
+    "comment.created"?: boolean;
+    "comment.resolved"?: boolean;
   };
 }
 
