@@ -90,7 +90,7 @@ export default function SharedSpace() {
         />
       </Container>
 
-      {data && !data.hasLicenseKey && <ShareBranding />}
+      {data && !(data.features?.length > 0) && <ShareBranding />}
     </div>
   );
 }
