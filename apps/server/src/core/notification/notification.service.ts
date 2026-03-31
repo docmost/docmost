@@ -7,6 +7,7 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
 import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @Injectable()
 export class NotificationService {
@@ -14,6 +15,7 @@ export class NotificationService {
 
   constructor(
     private readonly notificationRepo: NotificationRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly wsGateway: WsGateway,
     private readonly mailService: MailService,
     @InjectKysely() private readonly db: KyselyDB,
@@ -44,7 +46,30 @@ export class NotificationService {
     pagination: PaginationOptions,
     type: NotificationTab = 'all',
   ) {
-    return this.notificationRepo.findByUserId(userId, pagination, type);
+    const result = await this.notificationRepo.findByUserId(
+      userId,
+      pagination,
+      type,
+    );
+
+    const pageIds = result.items
+      .map((n: any) => n.pageId)
+      .filter(Boolean);
+
+    if (pageIds.length > 0) {
+      const accessiblePageIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds,
+          userId,
+        });
+      const accessibleSet = new Set(accessiblePageIds);
+
+      result.items = result.items.filter(
+        (n: any) => !n.pageId || accessibleSet.has(n.pageId),
+      );
+    }
+
+    return result;
   }
 
   async getUnreadCount(userId: string) {
