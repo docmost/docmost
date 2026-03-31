@@ -16,7 +16,7 @@ export class LicenseCheckService {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const LicenseModule = require('../../ee/licence/license.service');
+      const LicenseModule = require('../../ee/license/license.service');
       const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
         strict: false,
       });
@@ -30,7 +30,7 @@ export class LicenseCheckService {
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { getFeaturesForCloudPlan } = require('../../ee/licence/feature-registry');
+        const { getFeaturesForCloudPlan } = require('../../ee/license/feature-registry');
         return getFeaturesForCloudPlan(plan).has(feature);
       } catch {
         return false;
@@ -39,7 +39,7 @@ export class LicenseCheckService {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const LicenseModule = require('../../ee/licence/license.service');
+      const LicenseModule = require('../../ee/license/license.service');
       const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
         strict: false,
       });
@@ -52,7 +52,7 @@ export class LicenseCheckService {
   getFeatures(licenseKey: string): string[] {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const LicenseModule = require('../../ee/licence/license.service');
+      const LicenseModule = require('../../ee/license/license.service');
       const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
         strict: false,
       });
@@ -66,7 +66,7 @@ export class LicenseCheckService {
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { getFeaturesForCloudPlan } = require('../../ee/licence/feature-registry');
+        const { getFeaturesForCloudPlan } = require('../../ee/license/feature-registry');
         return [...getFeaturesForCloudPlan(plan)];
       } catch {
         return [];
@@ -87,7 +87,7 @@ export class LicenseCheckService {
   private getLicenseType(licenseKey: string): string | null {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const LicenseModule = require('../../ee/licence/license.service');
+      const LicenseModule = require('../../ee/license/license.service');
       const licenseService = this.moduleRef.get(LicenseModule.LicenseService, {
         strict: false,
       });

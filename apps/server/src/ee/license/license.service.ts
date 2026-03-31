@@ -14,6 +14,26 @@ export interface ILicenseInfo {
 
 const DEMO_LICENSE_SECRET = 'DOCMOST_DEMO_LICENSE_SECRET_KEY_2024';
 
+const ALL_FEATURES = [
+  'sso:custom',
+  'sso:google',
+  'mfa',
+  'api:keys',
+  'comment:resolution',
+  'page:permissions',
+  'ai',
+  'import:confluence',
+  'import:docx',
+  'attachment:indexing',
+  'security:settings',
+  'mcp',
+  'scim',
+  'page:verification',
+  'audit:logs',
+  'retention',
+  'sharing:controls',
+];
+
 @Injectable()
 export class LicenseService {
   constructor(@InjectKysely() private readonly db: KyselyDB) {}
@@ -88,6 +108,34 @@ export class LicenseService {
     };
 
     return jwt.sign(payload, DEMO_LICENSE_SECRET, { algorithm: 'HS256' });
+  }
+
+  isValidEELicense(licenseKey: string): boolean {
+    try {
+      const info = this.decodeLicenseKey(licenseKey);
+      return new Date(info.expiresAt) > new Date();
+    } catch {
+      return false;
+    }
+  }
+
+  getLicenseType(licenseKey: string): string | null {
+    try {
+      const info = this.decodeLicenseKey(licenseKey);
+      if (!this.isValidEELicense(licenseKey)) return null;
+      return info.trial ? 'trial' : 'enterprise';
+    } catch {
+      return null;
+    }
+  }
+
+  getFeatures(licenseKey: string): string[] {
+    if (!this.isValidEELicense(licenseKey)) return [];
+    return ALL_FEATURES;
+  }
+
+  hasFeature(licenseKey: string, feature: string): boolean {
+    return this.getFeatures(licenseKey).includes(feature);
   }
 
   generateLicenseKey(opts: {
