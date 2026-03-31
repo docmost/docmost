@@ -1,4 +1,11 @@
-import React, { useState, useRef, useCallback, memo, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  memo,
+  useMemo,
+  useEffect,
+} from "react";
 import { useParams } from "react-router-dom";
 import {
   ActionIcon,
@@ -12,6 +19,7 @@ import {
   Text,
   ScrollArea,
 } from "@mantine/core";
+import classes from "../../../components/layouts/global/app-shell.module.css";
 import CommentListItem from "@/features/comment/components/comment-list-item";
 import {
   useCommentsQuery,
@@ -27,9 +35,10 @@ import { extractPageSlugId } from "@/lib";
 import { useTranslation } from "react-i18next";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query.ts";
 import { IconArrowUp, IconMessageOff } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
+import { asideWidthAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 
 function CommentListWithTabs() {
   const { t } = useTranslation();
@@ -42,9 +51,49 @@ function CommentListWithTabs() {
   } = useCommentsQuery({ pageId: page?.id });
   const createCommentMutation = useCreateCommentMutation();
   const [isLoading, setIsLoading] = useState(false);
+  const setAsideWidth = useSetAtom(asideWidthAtom);
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
+  const [isResizing, setIsResizing] = useState(false);
 
   const canComment = page?.permissions?.canEdit ?? false;
+
+  const startResizing = React.useCallback((mouseDownEvent) => {
+    mouseDownEvent.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = React.useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = React.useCallback(
+    (mouseMoveEvent) => {
+      if (isResizing) {
+        // Right-side panel: width = distance from cursor to right edge
+        const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+        if (newWidth < 220) {
+          setAsideWidth(220);
+          return;
+        }
+        if (newWidth > 600) {
+          setAsideWidth(600);
+          return;
+        }
+        setAsideWidth(newWidth);
+      }
+    },
+    [isResizing],
+  );
+
+  useEffect(() => {
+    //https://codesandbox.io/p/sandbox/kz9de
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -174,95 +223,98 @@ function CommentListWithTabs() {
   ) : null;
 
   return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <Tabs
-        defaultValue="open"
-        variant="default"
+    <>
+      <div className={classes.asideResizeHandle} onMouseDown={startResizing} />
+      <div
         style={{
-          flex: "1 1 auto",
+          flex: 1,
+          minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
         }}
       >
-        <Tabs.List justify="center">
-          <Tabs.Tab
-            value="open"
-            leftSection={
-              <Badge size="sm" variant="light" color="blue">
-                {activeComments.length}
-              </Badge>
-            }
-          >
-            {t("Open")}
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="resolved"
-            leftSection={
-              <Badge size="sm" variant="light" color="green">
-                {resolvedComments.length}
-              </Badge>
-            }
-          >
-            {t("Resolved")}
-          </Tabs.Tab>
-        </Tabs.List>
-
-        <ScrollArea
-          style={{ flex: "1 1 auto" }}
-          scrollbarSize={5}
-          type="scroll"
+        <Tabs
+          defaultValue="open"
+          variant="default"
+          style={{
+            flex: "1 1 auto",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
         >
-          <div style={{ paddingBottom: "8px" }}>
-            <Tabs.Panel value="open" pt="xs">
-              {activeComments.length === 0 ? (
-                <Center py="xl">
-                  <Stack align="center" gap="xs">
-                    <IconMessageOff
-                      size={32}
-                      stroke={1.5}
-                      color="var(--mantine-color-dimmed)"
-                    />
-                    <Text size="sm" c="dimmed">
-                      {t("No open comments.")}
-                    </Text>
-                  </Stack>
-                </Center>
-              ) : (
-                activeComments.map(renderComments)
-              )}
-            </Tabs.Panel>
+          <Tabs.List justify="center">
+            <Tabs.Tab
+              value="open"
+              leftSection={
+                <Badge size="sm" variant="light" color="blue">
+                  {activeComments.length}
+                </Badge>
+              }
+            >
+              {t("Open")}
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="resolved"
+              leftSection={
+                <Badge size="sm" variant="light" color="green">
+                  {resolvedComments.length}
+                </Badge>
+              }
+            >
+              {t("Resolved")}
+            </Tabs.Tab>
+          </Tabs.List>
 
-            <Tabs.Panel value="resolved" pt="xs">
-              {resolvedComments.length === 0 ? (
-                <Center py="xl">
-                  <Stack align="center" gap="xs">
-                    <IconMessageOff
-                      size={32}
-                      stroke={1.5}
-                      color="var(--mantine-color-dimmed)"
-                    />
-                    <Text size="sm" c="dimmed">
-                      {t("No resolved comments.")}
-                    </Text>
-                  </Stack>
-                </Center>
-              ) : (
-                resolvedComments.map(renderComments)
-              )}
-            </Tabs.Panel>
-          </div>
-        </ScrollArea>
-      </Tabs>
-      {pageCommentInput}
-    </div>
+          <ScrollArea
+            style={{ flex: "1 1 auto" }}
+            scrollbarSize={5}
+            type="scroll"
+          >
+            <div style={{ paddingBottom: "8px" }}>
+              <Tabs.Panel value="open" pt="xs">
+                {activeComments.length === 0 ? (
+                  <Center py="xl">
+                    <Stack align="center" gap="xs">
+                      <IconMessageOff
+                        size={32}
+                        stroke={1.5}
+                        color="var(--mantine-color-dimmed)"
+                      />
+                      <Text size="sm" c="dimmed">
+                        {t("No open comments.")}
+                      </Text>
+                    </Stack>
+                  </Center>
+                ) : (
+                  activeComments.map(renderComments)
+                )}
+              </Tabs.Panel>
+
+              <Tabs.Panel value="resolved" pt="xs">
+                {resolvedComments.length === 0 ? (
+                  <Center py="xl">
+                    <Stack align="center" gap="xs">
+                      <IconMessageOff
+                        size={32}
+                        stroke={1.5}
+                        color="var(--mantine-color-dimmed)"
+                      />
+                      <Text size="sm" c="dimmed">
+                        {t("No resolved comments.")}
+                      </Text>
+                    </Stack>
+                  </Center>
+                ) : (
+                  resolvedComments.map(renderComments)
+                )}
+              </Tabs.Panel>
+            </div>
+          </ScrollArea>
+        </Tabs>
+        {pageCommentInput}
+      </div>
+    </>
   );
 }
 
