@@ -56,11 +56,12 @@ export class LicenseService {
     workspaceId: string,
     licenseKey: string,
   ): Promise<ILicenseInfo> {
-    const licenseInfo = this.decodeLicenseKey(licenseKey);
+    const cleanKey = licenseKey.replace(/\s+/g, '');
+    const licenseInfo = this.decodeLicenseKey(cleanKey);
 
     await this.db
       .updateTable('workspaces')
-      .set({ licenseKey })
+      .set({ licenseKey: cleanKey })
       .where('id', '=', workspaceId)
       .execute();
 
@@ -78,7 +79,7 @@ export class LicenseService {
   decodeLicenseKey(licenseKey: string): ILicenseInfo {
     try {
       // Try to decode as JWT (with or without verification for demo)
-      const decoded = jwt.decode(licenseKey) as ILicenseInfo;
+      const decoded = jwt.decode(licenseKey?.replace(/\s+/g, '')) as ILicenseInfo;
 
       if (!decoded || !decoded.id || !decoded.customerName) {
         throw new Error('Invalid license format');

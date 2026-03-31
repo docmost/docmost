@@ -113,9 +113,7 @@ export class DatabaseModule implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     await this.establishConnection();
 
-    if (this.environmentService.getNodeEnv() === 'production') {
-      await this.migrationService.migrateToLatest();
-    }
+    await this.migrationService.migrateToLatest();
   }
 
   async establishConnection() {
