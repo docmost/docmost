@@ -1,5 +1,21 @@
 import { type Kysely, sql } from 'kysely';
 
+async function tableExists(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<boolean> {
+  const result = await sql<{ exists: boolean }>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = COALESCE(current_schema(), 'public')
+        AND table_name = ${tableName}
+    ) AS exists
+  `.execute(db);
+
+  return result.rows[0]?.exists ?? false;
+}
+
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createIndex('idx_group_users_user_id')
@@ -197,21 +213,25 @@ export async function up(db: Kysely<any>): Promise<void> {
     .column('space_id')
     .execute();
 
-  // Auth providers: all queries filter by workspaceId
-  await db.schema
-    .createIndex('idx_auth_providers_workspace_id')
-    .ifNotExists()
-    .on('auth_providers')
-    .column('workspace_id')
-    .execute();
+  // These tables may be absent on forks that removed legacy SSO before OIDC
+  // auth is reintroduced by a later migration.
+  if (await tableExists(db, 'auth_providers')) {
+    await db.schema
+      .createIndex('idx_auth_providers_workspace_id')
+      .ifNotExists()
+      .on('auth_providers')
+      .column('workspace_id')
+      .execute();
+  }
 
-  // Auth accounts: SSO login lookup by provider user
-  await db.schema
-    .createIndex('idx_auth_accounts_provider_user_id')
-    .ifNotExists()
-    .on('auth_accounts')
-    .columns(['provider_user_id', 'auth_provider_id'])
-    .execute();
+  if (await tableExists(db, 'auth_accounts')) {
+    await db.schema
+      .createIndex('idx_auth_accounts_provider_user_id')
+      .ifNotExists()
+      .on('auth_accounts')
+      .columns(['provider_user_id', 'auth_provider_id'])
+      .execute();
+  }
 
   // Workspace invitations: listing and SSO lookup
   await db.schema

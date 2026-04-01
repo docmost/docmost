@@ -87,6 +87,20 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema
+    .createIndex('idx_auth_providers_workspace_id')
+    .ifNotExists()
+    .on('auth_providers')
+    .column('workspace_id')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_auth_accounts_provider_user_id')
+    .ifNotExists()
+    .on('auth_accounts')
+    .columns(['provider_user_id', 'auth_provider_id'])
+    .execute();
+
+  await db.schema
     .alterTable('workspaces')
     .addColumn('enforce_sso', 'boolean', (col) =>
       col.notNull().defaultTo(false),
