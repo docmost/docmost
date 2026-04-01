@@ -142,6 +142,25 @@ export const mainExtensions = [
         }),
       ];
     },
+    addKeyboardShortcuts() {
+      return {
+        Enter: ({ editor }) => {
+          const { from, to } = editor.state.selection;
+          if (from !== to) return false;
+          if (!editor.isActive("code")) return false;
+
+          const $from = editor.state.doc.resolve(from);
+          const codeType = editor.state.schema.marks.code;
+          const nodeAfter = $from.nodeAfter;
+
+          if (nodeAfter && codeType.isInSet(nodeAfter.marks)) {
+            return false;
+          }
+
+          return editor.chain().unsetCode().splitBlock().run();
+        },
+      };
+    },
   }),
   SharedStorage,
   Heading,
