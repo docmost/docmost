@@ -5,6 +5,7 @@ import { IPagination } from "@/lib/types";
 export async function getNotifications(params: {
   limit?: number;
   cursor?: string;
+  type?: string;
 }): Promise<IPagination<INotification>> {
   const req = await api.post<IPagination<INotification>>(
     "/notifications",

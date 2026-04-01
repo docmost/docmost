@@ -18,12 +18,10 @@ import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import { Queue } from 'bullmq';
 import {
   extractMentions,
-  extractPageMentions,
   extractUserMentions,
 } from '../../common/helpers/prosemirror/utils';
 import { isDeepStrictEqual } from 'node:util';
 import {
-  IPageBacklinkJob,
   IPageHistoryJob,
   IPageMentionNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
@@ -43,7 +41,6 @@ export class PersistenceExtension implements Extension {
   constructor(
     private readonly pageRepo: PageRepo,
     @InjectKysely() private readonly db: KyselyDB,
-    @InjectQueue(QueueName.GENERAL_QUEUE) private generalQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @InjectQueue(QueueName.HISTORY_QUEUE) private historyQueue: Queue,
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
@@ -165,13 +162,6 @@ export class PersistenceExtension implements Extension {
       await this.collabHistory.addContributors(pageId, editingUserIds);
 
       const mentions = extractMentions(tiptapJson);
-      const pageMentions = extractPageMentions(mentions);
-
-      await this.generalQueue.add(QueueJob.PAGE_BACKLINKS, {
-        pageId: pageId,
-        workspaceId: page.workspaceId,
-        mentions: pageMentions,
-      } as IPageBacklinkJob);
 
       const userMentions = extractUserMentions(mentions);
       const oldMentions = page.content ? extractMentions(page.content) : [];

@@ -6,6 +6,7 @@ import {
   Menu,
   Popover,
   ScrollArea,
+  Tabs,
   Text,
   Tooltip,
 } from "@mantine/core";
@@ -18,15 +19,20 @@ import {
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { NotificationList } from "./notification-list";
-import { NotificationFilter } from "../types/notification.types";
+import {
+  NotificationFilter,
+  NotificationTab,
+} from "../types/notification.types";
 import {
   useMarkAllReadMutation,
   useUnreadCountQuery,
 } from "../queries/notification-query";
+import classes from "../notification.module.css";
 
 export function NotificationPopover() {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
+  const [tab, setTab] = useState<NotificationTab>("direct");
   const [filter, setFilter] = useState<NotificationFilter>("all");
 
   const { data: unreadData } = useUnreadCountQuery();
@@ -125,13 +131,27 @@ export function NotificationPopover() {
           </Group>
         </Group>
 
+        <Tabs
+          value={tab}
+          onChange={(value) => setTab(value as NotificationTab)}
+          variant="default"
+          color="dark"
+        >
+          <Tabs.List px="md">
+            <Tabs.Tab value="direct">{t("Direct")}</Tabs.Tab>
+            <Tabs.Tab value="updates">{t("Updates")}</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+
         <ScrollArea.Autosize
           mah={500}
           type="auto"
           offsetScrollbars
           scrollbarSize={6}
+          style={{ overscrollBehavior: "contain" }}
         >
           <NotificationList
+            tab={tab}
             filter={filter}
             onNavigate={() => setOpened(false)}
           />
