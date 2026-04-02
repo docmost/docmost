@@ -22,7 +22,7 @@ export default function Security() {
   const hasRetention = useHasFeature(Feature.RETENTION);
   const hasSharingControls = useHasFeature(Feature.SHARING_CONTROLS);
 
-  if (!isAdmin) {
+  if (!isAdmin || !hasLicenseKey) {
     return null;
   }
 
