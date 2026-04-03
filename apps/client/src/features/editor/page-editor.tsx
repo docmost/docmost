@@ -37,14 +37,17 @@ import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-
 import {
   activeCommentIdAtom,
   showCommentPopupAtom,
+  showReadOnlyCommentPopupAtom,
 } from "@/features/comment/atoms/comment-atom";
 import CommentDialog from "@/features/comment/components/comment-dialog";
 import { EditorBubbleMenu } from "@/features/editor/components/bubble-menu/bubble-menu";
+import { ReadonlyBubbleMenu } from "@/features/editor/components/bubble-menu/readonly-bubble-menu";
 import TableCellMenu from "@/features/editor/components/table/table-cell-menu.tsx";
 import TableMenu from "@/features/editor/components/table/table-menu.tsx";
 import ImageMenu from "@/features/editor/components/image/image-menu.tsx";
 import CalloutMenu from "@/features/editor/components/callout/callout-menu.tsx";
 import VideoMenu from "@/features/editor/components/video/video-menu.tsx";
+import PdfMenu from "@/features/editor/components/pdf/pdf-menu.tsx";
 import SubpagesMenu from "@/features/editor/components/subpages/subpages-menu.tsx";
 import {
   handleFileDrop,
@@ -73,12 +76,14 @@ interface PageEditorProps {
   pageId: string;
   editable: boolean;
   content: any;
+  canComment?: boolean;
 }
 
 export default function PageEditor({
   pageId,
   editable,
   content,
+  canComment,
 }: PageEditorProps) {
   const collaborationURL = useCollaborationUrl();
   const isComponentMounted = useRef(false);
@@ -93,6 +98,7 @@ export default function PageEditor({
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
+  const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
@@ -414,6 +420,7 @@ export default function PageEditor({
             <TableCellMenu editor={editor} appendTo={menuContainerRef} />
             <ImageMenu editor={editor} />
             <VideoMenu editor={editor} />
+            <PdfMenu editor={editor} />
             <CalloutMenu editor={editor} />
             <SubpagesMenu editor={editor} />
             <ExcalidrawMenu editor={editor} />
@@ -421,7 +428,13 @@ export default function PageEditor({
             <ColumnsMenu editor={editor} />
           </div>
         )}
+        {editor && !editorIsEditable && (editable || canComment) && providersRef.current && (
+          <ReadonlyBubbleMenu editor={editor} />
+        )}
         {showCommentPopup && <CommentDialog editor={editor} pageId={pageId} />}
+        {showReadOnlyCommentPopup && (
+          <CommentDialog editor={editor} pageId={pageId} readOnly />
+        )}
       </div>
       <div
         onClick={() => editor.commands.focus("end")}

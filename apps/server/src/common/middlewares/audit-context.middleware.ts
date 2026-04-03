@@ -18,7 +18,8 @@ export class AuditContextMiddleware implements NestMiddleware {
 
   use(req: FastifyRequest['raw'], res: FastifyReply['raw'], next: () => void) {
     const workspaceId = (req as any).workspaceId ?? null;
-    const ipAddress = this.extractIpAddress(req);
+
+    const ipAddress = (req as any).ip ?? (req as any).socket?.remoteAddress ?? null;
 
     const userAgent =
       (req.headers['user-agent'] as string) ?? null;
@@ -34,22 +35,5 @@ export class AuditContextMiddleware implements NestMiddleware {
     this.cls.set(AUDIT_CONTEXT_KEY, auditContext);
 
     next();
-  }
-
-  private extractIpAddress(req: FastifyRequest['raw']): string | null {
-    const xForwardedFor = req.headers['x-forwarded-for'];
-    if (xForwardedFor) {
-      const ips = Array.isArray(xForwardedFor)
-        ? xForwardedFor[0]
-        : xForwardedFor.split(',')[0];
-      return ips?.trim() ?? null;
-    }
-
-    const xRealIp = req.headers['x-real-ip'];
-    if (xRealIp) {
-      return Array.isArray(xRealIp) ? xRealIp[0] : xRealIp;
-    }
-
-    return (req as any).socket?.remoteAddress ?? null;
   }
 }

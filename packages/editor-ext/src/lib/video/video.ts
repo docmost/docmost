@@ -1,7 +1,8 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { Range, Node, mergeAttributes, ResizableNodeView } from "@tiptap/core";
+import { Range, Node, mergeAttributes } from "@tiptap/core";
+import { ResizableNodeView } from "../resizable-nodeview";
+import type { ResizableNodeViewDirection } from "../resizable-nodeview";
 import { normalizeFileUrl } from "../media-utils";
-import type { ResizableNodeViewDirection } from "@tiptap/core";
 
 export type VideoResizeOptions = {
   enabled: boolean;
@@ -328,12 +329,11 @@ export const TiptapVideo = Node.create<VideoOptions>({
 
       // Show skeleton background while video loads from server
       dom.style.pointerEvents = "none";
-      dom.style.background =
-        "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6))";
+      el.classList.add("media-pulse");
 
       el.onloadedmetadata = () => {
         dom.style.pointerEvents = "";
-        dom.style.background = "";
+        el.classList.remove("media-pulse");
       };
 
       return nodeView;

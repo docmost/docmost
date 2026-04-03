@@ -75,7 +75,7 @@ function CommentMenu({
               {isResolved ? t("Re-open comment") : t("Resolve comment")}
             </Menu.Item>
           ) : (
-            <Tooltip label={upgradeLabel} position="left">
+            <Tooltip label={upgradeLabel} position="left" withinPortal={false}>
               <Menu.Item disabled leftSection={<IconCircleCheck size={14} />}>
                 {t("Resolve comment")}
               </Menu.Item>

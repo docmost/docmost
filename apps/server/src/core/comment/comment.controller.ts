@@ -58,13 +58,13 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanComment(page, user, workspace.id);
 
     const comment = await this.commentService.create(
       {
-        userId: user.id,
         page,
         workspaceId: workspace.id,
+        user,
       },
       createCommentDto,
     );
@@ -120,7 +120,7 @@ export class CommentController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(@Body() dto: UpdateCommentDto, @AuthUser() user: User) {
+  async update(@Body() dto: UpdateCommentDto, @AuthUser() user: User, @AuthWorkspace() workspace: Workspace) {
     const comment = await this.commentRepo.findById(dto.commentId, {
       includeCreator: true,
       includeResolvedBy: true,
@@ -134,14 +134,14 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    await this.pageAccessService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanComment(page, user, workspace.id);
 
     return this.commentService.update(comment, dto, user);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() input: CommentIdDto, @AuthUser() user: User) {
+  async delete(@Body() input: CommentIdDto, @AuthUser() user: User, @AuthWorkspace() workspace: Workspace) {
     const comment = await this.commentRepo.findById(input.commentId);
     if (!comment) {
       throw new NotFoundException('Comment not found');
@@ -152,8 +152,7 @@ export class CommentController {
       throw new NotFoundException('Page not found');
     }
 
-    // Check page-level edit permission first
-    await this.pageAccessService.validateCanEdit(page, user);
+    await this.pageAccessService.validateCanComment(page, user, workspace.id);
 
     // Check if user is the comment owner
     const isOwner = comment.creatorId === user.id;
@@ -169,7 +168,7 @@ export class CommentController {
       // Space admin can delete any comment
       if (ability.cannot(SpaceCaslAction.Manage, SpaceCaslSubject.Settings)) {
         throw new ForbiddenException(
-          'You can only delete your own comments or must be a space admin',
+          'You can only delete your own comments',
         );
       }
       await this.commentRepo.deleteComment(comment.id);

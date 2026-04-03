@@ -294,6 +294,7 @@ const MentionList = forwardRef<any, MentionListProps>((props, ref) => {
         w={popupWidth}
         scrollbars={"y"}
         scrollbarSize={6}
+        overscrollBehavior={"contain"}
         styles={{ content: { minWidth: 0 } }}
       >
         {renderItems?.map((item, index) => {
