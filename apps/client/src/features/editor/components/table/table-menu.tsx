@@ -5,7 +5,7 @@ import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { ActionIcon, Tooltip } from "@mantine/core";
+import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconColumnInsertLeft,
   IconColumnInsertRight,
@@ -21,6 +21,35 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { isCellSelection, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
+import { insertTableFormula, TableFormulaType } from "./table-formula-utils";
+
+const FORMULAS: {
+  type: TableFormulaType;
+  label: string;
+  description: string;
+}[] = [
+  { type: "sum", label: "SUM", description: "Sum of numbers in this column" },
+  {
+    type: "average",
+    label: "AVERAGE",
+    description: "Average of numbers in this column",
+  },
+  {
+    type: "count",
+    label: "COUNT",
+    description: "Count of numbers in this column",
+  },
+  {
+    type: "min",
+    label: "MIN",
+    description: "Minimum value in this column",
+  },
+  {
+    type: "max",
+    label: "MAX",
+    description: "Maximum value in this column",
+  },
+];
 
 export const TableMenu = React.memo(
   ({ editor }: EditorMenuProps): JSX.Element => {
@@ -34,7 +63,7 @@ export const TableMenu = React.memo(
         if (isTextSelected(editor)) return false;
         return editor.isActive("table") && !isCellSelection(state.selection);
       },
-      [editor]
+      [editor],
     );
 
     const getReferencedVirtualElement = useCallback(() => {
@@ -93,6 +122,13 @@ export const TableMenu = React.memo(
     const deleteTable = useCallback(() => {
       editor.chain().focus().deleteTable().run();
     }, [editor]);
+
+    const applyFormula = useCallback(
+      (type: TableFormulaType) => {
+        insertTableFormula(editor, type);
+      },
+      [editor],
+    );
 
     return (
       <BubbleMenu
@@ -215,6 +251,49 @@ export const TableMenu = React.memo(
 
           <div className={classes.divider} />
 
+          {/* ── Column formula dropdown ── */}
+          <Menu shadow="md" width={220} position="top" withinPortal={false}>
+            <Menu.Target>
+              <Tooltip position="top" label={t("Column formula")}>
+                <ActionIcon
+                  variant="subtle"
+                  size="lg"
+                  aria-label={t("Column formula")}
+                >
+                  <IconTableColumn size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Label>{t("Insert result into current cell")}</Menu.Label>
+              {FORMULAS.map(({ type, label, description }) => (
+                <Menu.Item
+                  key={type}
+                  onClick={() => applyFormula(type)}
+                  leftSection={
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        width: 52,
+                        color: "blue",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  }
+                >
+                  <span style={{ fontSize: "0.75rem", color: "dimgray" }}>
+                    {t(description)}
+                  </span>
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
+
+          <div className={classes.divider} />
+
           <Tooltip position="top" label={t("Delete table")}>
             <ActionIcon
               onClick={deleteTable}
@@ -228,7 +307,7 @@ export const TableMenu = React.memo(
         </div>
       </BubbleMenu>
     );
-  }
+  },
 );
 
 export default TableMenu;
