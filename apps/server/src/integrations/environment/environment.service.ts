@@ -259,6 +259,12 @@ export class EnvironmentService {
     );
   }
 
+  getAiEmbeddingSupportsMrl(): boolean | undefined {
+    const val = this.configService.get<string>('AI_EMBEDDING_SUPPORTS_MRL');
+    if (val === undefined || val === null || val === '') return undefined;
+    return val === 'true';
+  }
+
   getOpenAiApiKey(): string {
     return this.configService.get<string>('OPENAI_API_KEY');
   }

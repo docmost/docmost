@@ -18,6 +18,7 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { Feature } from '../../../common/features';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
@@ -352,7 +353,7 @@ export class WorkspaceService {
         typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
         typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined'
       ) {
-        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'security:settings', ws.plan)) {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SECURITY_SETTINGS, ws.plan)) {
           throw new ForbiddenException(
             'This feature requires a valid license',
           );

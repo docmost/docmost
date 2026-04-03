@@ -41,6 +41,15 @@ export function resolveRelativeAttachmentPath(
       'ImportUtils',
     );
   }
+
+  // Confluence Server uses "/download/attachments/..." in HTML but the ZIP
+  // stores files under "attachments/...". Strip the "download/" prefix so
+  // the path can match candidates from the archive.
+  const confluenceStripped = mainRel.replace(
+    /^download\/attachments\//,
+    'attachments/',
+  );
+
   const fallback = path
     .normalize(path.join(pageDir, mainRel))
     .split(path.sep)
@@ -49,9 +58,13 @@ export function resolveRelativeAttachmentPath(
   if (attachmentCandidates.has(mainRel)) {
     return mainRel;
   }
+  if (confluenceStripped !== mainRel && attachmentCandidates.has(confluenceStripped)) {
+    return confluenceStripped;
+  }
   if (attachmentCandidates.has(fallback)) {
     return fallback;
   }
+
   return null;
 }
 

@@ -86,12 +86,14 @@ export class CommentNotificationService {
         spaceId,
         commentId,
       });
+      if (!notification) continue;
 
       await this.notificationService.queueEmail(
         userId,
         notification.id,
         `${actor.name} mentioned you in a comment`,
         CommentMentionEmail({ actorName: actor.name, pageTitle, pageUrl }),
+        NotificationType.COMMENT_USER_MENTION,
       );
 
       notifiedUserIds.add(userId);
@@ -110,12 +112,14 @@ export class CommentNotificationService {
         spaceId,
         commentId,
       });
+      if (!notification) continue;
 
       await this.notificationService.queueEmail(
         recipientId,
         notification.id,
         `${actor.name} commented on ${pageTitle}`,
         CommentCreateEmail({ actorName: actor.name, pageTitle, pageUrl }),
+        NotificationType.COMMENT_CREATED,
       );
     }
   }
@@ -171,6 +175,7 @@ export class CommentNotificationService {
       spaceId,
       commentId,
     });
+    if (!notification) return;
 
     const subject = `${actor.name} resolved a comment on ${pageTitle}`;
 
@@ -179,6 +184,7 @@ export class CommentNotificationService {
       notification.id,
       subject,
       CommentResolvedEmail({ actorName: actor.name, pageTitle, pageUrl }),
+      NotificationType.COMMENT_RESOLVED,
     );
   }
 

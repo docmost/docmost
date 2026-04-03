@@ -157,7 +157,11 @@ export const TableMenu = React.memo(
         shouldShow={shouldShow}
       >
         <div className={classes.toolbar}>
-          <Tooltip position="top" label={t("Add left column")}>
+          <Tooltip
+            position="top"
+            label={t("Add left column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addColumnLeft}
               variant="subtle"
@@ -168,7 +172,11 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Add right column")}>
+          <Tooltip
+            position="top"
+            label={t("Add right column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addColumnRight}
               variant="subtle"
@@ -179,7 +187,11 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Delete column")}>
+          <Tooltip
+            position="top"
+            label={t("Delete column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={deleteColumn}
               variant="subtle"
@@ -192,7 +204,11 @@ export const TableMenu = React.memo(
 
           <div className={classes.divider} />
 
-          <Tooltip position="top" label={t("Add row above")}>
+          <Tooltip
+            position="top"
+            label={t("Add row above")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addRowAbove}
               variant="subtle"
@@ -203,7 +219,11 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Add row below")}>
+          <Tooltip
+            position="top"
+            label={t("Add row below")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={addRowBelow}
               variant="subtle"
@@ -214,7 +234,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Delete row")}>
+          <Tooltip position="top" label={t("Delete row")} withinPortal={false}>
             <ActionIcon
               onClick={deleteRow}
               variant="subtle"
@@ -227,7 +247,11 @@ export const TableMenu = React.memo(
 
           <div className={classes.divider} />
 
-          <Tooltip position="top" label={t("Toggle header row")}>
+          <Tooltip
+            position="top"
+            label={t("Toggle header row")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={toggleHeaderRow}
               variant="subtle"
@@ -238,7 +262,11 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
 
-          <Tooltip position="top" label={t("Toggle header column")}>
+          <Tooltip
+            position="top"
+            label={t("Toggle header column")}
+            withinPortal={false}
+          >
             <ActionIcon
               onClick={toggleHeaderColumn}
               variant="subtle"

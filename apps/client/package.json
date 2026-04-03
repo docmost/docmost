@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.70.3",
+  "version": "0.71.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -25,7 +25,7 @@
     "@tabler/icons-react": "^3.40.0",
     "@tanstack/react-query": "5.90.17",
     "alfaaz": "^1.1.0",
-    "axios": "^1.13.6",
+    "axios": "1.13.6",
     "blueimp-load-image": "^5.16.0",
     "clsx": "^2.1.1",
     "emoji-mart": "^5.6.0",

@@ -3,6 +3,7 @@ import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
+import SpaceSecuritySettings from "@/features/space/components/space-security-settings.tsx";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
 import { useSpaceAbility } from "@/features/space/permissions/use-space-ability.ts";
 import {
@@ -59,6 +60,14 @@ export default function SpaceSettingsModal({
                   <Tabs.Tab fw={500} value="members">
                     {t("Members")}
                   </Tabs.Tab>
+                  {spaceAbility.can(
+                    SpaceCaslAction.Manage,
+                    SpaceCaslSubject.Settings,
+                  ) && (
+                    <Tabs.Tab fw={500} value="security">
+                      {t("Security")}
+                    </Tabs.Tab>
+                  )}
                 </Tabs.List>
 
                 <Tabs.Panel value="general">
@@ -90,6 +99,20 @@ export default function SpaceSettingsModal({
                       SpaceCaslSubject.Member,
                     )}
                   />
+                </Tabs.Panel>
+
+                <Tabs.Panel value="security">
+                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
+                    <div style={{ paddingBottom: "100px" }}>
+                      <SpaceSecuritySettings
+                        space={space}
+                        readOnly={spaceAbility.cannot(
+                          SpaceCaslAction.Manage,
+                          SpaceCaslSubject.Settings,
+                        )}
+                      />
+                    </div>
+                  </ScrollArea>
                 </Tabs.Panel>
               </Tabs>
             </div>

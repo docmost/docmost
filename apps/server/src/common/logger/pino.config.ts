@@ -50,20 +50,12 @@ export function createPinoConfig(): Params {
         },
       },
       serializers: {
-        req: (req) => {
-          const forwardedFor = req.headers?.['x-forwarded-for'];
-          const ip =
-            req.headers?.['cf-connecting-ip'] ||
-            (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() : undefined) ||
-            req.remoteAddress;
-
-          return {
-            method: req.method,
-            url: req.url,
-            ip,
-            userAgent: req.headers?.['user-agent'],
-          };
-        },
+        req: (req) => ({
+          method: req.method,
+          url: req.url,
+          ip: req.ip || req.remoteAddress,
+          userAgent: req.headers?.['user-agent'],
+        }),
         res: (res) => ({
           statusCode: res.statusCode,
         }),

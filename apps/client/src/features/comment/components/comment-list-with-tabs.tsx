@@ -55,7 +55,9 @@ function CommentListWithTabs() {
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
   const [isResizing, setIsResizing] = useState(false);
 
-  const canComment = page?.permissions?.canEdit ?? false;
+  const canComment =
+    (page?.permissions?.canEdit ?? false) ||
+    (space?.settings?.comments?.allowViewerComments === true);
 
   const startResizing = React.useCallback((mouseDownEvent) => {
     mouseDownEvent.preventDefault();
@@ -202,7 +204,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading, space?.membership?.role],
+    [comments, handleAddReply, isLoading, space?.membership?.role, canComment],
   );
 
   if (isCommentsLoading) {
