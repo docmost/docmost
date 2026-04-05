@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.71.0",
+  "version": "0.71.1",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -109,7 +109,8 @@
       "nanoid@^3": "3.3.8",
       "socket.io-parser": "4.2.6",
       "serialize-javascript": "7.0.3",
-      "lodash-es": "4.17.23",
+      "lodash-es": "4.18.1",
+      "lodash": "4.18.1",
       "@hono/node-server": "1.19.10",
       "undici": "7.24.0",
       "ajv@^6": "6.14.0",
@@ -126,7 +127,9 @@
       "yaml@>=1.0.0 <1.10.3": "1.10.3",
       "yaml@>=2.0.0 <2.8.3": "2.8.3",
       "path-to-regexp@^8": "8.4.0",
-      "brace-expansion@^5": "5.0.5"
+      "brace-expansion@^5": "5.0.5",
+      "@xmldom/xmldom": "0.8.12",
+      "handlebars": "4.7.9"
     },
     "neverBuiltDependencies": []
   }

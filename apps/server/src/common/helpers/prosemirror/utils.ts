@@ -7,6 +7,10 @@ import { validate as isValidUUID } from 'uuid';
 import { Transform } from '@tiptap/pm/transform';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
+import {
+  INTERNAL_LINK_REGEX,
+  extractPageSlugId,
+} from '../../../integrations/export/utils';
 
 export interface MentionNode {
   id: string;
@@ -62,6 +66,27 @@ export function extractPageMentions(mentionList: MentionNode[]): MentionNode[] {
     }
   }
   return pageMentionList as MentionNode[];
+}
+
+export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
+  const slugIds: string[] = [];
+  const doc = jsonToNode(prosemirrorJson);
+
+  doc.descendants((node: Node) => {
+    for (const mark of node.marks) {
+      if (mark.type.name === 'link' && mark.attrs.internal && mark.attrs.href) {
+        const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
+        if (match) {
+          const slugId = extractPageSlugId(match[5]);
+          if (slugId && !slugIds.includes(slugId)) {
+            slugIds.push(slugId);
+          }
+        }
+      }
+    }
+  });
+
+  return slugIds;
 }
 
 export function extractUserMentionIdsFromJson(json: any): string[] {
