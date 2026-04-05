@@ -399,7 +399,7 @@ export default function PageEditor({
   return (
     <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} translate="yes" />
 
         {editor && (
           <SearchAndReplaceDialog editor={editor} editable={editable} />
