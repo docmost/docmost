@@ -11,6 +11,7 @@ import {
 import {
   extractMentions,
   extractPageMentions,
+  extractInternalLinkSlugIds,
 } from '../../common/helpers/prosemirror/utils';
 import { PageHistoryRepo } from '@docmost/db/repos/page/page-history.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
@@ -77,12 +78,14 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
 
         const mentions = extractMentions(page.content);
         const pageMentions = extractPageMentions(mentions);
+        const internalLinkSlugIds = extractInternalLinkSlugIds(page.content);
 
         await this.generalQueue
           .add(QueueJob.PAGE_BACKLINKS, {
             pageId,
             workspaceId: page.workspaceId,
             mentions: pageMentions,
+            internalLinkSlugIds,
           } as IPageBacklinkJob)
           .catch((err) => {
             this.logger.error(

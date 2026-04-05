@@ -4,6 +4,7 @@ export interface IPageBacklinkJob {
   pageId: string;
   workspaceId: string;
   mentions: MentionNode[];
+  internalLinkSlugIds?: string[];
 }
 
 export interface IAddPageWatchersJob {
