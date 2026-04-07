@@ -14,6 +14,7 @@ import {
   IconPrinter,
   IconTrash,
   IconWifiOff,
+  IconSparkles,
 } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
@@ -91,6 +92,16 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
           onClick={() => toggleAside("comments")}
         >
           <IconMessage size={20} stroke={2} />
+        </ActionIcon>
+      </Tooltip>
+
+      <Tooltip label={t("AI Chat")} openDelay={250} withArrow>
+        <ActionIcon
+          variant="subtle"
+          color="dark"
+          onClick={() => toggleAside("chat")}
+        >
+          <IconSparkles size={20} stroke={2} />
         </ActionIcon>
       </Tooltip>
 

@@ -10,7 +10,14 @@ import type {
   PageMention,
 } from "../types/ai-chat.types";
 
-export function useChatStream(chatId: string | undefined) {
+type ChatStreamOptions = {
+  onChatCreated?: (chatId: string) => void;
+};
+
+export function useChatStream(
+  chatId: string | undefined,
+  options?: ChatStreamOptions,
+) {
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [streamingToolCalls, setStreamingToolCalls] = useState<AiChatToolCall[]>(
@@ -74,7 +81,11 @@ export function useChatStream(chatId: string | undefined) {
           switch (event.type) {
             case "chat_created":
               currentChatIdRef.current = event.chatId;
-              navigate(`/ai/chat/${event.chatId}`, { replace: true });
+              if (options?.onChatCreated) {
+                options.onChatCreated(event.chatId);
+              } else {
+                navigate(`/ai/chat/${event.chatId}`, { replace: true });
+              }
               queryClient.invalidateQueries({ queryKey: ["ai-chats"] });
               break;
             case "content":
