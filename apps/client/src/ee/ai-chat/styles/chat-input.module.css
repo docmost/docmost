@@ -68,6 +68,7 @@
   :global(.ProseMirror) {
     outline: none;
     border: none;
+    background-color: transparent;
     padding: 14px 18px 8px;
     font-size: 15px;
     line-height: 1.6;
