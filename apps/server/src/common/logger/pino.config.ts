@@ -1,5 +1,6 @@
 import { Params } from 'nestjs-pino';
 import { stdTimeFunctions } from 'pino';
+import { redactSensitiveUrl } from '../helpers/utils';
 
 const CONTEXTS_TO_IGNORE = [
   'InstanceLoader',
@@ -52,7 +53,7 @@ export function createPinoConfig(): Params {
       serializers: {
         req: (req) => ({
           method: req.method,
-          url: req.url,
+          url: redactSensitiveUrl(req.url),
           ip: req.ip || req.remoteAddress,
           userAgent: req.headers?.['user-agent'],
         }),
