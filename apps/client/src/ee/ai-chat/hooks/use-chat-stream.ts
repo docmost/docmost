@@ -25,6 +25,8 @@ export function useChatStream(
   );
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [isRetryable, setIsRetryable] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -40,6 +42,8 @@ export function useChatStream(
       if (isStreaming || (!content.trim() && attachments.length === 0)) return;
 
       setError(null);
+      setErrorCode(null);
+      setIsRetryable(false);
       setIsStreaming(true);
       setStreamingContent("");
       setStreamingToolCalls([]);
@@ -136,6 +140,8 @@ export function useChatStream(
             }
             case "error":
               setError(event.message);
+              setErrorCode(event.code || null);
+              setIsRetryable(event.retryable || false);
               setIsStreaming(false);
               break;
           }
@@ -186,6 +192,8 @@ export function useChatStream(
     streamingToolCalls,
     isStreaming,
     error,
+    errorCode,
+    isRetryable,
     sendMessage,
     stopGeneration,
     initMessages,

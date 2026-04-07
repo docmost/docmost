@@ -30,7 +30,7 @@ export type AiChatStreamEvent =
   | { type: 'tool_call'; id: string; name: string; args: Record<string, unknown> }
   | { type: 'tool_result'; id: string; result: unknown }
   | { type: 'done'; messageId: string; usage?: Record<string, number> }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; code?: string; retryable?: boolean };
 
 export type PageMention = {
   id: string;
