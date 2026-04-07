@@ -38,6 +38,7 @@ export default function AsideChatPanel() {
   const [, setAsideState] = useAtom(asideStateAtom);
   const [chatId, setChatId] = useState<string | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [contextPages, setContextPages] = useState<PageMention[]>([]);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const { data: page } = usePageQuery({ pageId: slugId });
@@ -59,6 +60,16 @@ export default function AsideChatPanel() {
   });
 
   useEffect(() => {
+    if (page && !chatId) {
+      setContextPages([{ id: page.id, title: page.title || "", slugId: page.slugId }]);
+    }
+  }, [page, chatId]);
+
+  const handleRemoveContextPage = useCallback((pageId: string) => {
+    setContextPages((prev) => prev.filter((p) => p.id !== pageId));
+  }, []);
+
+  useEffect(() => {
     if (chatInfoQuery.data?.messages) {
       initMessages(chatInfoQuery.data.messages);
     }
@@ -72,7 +83,10 @@ export default function AsideChatPanel() {
 
   const handleNewChat = useCallback(() => {
     setChatId(undefined);
-  }, []);
+    if (page) {
+      setContextPages([{ id: page.id, title: page.title || "", slugId: page.slugId }]);
+    }
+  }, [page]);
 
   const handleSelectChat = useCallback((selectedChatId: string) => {
     setChatId(selectedChatId);
@@ -94,18 +108,17 @@ export default function AsideChatPanel() {
 
   const handleSend = useCallback(
     (content: string, mentions: PageMention[], attachments: ChatAttachment[]) => {
-      if (!chatId && page && messages.length === 0) {
-        const pageAlreadyMentioned = mentions.some((m) => m.id === page.id);
-        if (!pageAlreadyMentioned) {
-          mentions = [
-            ...mentions,
-            { id: page.id, title: page.title || "", slugId: page.slugId },
-          ];
+      const seen = new Set(mentions.map((m) => m.id));
+      const merged = [...mentions];
+      for (const cp of contextPages) {
+        if (!seen.has(cp.id)) {
+          merged.push(cp);
+          seen.add(cp.id);
         }
       }
-      sendMessage(content, mentions, attachments);
+      sendMessage(content, merged, attachments);
     },
-    [chatId, page, messages.length, sendMessage],
+    [sendMessage, contextPages],
   );
 
   const handleQuickAction = useCallback(
@@ -212,6 +225,8 @@ export default function AsideChatPanel() {
             onStop={stopGeneration}
             placeholder={t("Ask anything...")}
             autofocus={false}
+            contextPages={contextPages}
+            onRemoveContextPage={handleRemoveContextPage}
           />
         </div>
       </div>

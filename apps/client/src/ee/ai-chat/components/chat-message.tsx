@@ -1,6 +1,17 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
 import DOMPurify from "dompurify";
+
+const chatSanitizer = DOMPurify();
+chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") {
+    const href = node.getAttribute("href") || "";
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  }
+});
 import { IconFile, IconLoader2, IconPhoto } from "@tabler/icons-react";
 import { markdownToHtml } from "@docmost/editor-ext";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
@@ -85,8 +96,9 @@ export default function ChatMessage({
           <div
             onClick={handleContentClick}
             dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(
+              __html: chatSanitizer.sanitize(
                 markdownToHtml(content) as string,
+                { ADD_ATTR: ["target", "rel"] },
               ),
             }}
           />

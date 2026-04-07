@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect, useState } from "react";
-import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto } from "@tabler/icons-react";
+import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
+import { Popover } from "@mantine/core";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -22,6 +23,8 @@ type Props = {
   onStop: () => void;
   placeholder?: string;
   autofocus?: boolean;
+  contextPages?: PageMention[];
+  onRemoveContextPage?: (pageId: string) => void;
 };
 
 function extractMentions(json: any): PageMention[] {
@@ -84,9 +87,12 @@ export default function ChatInput({
   onStop,
   placeholder,
   autofocus = true,
+  contextPages,
+  onRemoveContextPage,
 }: Props) {
   const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onSendRef = useRef(onSend);
   onSendRef.current = onSend;
@@ -215,7 +221,7 @@ export default function ChatInput({
     }
   }, [editor]);
 
-  const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading);
+  const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading) || (contextPages?.length ?? 0) > 0;
 
   return (
     <div className={classes.inputWrapper} data-chat-input>
@@ -228,8 +234,26 @@ export default function ChatInput({
         onChange={(e) => handleFileSelect(e.target.files)}
       />
 
-      {pendingAttachments.length > 0 && (
+      {((contextPages?.length ?? 0) > 0 || pendingAttachments.length > 0) && (
         <div className={classes.attachmentChips}>
+          {contextPages?.map((page) => (
+            <div key={page.id} className={classes.attachmentChip}>
+              <IconFileText size={14} />
+              <span className={classes.attachmentChipName}>
+                {page.title || "Untitled"}
+              </span>
+              {onRemoveContextPage && (
+                <button
+                  type="button"
+                  className={classes.attachmentChipRemove}
+                  onClick={() => onRemoveContextPage(page.id)}
+                  aria-label={`Remove ${page.title}`}
+                >
+                  <IconX size={12} />
+                </button>
+              )}
+            </div>
+          ))}
           {pendingAttachments.map((attachment) => (
             <div
               key={attachment.id}
@@ -260,14 +284,43 @@ export default function ChatInput({
 
       <EditorContent editor={editor} className={classes.editorContent} />
       <div className={classes.actions}>
-        <button
-          type="button"
-          className={classes.attachButton}
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Attach file"
-        >
-          <IconPaperclip size={18} />
-        </button>
+        <Popover opened={plusMenuOpen} onChange={setPlusMenuOpen} position="top-start" width={220} shadow="md">
+          <Popover.Target>
+            <button
+              type="button"
+              className={classes.plusButton}
+              onClick={() => setPlusMenuOpen((o) => !o)}
+              aria-label="Add content"
+            >
+              <IconPlus size={14} />
+            </button>
+          </Popover.Target>
+          <Popover.Dropdown p={4}>
+            <button
+              type="button"
+              className={classes.plusMenuItem}
+              onClick={() => {
+                fileInputRef.current?.click();
+                setPlusMenuOpen(false);
+              }}
+            >
+              <IconPaperclip size={16} className={classes.plusMenuIcon} />
+              Add files
+            </button>
+            <button
+              type="button"
+              className={classes.plusMenuItem}
+              onClick={() => {
+                editor?.commands.insertContent("@");
+                editor?.commands.focus();
+                setPlusMenuOpen(false);
+              }}
+            >
+              <IconAt size={16} className={classes.plusMenuIcon} />
+              Mention a page
+            </button>
+          </Popover.Dropdown>
+        </Popover>
 
         <div style={{ flex: 1 }} />
 
