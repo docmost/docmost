@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { LicenseCheckService } from '../../../integrations/environment/license-check.service';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { SpaceService } from '../../space/services/space.service';
@@ -17,6 +18,7 @@ import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { executeTx } from '@docmost/db/utils';
 import { InjectKysely } from 'nestjs-kysely';
+import { Feature } from '../../../common/features';
 import { User } from '@docmost/db/types/entity.types';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
@@ -67,6 +69,7 @@ export class WorkspaceService {
     @InjectQueue(QueueName.BILLING_QUEUE) private billingQueue: Queue,
     @InjectQueue(QueueName.AI_QUEUE) private aiQueue: Queue,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private userSessionRepo: UserSessionRepo,
   ) {}
 
   async findById(workspaceId: string) {
@@ -85,7 +88,7 @@ export class WorkspaceService {
   async getWorkspacePublicData(workspaceId: string) {
     const workspace = await this.db
       .selectFrom('workspaces')
-      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey'])
+      .select(['id', 'name', 'logo', 'hostname', 'enforceSso', 'licenseKey', 'plan'])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -106,12 +109,9 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    const { licenseKey, ...rest } = workspace;
+    const { licenseKey, plan, ...rest } = workspace;
 
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-    };
+    return rest;
   }
 
   async create(
@@ -244,7 +244,7 @@ export class WorkspaceService {
         await this.billingQueue.add(
           QueueJob.WELCOME_EMAIL,
           { userId: user.id },
-          { delay: 60 * 1000 }, // 1m
+          { delay: 30 * 60 * 1000 }, // 30m
         );
       } catch (err) {
         this.logger.error(err);
@@ -332,14 +332,32 @@ export class WorkspaceService {
     ) {
       const ws = await this.db
         .selectFrom('workspaces')
-        .select(['id', 'licenseKey', 'trashRetentionDays'])
+        .select(['id', 'licenseKey', 'plan', 'trashRetentionDays'])
         .where('id', '=', workspaceId)
         .executeTakeFirst();
 
-      if (!this.licenseCheckService.isValidEELicense(ws.licenseKey)) {
-        throw new ForbiddenException(
-          'This feature requires a valid enterprise license',
-        );
+      if (!ws) {
+        throw new NotFoundException('Workspace not found');
+      }
+
+      if (typeof updateWorkspaceDto.mcpEnabled !== 'undefined') {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, 'mcp', ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
+      }
+
+      if (
+        typeof updateWorkspaceDto.disablePublicSharing !== 'undefined' ||
+        typeof updateWorkspaceDto.trashRetentionDays !== 'undefined' ||
+        typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined'
+      ) {
+        if (!this.licenseCheckService.hasFeature(ws.licenseKey, Feature.SECURITY_SETTINGS, ws.plan)) {
+          throw new ForbiddenException(
+            'This feature requires a valid license',
+          );
+        }
       }
 
       if (
@@ -518,10 +536,7 @@ export class WorkspaceService {
     }
 
     const { licenseKey, ...rest } = workspace;
-    return {
-      ...rest,
-      hasLicenseKey: Boolean(licenseKey),
-    };
+    return rest;
   }
 
   async getWorkspaceUsers(
@@ -670,11 +685,15 @@ export class WorkspaceService {
       }
     }
 
-    await this.userRepo.updateUser(
-      { deactivatedAt: new Date() },
-      userId,
-      workspaceId,
-    );
+    await executeTx(this.db, async (trx) => {
+      await this.userRepo.updateUser(
+        { deactivatedAt: new Date() },
+        userId,
+        workspaceId,
+        trx,
+      );
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
+    });
 
     this.auditService.log({
       event: AuditEvent.USER_DEACTIVATED,
@@ -788,6 +807,8 @@ export class WorkspaceService {
       await this.watcherRepo.deleteByUserAndWorkspace(userId, workspaceId, {
         trx,
       });
+
+      await this.userSessionRepo.revokeByUserId(userId, workspaceId, trx);
     });
 
     this.auditService.log({

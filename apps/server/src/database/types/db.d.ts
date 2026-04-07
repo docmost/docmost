@@ -449,6 +449,21 @@ export interface AiChatMessages {
   createdAt: Generated<Timestamp>;
 }
 
+export interface UserSessions {
+  id: Generated<string>;
+  userId: string;
+  workspaceId: string;
+  deviceName: string | null;
+  userAgent: string | null;
+  ipAddress: string | null;
+  geoLocation: string | null;
+  metadata: Json | null;
+  lastActiveAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  revokedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
@@ -473,6 +488,7 @@ export interface DB {
   spaces: Spaces;
   userMfa: UserMfa;
   users: Users;
+  userSessions: UserSessions;
   userTokens: UserTokens;
   watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;

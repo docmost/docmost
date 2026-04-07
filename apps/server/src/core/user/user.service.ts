@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { NotificationSettingKey } from '../notification/notification.constants';
 import { comparePasswordHash, diffAuditTrackedFields } from 'src/common/helpers/utils';
 import { Workspace } from '@docmost/db/types/entity.types';
 import { validateSsoEnforcement } from '../auth/auth.util';
@@ -58,6 +59,24 @@ export class UserService {
         'pageEditMode',
         updateUserDto.pageEditMode.toLowerCase(),
       );
+    }
+
+    const notificationSettings: Record<string, NotificationSettingKey> = {
+      notificationPageUpdates: 'page.updated',
+      notificationPageUserMention: 'page.userMention',
+      notificationCommentUserMention: 'comment.userMention',
+      notificationCommentCreated: 'comment.created',
+      notificationCommentResolved: 'comment.resolved',
+    };
+
+    for (const [dtoField, settingKey] of Object.entries(notificationSettings)) {
+      if (typeof updateUserDto[dtoField] !== 'undefined') {
+        return this.userRepo.updateNotificationSetting(
+          userId,
+          settingKey,
+          updateUserDto[dtoField],
+        );
+      }
     }
 
     const userBefore = { name: user.name, email: user.email, locale: user.locale };

@@ -10,14 +10,17 @@ import EnableAiChat from "@/ee/ai-chat/components/enable-ai-chat.tsx";
 import McpSettings from "@/ee/ai/components/mcp-settings.tsx";
 import { Alert, Stack, Tabs } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { isCloud } from "@/lib/config.ts";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function AiSettings() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const hasAccess = useIsCloudEE();
+  const hasAccess = useHasFeature(Feature.AI);
+  const upgradeLabel = useUpgradeLabel();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -56,7 +59,7 @@ export default function AiSettings() {
           {!hasAccess && (
             <Alert
               icon={<IconInfoCircle />}
-              title={t("Enterprise feature")}
+              title={upgradeLabel}
               color="blue"
               mb="lg"
             >

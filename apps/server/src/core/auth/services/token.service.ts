@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import {
   JwtApiKeyPayload,
@@ -24,7 +25,7 @@ export class TokenService {
     private environmentService: EnvironmentService,
   ) {}
 
-  async generateAccessToken(user: User): Promise<string> {
+  async generateAccessToken(user: User, sessionId: string): Promise<string> {
     if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
@@ -34,6 +35,7 @@ export class TokenService {
       email: user.email,
       workspaceId: user.workspaceId,
       type: JwtType.ACCESS,
+      sessionId,
     };
     return this.jwtService.sign(payload);
   }
@@ -96,7 +98,7 @@ export class TokenService {
     apiKeyId: string;
     user: User;
     workspaceId: string;
-    expiresIn?: string | number;
+    expiresIn?: StringValue | number;
   }): Promise<string> {
     const { apiKeyId, user, workspaceId, expiresIn } = opts;
     if (isUserDisabled(user)) {

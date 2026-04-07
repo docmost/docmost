@@ -14,4 +14,5 @@ export const TREE_EVENTS = new Set([
   'addTreeNode',
   'moveTreeNode',
   'deleteTreeNode',
+  'refetchRootTreeNodeEvent',
 ]);

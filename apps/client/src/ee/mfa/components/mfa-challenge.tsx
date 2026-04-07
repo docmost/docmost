@@ -22,6 +22,7 @@ import APP_ROUTE, { getPostLoginRedirect } from "@/lib/app-route";
 import { useTranslation } from "react-i18next";
 import { z } from "zod/v4";
 import { MfaBackupCodeInput } from "./mfa-backup-code-input";
+import { AuthLayout } from "@/features/auth/components/auth-layout.tsx";
 
 const formSchema = z.object({
   code: z
@@ -66,6 +67,7 @@ export function MfaChallenge() {
   };
 
   return (
+    <AuthLayout>
     <Container size={420} className={classes.container}>
       <Paper radius="lg" p={40} className={classes.paper}>
         <Stack align="center" gap="xl">
@@ -157,5 +159,6 @@ export function MfaChallenge() {
         </Stack>
       </Paper>
     </Container>
+    </AuthLayout>
   );
 }

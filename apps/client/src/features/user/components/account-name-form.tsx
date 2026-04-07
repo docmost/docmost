@@ -1,9 +1,8 @@
 import { useAtom } from "jotai";
-import { focusAtom } from "jotai-optics";
 import { z } from "zod/v4";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom.ts";
+import { userAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { updateUser } from "@/features/user/services/user-service.ts";
 import { IUser } from "@/features/user/types/user.types.ts";
 import { useState } from "react";
@@ -17,18 +16,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const userAtom = focusAtom(currentUserAtom, (optic) => optic.prop("user"));
-
 export default function AccountNameForm() {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUser] = useAtom(currentUserAtom);
-  const [, setUser] = useAtom(userAtom);
+  const [user, setUser] = useAtom(userAtom);
 
   const form = useForm<FormValues>({
     validate: zod4Resolver(formSchema),
     initialValues: {
-      name: currentUser?.user.name,
+      name: user?.name,
     },
   });
 

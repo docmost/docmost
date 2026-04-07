@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { TokenService } from './services/token.service';
 
@@ -10,7 +11,7 @@ import { TokenService } from './services/token.service';
         return {
           secret: environmentService.getAppSecret(),
           signOptions: {
-            expiresIn: environmentService.getJwtTokenExpiresIn(),
+            expiresIn: environmentService.getJwtTokenExpiresIn() as StringValue,
             issuer: 'Docmost',
           },
         };
