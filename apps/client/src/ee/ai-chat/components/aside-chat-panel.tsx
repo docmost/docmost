@@ -108,15 +108,8 @@ export default function AsideChatPanel() {
 
   const handleSend = useCallback(
     (content: string, mentions: PageMention[], attachments: ChatAttachment[]) => {
-      const seen = new Set(mentions.map((m) => m.id));
-      const merged = [...mentions];
-      for (const cp of contextPages) {
-        if (!seen.has(cp.id)) {
-          merged.push(cp);
-          seen.add(cp.id);
-        }
-      }
-      sendMessage(content, merged, attachments);
+      const contextPageId = contextPages.length > 0 ? contextPages[0].id : undefined;
+      sendMessage(content, mentions, attachments, contextPageId);
     },
     [sendMessage, contextPages],
   );

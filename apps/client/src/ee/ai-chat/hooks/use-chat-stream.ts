@@ -38,7 +38,7 @@ export function useChatStream(
   }, []);
 
   const sendMessage = useCallback(
-    (content: string, mentions: PageMention[] = [], attachments: ChatAttachment[] = []) => {
+    (content: string, mentions: PageMention[] = [], attachments: ChatAttachment[] = [], contextPageId?: string) => {
       if (isStreaming || (!content.trim() && attachments.length === 0)) return;
 
       setError(null);
@@ -79,6 +79,7 @@ export function useChatStream(
           chatId: currentChatIdRef.current,
           content,
           mentionedPageIds: mentions.map((m) => m.id),
+          ...(contextPageId && { contextPageId }),
           ...(attachmentIds.length && { attachmentIds }),
         },
         (event: AiChatStreamEvent) => {
