@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { IconArrowDown } from "@tabler/icons-react";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
 import ChatMessage from "./chat-message";
 import classes from "../styles/ai-chat.module.css";
@@ -25,6 +26,7 @@ export default function ChatMessageList({
   const isAtBottomRef = useRef(true);
   const isAutoScrollingRef = useRef(false);
   const prevScrollTopRef = useRef(0);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = containerRef.current;
@@ -35,6 +37,7 @@ export default function ChatMessageList({
     container.scrollTo({ top: target, behavior });
     prevScrollTopRef.current = target;
     isAtBottomRef.current = true;
+    setShowScrollButton(false);
 
     if (behavior === "smooth") {
       setTimeout(() => {
@@ -59,11 +62,17 @@ export default function ChatMessageList({
       currentScrollTop < prevScrollTopRef.current - SCROLL_UP_THRESHOLD_PX;
     prevScrollTopRef.current = currentScrollTop;
 
+    const distanceFromBottom =
+      container.scrollHeight - currentScrollTop - container.clientHeight;
+    const atBottom = distanceFromBottom <= BOTTOM_THRESHOLD_PX;
+
     if (scrolledUp) {
-      const distanceFromBottom =
-        container.scrollHeight - currentScrollTop - container.clientHeight;
-      isAtBottomRef.current = distanceFromBottom <= BOTTOM_THRESHOLD_PX;
+      isAtBottomRef.current = atBottom;
+    } else if (atBottom) {
+      isAtBottomRef.current = true;
     }
+
+    setShowScrollButton(!atBottom);
   }, []);
 
   useEffect(() => {
@@ -81,35 +90,63 @@ export default function ChatMessageList({
     }
   }, [streamingContent, streamingToolCalls.length, scrollToBottom]);
 
-  // Smooth scroll for new messages (user or assistant finished)
+  // Smooth scroll for new messages. Always force-scroll when the latest
+  // message is from the user (they just sent it), even if they were reading
+  // scrollback.
   useEffect(() => {
-    if (isAtBottomRef.current) {
+    const lastMessage = messages[messages.length - 1];
+    const lastIsUser = lastMessage?.role === "user";
+    if (lastIsUser || isAtBottomRef.current) {
       scrollToBottom("smooth");
+      return;
     }
-  }, [messages.length, scrollToBottom]);
+
+    // No auto-scroll: recompute from actual layout so that chat switches to
+    // content that doesn't overflow correctly hide the button even when no
+    // scroll event fires.
+    const container = containerRef.current;
+    if (!container) return;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const atBottom = distanceFromBottom <= BOTTOM_THRESHOLD_PX;
+    isAtBottomRef.current = atBottom;
+    setShowScrollButton(!atBottom);
+  }, [messages, scrollToBottom]);
 
   return (
-    <div ref={containerRef} className={classes.messageList}>
-      {messages.map((msg) => (
-        <ChatMessage key={msg.id} message={msg} />
-      ))}
-      {isStreaming && (
-        <ChatMessage
-          message={{
-            id: "streaming",
-            chatId: "",
-            role: "assistant",
-            content: null,
-            toolCalls: null,
-            metadata: null,
-            createdAt: new Date().toISOString(),
-          }}
-          isStreaming
-          streamingContent={streamingContent}
-          streamingToolCalls={streamingToolCalls}
-        />
+    <div className={classes.messageListWrapper}>
+      <div ref={containerRef} className={classes.messageList}>
+        {messages.map((msg) => (
+          <ChatMessage key={msg.id} message={msg} />
+        ))}
+        {isStreaming && (
+          <ChatMessage
+            message={{
+              id: "streaming",
+              chatId: "",
+              role: "assistant",
+              content: null,
+              toolCalls: null,
+              metadata: null,
+              createdAt: new Date().toISOString(),
+            }}
+            isStreaming
+            streamingContent={streamingContent}
+            streamingToolCalls={streamingToolCalls}
+          />
+        )}
+        <div ref={bottomRef} />
+      </div>
+      {showScrollButton && (
+        <button
+          type="button"
+          aria-label="Scroll to bottom"
+          className={classes.scrollToBottomButton}
+          onClick={() => scrollToBottom("smooth")}
+        >
+          <IconArrowDown size={16} stroke={2} />
+        </button>
       )}
-      <div ref={bottomRef} />
     </div>
   );
 }
