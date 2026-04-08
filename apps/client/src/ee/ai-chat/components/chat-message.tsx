@@ -15,7 +15,7 @@ chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
 import { IconFile, IconLoader2, IconPhoto } from "@tabler/icons-react";
 import { markdownToHtml } from "@docmost/editor-ext";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
-import ChatToolResult from "./chat-tool-result";
+import ChatToolGroup from "./chat-tool-group";
 import classes from "../styles/chat-message.module.css";
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
@@ -89,9 +89,9 @@ export default function ChatMessage({
   return (
     <div className={classes.assistantMessage}>
       <div className={classes.messageContent}>
-        {toolCalls?.map((tc) => (
-          <ChatToolResult key={tc.id} toolCall={tc} />
-        ))}
+        {toolCalls && toolCalls.length > 0 && (
+          <ChatToolGroup toolCalls={toolCalls} isStreaming={isStreaming} />
+        )}
         {content && (
           <div
             onClick={handleContentClick}

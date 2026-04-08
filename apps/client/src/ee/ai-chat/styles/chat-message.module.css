@@ -165,32 +165,74 @@
   margin: 1em 0;
 }
 
-.toolCallCard {
-  margin: var(--mantine-spacing-xs) 0;
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
-  border-radius: var(--mantine-radius-sm);
-  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
-  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+.toolGroup {
+  margin: 6px 0;
   font-size: var(--mantine-font-size-xs);
 }
 
-.toolCallHeader {
-  display: flex;
+.toolGroupHeader {
+  display: inline-flex;
   align-items: center;
-  gap: var(--mantine-spacing-xs);
+  gap: 6px;
   cursor: pointer;
   user-select: none;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  line-height: 1.4;
+  transition: color 120ms ease;
 }
 
-.toolCallName {
-  font-weight: 600;
-  color: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-4));
+.toolGroupHeader:hover {
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
 }
 
-.toolCallDetails {
-  margin-top: var(--mantine-spacing-xs);
-  padding-top: var(--mantine-spacing-xs);
-  border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+.toolGroupLabel {
+  font-weight: 500;
+}
+
+.toolGroupSteps {
+  margin-top: 4px;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolStep {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.toolStepRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  line-height: 1.5;
+  transition: color 120ms ease;
+}
+
+.toolStepRow:hover {
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+}
+
+.toolStepBullet {
+  display: inline-block;
+  width: 8px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.toolStepDetails {
+  margin-top: 4px;
+  margin-left: 18px;
+  padding: 6px 10px;
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-x: auto;
 }
 
 .processingIndicator {
