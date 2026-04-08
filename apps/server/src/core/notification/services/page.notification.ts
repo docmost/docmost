@@ -179,7 +179,11 @@ export class PageNotificationService {
   async processPageUpdate(data: IPageUpdateNotificationJob, appUrl: string) {
     const { pageId, spaceId, workspaceId, actorIds } = data;
 
-    const watcherIds = await this.watcherRepo.getPageWatcherIds(pageId);
+    const watcherIds = await this.watcherRepo.getPageUpdateRecipientIds(
+      pageId,
+      spaceId,
+    );
+
     if (watcherIds.length === 0) return;
 
     const actorSet = new Set(actorIds);
@@ -219,7 +223,7 @@ export class PageNotificationService {
     const context = await this.getPageContext(actorId, pageId, spaceId, appUrl);
     if (!context) return;
 
-    const { actor, pageTitle, basePageUrl } = context;
+    const { actor, pageTitle, basePageUrl, spaceName } = context;
 
     for (const userId of recipientIds) {
       const notification = await this.notificationService.create({
@@ -243,6 +247,7 @@ export class PageNotificationService {
             actorName: actor.name,
             pageTitle,
             pageUrl: basePageUrl,
+            spaceName,
           }),
           NotificationType.PAGE_UPDATED,
         );
@@ -421,7 +426,7 @@ export class PageNotificationService {
         .executeTakeFirst(),
       this.db
         .selectFrom('spaces')
-        .select(['id', 'slug'])
+        .select(['id', 'slug', 'name'])
         .where('id', '=', spaceId)
         .executeTakeFirst(),
     ]);
@@ -432,6 +437,11 @@ export class PageNotificationService {
 
     const basePageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
 
-    return { actor, pageTitle: getPageTitle(page.title), basePageUrl };
+    return {
+      actor,
+      pageTitle: getPageTitle(page.title),
+      basePageUrl,
+      spaceName: space.name,
+    };
   }
 }

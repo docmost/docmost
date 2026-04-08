@@ -8,6 +8,7 @@ interface Props {
   actorName: string;
   pageTitle: string;
   pageUrl: string;
+  spaceName: string;
 }
 
 export const PageUpdateEmail = ({
@@ -15,6 +16,7 @@ export const PageUpdateEmail = ({
   actorName,
   pageTitle,
   pageUrl,
+  spaceName,
 }: Props) => {
   return (
     <MailBody>
@@ -24,8 +26,8 @@ export const PageUpdateEmail = ({
           <strong>{actorName}</strong> updated{' '}
           <Link href={pageUrl} style={link}>
             <strong>{pageTitle}</strong>
-          </Link>
-          .
+          </Link>{' '}
+          in <strong>{spaceName}</strong>.
         </Text>
       </Section>
       <EmailButton href={pageUrl}>View page</EmailButton>
