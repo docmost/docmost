@@ -18,7 +18,6 @@
   flex: 1;
   overflow-y: auto;
   padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
-  scroll-behavior: smooth;
 }
 
 .inputArea {
