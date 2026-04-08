@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ActionIcon, TextInput, Loader } from "@mantine/core";
+import { ActionIcon, Center, TextInput, Loader } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 import {
@@ -29,6 +29,28 @@ export default function AiChatSidebar() {
     }
     return chatsQuery.data?.pages.flatMap((p) => p.items) || [];
   }, [debouncedSearch, searchQuery.data, chatsQuery.data]);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const { hasNextPage, fetchNextPage, isFetchingNextPage } = chatsQuery;
+  const isSearching = Boolean(debouncedSearch);
+
+  useEffect(() => {
+    if (isSearching) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isSearching, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleNewChat = useCallback(() => {
     navigate("/ai");
@@ -90,6 +112,16 @@ export default function AiChatSidebar() {
             onRename={handleRename}
           />
         ))}
+        {!isSearching && (
+          <>
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {isFetchingNextPage && (
+              <Center py="xs">
+                <Loader size="xs" />
+              </Center>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

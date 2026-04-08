@@ -235,6 +235,14 @@
   overflow-x: auto;
 }
 
+.messageActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
 .processingIndicator {
   display: inline-flex;
   align-items: center;

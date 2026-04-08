@@ -12,8 +12,16 @@ chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
     }
   }
 });
-import { IconFile, IconLoader2, IconPhoto } from "@tabler/icons-react";
+import { ActionIcon, Tooltip } from "@mantine/core";
+import {
+  IconCheck,
+  IconCopy,
+  IconFile,
+  IconLoader2,
+  IconPhoto,
+} from "@tabler/icons-react";
 import { markdownToHtml } from "@docmost/editor-ext";
+import { CopyButton } from "@/components/common/copy-button";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
 import ChatToolGroup from "./chat-tool-group";
 import classes from "../styles/chat-message.module.css";
@@ -115,6 +123,29 @@ export default function ChatMessage({
           </>
         )}
       </div>
+      {!isStreaming && message.content && (
+        <div className={classes.messageActions}>
+          <CopyButton value={message.content}>
+            {({ copied, copy }) => (
+              <Tooltip
+                label={copied ? "Copied" : "Copy"}
+                openDelay={250}
+                withArrow
+              >
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  onClick={copy}
+                  aria-label="Copy message"
+                >
+                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </div>
+      )}
     </div>
   );
 }
