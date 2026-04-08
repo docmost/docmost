@@ -17,6 +17,30 @@
   flex: 1;
 }
 
+.titleButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--mantine-radius-sm);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  max-width: 60%;
+  min-width: 0;
+}
+
+.titleButton:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.titleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .messages {
   flex: 1;
   overflow-y: auto;
@@ -109,6 +133,7 @@
 
 .historyItemTitle {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

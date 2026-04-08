@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { ActionIcon, Popover, Tooltip } from "@mantine/core";
+import { ActionIcon, Popover, Tooltip, UnstyledButton } from "@mantine/core";
 import {
   IconPlus,
-  IconHistory,
-  IconArrowsMaximize,
+  IconChevronDown,
+  IconArrowsDiagonal,
   IconX,
   IconSparkles,
   IconFileText,
@@ -133,12 +133,6 @@ export default function AsideChatPanel() {
   return (
     <div className={classes.panel}>
       <div className={classes.toolbar}>
-        <Tooltip label={t("New chat")} openDelay={250}>
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat}>
-            <IconPlus size={16} />
-          </ActionIcon>
-        </Tooltip>
-
         <Popover
           opened={historyOpen}
           onChange={setHistoryOpen}
@@ -147,11 +141,15 @@ export default function AsideChatPanel() {
           shadow="md"
         >
           <Popover.Target>
-            <Tooltip label={t("Chat history")} openDelay={250}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setHistoryOpen((o) => !o)}>
-                <IconHistory size={16} />
-              </ActionIcon>
-            </Tooltip>
+            <UnstyledButton
+              className={classes.titleButton}
+              onClick={() => setHistoryOpen((o) => !o)}
+            >
+              <span className={classes.titleText}>
+                {chatInfoQuery.data?.chat?.title || t("New chat")}
+              </span>
+              <IconChevronDown size={16} stroke={1.75} />
+            </UnstyledButton>
           </Popover.Target>
           <Popover.Dropdown>
             <AsideChatHistory activeChatId={chatId} onSelect={handleSelectChat} />
@@ -160,15 +158,21 @@ export default function AsideChatPanel() {
 
         <div className={classes.toolbarSpacer} />
 
+        <Tooltip label={t("New chat")} openDelay={250}>
+          <ActionIcon variant="subtle" color="dark" onClick={handleNewChat}>
+            <IconPlus size={20} stroke={1.75} />
+          </ActionIcon>
+        </Tooltip>
+
         <Tooltip label={t("Open full page")} openDelay={250}>
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleExpand}>
-            <IconArrowsMaximize size={16} />
+          <ActionIcon variant="subtle" color="dark" onClick={handleExpand}>
+            <IconArrowsDiagonal size={18} stroke={1.5} />
           </ActionIcon>
         </Tooltip>
 
         <Tooltip label={t("Close")} openDelay={250}>
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleClose}>
-            <IconX size={16} />
+          <ActionIcon variant="subtle" color="dark" onClick={handleClose}>
+            <IconX size={20} stroke={1.75} />
           </ActionIcon>
         </Tooltip>
       </div>

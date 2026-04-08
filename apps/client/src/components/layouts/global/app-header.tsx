@@ -1,8 +1,9 @@
-import { Badge, Group, Text, Tooltip } from "@mantine/core";
+import { Badge, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useAtom } from "jotai";
 import {
@@ -26,7 +27,6 @@ import { NotificationPopover } from "@/features/notification/components/notifica
 
 const links = [
   { link: APP_ROUTE.HOME, label: "Home" },
-  { link: "/ai", label: "AI Chat" },
 ];
 
 export function AppHeader() {
@@ -37,9 +37,12 @@ export function AppHeader() {
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const toggleDesktop = useToggleSidebar(desktopSidebarAtom);
   const { isTrial, trialDaysLeft } = useTrial();
+  const location = useLocation();
+  const toggleAside = useToggleAside();
 
   const isHomeRoute = location.pathname.startsWith("/home");
   const isSpacesRoute = location.pathname === "/spaces";
+  const isPageRoute = location.pathname.includes("/p/");
   const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
@@ -101,6 +104,22 @@ export function AppHeader() {
         </div>
 
         <Group px={"xl"} wrap="nowrap">
+          <UnstyledButton
+            component={Link}
+            to="/ai"
+            className={classes.link}
+            onClick={(e: React.MouseEvent) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+                return;
+              }
+              if (isPageRoute) {
+                e.preventDefault();
+                toggleAside("chat");
+              }
+            }}
+          >
+            {t("AI Chat")}
+          </UnstyledButton>
           <NotificationPopover />
           {isCloud() && isTrial && trialDaysLeft !== 0 && (
             <Badge

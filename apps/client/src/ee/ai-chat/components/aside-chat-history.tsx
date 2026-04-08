@@ -45,7 +45,7 @@ export default function AsideChatHistory({ activeChatId, onSelect }: Props) {
           {isSearching ? t("No chats found") : t("No chat history")}
         </Text>
       ) : (
-        <ScrollArea.Autosize mah={300}>
+        <ScrollArea.Autosize mah={300} scrollbars="y">
           <div className={classes.historyList}>
             {chats.map((chat) => (
               <div
