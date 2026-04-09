@@ -9,7 +9,6 @@ import {
   IconFileText,
   IconLanguage,
   IconSearch,
-  IconChecklist,
 } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useNavigate, useParams } from "react-router-dom";
@@ -127,7 +126,6 @@ export default function AsideChatPanel() {
     { icon: <IconFileText size={16} />, label: t("Summarize this page"), prompt: "Summarize this page" },
     { icon: <IconLanguage size={16} />, label: t("Translate this page"), prompt: "Translate this page" },
     { icon: <IconSearch size={16} />, label: t("Analyze for insights"), prompt: "Analyze this page for insights" },
-    { icon: <IconChecklist size={16} />, label: t("Create a task tracker"), prompt: "Create a task tracker from this page" },
   ];
 
   return (

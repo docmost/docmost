@@ -1,17 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
 import DOMPurify from "dompurify";
-
-const chatSanitizer = DOMPurify();
-chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName === "A") {
-    const href = node.getAttribute("href") || "";
-    if (href.startsWith("http://") || href.startsWith("https://")) {
-      node.setAttribute("target", "_blank");
-      node.setAttribute("rel", "noopener noreferrer");
-    }
-  }
-});
 import { ActionIcon, Tooltip } from "@mantine/core";
 import {
   IconCheck,
@@ -25,6 +14,18 @@ import { CopyButton } from "@/components/common/copy-button";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
 import ChatToolGroup from "./chat-tool-group";
 import classes from "../styles/chat-message.module.css";
+import CopyTextButton from "@/components/common/copy.tsx";
+
+const chatSanitizer = DOMPurify();
+chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") {
+    const href = node.getAttribute("href") || "";
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  }
+});
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 
@@ -69,7 +70,12 @@ export default function ChatMessage({
       /\n\n<referenced_pages>[\s\S]*<\/referenced_pages>$/,
       "",
     );
-    const attachments = (message.metadata?.attachments as { id: string; fileName: string; fileExt: string }[]) || [];
+    const attachments =
+      (message.metadata?.attachments as {
+        id: string;
+        fileName: string;
+        fileExt: string;
+      }[]) || [];
 
     return (
       <div className={classes.userMessage}>
@@ -125,25 +131,7 @@ export default function ChatMessage({
       </div>
       {!isStreaming && message.content && (
         <div className={classes.messageActions}>
-          <CopyButton value={message.content}>
-            {({ copied, copy }) => (
-              <Tooltip
-                label={copied ? "Copied" : "Copy"}
-                openDelay={250}
-                withArrow
-              >
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size="sm"
-                  onClick={copy}
-                  aria-label="Copy message"
-                >
-                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
+          <CopyTextButton text={message?.content} />
         </div>
       )}
     </div>

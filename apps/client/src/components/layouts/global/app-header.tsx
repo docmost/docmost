@@ -1,8 +1,17 @@
-import { Badge, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Box,
+  Group,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
 import classes from "./app-header.module.css";
 import React from "react";
 import TopMenu from "@/components/layouts/global/top-menu.tsx";
 import { Link, useLocation } from "react-router-dom";
+import { IconSparkles } from "@tabler/icons-react";
 import useToggleAside from "@/hooks/use-toggle-aside.tsx";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useAtom } from "jotai";
@@ -79,15 +88,24 @@ export function AppHeader() {
             </>
           )}
 
-          <Text
-            size="lg"
-            fw={600}
-            style={{ cursor: "pointer", userSelect: "none" }}
-            component={Link}
-            to="/home"
-          >
-            Docmost
-          </Text>
+          <Link to="/home" className={classes.brand} aria-label="Docmost">
+            <Box hiddenFrom="sm" className={classes.brandIcon}>
+              <img
+                src="/icons/favicon-32x32.png"
+                alt="Docmost"
+                width={22}
+                height={22}
+              />
+            </Box>
+            <Text
+              size="lg"
+              fw={600}
+              style={{ userSelect: "none" }}
+              visibleFrom="sm"
+            >
+              Docmost
+            </Text>
+          </Link>
 
           <Group ml={50} gap={5} className={classes.links} visibleFrom="sm">
             {items}
@@ -108,6 +126,7 @@ export function AppHeader() {
             component={Link}
             to="/ai"
             className={classes.link}
+            visibleFrom="sm"
             onClick={(e: React.MouseEvent) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
                 return;
@@ -120,6 +139,28 @@ export function AppHeader() {
           >
             {t("AI Chat")}
           </UnstyledButton>
+          <Tooltip label={t("AI Chat")} openDelay={250} withArrow>
+            <ActionIcon
+              component={Link}
+              to="/ai"
+              variant="subtle"
+              color="dark"
+              size="sm"
+              hiddenFrom="sm"
+              aria-label={t("AI Chat")}
+              onClick={(e: React.MouseEvent) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+                  return;
+                }
+                if (isPageRoute) {
+                  e.preventDefault();
+                  toggleAside("chat");
+                }
+              }}
+            >
+              <IconSparkles size={20} stroke={2} />
+            </ActionIcon>
+          </Tooltip>
           <NotificationPopover />
           {isCloud() && isTrial && trialDaysLeft !== 0 && (
             <Badge

@@ -30,6 +30,18 @@
   padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
 }
 
+.messageErrorFallback {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: var(--mantine-spacing-lg);
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  font-size: var(--mantine-font-size-xs);
+}
+
 .scrollToBottomButton {
   position: absolute;
   bottom: 12px;
@@ -77,8 +89,17 @@
 .emptyStateIcon {
   width: 48px;
   height: 48px;
-  margin-bottom: var(--mantine-spacing-lg);
+  margin-bottom: var(--mantine-spacing-sm);
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.emptyStateBrand {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  margin-bottom: var(--mantine-spacing-xs);
 }
 
 .emptyStateTitle {

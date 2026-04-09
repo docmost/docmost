@@ -1,8 +1,20 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { IconArrowDown } from "@tabler/icons-react";
+import { ErrorBoundary } from "react-error-boundary";
+import { IconArrowDown, IconAlertTriangle } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
 import ChatMessage from "./chat-message";
 import classes from "../styles/ai-chat.module.css";
+
+function ChatMessageErrorFallback() {
+  const { t } = useTranslation();
+  return (
+    <div className={classes.messageErrorFallback}>
+      <IconAlertTriangle size={14} />
+      <span>{t("Failed to render this message.")}</span>
+    </div>
+  );
+}
 
 type Props = {
   messages: AiChatMessage[];
@@ -117,23 +129,33 @@ export default function ChatMessageList({
     <div className={classes.messageListWrapper}>
       <div ref={containerRef} className={classes.messageList}>
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
+          <ErrorBoundary
+            key={msg.id}
+            fallback={<ChatMessageErrorFallback />}
+          >
+            <ChatMessage message={msg} />
+          </ErrorBoundary>
         ))}
         {isStreaming && (
-          <ChatMessage
-            message={{
-              id: "streaming",
-              chatId: "",
-              role: "assistant",
-              content: null,
-              toolCalls: null,
-              metadata: null,
-              createdAt: new Date().toISOString(),
-            }}
-            isStreaming
-            streamingContent={streamingContent}
-            streamingToolCalls={streamingToolCalls}
-          />
+          <ErrorBoundary
+            resetKeys={[streamingContent, streamingToolCalls.length]}
+            fallback={<ChatMessageErrorFallback />}
+          >
+            <ChatMessage
+              message={{
+                id: "streaming",
+                chatId: "",
+                role: "assistant",
+                content: null,
+                toolCalls: null,
+                metadata: null,
+                createdAt: new Date().toISOString(),
+              }}
+              isStreaming
+              streamingContent={streamingContent}
+              streamingToolCalls={streamingToolCalls}
+            />
+          </ErrorBoundary>
         )}
         <div ref={bottomRef} />
       </div>

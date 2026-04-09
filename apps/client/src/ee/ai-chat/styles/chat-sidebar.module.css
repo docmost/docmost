@@ -28,6 +28,46 @@
   overflow-y: auto;
 }
 
+.chatGroup + .chatGroup {
+  margin-top: var(--mantine-spacing-sm);
+}
+
+.chatGroupLabel {
+  padding: 4px var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  user-select: none;
+}
+
+.chatListEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  text-align: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.chatListEmptyIcon {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.chatListEmptyTitle {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.chatListEmptyHint {
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-3));
+  line-height: 1.4;
+}
+
 .chatItem {
   display: flex;
   align-items: center;
@@ -66,11 +106,31 @@
   font-size: var(--mantine-font-size-xs);
   color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
   white-space: nowrap;
+  transition: opacity 150ms;
+}
+
+.chatItemRenameInput {
+  font-size: var(--mantine-font-size-sm);
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.chatItem:hover .chatItemDate {
+  opacity: 0;
 }
 
 .chatItemActions {
+  position: absolute;
+  right: var(--mantine-spacing-xs);
   opacity: 0;
   transition: opacity 150ms;
+}
+
+.chatItem {
+  position: relative;
 }
 
 .chatItem:hover .chatItemActions {

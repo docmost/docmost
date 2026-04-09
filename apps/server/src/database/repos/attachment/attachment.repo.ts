@@ -23,6 +23,7 @@ export class AttachmentRepo {
     'creatorId',
     'pageId',
     'spaceId',
+    'aiChatId',
     'workspaceId',
     'createdAt',
     'updatedAt',
@@ -110,6 +111,24 @@ export class AttachmentRepo {
       .where('id', '=', attachmentId)
       .returning(this.baseFields)
       .executeTakeFirst();
+  }
+
+  async claimAttachmentsForChat(
+    attachmentIds: string[],
+    aiChatId: string,
+    creatorId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    if (attachmentIds.length === 0) return;
+
+    await this.db
+      .updateTable('attachments')
+      .set({ aiChatId })
+      .where('id', 'in', attachmentIds)
+      .where('creatorId', '=', creatorId)
+      .where('workspaceId', '=', workspaceId)
+      .where('aiChatId', 'is', null)
+      .execute();
   }
 
   async deleteAttachmentById(attachmentId: string): Promise<void> {
