@@ -23,7 +23,6 @@ import ChatInput from "./chat-input";
 import AsideChatHistory from "./aside-chat-history";
 import type { ChatAttachment, PageMention } from "../types/ai-chat.types";
 import classes from "../styles/aside-chat-panel.module.css";
-import inputClasses from "../styles/chat-input.module.css";
 
 type QuickAction = {
   icon: React.ReactNode;
@@ -213,17 +212,16 @@ export default function AsideChatPanel() {
       )}
 
       <div className={classes.inputArea}>
-        <div className={inputClasses.inputWrapper}>
-          <ChatInput
-            isStreaming={isStreaming}
-            onSend={handleSend}
-            onStop={stopGeneration}
-            placeholder={t("Ask anything...")}
-            autofocus={false}
-            contextPages={contextPages}
-            onRemoveContextPage={handleRemoveContextPage}
-          />
-        </div>
+        <ChatInput
+          isStreaming={isStreaming}
+          onSend={handleSend}
+          onStop={stopGeneration}
+          placeholder={t("Ask anything...")}
+          autofocus={false}
+          contextPages={contextPages}
+          onRemoveContextPage={handleRemoveContextPage}
+          variant="flat"
+        />
       </div>
     </div>
   );

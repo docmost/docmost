@@ -26,6 +26,8 @@ type Props = {
   autofocus?: boolean;
   contextPages?: PageMention[];
   onRemoveContextPage?: (pageId: string) => void;
+  variant?: "card" | "flat";
+  showDisclaimer?: boolean;
 };
 
 function extractMentions(json: any): PageMention[] {
@@ -90,6 +92,8 @@ export default function ChatInput({
   autofocus = true,
   contextPages,
   onRemoveContextPage,
+  variant = "card",
+  showDisclaimer = true,
 }: Props) {
   const { t } = useTranslation();
   const [isEmpty, setIsEmpty] = useState(true);
@@ -225,9 +229,11 @@ export default function ChatInput({
 
   const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading) || (contextPages?.length ?? 0) > 0;
 
+  const wrapperClass = variant === "flat" ? classes.inputWrapperFlat : classes.inputWrapper;
+
   return (
     <>
-    <div className={classes.inputWrapper} data-chat-input>
+    <div className={wrapperClass} data-chat-input>
       <input
         ref={fileInputRef}
         type="file"
@@ -349,9 +355,11 @@ export default function ChatInput({
         )}
       </div>
     </div>
-    <div className={classes.disclaimer}>
-      {t("AI-generated content may not be accurate.")}
-    </div>
+    {showDisclaimer && (
+      <div className={classes.disclaimer}>
+        {t("AI-generated content may not be accurate.")}
+      </div>
+    )}
     </>
   );
 }
