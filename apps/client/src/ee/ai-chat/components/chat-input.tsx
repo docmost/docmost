@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
 import { Popover } from "@mantine/core";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
@@ -90,6 +91,7 @@ export default function ChatInput({
   contextPages,
   onRemoveContextPage,
 }: Props) {
+  const { t } = useTranslation();
   const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
@@ -224,6 +226,7 @@ export default function ChatInput({
   const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading) || (contextPages?.length ?? 0) > 0;
 
   return (
+    <>
     <div className={classes.inputWrapper} data-chat-input>
       <input
         ref={fileInputRef}
@@ -346,5 +349,9 @@ export default function ChatInput({
         )}
       </div>
     </div>
+    <div className={classes.disclaimer}>
+      {t("AI-generated content may not be accurate.")}
+    </div>
+    </>
   );
 }

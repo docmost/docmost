@@ -751,5 +751,6 @@
   "Publish": "Publish",
   "Security": "Security",
   "Enforce SSO": "Enforce SSO",
-  "Once enforced, members will not be able to login with email and password.": "Once enforced, members will not be able to login with email and password."
+  "Once enforced, members will not be able to login with email and password.": "Once enforced, members will not be able to login with email and password.",
+  "AI-generated content may not be accurate.": "AI-generated content may not be accurate."
 }

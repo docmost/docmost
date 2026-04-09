@@ -179,7 +179,7 @@ export default function AsideChatPanel() {
 
       {hasMessages ? (
         <>
-          <div className={classes.messages}>
+          <div className={classes.messages} data-aside-chat>
             <ChatMessageList
               messages={messages}
               isStreaming={isStreaming}
