@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ActionIcon, Center, TextInput, Loader, Tooltip } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconMessageCircle2 } from "@tabler/icons-react";
@@ -100,9 +100,21 @@ export default function AiChatSidebar() {
     return () => observer.disconnect();
   }, [isSearching, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleNewChat = useCallback(() => {
-    navigate("/ai");
-  }, [navigate]);
+  const handleNewChat = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigate("/ai");
+    },
+    [navigate],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -132,6 +144,8 @@ export default function AiChatSidebar() {
         <span className={classes.title}>{t("AI Chat")}</span>
         <Tooltip label={t("New chat")} openDelay={250} withArrow>
           <ActionIcon
+            component={Link}
+            to="/ai"
             variant="subtle"
             color="gray"
             onClick={handleNewChat}

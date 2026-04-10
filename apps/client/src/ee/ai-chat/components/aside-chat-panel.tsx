@@ -79,12 +79,26 @@ export default function AsideChatPanel() {
     }
   }, [chatId, initMessages]);
 
-  const handleNewChat = useCallback(() => {
-    setChatId(undefined);
-    if (page) {
-      setContextPages([{ id: page.id, title: page.title || "", slugId: page.slugId }]);
-    }
-  }, [page]);
+  const handleNewChat = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setChatId(undefined);
+      if (page) {
+        setContextPages([
+          { id: page.id, title: page.title || "", slugId: page.slugId },
+        ]);
+      }
+    },
+    [page],
+  );
 
   const handleSelectChat = useCallback((selectedChatId: string) => {
     setChatId(selectedChatId);
@@ -156,7 +170,13 @@ export default function AsideChatPanel() {
         <div className={classes.toolbarSpacer} />
 
         <Tooltip label={t("New chat")} openDelay={250}>
-          <ActionIcon variant="subtle" color="dark" onClick={handleNewChat}>
+          <ActionIcon
+            component="a"
+            href="/ai"
+            variant="subtle"
+            color="dark"
+            onClick={handleNewChat}
+          >
             <IconPlus size={20} stroke={1.75} />
           </ActionIcon>
         </Tooltip>
