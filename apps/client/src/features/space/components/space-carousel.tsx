@@ -59,7 +59,7 @@ export default function SpaceCarousel() {
 
       <CardCarousel ariaLabel={t("Spaces you belong to")}>{cards}</CardCarousel>
 
-      {data?.items && data.items.length >= 20 && (
+      {data?.items && data.items.length > 1 && (
         <Group justify="flex-end" mt="lg">
           <Button
             component={Link}
