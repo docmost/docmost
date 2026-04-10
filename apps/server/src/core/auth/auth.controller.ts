@@ -34,6 +34,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 
+@SkipThrottle({ 'ai-chat': true })
 @UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {

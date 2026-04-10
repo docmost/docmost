@@ -14,7 +14,10 @@ import Redis from 'ioredis';
         const redisConfig = parseRedisUrl(environmentService.getRedisUrl());
 
         return {
-          throttlers: [{ name: 'auth', ttl: 60_000, limit: 10 }],
+          throttlers: [
+          { name: 'auth', ttl: 60_000, limit: 10 },
+          { name: 'ai-chat', ttl: 60_000, limit: 25 },
+        ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(
             new Redis({
