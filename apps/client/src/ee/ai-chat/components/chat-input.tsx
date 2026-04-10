@@ -21,8 +21,6 @@ const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 const ACCEPTED_FILE_TYPES = ".pdf,.docx,.txt,.csv,.md,.png,.jpg,.jpeg,.webp";
 // Kept in sync with MAX_ATTACHMENTS_PER_MESSAGE in apps/server/src/ee/ai-chat/ai-chat-limits.ts
 const MAX_ATTACHMENTS_PER_MESSAGE = 5;
-// Kept in sync with @MaxLength on SendMessageDto.content
-const MAX_MESSAGE_CHARS = 50_000;
 
 type Props = {
   isStreaming: boolean;
@@ -205,7 +203,7 @@ export default function ChatInput({
         placeholder: placeholder || "Ask anything... Use @ to mention pages",
       }),
       CharacterCount.configure({
-        limit: MAX_MESSAGE_CHARS,
+        limit: 50000,
       }),
       LinkExtension,
       EmojiCommand,
