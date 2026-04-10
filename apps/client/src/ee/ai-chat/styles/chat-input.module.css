@@ -209,6 +209,12 @@
   @mixin hover {
     background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: none;
+  }
 }
 
 .plusMenuIcon {

@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
 import { Popover } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -17,6 +18,8 @@ type PendingAttachment = ChatAttachment & { uploading: boolean };
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 const ACCEPTED_FILE_TYPES = ".pdf,.docx,.txt,.csv,.md,.png,.jpg,.jpeg,.webp";
+// Kept in sync with MAX_ATTACHMENTS_PER_MESSAGE in apps/server/src/ee/ai-chat/ai-chat-limits.ts
+const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
 type Props = {
   isStreaming: boolean;
@@ -110,7 +113,32 @@ export default function ChatInput({
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
 
-    for (const file of Array.from(files)) {
+    const room = MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachments.length;
+    if (room <= 0) {
+      notifications.show({
+        color: "yellow",
+        message: t("You can attach up to {{max}} files per message.", {
+          max: MAX_ATTACHMENTS_PER_MESSAGE,
+        }),
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const incoming = Array.from(files);
+    const accepted = incoming.slice(0, room);
+
+    if (incoming.length > accepted.length) {
+      notifications.show({
+        color: "yellow",
+        message: t(
+          "Only the first {{n}} file(s) were added (max {{max}} per message).",
+          { n: accepted.length, max: MAX_ATTACHMENTS_PER_MESSAGE },
+        ),
+      });
+    }
+
+    for (const file of accepted) {
       const tempId = `uploading-${Date.now()}-${Math.random()}`;
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
 
@@ -140,7 +168,7 @@ export default function ChatInput({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, []);
+  }, [pendingAttachments.length, t]);
 
   const removeAttachment = useCallback((id: string) => {
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
@@ -316,9 +344,17 @@ export default function ChatInput({
                 fileInputRef.current?.click();
                 setPlusMenuOpen(false);
               }}
+              disabled={pendingAttachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+              title={
+                pendingAttachments.length >= MAX_ATTACHMENTS_PER_MESSAGE
+                  ? t("Max {{max}} files per message", {
+                      max: MAX_ATTACHMENTS_PER_MESSAGE,
+                    })
+                  : undefined
+              }
             >
               <IconPaperclip size={16} className={classes.plusMenuIcon} />
-              Add files
+              {t("Add files")}
             </button>
             <button
               type="button"
