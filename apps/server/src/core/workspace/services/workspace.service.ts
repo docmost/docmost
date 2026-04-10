@@ -142,7 +142,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
-          settings = { ai: { generative: true } };
+          settings = { ai: { generative: true, chat: true } };
         }
 
         // create workspace
@@ -458,11 +458,26 @@ export class WorkspaceService {
         );
       }
 
+      if (typeof updateWorkspaceDto.aiChat !== 'undefined') {
+        const prev = settingsBefore?.ai?.chat ?? false;
+        if (prev !== updateWorkspaceDto.aiChat) {
+          before.aiChat = prev;
+          after.aiChat = updateWorkspaceDto.aiChat;
+        }
+        await this.workspaceRepo.updateAiSettings(
+          workspaceId,
+          'chat',
+          updateWorkspaceDto.aiChat,
+          trx,
+        );
+      }
+
       delete updateWorkspaceDto.restrictApiToAdmins;
       delete updateWorkspaceDto.aiSearch;
       delete updateWorkspaceDto.generativeAi;
       delete updateWorkspaceDto.disablePublicSharing;
       delete updateWorkspaceDto.mcpEnabled;
+      delete updateWorkspaceDto.aiChat;
 
       await this.workspaceRepo.updateWorkspace(
         updateWorkspaceDto,

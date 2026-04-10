@@ -589,6 +589,9 @@ importers:
       cookie:
         specifier: ^1.1.1
         version: 1.1.1
+      fast-bm25:
+        specifier: 0.0.5
+        version: 0.0.5(typescript@5.9.3)
       fastify-ip:
         specifier: ^2.0.0
         version: 2.0.0
@@ -601,6 +604,9 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
+      js-tiktoken:
+        specifier: ^1.0.21
+        version: 1.0.21
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -6874,6 +6880,12 @@ packages:
   exsolve@1.0.7:
     resolution: {integrity: sha512-VO5fQUzZtI6C+vx4w/4BWJpg3s/5l+6pRQEHzFRM8WFi4XffSP1Z+4qi7GbjWbvRQEbdIco5mIMq+zX4rPuLrw==}
 
+  fast-bm25@0.0.5:
+    resolution: {integrity: sha512-6HTiLmPkgeqcPJHccN0pXdqnA7OzhaEQZTFzWnfjIyPoX5sGVKUUpfRc2K2o6zMwK+g009miRhADYn/f2Ax0Mg==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      typescript: ^5.6.3
+
   fast-copy@4.0.2:
     resolution: {integrity: sha512-ybA6PDXIXOXivLJK/z9e+Otk7ve13I4ckBvGO5I2RRmBU1gMHLVDJYEuJYhGwez7YNlYji2M2DvVU+a9mSFDlw==}
 
@@ -8965,6 +8977,9 @@ packages:
 
   points-on-path@0.2.1:
     resolution: {integrity: sha512-25ClnWWuw7JbWZcgqY/gJ4FQWadKxGWk+3kR/7kD0tCaDtPPMj7oHu2ToLaVhfpnHrZzYby2w6tUA0eOIuUg8g==}
+
+  porter2@1.1.0:
+    resolution: {integrity: sha512-Io2cLEdZn0O1dH60pRsjmr/cH/qJJ/j6Cjubz8wQWi0b6vPdQIUxSBQKyx9d+8CN7fSnY+5uOU3rErMFjNqcLw==}
 
   possible-typed-array-names@1.0.0:
     resolution: {integrity: sha512-d7Uw+eZoloe0EHDIYoe+bQ5WXnGMOpmiZFTuMWCwpjzzkL2nTjcKiAk4hh8TjnGye2TwWOk3UXucZ+3rbmBa8Q==}
@@ -17795,6 +17810,11 @@ snapshots:
 
   exsolve@1.0.7: {}
 
+  fast-bm25@0.0.5(typescript@5.9.3):
+    dependencies:
+      porter2: 1.1.0
+      typescript: 5.9.3
+
   fast-copy@4.0.2: {}
 
   fast-decode-uri-component@1.0.1: {}
@@ -20143,6 +20163,8 @@ snapshots:
     dependencies:
       path-data-parser: 0.1.0
       points-on-curve: 0.2.0
+
+  porter2@1.1.0: {}
 
   possible-typed-array-names@1.0.0: {}
 
