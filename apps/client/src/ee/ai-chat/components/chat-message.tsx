@@ -1,11 +1,31 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
 import DOMPurify from "dompurify";
-import { IconFile, IconLoader2, IconPhoto } from "@tabler/icons-react";
+import { ActionIcon, Tooltip } from "@mantine/core";
+import {
+  IconCheck,
+  IconCopy,
+  IconFile,
+  IconLoader2,
+  IconPhoto,
+} from "@tabler/icons-react";
 import { markdownToHtml } from "@docmost/editor-ext";
+import { CopyButton } from "@/components/common/copy-button";
 import type { AiChatMessage, AiChatToolCall } from "../types/ai-chat.types";
-import ChatToolResult from "./chat-tool-result";
+import ChatToolGroup from "./chat-tool-group";
 import classes from "../styles/chat-message.module.css";
+import CopyTextButton from "@/components/common/copy.tsx";
+
+const chatSanitizer = DOMPurify();
+chatSanitizer.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") {
+    const href = node.getAttribute("href") || "";
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  }
+});
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 
@@ -50,7 +70,12 @@ export default function ChatMessage({
       /\n\n<referenced_pages>[\s\S]*<\/referenced_pages>$/,
       "",
     );
-    const attachments = (message.metadata?.attachments as { id: string; fileName: string; fileExt: string }[]) || [];
+    const attachments =
+      (message.metadata?.attachments as {
+        id: string;
+        fileName: string;
+        fileExt: string;
+      }[]) || [];
 
     return (
       <div className={classes.userMessage}>
@@ -78,15 +103,16 @@ export default function ChatMessage({
   return (
     <div className={classes.assistantMessage}>
       <div className={classes.messageContent}>
-        {toolCalls?.map((tc) => (
-          <ChatToolResult key={tc.id} toolCall={tc} />
-        ))}
+        {toolCalls && toolCalls.length > 0 && (
+          <ChatToolGroup toolCalls={toolCalls} isStreaming={isStreaming} />
+        )}
         {content && (
           <div
             onClick={handleContentClick}
             dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(
+              __html: chatSanitizer.sanitize(
                 markdownToHtml(content) as string,
+                { ADD_ATTR: ["target", "rel"] },
               ),
             }}
           />
@@ -103,6 +129,11 @@ export default function ChatMessage({
           </>
         )}
       </div>
+      {!isStreaming && message.content && (
+        <div className={classes.messageActions}>
+          <CopyTextButton text={message?.content} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { sendChatMessage } from "../services/ai-chat-service";
@@ -10,7 +10,14 @@ import type {
   PageMention,
 } from "../types/ai-chat.types";
 
-export function useChatStream(chatId: string | undefined) {
+type ChatStreamOptions = {
+  onChatCreated?: (chatId: string) => void;
+};
+
+export function useChatStream(
+  chatId: string | undefined,
+  options?: ChatStreamOptions,
+) {
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [streamingToolCalls, setStreamingToolCalls] = useState<AiChatToolCall[]>(
@@ -18,21 +25,46 @@ export function useChatStream(chatId: string | undefined) {
   );
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [isRetryable, setIsRetryable] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const currentChatIdRef = useRef(chatId);
   currentChatIdRef.current = chatId;
+  // Tracks which chatId the local `messages` state currently represents.
+  // Set when we seed from a server fetch AND when we optimistically own a
+  // freshly-created chat after `chat_created`. This is the single authority
+  // marker that keeps server-state effects from clobbering in-flight streams.
+  const hydratedChatIdRef = useRef<string | undefined>(undefined);
 
-  const initMessages = useCallback((msgs: AiChatMessage[]) => {
+  // Reset local state when the consumer switches to a different chat.
+  // Skip the reset if the new chatId is one the hook itself already claimed
+  // during a new-chat flow — in that case our optimistic state is the truth.
+  useEffect(() => {
+    if (chatId && chatId === hydratedChatIdRef.current) return;
+    hydratedChatIdRef.current = undefined;
+    setMessages([]);
+    setError(null);
+    setErrorCode(null);
+    setIsRetryable(false);
+  }, [chatId]);
+
+  const hydrateFromServer = useCallback((msgs: AiChatMessage[]) => {
+    const forId = currentChatIdRef.current;
+    if (!forId) return;
+    if (hydratedChatIdRef.current === forId) return;
+    hydratedChatIdRef.current = forId;
     setMessages(msgs);
   }, []);
 
   const sendMessage = useCallback(
-    (content: string, mentions: PageMention[] = [], attachments: ChatAttachment[] = []) => {
+    (content: string, mentions: PageMention[] = [], attachments: ChatAttachment[] = [], contextPageId?: string) => {
       if (isStreaming || (!content.trim() && attachments.length === 0)) return;
 
       setError(null);
+      setErrorCode(null);
+      setIsRetryable(false);
       setIsStreaming(true);
       setStreamingContent("");
       setStreamingToolCalls([]);
@@ -68,13 +100,22 @@ export function useChatStream(chatId: string | undefined) {
           chatId: currentChatIdRef.current,
           content,
           mentionedPageIds: mentions.map((m) => m.id),
+          ...(contextPageId && { contextPageId }),
           ...(attachmentIds.length && { attachmentIds }),
         },
         (event: AiChatStreamEvent) => {
           switch (event.type) {
             case "chat_created":
               currentChatIdRef.current = event.chatId;
-              navigate(`/ai/chat/${event.chatId}`, { replace: true });
+              // Claim authority over this new chatId so when the consumer's
+              // prop catches up via navigation/onChatCreated, the reset effect
+              // sees a match and preserves our optimistic messages.
+              hydratedChatIdRef.current = event.chatId;
+              if (options?.onChatCreated) {
+                options.onChatCreated(event.chatId);
+              } else {
+                navigate(`/ai/chat/${event.chatId}`, { replace: true });
+              }
               queryClient.invalidateQueries({ queryKey: ["ai-chats"] });
               break;
             case "content":
@@ -125,6 +166,8 @@ export function useChatStream(chatId: string | undefined) {
             }
             case "error":
               setError(event.message);
+              setErrorCode(event.code || null);
+              setIsRetryable(event.retryable || false);
               setIsStreaming(false);
               break;
           }
@@ -175,8 +218,10 @@ export function useChatStream(chatId: string | undefined) {
     streamingToolCalls,
     isStreaming,
     error,
+    errorCode,
+    isRetryable,
     sendMessage,
     stopGeneration,
-    initMessages,
+    hydrateFromServer,
   };
 }

@@ -1,12 +1,13 @@
-import { Group, Text, Switch } from "@mantine/core";
+import { Badge, Group, Text, Switch, Tooltip } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import { isCloud } from "@/lib/config.ts";
-import useLicense from "@/ee/hooks/use-license.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 export default function EnableAiChat() {
   const { t } = useTranslation();
@@ -14,7 +15,12 @@ export default function EnableAiChat() {
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">{t("AI Chat")}</Text>
+        <Group gap="xs" align="center">
+          <Text size="md">{t("AI Chat")}</Text>
+          <Badge color="gray" variant="light" size="sm" radius="sm">
+            {t("Beta")}
+          </Badge>
+        </Group>
         <Text size="sm" c="dimmed">
           {t(
             "Enable AI Chat to allow users to have multi-turn conversations with AI about your workspace content.",
@@ -31,9 +37,8 @@ function AiChatToggle() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [checked, setChecked] = useState(workspace?.settings?.ai?.chat);
-  const { hasLicenseKey } = useLicense();
-
-  const hasAccess = isCloud() || (!isCloud() && hasLicenseKey);
+  const hasAccess = useHasFeature(Feature.AI);
+  const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
@@ -50,11 +55,13 @@ function AiChatToggle() {
   };
 
   return (
-    <Switch
-      defaultChecked={checked}
-      onChange={handleChange}
-      disabled={!hasAccess}
-      aria-label={t("Toggle AI Chat")}
-    />
+    <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+      <Switch
+        defaultChecked={checked}
+        onChange={handleChange}
+        disabled={!hasAccess}
+        aria-label={t("Toggle AI Chat")}
+      />
+    </Tooltip>
   );
 }

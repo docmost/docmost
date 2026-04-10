@@ -1,0 +1,28 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md) var(--mantine-spacing-lg);
+}
+
+.heading {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  text-align: center;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: var(--mantine-spacing-lg);
+}
+
+.inputContainer {
+  width: 100%;
+  max-width: 640px;
+}

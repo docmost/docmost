@@ -37,8 +37,14 @@ export type InsertableAiChat = Insertable<AiChats>;
 export type UpdatableAiChat = Updateable<Omit<AiChats, 'id'>>;
 
 // AI Chat Message
-export type AiChatMessage = Selectable<AiChatMessages>;
-export type InsertableAiChatMessage = Insertable<AiChatMessages>;
+// `tsv` is an internal tsvector column maintained by a trigger for
+// full-text search. It is omitted from the public type so it never leaks
+// into HTTP responses or the chat history fed to the language model.
+export type AiChatMessage = Omit<Selectable<AiChatMessages>, 'tsv'>;
+export type InsertableAiChatMessage = Omit<
+  Insertable<AiChatMessages>,
+  'tsv'
+>;
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;

@@ -353,7 +353,7 @@ export class ExportService {
     if (attachmentIds.length > 0) {
       const attachments = await this.db
         .selectFrom('attachments')
-        .selectAll()
+        .select(['id', 'fileName', 'filePath'])
         .where('id', 'in', attachmentIds)
         .where('spaceId', '=', spaceId)
         .execute();

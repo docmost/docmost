@@ -1,7 +1,11 @@
 import { useCallback, useRef, useEffect, useState } from "react";
-import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import { IconArrowUp, IconPaperclip, IconPlayerStopFilled, IconX, IconFile, IconPhoto, IconPlus, IconAt, IconFileText } from "@tabler/icons-react";
+import { Popover } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extension-placeholder";
+import { CharacterCount } from "@tiptap/extensions";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Mention, LinkExtension } from "@docmost/editor-ext";
 import EmojiCommand from "@/features/editor/extensions/emoji-command";
@@ -15,6 +19,8 @@ type PendingAttachment = ChatAttachment & { uploading: boolean };
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 const ACCEPTED_FILE_TYPES = ".pdf,.docx,.txt,.csv,.md,.png,.jpg,.jpeg,.webp";
+// Kept in sync with MAX_ATTACHMENTS_PER_MESSAGE in apps/server/src/ee/ai-chat/ai-chat-limits.ts
+const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
 type Props = {
   isStreaming: boolean;
@@ -22,6 +28,11 @@ type Props = {
   onStop: () => void;
   placeholder?: string;
   autofocus?: boolean;
+  contextPages?: PageMention[];
+  onRemoveContextPage?: (pageId: string) => void;
+  variant?: "card" | "flat";
+  showDisclaimer?: boolean;
+  chatId?: string;
 };
 
 function extractMentions(json: any): PageMention[] {
@@ -84,9 +95,18 @@ export default function ChatInput({
   onStop,
   placeholder,
   autofocus = true,
+  contextPages,
+  onRemoveContextPage,
+  variant = "card",
+  showDisclaimer = true,
+  chatId,
 }: Props) {
+  const chatIdRef = useRef(chatId);
+  chatIdRef.current = chatId;
+  const { t } = useTranslation();
   const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onSendRef = useRef(onSend);
   onSendRef.current = onSend;
@@ -94,7 +114,32 @@ export default function ChatInput({
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
 
-    for (const file of Array.from(files)) {
+    const room = MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachments.length;
+    if (room <= 0) {
+      notifications.show({
+        color: "yellow",
+        message: t("You can attach up to {{max}} files per message.", {
+          max: MAX_ATTACHMENTS_PER_MESSAGE,
+        }),
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const incoming = Array.from(files);
+    const accepted = incoming.slice(0, room);
+
+    if (incoming.length > accepted.length) {
+      notifications.show({
+        color: "yellow",
+        message: t(
+          "Only the first {{n}} file(s) were added (max {{max}} per message).",
+          { n: accepted.length, max: MAX_ATTACHMENTS_PER_MESSAGE },
+        ),
+      });
+    }
+
+    for (const file of accepted) {
       const tempId = `uploading-${Date.now()}-${Math.random()}`;
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
 
@@ -110,7 +155,7 @@ export default function ChatInput({
       setPendingAttachments((prev) => [...prev, placeholder]);
 
       try {
-        const uploaded = await uploadChatFile(file);
+        const uploaded = await uploadChatFile(file, chatIdRef.current);
         setPendingAttachments((prev) =>
           prev.map((a) =>
             a.id === tempId ? { ...uploaded, uploading: false } : a,
@@ -124,7 +169,7 @@ export default function ChatInput({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, []);
+  }, [pendingAttachments.length, t]);
 
   const removeAttachment = useCallback((id: string) => {
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
@@ -156,6 +201,9 @@ export default function ChatInput({
       }),
       Placeholder.configure({
         placeholder: placeholder || "Ask anything... Use @ to mention pages",
+      }),
+      CharacterCount.configure({
+        limit: 50000,
       }),
       LinkExtension,
       EmojiCommand,
@@ -215,10 +263,13 @@ export default function ChatInput({
     }
   }, [editor]);
 
-  const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading);
+  const hasContent = !isEmpty || pendingAttachments.some((a) => !a.uploading) || (contextPages?.length ?? 0) > 0;
+
+  const wrapperClass = variant === "flat" ? classes.inputWrapperFlat : classes.inputWrapper;
 
   return (
-    <div className={classes.inputWrapper} data-chat-input>
+    <>
+    <div className={wrapperClass} data-chat-input>
       <input
         ref={fileInputRef}
         type="file"
@@ -228,8 +279,26 @@ export default function ChatInput({
         onChange={(e) => handleFileSelect(e.target.files)}
       />
 
-      {pendingAttachments.length > 0 && (
+      {((contextPages?.length ?? 0) > 0 || pendingAttachments.length > 0) && (
         <div className={classes.attachmentChips}>
+          {contextPages?.map((page) => (
+            <div key={page.id} className={classes.attachmentChip}>
+              <IconFileText size={14} />
+              <span className={classes.attachmentChipName}>
+                {page.title || "Untitled"}
+              </span>
+              {onRemoveContextPage && (
+                <button
+                  type="button"
+                  className={classes.attachmentChipRemove}
+                  onClick={() => onRemoveContextPage(page.id)}
+                  aria-label={`Remove ${page.title}`}
+                >
+                  <IconX size={12} />
+                </button>
+              )}
+            </div>
+          ))}
           {pendingAttachments.map((attachment) => (
             <div
               key={attachment.id}
@@ -260,14 +329,51 @@ export default function ChatInput({
 
       <EditorContent editor={editor} className={classes.editorContent} />
       <div className={classes.actions}>
-        <button
-          type="button"
-          className={classes.attachButton}
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Attach file"
-        >
-          <IconPaperclip size={18} />
-        </button>
+        <Popover opened={plusMenuOpen} onChange={setPlusMenuOpen} position="top-start" width={220} shadow="md">
+          <Popover.Target>
+            <button
+              type="button"
+              className={classes.plusButton}
+              onClick={() => setPlusMenuOpen((o) => !o)}
+              aria-label="Add content"
+            >
+              <IconPlus size={14} />
+            </button>
+          </Popover.Target>
+          <Popover.Dropdown p={4}>
+            <button
+              type="button"
+              className={classes.plusMenuItem}
+              onClick={() => {
+                fileInputRef.current?.click();
+                setPlusMenuOpen(false);
+              }}
+              disabled={pendingAttachments.length >= MAX_ATTACHMENTS_PER_MESSAGE}
+              title={
+                pendingAttachments.length >= MAX_ATTACHMENTS_PER_MESSAGE
+                  ? t("Max {{max}} files per message", {
+                      max: MAX_ATTACHMENTS_PER_MESSAGE,
+                    })
+                  : undefined
+              }
+            >
+              <IconPaperclip size={16} className={classes.plusMenuIcon} />
+              {t("Add files")}
+            </button>
+            <button
+              type="button"
+              className={classes.plusMenuItem}
+              onClick={() => {
+                editor?.commands.insertContent("@");
+                editor?.commands.focus();
+                setPlusMenuOpen(false);
+              }}
+            >
+              <IconAt size={16} className={classes.plusMenuIcon} />
+              Mention a page
+            </button>
+          </Popover.Dropdown>
+        </Popover>
 
         <div style={{ flex: 1 }} />
 
@@ -293,5 +399,11 @@ export default function ChatInput({
         )}
       </div>
     </div>
+    {showDisclaimer && (
+      <div className={classes.disclaimer}>
+        {t("AI-generated content may not be accurate.")}
+      </div>
+    )}
+    </>
   );
 }

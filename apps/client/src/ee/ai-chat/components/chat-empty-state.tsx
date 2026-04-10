@@ -5,6 +5,7 @@ import {
   IconEdit,
   IconFileText,
 } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import ChatInput from "./chat-input";
 import type { ChatAttachment, PageMention } from "../types/ai-chat.types";
 import classes from "../styles/ai-chat.module.css";
@@ -45,6 +46,8 @@ type Props = {
 };
 
 export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
+  const { t } = useTranslation();
+
   const handleSuggestionClick = (prompt: string) => {
     onSend(prompt, [], []);
   };
@@ -52,7 +55,10 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
   return (
     <div className={classes.emptyState}>
       <IconSparkles size={48} stroke={1.5} className={classes.emptyStateIcon} />
-      <div className={classes.emptyStateTitle}>What can I help you with?</div>
+      <div className={classes.emptyStateBrand}>{t("Docmost AI")}</div>
+      <div className={classes.emptyStateTitle}>
+        {t("What can I help you with?")}
+      </div>
 
       <div className={classes.emptyStateInput}>
         <ChatInput
