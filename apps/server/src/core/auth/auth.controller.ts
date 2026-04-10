@@ -11,6 +11,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import { AI_CHAT_THROTTLER } from '../../integrations/throttle/throttler-names';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
 import { SessionService } from '../session/session.service';
@@ -34,7 +35,7 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 
-@SkipThrottle({ 'ai-chat': true })
+@SkipThrottle({ [AI_CHAT_THROTTLER]: true })
 @UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
