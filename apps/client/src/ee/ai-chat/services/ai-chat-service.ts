@@ -8,7 +8,7 @@ import type {
 import { IPagination } from "@/lib/types.ts";
 
 export async function createChat(): Promise<AiChat> {
-  const req = await api.post<AiChat>("/ai-chat/create");
+  const req = await api.post<AiChat>("/ai/chats/create");
   return req.data;
 }
 
@@ -16,30 +16,30 @@ export async function listChats(params?: {
   limit?: number;
   cursor?: string;
 }): Promise<IPagination<AiChat>> {
-  const req = await api.post("/ai-chat/list", params);
+  const req = await api.post("/ai/chats", params);
   return req.data;
 }
 
 export async function getChatInfo(
   chatId: string,
 ): Promise<{ chat: AiChat; messages: AiChatMessage[] }> {
-  const req = await api.post("/ai-chat/info", { chatId });
+  const req = await api.post("/ai/chats/info", { chatId });
   return req.data;
 }
 
 export async function deleteChat(chatId: string): Promise<void> {
-  await api.post("/ai-chat/delete", { chatId });
+  await api.post("/ai/chats/delete", { chatId });
 }
 
 export async function updateChatTitle(
   chatId: string,
   title: string,
 ): Promise<void> {
-  await api.post("/ai-chat/update", { chatId, title });
+  await api.post("/ai/chats/update", { chatId, title });
 }
 
 export async function searchChats(query: string): Promise<AiChat[]> {
-  const req = await api.post("/ai-chat/search", { query });
+  const req = await api.post("/ai/chats/search", { query });
   return req.data;
 }
 
@@ -52,7 +52,7 @@ export async function uploadChatFile(
   if (chatId) {
     formData.append("chatId", chatId);
   }
-  return await api.post("/ai-chat/upload", formData, {
+  return await api.post("/ai/chats/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 }
@@ -73,7 +73,7 @@ export function sendChatMessage(
 
   (async () => {
     try {
-      const response = await fetch("/api/ai-chat/send", {
+      const response = await fetch("/api/ai/chats/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
