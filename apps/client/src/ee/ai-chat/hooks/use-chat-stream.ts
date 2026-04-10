@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { sendChatMessage } from "../services/ai-chat-service";
@@ -32,8 +32,29 @@ export function useChatStream(
   const navigate = useNavigate();
   const currentChatIdRef = useRef(chatId);
   currentChatIdRef.current = chatId;
+  // Tracks which chatId the local `messages` state currently represents.
+  // Set when we seed from a server fetch AND when we optimistically own a
+  // freshly-created chat after `chat_created`. This is the single authority
+  // marker that keeps server-state effects from clobbering in-flight streams.
+  const hydratedChatIdRef = useRef<string | undefined>(undefined);
 
-  const initMessages = useCallback((msgs: AiChatMessage[]) => {
+  // Reset local state when the consumer switches to a different chat.
+  // Skip the reset if the new chatId is one the hook itself already claimed
+  // during a new-chat flow — in that case our optimistic state is the truth.
+  useEffect(() => {
+    if (chatId && chatId === hydratedChatIdRef.current) return;
+    hydratedChatIdRef.current = undefined;
+    setMessages([]);
+    setError(null);
+    setErrorCode(null);
+    setIsRetryable(false);
+  }, [chatId]);
+
+  const hydrateFromServer = useCallback((msgs: AiChatMessage[]) => {
+    const forId = currentChatIdRef.current;
+    if (!forId) return;
+    if (hydratedChatIdRef.current === forId) return;
+    hydratedChatIdRef.current = forId;
     setMessages(msgs);
   }, []);
 
@@ -86,6 +107,10 @@ export function useChatStream(
           switch (event.type) {
             case "chat_created":
               currentChatIdRef.current = event.chatId;
+              // Claim authority over this new chatId so when the consumer's
+              // prop catches up via navigation/onChatCreated, the reset effect
+              // sees a match and preserves our optimistic messages.
+              hydratedChatIdRef.current = event.chatId;
               if (options?.onChatCreated) {
                 options.onChatCreated(event.chatId);
               } else {
@@ -197,6 +222,6 @@ export function useChatStream(
     isRetryable,
     sendMessage,
     stopGeneration,
-    initMessages,
+    hydrateFromServer,
   };
 }

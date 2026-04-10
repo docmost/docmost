@@ -50,7 +50,7 @@ export default function AsideChatPanel() {
     error,
     sendMessage,
     stopGeneration,
-    initMessages,
+    hydrateFromServer,
   } = useChatStream(chatId, {
     onChatCreated: (newChatId) => {
       setChatId(newChatId);
@@ -68,16 +68,10 @@ export default function AsideChatPanel() {
   }, []);
 
   useEffect(() => {
-    if (chatInfoQuery.data?.messages && !isStreaming) {
-      initMessages(chatInfoQuery.data.messages);
+    if (chatInfoQuery.data?.messages) {
+      hydrateFromServer(chatInfoQuery.data.messages);
     }
-  }, [chatInfoQuery.data, initMessages, isStreaming]);
-
-  useEffect(() => {
-    if (!chatId) {
-      initMessages([]);
-    }
-  }, [chatId, initMessages]);
+  }, [chatInfoQuery.data, hydrateFromServer]);
 
   const handleNewChat = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -194,6 +188,18 @@ export default function AsideChatPanel() {
         </Tooltip>
       </div>
 
+      {error && (
+        <div
+          style={{
+            padding: "var(--mantine-spacing-xs) var(--mantine-spacing-sm)",
+            color: "var(--mantine-color-red-6)",
+            fontSize: "var(--mantine-font-size-xs)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {hasMessages ? (
         <>
           <div className={classes.messages} data-aside-chat>
@@ -204,12 +210,6 @@ export default function AsideChatPanel() {
               streamingToolCalls={streamingToolCalls}
             />
           </div>
-
-          {error && (
-            <div style={{ padding: "0 4px", color: "var(--mantine-color-red-6)", fontSize: "var(--mantine-font-size-xs)" }}>
-              {error}
-            </div>
-          )}
         </>
       ) : (
         <div className={classes.emptyState}>

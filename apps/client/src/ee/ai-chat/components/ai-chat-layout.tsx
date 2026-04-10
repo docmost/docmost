@@ -21,22 +21,16 @@ export default function AiChatLayout() {
     error,
     sendMessage,
     stopGeneration,
-    initMessages,
+    hydrateFromServer,
   } = useChatStream(chatId);
 
   const autoSentRef = useRef(false);
 
   useEffect(() => {
-    if (chatInfoQuery.data?.messages && !isStreaming) {
-      initMessages(chatInfoQuery.data.messages);
+    if (chatInfoQuery.data?.messages) {
+      hydrateFromServer(chatInfoQuery.data.messages);
     }
-  }, [chatInfoQuery.data, initMessages, isStreaming]);
-
-  useEffect(() => {
-    if (!chatId) {
-      initMessages([]);
-    }
-  }, [chatId, initMessages]);
+  }, [chatInfoQuery.data, hydrateFromServer]);
 
   useEffect(() => {
     if (autoSentRef.current || chatId) return;
@@ -54,31 +48,12 @@ export default function AiChatLayout() {
 
   const hasMessages = messages.length > 0 || isStreaming;
 
-  if (!hasMessages) {
-    return (
-      <div className={classes.main}>
-        <ChatEmptyState
-          isStreaming={isStreaming}
-          onSend={sendMessage}
-          onStop={stopGeneration}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className={classes.main}>
-      <ChatMessageList
-        messages={messages}
-        isStreaming={isStreaming}
-        streamingContent={streamingContent}
-        streamingToolCalls={streamingToolCalls}
-      />
-
       {error && (
         <div
           style={{
-            padding: "0 var(--mantine-spacing-lg)",
+            padding: "var(--mantine-spacing-sm) var(--mantine-spacing-lg)",
             color: "var(--mantine-color-red-6)",
             fontSize: "var(--mantine-font-size-sm)",
           }}
@@ -87,14 +62,30 @@ export default function AiChatLayout() {
         </div>
       )}
 
-      <div className={classes.inputArea}>
-        <ChatInput
+      {hasMessages ? (
+        <>
+          <ChatMessageList
+            messages={messages}
+            isStreaming={isStreaming}
+            streamingContent={streamingContent}
+            streamingToolCalls={streamingToolCalls}
+          />
+          <div className={classes.inputArea}>
+            <ChatInput
+              isStreaming={isStreaming}
+              onSend={sendMessage}
+              onStop={stopGeneration}
+              chatId={chatId}
+            />
+          </div>
+        </>
+      ) : (
+        <ChatEmptyState
           isStreaming={isStreaming}
           onSend={sendMessage}
           onStop={stopGeneration}
-          chatId={chatId}
         />
-      </div>
+      )}
     </div>
   );
 }
