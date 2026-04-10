@@ -43,9 +43,15 @@ export async function searchChats(query: string): Promise<AiChat[]> {
   return req.data;
 }
 
-export async function uploadChatFile(file: File): Promise<ChatAttachment> {
+export async function uploadChatFile(
+  file: File,
+  chatId?: string,
+): Promise<ChatAttachment> {
   const formData = new FormData();
   formData.append("file", file);
+  if (chatId) {
+    formData.append("chatId", chatId);
+  }
   return await api.post("/ai-chat/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

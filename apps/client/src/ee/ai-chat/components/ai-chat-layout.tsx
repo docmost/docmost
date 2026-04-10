@@ -27,10 +27,10 @@ export default function AiChatLayout() {
   const autoSentRef = useRef(false);
 
   useEffect(() => {
-    if (chatInfoQuery.data?.messages) {
+    if (chatInfoQuery.data?.messages && !isStreaming) {
       initMessages(chatInfoQuery.data.messages);
     }
-  }, [chatInfoQuery.data, initMessages]);
+  }, [chatInfoQuery.data, initMessages, isStreaming]);
 
   useEffect(() => {
     if (!chatId) {
@@ -92,6 +92,7 @@ export default function AiChatLayout() {
           isStreaming={isStreaming}
           onSend={sendMessage}
           onStop={stopGeneration}
+          chatId={chatId}
         />
       </div>
     </div>

@@ -68,10 +68,10 @@ export default function AsideChatPanel() {
   }, []);
 
   useEffect(() => {
-    if (chatInfoQuery.data?.messages) {
+    if (chatInfoQuery.data?.messages && !isStreaming) {
       initMessages(chatInfoQuery.data.messages);
     }
-  }, [chatInfoQuery.data, initMessages]);
+  }, [chatInfoQuery.data, initMessages, isStreaming]);
 
   useEffect(() => {
     if (!chatId) {
@@ -221,6 +221,7 @@ export default function AsideChatPanel() {
           contextPages={contextPages}
           onRemoveContextPage={handleRemoveContextPage}
           variant="flat"
+          chatId={chatId}
         />
       </div>
     </div>

@@ -142,7 +142,7 @@ export class WorkspaceService {
           status = WorkspaceStatus.Active;
           plan = 'standard';
           billingEmail = user.email;
-          settings = { ai: { generative: true } };
+          settings = { ai: { generative: true, chat: true } };
         }
 
         // create workspace

@@ -1,19 +1,27 @@
 .inputWrapper {
   position: relative;
   overflow: hidden;
-  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   border-radius: 16px;
   background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: border-color 150ms, box-shadow 150ms;
+  box-shadow: light-dark(
+    0 2px 40px 4px rgba(0, 0, 0, 0.07),
+    0 2px 40px 4px rgba(0, 0, 0, 0.5)
+  );
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
 
   &:focus-within {
-    border-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.04),
-      0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: light-dark(
+      var(--mantine-color-gray-3),
+      var(--mantine-color-dark-4)
+    );
+    box-shadow: light-dark(
+      0 4px 48px 6px rgba(0, 0, 0, 0.09),
+      0 4px 48px 6px rgba(0, 0, 0, 0.6)
+    );
   }
 }
 

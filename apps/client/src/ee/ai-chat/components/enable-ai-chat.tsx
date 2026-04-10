@@ -1,4 +1,4 @@
-import { Group, Text, Switch, Tooltip } from "@mantine/core";
+import { Badge, Group, Text, Switch, Tooltip } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import { useState } from "react";
@@ -15,7 +15,12 @@ export default function EnableAiChat() {
   return (
     <Group justify="space-between" wrap="nowrap" gap="xl">
       <div>
-        <Text size="md">{t("AI Chat")}</Text>
+        <Group gap="xs" align="center">
+          <Text size="md">{t("AI Chat")}</Text>
+          <Badge color="gray" variant="light" size="sm" radius="sm">
+            {t("Beta")}
+          </Badge>
+        </Group>
         <Text size="sm" c="dimmed">
           {t(
             "Enable AI Chat to allow users to have multi-turn conversations with AI about your workspace content.",

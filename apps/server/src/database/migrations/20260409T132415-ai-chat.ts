@@ -88,16 +88,9 @@ export async function up(db: Kysely<any>): Promise<void> {
       FOR EACH ROW EXECUTE FUNCTION ai_chat_messages_tsvector_trigger();
   `.execute(db);
 
-  // Attach uploaded chat files to the chat that owns them so we can
-  // enforce that only the chat's creator can download/read them.
-  // Cascade deletes so removing a chat also removes its attachments.
   await db.schema
     .alterTable('attachments')
-    .addColumn(
-      'ai_chat_id',
-      'uuid',
-      (col) => col, //.references('ai_chats.id').onDelete('cascade'),
-    )
+    .addColumn('ai_chat_id', 'uuid', (col) => col)
     .execute();
 
   await db.schema

@@ -28,6 +28,7 @@ type Props = {
   onRemoveContextPage?: (pageId: string) => void;
   variant?: "card" | "flat";
   showDisclaimer?: boolean;
+  chatId?: string;
 };
 
 function extractMentions(json: any): PageMention[] {
@@ -94,7 +95,10 @@ export default function ChatInput({
   onRemoveContextPage,
   variant = "card",
   showDisclaimer = true,
+  chatId,
 }: Props) {
+  const chatIdRef = useRef(chatId);
+  chatIdRef.current = chatId;
   const { t } = useTranslation();
   const [isEmpty, setIsEmpty] = useState(true);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
@@ -122,7 +126,7 @@ export default function ChatInput({
       setPendingAttachments((prev) => [...prev, placeholder]);
 
       try {
-        const uploaded = await uploadChatFile(file);
+        const uploaded = await uploadChatFile(file, chatIdRef.current);
         setPendingAttachments((prev) =>
           prev.map((a) =>
             a.id === tempId ? { ...uploaded, uploading: false } : a,
