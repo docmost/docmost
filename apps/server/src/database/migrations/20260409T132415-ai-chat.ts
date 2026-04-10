@@ -3,6 +3,7 @@ import { type Kysely, sql } from 'kysely';
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('ai_chats')
+    .ifNotExists()
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
@@ -24,12 +25,14 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_ai_chats_workspace_creator')
+    .ifNotExists()
     .on('ai_chats')
     .columns(['workspace_id', 'creator_id', 'id'])
     .execute();
 
   await db.schema
     .createTable('ai_chat_messages')
+    .ifNotExists()
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
@@ -39,9 +42,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('workspace_id', 'uuid', (col) =>
       col.references('workspaces.id').onDelete('cascade').notNull(),
     )
-    // The user whose turn produced this message. Nullable so deleting a
-    // user does not tombstone chat history, and so system-generated rows
-    // (e.g. compaction summaries) can omit it.
     .addColumn('user_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -61,12 +61,14 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_ai_chat_messages_chat_id')
+    .ifNotExists()
     .on('ai_chat_messages')
     .columns(['chat_id', 'id'])
     .execute();
 
   await db.schema
     .createIndex('idx_ai_chat_messages_tsv')
+    .ifNotExists()
     .on('ai_chat_messages')
     .using('GIN')
     .column('tsv')
@@ -95,6 +97,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_attachments_ai_chat_id')
+    .ifNotExists()
     .on('attachments')
     .column('ai_chat_id')
     .execute();
