@@ -59,7 +59,12 @@ export class WatcherController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    await this.watcherService.unwatchPage(user.id, page.id);
+    await this.watcherService.unwatchPage(
+      user.id,
+      page.id,
+      page.spaceId,
+      page.workspaceId,
+    );
 
     return { watching: false };
   }
