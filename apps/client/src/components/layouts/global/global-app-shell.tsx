@@ -8,6 +8,7 @@ import {
   desktopSidebarAtom,
   mobileSidebarAtom,
   sidebarWidthAtom,
+  asideWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
 import AiChatSidebar from "@/ee/ai-chat/components/ai-chat-sidebar.tsx";
@@ -28,6 +29,7 @@ export default function GlobalAppShell({
   const [desktopOpened] = useAtom(desktopSidebarAtom);
   const [{ isAsideOpen }] = useAtom(asideStateAtom);
   const [sidebarWidth, setSidebarWidth] = useAtom(sidebarWidthAtom);
+  const [asideWidth] = useAtom(asideWidthAtom);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef(null);
 
@@ -94,7 +96,7 @@ export default function GlobalAppShell({
       }
       aside={
         isPageRoute && {
-          width: 350,
+          width: asideWidth,
           breakpoint: "sm",
           collapsed: { mobile: !isAsideOpen, desktop: !isAsideOpen },
         }
