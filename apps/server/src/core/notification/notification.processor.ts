@@ -5,13 +5,19 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { QueueJob, QueueName } from '../../integrations/queue/constants';
 import {
+  IApprovalRejectedNotificationJob,
+  IApprovalRequestedNotificationJob,
   ICommentNotificationJob,
   ICommentResolvedNotificationJob,
   IPageMentionNotificationJob,
+  IPageVerifiedNotificationJob,
   IPermissionGrantedNotificationJob,
+  IVerificationExpiringNotificationJob,
+  IVerificationExpiredNotificationJob,
 } from '../../integrations/queue/constants/queue.interface';
 import { CommentNotificationService } from './services/comment.notification';
 import { PageNotificationService } from './services/page.notification';
+import { VerificationNotificationService } from './services/verification.notification';
 import { DomainService } from '../../integrations/environment/domain.service';
 
 @Processor(QueueName.NOTIFICATION_QUEUE)
@@ -24,6 +30,7 @@ export class NotificationProcessor
   constructor(
     private readonly commentNotificationService: CommentNotificationService,
     private readonly pageNotificationService: PageNotificationService,
+    private readonly verificationNotificationService: VerificationNotificationService,
     private readonly domainService: DomainService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {
@@ -35,7 +42,12 @@ export class NotificationProcessor
       | ICommentNotificationJob
       | ICommentResolvedNotificationJob
       | IPageMentionNotificationJob
-      | IPermissionGrantedNotificationJob,
+      | IPermissionGrantedNotificationJob
+      | IVerificationExpiringNotificationJob
+      | IVerificationExpiredNotificationJob
+      | IPageVerifiedNotificationJob
+      | IApprovalRequestedNotificationJob
+      | IApprovalRejectedNotificationJob,
       void
     >,
   ): Promise<void> {
@@ -71,6 +83,45 @@ export class NotificationProcessor
         case QueueJob.PAGE_PERMISSION_GRANTED: {
           await this.pageNotificationService.processPermissionGranted(
             job.data as IPermissionGrantedNotificationJob,
+            appUrl,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_VERIFICATION_EXPIRING: {
+          await this.verificationNotificationService.processVerificationExpiring(
+            job.data as IVerificationExpiringNotificationJob,
+            appUrl,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_VERIFICATION_EXPIRED: {
+          await this.verificationNotificationService.processVerificationExpired(
+            job.data as IVerificationExpiredNotificationJob,
+            appUrl,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_VERIFIED_NOTIFICATION: {
+          await this.verificationNotificationService.processPageVerified(
+            job.data as IPageVerifiedNotificationJob,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_APPROVAL_REQUESTED_NOTIFICATION: {
+          await this.verificationNotificationService.processApprovalRequested(
+            job.data as IApprovalRequestedNotificationJob,
+            appUrl,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_APPROVAL_REJECTED_NOTIFICATION: {
+          await this.verificationNotificationService.processApprovalRejected(
+            job.data as IApprovalRejectedNotificationJob,
             appUrl,
           );
           break;

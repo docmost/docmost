@@ -3,7 +3,12 @@ export type NotificationType =
   | "comment.created"
   | "comment.resolved"
   | "page.user_mention"
-  | "page.permission_granted";
+  | "page.permission_granted"
+  | "page.verification_expiring"
+  | "page.verification_expired"
+  | "page.verified"
+  | "page.approval_requested"
+  | "page.approval_rejected";
 
 export type INotification = {
   id: string;

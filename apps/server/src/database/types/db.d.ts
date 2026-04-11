@@ -429,6 +429,40 @@ export interface PagePermissions {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface PageVerifications {
+  id: Generated<string>;
+  pageId: string;
+  workspaceId: string;
+  spaceId: string;
+  type: Generated<string>;
+  status: string | null;
+  mode: string | null;
+  periodAmount: number | null;
+  periodUnit: string | null;
+  verifiedAt: Timestamp | null;
+  verifiedById: string | null;
+  expiresAt: Timestamp | null;
+  notifiedAt: Timestamp | null;
+  requestedAt: Timestamp | null;
+  requestedById: string | null;
+  rejectedAt: Timestamp | null;
+  rejectedById: string | null;
+  rejectionComment: string | null;
+  data: Json | null;
+  creatorId: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface PageVerifiers {
+  id: Generated<string>;
+  pageVerificationId: string;
+  userId: string;
+  isPrimary: Generated<boolean>;
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
   apiKeys: ApiKeys;
   attachments: Attachments;
@@ -445,6 +479,8 @@ export interface DB {
   pageAccess: PageAccess;
   pagePermissions: PagePermissions;
   pageHistory: PageHistory;
+  pageVerifications: PageVerifications;
+  pageVerifiers: PageVerifiers;
   pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;

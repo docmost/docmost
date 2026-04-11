@@ -22,11 +22,18 @@ export interface IPage {
   creator: ICreator;
   lastUpdatedBy: ILastUpdatedBy;
   deletedBy: IDeletedBy;
+  contributors?: IContributor[];
   space: Partial<ISpace>;
   permissions?: {
     canEdit: boolean;
     hasRestriction: boolean;
   };
+}
+
+export interface IContributor {
+  id: string;
+  name: string;
+  avatarUrl: string;
 }
 
 interface ICreator {

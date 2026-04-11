@@ -6,6 +6,8 @@ import {
   Notifications,
   PageAccess as _PageAccess,
   PagePermissions as _PagePermissions,
+  PageVerifications as _PageVerifications,
+  PageVerifiers as _PageVerifiers,
   Pages,
   Spaces,
   Users,
@@ -156,6 +158,15 @@ export type UpdatablePageAccess = Updateable<Omit<_PageAccess, 'id'>>;
 export type PagePermission = Selectable<_PagePermissions>;
 export type InsertablePagePermission = Insertable<_PagePermissions>;
 export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
+
+// Page Verification
+export type PageVerification = Selectable<_PageVerifications>;
+export type InsertablePageVerification = Insertable<_PageVerifications>;
+export type UpdatablePageVerification = Updateable<Omit<_PageVerifications, 'id'>>;
+
+// Page Verifier
+export type PageVerifier = Selectable<_PageVerifiers>;
+export type InsertablePageVerifier = Insertable<_PageVerifiers>;
 
 // Audit
 export type Audit = Selectable<_Audit>;

@@ -50,6 +50,16 @@ export function NotificationItem({
         return notification.data?.role === "writer"
           ? t("gave you edit access to a page")
           : t("gave you view access to a page");
+      case "page.verification_expiring":
+        return t("Page verification expires soon");
+      case "page.verification_expired":
+        return t("Page verification has expired");
+      case "page.verified":
+        return t("verified a page");
+      case "page.approval_requested":
+        return t("submitted a page for your approval");
+      case "page.approval_rejected":
+        return t("returned a page for revision");
       default:
         return "";
     }
@@ -95,9 +105,13 @@ export function NotificationItem({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text size="sm" lineClamp={2}>
-            <Text span fw={600}>
-              {notification.actor?.name}
-            </Text>{" "}
+            {notification.actor?.name ? (
+              <>
+                <Text span fw={600}>
+                  {notification.actor.name}
+                </Text>{" "}
+              </>
+            ) : null}
             {getNotificationMessage()}
           </Text>
 

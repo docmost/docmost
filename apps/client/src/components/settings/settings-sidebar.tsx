@@ -14,6 +14,7 @@ import {
   IconWorld,
   IconSparkles,
   IconHistory,
+  IconShieldCheck,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -33,6 +34,7 @@ import {
   prefetchSsoProviders,
   prefetchWorkspaceMembers,
   prefetchAuditLogs,
+  prefetchVerifiedPages,
 } from "@/components/settings/settings-queries.tsx";
 import AppVersion from "@/components/settings/app-version.tsx";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
@@ -126,6 +128,15 @@ const groupedData: DataGroup[] = [
         isEnterprise: true,
         isOwner: true,
         isSelfhosted: true,
+        showDisabledInNonEE: true,
+      },
+      {
+        label: "Verified pages",
+        icon: IconShieldCheck,
+        path: "/settings/verifications",
+        isCloud: true,
+        isEnterprise: true,
+        isAdmin: true,
         showDisabledInNonEE: true,
       },
     ],
@@ -243,6 +254,9 @@ export default function SettingsSidebar() {
               break;
             case "Audit log":
               prefetchHandler = prefetchAuditLogs;
+              break;
+            case "Verified pages":
+              prefetchHandler = prefetchVerifiedPages;
               break;
             default:
               break;
