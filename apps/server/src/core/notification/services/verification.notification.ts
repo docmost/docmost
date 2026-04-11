@@ -15,34 +15,83 @@ import { VerificationExpiredEmail } from '@docmost/transactional/emails/verifica
 import { ApprovalRequestedEmail } from '@docmost/transactional/emails/approval-requested-email';
 import { ApprovalRejectedEmail } from '@docmost/transactional/emails/approval-rejected-email';
 import { getPageTitle } from '../../../common/helpers';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 
 @Injectable()
 export class VerificationNotificationService {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly notificationService: NotificationService,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
+
+  private async filterAccessibleRecipients(
+    userIds: string[],
+    pageId: string,
+    spaceId: string,
+  ): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    const inSpace = await this.spaceMemberRepo.getUserIdsWithSpaceAccess(
+      userIds,
+      spaceId,
+    );
+    if (inSpace.size === 0) return [];
+    return this.pagePermissionRepo.getUserIdsWithPageAccess(pageId, [
+      ...inSpace,
+    ]);
+  }
 
   async processVerificationExpiring(
     data: IVerificationExpiringNotificationJob,
     appUrl: string,
   ) {
-    const { verifierIds, pageId, spaceId, workspaceId, expiresAt } = data;
+    const verification = await this.db
+      .selectFrom('pageVerifications')
+      .selectAll()
+      .where('id', '=', data.verificationId)
+      .executeTakeFirst();
+
+    if (!verification) return;
+    if (verification.type !== 'expiring') return;
+    if (!verification.expiresAt) return;
+    const expiresAtMs = new Date(verification.expiresAt).getTime();
+    if (expiresAtMs <= Date.now()) return;
+
+    const verifierRows = await this.db
+      .selectFrom('pageVerifiers')
+      .select('userId')
+      .where('pageVerificationId', '=', verification.id)
+      .execute();
+    const verifierIds = verifierRows.map((r) => r.userId);
     if (verifierIds.length === 0) return;
 
-    const context = await this.getPageContext(pageId, spaceId, appUrl);
+    const accessibleVerifierIds = await this.filterAccessibleRecipients(
+      verifierIds,
+      verification.pageId,
+      verification.spaceId,
+    );
+    if (accessibleVerifierIds.length === 0) return;
+
+    const context = await this.getPageContext(
+      verification.pageId,
+      verification.spaceId,
+      appUrl,
+    );
     if (!context) return;
 
     const { pageTitle, basePageUrl } = context;
+    const expiresAtIso = new Date(verification.expiresAt).toISOString();
 
-    for (const userId of verifierIds) {
+    for (const userId of accessibleVerifierIds) {
       const notification = await this.notificationService.create({
         userId,
-        workspaceId,
+        workspaceId: verification.workspaceId,
         type: NotificationType.PAGE_VERIFICATION_EXPIRING,
-        pageId,
-        spaceId,
-        data: { expiresAt },
+        pageId: verification.pageId,
+        spaceId: verification.spaceId,
+        data: { expiresAt: expiresAtIso },
       });
 
       const subject = `"${pageTitle}" needs to be re-verified soon`;
@@ -54,7 +103,7 @@ export class VerificationNotificationService {
         VerificationExpiringEmail({
           pageTitle,
           pageUrl: basePageUrl,
-          expiresAt: new Date(expiresAt).toLocaleDateString(),
+          expiresAt: new Date(verification.expiresAt).toLocaleDateString(),
         }),
       );
     }
@@ -64,21 +113,44 @@ export class VerificationNotificationService {
     data: IVerificationExpiredNotificationJob,
     appUrl: string,
   ) {
-    const { verifierIds, pageId, spaceId, workspaceId } = data;
+    const v = await this.db
+      .selectFrom('pageVerifications')
+      .selectAll()
+      .where('id', '=', data.verificationId)
+      .executeTakeFirst();
+
+    if (!v) return;
+    if (v.type !== 'expiring') return;
+    if (!v.expiresAt) return;
+    if (new Date(v.expiresAt).getTime() > Date.now()) return;
+
+    const verifierRows = await this.db
+      .selectFrom('pageVerifiers')
+      .select('userId')
+      .where('pageVerificationId', '=', v.id)
+      .execute();
+    const verifierIds = verifierRows.map((r) => r.userId);
     if (verifierIds.length === 0) return;
 
-    const context = await this.getPageContext(pageId, spaceId, appUrl);
+    const accessibleVerifierIds = await this.filterAccessibleRecipients(
+      verifierIds,
+      v.pageId,
+      v.spaceId,
+    );
+    if (accessibleVerifierIds.length === 0) return;
+
+    const context = await this.getPageContext(v.pageId, v.spaceId, appUrl);
     if (!context) return;
 
     const { pageTitle, basePageUrl } = context;
 
-    for (const userId of verifierIds) {
+    for (const userId of accessibleVerifierIds) {
       const notification = await this.notificationService.create({
         userId,
-        workspaceId,
+        workspaceId: v.workspaceId,
         type: NotificationType.PAGE_VERIFICATION_EXPIRED,
-        pageId,
-        spaceId,
+        pageId: v.pageId,
+        spaceId: v.spaceId,
       });
 
       const subject = `"${pageTitle}" verification has expired`;
@@ -99,7 +171,14 @@ export class VerificationNotificationService {
     const { verifierIds, pageId, spaceId, workspaceId, actorId } = data;
     if (verifierIds.length === 0) return;
 
-    for (const userId of verifierIds) {
+    const accessibleVerifierIds = await this.filterAccessibleRecipients(
+      verifierIds,
+      pageId,
+      spaceId,
+    );
+    if (accessibleVerifierIds.length === 0) return;
+
+    for (const userId of accessibleVerifierIds) {
       await this.notificationService.create({
         userId,
         workspaceId,
@@ -118,13 +197,20 @@ export class VerificationNotificationService {
     const { verifierIds, pageId, spaceId, workspaceId, actorId } = data;
     if (verifierIds.length === 0) return;
 
+    const accessibleVerifierIds = await this.filterAccessibleRecipients(
+      verifierIds,
+      pageId,
+      spaceId,
+    );
+    if (accessibleVerifierIds.length === 0) return;
+
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;
 
     const { pageTitle, basePageUrl } = context;
     const actorName = await this.getUserName(actorId);
 
-    for (const userId of verifierIds) {
+    for (const userId of accessibleVerifierIds) {
       const notification = await this.notificationService.create({
         userId,
         workspaceId,
@@ -155,6 +241,13 @@ export class VerificationNotificationService {
   ) {
     const { pageId, spaceId, workspaceId, actorId, requestedById, comment } =
       data;
+
+    const recipients = await this.filterAccessibleRecipients(
+      [requestedById],
+      pageId,
+      spaceId,
+    );
+    if (recipients.length === 0) return;
 
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;

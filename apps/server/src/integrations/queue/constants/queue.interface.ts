@@ -79,20 +79,14 @@ export interface IPermissionGrantedNotificationJob {
 
 export interface IVerificationExpiringNotificationJob {
   verificationId: string;
-  pageId: string;
-  spaceId: string;
-  workspaceId: string;
-  verifierIds: string[];
-  expiresAt: string;
 }
 
 export interface IVerificationExpiredNotificationJob {
   verificationId: string;
-  pageId: string;
-  spaceId: string;
-  workspaceId: string;
-  verifierIds: string[];
-  expiresAt: string;
+}
+
+export interface IVerificationReconcileJob {
+  // no payload
 }
 
 export interface IPageVerifiedNotificationJob {

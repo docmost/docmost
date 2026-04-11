@@ -133,6 +133,7 @@ type SetupVerificationFormProps = {
 
 export function SetupVerificationForm({
   pageId,
+  onClose,
 }: SetupVerificationFormProps) {
   const { t } = useTranslation();
   const setupMutation = useSetupVerificationMutation();
@@ -182,22 +183,31 @@ export function SetupVerificationForm({
 
   const handleSetup = () => {
     if (selectedVerifiers.length === 0) return;
-    setupMutation.mutate({
-      pageId,
-      type,
-      ...(!isQms && {
-        mode,
-        ...(mode === "period" && {
-          periodAmount,
-          periodUnit,
-        }),
-        ...(mode === "fixed" &&
-          fixedDate && {
-            fixedExpiresAt: new Date(fixedDate).toISOString(),
+    setupMutation.mutate(
+      {
+        pageId,
+        type,
+        ...(!isQms && {
+          mode,
+          ...(mode === "period" && {
+            periodAmount,
+            periodUnit,
           }),
-      }),
-      verifierIds: selectedVerifiers.map((v) => v.value),
-    });
+          ...(mode === "fixed" &&
+            fixedDate && {
+              fixedExpiresAt: new Date(fixedDate).toISOString(),
+            }),
+        }),
+        verifierIds: selectedVerifiers.map((v) => v.value),
+      },
+      {
+        onSuccess: () => {
+          if (!isQms) {
+            onClose();
+          }
+        },
+      },
+    );
   };
 
   const periodValid =

@@ -443,7 +443,6 @@ export interface PageVerifications {
   verifiedAt: Timestamp | null;
   verifiedById: string | null;
   expiresAt: Timestamp | null;
-  notifiedAt: Timestamp | null;
   requestedAt: Timestamp | null;
   requestedById: string | null;
   rejectedAt: Timestamp | null;

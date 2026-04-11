@@ -521,6 +521,7 @@ function QmsManageContent({ pageId, info, onClose }: ManageContentProps) {
                 placeholder={t("Reason for returning this document...")}
                 minRows={2}
                 variant="filled"
+                maxLength={500}
               />
               <Group justify="flex-end" mt="sm" gap="xs">
                 <Button

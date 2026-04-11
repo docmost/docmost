@@ -1,4 +1,13 @@
-import { Table, Text, Group, Skeleton, Anchor, Badge } from "@mantine/core";
+import {
+  Table,
+  Text,
+  Group,
+  Skeleton,
+  Anchor,
+  Badge,
+  Avatar,
+  Tooltip,
+} from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,6 +19,8 @@ import { buildPageUrl } from "@/features/page/page.utils";
 import { format } from "date-fns";
 import NoTableResults from "@/components/common/no-table-results";
 
+const MAX_VISIBLE_VERIFIERS = 5;
+
 type VerificationListTableProps = {
   items?: IVerificationListItem[];
   isLoading: boolean;
@@ -20,7 +31,7 @@ function statusBadge(status: VerificationStatus | null, t: (s: string) => string
     case "verified":
       return <Badge color="green" variant="light" size="sm">{t("Verified")}</Badge>;
     case "expiring":
-      return <Badge color="yellow" variant="light" size="sm">{t("Expiring")}</Badge>;
+      return <Badge color="orange" variant="light" size="sm">{t("Expiring")}</Badge>;
     case "expired":
       return <Badge color="red" variant="light" size="sm">{t("Expired")}</Badge>;
     case "approved":
@@ -63,9 +74,10 @@ function TableSkeleton() {
             </div>
           </Table.Td>
           <Table.Td>
-            <Group gap="sm" wrap="nowrap">
-              <Skeleton circle height={28} />
-              <Skeleton height={14} width={80} />
+            <Group gap={8} wrap="nowrap">
+              <Skeleton circle height={24} />
+              <Skeleton circle height={24} />
+              <Skeleton circle height={24} />
             </Group>
           </Table.Td>
           <Table.Td>
@@ -92,7 +104,7 @@ export default function VerificationListTable({
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t("Page")}</Table.Th>
-            <Table.Th>{t("Owner")}</Table.Th>
+            <Table.Th>{t("Verifiers")}</Table.Th>
             <Table.Th>{t("Verified until")}</Table.Th>
             <Table.Th>{t("Status")}</Table.Th>
           </Table.Tr>
@@ -103,7 +115,7 @@ export default function VerificationListTable({
             <TableSkeleton />
           ) : items && items.length > 0 ? (
             items.map((item) => {
-              const primaryVerifier = item.verifiers[0];
+              const verifiers = item.verifiers ?? [];
 
               const pageUrl = buildPageUrl(
                 item.spaceSlug,
@@ -132,19 +144,55 @@ export default function VerificationListTable({
                   </Table.Td>
 
                   <Table.Td>
-                    {primaryVerifier ? (
-                      <Group gap="sm" wrap="nowrap">
+                    {verifiers.length === 1 ? (
+                      <Group gap={8} wrap="nowrap">
                         <CustomAvatar
-                          avatarUrl={primaryVerifier.avatarUrl}
-                          name={primaryVerifier.name}
-                          size={28}
+                          size="sm"
+                          avatarUrl={verifiers[0].avatarUrl}
+                          name={verifiers[0].name}
                         />
                         <Text fz="sm" lineClamp={1}>
-                          {primaryVerifier.name}
+                          {verifiers[0].name}
                         </Text>
                       </Group>
+                    ) : verifiers.length > 1 ? (
+                      <Tooltip.Group openDelay={300} closeDelay={100}>
+                        <Avatar.Group spacing={8}>
+                          {verifiers
+                            .slice(0, MAX_VISIBLE_VERIFIERS)
+                            .map((verifier) => (
+                              <Tooltip
+                                key={verifier.id}
+                                label={verifier.name}
+                                withArrow
+                              >
+                                <CustomAvatar
+                                  size="sm"
+                                  avatarUrl={verifier.avatarUrl}
+                                  name={verifier.name}
+                                />
+                              </Tooltip>
+                            ))}
+                          {verifiers.length > MAX_VISIBLE_VERIFIERS && (
+                            <Tooltip
+                              withArrow
+                              label={verifiers
+                                .slice(MAX_VISIBLE_VERIFIERS)
+                                .map((v) => (
+                                  <div key={v.id}>{v.name}</div>
+                                ))}
+                            >
+                              <Avatar size="sm" color="gray">
+                                +{verifiers.length - MAX_VISIBLE_VERIFIERS}
+                              </Avatar>
+                            </Tooltip>
+                          )}
+                        </Avatar.Group>
+                      </Tooltip.Group>
                     ) : (
-                      <Text fz="sm" c="dimmed">—</Text>
+                      <Text fz="sm" c="dimmed">
+                        —
+                      </Text>
                     )}
                   </Table.Td>
 

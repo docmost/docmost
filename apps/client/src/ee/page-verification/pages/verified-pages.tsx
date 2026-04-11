@@ -12,11 +12,9 @@ import { useVerificationListQuery } from "@/ee/page-verification/queries/page-ve
 import { IVerificationListParams } from "@/ee/page-verification/types/page-verification.types";
 import VerificationListTable from "@/ee/page-verification/components/verification-list-table";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
-import useUserRole from "@/hooks/use-user-role";
 
 export default function VerifiedPages() {
   const { t } = useTranslation();
-  const { isAdmin } = useUserRole();
   const { cursor, goNext, goPrev, resetCursor } = useCursorPaginate();
 
   const [searchValue, setSearchValue] = useState("");
@@ -53,10 +51,6 @@ export default function VerifiedPages() {
 
   const { data, isLoading } = useVerificationListQuery(params);
 
-  if (!isAdmin) {
-    return null;
-  }
-
   const handleSpaceChange = (value: string[]) => {
     setSpaceFilter(value);
     resetCursor();
@@ -84,7 +78,7 @@ export default function VerifiedPages() {
 
       <Group mb="md" gap="sm">
         <TextInput
-          placeholder={t("Search pages...")}
+          placeholder={t("Search by title")}
           leftSection={<IconSearch size={16} />}
           value={searchValue}
           onChange={handleSearchChange}
@@ -92,6 +86,7 @@ export default function VerifiedPages() {
           w={220}
         />
 
+        {/*
         <MultiSelect
           placeholder={t("Filter by space")}
           data={spaceOptions}
@@ -112,6 +107,7 @@ export default function VerifiedPages() {
           w={160}
           size="sm"
         />
+        */}
       </Group>
 
       <VerificationListTable items={data?.items} isLoading={isLoading} />

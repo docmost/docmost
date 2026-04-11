@@ -15,9 +15,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('space_id', 'uuid', (col) =>
       col.notNull().references('spaces.id').onDelete('cascade'),
     )
-    .addColumn('type', 'varchar', (col) =>
-      col.notNull().defaultTo('expiring'),
-    )
+    .addColumn('type', 'varchar', (col) => col.notNull().defaultTo('expiring'))
     .addColumn('status', 'varchar')
     .addColumn('mode', 'varchar')
     .addColumn('period_amount', 'integer')
@@ -27,7 +25,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.references('users.id').onDelete('set null'),
     )
     .addColumn('expires_at', 'timestamptz')
-    .addColumn('notified_at', 'timestamptz')
     .addColumn('requested_at', 'timestamptz')
     .addColumn('requested_by_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
@@ -55,17 +52,12 @@ export async function up(db: Kysely<any>): Promise<void> {
       col.primaryKey().defaultTo(sql`gen_uuid_v7()`),
     )
     .addColumn('page_verification_id', 'uuid', (col) =>
-      col
-        .notNull()
-        .references('page_verifications.id')
-        .onDelete('cascade'),
+      col.notNull().references('page_verifications.id').onDelete('cascade'),
     )
     .addColumn('user_id', 'uuid', (col) =>
       col.notNull().references('users.id').onDelete('cascade'),
     )
-    .addColumn('is_primary', 'boolean', (col) =>
-      col.notNull().defaultTo(false),
-    )
+    .addColumn('is_primary', 'boolean', (col) => col.notNull().defaultTo(false))
     .addColumn('added_by_id', 'uuid', (col) =>
       col.references('users.id').onDelete('set null'),
     )
@@ -80,12 +72,29 @@ export async function up(db: Kysely<any>): Promise<void> {
 
   await db.schema
     .createIndex('idx_page_verifications_expires_at')
+    .ifNotExists()
     .on('page_verifications')
     .column('expires_at')
+    .where('expires_at', 'is not', null)
+    .execute();
+
+  await db.schema
+    .createIndex('idx_page_verifications_workspace_id_id')
+    .ifNotExists()
+    .on('page_verifications')
+    .columns(['workspace_id', 'id desc'])
+    .execute();
+
+  await db.schema
+    .createIndex('idx_page_verifications_space_id')
+    .ifNotExists()
+    .on('page_verifications')
+    .column('space_id')
     .execute();
 
   await db.schema
     .createIndex('idx_page_verifiers_user_id')
+    .ifNotExists()
     .on('page_verifiers')
     .column('user_id')
     .execute();

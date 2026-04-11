@@ -8,6 +8,7 @@ import { WsGateway } from '../../ws/ws.gateway';
 import { MailService } from '../../integrations/mail/mail.service';
 import { NotificationTab, NotificationType, NotificationTypeToSettingKey } from './notification.constants';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 
 @Injectable()
 export class NotificationService {
@@ -16,10 +17,107 @@ export class NotificationService {
   constructor(
     private readonly notificationRepo: NotificationRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly wsGateway: WsGateway,
     private readonly mailService: MailService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
+
+  /**
+   * Returns the subset of `ids` pointing to notifications the user can
+   * currently see. Enforces the same dual gate as `findByUserId`:
+   *   1. `spaceId IS NULL` or user is a current member of `spaceId`.
+   *   2. `pageId IS NULL` or user has page-level access to `pageId`.
+   *
+   * Returning an empty array when `ids` is empty is a shortcut callers use to
+   * make the mark/count paths no-ops.
+   */
+  private async filterAccessibleNotificationIds(
+    ids: string[],
+    userId: string,
+  ): Promise<string[]> {
+    if (ids.length === 0) return [];
+
+    const rows = await this.db
+      .selectFrom('notifications')
+      .select(['id', 'pageId'])
+      .where('id', 'in', ids)
+      .where('userId', '=', userId)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
+        ]),
+      )
+      .execute();
+
+    if (rows.length === 0) return [];
+
+    const pageIds = rows
+      .map((r) => r.pageId)
+      .filter((p): p is string => !!p);
+
+    if (pageIds.length === 0) {
+      return rows.map((r) => r.id);
+    }
+
+    const accessiblePageIds =
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds,
+        userId,
+      });
+    const accessibleSet = new Set(accessiblePageIds);
+
+    return rows
+      .filter((r) => !r.pageId || accessibleSet.has(r.pageId))
+      .map((r) => r.id);
+  }
+
+  private async listUnreadAccessibleNotificationIds(
+    userId: string,
+  ): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom('notifications')
+      .select(['id', 'pageId'])
+      .where('userId', '=', userId)
+      .where('readAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('spaceId', 'is', null),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
+        ]),
+      )
+      .execute();
+
+    if (rows.length === 0) return [];
+
+    const pageIds = rows
+      .map((r) => r.pageId)
+      .filter((p): p is string => !!p);
+
+    if (pageIds.length === 0) {
+      return rows.map((r) => r.id);
+    }
+
+    const accessiblePageIds =
+      await this.pagePermissionRepo.filterAccessiblePageIds({
+        pageIds,
+        userId,
+      });
+    const accessibleSet = new Set(accessiblePageIds);
+
+    return rows
+      .filter((r) => !r.pageId || accessibleSet.has(r.pageId))
+      .map((r) => r.id);
+  }
 
   async create(data: InsertableNotification) {
     const user = await this.db
@@ -73,19 +171,34 @@ export class NotificationService {
   }
 
   async getUnreadCount(userId: string) {
-    return this.notificationRepo.getUnreadCount(userId);
+    const accessibleIds =
+      await this.listUnreadAccessibleNotificationIds(userId);
+    return accessibleIds.length;
   }
 
   async markAsRead(notificationId: string, userId: string) {
-    return this.notificationRepo.markAsRead(notificationId, userId);
+    const accessibleIds = await this.filterAccessibleNotificationIds(
+      [notificationId],
+      userId,
+    );
+    if (accessibleIds.length === 0) return;
+    return this.notificationRepo.markAsRead(accessibleIds[0], userId);
   }
 
   async markMultipleAsRead(notificationIds: string[], userId: string) {
-    return this.notificationRepo.markMultipleAsRead(notificationIds, userId);
+    const accessibleIds = await this.filterAccessibleNotificationIds(
+      notificationIds,
+      userId,
+    );
+    if (accessibleIds.length === 0) return;
+    return this.notificationRepo.markMultipleAsRead(accessibleIds, userId);
   }
 
   async markAllAsRead(userId: string) {
-    return this.notificationRepo.markAllAsRead(userId);
+    const accessibleIds =
+      await this.listUnreadAccessibleNotificationIds(userId);
+    if (accessibleIds.length === 0) return;
+    return this.notificationRepo.markMultipleAsRead(accessibleIds, userId);
   }
 
   async queueEmail(

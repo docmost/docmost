@@ -236,7 +236,10 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           </Menu.Item>
 
           {!readOnly && (
-            <PageVerificationMenuItem onClick={openVerificationModal} />
+            <PageVerificationMenuItem
+              pageId={page?.id}
+              onClick={openVerificationModal}
+            />
           )}
 
           <Menu.Divider />
