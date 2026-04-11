@@ -7,6 +7,23 @@
   overflow: hidden;
 }
 
+.caption {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 2px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.caption::placeholder {
+  color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}
+
 .skeleton {
   animation: pulse 1.2s ease-in-out infinite;
 
