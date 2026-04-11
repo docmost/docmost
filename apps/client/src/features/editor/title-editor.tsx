@@ -247,6 +247,7 @@ export function TitleEditor({
     <div className="page-title">
       <EditorContent
         editor={titleEditor}
+        translate="yes"
         onKeyDown={(event) => {
           // First handle the search hotkey
           getHotkeyHandler([["mod+F", openSearchDialog]])(event);
