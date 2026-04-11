@@ -1,6 +1,6 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
@@ -10,9 +10,11 @@ import {
   ActionIcon,
   Button,
   Group,
+  Text,
   Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { useDisclosure } from "@mantine/hooks";
 import clsx from "clsx";
 import {
@@ -52,6 +54,12 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   });
   const [excalidrawData, setExcalidrawData] = useState<any>(null);
   const computedColorScheme = useComputedColorScheme();
+  const isDirtyRef = useRef(false);
+  const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const isInitialLoadRef = useRef(true);
+  const lastFingerprintRef = useRef("");
 
   const editorState = useEditorState({
     editor,
@@ -147,6 +155,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const handleOpen = useCallback(async () => {
     if (!editorState?.src) return;
 
+    setIsLoading(true);
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -160,57 +169,112 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     } catch (err) {
       console.error(err);
     } finally {
+      setIsLoading(false);
+      isDirtyRef.current = false;
+      isInitialLoadRef.current = true;
       open();
     }
   }, [editorState?.src, open]);
 
-  const handleSave = useCallback(async () => {
-    if (!excalidrawAPI) {
+  const saveData = useCallback(async () => {
+    if (!excalidrawAPI || isSavingRef.current) {
       return;
     }
 
-    const { exportToSvg } = await import("@excalidraw/excalidraw");
+    isSavingRef.current = true;
+    setIsSaving(true);
 
-    const svg = await exportToSvg({
-      elements: excalidrawAPI?.getSceneElements(),
-      appState: {
-        exportEmbedScene: true,
-        exportWithDarkMode: false,
-      },
-      files: excalidrawAPI?.getFiles(),
-    });
+    try {
+      const { exportToSvg } = await import("@excalidraw/excalidraw");
 
-    const serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(svg);
+      const svg = await exportToSvg({
+        elements: excalidrawAPI?.getSceneElements(),
+        appState: {
+          exportEmbedScene: true,
+          exportWithDarkMode: false,
+        },
+        files: excalidrawAPI?.getFiles(),
+      });
 
-    svgString = svgString.replace(
-      /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
-      "https://unpkg.com/@excalidraw/excalidraw@latest",
-    );
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(svg);
 
-    const fileName = "diagram.excalidraw.svg";
-    const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
+      svgString = svgString.replace(
+        /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
+        "https://unpkg.com/@excalidraw/excalidraw@latest",
+      );
 
-    // @ts-ignore
-    const pageId = editor.storage?.pageId;
-    const attachmentId = editorState?.attachmentId;
+      const fileName = "diagram.excalidraw.svg";
+      const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
 
-    let attachment: IAttachment = null;
-    if (attachmentId) {
-      attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
-    } else {
-      attachment = await uploadFile(excalidrawSvgFile, pageId);
+      // @ts-ignore
+      const pageId = editor.storage?.pageId;
+      const attachmentId = editorState?.attachmentId;
+
+      let attachment: IAttachment = null;
+      if (attachmentId) {
+        attachment = await uploadFile(excalidrawSvgFile, pageId, attachmentId);
+      } else {
+        attachment = await uploadFile(excalidrawSvgFile, pageId);
+      }
+
+      editor.commands.updateAttributes("excalidraw", {
+        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+        title: attachment.fileName,
+        size: attachment.fileSize,
+        attachmentId: attachment.id,
+      });
+
+      isDirtyRef.current = false;
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [editor, excalidrawAPI, editorState?.attachmentId]);
+
+  const handleSaveAndExit = useCallback(async () => {
+    try {
+      await saveData();
+      close();
+    } catch {
+      // save failed, modal stays open
+    }
+  }, [saveData, close]);
+
+  const handleClose = useCallback(() => {
+    if (!isDirtyRef.current) {
+      close();
+      return;
     }
 
-    editor.commands.updateAttributes("excalidraw", {
-      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-      title: attachment.fileName,
-      size: attachment.fileSize,
-      attachmentId: attachment.id,
+    modals.openConfirmModal({
+      title: t("Unsaved changes"),
+      children: (
+        <Text size="sm">
+          {t("You have unsaved changes that will be lost.")}
+        </Text>
+      ),
+      centered: true,
+      labels: { confirm: t("Discard"), cancel: t("Cancel") },
+      confirmProps: { color: "red" },
+      onConfirm: () => {
+        isDirtyRef.current = false;
+        close();
+      },
     });
+  }, [close, t]);
 
-    close();
-  }, [editor, excalidrawAPI, editorState?.attachmentId, close]);
+  useEffect(() => {
+    if (!opened) return;
+
+    const interval = setInterval(() => {
+      if (isDirtyRef.current && !isSavingRef.current) {
+        saveData().catch(() => {});
+      }
+    }, 60_000);
+
+    return () => clearInterval(interval);
+  }, [opened, saveData]);
 
   return (
     <>
@@ -281,6 +345,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
               size="lg"
               aria-label={t("Edit")}
               variant="subtle"
+              loading={isLoading}
             >
               <IconEdit size={18} />
             </ActionIcon>
@@ -317,7 +382,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           zIndex: 200,
         }}
         isOpen={opened}
-        onRequestClose={close}
+        onRequestClose={handleClose}
         disableCloseOnBgClick={true}
         contentProps={{
           style: {
@@ -332,10 +397,10 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           bg="var(--mantine-color-body)"
           p="xs"
         >
-          <Button onClick={handleSave} size={"compact-sm"}>
+          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
             {t("Save & Exit")}
           </Button>
-          <Button onClick={close} color="red" size={"compact-sm"}>
+          <Button onClick={handleClose} color="red" size={"compact-sm"}>
             {t("Exit")}
           </Button>
         </Group>
@@ -343,6 +408,18 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           <Suspense fallback={null}>
             <ExcalidrawComponent
               excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              onChange={(elements, _appState, files) => {
+                const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
+                if (isInitialLoadRef.current) {
+                  lastFingerprintRef.current = fingerprint;
+                  isInitialLoadRef.current = false;
+                  return;
+                }
+                if (fingerprint !== lastFingerprintRef.current) {
+                  lastFingerprintRef.current = fingerprint;
+                  isDirtyRef.current = true;
+                }
+              }}
               initialData={{
                 ...excalidrawData,
                 scrollToContent: true,

@@ -20,7 +20,6 @@ export interface IWorkspace {
   emailDomains: string[];
   memberCount?: number;
   plan?: string;
-  hasLicenseKey?: boolean;
   enforceMfa?: boolean;
   aiSearch?: boolean;
   generativeAi?: boolean;
@@ -44,6 +43,7 @@ export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
   mcp?: boolean;
+  chat?: boolean;
 }
 
 export interface IWorkspaceSharingSettings {
@@ -84,7 +84,6 @@ export interface IPublicWorkspace {
   hostname: string;
   enforceSso: boolean;
   authProviders: IAuthProvider[];
-  hasLicenseKey?: boolean;
 }
 
 export interface IVersion {

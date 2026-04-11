@@ -16,7 +16,8 @@ import { useParams } from "react-router-dom";
 import { extractPageSlugId } from "@/lib";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { usePageVerificationInfoQuery } from "@/ee/page-verification/queries/page-verification-query";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
 import { SetupVerificationForm } from "./setup-verification-form";
 import { ManageVerificationForm } from "./manage-verification-form";
 import { getStatusColor, getStatusLabel } from "./verification-status";
@@ -82,7 +83,7 @@ export function PageVerificationBadge({
   const { t } = useTranslation();
   const { pageSlug } = useParams();
   const pageSlugId = extractPageSlugId(pageSlug);
-  const isCloudEE = useIsCloudEE();
+  const isCloudEE = useHasFeature(Feature.PAGE_VERIFICATION);
   const [opened, { open, close }] = useDisclosure(false);
 
   const { data: page } = usePageQuery({ pageId: pageSlugId });
@@ -143,7 +144,7 @@ export function PageVerificationMenuItem({
   onClick,
 }: PageVerificationMenuItemProps) {
   const { t } = useTranslation();
-  const isCloudEE = useIsCloudEE();
+  const isCloudEE = useHasFeature(Feature.PAGE_VERIFICATION);
 
   if (!isCloudEE) return null;
 

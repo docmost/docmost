@@ -11,6 +11,7 @@ export type JwtPayload = {
   email: string;
   workspaceId: string;
   type: 'access';
+  sessionId?: string;
 };
 
 export type JwtCollabPayload = {

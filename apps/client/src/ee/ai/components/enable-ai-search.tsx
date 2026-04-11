@@ -1,12 +1,13 @@
-import { Group, Text, Switch, MantineSize, Title } from "@mantine/core";
+import { Group, Text, Switch, MantineSize, Tooltip } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import { isCloud } from "@/lib/config.ts";
-import useLicense from "@/ee/hooks/use-license.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 export default function EnableAiSearch() {
   const { t } = useTranslation();
@@ -37,9 +38,8 @@ export function AiSearchToggle({ size, label }: AiSearchToggleProps) {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [checked, setChecked] = useState(workspace?.settings?.ai?.search);
-  const { hasLicenseKey } = useLicense();
-
-  const hasAccess = isCloud() || (!isCloud() && hasLicenseKey);
+  const hasAccess = useHasFeature(Feature.AI);
+  const upgradeLabel = useUpgradeLabel();
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.checked;
@@ -56,14 +56,16 @@ export function AiSearchToggle({ size, label }: AiSearchToggleProps) {
   };
 
   return (
-    <Switch
-      size={size}
-      label={label}
-      labelPosition="left"
-      defaultChecked={checked}
-      onChange={handleChange}
-      disabled={!hasAccess}
-      aria-label={t("Toggle AI search")}
-    />
+    <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+      <Switch
+        size={size}
+        label={label}
+        labelPosition="left"
+        defaultChecked={checked}
+        onChange={handleChange}
+        disabled={!hasAccess}
+        aria-label={t("Toggle AI search")}
+      />
+    </Tooltip>
   );
 }

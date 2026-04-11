@@ -12,8 +12,8 @@ import {
 } from "@tabler/icons-react";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { INotification } from "../types/notification.types";
-import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMarkReadMutation } from "../queries/notification-query";
 import { buildPageUrl } from "@/features/page/page.utils";
@@ -30,67 +30,76 @@ export function NotificationItem({
   onNavigate,
 }: NotificationItemProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const markRead = useMarkReadMutation();
   const [hovered, setHovered] = useState(false);
 
   const isUnread = !notification.readAt;
 
-  const getNotificationMessage = (): string => {
+  const getNotificationMessageKey = (): string => {
     switch (notification.type) {
       case "comment.user_mention":
-        return t("mentioned you in a comment");
+        return "<bold>{{name}}</bold> mentioned you in a comment";
       case "comment.created":
-        return t("commented on a page");
+        return "<bold>{{name}}</bold> commented on a page";
       case "comment.resolved":
-        return t("resolved a comment");
+        return "<bold>{{name}}</bold> resolved a comment";
       case "page.user_mention":
-        return t("mentioned you on a page");
+        return "<bold>{{name}}</bold> mentioned you on a page";
       case "page.permission_granted":
         return notification.data?.role === "writer"
-          ? t("gave you edit access to a page")
-          : t("gave you view access to a page");
-      case "page.verification_expiring":
-        return t("Page verification expires soon");
-      case "page.verification_expired":
-        return t("Page verification has expired");
+          ? "<bold>{{name}}</bold> gave you edit access to a page"
+          : "<bold>{{name}}</bold> gave you view access to a page";
+      case "page.updated":
+        return "<bold>{{name}}</bold> updated a page";
       case "page.verified":
-        return t("verified a page");
+        return "<bold>{{name}}</bold> verified a page";
       case "page.approval_requested":
-        return t("submitted a page for your approval");
+        return "<bold>{{name}}</bold> submitted a page for your approval";
       case "page.approval_rejected":
-        return t("returned a page for revision");
+        return "<bold>{{name}}</bold> returned a page for revision";
+      case "page.verification_expiring":
+        return "Page verification expires soon";
+      case "page.verification_expired":
+        return "Page verification has expired";
       default:
         return "";
     }
   };
 
-  const handleClick = () => {
-    if (notification.page && notification.space) {
-      if (isUnread) {
-        markRead.mutate([notification.id]);
-      }
-      navigate(
-        buildPageUrl(
+  const pageUrl =
+    notification.page && notification.space
+      ? buildPageUrl(
           notification.space.slug,
           notification.page.slugId,
           notification.page.title,
-        ),
-      );
-      onNavigate();
-    }
-  };
+        )
+      : undefined;
 
-  const handleMarkRead = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const markReadIfNeeded = () => {
     if (isUnread) {
       markRead.mutate([notification.id]);
     }
   };
 
+  const handleClick = () => {
+    markReadIfNeeded();
+    onNavigate();
+  };
+
+  const handleMarkRead = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    markReadIfNeeded();
+  };
+
   return (
     <UnstyledButton
+      component={Link}
+      to={pageUrl ?? ""}
       onClick={handleClick}
+      // auxclick fires for all non-primary buttons; guard to middle-click only (button 1)
+      // so that right-click (button 2, context menu) does not mark as read
+      onAuxClick={(e: React.MouseEvent) => e.button === 1 && markReadIfNeeded()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       w="100%"
@@ -105,14 +114,11 @@ export function NotificationItem({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text size="sm" lineClamp={2}>
-            {notification.actor?.name ? (
-              <>
-                <Text span fw={600}>
-                  {notification.actor.name}
-                </Text>{" "}
-              </>
-            ) : null}
-            {getNotificationMessage()}
+            <Trans
+              i18nKey={getNotificationMessageKey()}
+              values={{ name: notification.actor?.name }}
+              components={{ bold: <Text span fw={600} /> }}
+            />
           </Text>
 
           {notification.page && (

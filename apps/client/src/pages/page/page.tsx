@@ -53,6 +53,9 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
   const canEdit = page?.permissions?.canEdit ?? false;
+  const canComment =
+    canEdit ||
+    (space?.settings?.comments?.allowViewerComments === true);
 
   if (isLoading) {
     return <></>;
@@ -106,6 +109,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           editable={canEdit}
           creator={page.creator}
           contributors={page.contributors}
+          canComment={canComment}
         />
         <MemoizedHistoryModal pageId={page.id} />
       </div>

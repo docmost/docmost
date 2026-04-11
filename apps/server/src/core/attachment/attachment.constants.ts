@@ -3,6 +3,7 @@ export enum AttachmentType {
   WorkspaceIcon = 'workspace-icon',
   SpaceIcon = 'space-icon',
   File = 'file',
+  Chat = 'chat',
 }
 
 export const validImageExtensions = ['.jpg', '.png', '.jpeg'];
@@ -15,4 +16,9 @@ export const inlineFileExtensions = [
   '.pdf',
   '.mp4',
   '.mov',
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.m4a',
+  '.webm',
 ];

@@ -10,6 +10,7 @@ import {
   ICommentNotificationJob,
   ICommentResolvedNotificationJob,
   IPageMentionNotificationJob,
+  IPageUpdateNotificationJob,
   IPageVerifiedNotificationJob,
   IPermissionGrantedNotificationJob,
   IVerificationExpiringNotificationJob,
@@ -42,6 +43,7 @@ export class NotificationProcessor
       | ICommentNotificationJob
       | ICommentResolvedNotificationJob
       | IPageMentionNotificationJob
+      | IPageUpdateNotificationJob
       | IPermissionGrantedNotificationJob
       | IVerificationExpiringNotificationJob
       | IVerificationExpiredNotificationJob
@@ -85,6 +87,20 @@ export class NotificationProcessor
             job.data as IPermissionGrantedNotificationJob,
             appUrl,
           );
+          break;
+        }
+
+        case QueueJob.PAGE_UPDATED: {
+          await this.pageNotificationService.processPageUpdate(
+            job.data as IPageUpdateNotificationJob,
+            appUrl,
+          );
+          break;
+        }
+
+        case QueueJob.PAGE_UPDATE_DIGEST: {
+          const { userId } = job.data as unknown as { userId: string };
+          await this.pageNotificationService.processDigest(userId, appUrl);
           break;
         }
 

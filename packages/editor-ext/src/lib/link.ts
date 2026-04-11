@@ -6,6 +6,19 @@ import { EditorView } from "@tiptap/pm/view";
 export const LinkExtension = TiptapLink.extend({
   inclusive: false,
 
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      internal: {
+        default: false,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute('data-internal') === 'true',
+        renderHTML: (attributes) =>
+          attributes.internal ? { 'data-internal': 'true' } : {},
+      },
+    };
+  },
+
   parseHTML() {
     return [
       {

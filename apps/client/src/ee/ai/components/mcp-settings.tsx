@@ -13,10 +13,12 @@ import {
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { updateWorkspace } from "@/features/workspace/services/workspace-service.ts";
 import { notifications } from "@mantine/notifications";
-import { useIsCloudEE } from "@/hooks/use-is-cloud-ee.tsx";
+import { useHasFeature } from "@/ee/hooks/use-feature";
+import { Feature } from "@/ee/features";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { getAppUrl } from "@/lib/config.ts";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
 import { CopyButton } from "@/components/common/copy-button.tsx";
@@ -25,7 +27,8 @@ export default function McpSettings() {
   const { t } = useTranslation();
   const [workspace, setWorkspace] = useAtom(workspaceAtom);
   const [checked, setChecked] = useState(workspace?.settings?.ai?.mcp);
-  const hasAccess = useIsCloudEE();
+  const hasAccess = useHasFeature(Feature.MCP);
+  const upgradeLabel = useUpgradeLabel();
 
   const mcpUrl = `${getAppUrl()}/mcp`;
 
@@ -46,11 +49,7 @@ export default function McpSettings() {
   return (
     <Stack gap="lg">
       {!hasAccess && (
-        <Alert
-          icon={<IconInfoCircle />}
-          title={t("Enterprise feature")}
-          color="blue"
-        >
+        <Alert icon={<IconInfoCircle />} title={upgradeLabel} color="blue">
           {t(
             "MCP is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
           )}
@@ -64,23 +63,22 @@ export default function McpSettings() {
             {t(
               "Enable the MCP server to allow AI assistants and tools to interact with your workspace content.",
             )}{" "}
-            {t("View the")}{" "}
-            <Anchor
-              href="https://docmost.com/docs/user-guide/mcp"
-              target="_blank"
-              size="sm"
-            >
-              {t("MCP documentation")}
-            </Anchor>
-            .
+            <Trans
+              i18nKey="View the <anchor>MCP documentation</anchor>."
+              components={{
+                anchor: <Anchor href="https://docmost.com/docs/user-guide/mcp" target="_blank" size="sm" />,
+              }}
+            />
           </Text>
         </div>
 
-        <Switch
-          defaultChecked={checked}
-          onChange={handleChange}
-          disabled={!hasAccess}
-        />
+        <Tooltip label={upgradeLabel} disabled={hasAccess} refProp="rootRef">
+          <Switch
+            defaultChecked={checked}
+            onChange={handleChange}
+            disabled={!hasAccess}
+          />
+        </Tooltip>
       </Group>
 
       {checked && (
@@ -89,11 +87,7 @@ export default function McpSettings() {
             {t("MCP Server URL")}
           </Text>
           <Group gap="xs">
-            <TextInput
-              value={mcpUrl}
-              readOnly
-              style={{ flex: 1 }}
-            />
+            <TextInput value={mcpUrl} readOnly style={{ flex: 1 }} />
             <CopyButton value={mcpUrl} timeout={2000}>
               {({ copied, copy }) => (
                 <Tooltip
@@ -123,12 +117,36 @@ export default function McpSettings() {
               {t("Supported tools")}
             </Text>
             <List size="sm" spacing={2}>
-              <List.Item><Text size="sm" c="dimmed" span>search_pages, get_page, create_page, update_page</Text></List.Item>
-              <List.Item><Text size="sm" c="dimmed" span>list_pages, list_child_pages, duplicate_page</Text></List.Item>
-              <List.Item><Text size="sm" c="dimmed" span>copy_page_to_space, move_page, move_page_to_space</Text></List.Item>
-              <List.Item><Text size="sm" c="dimmed" span>get_space, list_spaces, create_space, update_space</Text></List.Item>
-              <List.Item><Text size="sm" c="dimmed" span>get_comments, create_comment, update_comment</Text></List.Item>
-              <List.Item><Text size="sm" c="dimmed" span>search_attachments, list_workspace_members, get_current_user</Text></List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  search_pages, get_page, create_page, update_page
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  list_pages, list_child_pages, duplicate_page
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  copy_page_to_space, move_page, move_page_to_space
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  get_space, list_spaces, create_space, update_space
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  get_comments, create_comment, update_comment
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
+                  search_attachments, list_workspace_members, get_current_user
+                </Text>
+              </List.Item>
             </List>
           </div>
         </div>

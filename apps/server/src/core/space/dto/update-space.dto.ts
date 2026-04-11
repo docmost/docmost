@@ -11,4 +11,8 @@ export class UpdateSpaceDto extends PartialType(CreateSpaceDto) {
   @IsOptional()
   @IsBoolean()
   disablePublicSharing: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowViewerComments: boolean;
 }

@@ -1,5 +1,7 @@
 import { Insertable, Selectable, Updateable } from 'kysely';
 import {
+  AiChats,
+  AiChatMessages,
   Attachments,
   Comments,
   Groups,
@@ -24,11 +26,27 @@ import {
   Shares,
   FileTasks,
   UserMfa as _UserMFA,
+  UserSessions,
   ApiKeys,
   Watchers,
   Audit as _Audit,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
+
+// AI Chat
+export type AiChat = Selectable<AiChats>;
+export type InsertableAiChat = Insertable<AiChats>;
+export type UpdatableAiChat = Updateable<Omit<AiChats, 'id'>>;
+
+// AI Chat Message
+// `tsv` is an internal tsvector column maintained by a trigger for
+// full-text search. It is omitted from the public type so it never leaks
+// into HTTP responses or the chat history fed to the language model.
+export type AiChatMessage = Omit<Selectable<AiChatMessages>, 'tsv'>;
+export type InsertableAiChatMessage = Omit<
+  Insertable<AiChatMessages>,
+  'tsv'
+>;
 
 // Workspace
 export type Workspace = Selectable<Workspaces>;
@@ -167,6 +185,11 @@ export type UpdatablePageVerification = Updateable<Omit<_PageVerifications, 'id'
 // Page Verifier
 export type PageVerifier = Selectable<_PageVerifiers>;
 export type InsertablePageVerifier = Insertable<_PageVerifiers>;
+
+// User Session
+export type UserSession = Selectable<UserSessions>;
+export type InsertableUserSession = Insertable<UserSessions>;
+export type UpdatableUserSession = Updateable<Omit<UserSessions, 'id'>>;
 
 // Audit
 export type Audit = Selectable<_Audit>;

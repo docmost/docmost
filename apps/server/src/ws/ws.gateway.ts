@@ -65,12 +65,10 @@ export class WsGateway
   async handleMessage(client: Socket, data: any): Promise<void> {
     if (this.wsService.isTreeEvent(data)) {
       await this.wsService.handleTreeEvent(client, data);
-      return;
     }
-
-    client.broadcast.emit('message', data);
   }
 
+  /*
   @SubscribeMessage('join-room')
   handleJoinRoom(client: Socket, @MessageBody() roomName: string): void {
     // if room is a space, check if user has permissions
@@ -81,6 +79,7 @@ export class WsGateway
   handleLeaveRoom(client: Socket, @MessageBody() roomName: string): void {
     client.leave(roomName);
   }
+ */
 
   onModuleDestroy() {
     if (this.server) {

@@ -4,6 +4,7 @@ export type NotificationType =
   | "comment.resolved"
   | "page.user_mention"
   | "page.permission_granted"
+  | "page.updated"
   | "page.verification_expiring"
   | "page.verification_expired"
   | "page.verified"
@@ -43,3 +44,5 @@ export type INotification = {
 };
 
 export type NotificationFilter = "all" | "unread";
+
+export type NotificationTab = "direct" | "updates" | "all";

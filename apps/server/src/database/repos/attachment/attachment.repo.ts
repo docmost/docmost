@@ -7,6 +7,7 @@ import {
   InsertableAttachment,
   UpdatableAttachment,
 } from '@docmost/db/types/entity.types';
+import { AttachmentType } from '../../../core/attachment/attachment.constants';
 
 @Injectable()
 export class AttachmentRepo {
@@ -23,6 +24,7 @@ export class AttachmentRepo {
     'creatorId',
     'pageId',
     'spaceId',
+    'aiChatId',
     'workspaceId',
     'createdAt',
     'updatedAt',
@@ -40,6 +42,21 @@ export class AttachmentRepo {
     return db
       .selectFrom('attachments')
       .select(this.baseFields)
+      .where('id', '=', attachmentId)
+      .executeTakeFirst();
+  }
+
+  async findByIdWithContent(
+    attachmentId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .select([...this.baseFields, 'textContent'])
       .where('id', '=', attachmentId)
       .executeTakeFirst();
   }
@@ -72,6 +89,21 @@ export class AttachmentRepo {
       .execute();
   }
 
+  async findByAiChatId(
+    aiChatId: string,
+    opts?: {
+      trx?: KyselyTransaction;
+    },
+  ): Promise<Attachment[]> {
+    const db = dbOrTx(this.db, opts?.trx);
+
+    return db
+      .selectFrom('attachments')
+      .select(this.baseFields)
+      .where('aiChatId', '=', aiChatId)
+      .execute();
+  }
+
   updateAttachmentsByPageId(
     updatableAttachment: UpdatableAttachment,
     pageIds: string[],
@@ -95,6 +127,25 @@ export class AttachmentRepo {
       .where('id', '=', attachmentId)
       .returning(this.baseFields)
       .executeTakeFirst();
+  }
+
+  async claimAttachmentsForChat(
+    attachmentIds: string[],
+    aiChatId: string,
+    creatorId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    if (attachmentIds.length === 0) return;
+
+    await this.db
+      .updateTable('attachments')
+      .set({ aiChatId })
+      .where('id', 'in', attachmentIds)
+      .where('creatorId', '=', creatorId)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', AttachmentType.Chat)
+      .where('aiChatId', 'is', null)
+      .execute();
   }
 
   async deleteAttachmentById(attachmentId: string): Promise<void> {

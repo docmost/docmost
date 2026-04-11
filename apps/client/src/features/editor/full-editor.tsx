@@ -36,6 +36,7 @@ export interface FullEditorProps {
   editable: boolean;
   creator?: PageCreator;
   contributors?: IContributor[];
+  canComment?: boolean;
 }
 
 export function FullEditor({
@@ -47,6 +48,7 @@ export function FullEditor({
   editable,
   creator,
   contributors,
+  canComment,
 }: FullEditorProps) {
   const [user] = useAtom(userAtom);
   const fullPageWidth = user.settings?.preferences?.fullPageWidth;
@@ -73,6 +75,7 @@ export function FullEditor({
         pageId={pageId}
         editable={editable}
         content={content}
+        canComment={canComment}
       />
     </Container>
   );

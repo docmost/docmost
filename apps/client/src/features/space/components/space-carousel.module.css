@@ -1,0 +1,22 @@
+.card {
+  background-color: var(--mantine-color-body);
+  width: 220px;
+
+  @mixin hover {
+    box-shadow: var(--mantine-shadow-xs);
+    transform: scale(1.02);
+  }
+}
+
+.cardSection {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.title {
+  font-family:
+          Greycliff CF,
+          var(--mantine-font-family);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
