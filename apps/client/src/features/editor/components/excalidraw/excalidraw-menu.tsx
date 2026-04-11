@@ -1,33 +1,42 @@
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Node as PMNode } from "@tiptap/pm/model";
+import {
+  EditorMenuProps,
+  ShouldShowProps,
+} from "@/features/editor/components/table/types/types.ts";
 import {
   ActionIcon,
   Button,
-  Card,
   Group,
   Text,
+  Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { useDisclosure } from "@mantine/hooks";
+import clsx from "clsx";
 import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+  IconLayoutAlignCenter,
+  IconLayoutAlignLeft,
+  IconLayoutAlignRight,
+  IconDownload,
+  IconEdit,
+  IconTrash,
+  IconX,
+} from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import { getFileUrl } from "@/lib/config.ts";
 import { uploadFile } from "@/features/page/services/page-service.ts";
 import { svgStringToFile } from "@/lib";
-import { useDisclosure } from "@mantine/hooks";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
-import clsx from "clsx";
-import { IconEdit, IconX } from "@tabler/icons-react";
-import { useTranslation } from "react-i18next";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
-import { modals } from "@mantine/modals";
+import classes from "../common/toolbar-menu.module.css";
 
 const ExcalidrawComponent = lazy(() =>
   import("@excalidraw/excalidraw").then((module) => ({
@@ -35,11 +44,9 @@ const ExcalidrawComponent = lazy(() =>
   })),
 );
 
-export default function ExcalidrawView(props: NodeViewProps) {
+export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
-  const { node, updateAttributes, editor, selected } = props;
-  const { attachmentId } = node.attrs;
-
+  const [opened, { open, close }] = useDisclosure(false);
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI>(null);
   useHandleLibrary({
@@ -47,54 +54,131 @@ export default function ExcalidrawView(props: NodeViewProps) {
     adapter: localStorageLibraryAdapter,
   });
   const [excalidrawData, setExcalidrawData] = useState<any>(null);
-  const [opened, { open, close }] = useDisclosure(false);
   const computedColorScheme = useComputedColorScheme();
-
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
   const isInitialLoadRef = useRef(true);
   const lastFingerprintRef = useRef("");
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (opened) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [opened]);
-
-  const handleOpen = async () => {
-    if (!editor.isEditable) return;
-
-    if (node.attrs.src) {
-      try {
-        const request = await fetch(node.attrs.src, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        const { loadFromBlob } = await import("@excalidraw/excalidraw");
-        const data = await loadFromBlob(await request.blob(), null, null);
-        setExcalidrawData(data);
-      } catch (err) {
-        console.error("Failed to load excalidraw data:", err);
+  const editorState = useEditorState({
+    editor,
+    selector: (ctx) => {
+      if (!ctx.editor) {
+        return null;
       }
+
+      const excalidrawAttr = ctx.editor.getAttributes("excalidraw");
+      return {
+        isExcalidraw: ctx.editor.isActive("excalidraw"),
+        isAlignLeft: ctx.editor.isActive("excalidraw", { align: "left" }),
+        isAlignCenter: ctx.editor.isActive("excalidraw", { align: "center" }),
+        isAlignRight: ctx.editor.isActive("excalidraw", { align: "right" }),
+        src: excalidrawAttr?.src || null,
+        attachmentId: excalidrawAttr?.attachmentId || null,
+      };
+    },
+  });
+
+  const shouldShow = useCallback(
+    ({ state }: ShouldShowProps) => {
+      if (!state) {
+        return false;
+      }
+
+      return (
+        editor.isActive("excalidraw") && editor.getAttributes("excalidraw")?.src
+      );
+    },
+    [editor],
+  );
+
+  const getReferencedVirtualElement = useCallback(() => {
+    if (!editor) return;
+    const { selection } = editor.state;
+    const predicate = (node: PMNode) => node.type.name === "excalidraw";
+    const parent = findParentNode(predicate)(selection);
+
+    if (parent) {
+      const dom = editor.view.nodeDOM(parent?.pos) as HTMLElement;
+      const domRect = dom.getBoundingClientRect();
+      return {
+        getBoundingClientRect: () => domRect,
+        getClientRects: () => [domRect],
+      };
     }
 
-    isDirtyRef.current = false;
-    isInitialLoadRef.current = true;
-    open();
-  };
+    const domRect = posToDOMRect(editor.view, selection.from, selection.to);
+    return {
+      getBoundingClientRect: () => domRect,
+      getClientRects: () => [domRect],
+    };
+  }, [editor]);
 
-  const saveData = useCallback(async (updateSrc = true) => {
-    if (!excalidrawAPI || isSavingRef.current) return;
+  const alignLeft = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setExcalidrawAlign("left")
+      .run();
+  }, [editor]);
+
+  const alignCenter = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setExcalidrawAlign("center")
+      .run();
+  }, [editor]);
+
+  const alignRight = useCallback(() => {
+    editor
+      .chain()
+      .focus(undefined, { scrollIntoView: false })
+      .setExcalidrawAlign("right")
+      .run();
+  }, [editor]);
+
+  const handleDownload = useCallback(() => {
+    if (!editorState?.src) return;
+    const url = getFileUrl(editorState.src);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    a.click();
+  }, [editorState?.src]);
+
+  const handleDelete = useCallback(() => {
+    editor.commands.deleteSelection();
+  }, [editor]);
+
+  const handleOpen = useCallback(async () => {
+    if (!editorState?.src) return;
+
+    try {
+      const url = getFileUrl(editorState.src);
+      const request = await fetch(url, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const { loadFromBlob } = await import("@excalidraw/excalidraw");
+      const data = await loadFromBlob(await request.blob(), null, null);
+      setExcalidrawData(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      isDirtyRef.current = false;
+      isInitialLoadRef.current = true;
+      open();
+    }
+  }, [editorState?.src, open]);
+
+  const saveData = useCallback(async () => {
+    if (!excalidrawAPI || isSavingRef.current) {
+      return;
+    }
 
     isSavingRef.current = true;
-    setIsSaving(true);
 
     try {
       const { exportToSvg } = await import("@excalidraw/excalidraw");
@@ -121,6 +205,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
 
       // @ts-ignore
       const pageId = editor.storage?.pageId;
+      const attachmentId = editorState?.attachmentId;
 
       let attachment: IAttachment = null;
       if (attachmentId) {
@@ -129,32 +214,25 @@ export default function ExcalidrawView(props: NodeViewProps) {
         attachment = await uploadFile(excalidrawSvgFile, pageId);
       }
 
-      if (updateSrc) {
-        updateAttributes({
-          src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-          title: attachment.fileName,
-          size: attachment.fileSize,
-          attachmentId: attachment.id,
-        });
-      } else {
-        updateAttributes({
-          attachmentId: attachment.id,
-        });
-      }
+      editor.commands.updateAttributes("excalidraw", {
+        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+        title: attachment.fileName,
+        size: attachment.fileSize,
+        attachmentId: attachment.id,
+      });
 
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
-      setIsSaving(false);
     }
-  }, [excalidrawAPI, editor, attachmentId, updateAttributes]);
+  }, [editor, excalidrawAPI, editorState?.attachmentId]);
 
   const handleSaveAndExit = useCallback(async () => {
     try {
       await saveData();
       close();
     } catch {
-      /* empty */
+      // save failed, modal stays open
     }
   }, [saveData, close]);
 
@@ -184,16 +262,21 @@ export default function ExcalidrawView(props: NodeViewProps) {
   useEffect(() => {
     if (!opened) return;
 
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
+
     const interval = setInterval(() => {
       if (isDirtyRef.current && !isSavingRef.current) {
-        saveData(false).catch(() => {});
+        saveData().catch(() => {});
       }
-    }, 30_000);
+    }, 60_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      document.body.style.overflow = "";
+      clearInterval(interval);
+    };
   }, [opened, saveData]);
 
-  // Fullscreen edit modal via portal — bypasses all parent CSS constraints
   const editModal = opened ? createPortal(
     <div
       style={{
@@ -205,7 +288,6 @@ export default function ExcalidrawView(props: NodeViewProps) {
         background: "var(--mantine-color-body)",
       }}
     >
-      {/* Toolbar */}
       <Group
         justify="flex-end"
         wrap="nowrap"
@@ -216,7 +298,7 @@ export default function ExcalidrawView(props: NodeViewProps) {
           flexShrink: 0,
         }}
       >
-        <Button onClick={handleSaveAndExit} size="compact-sm" loading={isSaving}>
+        <Button onClick={handleSaveAndExit} size="compact-sm">
           {t("Save & Exit")}
         </Button>
         <ActionIcon
@@ -230,7 +312,6 @@ export default function ExcalidrawView(props: NodeViewProps) {
         </ActionIcon>
       </Group>
 
-      {/* Canvas — fills all remaining space */}
       <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
         <Suspense fallback={null}>
           <ExcalidrawComponent
@@ -260,31 +341,106 @@ export default function ExcalidrawView(props: NodeViewProps) {
   ) : null;
 
   return (
-    <NodeViewWrapper data-drag-handle>
+    <>
       {editModal}
 
-      {/* Preview card */}
-      <Card
-        radius="md"
-        onClick={(e) => e.detail === 2 && handleOpen()}
-        p="xs"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+      <BaseBubbleMenu
+        editor={editor}
+        pluginKey={`excalidraw-menu`}
+        updateDelay={0}
+        getReferencedVirtualElement={getReferencedVirtualElement}
+        options={{
+          placement: "top",
+          offset: 8,
+          flip: false,
         }}
-        withBorder
-        className={clsx(selected ? "ProseMirror-selectednode" : "")}
+        shouldShow={shouldShow}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <ActionIcon variant="transparent" color="gray">
-            <IconEdit size={18} />
-          </ActionIcon>
-          <Text component="span" size="lg" c="dimmed">
-            {t("Double-click to edit Excalidraw diagram")}
-          </Text>
+        <div className={classes.toolbar}>
+          <Tooltip position="top" label={t("Align left")} withinPortal={false}>
+            <ActionIcon
+              onClick={alignLeft}
+              size="lg"
+              aria-label={t("Align left")}
+              variant="subtle"
+              className={clsx({
+                [classes.active]: editorState?.isAlignLeft,
+              })}
+            >
+              <IconLayoutAlignLeft size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip
+            position="top"
+            label={t("Align center")}
+            withinPortal={false}
+          >
+            <ActionIcon
+              onClick={alignCenter}
+              size="lg"
+              aria-label={t("Align center")}
+              variant="subtle"
+              className={clsx({
+                [classes.active]: editorState?.isAlignCenter,
+              })}
+            >
+              <IconLayoutAlignCenter size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Align right")} withinPortal={false}>
+            <ActionIcon
+              onClick={alignRight}
+              size="lg"
+              aria-label={t("Align right")}
+              variant="subtle"
+              className={clsx({
+                [classes.active]: editorState?.isAlignRight,
+              })}
+            >
+              <IconLayoutAlignRight size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <div className={classes.divider} />
+
+          <Tooltip position="top" label={t("Edit")} withinPortal={false}>
+            <ActionIcon
+              onClick={handleOpen}
+              size="lg"
+              aria-label={t("Edit")}
+              variant="subtle"
+            >
+              <IconEdit size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Download")} withinPortal={false}>
+            <ActionIcon
+              onClick={handleDownload}
+              size="lg"
+              aria-label={t("Download")}
+              variant="subtle"
+            >
+              <IconDownload size={18} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip position="top" label={t("Delete")} withinPortal={false}>
+            <ActionIcon
+              onClick={handleDelete}
+              size="lg"
+              aria-label={t("Delete")}
+              variant="subtle"
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
         </div>
-      </Card>
-    </NodeViewWrapper>
+      </BaseBubbleMenu>
+    </>
   );
 }
+
+export default ExcalidrawMenu;
