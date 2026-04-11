@@ -1,6 +1,7 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
@@ -24,6 +25,7 @@ import {
   IconDownload,
   IconEdit,
   IconTrash,
+  IconX,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { getFileUrl } from "@/lib/config.ts";
@@ -32,7 +34,6 @@ import { svgStringToFile } from "@/lib";
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { IAttachment } from "@/features/attachments/types/attachment.types";
-import ReactClearModal from "react-clear-modal";
 import { useHandleLibrary } from "@excalidraw/excalidraw";
 import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
 import classes from "../common/toolbar-menu.module.css";
@@ -56,8 +57,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const isInitialLoadRef = useRef(true);
   const lastFingerprintRef = useRef("");
 
@@ -155,7 +154,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const handleOpen = useCallback(async () => {
     if (!editorState?.src) return;
 
-    setIsLoading(true);
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -169,7 +167,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
       isDirtyRef.current = false;
       isInitialLoadRef.current = true;
       open();
@@ -182,7 +179,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     }
 
     isSavingRef.current = true;
-    setIsSaving(true);
 
     try {
       const { exportToSvg } = await import("@excalidraw/excalidraw");
@@ -228,7 +224,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
-      setIsSaving(false);
     }
   }, [editor, excalidrawAPI, editorState?.attachmentId]);
 
@@ -267,17 +262,88 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   useEffect(() => {
     if (!opened) return;
 
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
+
     const interval = setInterval(() => {
       if (isDirtyRef.current && !isSavingRef.current) {
         saveData().catch(() => {});
       }
     }, 60_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      document.body.style.overflow = "";
+      clearInterval(interval);
+    };
   }, [opened, saveData]);
+
+  const editModal = opened ? createPortal(
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--mantine-color-body)",
+      }}
+    >
+      <Group
+        justify="flex-end"
+        wrap="nowrap"
+        bg="var(--mantine-color-body)"
+        p="xs"
+        style={{
+          borderBottom: "1px solid var(--mantine-color-default-border)",
+          flexShrink: 0,
+        }}
+      >
+        <Button onClick={handleSaveAndExit} size="compact-sm">
+          {t("Save & Exit")}
+        </Button>
+        <ActionIcon
+          onClick={handleClose}
+          variant="subtle"
+          color="red"
+          size="md"
+          title={t("Exit")}
+        >
+          <IconX size={18} />
+        </ActionIcon>
+      </Group>
+
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        <Suspense fallback={null}>
+          <ExcalidrawComponent
+            excalidrawAPI={(api) => setExcalidrawAPI(api)}
+            onChange={(elements, _appState, files) => {
+              const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
+              if (isInitialLoadRef.current) {
+                lastFingerprintRef.current = fingerprint;
+                isInitialLoadRef.current = false;
+                return;
+              }
+              if (fingerprint !== lastFingerprintRef.current) {
+                lastFingerprintRef.current = fingerprint;
+                isDirtyRef.current = true;
+              }
+            }}
+            initialData={{
+              ...excalidrawData,
+              scrollToContent: true,
+            }}
+            theme={computedColorScheme}
+          />
+        </Suspense>
+      </div>
+    </div>,
+    document.body,
+  ) : null;
 
   return (
     <>
+      {editModal}
+
       <BaseBubbleMenu
         editor={editor}
         pluginKey={`excalidraw-menu`}
@@ -345,7 +411,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
               size="lg"
               aria-label={t("Edit")}
               variant="subtle"
-              loading={isLoading}
             >
               <IconEdit size={18} />
             </ActionIcon>
@@ -374,61 +439,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           </Tooltip>
         </div>
       </BaseBubbleMenu>
-
-      <ReactClearModal
-        style={{
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          padding: 0,
-          zIndex: 200,
-        }}
-        isOpen={opened}
-        onRequestClose={handleClose}
-        disableCloseOnBgClick={true}
-        contentProps={{
-          style: {
-            padding: 0,
-            width: "90vw",
-          },
-        }}
-      >
-        <Group
-          justify="flex-end"
-          wrap="nowrap"
-          bg="var(--mantine-color-body)"
-          p="xs"
-        >
-          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
-            {t("Save & Exit")}
-          </Button>
-          <Button onClick={handleClose} color="red" size={"compact-sm"}>
-            {t("Exit")}
-          </Button>
-        </Group>
-        <div style={{ height: "90vh" }}>
-          <Suspense fallback={null}>
-            <ExcalidrawComponent
-              excalidrawAPI={(api) => setExcalidrawAPI(api)}
-              onChange={(elements, _appState, files) => {
-                const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
-                if (isInitialLoadRef.current) {
-                  lastFingerprintRef.current = fingerprint;
-                  isInitialLoadRef.current = false;
-                  return;
-                }
-                if (fingerprint !== lastFingerprintRef.current) {
-                  lastFingerprintRef.current = fingerprint;
-                  isDirtyRef.current = true;
-                }
-              }}
-              initialData={{
-                ...excalidrawData,
-                scrollToContent: true,
-              }}
-              theme={computedColorScheme}
-            />
-          </Suspense>
-        </div>
-      </ReactClearModal>
     </>
   );
 }
