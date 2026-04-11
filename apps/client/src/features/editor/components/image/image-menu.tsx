@@ -1,15 +1,15 @@
 import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import {
   EditorMenuProps,
   ShouldShowProps,
 } from "@/features/editor/components/table/types/types.ts";
-import { ActionIcon, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import clsx from "clsx";
 import {
-  IconAlt,
+  IconTextCaption,
   IconLayoutAlignCenter,
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
@@ -41,7 +41,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
         src: imageAttrs?.src || null,
-        alt: imageAttrs?.alt || "",
+        caption: imageAttrs?.caption,
       };
     },
   });
@@ -137,34 +137,16 @@ export function ImageMenu({ editor }: EditorMenuProps) {
     editor.commands.deleteSelection();
   }, [editor]);
 
-  const [showAltInput, setShowAltInput] = useState(false);
-  const [altText, setAltText] = useState("");
-
-  const handleAltTextOpen = useCallback(() => {
-    setAltText(editorState?.alt || "");
-    setShowAltInput(true);
-  }, [editorState?.alt]);
-
-  const handleAltTextSave = useCallback(() => {
+  const handleCaptionToggle = useCallback(() => {
+    const currentCaption = editor.getAttributes("image").caption;
     editor
       .chain()
       .focus(undefined, { scrollIntoView: false })
-      .updateAttributes("image", { alt: altText })
+      .updateAttributes("image", {
+        caption: currentCaption != null ? null : "",
+      })
       .run();
-    setShowAltInput(false);
-  }, [editor, altText]);
-
-  const handleAltTextKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleAltTextSave();
-      } else if (e.key === "Escape") {
-        setShowAltInput(false);
-      }
-    },
-    [handleAltTextSave],
-  );
+  }, [editor]);
 
   return (
     <BaseBubbleMenu
@@ -218,15 +200,17 @@ export function ImageMenu({ editor }: EditorMenuProps) {
 
         <div className={classes.divider} />
 
-        <Tooltip position="top" label={t("Alt text")} withinPortal={false}>
+        <Tooltip position="top" label={t("Caption")} withinPortal={false}>
           <ActionIcon
-            onClick={handleAltTextOpen}
+            onClick={handleCaptionToggle}
             size="lg"
-            aria-label={t("Alt text")}
+            aria-label={t("Caption")}
             variant="subtle"
-            className={clsx({ [classes.active]: !!editorState?.alt })}
+            className={clsx({
+              [classes.active]: editorState?.caption != null,
+            })}
           >
-            <IconAlt size={18} />
+            <IconTextCaption size={18} />
           </ActionIcon>
         </Tooltip>
 
@@ -266,20 +250,6 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         </Tooltip>
       </div>
 
-      {showAltInput && (
-        <div className={classes.toolbar} style={{ marginTop: 4 }}>
-          <TextInput
-            size="xs"
-            placeholder={t("Add alt text")}
-            value={altText}
-            onChange={(e) => setAltText(e.currentTarget.value)}
-            onKeyDown={handleAltTextKeyDown}
-            onBlur={handleAltTextSave}
-            autoFocus
-            styles={{ input: { minWidth: 200 } }}
-          />
-        </div>
-      )}
 
       <input
         ref={fileInputRef}
