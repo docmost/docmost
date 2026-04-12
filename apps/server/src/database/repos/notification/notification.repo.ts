@@ -11,7 +11,10 @@ import { ExpressionBuilder } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
-import { NotificationTab, NotificationType } from '../../../core/notification/notification.constants';
+import {
+  NotificationTab,
+  NotificationType,
+} from '../../../core/notification/notification.constants';
 
 @Injectable()
 export class NotificationRepo {
@@ -43,7 +46,11 @@ export class NotificationRepo {
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
         ]),
       );
 
@@ -62,6 +69,14 @@ export class NotificationRepo {
     });
   }
 
+  async insert(notification: InsertableNotification): Promise<Notification> {
+    return this.db
+      .insertInto('notifications')
+      .values(notification)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
   async getUnreadCount(userId: string): Promise<number> {
     const result = await this.db
       .selectFrom('notifications')
@@ -71,20 +86,16 @@ export class NotificationRepo {
       .where((eb) =>
         eb.or([
           eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
+          eb(
+            'spaceId',
+            'in',
+            this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+          ),
         ]),
       )
       .executeTakeFirst();
 
     return Number(result?.count ?? 0);
-  }
-
-  async insert(notification: InsertableNotification): Promise<Notification> {
-    return this.db
-      .insertInto('notifications')
-      .values(notification)
-      .returningAll()
-      .executeTakeFirst();
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<void> {
@@ -94,12 +105,6 @@ export class NotificationRepo {
       .where('id', '=', notificationId)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
       .execute();
   }
 
@@ -116,21 +121,6 @@ export class NotificationRepo {
       .where('id', 'in', notificationIds)
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
-      .execute();
-  }
-
-  async markAsEmailed(notificationId: string): Promise<void> {
-    await this.db
-      .updateTable('notifications')
-      .set({ emailedAt: new Date() })
-      .where('id', '=', notificationId)
-      .where('emailedAt', 'is', null)
       .execute();
   }
 
@@ -140,12 +130,15 @@ export class NotificationRepo {
       .set({ readAt: new Date() })
       .where('userId', '=', userId)
       .where('readAt', 'is', null)
-      .where((eb) =>
-        eb.or([
-          eb('spaceId', 'is', null),
-          eb('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId)),
-        ]),
-      )
+      .execute();
+  }
+
+  async markAsEmailed(notificationId: string): Promise<void> {
+    await this.db
+      .updateTable('notifications')
+      .set({ emailedAt: new Date() })
+      .where('id', '=', notificationId)
+      .where('emailedAt', 'is', null)
       .execute();
   }
 

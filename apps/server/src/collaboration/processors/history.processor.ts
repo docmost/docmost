@@ -18,6 +18,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { isDeepStrictEqual } from 'node:util';
 import { CollabHistoryService } from '../services/collab-history.service';
 import { WatcherService } from '../../core/watcher/watcher.service';
+import { isEmptyParagraphDoc } from '../collaboration.util';
 
 @Processor(QueueName.HISTORY_QUEUE)
 export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
@@ -54,6 +55,14 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         pageId,
         { includeContent: true },
       );
+
+      if (!lastHistory && isEmptyParagraphDoc(page.content as any)) {
+        this.logger.debug(
+          `Skipping first history for page ${pageId}: empty content`,
+        );
+        await this.collabHistory.clearContributors(pageId);
+        return;
+      }
 
       if (
         !lastHistory ||
