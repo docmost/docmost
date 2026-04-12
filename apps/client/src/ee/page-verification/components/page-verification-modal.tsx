@@ -93,7 +93,7 @@ export function PageVerificationBadge({
     if (readOnly) return null;
     return (
       <Tooltip
-        label={`${t("Page verification")} — ${upgradeLabel}`}
+        label={`${t("Add verification")} — ${upgradeLabel}`}
         withArrow
         openDelay={250}
       >
