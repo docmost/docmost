@@ -1,11 +1,11 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsUUID } from 'class-validator';
 
 export class CreatedByUserDto {
   @IsOptional()
-  @IsString()
+  @IsUUID()
   userId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   spaceId?: string;
 }
