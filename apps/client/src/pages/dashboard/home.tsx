@@ -16,7 +16,7 @@ export default function Home() {
           {t("Home")} - {getAppName()}
         </title>
       </Helmet>
-      <Container size={"800"} pt="xl">
+      <Container size={"900"} pt="xl">
         <HomeAiPrompt />
 
         <Space h="xl" />

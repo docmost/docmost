@@ -52,10 +52,7 @@ export function AppHeader() {
   const [workspace] = useAtom(workspaceAtom);
   const aiChatEnabled = workspace?.settings?.ai?.chat === true;
 
-  const isHomeRoute = location.pathname.startsWith("/home");
-  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
-  const hideSidebar = isHomeRoute || isSpacesRoute;
 
   const items = links.map((link) => (
     <Link key={link.label} to={link.link} className={classes.link}>
