@@ -71,6 +71,7 @@ import { useEditorScroll } from "./hooks/use-editor-scroll";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
+import { NextcloudPicker } from "./components/nextcloud/nextcloud-picker";
 
 interface PageEditorProps {
   pageId: string;
@@ -426,6 +427,7 @@ export default function PageEditor({
             <ExcalidrawMenu editor={editor} />
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
+            <NextcloudPicker editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && providersRef.current && (
