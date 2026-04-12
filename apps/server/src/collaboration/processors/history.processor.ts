@@ -56,7 +56,7 @@ export class HistoryProcessor extends WorkerHost implements OnModuleDestroy {
         { includeContent: true },
       );
 
-      if (!lastHistory && isEmptyParagraphDoc(page.content)) {
+      if (!lastHistory && isEmptyParagraphDoc(page.content as any)) {
         this.logger.debug(
           `Skipping first history for page ${pageId}: empty content`,
         );
