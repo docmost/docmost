@@ -43,6 +43,8 @@ export default function TemplateEditor() {
   const { data: existingTemplate } = useGetTemplateByIdQuery(templateId || "");
   const { data: spaces } = useGetSpacesQuery({ limit: 100 });
   const updateMutation = useUpdateTemplateMutation();
+  const updateMutationRef = useRef(updateMutation.mutateAsync);
+  updateMutationRef.current = updateMutation.mutateAsync;
 
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export default function TemplateEditor() {
 
     setSaveStatus("saving");
     try {
-      await updateMutation.mutateAsync({
+      await updateMutationRef.current({
         templateId,
         title: titleRef.current,
         icon: iconRef.current || undefined,
@@ -139,7 +141,7 @@ export default function TemplateEditor() {
     } catch {
       setSaveStatus("error");
     }
-  }, [editor, templateId, updateMutation]);
+  }, [editor, templateId]);
 
   // Schedule save 30s after last change
   const scheduleSave = useCallback(() => {
