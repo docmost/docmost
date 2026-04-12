@@ -37,6 +37,7 @@ import SpaceTrash from "@/pages/space/space-trash.tsx";
 import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
+import ShareTarget from "@/pages/share-target/share-target.tsx";
 import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
 import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
 import VerifyEmail from "@/ee/pages/verify-email.tsx";
@@ -60,6 +61,8 @@ export default function App() {
         {!isCloud() && (
           <Route path={"/setup/register"} element={<SetupWorkspace />} />
         )}
+
+        <Route path={"/share-target"} element={<ShareTarget />} />
 
         {isCloud() && (
           <>

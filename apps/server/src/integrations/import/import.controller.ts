@@ -81,20 +81,30 @@ export class ImportController {
 
     const spaceId = file.fields?.spaceId?.value;
 
+    const rawParentPageId = file.fields?.parentPageId?.value;
+    const parentPageId =
+      typeof rawParentPageId === 'string' && rawParentPageId.trim()
+        ? rawParentPageId.trim()
+        : undefined;
+
     if (!spaceId) {
       throw new BadRequestException('spaceId is required');
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
+
+    const title = file.fields?.title?.value;
 
     const createdPage = await this.importService.importPage(
       file,
       user.id,
       spaceId,
       workspace.id,
+      parentPageId,
+      title,
     );
 
     const ext = path.extname(file.filename).toLowerCase();
@@ -172,7 +182,7 @@ export class ImportController {
     }
 
     const ability = await this.spaceAbility.createForUser(user, spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Page)) {
+    if (ability.cannot(SpaceCaslAction.Create, SpaceCaslSubject.Page)) {
       throw new ForbiddenException();
     }
 

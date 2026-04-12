@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -238,6 +239,37 @@ export class AttachmentService {
     } catch (error) {
       this.logger.error('deleteRedundantFile', error);
     }
+  }
+
+  async updateCropMetadata(
+    attachmentId: string,
+    cropMetadata: { x: number; y: number; width: number; height: number },
+    userId: string,
+    workspaceId: string,
+  ): Promise<Attachment> {
+    const attachment = await this.attachmentRepo.findById(attachmentId);
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    if (attachment.workspaceId !== workspaceId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Validate crop bounds (basic check)
+    if (
+      cropMetadata.x < 0 ||
+      cropMetadata.y < 0 ||
+      cropMetadata.width <= 0 ||
+      cropMetadata.height <= 0
+    ) {
+      throw new BadRequestException('Invalid crop metadata');
+    }
+
+    return await this.attachmentRepo.updateAttachment(
+      { cropMetadata },
+      attachmentId,
+    );
   }
 
   async uploadToDrive(filePath: string, fileContent: Buffer | Readable) {

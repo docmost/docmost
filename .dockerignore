@@ -1,6 +1,22 @@
 node_modules
 .git
-dist
+*/dist
 /data
 .env*
 .nx
+.pnpm-store
+.agents
+.vscode
+.idea
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Mac
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose*

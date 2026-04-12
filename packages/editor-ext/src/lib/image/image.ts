@@ -27,6 +27,7 @@ export type ImageResizeOptions = {
 export interface ImageOptions extends DefaultImageOptions {
   view: any;
   resize: ImageResizeOptions | false;
+  getAttachmentMetadata?: (id: string) => Promise<any>;
 }
 
 export interface ImageAttributes {
@@ -41,6 +42,13 @@ export interface ImageAttributes {
   placeholder?: {
     id: string;
     name: string;
+  };
+  updatedAt?: number;
+  cropMetadata?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
   };
 }
 
@@ -72,6 +80,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
       ...this.parent?.(),
       view: null,
       resize: false,
+      getAttachmentMetadata: null,
     };
   },
 
@@ -148,6 +157,22 @@ export const TiptapImage = Image.extend<ImageOptions>({
         default: null,
         rendered: false,
       },
+      updatedAt: {
+        default: null,
+        rendered: false,
+      },
+      cropMetadata: {
+        default: null,
+        parseHTML: (element) => {
+          const raw = element.getAttribute("data-crop-metadata");
+          return raw ? JSON.parse(raw) : null;
+        },
+        renderHTML: (attributes: ImageAttributes) => ({
+          "data-crop-metadata": attributes.cropMetadata
+            ? JSON.stringify(attributes.cropMetadata)
+            : null,
+        }),
+      },
     };
   },
 
@@ -162,63 +187,77 @@ export const TiptapImage = Image.extend<ImageOptions>({
     return {
       setImage:
         (attrs: ImageAttributes) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAt:
         (attrs) =>
-        ({ commands }) => {
-          return commands.insertContentAt(attrs.pos, {
-            type: "image",
-            attrs: attrs,
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContentAt(attrs.pos, {
+              type: "image",
+              attrs: attrs,
+            });
+          },
 
       setImageAlign:
         (align) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { align }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { align }),
 
       setImageWidth:
         (width) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { width }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { width }),
 
       setImageSize:
         (width, height) =>
-        ({ commands }) =>
-          commands.updateAttributes("image", { width, height }),
+          ({ commands }) =>
+            commands.updateAttributes("image", { width, height }),
     };
   },
 
   addNodeView() {
-    const resize = this.options.resize;
+    const { resize, getAttachmentMetadata } = this.options;
 
-    if (!resize || !resize.enabled) {
-      // Fallback to React node view (existing behavior)
-      this.editor.isInitialized = true;
-      return ReactNodeViewRenderer(this.options.view);
-    }
-
-    const {
-      directions,
-      minWidth,
-      minHeight,
-      alwaysPreserveAspectRatio,
-      createCustomHandle,
-      className,
-    } = resize;
-
-    return (props) => {
+    return (props: any) => {
       const { node, getPos, HTMLAttributes, editor } = props;
+
+      // Fetch metadata if missing but attachmentId is present
+      if (node.attrs.attachmentId && !node.attrs.cropMetadata && typeof getAttachmentMetadata === 'function') {
+        getAttachmentMetadata(node.attrs.attachmentId).then(metadata => {
+          if (metadata?.cropMetadata) {
+            const pos = getPos();
+            if (typeof pos === 'number') {
+              editor.commands.updateAttributes(node.type.name, {
+                cropMetadata: metadata.cropMetadata,
+                updatedAt: Date.now()
+              });
+            }
+          }
+        }).catch(() => { });
+      }
+
+      if (!resize || !resize.enabled) {
+        // Fallback to React node view (existing behavior)
+        this.editor.isInitialized = true;
+        return ReactNodeViewRenderer(this.options.view)(props);
+      }
+
+      const {
+        directions,
+        minWidth,
+        minHeight,
+        alwaysPreserveAspectRatio,
+        createCustomHandle,
+        className,
+      } = resize;
 
       // If no src yet (placeholder/uploading), use React view for loading UI
       if (!HTMLAttributes.src) {
-        editor.isInitialized = true;
         const reactView = ReactNodeViewRenderer(this.options.view);
         const view = reactView(props);
 
@@ -264,6 +303,8 @@ export const TiptapImage = Image.extend<ImageOptions>({
           el.style.height = `${node.attrs.height}px`;
         }
       }
+
+      applyCropStyles(el, node.attrs.cropMetadata);
 
       let currentNode = node;
 
@@ -315,6 +356,10 @@ export const TiptapImage = Image.extend<ImageOptions>({
           const align = updatedNode.attrs.align || "center";
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);
+
+          if (updatedNode.attrs.cropMetadata !== currentNode.attrs.cropMetadata) {
+            applyCropStyles(el, updatedNode.attrs.cropMetadata);
+          }
 
           currentNode = updatedNode;
           return true;
@@ -381,5 +426,50 @@ function applyAlignment(container: HTMLElement, align: string) {
     container.style.justifyContent = "flex-end";
   } else {
     container.style.justifyContent = "center";
+  }
+}
+
+function applyCropStyles(el: HTMLImageElement, cropMetadata: any) {
+  if (!el) return;
+
+  if (cropMetadata) {
+    const { x, y, width: w, height: h } = cropMetadata;
+    const nw = el.naturalWidth;
+    const nh = el.naturalHeight;
+
+    if (nw > 0 && nh > 0) {
+      const scale = 100 / ((w / nw) * 100);
+
+      el.style.position = "absolute";
+      el.style.top = "0";
+      el.style.left = "0";
+      el.style.maxWidth = "none";
+      el.style.width = `${scale * 100}%`;
+      el.style.height = "auto";
+      el.style.marginLeft = `-${(x / nw) * scale * 100}%`;
+      el.style.marginTop = `-${(y / nh) * scale * 100}%`;
+      el.style.clipPath = ""; // Remove old clip-path if present
+
+      const wrapper = el.parentElement;
+      if (wrapper) {
+        wrapper.style.overflow = "hidden";
+        wrapper.style.position = "relative";
+        wrapper.style.aspectRatio = `${w / h}`;
+      }
+    } else {
+      // Wait for load
+      el.addEventListener('load', () => applyCropStyles(el, cropMetadata), { once: true });
+    }
+  } else {
+    el.style.width = "100%";
+    el.style.height = "auto";
+    el.style.marginLeft = "0";
+    el.style.marginTop = "0";
+    el.style.position = "static";
+    el.style.clipPath = "";
+    const wrapper = el.parentElement;
+    if (wrapper) {
+      wrapper.style.aspectRatio = "";
+    }
   }
 }

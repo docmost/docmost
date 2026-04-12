@@ -11,4 +11,4 @@ import { AUDIT_SERVICE, NoopAuditService } from './audit.service';
   ],
   exports: [AUDIT_SERVICE],
 })
-export class NoopAuditModule {}
+export class AuditModule {}

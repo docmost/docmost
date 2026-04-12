@@ -111,6 +111,8 @@ lowlight.register("fortran", fortran);
 lowlight.register("haskell", haskell);
 lowlight.register("scala", scala);
 
+import { pageService } from "@/features/page/services/page-service.ts";
+
 // @ts-ignore
 export const mainExtensions = [
   StarterKit.configure({
@@ -269,6 +271,7 @@ export const mainExtensions = [
   TiptapImage.configure({
     view: ImageView,
     allowBase64: false,
+    getAttachmentMetadata: (id: string) => pageService.getAttachmentInfo(id),
     resize: {
       enabled: true,
       directions: ["left", "right"],

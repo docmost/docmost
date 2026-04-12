@@ -167,6 +167,14 @@ export async function getAttachmentInfo(
   return req.data;
 }
 
+export async function updateCropMetadata(
+  attachmentId: string,
+  cropMetadata: { x: number; y: number; width: number; height: number },
+) {
+  const response = await api.patch(`/files/${attachmentId}/crop`, { cropMetadata });
+  return response.data;
+}
+
 export async function uploadFile(
   file: File,
   pageId: string,
@@ -187,3 +195,9 @@ export async function uploadFile(
 
   return req as unknown as IAttachment;
 }
+
+export const pageService = {
+  updateCropMetadata,
+  getAttachmentInfo,
+  uploadFile,
+};

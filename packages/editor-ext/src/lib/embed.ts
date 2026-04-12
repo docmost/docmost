@@ -18,6 +18,8 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     embeds: {
       setEmbed: (attributes?: EmbedAttributes) => ReturnType;
+      convertEmbedToText: (url: string) => ReturnType;
+      convertEmbedToLink: (url: string) => ReturnType;
     };
   }
 }
@@ -114,18 +116,55 @@ export const Embed = Node.create<EmbedOptions>({
     return {
       setEmbed:
         (attrs: EmbedAttributes) =>
-        ({ commands }) => {
-          // Validate the URL before inserting
-          const validatedAttrs = {
-            ...attrs,
-            src: sanitizeUrl(attrs.src),
-          };
+          ({ commands }) => {
+            // Validate the URL before inserting
+            const validatedAttrs = {
+              ...attrs,
+              src: sanitizeUrl(attrs.src),
+            };
 
-          return commands.insertContent({
-            type: "embed",
-            attrs: validatedAttrs,
-          });
-        },
+            return commands.insertContent({
+              type: "embed",
+              attrs: validatedAttrs,
+            });
+          },
+
+      convertEmbedToText:
+        (url: string) =>
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: url,
+                },
+              ],
+            });
+          },
+
+      convertEmbedToLink:
+        (url: string) =>
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: url,
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: {
+                        href: url,
+                        target: "_blank",
+                      },
+                    },
+                  ],
+                },
+              ],
+            });
+          },
     };
   },
 
