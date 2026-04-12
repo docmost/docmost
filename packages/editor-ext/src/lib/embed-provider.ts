@@ -105,6 +105,12 @@ export const embedProviders: IEmbedProvider[] = [
     },
   },
   {
+    id: "nextcloud",
+    name: "Nextcloud",
+    regex: /^https?:\/\/.+\/(?:index\.php\/)?s\/([a-zA-Z0-9]+)/,
+    getEmbedUrl: (match: RegExpMatchArray, url: string) => `${url}?embedded=1`,
+  },
+  {
     id: "iframe",
     name: "Iframe",
     regex: /any-iframe/,
