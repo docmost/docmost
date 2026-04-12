@@ -9,6 +9,7 @@ import {
   Anchor,
 } from "@mantine/core";
 import { IconDots, IconSettings } from "@tabler/icons-react";
+import StarButton from "@/features/favorite/components/star-button";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import React, { useState } from "react";
@@ -117,6 +118,7 @@ export default function AllSpacesList({
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs" justify="flex-end">
+                      <StarButton type="space" spaceId={space.id} size={16} />
                       <Menu position="bottom-end">
                         <Menu.Target>
                           <ActionIcon variant="subtle" color="gray">

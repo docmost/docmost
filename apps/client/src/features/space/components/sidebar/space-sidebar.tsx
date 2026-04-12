@@ -56,6 +56,7 @@ export function SpaceSidebar() {
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
 
+
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
 
@@ -81,11 +82,13 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <SwitchSpace
-            spaceName={space?.name}
-            spaceSlug={space?.slug}
-            spaceIcon={space?.logo}
-          />
+          <Group gap={4} wrap="nowrap" justify="space-between" style={{ width: "100%" }}>
+            <SwitchSpace
+              spaceName={space?.name}
+              spaceSlug={space?.slug}
+              spaceIcon={space?.logo}
+            />
+          </Group>
         </div>
 
         <div className={classes.section}>

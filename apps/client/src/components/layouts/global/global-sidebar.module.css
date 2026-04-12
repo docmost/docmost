@@ -1,0 +1,89 @@
+.navbar {
+    height: 100%;
+    width: 100%;
+    padding: var(--mantine-spacing-md);
+    display: flex;
+    flex-direction: column;
+}
+
+.section {
+    padding-bottom: var(--mantine-spacing-xs);
+}
+
+.link {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    font-size: var(--mantine-font-size-sm);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    padding-left: var(--mantine-spacing-xs);
+    min-height: 30px;
+    border-radius: var(--mantine-radius-sm);
+    font-weight: 500;
+    user-select: none;
+
+    @mixin hover {
+        background-color: light-dark(
+                var(--mantine-color-gray-1),
+                var(--mantine-color-dark-6)
+        );
+        color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    }
+
+    &[data-active] {
+        &,
+        & :hover {
+            background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+            color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+        }
+    }
+}
+
+.linkIcon {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+    margin-right: var(--mantine-spacing-sm);
+    width: rem(16px);
+    height: rem(16px);
+}
+
+.sectionHeader {
+    padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+    font-size: var(--mantine-font-size-xs);
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-3));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.bottomSection {
+    padding-top: var(--mantine-spacing-xs);
+    border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.spaceItem {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--mantine-spacing-sm);
+    text-decoration: none;
+    font-size: var(--mantine-font-size-sm);
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+    padding-left: var(--mantine-spacing-xs);
+    min-height: 30px;
+    border-radius: var(--mantine-radius-sm);
+    font-weight: 500;
+    user-select: none;
+
+    @mixin hover {
+        background-color: light-dark(
+                var(--mantine-color-gray-1),
+                var(--mantine-color-dark-6)
+        );
+        color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    }
+}
