@@ -78,7 +78,7 @@ export default function GlobalAppShell({
   const isHomeRoute = location.pathname.startsWith("/home");
   const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
-  const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute;
+  const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute && !isAiRoute;
 
   return (
     <AppShell
@@ -103,19 +103,19 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      {!hideSidebar && (
-        <AppShell.Navbar
-          className={classes.navbar}
-          withBorder={false}
-          ref={sidebarRef}
-        >
-          {!isAiRoute && <div className={classes.resizeHandle} onMouseDown={startResizing} />}
-          {isSpaceRoute && <SpaceSidebar />}
-          {isSettingsRoute && <SettingsSidebar />}
-          {isAiRoute && <AiChatSidebar />}
-          {showGlobalSidebar && <GlobalSidebar />}
-        </AppShell.Navbar>
-      )}
+      <AppShell.Navbar
+        className={classes.navbar}
+        withBorder={false}
+        ref={sidebarRef}
+      >
+        {isSpaceRoute && (
+          <div className={classes.resizeHandle} onMouseDown={startResizing} />
+        )}
+        {isSpaceRoute && <SpaceSidebar />}
+        {isSettingsRoute && <SettingsSidebar />}
+        {isAiRoute && <AiChatSidebar />}
+        {showGlobalSidebar && <GlobalSidebar />}
+      </AppShell.Navbar>
       <AppShell.Main>
         {isSettingsRoute ? (
           <Container size={850}>{children}</Container>
