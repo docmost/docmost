@@ -6,30 +6,24 @@ import CreatedByMe from "@/features/home/components/created-by-me";
 import { useParams } from "react-router-dom";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { useTranslation } from "react-i18next";
-
-const STORAGE_KEY = "space-home-tab";
-const DEFAULT_TAB = "recent";
-const VALID_TABS = ["recent", "favorites", "created"];
-
-function getStoredTab(): string {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored && VALID_TABS.includes(stored) ? stored : DEFAULT_TAB;
-}
+import { useAtom } from "jotai";
+import { homeTabAtom } from "@/features/home/atoms/home-tab-atom";
 
 export default function SpaceHomeTabs() {
   const { t } = useTranslation();
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
+  const [activeTab, setActiveTab] = useAtom(homeTabAtom);
 
   return (
     <Tabs
       color="dark"
-      defaultValue={getStoredTab()}
+      value={activeTab}
       onChange={(value) => {
-        if (value) localStorage.setItem(STORAGE_KEY, value);
+        if (value) setActiveTab(value);
       }}
     >
-      <Tabs.List>
+      <Tabs.List style={{ flexWrap: "nowrap", overflowX: "auto" }}>
         <Tabs.Tab value="recent" leftSection={<IconClockHour3 size={18} />}>
           <Text size="sm" fw={500}>
             {t("Recently updated")}
