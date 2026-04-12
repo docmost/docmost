@@ -6,10 +6,12 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import {
+  IconBell,
   IconCheck,
   IconFileDescription,
   IconPointFilled,
 } from "@tabler/icons-react";
+import { Avatar } from "@mantine/core";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { INotification } from "../types/notification.types";
 import { Trans, useTranslation } from "react-i18next";
@@ -106,11 +108,17 @@ export function NotificationItem({
       className={classes.notificationItem}
     >
       <Group wrap="nowrap" align="flex-start" gap="sm">
-        <CustomAvatar
-          avatarUrl={notification.actor?.avatarUrl}
-          name={notification.actor?.name || "?"}
-          size="sm"
-        />
+        {notification.actor ? (
+          <CustomAvatar
+            avatarUrl={notification.actor.avatarUrl}
+            name={notification.actor.name}
+            size="sm"
+          />
+        ) : (
+          <Avatar size="sm" color="gray" radius="xl">
+            <IconBell size={14} />
+          </Avatar>
+        )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text size="sm" lineClamp={2}>
