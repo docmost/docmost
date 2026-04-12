@@ -173,8 +173,8 @@ export default function EmbedView(props: NodeViewProps) {
             </div>
           )}
           <ResizableWrapper
-            initialWidth={nodeWidth || 640}
-            initialHeight={nodeHeight || 480}
+            initialWidth={nodeWidth || 800}
+            initialHeight={nodeHeight || 600}
             minWidth={200}
             maxWidth={1200}
             minHeight={200}
@@ -189,8 +189,9 @@ export default function EmbedView(props: NodeViewProps) {
             <iframe
               className={classes.embedIframe}
               src={sanitizeUrl(embedUrl)}
-              allow="encrypted-media"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              allow="encrypted-media; clipboard-read; clipboard-write; picture-in-picture;"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
               allowFullScreen
               frameBorder="0"
             />

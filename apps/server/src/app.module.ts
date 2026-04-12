@@ -26,6 +26,7 @@ import KeyvRedis from '@keyv/redis';
 import { LoggerModule } from './common/logger/logger.module';
 import { ClsModule } from 'nestjs-cls';
 import { AuditModule } from './integrations/audit/audit.module';
+import { ThrottleModule } from './integrations/throttle/throttle.module';
 
 const enterpriseModules = [];
 try {
@@ -83,6 +84,7 @@ try {
     EventEmitterModule.forRoot(),
     SecurityModule,
     TelemetryModule,
+    ThrottleModule,
     ...enterpriseModules,
   ],
   controllers: [AppController],
@@ -94,4 +96,4 @@ try {
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

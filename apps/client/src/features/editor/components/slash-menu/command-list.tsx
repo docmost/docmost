@@ -87,7 +87,13 @@ const CommandList = ({
 
   return flatItems.length > 0 ? (
     <Paper id="slash-command" shadow="md" p="xs" withBorder>
-      <ScrollArea viewportRef={viewportRef} h={350} w={270} scrollbarSize={8}>
+      <ScrollArea
+        viewportRef={viewportRef}
+        h={350}
+        w={270}
+        scrollbarSize={8}
+        overscrollBehavior="contain"
+      >
         {Object.entries(items).map(([category, categoryItems]) => (
           <div key={category}>
             <Text c="dimmed" mb={4} fw={500} tt="capitalize">
@@ -103,10 +109,7 @@ const CommandList = ({
                 })}
               >
                 <Group>
-                  <ActionIcon
-                    variant="default"
-                    component="div"
-                  >
+                  <ActionIcon variant="default" component="div">
                     <item.icon size={18} />
                   </ActionIcon>
 

@@ -66,14 +66,14 @@ export const Embed = Node.create<EmbedOptions>({
         }),
       },
       width: {
-        default: null,
+        default: 800,
         parseHTML: (element) => element.getAttribute("data-width"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-width": attributes.width,
         }),
       },
       height: {
-        default: null,
+        default: 600,
         parseHTML: (element) => element.getAttribute("data-height"),
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-height": attributes.height,
@@ -116,55 +116,55 @@ export const Embed = Node.create<EmbedOptions>({
     return {
       setEmbed:
         (attrs: EmbedAttributes) =>
-        ({ commands }) => {
-          // Validate the URL before inserting
-          const validatedAttrs = {
-            ...attrs,
-            src: sanitizeUrl(attrs.src),
-          };
+          ({ commands }) => {
+            // Validate the URL before inserting
+            const validatedAttrs = {
+              ...attrs,
+              src: sanitizeUrl(attrs.src),
+            };
 
-          return commands.insertContent({
-            type: "embed",
-            attrs: validatedAttrs,
-          });
-        },
+            return commands.insertContent({
+              type: "embed",
+              attrs: validatedAttrs,
+            });
+          },
 
       convertEmbedToText:
         (url: string) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "paragraph",
-            content: [
-              {
-                type: "text",
-                text: url,
-              },
-            ],
-          });
-        },
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: url,
+                },
+              ],
+            });
+          },
 
       convertEmbedToLink:
         (url: string) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "paragraph",
-            content: [
-              {
-                type: "text",
-                text: url,
-                marks: [
-                  {
-                    type: "link",
-                    attrs: {
-                      href: url,
-                      target: "_blank",
+          ({ commands }) => {
+            return commands.insertContent({
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: url,
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: {
+                        href: url,
+                        target: "_blank",
+                      },
                     },
-                  },
-                ],
-              },
-            ],
-          });
-        },
+                  ],
+                },
+              ],
+            });
+          },
     };
   },
 

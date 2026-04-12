@@ -1,6 +1,7 @@
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
 import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
+import { uploadPdfAction } from "../pdf/upload-pdf-action";
 import { createMentionAction } from "@/features/editor/components/link/internal-link-paste.ts";
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { getEmbedUrlAndProvider } from "@docmost/editor-ext";
@@ -13,6 +14,8 @@ import {
 const ATTACHMENT_NODE_TYPES = [
   "image",
   "video",
+  "audio",
+  "pdf",
   "attachment",
   "excalidraw",
   "drawio",
@@ -102,6 +105,7 @@ export const handlePaste = (
       const pos = editor.state.selection.from;
       uploadImageAction(file, editor, pos, pageId);
       uploadVideoAction(file, editor, pos, pageId);
+      uploadPdfAction(file, editor, pos, pageId);
       uploadAttachmentAction(file, editor, pos, pageId);
     }
     return true;
@@ -287,6 +291,7 @@ export const handleFileDrop = (
 
       uploadImageAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
       uploadVideoAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
+      uploadPdfAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
       uploadAttachmentAction(file, editor, coordinates?.pos ?? 0 - 1, pageId);
     }
     return true;

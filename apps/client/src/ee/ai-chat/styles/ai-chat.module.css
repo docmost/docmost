@@ -1,0 +1,169 @@
+.layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 45px - 2 * var(--mantine-spacing-md));
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.messageListWrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+}
+
+.messageErrorFallback {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: var(--mantine-spacing-lg);
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  font-size: var(--mantine-font-size-xs);
+}
+
+.scrollToBottomButton {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  z-index: 2;
+}
+
+.scrollToBottomButton:hover {
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  border-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}
+
+.scrollToBottomButton:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.inputArea {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-lg) var(--mantine-spacing-lg);
+}
+
+/* Empty state - Notion AI style centered layout */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-lg);
+}
+
+.emptyStateIcon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--mantine-spacing-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.emptyStateBrand {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.emptyStateTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  margin-bottom: var(--mantine-spacing-xl);
+  text-align: center;
+}
+
+.emptyStateInput {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: var(--mantine-spacing-xl);
+  padding: 6px 0;
+}
+
+.suggestionsSection {
+  width: 100%;
+  max-width: 600px;
+}
+
+.suggestionsLabel {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+.suggestionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--mantine-spacing-sm);
+}
+
+.suggestionCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  border-radius: var(--mantine-radius-md);
+  cursor: pointer;
+  background: transparent;
+  transition: background-color 150ms, border-color 150ms;
+  text-align: left;
+  width: 100%;
+
+  @mixin hover {
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    border-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  }
+}
+
+.suggestionIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  margin-top: 1px;
+}
+
+.suggestionText {
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  line-height: 1.4;
+}

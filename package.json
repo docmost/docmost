@@ -1,7 +1,7 @@
 {
   "name": "docmost",
   "homepage": "https://docmost.com",
-  "version": "0.70.3",
+  "version": "0.71.1",
   "private": true,
   "scripts": {
     "build": "nx run-many -t build",
@@ -30,6 +30,7 @@
     "@joplin/turndown-plugin-gfm": "^1.0.64",
     "@sindresorhus/slugify": "3.0.0",
     "@tiptap/core": "3.20.4",
+    "@tiptap/extension-audio": "3.20.4",
     "@tiptap/extension-code-block": "3.20.4",
     "@tiptap/extension-collaboration": "3.20.4",
     "@tiptap/extension-collaboration-caret": "3.20.4",
@@ -94,8 +95,7 @@
   "packageManager": "pnpm@10.4.0",
   "pnpm": {
     "patchedDependencies": {
-      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch",
-      "@tiptap/core": "patches/@tiptap__core.patch"
+      "react-arborist@3.4.0": "patches/react-arborist@3.4.0.patch"
     },
     "overrides": {
       "prosemirror-changeset": "2.4.0",
@@ -109,7 +109,8 @@
       "nanoid@^3": "3.3.8",
       "socket.io-parser": "4.2.6",
       "serialize-javascript": "7.0.3",
-      "lodash-es": "4.17.23",
+      "lodash-es": "4.18.1",
+      "lodash": "4.18.1",
       "@hono/node-server": "1.19.10",
       "undici": "7.24.0",
       "ajv@^6": "6.14.0",
@@ -119,7 +120,16 @@
       "express-rate-limit": "8.2.2",
       "minimatch@^3": "3.1.5",
       "minimatch@^5": "5.1.8",
-      "flatted": "3.4.2"
+      "flatted": "3.4.2",
+      "picomatch@<2.3.2": "2.3.2",
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+      "fastify": "5.8.3",
+      "yaml@>=1.0.0 <1.10.3": "1.10.3",
+      "yaml@>=2.0.0 <2.8.3": "2.8.3",
+      "path-to-regexp@^8": "8.4.0",
+      "brace-expansion@^5": "5.0.5",
+      "@xmldom/xmldom": "0.8.12",
+      "handlebars": "4.7.9"
     },
     "neverBuiltDependencies": []
   }

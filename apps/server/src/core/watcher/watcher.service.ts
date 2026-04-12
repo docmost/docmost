@@ -50,12 +50,42 @@ export class WatcherService {
     return this.watcherRepo.insertMany(watchers, trx);
   }
 
-  async unwatchPage(userId: string, pageId: string) {
-    return this.watcherRepo.mute(userId, pageId);
+  async unwatchPage(
+    userId: string,
+    pageId: string,
+    spaceId: string,
+    workspaceId: string,
+  ) {
+    return this.watcherRepo.mute(userId, pageId, spaceId, workspaceId);
   }
 
   async isWatchingPage(userId: string, pageId: string): Promise<boolean> {
     return this.watcherRepo.isWatching(userId, pageId);
+  }
+
+  async watchSpace(
+    userId: string,
+    spaceId: string,
+    workspaceId: string,
+    trx?: KyselyTransaction,
+  ) {
+    const watcher: InsertableWatcher = {
+      userId,
+      pageId: null,
+      spaceId,
+      workspaceId,
+      type: WatcherType.SPACE,
+      addedById: userId,
+    };
+    return this.watcherRepo.upsertSpace(watcher, trx);
+  }
+
+  async unwatchSpace(userId: string, spaceId: string) {
+    return this.watcherRepo.deleteSpaceWatch(userId, spaceId);
+  }
+
+  async isWatchingSpace(userId: string, spaceId: string): Promise<boolean> {
+    return this.watcherRepo.isWatchingSpace(userId, spaceId);
   }
 
   async getPageWatchers(pageId: string, pagination: PaginationOptions) {

@@ -6,12 +6,14 @@ import {
   SpaceCaslAction,
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
+import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 
 @Injectable()
 export class PageAccessService {
   constructor(
     private readonly pagePermissionRepo: PagePermissionRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
+    private readonly spaceRepo: SpaceRepo,
   ) {}
 
   /**
@@ -98,5 +100,26 @@ export class PageAccessService {
     }
 
     return { hasRestriction: hasAnyRestriction };
+  }
+
+  async validateCanComment(
+    page: Page,
+    user: User,
+    workspaceId: string,
+  ): Promise<void> {
+    try {
+      await this.validateCanEdit(page, user);
+      return;
+    } catch {
+      // User cannot edit — check if reader commenting is enabled
+    }
+
+    await this.validateCanView(page, user);
+
+    const space = await this.spaceRepo.findById(page.spaceId, workspaceId);
+    const settings = space?.settings as Record<string, any> | null;
+    if (!settings?.comments?.allowViewerComments) {
+      throw new ForbiddenException();
+    }
   }
 }

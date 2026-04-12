@@ -252,11 +252,24 @@ export class EnvironmentService {
     return this.configService.get<string>('AI_COMPLETION_MODEL');
   }
 
+  getAiChatModel(): string {
+    return (
+      this.configService.get<string>('AI_CHAT_MODEL') ||
+      this.configService.get<string>('AI_COMPLETION_MODEL')
+    );
+  }
+
   getAiEmbeddingDimension(): number {
     return parseInt(
       this.configService.get<string>('AI_EMBEDDING_DIMENSION'),
       10,
     );
+  }
+
+  getAiEmbeddingSupportsMrl(): boolean | undefined {
+    const val = this.configService.get<string>('AI_EMBEDDING_SUPPORTS_MRL');
+    if (val === undefined || val === null || val === '') return undefined;
+    return val === 'true';
   }
 
   getOpenAiApiKey(): string {
