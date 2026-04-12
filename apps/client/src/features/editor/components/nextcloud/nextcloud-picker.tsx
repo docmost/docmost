@@ -216,7 +216,7 @@ export function NextcloudPicker({ editor }: Props) {
       editor
         .chain()
         .focus()
-        .setIframe({ src: embedUrl })
+        .setEmbed({ src: embedUrl, provider: "nextcloud" })
         .run();
 
       close();
