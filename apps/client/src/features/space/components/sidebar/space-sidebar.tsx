@@ -16,7 +16,6 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
-  IconTemplate,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -47,9 +46,6 @@ import ExportModal from "@/components/common/export-modal";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
-import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
-import { Feature } from "@/ee/features";
-import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
@@ -59,9 +55,7 @@ export function SpaceSidebar() {
     useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
-  const [entitlements] = useAtom(entitlementAtom);
-  const upgradeLabel = useUpgradeLabel();
-  const hasTemplates = entitlements?.features?.includes(Feature.TEMPLATES) ?? false;
+
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -143,44 +137,6 @@ export function SpaceSidebar() {
                 <span>{t("Space settings")}</span>
               </div>
             </UnstyledButton>
-
-            {hasTemplates ? (
-              <UnstyledButton
-                component={Link}
-                to="/templates"
-                className={clsx(
-                  classes.menu,
-                  location.pathname.toLowerCase() === "/templates"
-                    ? classes.activeButton
-                    : "",
-                )}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconTemplate
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("Templates")}</span>
-                </div>
-              </UnstyledButton>
-            ) : (
-              <Tooltip label={upgradeLabel} position="right" withArrow>
-                <UnstyledButton
-                  className={classes.menu}
-                  style={{ opacity: 0.5, cursor: "not-allowed" }}
-                >
-                  <div className={classes.menuItemInner}>
-                    <IconTemplate
-                      size={18}
-                      className={classes.menuItemIcon}
-                      stroke={2}
-                    />
-                    <span>{t("Templates")}</span>
-                  </div>
-                </UnstyledButton>
-              </Tooltip>
-            )}
 
             {spaceAbility.can(
               SpaceCaslAction.Manage,

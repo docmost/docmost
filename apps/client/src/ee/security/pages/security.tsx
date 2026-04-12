@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import EnforceMfa from "@/ee/security/components/enforce-mfa.tsx";
 import DisablePublicSharing from "@/ee/security/components/disable-public-sharing.tsx";
 import TrashRetention from "@/ee/security/components/trash-retention.tsx";
-import AllowMemberTemplates from "@/ee/security/components/allow-member-templates.tsx";
+
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 
@@ -42,9 +42,6 @@ export default function Security() {
       <Divider my="lg" />
 
       <TrashRetention />
-      <Divider my="lg" />
-
-      <AllowMemberTemplates />
       <Divider my="lg" />
 
       <Title order={4} my="lg">

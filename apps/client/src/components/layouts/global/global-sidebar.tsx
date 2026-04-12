@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollArea, Text, Divider, Modal, Tooltip } from "@mantine/core";
+import { ScrollArea, Text, Divider, Modal } from "@mantine/core";
 import {
   IconHome,
   IconClock,
@@ -7,13 +7,10 @@ import {
   IconLayoutGrid,
   IconSettings,
   IconUserPlus,
-  IconSearch,
-  IconTemplate,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./global-sidebar.module.css";
 import { useTranslation } from "react-i18next";
-import { searchSpotlight } from "@/features/search/constants";
 import { useAtom } from "jotai";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar";
@@ -23,15 +20,11 @@ import { useDisclosure } from "@mantine/hooks";
 import { WorkspaceInviteForm } from "@/features/workspace/components/members/components/workspace-invite-form";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types";
-import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
-import { Feature } from "@/ee/features";
-import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 const mainNavItems = [
   { label: "Home", icon: IconHome, path: "/home" },
   { label: "Favorites", icon: IconStar, path: "/favorites" },
   { label: "Spaces", icon: IconLayoutGrid, path: "/spaces" },
-  { label: "Templates", icon: IconTemplate, path: "/templates", feature: Feature.TEMPLATES },
 ];
 
 export default function GlobalSidebar() {
@@ -40,10 +33,6 @@ export default function GlobalSidebar() {
   const [active, setActive] = useState(location.pathname);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
-  const [entitlements] = useAtom(entitlementAtom);
-  const upgradeLabel = useUpgradeLabel();
-  const hasFeature = (f: string) =>
-    entitlements?.features?.includes(f) ?? false;
   const { data: favoriteSpacesData } = useFavoritesQuery("space");
   const favoriteSpaces = favoriteSpacesData?.pages.flatMap((p) => p.items) ?? [];
   const sortedFavoriteSpaces = [...favoriteSpaces]
@@ -69,51 +58,18 @@ export default function GlobalSidebar() {
     <div className={classes.navbar}>
       <ScrollArea w="100%" style={{ flex: 1 }}>
         <div className={classes.section}>
-          <a
-            className={classes.link}
-            onClick={(e) => {
-              e.preventDefault();
-              searchSpotlight.open();
-            }}
-            href="#"
-          >
-            <IconSearch className={classes.linkIcon} stroke={2} />
-            <span>{t("Search")}</span>
-          </a>
-          {mainNavItems.map((item) => {
-            const isDisabled = item.feature && !hasFeature(item.feature);
-
-            const linkElement = (
-              <Link
-                key={item.label}
-                className={classes.link}
-                data-active={active === item.path || undefined}
-                data-disabled={isDisabled || undefined}
-                to={isDisabled ? "#" : item.path}
-                onClick={(e) => {
-                  if (isDisabled) {
-                    e.preventDefault();
-                    return;
-                  }
-                  handleNavClick();
-                }}
-                style={isDisabled ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-              >
-                <item.icon className={classes.linkIcon} stroke={2} />
-                <span>{t(item.label)}</span>
-              </Link>
-            );
-
-            if (isDisabled) {
-              return (
-                <Tooltip key={item.label} label={upgradeLabel} position="right" withArrow>
-                  {linkElement}
-                </Tooltip>
-              );
-            }
-
-            return linkElement;
-          })}
+          {mainNavItems.map((item) => (
+            <Link
+              key={item.label}
+              className={classes.link}
+              data-active={active === item.path || undefined}
+              to={item.path}
+              onClick={handleNavClick}
+            >
+              <item.icon className={classes.linkIcon} stroke={2} />
+              <span>{t(item.label)}</span>
+            </Link>
+          ))}
         </div>
 
         <Divider my="xs" />
