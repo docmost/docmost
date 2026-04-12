@@ -113,33 +113,37 @@ export class VerificationNotificationService {
     data: IVerificationExpiredNotificationJob,
     appUrl: string,
   ) {
-    const v = await this.db
+    const verification = await this.db
       .selectFrom('pageVerifications')
       .selectAll()
       .where('id', '=', data.verificationId)
       .executeTakeFirst();
 
-    if (!v) return;
-    if (v.type !== 'expiring') return;
-    if (!v.expiresAt) return;
-    if (new Date(v.expiresAt).getTime() > Date.now()) return;
+    if (!verification) return;
+    if (verification.type !== 'expiring') return;
+    if (!verification.expiresAt) return;
+    if (new Date(verification.expiresAt).getTime() > Date.now()) return;
 
     const verifierRows = await this.db
       .selectFrom('pageVerifiers')
       .select('userId')
-      .where('pageVerificationId', '=', v.id)
+      .where('pageVerificationId', '=', verification.id)
       .execute();
     const verifierIds = verifierRows.map((r) => r.userId);
     if (verifierIds.length === 0) return;
 
     const accessibleVerifierIds = await this.filterAccessibleRecipients(
       verifierIds,
-      v.pageId,
-      v.spaceId,
+      verification.pageId,
+      verification.spaceId,
     );
     if (accessibleVerifierIds.length === 0) return;
 
-    const context = await this.getPageContext(v.pageId, v.spaceId, appUrl);
+    const context = await this.getPageContext(
+      verification.pageId,
+      verification.spaceId,
+      appUrl,
+    );
     if (!context) return;
 
     const { pageTitle, basePageUrl } = context;
@@ -147,10 +151,10 @@ export class VerificationNotificationService {
     for (const userId of accessibleVerifierIds) {
       const notification = await this.notificationService.create({
         userId,
-        workspaceId: v.workspaceId,
+        workspaceId: verification.workspaceId,
         type: NotificationType.PAGE_VERIFICATION_EXPIRED,
-        pageId: v.pageId,
-        spaceId: v.spaceId,
+        pageId: verification.pageId,
+        spaceId: verification.spaceId,
       });
 
       const subject = `"${pageTitle}" verification has expired`;
