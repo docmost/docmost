@@ -71,8 +71,8 @@ export class AttachmentService {
       }
 
       if (
-        existingAttachment.pageId !== pageId &&
-        existingAttachment.fileExt !== preparedFile.fileExtension &&
+        existingAttachment.pageId !== pageId ||
+        existingAttachment.fileExt !== preparedFile.fileExtension ||
         existingAttachment.workspaceId !== workspaceId
       ) {
         throw new BadRequestException('File attachment does not match');

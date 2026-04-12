@@ -21,6 +21,7 @@ import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
+import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
   email: z
@@ -62,52 +63,54 @@ export function LoginForm() {
   }
 
   return (
-    <Container size={420} className={classes.container}>
-      <Box p="xl" className={classes.containerBox}>
-        <Title order={2} ta="center" fw={500} mb="md">
-          {t("Login")}
-        </Title>
+    <AuthLayout>
+      <Container size={420} className={classes.container}>
+        <Box p="xl" className={classes.containerBox}>
+          <Title order={2} ta="center" fw={500} mb="md">
+            {t("Login")}
+          </Title>
 
-        <SsoLogin />
+          <SsoLogin />
 
-        {!data?.enforceSso && (
-          <>
-            <form onSubmit={form.onSubmit(onSubmit)}>
-              <TextInput
-                id="email"
-                type="email"
-                label={t("Email")}
-                placeholder="email@example.com"
-                variant="filled"
-                {...form.getInputProps("email")}
-              />
+          {!data?.enforceSso && (
+            <>
+              <form onSubmit={form.onSubmit(onSubmit)}>
+                <TextInput
+                  id="email"
+                  type="email"
+                  label={t("Email")}
+                  placeholder="email@example.com"
+                  variant="filled"
+                  {...form.getInputProps("email")}
+                />
 
-              <PasswordInput
-                label={t("Password")}
-                placeholder={t("Your password")}
-                variant="filled"
-                mt="md"
-                {...form.getInputProps("password")}
-              />
+                <PasswordInput
+                  label={t("Password")}
+                  placeholder={t("Your password")}
+                  variant="filled"
+                  mt="md"
+                  {...form.getInputProps("password")}
+                />
 
-              <Group justify="flex-end" mt="sm">
-                <Anchor
-                  to={APP_ROUTE.AUTH.FORGOT_PASSWORD}
-                  component={Link}
-                  underline="never"
-                  size="sm"
-                >
-                  {t("Forgot your password?")}
-                </Anchor>
-              </Group>
+                <Group justify="flex-end" mt="sm">
+                  <Anchor
+                    to={APP_ROUTE.AUTH.FORGOT_PASSWORD}
+                    component={Link}
+                    underline="never"
+                    size="sm"
+                  >
+                    {t("Forgot your password?")}
+                  </Anchor>
+                </Group>
 
-              <Button type="submit" fullWidth mt="md" loading={isLoading}>
-                {t("Sign In")}
-              </Button>
-            </form>
-          </>
-        )}
-      </Box>
-    </Container>
+                <Button type="submit" fullWidth mt="md" loading={isLoading}>
+                  {t("Sign In")}
+                </Button>
+              </form>
+            </>
+          )}
+        </Box>
+      </Container>
+    </AuthLayout>
   );
 }

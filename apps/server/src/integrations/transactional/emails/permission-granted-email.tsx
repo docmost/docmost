@@ -1,7 +1,7 @@
-import { Section, Text, Button } from '@react-email/components';
+import { Section, Text } from '@react-email/components';
 import * as React from 'react';
-import { button, content, paragraph } from '../css/styles';
-import { MailBody } from '../partials/partials';
+import { content, paragraph } from '../css/styles';
+import { EmailButton, MailBody } from '../partials/partials';
 
 interface Props {
   actorName: string;
@@ -25,19 +25,7 @@ export const PermissionGrantedEmail = ({
           <strong>{pageTitle}</strong>.
         </Text>
       </Section>
-      <Section
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingLeft: '15px',
-          paddingBottom: '15px',
-        }}
-      >
-        <Button href={pageUrl} style={button}>
-          View
-        </Button>
-      </Section>
+      <EmailButton href={pageUrl}>View</EmailButton>
     </MailBody>
   );
 };

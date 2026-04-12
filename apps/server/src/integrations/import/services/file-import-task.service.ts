@@ -25,6 +25,7 @@ import {
   buildAttachmentCandidates,
   collectMarkdownAndHtmlFiles,
   encodeFilePath,
+  extractNotionPartialId,
   readDocmostMetadata,
   stripNotionID,
 } from '../utils/import.utils';
@@ -160,9 +161,16 @@ export class FileImportTaskService {
     fileTask: FileTask;
   }): Promise<void> {
     const { extractDir, fileTask } = opts;
+    const isNotion = fileTask.source === FileImportSource.Notion;
     const allFiles = await collectMarkdownAndHtmlFiles(extractDir);
     const attachmentCandidates = await buildAttachmentCandidates(extractDir);
     const docmostMetadata = await readDocmostMetadata(extractDir);
+
+    const space = await this.db
+      .selectFrom('spaces')
+      .select(['slug'])
+      .where('id', '=', fileTask.spaceId)
+      .executeTakeFirst();
 
     const pagesMap = new Map<string, ImportPageNode>();
 
@@ -224,7 +232,17 @@ export class FileImportTaskService {
     }
 
     // For each folder with content, create a placeholder page if no corresponding .md or .html exists
-    foldersWithContent.forEach((folderPath) => {
+    // Process folders with partial UUIDs first so they claim their specific files
+    // before plain folders (without partial UUIDs) take whatever remains.
+    const sortedFolders = isNotion
+      ? [...foldersWithContent].sort((a, b) => {
+          const aHasPartial = extractNotionPartialId(path.basename(a)) ? 0 : 1;
+          const bHasPartial = extractNotionPartialId(path.basename(b)) ? 0 : 1;
+          return aHasPartial - bHasPartial;
+        })
+      : [...foldersWithContent];
+
+    sortedFolders.forEach((folderPath) => {
       if (
         skipRootFolder &&
         folderPath?.toLowerCase() === skipRootFolder?.toLowerCase()
@@ -237,18 +255,54 @@ export class FileImportTaskService {
 
       if (!pagesMap.has(mdPath) && !pagesMap.has(htmlPath)) {
         const folderName = path.basename(folderPath);
-        const encodedMdPath = encodeFilePath(mdPath);
-        const placeholderMetadata = docmostMetadata?.pages[encodedMdPath];
-        pagesMap.set(mdPath, {
-          id: v7(),
-          slugId: generateSlugId(),
-          name: stripNotionID(folderName),
-          content: '',
-          parentPageId: null,
-          fileExtension: '.md',
-          filePath: mdPath,
-          icon: placeholderMetadata?.icon ?? null,
-        });
+        const parentDir = path.dirname(folderPath);
+
+        // Notion no longer adds UUIDs to folder names, but still adds them to files.
+        // For duplicate names, Notion adds a partial UUID "{first4}-{last4}" to the folder.
+        let matched = false;
+        if (isNotion) {
+          const partialId = extractNotionPartialId(folderName);
+          const strippedFolderName = stripNotionID(folderName);
+          const isSameDir = (fileDir: string) =>
+            fileDir === parentDir || (parentDir === '.' && !fileDir.includes('/'));
+
+          for (const [filePath, page] of pagesMap.entries()) {
+            if (!isSameDir(path.dirname(filePath))) continue;
+            if (page.name !== strippedFolderName) continue;
+
+            if (partialId) {
+              // Match partial UUID against the full UUID in the filename
+              const fileBase = path.basename(filePath, path.extname(filePath));
+              const fullIdMatch = fileBase.match(/[a-f0-9]{32}$/i);
+              if (!fullIdMatch) continue;
+              const fullId = fullIdMatch[0].toLowerCase();
+              if (!fullId.startsWith(partialId.prefix) || !fullId.endsWith(partialId.suffix)) {
+                continue;
+              }
+            }
+
+            pagesMap.delete(filePath);
+            page.filePath = mdPath;
+            pagesMap.set(mdPath, page);
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          const encodedMdPath = encodeFilePath(mdPath);
+          const placeholderMetadata = docmostMetadata?.pages[encodedMdPath];
+          pagesMap.set(mdPath, {
+            id: v7(),
+            slugId: generateSlugId(),
+            name: stripNotionID(folderName),
+            content: '',
+            parentPageId: null,
+            fileExtension: '.md',
+            filePath: mdPath,
+            icon: placeholderMetadata?.icon ?? null,
+          });
+        }
       }
     });
 
@@ -458,6 +512,7 @@ export class FileImportTaskService {
               creatorId: fileTask.creatorId,
               sourcePageId: page.id,
               workspaceId: fileTask.workspaceId,
+              spaceSlug: space?.slug,
             });
 
             const pmState = getProsemirrorContent(

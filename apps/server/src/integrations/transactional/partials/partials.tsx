@@ -1,4 +1,4 @@
-import { container, footer, h1, logo, main } from '../css/styles';
+import { button as buttonStyle, container, footer, h1, logo, main } from '../css/styles';
 import {
   Body,
   Container,
@@ -32,6 +32,47 @@ export function MailHeader() {
     <Section style={logo}>
       {/* <Heading style={h1}>docmost</Heading> */}
     </Section>
+  );
+}
+
+interface EmailButtonProps {
+  href: string;
+  children: React.ReactNode;
+}
+
+export function EmailButton({ href, children }: EmailButtonProps) {
+  return (
+    <table
+      role="presentation"
+      cellPadding="0"
+      cellSpacing="0"
+      style={{ margin: '0 0 15px 15px' }}
+    >
+      <tr>
+        <td
+          style={{
+            backgroundColor: buttonStyle.backgroundColor,
+            borderRadius: buttonStyle.borderRadius,
+            textAlign: 'center' as const,
+          }}
+        >
+          <a
+            href={href}
+            target="_blank"
+            style={{
+              color: buttonStyle.color,
+              fontFamily: buttonStyle.fontFamily,
+              fontSize: buttonStyle.fontSize,
+              textDecoration: 'none',
+              display: 'inline-block',
+              padding: '8px 16px',
+            }}
+          >
+            {children}
+          </a>
+        </td>
+      </tr>
+    </table>
   );
 }
 
