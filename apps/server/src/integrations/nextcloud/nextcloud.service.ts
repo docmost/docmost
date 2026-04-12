@@ -50,7 +50,7 @@ export class NextcloudService {
         body,
       });
     } catch (err) {
-      throw new InternalServerErrorException(`Cannot reach Nextcloud: ${err.message}`);
+      throw new InternalServerErrorException(`Cannot reach Nextcloud: ${(err as Error).message}`);
     }
 
     if (!response.ok && response.status !== 207) {
@@ -94,7 +94,7 @@ export class NextcloudService {
         body: params.toString(),
       });
     } catch (err) {
-      throw new InternalServerErrorException(`Cannot reach Nextcloud: ${err.message}`);
+      throw new InternalServerErrorException(`Cannot reach Nextcloud: ${(err as Error).message}`);
     }
 
     if (!response.ok) {
