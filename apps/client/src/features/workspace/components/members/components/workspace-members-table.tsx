@@ -73,6 +73,7 @@ export default function WorkspaceMembersTable() {
                       <CustomAvatar
                         avatarUrl={user.avatarUrl}
                         name={user.name}
+                        email={user.email}
                       />
                       <div>
                         <Text fz="sm" fw={500} lineClamp={1}>

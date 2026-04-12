@@ -18,6 +18,7 @@ const renderMultiSelectOption: MultiSelectProps["renderOption"] = ({
     <CustomAvatar
       avatarUrl={option?.["avatarUrl"]}
       name={option.label}
+      email={option?.["email"]}
       size={36}
     />
     <div>

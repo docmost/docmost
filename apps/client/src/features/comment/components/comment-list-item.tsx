@@ -129,6 +129,7 @@ function CommentListItem({
           size="sm"
           avatarUrl={comment.creator.avatarUrl}
           name={comment.creator.name}
+          email={comment.creator.email}
         />
 
         <div style={{ flex: 1 }}>

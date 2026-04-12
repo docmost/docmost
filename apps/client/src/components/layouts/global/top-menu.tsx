@@ -87,6 +87,7 @@ export default function TopMenu() {
               size={"sm"}
               avatarUrl={user.avatarUrl}
               name={user.name}
+              email={user.email}
             />
 
             <div style={{ width: 190 }}>

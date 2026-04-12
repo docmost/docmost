@@ -10,7 +10,7 @@ interface UserInfoProps {
 export function UserInfo({ user, size }: UserInfoProps) {
   return (
     <Group gap="sm" wrap="nowrap">
-      <CustomAvatar avatarUrl={user?.avatarUrl} name={user?.name} size={size} />
+      <CustomAvatar avatarUrl={user?.avatarUrl} name={user?.name} email={user?.email} size={size} />
       <div>
         <Text fz="sm" fw={500} lineClamp={1}>
           {user?.name}
