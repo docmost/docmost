@@ -11,7 +11,9 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 import { Youtube } from "@tiptap/extension-youtube";
-import SlashCommand from "@/features/editor/extensions/slash-command";
+import SlashCommand, { SlashCommandExtension as Command } from "@/features/editor/extensions/slash-command";
+import renderItems from "@/features/editor/components/slash-menu/render-items";
+import getSuggestionItems from "@/features/editor/components/slash-menu/menu-items";
 import { Collaboration, isChangeOrigin } from "@tiptap/extension-collaboration";
 import { CollaborationCaret } from "@tiptap/extension-collaboration-caret";
 import { HocuspocusProvider } from "@hocuspocus/provider";
@@ -47,7 +49,7 @@ import {
   SharedStorage,
   Columns,
   Column,
-  Status
+  Status,
 } from "@docmost/editor-ext";
 import {
   randomElement,
@@ -346,6 +348,27 @@ export const mainExtensions = [
 ] as any;
 
 type CollabExtensions = (provider: HocuspocusProvider, user: IUser) => any[];
+
+const TEMPLATE_EXCLUDED_SLASH_ITEMS = new Set([
+  "Image",
+  "Video",
+  "File attachment",
+  "Draw.io (diagrams.net)",
+  "Excalidraw diagram",
+]);
+
+const TemplateSlashCommand = Command.configure({
+  suggestion: {
+    items: ({ query }: { query: string }) =>
+      getSuggestionItems({ query, excludeItems: TEMPLATE_EXCLUDED_SLASH_ITEMS }),
+    render: renderItems,
+  },
+});
+
+export const templateExtensions = [
+  ...mainExtensions.filter((ext: any) => ext !== SlashCommand),
+  TemplateSlashCommand,
+] as any;
 
 export const collabExtensions: CollabExtensions = (provider, user) => [
   Collaboration.configure({

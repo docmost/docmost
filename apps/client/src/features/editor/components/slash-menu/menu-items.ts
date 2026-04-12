@@ -351,7 +351,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run(),
     },
     {
-      title: "Draw.io (diagrams.net) ",
+      title: "Draw.io (diagrams.net)",
       description: "Insert and design Drawio diagrams",
       searchTerms: ["drawio", "diagrams", "charts", "uml", "whiteboard"],
       icon: IconDrawio,
@@ -620,8 +620,10 @@ const CommandGroups: SlashMenuGroupedItemsType = {
 
 export const getSuggestionItems = ({
   query,
+  excludeItems,
 }: {
   query: string;
+  excludeItems?: Set<string>;
 }): SlashMenuGroupedItemsType => {
   const search = query.toLowerCase();
   const filteredGroups: SlashMenuGroupedItemsType = {};
@@ -638,6 +640,7 @@ export const getSuggestionItems = ({
 
   for (const [group, items] of Object.entries(CommandGroups)) {
     const filteredItems = items.filter((item) => {
+      if (excludeItems?.has(item.title)) return false;
       return (
         fuzzyMatch(search, item.title) ||
         item.description.toLowerCase().includes(search) ||

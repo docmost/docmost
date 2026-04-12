@@ -38,6 +38,9 @@ import UserApiKeys from "@/ee/api-key/pages/user-api-keys";
 import WorkspaceApiKeys from "@/ee/api-key/pages/workspace-api-keys";
 import AiSettings from "@/ee/ai/pages/ai-settings.tsx";
 import AuditLogs from "@/ee/audit/pages/audit-logs.tsx";
+import TemplateList from "@/ee/template/pages/template-list";
+import TemplateEditor from "@/ee/template/pages/template-editor";
+import FavoritesPage from "@/pages/favorites/favorites-page";
 import VerifyEmail from "@/ee/pages/verify-email.tsx";
 
 export default function App() {
@@ -82,6 +85,12 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
           <Route path={"/spaces"} element={<SpacesPage />} />
+          <Route path={"/favorites"} element={<FavoritesPage />} />
+          <Route path={"/templates"} element={<TemplateList />} />
+          <Route
+            path={"/templates/:templateId"}
+            element={<TemplateEditor />}
+          />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
           <Route path={"/s/:spaceSlug/trash"} element={<SpaceTrash />} />
           <Route

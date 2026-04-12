@@ -20,11 +20,13 @@ import {
   AuthProviders,
   AuthAccounts,
   Shares,
+  Favorites,
   FileTasks,
   UserMfa as _UserMFA,
   ApiKeys,
   Watchers,
   Audit as _Audit,
+  Templates,
 } from './db';
 import { PageEmbeddings } from '@docmost/db/types/embeddings.types';
 
@@ -117,6 +119,11 @@ export type Share = Selectable<Shares>;
 export type InsertableShare = Insertable<Shares>;
 export type UpdatableShare = Updateable<Omit<Shares, 'id'>>;
 
+// Favorite
+export type Favorite = Selectable<Favorites>;
+export type InsertableFavorite = Insertable<Favorites>;
+export type UpdatableFavorite = Updateable<Omit<Favorites, 'id'>>;
+
 // File Task
 export type FileTask = Selectable<FileTasks>;
 export type InsertableFileTask = Insertable<FileTasks>;
@@ -161,3 +168,8 @@ export type UpdatablePagePermission = Updateable<Omit<_PagePermissions, 'id'>>;
 export type Audit = Selectable<_Audit>;
 export type InsertableAudit = Insertable<_Audit>;
 export type UpdatableAudit = Updateable<Omit<_Audit, 'id'>>;
+
+// Template
+export type Template = Selectable<Templates>;
+export type InsertableTemplate = Insertable<Templates>;
+export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;

@@ -50,4 +50,8 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @IsInt()
   @Min(1)
   trashRetentionDays: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowMemberTemplates: boolean;
 }
