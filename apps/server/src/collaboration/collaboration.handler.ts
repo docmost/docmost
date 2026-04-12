@@ -5,6 +5,7 @@ import {
   prosemirrorNodeToYElement,
   tiptapExtensions,
 } from './collaboration.util';
+import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
 
@@ -26,6 +27,53 @@ export class CollaborationHandler {
         // await this.withYdocConnection(hocuspocus, documentName, {}, (doc) => {
         //   const fragment = doc.getXmlFragment('default');
         //});
+      },
+      setCommentMark: async (
+        documentName: string,
+        payload: {
+          yjsSelection: YjsSelection;
+          commentId: string;
+          resolved: boolean;
+          user: User;
+        },
+      ) => {
+        const { yjsSelection, commentId, resolved, user } = payload;
+        await this.withYdocConnection(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            const fragment = doc.getXmlFragment('default');
+            setYjsMark(doc, fragment, yjsSelection, 'comment', {
+              commentId,
+              resolved,
+            });
+          },
+        );
+      },
+      resolveCommentMark: async (
+        documentName: string,
+        payload: {
+          commentId: string;
+          resolved: boolean;
+          user: User;
+        },
+      ) => {
+        const { commentId, resolved, user } = payload;
+        await this.withYdocConnection(
+          hocuspocus,
+          documentName,
+          { user },
+          (doc) => {
+            const fragment = doc.getXmlFragment('default');
+            updateYjsMarkAttribute(
+              fragment,
+              'comment',
+              { name: 'commentId', value: commentId },
+              { resolved },
+            );
+          },
+        );
       },
       updatePageContent: async (
         documentName: string,
@@ -58,8 +106,7 @@ export class CollaborationHandler {
             } else {
               const newContent = prosemirrorJson.content || [];
               const yElements = newContent.map(prosemirrorNodeToYElement);
-              const position =
-                operation === 'prepend' ? 0 : fragment.length;
+              const position = operation === 'prepend' ? 0 : fragment.length;
               fragment.insert(position, yElements);
             }
           },

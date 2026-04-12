@@ -142,6 +142,18 @@ export function isUserDisabled(user: {
   return !!(user.deactivatedAt || user.deletedAt);
 }
 
+const SENSITIVE_URL_PREFIXES = ['/api/sso/'];
+
+export function redactSensitiveUrl(url: string): string {
+  if (url && SENSITIVE_URL_PREFIXES.some((prefix) => url.includes(prefix))) {
+    const qsIndex = url.indexOf('?');
+    if (qsIndex !== -1) {
+      return url.substring(0, qsIndex);
+    }
+  }
+  return url;
+}
+
 export function createByteCountingStream(source: Readable) {
   let bytesRead = 0;
   const stream = new Transform({

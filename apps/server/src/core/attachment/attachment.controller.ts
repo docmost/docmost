@@ -179,21 +179,29 @@ export class AttachmentController {
     }
 
     const attachment = await this.attachmentRepo.findById(fileId);
-    if (
-      !attachment ||
-      attachment.workspaceId !== workspace.id ||
-      !attachment.pageId ||
-      !attachment.spaceId
-    ) {
+    if (!attachment || attachment.workspaceId !== workspace.id) {
       throw new NotFoundException();
     }
 
-    const page = await this.pageRepo.findById(attachment.pageId);
-    if (!page) {
-      throw new NotFoundException();
-    }
+    if (attachment.aiChatId) {
+      // Chat-owned attachment: only the user who uploaded (and therefore
+      // owns the chat, per AttachmentRepo.claimAttachmentsForChat) can
+      // read it back.
+      if (attachment.creatorId !== user.id) {
+        throw new NotFoundException();
+      }
+    } else {
+      if (!attachment.pageId || !attachment.spaceId) {
+        throw new NotFoundException();
+      }
 
-    await this.pageAccessService.validateCanView(page, user);
+      const page = await this.pageRepo.findById(attachment.pageId);
+      if (!page) {
+        throw new NotFoundException();
+      }
+
+      await this.pageAccessService.validateCanView(page, user);
+    }
 
     try {
       return await this.sendFileResponse(req, res, attachment, 'private');
@@ -479,6 +487,10 @@ export class AttachmentController {
     const rangeHeader = req.headers.range;
 
     res.header('Accept-Ranges', 'bytes');
+    res.header(
+      'Content-Security-Policy',
+      "base-uri 'none'; object-src 'self'; default-src 'self';",
+    );
 
     if (!inlineFileExtensions.includes(attachment.fileExt)) {
       res.header(

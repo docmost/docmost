@@ -5,8 +5,10 @@
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  position: relative;
-  line-height: 0;
+}
+
+.skeleton {
+  animation: pulse 1.2s ease-in-out infinite;
 
   @mixin light {
     background: linear-gradient(-90deg, var(--mantine-color-gray-3) 0%, var(--mantine-color-gray-1) 50%, var(--mantine-color-gray-3) 100%);

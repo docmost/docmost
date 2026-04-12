@@ -16,4 +16,5 @@ export const Feature = {
   AUDIT_LOGS: 'audit:logs',
   RETENTION: 'retention',
   SHARING_CONTROLS: 'sharing:controls',
+  VIEWER_COMMENTS: 'comment:viewer',
 } as const;

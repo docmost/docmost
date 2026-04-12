@@ -21,10 +21,7 @@ import { AuditContextMiddleware } from '../common/middlewares/audit-context.midd
 import { ShareModule } from './share/share.module';
 import { NotificationModule } from './notification/notification.module';
 import { WatcherModule } from './watcher/watcher.module';
-import {
-  AUDIT_SERVICE,
-  NoopAuditService,
-} from '../integrations/audit/audit.service';
+import { SessionModule } from './session/session.module';
 import { ClsMiddleware } from 'nestjs-cls';
 
 @Module({
@@ -44,6 +41,7 @@ import { ClsMiddleware } from 'nestjs-cls';
     ShareModule,
     NotificationModule,
     WatcherModule,
+    SessionModule,
   ],
 })
 export class CoreModule implements NestModule {
