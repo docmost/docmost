@@ -17,6 +17,7 @@ export const Feature = {
   RETENTION: 'retention',
   SHARING_CONTROLS: 'sharing:controls',
   VIEWER_COMMENTS: 'comment:viewer',
+  TEMPLATES: 'templates',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];

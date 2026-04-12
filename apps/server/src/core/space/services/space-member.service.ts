@@ -17,6 +17,7 @@ import { UpdateSpaceMemberRoleDto } from '../dto/update-space-member-role.dto';
 import { SpaceRole } from '../../../common/helpers/types/permission';
 import { CursorPaginationResult } from '@docmost/db/pagination/cursor-pagination';
 import { WatcherRepo } from '@docmost/db/repos/watcher/watcher.repo';
+import { FavoriteRepo } from '@docmost/db/repos/favorite/favorite.repo';
 import { executeTx } from '@docmost/db/utils';
 import { AuditEvent, AuditResource } from '../../../common/events/audit-events';
 import {
@@ -31,6 +32,7 @@ export class SpaceMemberService {
     private groupUserRepo: GroupUserRepo,
     private spaceRepo: SpaceRepo,
     private watcherRepo: WatcherRepo,
+    private favoriteRepo: FavoriteRepo,
     @InjectKysely() private readonly db: KyselyDB,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
@@ -268,6 +270,12 @@ export class SpaceMemberService {
       );
 
       await this.watcherRepo.deleteByUsersWithoutSpaceAccess(
+        affectedUserIds,
+        dto.spaceId,
+        { trx },
+      );
+
+      await this.favoriteRepo.deleteByUsersWithoutSpaceAccess(
         affectedUserIds,
         dto.spaceId,
         { trx },

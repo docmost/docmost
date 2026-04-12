@@ -175,6 +175,17 @@ export interface Comments {
   workspaceId: string;
 }
 
+export interface Favorites {
+  id: Generated<string>;
+  userId: string;
+  pageId: string | null;
+  spaceId: string | null;
+  templateId: string | null;
+  type: string;
+  workspaceId: string;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface FileTasks {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
@@ -463,6 +474,25 @@ export interface PageVerifiers {
   createdAt: Generated<Timestamp>;
 }
 
+export interface Templates {
+  id: Generated<string>;
+  title: string | null;
+  description: string | null;
+  content: Json | null;
+  ydoc: Buffer | null;
+  icon: string | null;
+  spaceId: string | null;
+  workspaceId: string;
+  creatorId: string | null;
+  lastUpdatedById: string | null;
+  collaboratorIds: string[] | null;
+  textContent: string | null;
+  tsv: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
 export interface AiChats {
   id: Generated<string>;
   workspaceId: string;
@@ -514,6 +544,7 @@ export interface DB {
   backlinks: Backlinks;
   billing: Billing;
   comments: Comments;
+  favorites: Favorites;
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
@@ -527,6 +558,7 @@ export interface DB {
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
+  templates: Templates;
   userMfa: UserMfa;
   users: Users;
   userSessions: UserSessions;
