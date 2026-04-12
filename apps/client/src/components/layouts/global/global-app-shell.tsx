@@ -10,6 +10,7 @@ import {
   sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
+import AiChatSidebar from "@/ee/ai-chat/components/ai-chat-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
@@ -73,6 +74,9 @@ export default function GlobalAppShell({
   const location = useLocation();
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
+  const isAiRoute = location.pathname.startsWith("/ai");
+  const isHomeRoute = location.pathname.startsWith("/home");
+  const isSpacesRoute = location.pathname === "/spaces";
   const isPageRoute = location.pathname.includes("/p/");
   const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute;
 
@@ -99,16 +103,19 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      <AppShell.Navbar
-        className={classes.navbar}
-        withBorder={false}
-        ref={sidebarRef}
-      >
-        {isSpaceRoute && <div className={classes.resizeHandle} onMouseDown={startResizing} />}
-        {isSpaceRoute && <SpaceSidebar />}
-        {isSettingsRoute && <SettingsSidebar />}
-        {showGlobalSidebar && <GlobalSidebar />}
-      </AppShell.Navbar>
+      {!hideSidebar && (
+        <AppShell.Navbar
+          className={classes.navbar}
+          withBorder={false}
+          ref={sidebarRef}
+        >
+          {!isAiRoute && <div className={classes.resizeHandle} onMouseDown={startResizing} />}
+          {isSpaceRoute && <SpaceSidebar />}
+          {isSettingsRoute && <SettingsSidebar />}
+          {isAiRoute && <AiChatSidebar />}
+          {showGlobalSidebar && <GlobalSidebar />}
+        </AppShell.Navbar>
+      )}
       <AppShell.Main>
         {isSettingsRoute ? (
           <Container size={850}>{children}</Container>

@@ -43,6 +43,7 @@ export interface ApiKeys {
 }
 
 export interface Attachments {
+  aiChatId: string | null;
   createdAt: Generated<Timestamp>;
   creatorId: string;
   deletedAt: Timestamp | null;
@@ -459,7 +460,49 @@ export interface Templates {
   deletedAt: Timestamp | null;
 }
 
+export interface AiChats {
+  id: Generated<string>;
+  workspaceId: string;
+  creatorId: string;
+  title: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface AiChatMessages {
+  id: Generated<string>;
+  chatId: string;
+  workspaceId: string;
+  userId: string | null;
+  role: string;
+  content: string | null;
+  toolCalls: Json | null;
+  metadata: Json | null;
+  tsv: string | null;
+  createdAt: Generated<Timestamp>;
+  updatedAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+}
+
+export interface UserSessions {
+  id: Generated<string>;
+  userId: string;
+  workspaceId: string;
+  deviceName: string | null;
+  userAgent: string | null;
+  ipAddress: string | null;
+  geoLocation: string | null;
+  metadata: Json | null;
+  lastActiveAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  revokedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface DB {
+  aiChats: AiChats;
+  aiChatMessages: AiChatMessages;
   apiKeys: ApiKeys;
   attachments: Attachments;
   audit: Audit;
@@ -483,6 +526,7 @@ export interface DB {
   templates: Templates;
   userMfa: UserMfa;
   users: Users;
+  userSessions: UserSessions;
   userTokens: UserTokens;
   watchers: Watchers;
   workspaceInvitations: WorkspaceInvitations;

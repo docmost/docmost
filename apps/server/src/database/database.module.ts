@@ -17,6 +17,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as process from 'node:process';
 import { MigrationService } from '@docmost/db/services/migration.service';
 import { UserTokenRepo } from './repos/user-token/user-token.repo';
+import { UserSessionRepo } from '@docmost/db/repos/session/user-session.repo';
 import { BacklinkRepo } from '@docmost/db/repos/backlink/backlink.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { NotificationRepo } from '@docmost/db/repos/notification/notification.repo';
@@ -79,6 +80,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     FavoriteRepo,
     AttachmentRepo,
     UserTokenRepo,
+    UserSessionRepo,
     BacklinkRepo,
     ShareRepo,
     NotificationRepo,
@@ -100,6 +102,7 @@ import { normalizePostgresUrl } from '../common/helpers';
     FavoriteRepo,
     AttachmentRepo,
     UserTokenRepo,
+    UserSessionRepo,
     BacklinkRepo,
     ShareRepo,
     NotificationRepo,

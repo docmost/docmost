@@ -9,6 +9,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
+import { AuthLayout } from "@/features/auth/components/auth-layout.tsx";
 
 export default function VerifyEmail() {
   const { t } = useTranslation();
@@ -59,20 +60,23 @@ export default function VerifyEmail() {
 
   if (token) {
     return (
-      <Container size={420} className={classes.container}>
-        <Box p="xl" className={classes.containerBox}>
-          <Title order={2} ta="center" fw={500} mb="md">
-            {t("Verifying your email")}
-          </Title>
-          <Text ta="center" c="dimmed">
-            {t("Please wait...")}
-          </Text>
-        </Box>
-      </Container>
+      <AuthLayout>
+        <Container size={420} className={classes.container}>
+          <Box p="xl" className={classes.containerBox}>
+            <Title order={2} ta="center" fw={500} mb="md">
+              {t("Verifying your email")}
+            </Title>
+            <Text ta="center" c="dimmed">
+              {t("Please wait...")}
+            </Text>
+          </Box>
+        </Container>
+      </AuthLayout>
     );
   }
 
   return (
+    <AuthLayout>
     <Container size={420} className={classes.container}>
       <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
@@ -103,5 +107,6 @@ export default function VerifyEmail() {
         )}
       </Box>
     </Container>
+    </AuthLayout>
   );
 }

@@ -45,6 +45,7 @@ export interface IWorkspaceAiSettings {
   search?: boolean;
   generative?: boolean;
   mcp?: boolean;
+  chat?: boolean;
 }
 
 export interface IWorkspaceSharingSettings {

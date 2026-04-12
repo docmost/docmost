@@ -87,3 +87,7 @@ export function MailFooter() {
     </Section>
   );
 }
+
+export function getGreetingName(name?: string): string {
+  return name?.split(' ')[0] || 'there';
+}

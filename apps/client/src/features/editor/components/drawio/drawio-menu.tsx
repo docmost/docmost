@@ -8,6 +8,7 @@ import {
 } from "@/features/editor/components/table/types/types.ts";
 import {
   ActionIcon,
+  LoadingOverlay,
   Modal,
   Text,
   Tooltip,
@@ -46,6 +47,8 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   const computedColorScheme = useComputedColorScheme();
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const editorState = useEditorState({
     editor,
@@ -140,6 +143,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     if (isSavingRef.current) return;
 
     isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
       const svgString = decodeBase64ToSvgString(svgXml);
@@ -167,6 +171,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
       isDirtyRef.current = false;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
   }, [editor, editorState?.attachmentId]);
 
@@ -196,6 +201,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
   const handleOpen = useCallback(async () => {
     if (!editorState?.src) return;
 
+    setIsLoading(true);
     try {
       const url = getFileUrl(editorState.src);
       const request = await fetch(url, {
@@ -213,6 +219,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     } catch (err) {
       console.error(err);
     } finally {
+      setIsLoading(false);
       isDirtyRef.current = false;
       open();
     }
@@ -307,6 +314,7 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
               size="lg"
               aria-label={t("Edit")}
               variant="subtle"
+              loading={isLoading}
             >
               <IconEdit size={18} />
             </ActionIcon>
@@ -339,7 +347,8 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
       <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>
         <Modal.Overlay />
         <Modal.Content style={{ overflow: "hidden" }}>
-          <Modal.Body>
+          <Modal.Body pos="relative">
+            <LoadingOverlay visible={isSaving} />
             <div style={{ height: "100vh" }}>
               <DrawIoEmbed
                 ref={drawioRef}

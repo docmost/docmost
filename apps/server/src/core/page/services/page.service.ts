@@ -47,6 +47,10 @@ import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { EventName } from '../../../common/events/event.contants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CollaborationGateway } from '../../../collaboration/collaboration.gateway';
+import {
+  INTERNAL_LINK_REGEX,
+  extractPageSlugId,
+} from '../../../integrations/export/utils';
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
@@ -510,6 +514,11 @@ export class PageService {
       });
     });
 
+    const slugIdMap = new Map<string, CopyPageMapEntry>();
+    for (const [, entry] of pageMap) {
+      slugIdMap.set(entry.oldSlugId, entry);
+    }
+
     const attachmentMap = new Map<string, ICopyPageAttachment>();
 
     const insertablePages: InsertablePage[] = await Promise.all(
@@ -574,6 +583,28 @@ export class PageService {
               node.attrs.entityId = mappedPage.newPageId;
               //@ts-ignore
               node.attrs.slugId = mappedPage.newSlugId;
+            }
+          }
+
+          // Update internal page links in link marks
+          for (const mark of node.marks) {
+            if (
+              mark.type.name === 'link' &&
+              mark.attrs.internal &&
+              mark.attrs.href
+            ) {
+              const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
+              if (match) {
+                const slugId = extractPageSlugId(match[5]);
+                if (slugId && slugIdMap.has(slugId)) {
+                  const mappedPage = slugIdMap.get(slugId);
+                  //@ts-ignore
+                  mark.attrs.href = mark.attrs.href.replace(
+                    slugId,
+                    mappedPage.newSlugId,
+                  );
+                }
+              }
             }
           }
         });

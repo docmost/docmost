@@ -133,8 +133,16 @@
     border-top: 1px solid #68cef8;
   }
 
+  &[contenteditable="false"] hr.ProseMirror-selectednode {
+    border-top: none;
+  }
+
   .ProseMirror-selectednode {
     outline: 2px solid #70cff8;
+  }
+
+  &[contenteditable="false"] .ProseMirror-selectednode {
+    outline: none;
   }
 
   & > .react-renderer {

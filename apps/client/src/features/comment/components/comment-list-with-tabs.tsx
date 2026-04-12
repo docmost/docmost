@@ -44,7 +44,9 @@ function CommentListWithTabs() {
   const [isLoading, setIsLoading] = useState(false);
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
-  const canComment = page?.permissions?.canEdit ?? false;
+  const canComment =
+    (page?.permissions?.canEdit ?? false) ||
+    (space?.settings?.comments?.allowViewerComments === true);
 
   // Separate active and resolved comments
   const { activeComments, resolvedComments } = useMemo(() => {
@@ -153,7 +155,7 @@ function CommentListWithTabs() {
         )}
       </Paper>
     ),
-    [comments, handleAddReply, isLoading, space?.membership?.role],
+    [comments, handleAddReply, isLoading, space?.membership?.role, canComment],
   );
 
   if (isCommentsLoading) {

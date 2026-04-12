@@ -12,7 +12,9 @@ import {
   IconMath,
   IconMathFunction,
   IconMovie,
+  IconMusic,
   IconPaperclip,
+  IconFileTypePdf,
   IconPhoto,
   IconTable,
   IconTypography,
@@ -30,7 +32,9 @@ import {
 } from "@/features/editor/components/slash-menu/types";
 import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
 import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
+import { uploadAudioAction } from "@/features/editor/components/audio/upload-audio-action.tsx";
 import { uploadAttachmentAction } from "@/features/editor/components/attachment/upload-attachment-action.tsx";
+import { uploadPdfAction } from "@/features/editor/components/pdf/upload-pdf-action.tsx";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
 import IconMermaid from "@/components/icons/icon-mermaid";
 import IconDrawio from "@/components/icons/icon-drawio";
@@ -161,7 +165,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Image",
       description: "Upload any image from your device.",
-      searchTerms: ["photo", "picture", "media"],
+      searchTerms: ["photo", "picture", "media", "file", "attachment"],
       icon: IconPhoto,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -194,7 +198,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "Video",
       description: "Upload any video from your device.",
-      searchTerms: ["video", "mp4", "media"],
+      searchTerms: ["video", "mp4", "media", "file", "attachment"],
       icon: IconMovie,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -225,9 +229,73 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       },
     },
     {
+      title: "Audio",
+      description: "Upload any audio from your device.",
+      searchTerms: ["audio", "music", "sound", "mp3", "media", "file", "attachment"],
+      icon: IconMusic,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).run();
+
+        // @ts-ignore
+        const pageId = editor.storage?.pageId;
+        if (!pageId) return;
+
+        // upload audio
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "audio/*";
+        input.multiple = true;
+        input.style.display = "none";
+        document.body.appendChild(input);
+        input.onchange = async () => {
+          if (input.files?.length) {
+            for (const file of input.files) {
+              const pos = editor.view.state.selection.from;
+
+              uploadAudioAction(file, editor, pos, pageId);
+            }
+          }
+
+          input.remove();
+        };
+        input.click();
+      },
+    },
+    {
+      title: "Embed PDF",
+      description: "Upload and embed a PDF file.",
+      searchTerms: ["pdf", "document", "embed"],
+      icon: IconFileTypePdf,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).run();
+
+        // @ts-ignore
+        const pageId = editor.storage?.pageId;
+        if (!pageId) return;
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/pdf";
+        input.style.display = "none";
+        document.body.appendChild(input);
+        input.onchange = async () => {
+          if (input.files?.length) {
+            for (const file of input.files) {
+              const pos = editor.view.state.selection.from;
+
+              uploadPdfAction(file, editor, pos, pageId);
+            }
+          }
+
+          input.remove();
+        };
+        input.click();
+      },
+    },
+    {
       title: "File attachment",
       description: "Upload any file from your device.",
-      searchTerms: ["file", "attachment", "upload", "pdf", "csv", "zip"],
+      searchTerms: ["file", "attachment", "upload", "csv", "zip"],
       icon: IconPaperclip,
       command: ({ editor, range }) => {
         editor.chain().focus().deleteRange(range).run();
@@ -359,7 +427,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
         editor.chain().focus().deleteRange(range).setDrawio().run(),
     },
     {
-      title: "Excalidraw diagram",
+      title: "Excalidraw (Whiteboard)",
       description: "Draw and sketch excalidraw diagrams",
       searchTerms: ["diagrams", "draw", "sketch", "whiteboard"],
       icon: IconExcalidraw,
@@ -548,7 +616,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
     {
       title: "YouTube",
       description: "Embed YouTube video",
-      searchTerms: ["youtube", "yt"],
+      searchTerms: ["youtube", "yt", "media", "video"],
       icon: YoutubeIcon,
       command: ({ editor, range }: CommandProps) => {
         editor
@@ -650,7 +718,11 @@ export const getSuggestionItems = ({
     });
 
     if (filteredItems.length) {
-      filteredGroups[group] = filteredItems;
+      filteredGroups[group] = filteredItems.sort((a, b) => {
+        const aTitle = a.title.toLowerCase().includes(search) ? 0 : 1;
+        const bTitle = b.title.toLowerCase().includes(search) ? 0 : 1;
+        return aTitle - bTitle;
+      });
     }
   }
 

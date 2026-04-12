@@ -117,6 +117,12 @@ export class EnvironmentVariables {
   @IsString()
   AI_EMBEDDING_DIMENSION: string;
 
+  @IsOptional()
+  @ValidateIf((obj) => obj.AI_EMBEDDING_SUPPORTS_MRL)
+  @IsIn(['true', 'false'])
+  @IsString()
+  AI_EMBEDDING_SUPPORTS_MRL: string;
+
   @ValidateIf((obj) => obj.AI_DRIVER)
   @IsString()
   @IsNotEmpty()
