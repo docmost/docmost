@@ -33,7 +33,7 @@ export default function GlobalSidebar() {
   const [active, setActive] = useState(location.pathname);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
-  const { data: favoriteSpacesData } = useFavoritesQuery("space");
+  const { data: favoriteSpacesData, isPending: isFavoritesPending } = useFavoritesQuery("space");
   const favoriteSpaces = favoriteSpacesData?.pages.flatMap((p) => p.items) ?? [];
   const sortedFavoriteSpaces = [...favoriteSpaces]
     .filter((fav) => fav.space)
@@ -75,7 +75,7 @@ export default function GlobalSidebar() {
         <Divider my="xs" />
         <div className={classes.section}>
           <Text className={classes.sectionHeader}>{t("Favorite spaces")}</Text>
-          {sortedFavoriteSpaces.length === 0 ? (
+          {!isFavoritesPending && sortedFavoriteSpaces.length === 0 ? (
             <Text size="xs" c="dimmed" pl="xs" py={4}>
               {t("Favorite spaces appear here")}
             </Text>
