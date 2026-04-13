@@ -104,6 +104,24 @@ export const embedProviders: IEmbedProvider[] = [
       return url;
     },
   },
+    {
+    id: "nextcloud",
+    name: "Nextcloud",
+    regex: /^https?:\/\/.+\/(?:index\.php\/)?s\/([a-zA-Z0-9]+)/,
+    getEmbedUrl: (match, url: string) => {
+      const cleanUrl = url.split("#")[0];
+      return `${cleanUrl}?embedded=1`;
+    },
+  },
+  {
+  id: "cloudreve",
+  name: "Cloudreve",
+  regex: /^https?:\/\/.+\/s\/([a-zA-Z0-9]+)/,
+  getEmbedUrl: (match: RegExpMatchArray, url: string) => {
+    const cleanUrl = url.split("#")[0].split("?")[0];
+    return `${cleanUrl}?embed=true`;
+  },
+},
   {
     id: "iframe",
     name: "Iframe",
