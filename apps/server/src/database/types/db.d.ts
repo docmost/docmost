@@ -400,6 +400,7 @@ export interface Notifications {
   pageId: string | null;
   spaceId: string | null;
   commentId: string | null;
+  pageVerificationId: string | null;
   data: Json | null;
   readAt: Timestamp | null;
   emailedAt: Timestamp | null;

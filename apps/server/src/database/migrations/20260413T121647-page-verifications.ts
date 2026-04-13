@@ -98,9 +98,20 @@ export async function up(db: Kysely<any>): Promise<void> {
     .on('page_verifiers')
     .column('user_id')
     .execute();
+
+  await db.schema
+    .alterTable('notifications')
+    .addColumn('page_verification_id', 'uuid', (col) =>
+      col.references('page_verifications.id').onDelete('cascade'),
+    )
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+  await db.schema
+    .alterTable('notifications')
+    .dropColumn('page_verification_id')
+    .execute();
   await db.schema.dropTable('page_verifiers').ifExists().execute();
   await db.schema.dropTable('page_verifications').ifExists().execute();
 }

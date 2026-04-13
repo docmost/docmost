@@ -27,6 +27,19 @@ export class VerificationNotificationService {
     private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
+  private async getAlreadyNotifiedUserIds(
+    pageVerificationId: string,
+    type: string,
+  ): Promise<Set<string>> {
+    const rows = await this.db
+      .selectFrom('notifications')
+      .select('userId')
+      .where('pageVerificationId', '=', pageVerificationId)
+      .where('type', '=', type)
+      .execute();
+    return new Set(rows.map((r) => r.userId));
+  }
+
   private async filterAccessibleRecipients(
     userIds: string[],
     pageId: string,
@@ -74,6 +87,15 @@ export class VerificationNotificationService {
     );
     if (accessibleVerifierIds.length === 0) return;
 
+    const alreadyNotified = await this.getAlreadyNotifiedUserIds(
+      verification.id,
+      NotificationType.PAGE_VERIFICATION_EXPIRING,
+    );
+    const recipients = accessibleVerifierIds.filter(
+      (id) => !alreadyNotified.has(id),
+    );
+    if (recipients.length === 0) return;
+
     const context = await this.getPageContext(
       verification.pageId,
       verification.spaceId,
@@ -81,16 +103,17 @@ export class VerificationNotificationService {
     );
     if (!context) return;
 
-    const { pageTitle, basePageUrl } = context;
+    const { pageTitle, spaceName, basePageUrl } = context;
     const expiresAtIso = new Date(verification.expiresAt).toISOString();
 
-    for (const userId of accessibleVerifierIds) {
+    for (const userId of recipients) {
       const notification = await this.notificationService.create({
         userId,
         workspaceId: verification.workspaceId,
         type: NotificationType.PAGE_VERIFICATION_EXPIRING,
         pageId: verification.pageId,
         spaceId: verification.spaceId,
+        pageVerificationId: verification.id,
         data: { expiresAt: expiresAtIso },
       });
 
@@ -102,6 +125,7 @@ export class VerificationNotificationService {
         subject,
         VerificationExpiringEmail({
           pageTitle,
+          spaceName,
           pageUrl: basePageUrl,
           expiresAt: new Date(verification.expiresAt).toLocaleDateString(),
         }),
@@ -139,6 +163,15 @@ export class VerificationNotificationService {
     );
     if (accessibleVerifierIds.length === 0) return;
 
+    const alreadyNotified = await this.getAlreadyNotifiedUserIds(
+      verification.id,
+      NotificationType.PAGE_VERIFICATION_EXPIRED,
+    );
+    const recipients = accessibleVerifierIds.filter(
+      (id) => !alreadyNotified.has(id),
+    );
+    if (recipients.length === 0) return;
+
     const context = await this.getPageContext(
       verification.pageId,
       verification.spaceId,
@@ -146,15 +179,16 @@ export class VerificationNotificationService {
     );
     if (!context) return;
 
-    const { pageTitle, basePageUrl } = context;
+    const { pageTitle, spaceName, basePageUrl } = context;
 
-    for (const userId of accessibleVerifierIds) {
+    for (const userId of recipients) {
       const notification = await this.notificationService.create({
         userId,
         workspaceId: verification.workspaceId,
         type: NotificationType.PAGE_VERIFICATION_EXPIRED,
         pageId: verification.pageId,
         spaceId: verification.spaceId,
+        pageVerificationId: verification.id,
       });
 
       const subject = `"${pageTitle}" verification has expired`;
@@ -165,6 +199,7 @@ export class VerificationNotificationService {
         subject,
         VerificationExpiredEmail({
           pageTitle,
+          spaceName,
           pageUrl: basePageUrl,
         }),
       );
@@ -305,7 +340,7 @@ export class VerificationNotificationService {
         .executeTakeFirst(),
       this.db
         .selectFrom('spaces')
-        .select(['id', 'slug'])
+        .select(['id', 'slug', 'name'])
         .where('id', '=', spaceId)
         .executeTakeFirst(),
     ]);
@@ -313,6 +348,6 @@ export class VerificationNotificationService {
     if (!page || !space) return null;
 
     const basePageUrl = `${appUrl}/s/${space.slug}/p/${page.slugId}`;
-    return { pageTitle: getPageTitle(page.title), basePageUrl };
+    return { pageTitle: getPageTitle(page.title), spaceName: space.name ?? space.slug, basePageUrl };
   }
 }

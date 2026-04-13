@@ -1,36 +1,26 @@
-import { Section, Text, Button } from '@react-email/components';
+import { Section, Text } from '@react-email/components';
 import * as React from 'react';
-import { button, content, paragraph } from '../css/styles';
-import { MailBody } from '../partials/partials';
+import { content, paragraph } from '../css/styles';
+import { EmailButton, MailBody } from '../partials/partials';
 
 interface Props {
   pageTitle: string;
+  spaceName: string;
   pageUrl: string;
 }
 
-export const VerificationExpiredEmail = ({ pageTitle, pageUrl }: Props) => {
+export const VerificationExpiredEmail = ({ pageTitle, spaceName, pageUrl }: Props) => {
   return (
     <MailBody>
       <Section style={content}>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          The verification for <strong>{pageTitle}</strong> has expired. Please
-          re-verify the page to confirm it is still accurate.
+          The verification for <strong>{pageTitle}</strong> in{' '}
+          <strong>{spaceName}</strong> has expired. Please re-verify the page to
+          confirm it is still accurate.
         </Text>
       </Section>
-      <Section
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingLeft: '15px',
-          paddingBottom: '15px',
-        }}
-      >
-        <Button href={pageUrl} style={button}>
-          Re-verify page
-        </Button>
-      </Section>
+      <EmailButton href={pageUrl}>Re-verify page</EmailButton>
     </MailBody>
   );
 };
