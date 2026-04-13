@@ -143,6 +143,18 @@ export function getPageId(documentName: string) {
   return documentName.split('.')[1];
 }
 
+export function isEmptyParagraphDoc(tiptapJson: JSONContent): boolean {
+  if (!tiptapJson || tiptapJson.type !== 'doc') return false;
+  const content = tiptapJson.content;
+  if (!Array.isArray(content) || content.length !== 1) return false;
+  const child = content[0];
+  if (!child || child.type !== 'paragraph') return false;
+  return (
+    !child.content ||
+    (Array.isArray(child.content) && child.content.length === 0)
+  );
+}
+
 function stripUnknownNodes(
   json: JSONContent,
   schema: Schema,

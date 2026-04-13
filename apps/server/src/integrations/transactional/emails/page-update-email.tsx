@@ -27,7 +27,7 @@ export const PageUpdateEmail = ({
           <Link href={pageUrl} style={link}>
             <strong>{pageTitle}</strong>
           </Link>{' '}
-          in <strong>{spaceName}</strong>.
+          in the <strong>{spaceName}</strong> space.
         </Text>
       </Section>
       <EmailButton href={pageUrl}>View page</EmailButton>

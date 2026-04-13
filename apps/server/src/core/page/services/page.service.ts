@@ -452,6 +452,20 @@ export class PageService {
           .where('pageId', 'in', pageIdsToMove)
           .execute();
 
+        // Update page verifications
+        await trx
+          .updateTable('pageVerifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
+        // Update notifications — access follows the page after a move
+        await trx
+          .updateTable('notifications')
+          .set({ spaceId: spaceId })
+          .where('pageId', 'in', pageIdsToMove)
+          .execute();
+
         // Update attachments
         await this.attachmentRepo.updateAttachmentsByPageId(
           { spaceId },

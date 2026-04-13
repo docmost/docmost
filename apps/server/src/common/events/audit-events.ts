@@ -59,6 +59,14 @@ export const AuditEvent = {
   PAGE_RESTRICTION_REMOVED: 'page.restriction_removed',
   PAGE_PERMISSION_ADDED: 'page.permission_added',
   PAGE_PERMISSION_REMOVED: 'page.permission_removed',
+  // Page verification
+  PAGE_VERIFICATION_CREATED: 'page.verification_created',
+  PAGE_VERIFICATION_UPDATED: 'page.verification_updated',
+  PAGE_VERIFICATION_REMOVED: 'page.verification_removed',
+  PAGE_VERIFIED: 'page.verified',
+  PAGE_APPROVAL_REQUESTED: 'page.approval_requested',
+  PAGE_APPROVAL_REJECTED: 'page.approval_rejected',
+  PAGE_MARKED_OBSOLETE: 'page.marked_obsolete',
 
   // Share
   SHARE_CREATED: 'share.created',

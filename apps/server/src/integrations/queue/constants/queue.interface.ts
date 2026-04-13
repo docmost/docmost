@@ -76,3 +76,40 @@ export interface IPermissionGrantedNotificationJob {
   actorId: string;
   role: string;
 }
+
+export interface IVerificationExpiringNotificationJob {
+  verificationId: string;
+}
+
+export interface IVerificationExpiredNotificationJob {
+  verificationId: string;
+}
+
+export interface IVerificationReconcileJob {
+  // no payload
+}
+
+export interface IPageVerifiedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  verifierIds: string[];
+}
+
+export interface IApprovalRequestedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  verifierIds: string[];
+}
+
+export interface IApprovalRejectedNotificationJob {
+  pageId: string;
+  spaceId: string;
+  workspaceId: string;
+  actorId: string;
+  requestedById: string;
+  comment?: string;
+}
