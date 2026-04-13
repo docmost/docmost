@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   useQuery,
   useInfiniteQuery,
@@ -8,10 +9,10 @@ import {
   addFavorite,
   removeFavorite,
   getFavorites,
+  getFavoriteIds,
   ToggleFavoriteParams,
 } from "../services/favorite-service";
-import { IPagination } from "@/lib/types.ts";
-import { IFavorite, FavoriteType } from "../types/favorite.types";
+import { FavoriteType } from "../types/favorite.types";
 
 export function useFavoritesQuery(type?: FavoriteType) {
   return useInfiniteQuery({
@@ -26,23 +27,21 @@ export function useFavoritesQuery(type?: FavoriteType) {
 }
 
 export function useFavoriteIds(type: FavoriteType): Set<string> {
-  const { data } = useQuery<IPagination<IFavorite>>({
+  const { data } = useQuery({
     queryKey: ["favorite-ids", type],
-    queryFn: () => getFavorites({ type, limit: 50 }),
+    queryFn: () => getFavoriteIds(type),
     refetchOnMount: true,
   });
 
-  const ids = new Set<string>();
-  if (data?.items) {
-    for (const fav of data.items) {
-      let id: string | undefined;
-      if (type === "page") id = fav.pageId;
-      else if (type === "space") id = fav.spaceId;
-      else if (type === "template") id = fav.templateId;
-      if (id) ids.add(id);
-    }
-  }
-  return ids;
+  const items = data?.items;
+  return useMemo(() => new Set(items ?? []), [items]);
+}
+
+function getEntityId(variables: ToggleFavoriteParams): string | undefined {
+  if (variables.type === "page") return variables.pageId;
+  if (variables.type === "space") return variables.spaceId;
+  if (variables.type === "template") return variables.templateId;
+  return undefined;
 }
 
 export function useAddFavoriteMutation() {
@@ -51,9 +50,17 @@ export function useAddFavoriteMutation() {
   return useMutation<void, Error, ToggleFavoriteParams>({
     mutationFn: (data) => addFavorite(data),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["favorite-ids", variables.type],
-      });
+      const entityId = getEntityId(variables);
+      if (entityId) {
+        queryClient.setQueryData(
+          ["favorite-ids", variables.type],
+          (old: { items: string[]; meta: any } | undefined) => {
+            if (!old) return old;
+            if (old.items.includes(entityId)) return old;
+            return { ...old, items: [...old.items, entityId] };
+          },
+        );
+      }
       queryClient.invalidateQueries({
         queryKey: ["favorites", variables.type],
       });
@@ -67,9 +74,16 @@ export function useRemoveFavoriteMutation() {
   return useMutation<void, Error, ToggleFavoriteParams>({
     mutationFn: (data) => removeFavorite(data),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["favorite-ids", variables.type],
-      });
+      const entityId = getEntityId(variables);
+      if (entityId) {
+        queryClient.setQueryData(
+          ["favorite-ids", variables.type],
+          (old: { items: string[]; meta: any } | undefined) => {
+            if (!old) return old;
+            return { ...old, items: old.items.filter((id) => id !== entityId) };
+          },
+        );
+      }
       queryClient.invalidateQueries({
         queryKey: ["favorites", variables.type],
       });

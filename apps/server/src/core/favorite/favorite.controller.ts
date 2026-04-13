@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { FavoriteService } from './services/favorite.service';
 import { AddFavoriteDto, RemoveFavoriteDto } from './dto/favorite.dto';
+import { FavoriteIdsDto } from './dto/favorite-ids.dto';
 import { ListFavoritesDto } from './dto/list-favorites.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -68,6 +69,20 @@ export class FavoriteController {
       spaceId: dto.spaceId,
       templateId: dto.templateId,
     });
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('ids')
+  async getFavoriteIds(
+    @Body() dto: FavoriteIdsDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.favoriteService.getFavoriteIds(
+      user.id,
+      workspace.id,
+      dto.type as FavoriteType,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

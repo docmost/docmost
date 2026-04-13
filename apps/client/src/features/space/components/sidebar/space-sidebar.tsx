@@ -16,6 +16,8 @@ import {
   IconPlus,
   IconSearch,
   IconSettings,
+  IconStar,
+  IconStarFilled,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -43,6 +45,11 @@ import PageImportModal from "@/features/page/components/page-import-modal.tsx";
 import { useTranslation } from "react-i18next";
 import { SwitchSpace } from "./switch-space";
 import ExportModal from "@/components/common/export-modal";
+import {
+  useFavoriteIds,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+} from "@/features/favorite/queries/favorite-query";
 import { mobileSidebarAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
 import { searchSpotlight } from "@/features/search/constants";
@@ -55,7 +62,6 @@ export function SpaceSidebar() {
     useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
-
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -82,7 +88,12 @@ export function SpaceSidebar() {
             marginBottom: 3,
           }}
         >
-          <Group gap={4} wrap="nowrap" justify="space-between" style={{ width: "100%" }}>
+          <Group
+            gap={4}
+            wrap="nowrap"
+            justify="space-between"
+            style={{ width: "100%" }}
+          >
             <SwitchSpace
               spaceName={space?.name}
               spaceSlug={space?.slug}
@@ -241,6 +252,20 @@ function SpaceMenu({
   const unwatchMutation = useUnwatchSpaceMutation();
   const isWatching = watchStatus?.watching ?? false;
 
+  const favoriteIds = useFavoriteIds("space");
+  const addFavoriteMutation = useAddFavoriteMutation();
+  const removeFavoriteMutation = useRemoveFavoriteMutation();
+  const isFavorited = favoriteIds.has(spaceId);
+
+  const handleToggleFavorite = () => {
+    const params = { type: "space" as const, spaceId };
+    if (isFavorited) {
+      removeFavoriteMutation.mutate(params);
+    } else {
+      addFavoriteMutation.mutate(params);
+    }
+  };
+
   const handleToggleWatch = () => {
     if (isWatching) {
       unwatchMutation.mutate(spaceId);
@@ -265,6 +290,22 @@ function SpaceMenu({
         </Menu.Target>
 
         <Menu.Dropdown>
+          <Menu.Item
+            onClick={handleToggleFavorite}
+            leftSection={
+              isFavorited ? (
+                <IconStarFilled
+                  size={16}
+                  color="var(--mantine-color-yellow-filled)"
+                />
+              ) : (
+                <IconStar size={16} />
+              )
+            }
+          >
+            {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
+          </Menu.Item>
+
           <Menu.Item
             onClick={handleToggleWatch}
             leftSection={

@@ -62,6 +62,39 @@ export class FavoriteRepo {
       .execute();
   }
 
+  async getFavoriteIds(
+    userId: string,
+    workspaceId: string,
+    type: FavoriteType,
+  ): Promise<{ items: string[]; meta: any }> {
+    const idColumn =
+      type === FavoriteType.PAGE
+        ? 'pageId'
+        : type === FavoriteType.SPACE
+          ? 'spaceId'
+          : 'templateId';
+
+    const query = this.db
+      .selectFrom('favorites')
+      .select(['favorites.id', `favorites.${idColumn} as entityId`])
+      .where('userId', '=', userId)
+      .where('workspaceId', '=', workspaceId)
+      .where('type', '=', type);
+
+    const result = await executeWithCursorPagination(query, {
+      perPage: 250,
+      fields: [{ expression: 'favorites.id', direction: 'desc' }],
+      parseCursor: (cursor) => ({ id: cursor.id }),
+    });
+
+    return {
+      items: result.items
+        .map((r) => (r as any).entityId as string)
+        .filter(Boolean),
+      meta: result.meta,
+    };
+  }
+
   async findUserFavorites(
     userId: string,
     workspaceId: string,
