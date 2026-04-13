@@ -15,9 +15,9 @@ export const VerificationExpiredEmail = ({ pageTitle, spaceName, pageUrl }: Prop
       <Section style={content}>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          The verification for <strong>{pageTitle}</strong> in{' '}
-          <strong>{spaceName}</strong> has expired. Please re-verify the page to
-          confirm it is still accurate.
+          The verification for <strong>{pageTitle}</strong> in the{' '}
+          <strong>{spaceName}</strong> space has expired. Please re-verify the
+          page to confirm it is still accurate.
         </Text>
       </Section>
       <EmailButton href={pageUrl}>Re-verify page</EmailButton>
