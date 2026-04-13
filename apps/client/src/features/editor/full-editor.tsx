@@ -102,6 +102,7 @@ function PageByline({
     <Group
       gap="sm"
       mb="md"
+      className="print-hide"
       style={{ marginTop: "-0.5em", paddingLeft: "3rem" }}
     >
       {creator && (
