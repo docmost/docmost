@@ -1,7 +1,6 @@
-import { mergeAttributes } from "@tiptap/core";
-import TiptapLink from "@tiptap/extension-link";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { EditorView } from "@tiptap/pm/view";
+import TiptapLink from '@tiptap/extension-link';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { EditorView } from '@tiptap/pm/view';
 
 export const LinkExtension = TiptapLink.extend({
   inclusive: false,
@@ -19,48 +18,6 @@ export const LinkExtension = TiptapLink.extend({
     };
   },
 
-  parseHTML() {
-    return [
-      {
-        tag: 'a[href]:not([data-type="button"]):not([href *= "javascript:" i])',
-        getAttrs: (element) => {
-          if (
-            element
-              .getAttribute("href")
-              ?.toLowerCase()
-              .startsWith("javascript:")
-          ) {
-            return false;
-          }
-
-          return null;
-        },
-      },
-    ];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    if (HTMLAttributes.href?.toLowerCase().startsWith("javascript:")) {
-      return [
-        "a",
-        mergeAttributes(
-          this.options.HTMLAttributes,
-          { ...HTMLAttributes, href: "" },
-          { class: "link" },
-        ),
-        0,
-      ];
-    }
-
-    return [
-      "a",
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        class: "link",
-      }),
-      0,
-    ];
-  },
-
   addProseMirrorPlugins() {
     const { editor } = this;
 
@@ -71,7 +28,7 @@ export const LinkExtension = TiptapLink.extend({
           handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
             const { selection } = editor.state;
 
-            if (event.key === "Escape" && selection.empty !== true) {
+            if (event.key === 'Escape' && selection.empty !== true) {
               editor.commands.focus(selection.to, { scrollIntoView: false });
             }
 
@@ -89,13 +46,19 @@ export const LinkExtension = TiptapLink.extend({
       //   - left boundary: cursor just before a link, e.g. at the start of a
       //     line (#1748), where Firefox places new text inside the link node
       new Plugin({
-        key: new PluginKey("linkBoundaryInput"),
+        key: new PluginKey('linkBoundaryInput'),
         props: {
           handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
             // Only handle single printable characters
             if (event.key.length !== 1) return false;
             // Don't handle modified keys (shortcuts) or composing (IME)
-            if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return false;
+            if (
+              event.ctrlKey ||
+              event.metaKey ||
+              event.altKey ||
+              event.isComposing
+            )
+              return false;
 
             const { state } = view;
             const linkType = state.schema.marks.link;
