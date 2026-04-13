@@ -6,6 +6,7 @@ import { EmailButton, MailBody } from '../partials/partials';
 interface Props {
   actorName: string;
   pageTitle: string;
+  spaceName: string;
   pageUrl: string;
   comment?: string;
 }
@@ -13,6 +14,7 @@ interface Props {
 export const ApprovalRejectedEmail = ({
   actorName,
   pageTitle,
+  spaceName,
   pageUrl,
   comment,
 }: Props) => {
@@ -22,7 +24,8 @@ export const ApprovalRejectedEmail = ({
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
           <strong>{actorName}</strong> returned{' '}
-          <strong>{pageTitle}</strong> for revision.
+          <strong>{pageTitle}</strong> in the{' '}
+          <strong>{spaceName}</strong> space for revision.
         </Text>
         {comment && (
           <Text style={{ ...paragraph, fontStyle: 'italic' }}>

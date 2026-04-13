@@ -246,7 +246,7 @@ export class VerificationNotificationService {
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;
 
-    const { pageTitle, basePageUrl } = context;
+    const { pageTitle, spaceName, basePageUrl } = context;
     const actorName = await this.getUserName(actorId);
 
     for (const userId of accessibleVerifierIds) {
@@ -268,6 +268,7 @@ export class VerificationNotificationService {
         ApprovalRequestedEmail({
           actorName,
           pageTitle,
+          spaceName,
           pageUrl: basePageUrl,
         }),
       );
@@ -291,7 +292,7 @@ export class VerificationNotificationService {
     const context = await this.getPageContext(pageId, spaceId, appUrl);
     if (!context) return;
 
-    const { pageTitle, basePageUrl } = context;
+    const { pageTitle, spaceName, basePageUrl } = context;
     const actorName = await this.getUserName(actorId);
 
     const notification = await this.notificationService.create({
@@ -312,6 +313,7 @@ export class VerificationNotificationService {
       ApprovalRejectedEmail({
         actorName,
         pageTitle,
+        spaceName,
         pageUrl: basePageUrl,
         comment,
       }),
