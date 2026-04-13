@@ -21,6 +21,11 @@ export async function removeFavorite(
   await api.post("/favorites/remove", params);
 }
 
+export async function getFavoriteIds(type: FavoriteType): Promise<IPagination<string>> {
+  const req = await api.post<IPagination<string>>("/favorites/ids", { type });
+  return req.data;
+}
+
 export async function getFavorites(params?: {
   type?: FavoriteType;
   limit?: number;

@@ -16,6 +16,40 @@ export class FavoriteService {
     private readonly spaceMemberRepo: SpaceMemberRepo,
   ) {}
 
+  async getFavoriteIds(
+    userId: string,
+    workspaceId: string,
+    type: FavoriteType,
+  ) {
+    const result = await this.favoriteRepo.getFavoriteIds(
+      userId,
+      workspaceId,
+      type,
+    );
+
+    if (result.items.length === 0) {
+      return result;
+    }
+
+    if (type === FavoriteType.PAGE) {
+      const accessibleIds =
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds: result.items,
+          userId,
+        });
+      const accessibleSet = new Set(accessibleIds);
+      result.items = result.items.filter((id) => accessibleSet.has(id));
+    }
+
+    if (type === FavoriteType.SPACE) {
+      const userSpaceIds = await this.spaceMemberRepo.getUserSpaceIds(userId);
+      const spaceSet = new Set(userSpaceIds);
+      result.items = result.items.filter((id) => spaceSet.has(id));
+    }
+
+    return result;
+  }
+
   async addFavorite(
     userId: string,
     workspaceId: string,
