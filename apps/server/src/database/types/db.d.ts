@@ -196,6 +196,8 @@ export interface FileTasks {
   filePath: string;
   fileSize: Int8 | null;
   id: Generated<string>;
+  metadata: Json | null;
+  pageId: string | null;
   source: string | null;
   spaceId: string | null;
   status: string | null;
