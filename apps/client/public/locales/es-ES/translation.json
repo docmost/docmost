@@ -222,6 +222,8 @@
   "Edit comment": "Editar comentario",
   "Delete comment": "Eliminar comentario",
   "Are you sure you want to delete this comment?": "¿Está seguro de que desea eliminar este comentario?",
+  "Delete chat": "Eliminar chat",
+  "Are you sure you want to delete '{{title}}'? This action cannot be undone.": "¿Está seguro de que desea eliminar '{{title}}'? Esta acción no se puede deshacer.",
   "Comment created successfully": "Comentario creado con éxito",
   "Error creating comment": "Error al crear comentario",
   "Comment updated successfully": "Comentario actualizado con éxito",

@@ -1,6 +1,14 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ActionIcon, Center, TextInput, Loader, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Center,
+  Text,
+  TextInput,
+  Loader,
+  Tooltip,
+} from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconMessageCircle2 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -73,16 +81,31 @@ export default function AiChatSidebar() {
   );
 
   const handleDelete = useCallback(
-    (id: string) => {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          if (chatId === id) {
-            navigate("/ai");
-          }
+    (id: string, title: string | null) => {
+      modals.openConfirmModal({
+        title: t("Delete chat"),
+        centered: true,
+        children: (
+          <Text size="sm">
+            {t("Are you sure you want to delete '{{title}}'? This action cannot be undone.", {
+              title: title || t("Untitled"),
+            })}
+          </Text>
+        ),
+        labels: { confirm: t("Delete"), cancel: t("Cancel") },
+        confirmProps: { color: "red" },
+        onConfirm: () => {
+          deleteMutation.mutate(id, {
+            onSuccess: () => {
+              if (chatId === id) {
+                navigate("/ai");
+              }
+            },
+          });
         },
       });
     },
-    [deleteMutation, chatId, navigate],
+    [deleteMutation, chatId, navigate, t],
   );
 
   const handleRename = useCallback(

@@ -222,6 +222,8 @@
   "Edit comment": "Редагувати коментар",
   "Delete comment": "Видалити коментар",
   "Are you sure you want to delete this comment?": "Ви впевнені, що хочете видалити цей коментар?",
+  "Delete chat": "Видалити чат",
+  "Are you sure you want to delete '{{title}}'? This action cannot be undone.": "Ви впевнені, що хочете видалити '{{title}}'? Цю дію неможливо скасувати.",
   "Comment created successfully": "Коментар успішно створено",
   "Error creating comment": "Помилка при створенні коментаря",
   "Comment updated successfully": "Коментар успішно оновлено",
