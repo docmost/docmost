@@ -6,6 +6,7 @@ export enum JwtType {
   MFA_TOKEN = 'mfa_token',
   API_KEY = 'api_key',
   PDF_RENDER = 'pdf_render',
+  PDF_EXPORT_DOWNLOAD = 'pdf_export_download',
 }
 export type JwtPayload = {
   sub: string;
@@ -51,4 +52,10 @@ export type JwtPdfRenderPayload = {
   pageId: string;
   workspaceId: string;
   type: 'pdf_render';
+};
+
+export type JwtPdfExportDownloadPayload = {
+  fileTaskId: string;
+  workspaceId: string;
+  type: 'pdf_export_download';
 };

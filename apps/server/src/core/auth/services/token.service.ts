@@ -13,6 +13,7 @@ import {
   JwtExchangePayload,
   JwtMfaTokenPayload,
   JwtPayload,
+  JwtPdfExportDownloadPayload,
   JwtPdfRenderPayload,
   JwtType,
 } from '../dto/jwt-payload';
@@ -126,6 +127,18 @@ export class TokenService {
       type: JwtType.PDF_RENDER,
     };
     return this.jwtService.sign(payload, { expiresIn: '60s' });
+  }
+
+  async generatePdfExportDownloadToken(
+    fileTaskId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const payload: JwtPdfExportDownloadPayload = {
+      fileTaskId,
+      workspaceId,
+      type: JwtType.PDF_EXPORT_DOWNLOAD,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
   async verifyJwt(token: string, tokenType: string) {

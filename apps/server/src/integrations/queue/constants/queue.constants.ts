@@ -80,4 +80,7 @@ export enum QueueJob {
 
   AUDIT_LOG = 'audit-log',
   AUDIT_CLEANUP = 'audit-cleanup',
+
+  PDF_EXPORT_TASK = 'pdf-export-task',
+  PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
 }
