@@ -47,7 +47,7 @@ export default function SpaceHomeTabs() {
         {space?.id && <RecentChanges spaceId={space.id} />}
       </Tabs.Panel>
       <Tabs.Panel value="favorites">
-        <FavoritesPages />
+        {space?.id && <FavoritesPages spaceId={space.id} />}
       </Tabs.Panel>
       <Tabs.Panel value="created">
         {space?.id && <CreatedByMe spaceId={space.id} />}
