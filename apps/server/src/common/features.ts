@@ -18,6 +18,7 @@ export const Feature = {
   SHARING_CONTROLS: 'sharing:controls',
   VIEWER_COMMENTS: 'comment:viewer',
   TEMPLATES: 'templates',
+  PDF_EXPORT: 'export:pdf',
 } as const;
 
 export type FeatureKey = (typeof Feature)[keyof typeof Feature];

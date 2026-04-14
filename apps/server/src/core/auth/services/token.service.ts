@@ -13,6 +13,7 @@ import {
   JwtExchangePayload,
   JwtMfaTokenPayload,
   JwtPayload,
+  JwtPdfRenderPayload,
   JwtType,
 } from '../dto/jwt-payload';
 import { User } from '@docmost/db/types/entity.types';
@@ -113,6 +114,18 @@ export class TokenService {
     };
 
     return this.jwtService.sign(payload, expiresIn ? { expiresIn } : {});
+  }
+
+  async generatePdfRenderToken(
+    pageId: string,
+    workspaceId: string,
+  ): Promise<string> {
+    const payload: JwtPdfRenderPayload = {
+      pageId,
+      workspaceId,
+      type: JwtType.PDF_RENDER,
+    };
+    return this.jwtService.sign(payload, { expiresIn: '60s' });
   }
 
   async verifyJwt(token: string, tokenType: string) {
