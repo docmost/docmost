@@ -5,7 +5,7 @@ import { InsertableFavorite, Favorite } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { ExpressionBuilder, sql } from 'kysely';
+import { ExpressionBuilder, SelectQueryBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { dbOrTx } from '@docmost/db/utils';
 
@@ -66,6 +66,7 @@ export class FavoriteRepo {
     userId: string,
     workspaceId: string,
     type: FavoriteType,
+    spaceId?: string,
   ): Promise<{ items: string[]; meta: any }> {
     const idColumn =
       type === FavoriteType.PAGE
@@ -74,12 +75,16 @@ export class FavoriteRepo {
           ? 'spaceId'
           : 'templateId';
 
-    const query = this.db
+    let query = this.db
       .selectFrom('favorites')
       .select(['favorites.id', `favorites.${idColumn} as entityId`])
-      .where('userId', '=', userId)
-      .where('workspaceId', '=', workspaceId)
-      .where('type', '=', type);
+      .where('favorites.userId', '=', userId)
+      .where('favorites.workspaceId', '=', workspaceId)
+      .where('favorites.type', '=', type);
+
+    if (spaceId) {
+      query = this.applySpaceFilter(query, type, spaceId);
+    }
 
     const result = await executeWithCursorPagination(query, {
       perPage: 250,
@@ -100,6 +105,7 @@ export class FavoriteRepo {
     workspaceId: string,
     pagination: PaginationOptions,
     type?: FavoriteType,
+    spaceId?: string,
   ) {
     let query = this.db
       .selectFrom('favorites')
@@ -109,6 +115,10 @@ export class FavoriteRepo {
 
     if (type) {
       query = query.where('favorites.type', '=', type);
+    }
+
+    if (spaceId) {
+      query = this.applySpaceFilter(query, type, spaceId);
     }
 
     if (type === FavoriteType.PAGE || !type) {
@@ -182,6 +192,39 @@ export class FavoriteRepo {
       .where('userId', '=', userId)
       .where('workspaceId', '=', workspaceId)
       .execute();
+  }
+
+  private applySpaceFilter<Q extends SelectQueryBuilder<any, any, any>>(
+    query: Q,
+    type: FavoriteType | undefined,
+    spaceId: string,
+  ): Q {
+    if (type === FavoriteType.PAGE) {
+      return query.where((eb: any) =>
+        eb.exists(
+          eb
+            .selectFrom('pages')
+            .select(sql`1`.as('one'))
+            .whereRef('pages.id', '=', 'favorites.pageId')
+            .where('pages.spaceId', '=', spaceId),
+        ),
+      ) as Q;
+    }
+    if (type === FavoriteType.SPACE) {
+      return query.where('favorites.spaceId' as any, '=', spaceId) as Q;
+    }
+    if (type === FavoriteType.TEMPLATE) {
+      return query.where((eb: any) =>
+        eb.exists(
+          eb
+            .selectFrom('templates')
+            .select(sql`1`.as('one'))
+            .whereRef('templates.id', '=', 'favorites.templateId')
+            .where('templates.spaceId', '=', spaceId),
+        ),
+      ) as Q;
+    }
+    return query;
   }
 
   private withPage(eb: ExpressionBuilder<DB, 'favorites'>) {

@@ -18,7 +18,11 @@ import { getSpaceUrl } from "@/lib/config";
 import { useTranslation } from "react-i18next";
 import { getInitialsColor } from "@/lib/get-initials-color";
 
-export default function FavoritesPages() {
+interface Props {
+  spaceId?: string;
+}
+
+export default function FavoritesPages({ spaceId }: Props) {
   const { t } = useTranslation();
   const {
     data,
@@ -27,7 +31,7 @@ export default function FavoritesPages() {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useFavoritesQuery("page");
+  } = useFavoritesQuery("page", spaceId);
 
   const favorites = data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -72,19 +76,21 @@ export default function FavoritesPages() {
                       </Group>
                     </UnstyledButton>
                   </Table.Td>
-                  <Table.Td>
-                    {fav.space && (
-                      <Badge
-                        color={getInitialsColor(fav.space.name)}
-                        variant="light"
-                        component={Link}
-                        to={getSpaceUrl(fav.space.slug)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {fav.space.name}
-                      </Badge>
-                    )}
-                  </Table.Td>
+                  {!spaceId && (
+                    <Table.Td>
+                      {fav.space && (
+                        <Badge
+                          color={getInitialsColor(fav.space.name)}
+                          variant="light"
+                          component={Link}
+                          to={getSpaceUrl(fav.space.slug)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {fav.space.name}
+                        </Badge>
+                      )}
+                    </Table.Td>
+                  )}
                   <Table.Td>
                     <Text
                       c="dimmed"

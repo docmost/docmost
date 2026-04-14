@@ -20,11 +20,13 @@ export class FavoriteService {
     userId: string,
     workspaceId: string,
     type: FavoriteType,
+    spaceId?: string,
   ) {
     const result = await this.favoriteRepo.getFavoriteIds(
       userId,
       workspaceId,
       type,
+      spaceId,
     );
 
     if (result.items.length === 0) {
@@ -95,12 +97,14 @@ export class FavoriteService {
     workspaceId: string,
     pagination: PaginationOptions,
     type?: FavoriteType,
+    spaceId?: string,
   ) {
     const result = await this.favoriteRepo.findUserFavorites(
       userId,
       workspaceId,
       pagination,
       type,
+      spaceId,
     );
 
     if (result.items.length === 0) {

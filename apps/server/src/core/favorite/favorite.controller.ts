@@ -82,6 +82,7 @@ export class FavoriteController {
       user.id,
       workspace.id,
       dto.type as FavoriteType,
+      dto.spaceId,
     );
   }
 
@@ -98,6 +99,7 @@ export class FavoriteController {
       workspace.id,
       pagination,
       dto.type as FavoriteType | undefined,
+      dto.spaceId,
     );
   }
 

@@ -14,11 +14,11 @@ import {
 } from "../services/favorite-service";
 import { FavoriteType } from "../types/favorite.types";
 
-export function useFavoritesQuery(type?: FavoriteType) {
+export function useFavoritesQuery(type?: FavoriteType, spaceId?: string) {
   return useInfiniteQuery({
-    queryKey: ["favorites", type],
+    queryKey: ["favorites", type, spaceId],
     queryFn: ({ pageParam }) =>
-      getFavorites({ type, cursor: pageParam, limit: 15 }),
+      getFavorites({ type, spaceId, cursor: pageParam, limit: 15 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
@@ -26,10 +26,10 @@ export function useFavoritesQuery(type?: FavoriteType) {
   });
 }
 
-export function useFavoriteIds(type: FavoriteType): Set<string> {
+export function useFavoriteIds(type: FavoriteType, spaceId?: string): Set<string> {
   const { data } = useQuery({
-    queryKey: ["favorite-ids", type],
-    queryFn: () => getFavoriteIds(type),
+    queryKey: ["favorite-ids", type, spaceId],
+    queryFn: () => getFavoriteIds(type, spaceId),
     refetchOnMount: true,
   });
 
@@ -52,9 +52,9 @@ export function useAddFavoriteMutation() {
     onSuccess: (_result, variables) => {
       const entityId = getEntityId(variables);
       if (entityId) {
-        queryClient.setQueryData(
-          ["favorite-ids", variables.type],
-          (old: { items: string[]; meta: any } | undefined) => {
+        queryClient.setQueriesData<{ items: string[]; meta: any }>(
+          { queryKey: ["favorite-ids", variables.type] },
+          (old) => {
             if (!old) return old;
             if (old.items.includes(entityId)) return old;
             return { ...old, items: [...old.items, entityId] };
@@ -76,9 +76,9 @@ export function useRemoveFavoriteMutation() {
     onSuccess: (_result, variables) => {
       const entityId = getEntityId(variables);
       if (entityId) {
-        queryClient.setQueryData(
-          ["favorite-ids", variables.type],
-          (old: { items: string[]; meta: any } | undefined) => {
+        queryClient.setQueriesData<{ items: string[]; meta: any }>(
+          { queryKey: ["favorite-ids", variables.type] },
+          (old) => {
             if (!old) return old;
             return { ...old, items: old.items.filter((id) => id !== entityId) };
           },
