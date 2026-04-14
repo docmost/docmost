@@ -131,7 +131,8 @@
       "@xmldom/xmldom": "0.8.12",
       "handlebars": "4.7.9",
       "axios": "1.15.0",
-      "langsmith": "0.5.18"
+      "langsmith": "0.5.18",
+      "follow-redirects": "1.16.0"
     },
     "neverBuiltDependencies": []
   }
