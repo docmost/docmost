@@ -24,7 +24,7 @@ export default function PdfRenderPage() {
       return;
     }
 
-    fetch('/api/pdf/render', {
+    fetch('/api/pdf-export/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pageId, token }),
