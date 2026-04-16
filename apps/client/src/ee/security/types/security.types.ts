@@ -1,5 +1,9 @@
 import { SSO_PROVIDER } from "@/ee/security/contants.ts";
 
+export interface IAuthProviderSettings {
+  oidcScope?: string;
+}
+
 export interface IAuthProvider {
   id: string;
   name: string;
@@ -22,6 +26,7 @@ export interface IAuthProvider {
   groupSync: boolean;
   creatorId: string;
   workspaceId: string;
+  settings?: IAuthProviderSettings | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;

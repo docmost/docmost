@@ -29,11 +29,13 @@ import { NoopAuditModule } from './integrations/audit/audit.module';
 import { ThrottleModule } from './integrations/throttle/throttle.module';
 
 const enterpriseModules = [];
+const optionalModules = [NoopAuditModule];
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   if (require('./ee/ee.module')?.EeModule) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     enterpriseModules.push(require('./ee/ee.module')?.EeModule);
+    optionalModules.length = 0;
   }
 } catch (err) {
   if (process.env.CLOUD === 'true') {
@@ -49,7 +51,7 @@ try {
       middleware: { mount: true },
     }),
     LoggerModule,
-    NoopAuditModule,
+    ...optionalModules,
     CoreModule,
     DatabaseModule,
     EnvironmentModule,

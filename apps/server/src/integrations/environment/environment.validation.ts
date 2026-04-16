@@ -13,6 +13,11 @@ import { plainToInstance } from 'class-transformer';
 import { IsISO6391 } from '../../common/validators/is-iso6391';
 
 export class EnvironmentVariables {
+  @IsOptional()
+  @IsIn(['true', 'false', '1', '0'])
+  @IsString()
+  EE_ENABLED: string;
+
   @IsNotEmpty()
   @IsUrl(
     {

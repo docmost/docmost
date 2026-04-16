@@ -15,6 +15,7 @@ const ssoSchema = z.object({
   oidcIssuer: z.string().url(),
   oidcClientId: z.string().min(1, "Client id is required"),
   oidcClientSecret: z.string().min(1, "Client secret is required"),
+  oidcScope: z.string().min(1, "Scope is required"),
   isEnabled: z.boolean(),
   allowSignup: z.boolean(),
   groupSync: z.boolean(),
@@ -36,6 +37,7 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
       oidcIssuer: provider.oidcIssuer || "",
       oidcClientId: provider.oidcClientId || "",
       oidcClientSecret: provider.oidcClientSecret || "",
+      oidcScope: provider.settings?.oidcScope || "openid profile email",
       isEnabled: provider.isEnabled,
       allowSignup: provider.allowSignup,
       groupSync: provider.groupSync || false,
@@ -63,6 +65,12 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
     }
     if (form.isDirty("oidcClientSecret")) {
       ssoData.oidcClientSecret = values.oidcClientSecret;
+    }
+    if (form.isDirty("oidcScope")) {
+      ssoData.settings = {
+        ...(provider.settings ?? {}),
+        oidcScope: values.oidcScope.trim(),
+      };
     }
     if (form.isDirty("isEnabled")) {
       ssoData.isEnabled = values.isEnabled;
@@ -114,6 +122,12 @@ export function SsoOIDCForm({ provider, onClose }: SsoFormProps) {
             description="Enter your OIDC Client Secret"
             placeholder="e.g OCSPX-zVCkotEPGRnJA1XKUrbgjlf7PQQ-"
             {...form.getInputProps("oidcClientSecret")}
+          />
+          <TextInput
+            label="Scopes"
+            description="Space-separated OIDC scopes. GitLab must allow the same scopes on the OAuth application."
+            placeholder="openid profile email"
+            {...form.getInputProps("oidcScope")}
           />
 
           <Group justify="space-between">

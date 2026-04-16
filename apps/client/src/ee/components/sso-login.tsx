@@ -18,6 +18,8 @@ export default function SsoLogin() {
   }
 
   const handleSsoLogin = (provider: IAuthProvider) => {
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+
     if (provider.type === SSO_PROVIDER.LDAP) {
       // Open modal for LDAP instead of redirecting
       setSelectedLdapProvider(provider);
@@ -28,6 +30,7 @@ export default function SsoLogin() {
         providerId: provider.id,
         type: provider.type,
         workspaceId: data.id,
+        redirect: redirect || undefined,
       });
     }
   };

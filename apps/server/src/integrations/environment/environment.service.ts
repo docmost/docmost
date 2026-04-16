@@ -14,6 +14,11 @@ export class EnvironmentService {
     return this.getNodeEnv() === 'development';
   }
 
+  isEEEnabled(): boolean {
+    const raw = this.configService.get<string>('EE_ENABLED', 'false');
+    return raw === 'true' || raw === '1';
+  }
+
   getAppUrl(): string {
     const rawUrl =
       this.configService.get<string>('APP_URL') ||

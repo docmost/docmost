@@ -17,15 +17,26 @@ export function buildCallbackUrl(opts: {
 export function buildSsoLoginUrl(opts: {
   providerId: string;
   type: SSO_PROVIDER;
+  redirect?: string;
   workspaceId?: string;
 }): string {
-  const { providerId, type, workspaceId } = opts;
+  const { providerId, type, workspaceId, redirect } = opts;
   const domain = getAppUrl();
 
-  if (type === SSO_PROVIDER.GOOGLE) {
-    return `${getServerAppUrl()}/api/sso/${type}/login?workspaceId=${workspaceId}`;
+  const url =
+    type === SSO_PROVIDER.GOOGLE
+      ? new URL(`/api/sso/${type}/login`, getServerAppUrl())
+      : new URL(`/api/sso/${type}/${providerId}/login`, domain);
+
+  if (workspaceId) {
+    url.searchParams.set("workspaceId", workspaceId);
   }
-  return `${domain}/api/sso/${type}/${providerId}/login`;
+
+  if (redirect) {
+    url.searchParams.set("redirect", redirect);
+  }
+
+  return url.toString();
 }
 
 export function getGoogleSignupUrl(): string {

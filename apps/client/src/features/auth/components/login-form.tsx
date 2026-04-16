@@ -3,6 +3,7 @@ import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import useAuth from "@/features/auth/hooks/use-auth";
 import {
+  Alert,
   Container,
   Title,
   TextInput,
@@ -14,7 +15,7 @@ import {
 } from "@mantine/core";
 import classes from "./auth.module.css";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import APP_ROUTE from "@/lib/app-route.ts";
 import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
@@ -34,6 +35,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function LoginForm() {
   const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
   useRedirectIfAuthenticated();
   const {
     data,
@@ -41,6 +43,7 @@ export function LoginForm() {
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+  const ssoError = searchParams.get("ssoError");
 
   const form = useForm<FormValues>({
     validate: zod4Resolver(formSchema),
@@ -55,7 +58,7 @@ export function LoginForm() {
   }
 
   if (isDataLoading) {
-   return null;
+    return null;
   }
 
   if (isError && error?.["response"]?.status === 404) {
@@ -69,6 +72,12 @@ export function LoginForm() {
           <Title order={2} ta="center" fw={500} mb="md">
             {t("Login")}
           </Title>
+
+          {ssoError && (
+            <Alert color="red" mb="md">
+              {ssoError}
+            </Alert>
+          )}
 
           <SsoLogin />
 

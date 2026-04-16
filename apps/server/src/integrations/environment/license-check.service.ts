@@ -10,6 +10,10 @@ export class LicenseCheckService {
   ) {}
 
   isValidEELicense(licenseKey: string): boolean {
+    if (this.environmentService.isEEEnabled()) {
+      return true;
+    }
+
     if (this.environmentService.isCloud()) {
       return true;
     }
@@ -27,6 +31,16 @@ export class LicenseCheckService {
   }
 
   hasFeature(licenseKey: string, feature: string, plan?: string): boolean {
+    if (this.environmentService.isEEEnabled()) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { ALL_EE_FEATURES } = require('../../ee/licence/feature-registry');
+        return ALL_EE_FEATURES.includes(feature);
+      } catch {
+        return false;
+      }
+    }
+
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -50,6 +64,16 @@ export class LicenseCheckService {
   }
 
   getFeatures(licenseKey: string): string[] {
+    if (this.environmentService.isEEEnabled()) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { ALL_EE_FEATURES } = require('../../ee/licence/feature-registry');
+        return [...ALL_EE_FEATURES];
+      } catch {
+        return [];
+      }
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const LicenseModule = require('../../ee/licence/license.service');
@@ -63,6 +87,10 @@ export class LicenseCheckService {
   }
 
   resolveFeatures(licenseKey: string, plan: string): string[] {
+    if (this.environmentService.isEEEnabled()) {
+      return this.getFeatures(licenseKey);
+    }
+
     if (this.environmentService.isCloud()) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -77,6 +105,10 @@ export class LicenseCheckService {
   }
 
   resolveTier(licenseKey: string, plan: string): string {
+    if (this.environmentService.isEEEnabled()) {
+      return 'enterprise';
+    }
+
     if (this.environmentService.isCloud()) {
       return plan ?? 'standard';
     }
@@ -85,6 +117,10 @@ export class LicenseCheckService {
   }
 
   private getLicenseType(licenseKey: string): string | null {
+    if (this.environmentService.isEEEnabled()) {
+      return 'enterprise';
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const LicenseModule = require('../../ee/licence/license.service');
