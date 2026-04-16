@@ -77,7 +77,7 @@
     "cookie": "^1.1.1",
     "fast-bm25": "0.0.5",
     "fastify-ip": "^2.0.0",
-    "firecrawl-pdf-inspector": "^0.7.4",
+    "firecrawl-pdf-inspector": "https://github.com/Philipinho/pdf-inspector/releases/download/v0.9.2/pdf-inspector-prebuilt.tar.gz",
     "fs-extra": "^11.3.4",
     "happy-dom": "20.8.9",
     "ioredis": "^5.10.1",
