@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover, TextInput } from "@mantine/core";
 import {
   IBaseProperty,
@@ -6,7 +6,14 @@ import {
   Choice,
 } from "@/features/base/types/base.types";
 import { choiceColor } from "@/features/base/components/cells/choice-color";
+import { useUpdatePropertyMutation } from "@/features/base/queries/base-property-query";
+import { v7 as uuid7 } from "uuid";
 import cellClasses from "@/features/base/styles/cells.module.css";
+
+const CHOICE_COLORS = [
+  "gray", "red", "pink", "grape", "violet", "indigo",
+  "blue", "cyan", "teal", "green", "lime", "yellow", "orange",
+];
 
 type CellSelectProps = {
   value: unknown;
@@ -52,14 +59,54 @@ export function CellSelect({
     [selectedId, onCommit],
   );
 
+  const updatePropertyMutation = useUpdatePropertyMutation();
+
+  const trimmedSearch = search.trim();
+  const hasExactMatch = useMemo(
+    () =>
+      trimmedSearch.length > 0 &&
+      choices.some((c) => c.name.toLowerCase() === trimmedSearch.toLowerCase()),
+    [choices, trimmedSearch],
+  );
+  const showAddOption = trimmedSearch.length > 0 && !hasExactMatch;
+
+  const addOptionColor = useMemo(
+    () => CHOICE_COLORS[choices.length % CHOICE_COLORS.length],
+    [choices.length],
+  );
+
+  const handleAddOption = useCallback(() => {
+    if (!trimmedSearch) return;
+    const newChoice: Choice = {
+      id: uuid7(),
+      name: trimmedSearch,
+      color: addOptionColor,
+    };
+    const newChoices = [...choices, newChoice];
+    updatePropertyMutation.mutate({
+      propertyId: property.id,
+      baseId: property.baseId,
+      typeOptions: {
+        ...typeOptions,
+        choices: newChoices,
+        choiceOrder: newChoices.map((c) => c.id),
+      },
+    });
+    onCommit(newChoice.id);
+  }, [trimmedSearch, addOptionColor, choices, typeOptions, property, updatePropertyMutation, onCommit]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
       }
+      if (e.key === "Enter" && showAddOption) {
+        e.preventDefault();
+        handleAddOption();
+      }
     },
-    [onCancel],
+    [onCancel, showAddOption, handleAddOption],
   );
 
   if (isEditing) {
@@ -112,6 +159,20 @@ export function CellSelect({
                 </span>
               </div>
             ))}
+            {showAddOption && (
+              <div
+                className={cellClasses.addOptionRow}
+                onClick={handleAddOption}
+              >
+                <span className={cellClasses.addOptionLabel}>Add option:</span>
+                <span
+                  className={cellClasses.badge}
+                  style={choiceColor(addOptionColor)}
+                >
+                  {trimmedSearch}
+                </span>
+              </div>
+            )}
           </div>
         </Popover.Dropdown>
       </Popover>

@@ -167,6 +167,7 @@ function NumberOptions({
       <Select
         size="xs"
         label={t("Format")}
+        allowDeselect={false}
         data={[
           { value: "plain", label: t("Number") },
           { value: "currency", label: t("Currency") },
@@ -175,7 +176,7 @@ function NumberOptions({
         ]}
         value={options?.format ?? "plain"}
         onChange={(val) =>
-          onUpdate({ ...property.typeOptions, format: val })
+          onUpdate({ ...property.typeOptions, format: val ?? "plain" })
         }
       />
       <NumberInput
@@ -219,13 +220,14 @@ function DateOptions({
         <Select
           size="xs"
           label={t("Time format")}
+          allowDeselect={false}
           data={[
             { value: "12h", label: "12-hour" },
             { value: "24h", label: "24-hour" },
           ]}
           value={options?.timeFormat ?? "12h"}
           onChange={(val) =>
-            onUpdate({ ...property.typeOptions, timeFormat: val })
+            onUpdate({ ...property.typeOptions, timeFormat: val ?? "12h" })
           }
         />
       )}
