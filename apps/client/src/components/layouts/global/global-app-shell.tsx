@@ -10,11 +10,13 @@ import {
   sidebarWidthAtom,
 } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import { SpaceSidebar } from "@/features/space/components/sidebar/space-sidebar.tsx";
+import AiChatSidebar from "@/ee/ai-chat/components/ai-chat-sidebar.tsx";
 import { AppHeader } from "@/components/layouts/global/app-header.tsx";
 import Aside from "@/components/layouts/global/aside.tsx";
 import classes from "./app-shell.module.css";
 import { useTrialEndAction } from "@/ee/hooks/use-trial-end-action.tsx";
 import { useToggleSidebar } from "@/components/layouts/global/hooks/hooks/use-toggle-sidebar.ts";
+import GlobalSidebar from "@/components/layouts/global/global-sidebar.tsx";
 
 export default function GlobalAppShell({
   children,
@@ -72,24 +74,21 @@ export default function GlobalAppShell({
   const location = useLocation();
   const isSettingsRoute = location.pathname.startsWith("/settings");
   const isSpaceRoute = location.pathname.startsWith("/s/");
-  const isHomeRoute = location.pathname.startsWith("/home");
-  const isSpacesRoute = location.pathname === "/spaces";
+  const isAiRoute = location.pathname.startsWith("/ai");
   const isPageRoute = location.pathname.includes("/p/");
-  const hideSidebar = isHomeRoute || isSpacesRoute;
+  const showGlobalSidebar = !isSpaceRoute && !isSettingsRoute && !isAiRoute;
 
   return (
     <AppShell
       header={{ height: 45 }}
-      navbar={
-        !hideSidebar && {
-          width: isSpaceRoute ? sidebarWidth : 300,
-          breakpoint: "sm",
-          collapsed: {
-            mobile: !mobileOpened,
-            desktop: !desktopOpened,
-          },
-        }
-      }
+      navbar={{
+        width: isSpaceRoute ? sidebarWidth : 300,
+        breakpoint: "sm",
+        collapsed: {
+          mobile: !mobileOpened,
+          desktop: !desktopOpened,
+        },
+      }}
       aside={
         isPageRoute && {
           width: 350,
@@ -102,20 +101,22 @@ export default function GlobalAppShell({
       <AppShell.Header px="md" className={classes.header}>
         <AppHeader />
       </AppShell.Header>
-      {!hideSidebar && (
-        <AppShell.Navbar
-          className={classes.navbar}
-          withBorder={false}
-          ref={sidebarRef}
-        >
+      <AppShell.Navbar
+        className={classes.navbar}
+        withBorder={false}
+        ref={sidebarRef}
+      >
+        {isSpaceRoute && (
           <div className={classes.resizeHandle} onMouseDown={startResizing} />
-          {isSpaceRoute && <SpaceSidebar />}
-          {isSettingsRoute && <SettingsSidebar />}
-        </AppShell.Navbar>
-      )}
+        )}
+        {isSpaceRoute && <SpaceSidebar />}
+        {isSettingsRoute && <SettingsSidebar />}
+        {isAiRoute && <AiChatSidebar />}
+        {showGlobalSidebar && <GlobalSidebar />}
+      </AppShell.Navbar>
       <AppShell.Main>
         {isSettingsRoute ? (
-          <Container size={850}>{children}</Container>
+          <Container size={900}>{children}</Container>
         ) : (
           children
         )}

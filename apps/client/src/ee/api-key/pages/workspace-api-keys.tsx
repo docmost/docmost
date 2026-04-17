@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Anchor, Button, Divider, Group, Space, Text } from "@mantine/core";
 import { Helmet } from "react-helmet-async";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import SettingsTitle from "@/components/settings/settings-title";
 import { getAppName } from "@/lib/config";
 import { ApiKeyTable } from "@/ee/api-key/components/api-key-table";
@@ -56,12 +56,12 @@ export default function WorkspaceApiKeys() {
       <SettingsTitle title={t("API management")} />
 
       <Text size="sm" c="dimmed" mb="md">
-        {t("Manage API keys for all users in the workspace.")}{" "}
-        {t("View the")}{" "}
-        <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm">
-          {t("API documentation")}
-        </Anchor>{" "}
-        {t("for usage details.")}
+        <Trans
+          i18nKey="Manage API keys for all users in the workspace. View the <anchor>API documentation</anchor> for usage details."
+          components={{
+            anchor: <Anchor href="https://docmost.com/api-docs" target="_blank" size="sm" />,
+          }}
+        />
       </Text>
 
       <RestrictApiToAdmins />

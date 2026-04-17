@@ -28,8 +28,7 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import slugify = require('@sindresorhus/slugify');
+import slugify from '@sindresorhus/slugify';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const packageJson = require('../../../package.json');
 import { EnvironmentService } from '../environment/environment.service';
@@ -151,6 +150,13 @@ export class ExportService {
     // set to null to make export of pages with parentId work
     pages[parentPageIndex].parentPageId = null;
 
+    const isSinglePage = pages.length === 1 && !includeAttachments;
+
+    if (isSinglePage) {
+      const pageContent = await this.exportPage(format, pages[0], true);
+      return { type: 'file' as const, content: pageContent, page: pages[0] };
+    }
+
     const tree = buildTree(pages as Page[]);
 
     const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
@@ -171,7 +177,7 @@ export class ExportService {
       compression: 'DEFLATE',
     });
 
-    return zipFile;
+    return { type: 'zip' as const, stream: zipFile, page: pages[0] };
   }
 
   async exportSpace(
@@ -291,6 +297,7 @@ export class ExportService {
           prosemirrorJson,
           slugIdToPath,
           currentPagePath,
+          baseUrl,
         );
 
         if (includeAttachments) {
@@ -346,7 +353,7 @@ export class ExportService {
     if (attachmentIds.length > 0) {
       const attachments = await this.db
         .selectFrom('attachments')
-        .selectAll()
+        .select(['id', 'fileName', 'filePath'])
         .where('id', 'in', attachmentIds)
         .where('spaceId', '=', spaceId)
         .execute();

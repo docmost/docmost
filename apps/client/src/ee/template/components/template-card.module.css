@@ -1,0 +1,67 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+    transition: transform 150ms ease;
+    box-shadow: light-dark(rgba(0, 0, 0, 0.07) 0px 2px 45px 4px, none);
+
+    @mixin hover {
+        transform: scale(1.02);
+    }
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.icon {
+    font-size: 22px;
+    line-height: 1;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--mantine-radius-md);
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    flex-shrink: 0;
+}
+
+.iconFallback {
+    composes: icon;
+    color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.title {
+    font-weight: 600;
+    font-size: var(--mantine-font-size-md);
+    line-height: 1.35;
+    color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-gray-0));
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-xs);
+    padding-top: var(--mantine-spacing-sm);
+    margin-top: var(--mantine-spacing-lg);
+    border-top: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.menuTarget {
+    opacity: 0;
+    transition: opacity 100ms ease;
+
+    .card:hover & {
+        opacity: 1;
+    }
+}

@@ -61,7 +61,7 @@ export class ExportController {
 
     await this.pageAccessService.validateCanView(page, user);
 
-    const zipFileStream = await this.exportService.exportPages(
+    const result = await this.exportService.exportPages(
       dto.pageId,
       dto.format,
       dto.includeAttachments,
@@ -83,15 +83,29 @@ export class ExportController {
       },
     });
 
-    const fileName = sanitize(page.title || 'untitled') + '.zip';
+    if (result.type === 'file') {
+      const ext = getExportExtension(dto.format);
+      const fileName = sanitize(page.title || 'untitled') + ext;
+      const contentType = getMimeType(path.extname(fileName));
 
-    res.headers({
-      'Content-Type': 'application/zip',
-      'Content-Disposition':
-        'attachment; filename="' + encodeURIComponent(fileName) + '"',
-    });
+      res.headers({
+        'Content-Type': contentType,
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
 
-    res.send(zipFileStream);
+      res.send(result.content);
+    } else {
+      const fileName = sanitize(page.title || 'untitled') + '.zip';
+
+      res.headers({
+        'Content-Type': 'application/zip',
+        'Content-Disposition':
+          'attachment; filename="' + encodeURIComponent(fileName) + '"',
+      });
+
+      res.send(result.stream);
+    }
   }
 
   @UseGuards(JwtAuthGuard)

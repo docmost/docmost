@@ -7,8 +7,15 @@ import {
   Space,
   Menu,
   Anchor,
+  Tooltip,
 } from "@mantine/core";
-import { IconDots, IconSettings } from "@tabler/icons-react";
+import { IconDots, IconSettings, IconEye, IconEyeOff } from "@tabler/icons-react";
+import StarButton from "@/features/favorite/components/star-button";
+import {
+  useWatchedSpaceIds,
+  useWatchSpaceMutation,
+  useUnwatchSpaceMutation,
+} from "@/features/space/queries/space-watcher-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import React, { useState } from "react";
@@ -24,6 +31,45 @@ import classes from "./all-spaces-list.module.css";
 import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import { AutoTooltipText } from "@/components/ui/auto-tooltip-text.tsx";
+
+function WatchButton({ spaceId, watchedIds, size = 16 }: { spaceId: string; watchedIds: Set<string>; size?: number }) {
+  const { t } = useTranslation();
+  const watchMutation = useWatchSpaceMutation();
+  const unwatchMutation = useUnwatchSpaceMutation();
+  const isWatching = watchedIds.has(spaceId);
+  const isPending = watchMutation.isPending || unwatchMutation.isPending;
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isWatching) {
+      unwatchMutation.mutate(spaceId);
+    } else {
+      watchMutation.mutate(spaceId);
+    }
+  };
+
+  return (
+    <Tooltip
+      label={isWatching ? t("Stop watching space") : t("Watch space")}
+      openDelay={250}
+      withArrow
+    >
+      <ActionIcon
+        variant="subtle"
+        color={isWatching ? "blue" : "gray"}
+        onClick={handleToggle}
+        loading={isPending}
+      >
+        {isWatching ? (
+          <IconEyeOff size={size} stroke={2} />
+        ) : (
+          <IconEye size={size} stroke={2} />
+        )}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
 
 interface AllSpacesListProps {
   spaces: any[];
@@ -43,6 +89,7 @@ export default function AllSpacesList({
   onPrev,
 }: AllSpacesListProps) {
   const { t } = useTranslation();
+  const watchedIds = useWatchedSpaceIds();
   const [settingsOpened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
@@ -64,7 +111,7 @@ export default function AllSpacesList({
             <Table.Tr>
               <Table.Th>{t("Space")}</Table.Th>
               <Table.Th>{t("Members")}</Table.Th>
-              <Table.Th w={100}></Table.Th>
+              <Table.Th w={130}></Table.Th>
             </Table.Tr>
           </Table.Thead>
 
@@ -116,7 +163,9 @@ export default function AllSpacesList({
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Group gap="xs" justify="flex-end">
+                    <Group gap="xs" justify="flex-end" wrap="nowrap">
+                      <StarButton type="space" spaceId={space.id} size={16} />
+                      <WatchButton spaceId={space.id} watchedIds={watchedIds} size={16} />
                       <Menu position="bottom-end">
                         <Menu.Target>
                           <ActionIcon variant="subtle" color="gray">

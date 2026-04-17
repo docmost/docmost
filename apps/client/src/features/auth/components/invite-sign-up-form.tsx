@@ -19,6 +19,7 @@ import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-qu
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
+import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
   name: z.string().trim().min(1),
@@ -66,6 +67,7 @@ export function InviteSignUpForm() {
   }
 
   return (
+    <AuthLayout>
     <Container size={420} className={classes.container}>
       <Box p="xl" className={classes.containerBox}>
         <Title order={2} ta="center" fw={500} mb="md">
@@ -111,5 +113,6 @@ export function InviteSignUpForm() {
         )}
       </Box>
     </Container>
+    </AuthLayout>
   );
 }

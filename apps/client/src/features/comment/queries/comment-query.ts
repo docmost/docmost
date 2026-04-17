@@ -65,6 +65,11 @@ export function useCreateCommentMutation() {
       ) as InfiniteData<IPagination<IComment>> | undefined;
 
       if (cache && cache.pages.length > 0) {
+        const alreadyExists = cache.pages.some((page) =>
+          page.items.some((c) => c.id === newComment.id),
+        );
+        if (alreadyExists) return;
+
         const lastIdx = cache.pages.length - 1;
         queryClient.setQueryData(RQ_KEY(newComment.pageId), {
           ...cache,

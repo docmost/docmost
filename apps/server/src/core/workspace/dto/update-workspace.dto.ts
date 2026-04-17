@@ -47,7 +47,15 @@ export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   mcpEnabled: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  aiChat: boolean;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   trashRetentionDays: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowMemberTemplates: boolean;
 }

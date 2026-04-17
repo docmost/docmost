@@ -69,9 +69,10 @@ export const prefetchSpace = (spaceSlug: string, spaceId?: string) => {
 
   if (spaceId) {
     // this endpoint only accepts uuid for now
-    queryClient.prefetchQuery({
+    queryClient.prefetchInfiniteQuery({
       queryKey: ["recent-changes", spaceId],
-      queryFn: () => getRecentChanges(spaceId),
+      queryFn: () => getRecentChanges({ spaceId }),
+      initialPageParam: undefined,
     });
   }
 };

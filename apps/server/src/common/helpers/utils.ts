@@ -91,15 +91,6 @@ export function extractBearerTokenFromHeader(
   return type === 'Bearer' ? token : undefined;
 }
 
-export function hasLicenseOrEE(opts: {
-  licenseKey: string;
-  plan: string;
-  isCloud: boolean;
-}): boolean {
-  const { licenseKey, plan, isCloud } = opts;
-  return Boolean(licenseKey) || (isCloud && plan === 'business');
-}
-
 /**
  * Normalizes a database URL for postgres.js compatibility.
  * - Removes `sslmode=no-verify` (not supported by postgres.js), keeps other sslmode values
@@ -149,6 +140,18 @@ export function isUserDisabled(user: {
   deletedAt?: Date | null;
 }): boolean {
   return !!(user.deactivatedAt || user.deletedAt);
+}
+
+const SENSITIVE_URL_PREFIXES = ['/api/sso/'];
+
+export function redactSensitiveUrl(url: string): string {
+  if (url && SENSITIVE_URL_PREFIXES.some((prefix) => url.includes(prefix))) {
+    const qsIndex = url.indexOf('?');
+    if (qsIndex !== -1) {
+      return url.substring(0, qsIndex);
+    }
+  }
+  return url;
 }
 
 export function createByteCountingStream(source: Readable) {

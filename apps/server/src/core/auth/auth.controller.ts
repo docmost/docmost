@@ -5,12 +5,19 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Req,
   Res,
   UseGuards,
   Logger,
 } from '@nestjs/common';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  AI_CHAT_THROTTLER,
+  AUTH_THROTTLER,
+} from '../../integrations/throttle/throttler-names';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './services/auth.service';
+import { SessionService } from '../session/session.service';
 import { SetupGuard } from './guards/setup.guard';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
@@ -22,7 +29,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { VerifyUserTokenDto } from './dto/verify-user-token.dto';
-import { FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { validateSsoEnforcement } from './auth.util';
 import { ModuleRef } from '@nestjs/core';
 import { AuditEvent, AuditResource } from '../../common/events/audit-events';
@@ -31,12 +38,15 @@ import {
   IAuditService,
 } from '../../integrations/audit/audit.service';
 
+@SkipThrottle({ [AI_CHAT_THROTTLER]: true })
+@UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(
     private authService: AuthService,
+    private sessionService: SessionService,
     private environmentService: EnvironmentService,
     private moduleRef: ModuleRef,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
@@ -108,6 +118,7 @@ export class AuthController {
     return workspace;
   }
 
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('change-password')
@@ -115,8 +126,15 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
     @AuthUser() user: User,
     @AuthWorkspace() workspace: Workspace,
+    @Req() req: FastifyRequest,
   ) {
-    return this.authService.changePassword(dto, user.id, workspace.id);
+    const currentSessionId = (req.raw as any).sessionId;
+    return this.authService.changePassword(
+      dto,
+      user.id,
+      workspace.id,
+      currentSessionId,
+    );
   }
 
   @HttpCode(HttpStatus.OK)
@@ -163,6 +181,7 @@ export class AuthController {
     return this.authService.verifyUserToken(verifyUserTokenDto, workspace.id);
   }
 
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('collab-token')
@@ -173,13 +192,24 @@ export class AuthController {
     return this.authService.getCollabToken(user, workspace.id);
   }
 
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   async logout(
     @AuthUser() user: User,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    const sessionId = (req.raw as any).sessionId;
+    if (sessionId) {
+      await this.sessionService.revokeSession(
+        sessionId,
+        user.id,
+        user.workspaceId,
+      );
+    }
+
     res.clearCookie('authToken');
 
     this.auditService.log({
@@ -192,6 +222,7 @@ export class AuthController {
   setAuthCookie(res: FastifyReply, token: string) {
     res.setCookie('authToken', token, {
       httpOnly: true,
+      sameSite: 'lax',
       path: '/',
       expires: this.environmentService.getCookieExpiresIn(),
       secure: this.environmentService.isHttps(),
