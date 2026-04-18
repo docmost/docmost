@@ -63,21 +63,37 @@ export class BaseCsvExportService {
     });
     stringifier.pipe(out);
 
+    // RFC 5987: use filename*=UTF-8''... for non-ASCII; keep a plain
+    // ASCII fallback in filename=. Percent-encoding a name inside the
+    // quoted-string filename= token is not decoded by browsers, so it
+    // would land as e.g. "My%20Base.csv" on disk.
+    const asciiFallback = fileName.replace(/[^\x20-\x7e]/g, '_');
     reply.headers({
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition':
-        'attachment; filename="' + encodeURIComponent(fileName) + '"',
+        `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     });
     reply.send(out);
+
+    // Client aborts (tab close, cancel-download) close `out`. Without
+    // an abort signal the row loop keeps pulling chunks from Postgres
+    // long after the response is gone — on a 500k-row base that's
+    // hundreds of useless round-trips.
+    let aborted = false;
+    out.once('close', () => {
+      aborted = true;
+    });
 
     try {
       for await (const chunk of this.baseRowRepo.streamByBaseId(baseId, {
         workspaceId,
         chunkSize: CHUNK_SIZE,
       })) {
+        if (aborted) break;
         const ctx = await this.buildCtx(chunk, properties);
 
         for (const row of chunk) {
+          if (aborted) break;
           const record: Record<string, string> = {};
           const cells = (row.cells ?? {}) as Record<string, unknown>;
 
@@ -109,9 +125,12 @@ export class BaseCsvExportService {
 
       stringifier.end();
     } catch (err) {
+      // Headers are already flushed at this point — re-throwing would
+      // trigger Nest's exception filter to try to send another
+      // response, which Fastify rejects. Destroying the stringifier
+      // cascades to `out` and signals EOF to the client.
       this.logger.error(`csv export failed base=${baseId}`, err);
       stringifier.destroy(err as Error);
-      throw err;
     }
   }
 
