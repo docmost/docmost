@@ -61,12 +61,6 @@ type BaseViewEvent = {
   viewId?: string;
 };
 
-type BaseSchemaBumped = {
-  operation: "base:schema:bumped";
-  baseId: string;
-  schemaVersion: number;
-};
-
 type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
@@ -74,7 +68,6 @@ type BaseInboundEvent =
   | BaseRowReordered
   | BasePropertyEvent
   | BaseViewEvent
-  | BaseSchemaBumped
   | { operation: string; baseId: string };
 
 /*
@@ -210,17 +203,11 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:view:created":
         case "base:view:updated":
         case "base:view:deleted": {
-          // Schema/metadata events touch `properties` / `views` on the
-          // base, not the cell data. The row cache only gets invalidated
-          // when a `base:schema:bumped` arrives (i.e. cells actually
-          // migrated) — otherwise a big-base conversion would trigger a
-          // serial refetch of every cached infinite-query page.
+          // Schema/metadata events only touch the base's `properties` /
+          // `views`, not the cell data — so we invalidate just
+          // `["bases", baseId]` here. Row reconciliation is handled
+          // per-event by the row cases above.
           queryClient.invalidateQueries({ queryKey: ["bases", baseId] });
-          break;
-        }
-        case "base:schema:bumped": {
-          queryClient.invalidateQueries({ queryKey: ["bases", baseId] });
-          queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
           break;
         }
         default:
