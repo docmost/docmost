@@ -67,10 +67,6 @@ export function useBaseRowsQuery(
     getNextPageParam: (lastPage: IPagination<IBaseRow>) =>
       lastPage.meta?.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
-    // Cap cached pages so an invalidate after a type-conversion refetches
-    // a bounded set instead of serially re-requesting every page the user
-    // has ever scrolled through.
-    maxPages: 5,
   });
 }
 
