@@ -1,4 +1,5 @@
 import api from "@/lib/api-client";
+import { saveAs } from "file-saver";
 import {
   IBase,
   IBaseProperty,
@@ -44,6 +45,26 @@ export async function updateBase(data: UpdateBaseInput): Promise<IBase> {
 
 export async function deleteBase(baseId: string): Promise<void> {
   await api.post("/bases/delete", { baseId });
+}
+
+export async function exportBaseToCsv(baseId: string): Promise<void> {
+  const req = await api.post(
+    "/bases/export-csv",
+    { baseId },
+    { responseType: "blob" },
+  );
+
+  const header = (req?.headers?.["content-disposition"] as string) ?? "";
+  const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+  const plainMatch = header.match(/filename="?([^";]+)"?/i);
+  let fileName = utf8Match?.[1] ?? plainMatch?.[1] ?? "base.csv";
+  try {
+    fileName = decodeURIComponent(fileName);
+  } catch {
+    // fallback to raw filename
+  }
+
+  saveAs(req.data, fileName);
 }
 
 export async function listBases(
