@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover, TextInput } from "@mantine/core";
+import clsx from "clsx";
 import {
   IBaseProperty,
   SelectTypeOptions,
@@ -9,11 +10,16 @@ import { choiceColor } from "@/features/base/components/cells/choice-color";
 import { useUpdatePropertyMutation } from "@/features/base/queries/base-property-query";
 import { v7 as uuid7 } from "uuid";
 import cellClasses from "@/features/base/styles/cells.module.css";
+import { useListKeyboardNav } from "@/features/base/hooks/use-list-keyboard-nav";
 
 const CHOICE_COLORS = [
   "gray", "red", "pink", "grape", "violet", "indigo",
   "blue", "cyan", "teal", "green", "lime", "yellow", "orange",
 ];
+
+type NavItem =
+  | { kind: "choice"; choice: Choice }
+  | { kind: "add" };
 
 type CellMultiSelectProps = {
   value: unknown;
@@ -78,6 +84,17 @@ export function CellMultiSelect({
     [choices.length],
   );
 
+  const navItems = useMemo<NavItem[]>(
+    () => [
+      ...filteredChoices.map((c) => ({ kind: "choice" as const, choice: c })),
+      ...(showAddOption ? [{ kind: "add" as const }] : []),
+    ],
+    [filteredChoices, showAddOption],
+  );
+
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
+    useListKeyboardNav(navItems.length, [search, isEditing, showAddOption]);
+
   const handleAddOption = useCallback(() => {
     if (!trimmedSearch) return;
     const newChoice: Choice = {
@@ -104,18 +121,30 @@ export function CellMultiSelect({
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
+        return;
       }
-      if (e.key === "Enter" && showAddOption) {
-        e.preventDefault();
-        handleAddOption();
+      if (handleNavKey(e)) return;
+      if (e.key === "Enter") {
+        if (activeIndex >= 0 && activeIndex < navItems.length) {
+          e.preventDefault();
+          const item = navItems[activeIndex];
+          if (item.kind === "choice") handleToggle(item.choice);
+          else handleAddOption();
+          return;
+        }
+        if (showAddOption) {
+          e.preventDefault();
+          handleAddOption();
+        }
       }
     },
-    [onCancel, showAddOption, handleAddOption],
+    [onCancel, handleNavKey, activeIndex, navItems, handleToggle, handleAddOption, showAddOption],
   );
 
   const MAX_VISIBLE = 3;
 
   if (isEditing) {
+    const addOptionIdx = filteredChoices.length;
     return (
       <Popover
         opened
@@ -140,27 +169,44 @@ export function CellMultiSelect({
             mb={4}
           />
           <div className={cellClasses.selectDropdown}>
-            {filteredChoices.map((choice) => (
-              <div
-                key={choice.id}
-                className={`${cellClasses.selectOption} ${
-                  selectedSet.has(choice.id)
-                    ? cellClasses.selectOptionActive
-                    : ""
-                }`}
-                onClick={() => handleToggle(choice)}
-              >
-                <span
-                  className={cellClasses.badge}
-                  style={choiceColor(choice.color)}
+            {filteredChoices.map((choice, idx) => {
+              const isSelected = selectedSet.has(choice.id);
+              return (
+                <div
+                  key={choice.id}
+                  ref={setOptionRef(idx)}
+                  className={clsx(
+                    cellClasses.selectOption,
+                    isSelected && cellClasses.selectOptionActive,
+                    idx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                  )}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onMouseDown={(e) => {
+                    // Keep focus on the search input so click doesn't blur + close popover.
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleToggle(choice)}
                 >
-                  {choice.name}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={cellClasses.badge}
+                    style={choiceColor(choice.color)}
+                  >
+                    {choice.name}
+                  </span>
+                </div>
+              );
+            })}
             {showAddOption && (
               <div
-                className={cellClasses.addOptionRow}
+                ref={setOptionRef(addOptionIdx)}
+                className={clsx(
+                  cellClasses.addOptionRow,
+                  addOptionIdx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                )}
+                onMouseEnter={() => setActiveIndex(addOptionIdx)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
                 onClick={handleAddOption}
               >
                 <span className={cellClasses.addOptionLabel}>Add option:</span>
