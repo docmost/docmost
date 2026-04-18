@@ -67,7 +67,7 @@ export class BaseViewRepo {
       .select('position')
       .where('baseId', '=', baseId)
       .where('workspaceId', '=', opts.workspaceId)
-      .orderBy(sql`position COLLATE "C"`, sql`DESC`)
+      .orderBy(sql`position COLLATE "C"`, 'desc')
       .limit(1)
       .executeTakeFirst();
     return result?.position ?? null;

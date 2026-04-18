@@ -124,7 +124,7 @@ export class BaseRowRepo {
       .where('baseId', '=', baseId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
-      .orderBy(sql`position COLLATE "C"`, sql`DESC`)
+      .orderBy(sql`position COLLATE "C"`, 'desc')
       .limit(1)
       .executeTakeFirst();
     return result?.position ?? null;
