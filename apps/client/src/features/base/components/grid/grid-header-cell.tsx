@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Popover } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
-import { activePropertyMenuAtom, propertyMenuDirtyAtom, editingCellAtom } from "@/features/base/atoms/base-atoms";
+import { activePropertyMenuAtom, propertyMenuDirtyAtom, propertyMenuCloseRequestAtom, editingCellAtom } from "@/features/base/atoms/base-atoms";
 import {
   IconLetterT,
   IconHash,
@@ -66,6 +66,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const menuOpened = activePropertyMenu === header.column.id;
   const cellRef = useRef<HTMLDivElement>(null);
   const [propertyMenuDirty, setPropertyMenuDirty] = useAtom(propertyMenuDirtyAtom) as unknown as [boolean, (val: boolean) => void];
+  const [closeRequest, setCloseRequest] = useAtom(propertyMenuCloseRequestAtom) as unknown as [number, (val: number) => void];
   const [, setEditingCell] = useAtom(editingCellAtom) as unknown as [EditingCell, (val: EditingCell) => void];
 
   const handleDirtyChange = useCallback((dirty: boolean) => {
@@ -108,18 +109,22 @@ export const GridHeaderCell = memo(function GridHeaderCell({
 
   // Mantine's built-in `closeOnEscape` only fires when focus is inside the
   // dropdown, but opening the property menu (clicking the header) leaves
-  // focus on the header itself. Add a document-level ESC handler that
-  // closes the menu when it's open and not dirty.
+  // focus on the header itself. Mirror the click-outside path: when dirty,
+  // bump `propertyMenuCloseRequestAtom` so property-menu shows its
+  // "Unsaved changes" confirmation panel; otherwise close directly.
   useEffect(() => {
     if (!menuOpened) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (propertyMenuDirty) return;
-      handleMenuClose();
+      if (propertyMenuDirty) {
+        setCloseRequest(closeRequest + 1);
+      } else {
+        handleMenuClose();
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [menuOpened, propertyMenuDirty, handleMenuClose]);
+  }, [menuOpened, propertyMenuDirty, closeRequest, setCloseRequest, handleMenuClose]);
 
   const TypeIcon = property ? typeIcons[property.type] : undefined;
 
