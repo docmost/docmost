@@ -160,7 +160,7 @@ export class DeleteRowsDto {
 
 **`apps/server/src/common/events/event.contants.ts`** — append `BASE_ROWS_DELETED = 'base.rows.deleted'`.
 
-**`apps/server/src/core/base/events/base-events.ts`** (or wherever `BaseRowDeletedEvent` lives) — add:
+**`apps/server/src/core/base/events/base-events.ts`** — add:
 
 ```ts
 export type BaseRowsDeletedEvent = {
@@ -275,7 +275,10 @@ export async function deleteRows(data: { baseId: string; rowIds: string[]; reque
 | Case | Handling |
 |---|---|
 | Selection includes a row that another client deletes | Socket handler prunes from `selectedRowIdsAtom` |
-| User selects >500 rows | Client chunks into sequential 500-id batches, one `requestId` per batch (all suppressed by socket echo filter) |
+| User selects >500 rows | Client chunks into sequential 500-id batches, one `requestId` per batch (all suppressed by socket echo filter). Fire-and-forget: toast shows once after all chunks resolve; no mid-progress UI in v1. |
+| Header select-all clicked with 0 loaded rows | `<RowNumberHeaderCell />` renders nothing (no checkbox, no `#`) when `loadedRowIds.length === 0` to avoid a no-op control; `#` still shows if rows exist but none selected |
+| "Grid focused" for Delete/Backspace/Esc | Defined as: the scroll container (`scrollRef.current`) contains `document.activeElement`. Keyboard handler attaches to the container; keys only fire when the event target is inside it. |
+| Filter / sort change with rows selected | Selection is cleared — deliberate v1 choice (simple mental model). Users who want to filter-then-bulk-delete must filter first, then select. Acceptable tradeoff given select-all-loaded scope. |
 | Delete API error mid-way (optimistic) | Rollback snapshots restore rows; notification surfaces error; selection remains |
 | Delete key pressed while editing a cell | Guard: no-op when `editingCellAtom != null` |
 | Clicking checkbox inside a row that's mid-drag | Drag handle and checkbox are separate elements; click on checkbox doesn't propagate drag |
