@@ -23,6 +23,7 @@ export enum EventName {
   BASE_ROW_CREATED = 'base.row.created',
   BASE_ROW_UPDATED = 'base.row.updated',
   BASE_ROW_DELETED = 'base.row.deleted',
+  BASE_ROWS_DELETED = 'base.rows.deleted',
   BASE_ROW_RESTORED = 'base.row.restored',
   BASE_ROW_REORDERED = 'base.row.reordered',
 

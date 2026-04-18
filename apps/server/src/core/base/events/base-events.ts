@@ -21,6 +21,7 @@ export type BaseRowUpdatedEvent = BaseEventBase & {
   updatedCells: Record<string, unknown>;
 };
 export type BaseRowDeletedEvent = BaseEventBase & { rowId: string };
+export type BaseRowsDeletedEvent = BaseEventBase & { rowIds: string[] };
 export type BaseRowRestoredEvent = BaseEventBase & { rowId: string };
 export type BaseRowReorderedEvent = BaseEventBase & {
   rowId: string;
