@@ -24,6 +24,7 @@ import { useRowDrag } from "@/features/base/hooks/use-row-drag";
 import { GridHeader } from "./grid-header";
 import { GridRow } from "./grid-row";
 import { AddRowButton } from "./add-row-button";
+import { SelectionActionBar } from "./selection-action-bar";
 import classes from "@/features/base/styles/grid.module.css";
 
 const ROW_HEIGHT = 36;
@@ -251,6 +252,7 @@ export function GridContainer({
           )}
 
           <AddRowButton onClick={handleAddRow} />
+          {baseId && <SelectionActionBar baseId={baseId} />}
         </div>
       </div>
     </DndContext>
