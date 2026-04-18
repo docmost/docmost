@@ -7,6 +7,8 @@ import {
 } from "@/features/base/types/base.types";
 import { choiceColor } from "@/features/base/components/cells/choice-color";
 import cellClasses from "@/features/base/styles/cells.module.css";
+import clsx from "clsx";
+import { useListKeyboardNav } from "@/features/base/hooks/use-list-keyboard-nav";
 
 type CellStatusProps = {
   value: unknown;
@@ -73,6 +75,19 @@ export function CellStatus({
     return result;
   }, [choices, search]);
 
+  const flatChoices = useMemo(
+    () => groups.flatMap((g) => g.choices),
+    [groups],
+  );
+  const choiceIdxMap = useMemo(() => {
+    const m = new Map<string, number>();
+    flatChoices.forEach((c, i) => m.set(c.id, i));
+    return m;
+  }, [flatChoices]);
+
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
+    useListKeyboardNav(flatChoices.length, [search, isEditing]);
+
   const handleSelect = useCallback(
     (choice: Choice) => {
       onCommit(choice.id === selectedId ? null : choice.id);
@@ -85,9 +100,16 @@ export function CellStatus({
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
+        return;
+      }
+      if (handleNavKey(e)) return;
+      if (e.key === "Enter") {
+        if (activeIndex < 0 || activeIndex >= flatChoices.length) return;
+        e.preventDefault();
+        handleSelect(flatChoices[activeIndex]);
       }
     },
-    [onCancel],
+    [onCancel, handleNavKey, activeIndex, flatChoices, handleSelect],
   );
 
   if (isEditing) {
@@ -129,24 +151,33 @@ export function CellStatus({
                 <div className={cellClasses.selectCategoryLabel}>
                   {group.label}
                 </div>
-                {group.choices.map((choice) => (
-                  <div
-                    key={choice.id}
-                    className={`${cellClasses.selectOption} ${
-                      choice.id === selectedId
-                        ? cellClasses.selectOptionActive
-                        : ""
-                    }`}
-                    onClick={() => handleSelect(choice)}
-                  >
-                    <span
-                      className={cellClasses.badge}
-                      style={choiceColor(choice.color)}
+                {group.choices.map((choice) => {
+                  const idx = choiceIdxMap.get(choice.id) ?? -1;
+                  const isSelected = choice.id === selectedId;
+                  return (
+                    <div
+                      key={choice.id}
+                      ref={setOptionRef(idx)}
+                      className={clsx(
+                        cellClasses.selectOption,
+                        isSelected && cellClasses.selectOptionActive,
+                        idx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                      )}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => handleSelect(choice)}
                     >
-                      {choice.name}
-                    </span>
-                  </div>
-                ))}
+                      <span
+                        className={cellClasses.badge}
+                        style={choiceColor(choice.color)}
+                      >
+                        {choice.name}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
