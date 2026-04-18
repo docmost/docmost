@@ -1,0 +1,47 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs) 0;
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.toolbarTabs {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  margin-left: auto;
+}
+
+.gridWrapper {
+  overflow: hidden;
+  flex: 1;
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.grid {
+  display: grid;
+}
+
+.cellInner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.headerCellInner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  width: 100%;
+  padding: 0 8px;
+}
