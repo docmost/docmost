@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { BaseController } from './controllers/base.controller';
 import { BasePropertyController } from './controllers/base-property.controller';
 import { BaseRowController } from './controllers/base-row.controller';
@@ -7,15 +8,37 @@ import { BaseService } from './services/base.service';
 import { BasePropertyService } from './services/base-property.service';
 import { BaseRowService } from './services/base-row.service';
 import { BaseViewService } from './services/base-view.service';
+import { BaseQueueProcessor } from './processors/base-queue.processor';
+import { BaseWsService } from './realtime/base-ws.service';
+import { BaseWsConsumers } from './realtime/base-ws-consumers';
+import { BasePresenceService } from './realtime/base-presence.service';
+import { QueueName } from '../../integrations/queue/constants';
 
 @Module({
+  imports: [BullModule.registerQueue({ name: QueueName.BASE_QUEUE })],
   controllers: [
     BaseController,
     BasePropertyController,
     BaseRowController,
     BaseViewController,
   ],
-  providers: [BaseService, BasePropertyService, BaseRowService, BaseViewService],
-  exports: [BaseService, BasePropertyService, BaseRowService, BaseViewService],
+  providers: [
+    BaseService,
+    BasePropertyService,
+    BaseRowService,
+    BaseViewService,
+    BaseQueueProcessor,
+    BasePresenceService,
+    BaseWsService,
+    BaseWsConsumers,
+  ],
+  exports: [
+    BaseService,
+    BasePropertyService,
+    BaseRowService,
+    BaseViewService,
+    BaseWsService,
+    BasePresenceService,
+  ],
 })
 export class BaseModule {}

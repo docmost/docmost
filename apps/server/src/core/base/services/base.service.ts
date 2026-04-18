@@ -61,7 +61,7 @@ export class BaseService {
           workspaceId,
           creatorId: userId,
         },
-        trx,
+        { trx },
       );
 
       return this.baseRepo.findById(base.id, {

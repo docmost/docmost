@@ -113,3 +113,27 @@ export interface IApprovalRejectedNotificationJob {
   requestedById: string;
   comment?: string;
 }
+
+export interface IBaseTypeConversionJob {
+  baseId: string;
+  propertyId: string;
+  workspaceId: string;
+  fromType: string;
+  toType: string;
+  // Snapshots taken at enqueue time so the job stays correct even if the
+  // property's current typeOptions drift while the job waits in the queue.
+  fromTypeOptions: unknown;
+  toTypeOptions: unknown;
+  // When true, the job nulls the cell values for that property instead of
+  // attempting a value conversion. Used for any conversion where the new
+  // type has no meaningful representation of the old value (e.g. involving
+  // a system type).
+  clearMode: boolean;
+  actorId?: string;
+}
+
+export interface IBaseCellGcJob {
+  baseId: string;
+  propertyId: string;
+  workspaceId: string;
+}

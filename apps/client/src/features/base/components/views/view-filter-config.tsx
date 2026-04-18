@@ -13,61 +13,69 @@ import { IconPlus, IconTrash } from "@tabler/icons-react";
 import {
   IBaseProperty,
   SelectTypeOptions,
-  ViewFilterConfig,
-  ViewFilterOperator,
+  FilterCondition,
+  FilterOperator,
 } from "@/features/base/types/base.types";
 import { useTranslation } from "react-i18next";
 
-const OPERATORS: { value: ViewFilterOperator; labelKey: string }[] = [
-  { value: "equals", labelKey: "Equals" },
-  { value: "notEquals", labelKey: "Not equals" },
+/*
+ * Operator metadata for the filter popover. Values use the server
+ * engine's operator set (`core/base/engine/schema.zod.ts`); labels are
+ * i18n-translated display strings.
+ */
+const OPERATORS: { value: FilterOperator; labelKey: string }[] = [
+  { value: "eq", labelKey: "Equals" },
+  { value: "neq", labelKey: "Not equals" },
   { value: "contains", labelKey: "Contains" },
-  { value: "notContains", labelKey: "Not contains" },
+  { value: "ncontains", labelKey: "Not contains" },
   { value: "isEmpty", labelKey: "Is empty" },
   { value: "isNotEmpty", labelKey: "Is not empty" },
-  { value: "greaterThan", labelKey: "Greater than" },
-  { value: "lessThan", labelKey: "Less than" },
+  { value: "gt", labelKey: "Greater than" },
+  { value: "lt", labelKey: "Less than" },
   { value: "before", labelKey: "Before" },
   { value: "after", labelKey: "After" },
+  { value: "any", labelKey: "Any of" },
+  { value: "none", labelKey: "None of" },
 ];
 
-const NO_VALUE_OPERATORS: ViewFilterOperator[] = ["isEmpty", "isNotEmpty"];
+const NO_VALUE_OPERATORS: FilterOperator[] = ["isEmpty", "isNotEmpty"];
 
-function getOperatorsForType(type: string): ViewFilterOperator[] {
+function getOperatorsForType(type: string): FilterOperator[] {
   switch (type) {
     case "text":
     case "email":
     case "url":
-      return ["equals", "notEquals", "contains", "notContains", "isEmpty", "isNotEmpty"];
+      return ["eq", "neq", "contains", "ncontains", "isEmpty", "isNotEmpty"];
     case "number":
-      return ["equals", "notEquals", "greaterThan", "lessThan", "isEmpty", "isNotEmpty"];
+      return ["eq", "neq", "gt", "lt", "isEmpty", "isNotEmpty"];
     case "date":
     case "createdAt":
     case "lastEditedAt":
-      return ["equals", "notEquals", "before", "after", "isEmpty", "isNotEmpty"];
+      return ["eq", "neq", "before", "after", "isEmpty", "isNotEmpty"];
     case "select":
     case "status":
+      return ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"];
     case "multiSelect":
-      return ["equals", "notEquals", "isEmpty", "isNotEmpty"];
+      return ["any", "none", "isEmpty", "isNotEmpty"];
     case "checkbox":
-      return ["equals", "isEmpty", "isNotEmpty"];
+      return ["eq", "isEmpty", "isNotEmpty"];
     case "person":
     case "lastEditedBy":
-      return ["equals", "notEquals", "isEmpty", "isNotEmpty"];
+      return ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"];
     case "file":
       return ["isEmpty", "isNotEmpty"];
     default:
-      return ["equals", "notEquals", "isEmpty", "isNotEmpty"];
+      return ["eq", "neq", "isEmpty", "isNotEmpty"];
   }
 }
 
 function FilterValueInput({
-  filter,
+  condition,
   property,
   onChange,
   t,
 }: {
-  filter: ViewFilterConfig;
+  condition: FilterCondition;
   property: IBaseProperty | undefined;
   onChange: (value: string) => void;
   t: (key: string) => string;
@@ -77,7 +85,7 @@ function FilterValueInput({
       <TextInput
         size="xs"
         placeholder={t("Value")}
-        value={(filter.value as string) ?? ""}
+        value={(condition.value as string) ?? ""}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
@@ -94,7 +102,7 @@ function FilterValueInput({
       <Select
         size="xs"
         data={choiceOptions}
-        value={(filter.value as string) ?? null}
+        value={(condition.value as string) ?? null}
         onChange={(val) => onChange(val ?? "")}
         w={120}
         placeholder={t("Select")}
@@ -108,7 +116,7 @@ function FilterValueInput({
         size="xs"
         type="number"
         placeholder={t("Value")}
-        value={(filter.value as string) ?? ""}
+        value={(condition.value as string) ?? ""}
         onChange={(e) => onChange(e.currentTarget.value)}
         w={100}
       />
@@ -123,7 +131,7 @@ function FilterValueInput({
           { value: "true", label: t("True") },
           { value: "false", label: t("False") },
         ]}
-        value={(filter.value as string) ?? null}
+        value={(condition.value as string) ?? null}
         onChange={(val) => onChange(val ?? "")}
         w={100}
       />
@@ -134,7 +142,7 @@ function FilterValueInput({
     <TextInput
       size="xs"
       placeholder={t("Value")}
-      value={(filter.value as string) ?? ""}
+      value={(condition.value as string) ?? ""}
       onChange={(e) => onChange(e.currentTarget.value)}
       w={100}
     />
@@ -144,16 +152,16 @@ function FilterValueInput({
 type ViewFilterConfigProps = {
   opened: boolean;
   onClose: () => void;
-  filters: ViewFilterConfig[];
+  conditions: FilterCondition[];
   properties: IBaseProperty[];
-  onChange: (filters: ViewFilterConfig[]) => void;
+  onChange: (conditions: FilterCondition[]) => void;
   children: React.ReactNode;
 };
 
 export function ViewFilterConfigPopover({
   opened,
   onClose,
-  filters,
+  conditions,
   properties,
   onChange,
   children,
@@ -169,18 +177,20 @@ export function ViewFilterConfigPopover({
     const firstProperty = properties[0];
     if (!firstProperty) return;
     const validOperators = getOperatorsForType(firstProperty.type);
-    const defaultOperator = validOperators.includes("contains") ? "contains" : validOperators[0];
+    const defaultOperator = validOperators.includes("contains")
+      ? ("contains" as FilterOperator)
+      : validOperators[0];
     onChange([
-      ...filters,
-      { propertyId: firstProperty.id, operator: defaultOperator },
+      ...conditions,
+      { propertyId: firstProperty.id, op: defaultOperator },
     ]);
-  }, [filters, properties, onChange]);
+  }, [conditions, properties, onChange]);
 
   const handleRemove = useCallback(
     (index: number) => {
-      onChange(filters.filter((_, i) => i !== index));
+      onChange(conditions.filter((_, i) => i !== index));
     },
-    [filters, onChange],
+    [conditions, onChange],
   );
 
   const handlePropertyChange = useCallback(
@@ -188,15 +198,15 @@ export function ViewFilterConfigPopover({
       if (!propertyId) return;
       const newProperty = properties.find((p) => p.id === propertyId);
       onChange(
-        filters.map((f, i) => {
+        conditions.map((f, i) => {
           if (i !== index) return f;
           if (newProperty) {
             const validOperators = getOperatorsForType(newProperty.type);
-            const currentOperatorValid = validOperators.includes(f.operator);
+            const currentOperatorValid = validOperators.includes(f.op);
             return {
               ...f,
               propertyId,
-              operator: currentOperatorValid ? f.operator : validOperators[0],
+              op: currentOperatorValid ? f.op : validOperators[0],
               value: currentOperatorValid ? f.value : undefined,
             };
           }
@@ -204,38 +214,38 @@ export function ViewFilterConfigPopover({
         }),
       );
     },
-    [filters, properties, onChange],
+    [conditions, properties, onChange],
   );
 
   const handleOperatorChange = useCallback(
     (index: number, operator: string | null) => {
       if (!operator) return;
-      const op = operator as ViewFilterOperator;
+      const op = operator as FilterOperator;
       const needsValue = !NO_VALUE_OPERATORS.includes(op);
       onChange(
-        filters.map((f, i) =>
+        conditions.map((f, i) =>
           i === index
             ? {
                 ...f,
-                operator: op,
+                op,
                 value: needsValue ? f.value : undefined,
               }
             : f,
         ),
       );
     },
-    [filters, onChange],
+    [conditions, onChange],
   );
 
   const handleValueChange = useCallback(
     (index: number, value: string) => {
       onChange(
-        filters.map((f, i) =>
+        conditions.map((f, i) =>
           i === index ? { ...f, value: value || undefined } : f,
         ),
       );
     },
-    [filters, onChange],
+    [conditions, onChange],
   );
 
   return (
@@ -255,44 +265,46 @@ export function ViewFilterConfigPopover({
             {t("Filter by")}
           </Text>
 
-          {filters.length === 0 && (
+          {conditions.length === 0 && (
             <Text size="xs" c="dimmed">
               {t("No filters applied")}
             </Text>
           )}
 
-          {filters.map((filter, index) => {
-            const needsValue = !NO_VALUE_OPERATORS.includes(filter.operator);
-            const property = properties.find((p) => p.id === filter.propertyId);
+          {conditions.map((condition, index) => {
+            const needsValue = !NO_VALUE_OPERATORS.includes(condition.op);
+            const property = properties.find(
+              (p) => p.id === condition.propertyId,
+            );
             const validOperators = property
               ? getOperatorsForType(property.type)
               : OPERATORS.map((op) => op.value);
-            const operatorOptions = OPERATORS
-              .filter((op) => validOperators.includes(op.value))
-              .map((op) => ({
-                value: op.value,
-                label: t(op.labelKey),
-              }));
+            const operatorOptions = OPERATORS.filter((op) =>
+              validOperators.includes(op.value),
+            ).map((op) => ({
+              value: op.value,
+              label: t(op.labelKey),
+            }));
 
             return (
               <Group key={index} gap="xs" wrap="nowrap">
                 <Select
                   size="xs"
                   data={propertyOptions}
-                  value={filter.propertyId}
+                  value={condition.propertyId}
                   onChange={(val) => handlePropertyChange(index, val)}
                   style={{ flex: 1 }}
                 />
                 <Select
                   size="xs"
                   data={operatorOptions}
-                  value={filter.operator}
+                  value={condition.op}
                   onChange={(val) => handleOperatorChange(index, val)}
                   w={130}
                 />
                 {needsValue && (
                   <FilterValueInput
-                    filter={filter}
+                    condition={condition}
                     property={property}
                     onChange={(val) => handleValueChange(index, val)}
                     t={t}

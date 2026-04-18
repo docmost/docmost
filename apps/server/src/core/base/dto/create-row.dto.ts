@@ -9,6 +9,12 @@ export class CreateRowDto {
   cells?: Record<string, unknown>;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   afterRowId?: string;
+
+  // Echoed back in the socket event so the originating client can skip
+  // replaying its own write.
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }

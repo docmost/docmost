@@ -9,7 +9,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
@@ -118,6 +118,23 @@ export class BaseRepo {
       .set({ deletedAt: new Date() })
       .where('id', '=', baseId)
       .execute();
+  }
+
+  async bumpSchemaVersion(
+    baseId: string,
+    trx?: KyselyTransaction,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, trx);
+    const result = await db
+      .updateTable('bases')
+      .set({
+        schemaVersion: sql`schema_version + 1`,
+        updatedAt: new Date(),
+      })
+      .where('id', '=', baseId)
+      .returning('schemaVersion')
+      .executeTakeFirst();
+    return result?.schemaVersion ?? 0;
   }
 
   private withProperties(eb: ExpressionBuilder<DB, 'bases'>) {

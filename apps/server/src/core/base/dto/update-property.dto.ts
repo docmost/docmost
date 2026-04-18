@@ -27,6 +27,10 @@ export class UpdatePropertyDto {
   @IsOptional()
   @IsObject()
   typeOptions?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }
 
 export class DeletePropertyDto {
@@ -35,6 +39,10 @@ export class DeletePropertyDto {
 
   @IsUUID()
   baseId: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }
 
 export class ReorderPropertyDto {
@@ -47,4 +55,8 @@ export class ReorderPropertyDto {
   @IsString()
   @IsNotEmpty()
   position: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }

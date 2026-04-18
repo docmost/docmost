@@ -33,7 +33,7 @@ export type BasePropertyTypeValue =
 export const BASE_PROPERTY_TYPES = Object.values(BasePropertyType);
 
 export const choiceSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1),
   color: z.string(),
   category: z.enum(['todo', 'inProgress', 'complete']).optional(),
@@ -42,10 +42,10 @@ export const choiceSchema = z.object({
 export const selectTypeOptionsSchema = z
   .object({
     choices: z.array(choiceSchema).default([]),
-    choiceOrder: z.array(z.string().uuid()).default([]),
+    choiceOrder: z.array(z.uuid()).default([]),
     disableColors: z.boolean().optional(),
     defaultValue: z
-      .union([z.string().uuid(), z.array(z.string().uuid())])
+      .union([z.uuid(), z.array(z.uuid())])
       .nullable()
       .optional(),
   })
@@ -147,21 +147,21 @@ export function parseTypeOptions(
 const cellValueSchemaMap: Partial<Record<BasePropertyTypeValue, z.ZodType>> = {
   [BasePropertyType.TEXT]: z.string(),
   [BasePropertyType.NUMBER]: z.number(),
-  [BasePropertyType.SELECT]: z.string().uuid(),
-  [BasePropertyType.STATUS]: z.string().uuid(),
-  [BasePropertyType.MULTI_SELECT]: z.array(z.string().uuid()),
+  [BasePropertyType.SELECT]: z.uuid(),
+  [BasePropertyType.STATUS]: z.uuid(),
+  [BasePropertyType.MULTI_SELECT]: z.array(z.uuid()),
   [BasePropertyType.DATE]: z.string(),
-  [BasePropertyType.PERSON]: z.union([z.string().uuid(), z.array(z.string().uuid())]),
+  [BasePropertyType.PERSON]: z.union([z.uuid(), z.array(z.uuid())]),
   [BasePropertyType.FILE]: z.array(z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     fileName: z.string(),
     mimeType: z.string().optional(),
     fileSize: z.number().optional(),
     filePath: z.string().optional(),
   })),
   [BasePropertyType.CHECKBOX]: z.boolean(),
-  [BasePropertyType.URL]: z.string().url(),
-  [BasePropertyType.EMAIL]: z.string().email(),
+  [BasePropertyType.URL]: z.url(),
+  [BasePropertyType.EMAIL]: z.email(),
 };
 
 export function getCellValueSchema(
@@ -181,13 +181,81 @@ export function validateCellValue(
   return schema.safeParse(value);
 }
 
+/*
+ * Resolution context for conversions where the source type stores IDs
+ * (select / multiSelect: choice uuid; person: user uuid; file: attachment
+ * uuid). Callers must always supply this — the only invoker is the
+ * `BASE_TYPE_CONVERSION` BullMQ worker, which builds the context per
+ * chunk of rows (see `tasks/base-type-conversion.task.ts`).
+ */
+export type CellConversionContext = {
+  fromTypeOptions?: unknown;
+  userNames?: Map<string, string>;
+  attachmentNames?: Map<string, string>;
+};
+
+function resolveChoiceName(
+  typeOptions: unknown,
+  id: unknown,
+): string | undefined {
+  if (!typeOptions || typeof typeOptions !== 'object') return undefined;
+  const choices = (typeOptions as any).choices;
+  if (!Array.isArray(choices)) return undefined;
+  const match = choices.find((c: any) => c?.id === String(id));
+  return typeof match?.name === 'string' ? match.name : undefined;
+}
+
 export function attemptCellConversion(
   fromType: BasePropertyTypeValue,
   toType: BasePropertyTypeValue,
   value: unknown,
+  ctx: CellConversionContext,
 ): { converted: boolean; value: unknown } {
   if (value === null || value === undefined) {
     return { converted: true, value: null };
+  }
+
+  // Resolve IDs to display strings before any direct parse. `select → text`
+  // and `multiSelect → text` would otherwise short-circuit on z.string()
+  // parsing the UUID itself and return the raw UUID instead of the name.
+  if (toType === BasePropertyType.TEXT) {
+    if (
+      fromType === BasePropertyType.SELECT ||
+      fromType === BasePropertyType.STATUS
+    ) {
+      const name = resolveChoiceName(ctx.fromTypeOptions, value);
+      return { converted: true, value: name ?? '' };
+    }
+    if (fromType === BasePropertyType.MULTI_SELECT && Array.isArray(value)) {
+      const parts = value
+        .map((v) => resolveChoiceName(ctx.fromTypeOptions, v))
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      return { converted: true, value: parts.join(', ') };
+    }
+    if (fromType === BasePropertyType.PERSON && ctx.userNames) {
+      const ids = Array.isArray(value) ? value : [value];
+      const parts = ids
+        .map((v) => ctx.userNames!.get(String(v)))
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      return { converted: true, value: parts.join(', ') };
+    }
+    if (fromType === BasePropertyType.FILE && Array.isArray(value)) {
+      const parts = value
+        .map((f: any) => {
+          if (f && typeof f === 'object') {
+            if (typeof f.fileName === 'string') return f.fileName;
+            if (typeof f.id === 'string' && ctx.attachmentNames) {
+              return ctx.attachmentNames.get(f.id);
+            }
+          }
+          if (typeof f === 'string' && ctx.attachmentNames) {
+            return ctx.attachmentNames.get(f);
+          }
+          return undefined;
+        })
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      return { converted: true, value: parts.join(', ') };
+    }
   }
 
   const targetSchema = cellValueSchemaMap[toType];
@@ -247,35 +315,66 @@ export function attemptCellConversion(
 }
 
 export const viewSortSchema = z.object({
-  propertyId: z.string().uuid(),
+  propertyId: z.uuid(),
   direction: z.enum(['asc', 'desc']),
 });
 
-export const viewFilterSchema = z.object({
-  propertyId: z.string().uuid(),
-  operator: z.enum([
-    'equals',
-    'notEquals',
+/*
+ * View-stored filter shape matches the engine's predicate tree (see
+ * `core/base/engine/schema.zod.ts`). No legacy flat-array / operator-name
+ * variants are accepted — stored view configs use `op` (eq / neq / gt /
+ * lt / contains / ncontains / ...) and nested and/or groups.
+ */
+const viewFilterConditionSchema = z.object({
+  propertyId: z.uuid(),
+  op: z.enum([
+    'eq',
+    'neq',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
     'contains',
-    'notContains',
+    'ncontains',
+    'startsWith',
+    'endsWith',
     'isEmpty',
     'isNotEmpty',
-    'greaterThan',
-    'lessThan',
     'before',
     'after',
+    'onOrBefore',
+    'onOrAfter',
+    'any',
+    'none',
+    'all',
   ]),
   value: z.unknown().optional(),
 });
 
+type ViewFilterCondition = z.infer<typeof viewFilterConditionSchema>;
+type ViewFilterGroup = {
+  op: 'and' | 'or';
+  children: Array<ViewFilterCondition | ViewFilterGroup>;
+};
+
+const viewFilterNodeSchema: z.ZodType<ViewFilterCondition | ViewFilterGroup> =
+  z.lazy(() => z.union([viewFilterConditionSchema, viewFilterGroupSchema]));
+
+const viewFilterGroupSchema: z.ZodType<ViewFilterGroup> = z.lazy(() =>
+  z.object({
+    op: z.enum(['and', 'or']),
+    children: z.array(viewFilterNodeSchema),
+  }),
+);
+
 export const viewConfigSchema = z
   .object({
     sorts: z.array(viewSortSchema).optional(),
-    filters: z.array(viewFilterSchema).optional(),
-    visiblePropertyIds: z.array(z.string().uuid()).optional(),
-    hiddenPropertyIds: z.array(z.string().uuid()).optional(),
+    filter: viewFilterGroupSchema.optional(),
+    visiblePropertyIds: z.array(z.uuid()).optional(),
+    hiddenPropertyIds: z.array(z.uuid()).optional(),
     propertyWidths: z.record(z.string(), z.number().positive()).optional(),
-    propertyOrder: z.array(z.string().uuid()).optional(),
+    propertyOrder: z.array(z.uuid()).optional(),
   })
   .passthrough();
 

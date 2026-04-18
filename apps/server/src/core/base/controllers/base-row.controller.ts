@@ -60,58 +60,10 @@ export class BaseRowController {
 
   @HttpCode(HttpStatus.OK)
   @Post('info')
-  async getRow(@Body() dto: RowIdDto, @AuthUser() user: User) {
-    const base = await this.baseRepo.findById(dto.baseId);
-    if (!base) {
-      throw new NotFoundException('Base not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
-
-    return this.baseRowService.getRowInfo(dto.rowId, dto.baseId);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('update')
-  async update(@Body() dto: UpdateRowDto, @AuthUser() user: User) {
-    const base = await this.baseRepo.findById(dto.baseId);
-    if (!base) {
-      throw new NotFoundException('Base not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
-
-    return this.baseRowService.update(dto, user.id);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('delete')
-  async delete(@Body() dto: DeleteRowDto, @AuthUser() user: User) {
-    const base = await this.baseRepo.findById(dto.baseId);
-    if (!base) {
-      throw new NotFoundException('Base not found');
-    }
-
-    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
-    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
-      throw new ForbiddenException();
-    }
-
-    await this.baseRowService.delete(dto.rowId, dto.baseId);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('list')
-  async list(
-    @Body() dto: ListRowsDto,
-    @Body() pagination: PaginationOptions,
+  async getRow(
+    @Body() dto: RowIdDto,
     @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
   ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
@@ -123,12 +75,16 @@ export class BaseRowController {
       throw new ForbiddenException();
     }
 
-    return this.baseRowService.list(dto, pagination);
+    return this.baseRowService.getRowInfo(dto.rowId, dto.baseId, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('reorder')
-  async reorder(@Body() dto: ReorderRowDto, @AuthUser() user: User) {
+  @Post('update')
+  async update(
+    @Body() dto: UpdateRowDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -139,6 +95,67 @@ export class BaseRowController {
       throw new ForbiddenException();
     }
 
-    await this.baseRowService.reorder(dto);
+    return this.baseRowService.update(dto, workspace.id, user.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('delete')
+  async delete(
+    @Body() dto: DeleteRowDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    await this.baseRowService.delete(dto, workspace.id, user.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('list')
+  async list(
+    @Body() dto: ListRowsDto,
+    @Body() pagination: PaginationOptions,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    return this.baseRowService.list(dto, pagination, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('reorder')
+  async reorder(
+    @Body() dto: ReorderRowDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    await this.baseRowService.reorder(dto, workspace.id, user.id);
   }
 }

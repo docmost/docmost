@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { arrayMove } from "@dnd-kit/sortable";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { useBaseQuery } from "@/features/base/queries/base-query";
+import { useBaseSocket } from "@/features/base/hooks/use-base-socket";
 import {
   useBaseRowsQuery,
   flattenRows,
@@ -26,6 +27,9 @@ type BaseTableProps = {
 
 export function BaseTable({ baseId }: BaseTableProps) {
   const { t } = useTranslation();
+  // Subscribe to the base's realtime room so other clients' edits,
+  // schema changes, and async-job completions reconcile into our cache.
+  useBaseSocket(baseId);
   const { data: base, isLoading: baseLoading, error: baseError } = useBaseQuery(baseId);
 
   const [activeViewId, setActiveViewId] = useAtom(activeViewIdAtom) as unknown as [string | null, (val: string | null) => void];
@@ -36,10 +40,10 @@ export function BaseTable({ baseId }: BaseTableProps) {
     return views.find((v) => v.id === activeViewId) ?? views[0];
   }, [views, activeViewId]);
 
-  const activeFilters = activeView?.config?.filters;
+  const activeFilter = activeView?.config?.filter;
   const activeSorts = activeView?.config?.sorts;
   const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useBaseRowsQuery(baseId, activeFilters, activeSorts);
+    useBaseRowsQuery(baseId, activeFilter, activeSorts);
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();

@@ -7,21 +7,39 @@ import {
   InsertableBaseRow,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
-import { sql, SelectQueryBuilder, SqlBool } from 'kysely';
-import { DB } from '@docmost/db/types/db';
+import {
+  CursorPaginationResult,
+  executeWithCursorPagination,
+} from '@docmost/db/pagination/cursor-pagination';
+import { sql, SqlBool } from 'kysely';
+import {
+  FilterNode,
+  PropertySchema,
+  SearchSpec,
+  SortSpec,
+  runListQuery,
+} from '../../../core/base/engine';
 
-const SYSTEM_COLUMN_MAP: Record<string, string> = {
-  createdAt: 'createdAt',
-  lastEditedAt: 'updatedAt',
-  lastEditedBy: 'lastUpdatedById',
-};
+type RepoOpts = { trx?: KyselyTransaction };
+type WorkspaceOpts = { workspaceId: string } & RepoOpts;
 
-const ARRAY_TYPES = new Set(['multiSelect', 'person', 'file']);
-
-function escapeIlike(value: string): string {
-  return value.replace(/[%_\\]/g, '\\$&');
-}
+// Columns that make up the public `BaseRow` shape.
+// `search_text` and `search_tsv` are internal fulltext-index columns
+// maintained by a trigger — they must never leak into API responses or
+// socket payloads. Every SELECT/RETURNING path in this repo references
+// this constant.
+const BASE_ROW_COLUMNS = [
+  'id',
+  'baseId',
+  'cells',
+  'position',
+  'creatorId',
+  'lastUpdatedById',
+  'workspaceId',
+  'createdAt',
+  'updatedAt',
+  'deletedAt',
+] as const;
 
 @Injectable()
 export class BaseRowRepo {
@@ -29,54 +47,82 @@ export class BaseRowRepo {
 
   async findById(
     rowId: string,
-    opts?: { trx?: KyselyTransaction },
+    opts: WorkspaceOpts,
   ): Promise<BaseRow | undefined> {
-    const db = dbOrTx(this.db, opts?.trx);
-    return db
+    const db = dbOrTx(this.db, opts.trx);
+    return (await db
       .selectFrom('baseRows')
-      .selectAll()
+      .select(BASE_ROW_COLUMNS)
       .where('id', '=', rowId)
+      .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
-      .executeTakeFirst() as Promise<BaseRow | undefined>;
+      .executeTakeFirst()) as BaseRow | undefined;
   }
 
-  async findByBaseId(
-    baseId: string,
-    pagination: PaginationOptions,
-    opts?: { trx?: KyselyTransaction },
-  ) {
-    const db = dbOrTx(this.db, opts?.trx);
+  async list(opts: {
+    baseId: string;
+    workspaceId: string;
+    filter?: FilterNode;
+    sorts?: SortSpec[];
+    search?: SearchSpec;
+    schema: PropertySchema;
+    pagination: PaginationOptions;
+    trx?: KyselyTransaction;
+  }): Promise<CursorPaginationResult<BaseRow>> {
+    const db = dbOrTx(this.db, opts.trx);
 
-    const query = db
+    const base = db
       .selectFrom('baseRows')
-      .selectAll()
-      .where('baseId', '=', baseId)
+      .select(BASE_ROW_COLUMNS)
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null);
 
-    return executeWithCursorPagination(query, {
-      perPage: pagination.limit,
-      cursor: pagination.cursor,
-      beforeCursor: pagination.beforeCursor,
-      fields: [
-        { expression: 'position', direction: 'asc' },
-        { expression: 'id', direction: 'asc' },
-      ],
-      parseCursor: (cursor) => ({
-        position: cursor.position,
-        id: cursor.id,
-      }),
+    const hasFilterSortSearch =
+      !!opts.filter || (opts.sorts && opts.sorts.length > 0) || !!opts.search;
+
+    if (!hasFilterSortSearch) {
+      // Fast path: keyset-paginated list ordered by (position COLLATE "C", id)
+      // to match idx_base_rows_base_alive. Without the collation hint the
+      // planner falls back to a Sort node on every page.
+      return executeWithCursorPagination(base as any, {
+        perPage: opts.pagination.limit,
+        cursor: opts.pagination.cursor,
+        beforeCursor: opts.pagination.beforeCursor,
+        fields: [
+          {
+            expression: sql`position COLLATE "C"`,
+            direction: 'asc',
+            key: 'position',
+          },
+          { expression: 'id', direction: 'asc', key: 'id' },
+        ],
+        parseCursor: (c) => ({
+          position: c.position,
+          id: c.id,
+        }),
+      } as any) as unknown as Promise<CursorPaginationResult<BaseRow>>;
+    }
+
+    return runListQuery(base as any, {
+      filter: opts.filter,
+      sorts: opts.sorts,
+      search: opts.search,
+      schema: opts.schema,
+      pagination: opts.pagination,
     });
   }
 
   async getLastPosition(
     baseId: string,
-    trx?: KyselyTransaction,
+    opts: WorkspaceOpts,
   ): Promise<string | null> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts.trx);
     const result = await db
       .selectFrom('baseRows')
       .select('position')
       .where('baseId', '=', baseId)
+      .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .orderBy(sql`position COLLATE "C"`, sql`DESC`)
       .limit(1)
@@ -86,425 +132,199 @@ export class BaseRowRepo {
 
   async insertRow(
     row: InsertableBaseRow,
-    trx?: KyselyTransaction,
+    opts?: RepoOpts,
   ): Promise<BaseRow> {
-    const db = dbOrTx(this.db, trx);
-    return db
+    const db = dbOrTx(this.db, opts?.trx);
+    return (await db
       .insertInto('baseRows')
       .values(row)
-      .returningAll()
-      .executeTakeFirstOrThrow() as Promise<BaseRow>;
+      .returning(BASE_ROW_COLUMNS)
+      .executeTakeFirstOrThrow()) as BaseRow;
   }
 
+  /*
+   * Merges `patch` into the row's cells via `jsonb_set_many` and returns
+   * the updated row (public columns only — search_text/search_tsv are
+   * excluded from RETURNING). Single round-trip; replaces the old
+   * "updateCells + findById" two-query dance.
+   */
   async updateCells(
     rowId: string,
-    cells: Record<string, unknown>,
-    userId?: string,
-    trx?: KyselyTransaction,
-  ): Promise<void> {
-    const db = dbOrTx(this.db, trx);
-    await db
+    patch: Record<string, unknown>,
+    opts: {
+      baseId: string;
+      workspaceId: string;
+      actorId?: string;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<BaseRow | undefined> {
+    const db = dbOrTx(this.db, opts.trx);
+    // Cast through text because postgres.js auto-detects a JSON-shaped
+    // string as jsonb and re-encodes it, producing a jsonb *string* instead
+    // of an object — which `jsonb_set_many` then treats as a no-op.
+    const patchJson = JSON.stringify(patch);
+    return (await db
       .updateTable('baseRows')
       .set({
-        cells: sql`cells || ${cells}`,
+        cells: sql`jsonb_set_many(cells, ${patchJson}::text::jsonb)`,
         updatedAt: new Date(),
-        lastUpdatedById: userId ?? null,
+        lastUpdatedById: opts.actorId ?? null,
       })
       .where('id', '=', rowId)
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
-      .execute();
+      .returning(BASE_ROW_COLUMNS)
+      .executeTakeFirst()) as BaseRow | undefined;
   }
 
   async updatePosition(
     rowId: string,
     position: string,
-    trx?: KyselyTransaction,
+    opts: {
+      baseId: string;
+      workspaceId: string;
+      trx?: KyselyTransaction;
+    },
   ): Promise<void> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts.trx);
     await db
       .updateTable('baseRows')
       .set({ position, updatedAt: new Date() })
       .where('id', '=', rowId)
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null)
       .execute();
   }
 
-  async softDelete(rowId: string, trx?: KyselyTransaction): Promise<void> {
-    const db = dbOrTx(this.db, trx);
+  async softDelete(
+    rowId: string,
+    opts: {
+      baseId: string;
+      workspaceId: string;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<void> {
+    const db = dbOrTx(this.db, opts.trx);
     await db
       .updateTable('baseRows')
       .set({ deletedAt: new Date() })
       .where('id', '=', rowId)
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null)
       .execute();
   }
 
   async removeCellKey(
     baseId: string,
     propertyId: string,
-    trx?: KyselyTransaction,
+    opts: WorkspaceOpts,
   ): Promise<void> {
-    const db = dbOrTx(this.db, trx);
+    const db = dbOrTx(this.db, opts.trx);
     await db
       .updateTable('baseRows')
       .set({
-        cells: sql`cells - ${propertyId}`,
+        cells: sql`cells - ${propertyId}::text`,
         updatedAt: new Date(),
       })
       .where('baseId', '=', baseId)
+      .where('workspaceId', '=', opts.workspaceId)
       .execute();
   }
 
-  async findAllByBaseId(
+  /*
+   * Streams every live row of a base in deterministic order via keyset
+   * pagination so async jobs (type-conversion, cell-gc, export) can process
+   * large bases without loading the full set into memory.
+   *
+   * `withCellKey` restricts the scan to rows whose cell jsonb contains
+   * that top-level key. Type-conversion callers pass the property ID so
+   * we don't drag 100k empty rows through Node just to rewrite a dozen.
+   */
+  async *streamByBaseId(
     baseId: string,
-    trx?: KyselyTransaction,
-  ): Promise<BaseRow[]> {
-    const db = dbOrTx(this.db, trx);
-    return db
-      .selectFrom('baseRows')
-      .selectAll()
-      .where('baseId', '=', baseId)
-      .where('deletedAt', 'is', null)
-      .execute() as Promise<BaseRow[]>;
+    opts: {
+      workspaceId: string;
+      chunkSize?: number;
+      trx?: KyselyTransaction;
+      withCellKey?: string;
+    },
+  ): AsyncGenerator<BaseRow[], void, void> {
+    const chunkSize = opts.chunkSize ?? 1000;
+    const db = dbOrTx(this.db, opts.trx);
+    let afterPosition: string | null = null;
+    let afterId: string | null = null;
+
+    while (true) {
+      let qb = db
+        .selectFrom('baseRows')
+        .select(BASE_ROW_COLUMNS)
+        .where('baseId', '=', baseId)
+        .where('workspaceId', '=', opts.workspaceId)
+        .where('deletedAt', 'is', null)
+        .orderBy(sql`position COLLATE "C"`, 'asc')
+        .orderBy('id', 'asc')
+        .limit(chunkSize);
+
+      if (opts.withCellKey) {
+        qb = qb.where(sql<SqlBool>`cells ? ${opts.withCellKey}`);
+      }
+
+      if (afterPosition !== null && afterId !== null) {
+        qb = qb.where((eb) =>
+          eb.or([
+            eb(sql`position COLLATE "C"`, '>', afterPosition!),
+            eb.and([
+              eb(sql`position COLLATE "C"`, '=', afterPosition!),
+              eb('id', '>', afterId!),
+            ]),
+          ]),
+        );
+      }
+
+      const chunk = (await qb.execute()) as BaseRow[];
+      if (chunk.length === 0) return;
+      yield chunk;
+      if (chunk.length < chunkSize) return;
+      const last = chunk[chunk.length - 1];
+      afterPosition = last.position;
+      afterId = last.id;
+    }
   }
 
+  /*
+   * Real batch: one `UPDATE ... FROM (SELECT unnest($ids), unnest($patches))`
+   * per call. Callers chunk (typically 1000 per call) from inside a BullMQ
+   * job. `cells` is merged via `jsonb_set_many` so only touched subtrees
+   * rewrite.
+   */
   async batchUpdateCells(
-    updates: Array<{ id: string; cells: Record<string, unknown> }>,
-    trx?: KyselyTransaction,
+    updates: Array<{ id: string; patch: Record<string, unknown> }>,
+    opts: {
+      baseId: string;
+      workspaceId: string;
+      actorId?: string;
+      trx?: KyselyTransaction;
+    },
   ): Promise<void> {
-    const db = dbOrTx(this.db, trx);
-    for (const update of updates) {
-      await db
-        .updateTable('baseRows')
-        .set({
-          cells: sql`cells || ${update.cells}`,
-          updatedAt: new Date(),
-        })
-        .where('id', '=', update.id)
-        .execute();
-    }
-  }
+    if (updates.length === 0) return;
+    const db = dbOrTx(this.db, opts.trx);
 
-  async findByBaseIdFiltered(
-    baseId: string,
-    filters: Array<{ propertyId: string; operator: string; value?: unknown }>,
-    sorts: Array<{ propertyId: string; direction: string }>,
-    propertyTypeMap: Map<string, string>,
-    pagination: PaginationOptions,
-    opts?: { trx?: KyselyTransaction },
-  ) {
-    const db = dbOrTx(this.db, opts?.trx);
+    const ids = updates.map((u) => u.id);
+    const patches = updates.map((u) => JSON.stringify(u.patch));
 
-    let query = db
-      .selectFrom('baseRows')
-      .selectAll()
-      .where('baseId', '=', baseId)
-      .where('deletedAt', 'is', null) as SelectQueryBuilder<DB, 'baseRows', any>;
-
-    // Apply filters
-    for (const filter of filters) {
-      query = this.applyFilter(query, filter, propertyTypeMap);
-    }
-
-    // Build cursor-compatible sort fields.
-    // COALESCE sort expressions so NULLs never reach the cursor encoder/comparator.
-    // ASC NULLS LAST  → COALESCE(expr, <high sentinel>)
-    // DESC NULLS LAST → COALESCE(expr, <low sentinel>)
-    const sortMeta: Array<{
-      alias: string;
-      expression: ReturnType<typeof sql>;
-      direction: 'asc' | 'desc';
-      isNumeric: boolean;
-    }> = [];
-
-    for (let i = 0; i < sorts.length; i++) {
-      const sort = sorts[i];
-      const type = propertyTypeMap.get(sort.propertyId);
-      if (!type) continue;
-
-      const dir = (sort.direction === 'desc' ? 'desc' : 'asc') as 'asc' | 'desc';
-      const alias = `s${i}`;
-      let expression: ReturnType<typeof sql>;
-      let isNumeric = false;
-
-      const systemCol = SYSTEM_COLUMN_MAP[type];
-      if (systemCol) {
-        // System columns (createdAt, updatedAt) are NOT NULL — no COALESCE needed
-        expression = sql`"${sql.raw(systemCol)}"`;
-      } else if (type === 'number') {
-        isNumeric = true;
-        const sentinel = dir === 'asc' ? "'Infinity'::numeric" : "'-Infinity'::numeric";
-        expression = sql`COALESCE((cells->>'${sql.raw(sort.propertyId)}')::numeric, ${sql.raw(sentinel)})`;
-      } else {
-        // Text, date, select, etc.
-        const sentinel = dir === 'asc' ? 'chr(1114111)' : "''";
-        expression = sql`COALESCE(cells->>'${sql.raw(sort.propertyId)}', ${sql.raw(sentinel)})`;
-      }
-
-      sortMeta.push({ alias, expression, direction: dir, isNumeric });
-      query = query.select(expression.as(alias)) as any;
-    }
-
-    // Cursor pagination fields: sort aliases + position + id tiebreakers.
-    // executeWithCursorPagination applies ORDER BY and builds the keyset WHERE from these.
-    const fields = [
-      ...sortMeta.map(({ alias, expression, direction }) => ({
-        expression,
-        direction,
-        key: alias,
-      })),
-      { expression: 'position' as any, direction: 'asc' as const, key: 'position' },
-      { expression: 'id' as any, direction: 'asc' as const, key: 'id' },
-    ];
-
-    return executeWithCursorPagination(query as any, {
-      perPage: pagination.limit,
-      cursor: pagination.cursor,
-      beforeCursor: pagination.beforeCursor,
-      fields: fields as any,
-      encodeCursor: (values: Array<[string, unknown]>) => {
-        const cursor = new URLSearchParams();
-        for (const [key, value] of values) {
-          if (value === null || value === undefined) {
-            cursor.set(key, '__null__');
-          } else if (value instanceof Date) {
-            cursor.set(key, value.toISOString());
-          } else {
-            cursor.set(key, String(value));
-          }
-        }
-        return Buffer.from(cursor.toString(), 'utf8').toString('base64url');
-      },
-      decodeCursor: (cursorStr: string, fieldNames: string[]) => {
-        const parsed = new URLSearchParams(
-          Buffer.from(cursorStr, 'base64url').toString('utf8'),
-        );
-        const result: Record<string, string> = {};
-        for (const name of fieldNames) {
-          result[name] = parsed.get(name) ?? '';
-        }
-        return result;
-      },
-      parseCursor: (decoded: any) => {
-        const result: Record<string, unknown> = {};
-        for (const { alias, isNumeric } of sortMeta) {
-          const val = decoded[alias];
-          if (val === '__null__') {
-            result[alias] = null;
-          } else {
-            result[alias] = isNumeric ? parseFloat(val) : val;
-          }
-        }
-        result.position = decoded.position;
-        result.id = decoded.id;
-        return result;
-      },
-    } as any);
-  }
-
-  private applyFilter(
-    query: SelectQueryBuilder<DB, 'baseRows', any>,
-    filter: { propertyId: string; operator: string; value?: unknown },
-    propertyTypeMap: Map<string, string>,
-  ): SelectQueryBuilder<DB, 'baseRows', any> {
-    const { propertyId, operator, value } = filter;
-    const propertyType = propertyTypeMap.get(propertyId);
-    if (!propertyType) return query;
-
-    // System property -> use actual column
-    const systemCol = SYSTEM_COLUMN_MAP[propertyType];
-    if (systemCol) {
-      return this.applyColumnFilter(query, systemCol, operator, value, propertyType);
-    }
-
-    const isArray = ARRAY_TYPES.has(propertyType);
-
-    // isEmpty / isNotEmpty don't need a value
-    if (operator === 'isEmpty') {
-      if (isArray) {
-        return query.where(({ or, eb }) =>
-          or([
-            eb(sql.raw(`cells->'${propertyId}'`), 'is', null),
-            eb(sql`jsonb_array_length(cells->'${sql.raw(propertyId)}')`, '=', 0),
-          ]),
-        );
-      }
-      return query.where(({ or, eb }) =>
-        or([
-          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
-          eb(sql.raw(`cells->>'${propertyId}'`), '=', ''),
-        ]),
-      );
-    }
-
-    if (operator === 'isNotEmpty') {
-      if (isArray) {
-        return query
-          .where(sql.raw(`cells->'${propertyId}'`), 'is not', null)
-          .where(sql`jsonb_array_length(cells->'${sql.raw(propertyId)}')`, '>', 0);
-      }
-      return query
-        .where(sql.raw(`cells->>'${propertyId}'`), 'is not', null)
-        .where(sql.raw(`cells->>'${propertyId}'`), '!=', '');
-    }
-
-    if (value === undefined || value === null) return query;
-
-    // contains / notContains - text search
-    if (operator === 'contains') {
-      return query.where(
-        sql.raw(`cells->>'${propertyId}'`),
-        'ilike',
-        `%${escapeIlike(String(value))}%`,
-      );
-    }
-    if (operator === 'notContains') {
-      return query.where(({ or, eb }) =>
-        or([
-          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
-          eb(
-            sql.raw(`cells->>'${propertyId}'`),
-            'not ilike',
-            `%${escapeIlike(String(value))}%`,
-          ),
-        ]),
-      );
-    }
-
-    // equals / notEquals
-    if (operator === 'equals') {
-      if (isArray) {
-        return query.where(
-          sql<SqlBool>`cells->'${sql.raw(propertyId)}' @> ${JSON.stringify([value])}::jsonb`,
-        );
-      }
-      if (propertyType === 'number') {
-        return query.where(
-          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric = ${Number(value)}`,
-        );
-      }
-      if (propertyType === 'checkbox') {
-        return query.where(
-          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::boolean = ${Boolean(value)}`,
-        );
-      }
-      return query.where(sql.raw(`cells->>'${propertyId}'`), '=', String(value));
-    }
-
-    if (operator === 'notEquals') {
-      if (isArray) {
-        return query.where(({ or, eb }) =>
-          or([
-            eb(sql.raw(`cells->'${propertyId}'`), 'is', null),
-            sql<SqlBool>`NOT (cells->'${sql.raw(propertyId)}' @> ${JSON.stringify([value])}::jsonb)`,
-          ]),
-        );
-      }
-      if (propertyType === 'number') {
-        return query.where(
-          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric != ${Number(value)}`,
-        );
-      }
-      if (propertyType === 'checkbox') {
-        return query.where(
-          sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::boolean != ${Boolean(value)}`,
-        );
-      }
-      return query.where(({ or, eb }) =>
-        or([
-          eb(sql.raw(`cells->>'${propertyId}'`), 'is', null),
-          eb(sql.raw(`cells->>'${propertyId}'`), '!=', String(value)),
-        ]),
-      );
-    }
-
-    // greaterThan / lessThan - number
-    if (operator === 'greaterThan') {
-      return query.where(
-        sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric > ${Number(value)}`,
-      );
-    }
-    if (operator === 'lessThan') {
-      return query.where(
-        sql<SqlBool>`(cells->>'${sql.raw(propertyId)}')::numeric < ${Number(value)}`,
-      );
-    }
-
-    // before / after - date
-    if (operator === 'before') {
-      return query.where(sql.raw(`cells->>'${propertyId}'`), '<', String(value));
-    }
-    if (operator === 'after') {
-      return query.where(sql.raw(`cells->>'${propertyId}'`), '>', String(value));
-    }
-
-    return query;
-  }
-
-  private applyColumnFilter(
-    query: SelectQueryBuilder<DB, 'baseRows', any>,
-    column: string,
-    operator: string,
-    value: unknown,
-    propertyType: string,
-  ): SelectQueryBuilder<DB, 'baseRows', any> {
-    if (operator === 'isEmpty') {
-      return query.where(sql.raw(`"${column}"`), 'is', null);
-    }
-    if (operator === 'isNotEmpty') {
-      return query.where(sql.raw(`"${column}"`), 'is not', null);
-    }
-
-    if (value === undefined || value === null) return query;
-
-    if (operator === 'equals') {
-      return query.where(sql.raw(`"${column}"`), '=', value);
-    }
-    if (operator === 'notEquals') {
-      return query.where(({ or, eb }) =>
-        or([
-          eb(sql.raw(`"${column}"`), 'is', null),
-          eb(sql.raw(`"${column}"`), '!=', value),
-        ]),
-      );
-    }
-    if (operator === 'before') {
-      return query.where(sql.raw(`"${column}"`), '<', value);
-    }
-    if (operator === 'after') {
-      return query.where(sql.raw(`"${column}"`), '>', value);
-    }
-
-    return query;
-  }
-
-  private applySort(
-    query: SelectQueryBuilder<DB, 'baseRows', any>,
-    sort: { propertyId: string; direction: string },
-    propertyTypeMap: Map<string, string>,
-  ): SelectQueryBuilder<DB, 'baseRows', any> {
-    const { propertyId, direction } = sort;
-    const propertyType = propertyTypeMap.get(propertyId);
-    if (!propertyType) return query;
-
-    const dir = direction === 'desc' ? 'desc' : 'asc';
-
-    // System property -> use actual column
-    const systemCol = SYSTEM_COLUMN_MAP[propertyType];
-    if (systemCol) {
-      return query.orderBy(sql.raw(`"${systemCol}"`), sql`${sql.raw(dir)} NULLS LAST`);
-    }
-
-    // Number properties: cast to numeric for proper numeric ordering
-    if (propertyType === 'number') {
-      return query.orderBy(
-        sql`(cells->>'${sql.raw(propertyId)}')::numeric`,
-        sql`${sql.raw(dir)} NULLS LAST`,
-      );
-    }
-
-    // All other properties: use text extraction
-    return query.orderBy(
-      sql.raw(`cells->>'${propertyId}'`),
-      sql`${sql.raw(dir)} NULLS LAST`,
-    );
+    await sql`
+      UPDATE base_rows AS r
+      SET cells              = jsonb_set_many(r.cells, u.patch::jsonb),
+          updated_at         = now(),
+          last_updated_by_id = coalesce(${opts.actorId ?? null}, r.last_updated_by_id)
+      FROM unnest(${ids}::uuid[], ${patches}::text[]) AS u(row_id, patch)
+      WHERE r.id = u.row_id
+        AND r.base_id = ${opts.baseId}
+        AND r.workspace_id = ${opts.workspaceId}
+        AND r.deleted_at IS NULL
+    `.execute(db);
   }
 }

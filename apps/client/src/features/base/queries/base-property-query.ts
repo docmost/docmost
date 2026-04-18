@@ -61,7 +61,13 @@ export function useUpdatePropertyMutation() {
         },
       );
 
-      if (result.conversionSummary || variables.type) {
+      // Invalidate rows only for the synchronous (inline) path — the
+      // HTTP response there is the "cells are migrated" signal. When the
+      // server hands back a `jobId`, cells are still being rewritten; the
+      // `base:schema:bumped` socket event is the canonical refetch
+      // trigger in that case, and we'd only churn pages with old data by
+      // refetching now.
+      if (variables.type && !result.jobId) {
         queryClient.invalidateQueries({
           queryKey: ["base-rows", variables.baseId],
         });

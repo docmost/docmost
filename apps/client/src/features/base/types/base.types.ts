@@ -81,6 +81,11 @@ export type IBaseProperty = {
   type: BasePropertyType;
   position: string;
   typeOptions: TypeOptions;
+  // Set while a background type-conversion job is rewriting cells. The
+  // live `type` stays on the old kind until the job commits, so cells
+  // render correctly; the column header shows a "Converting…" badge.
+  pendingType?: BasePropertyType | null;
+  pendingTypeOptions?: TypeOptions | null;
   isPrimary: boolean;
   workspaceId: string;
   createdAt: string;
@@ -104,27 +109,49 @@ export type ViewSortConfig = {
   direction: 'asc' | 'desc';
 };
 
-export type ViewFilterOperator =
-  | 'equals'
-  | 'notEquals'
+// Matches the server's engine operator set (core/base/engine/schema.zod.ts).
+export type FilterOperator =
+  | 'eq'
+  | 'neq'
+  | 'gt'
+  | 'gte'
+  | 'lt'
+  | 'lte'
   | 'contains'
-  | 'notContains'
+  | 'ncontains'
+  | 'startsWith'
+  | 'endsWith'
   | 'isEmpty'
   | 'isNotEmpty'
-  | 'greaterThan'
-  | 'lessThan'
   | 'before'
-  | 'after';
+  | 'after'
+  | 'onOrBefore'
+  | 'onOrAfter'
+  | 'any'
+  | 'none'
+  | 'all';
 
-export type ViewFilterConfig = {
+export type FilterCondition = {
   propertyId: string;
-  operator: ViewFilterOperator;
+  op: FilterOperator;
   value?: unknown;
+};
+
+export type FilterGroup = {
+  op: 'and' | 'or';
+  children: Array<FilterCondition | FilterGroup>;
+};
+
+export type FilterNode = FilterCondition | FilterGroup;
+
+export type SearchSpec = {
+  query: string;
+  mode?: 'trgm' | 'fts';
 };
 
 export type ViewConfig = {
   sorts?: ViewSortConfig[];
-  filters?: ViewFilterConfig[];
+  filter?: FilterGroup;
   visiblePropertyIds?: string[];
   hiddenPropertyIds?: string[];
   propertyWidths?: Record<string, number>;
@@ -183,6 +210,7 @@ export type CreatePropertyInput = {
   name: string;
   type: BasePropertyType;
   typeOptions?: TypeOptions;
+  requestId?: string;
 };
 
 export type UpdatePropertyInput = {
@@ -191,40 +219,47 @@ export type UpdatePropertyInput = {
   name?: string;
   type?: BasePropertyType;
   typeOptions?: TypeOptions;
+  requestId?: string;
 };
 
 export type DeletePropertyInput = {
   propertyId: string;
   baseId: string;
+  requestId?: string;
 };
 
 export type ReorderPropertyInput = {
   propertyId: string;
   baseId: string;
   position: string;
+  requestId?: string;
 };
 
 export type CreateRowInput = {
   baseId: string;
   cells?: Record<string, unknown>;
   afterRowId?: string;
+  requestId?: string;
 };
 
 export type UpdateRowInput = {
   rowId: string;
   baseId: string;
   cells: Record<string, unknown>;
+  requestId?: string;
 };
 
 export type DeleteRowInput = {
   rowId: string;
   baseId: string;
+  requestId?: string;
 };
 
 export type ReorderRowInput = {
   rowId: string;
   baseId: string;
   position: string;
+  requestId?: string;
 };
 
 export type CreateViewInput = {
@@ -247,13 +282,11 @@ export type DeleteViewInput = {
   baseId: string;
 };
 
-export type ConversionSummary = {
-  converted: number;
-  cleared: number;
-  total: number;
-};
-
 export type UpdatePropertyResult = {
   property: IBaseProperty;
-  conversionSummary: ConversionSummary | null;
+  // Non-null when the property change kicked off a BullMQ type-conversion
+  // job (select/multiSelect/person/file → anything, or any → system type).
+  // Client can listen for `base:schema:bumped` on the base room to know
+  // when the job finished migrating cells.
+  jobId: string | null;
 };

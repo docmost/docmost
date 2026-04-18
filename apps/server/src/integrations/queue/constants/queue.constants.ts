@@ -9,6 +9,7 @@ export enum QueueName {
   HISTORY_QUEUE = '{history-queue}',
   NOTIFICATION_QUEUE = '{notification-queue}',
   AUDIT_QUEUE = '{audit-queue}',
+  BASE_QUEUE = '{base-queue}',
 }
 
 export enum QueueJob {
@@ -83,4 +84,7 @@ export enum QueueJob {
 
   PDF_EXPORT_TASK = 'pdf-export-task',
   PDF_EXPORT_CLEANUP = 'pdf-export-cleanup',
+
+  BASE_TYPE_CONVERSION = 'base-type-conversion',
+  BASE_CELL_GC = 'base-cell-gc',
 }

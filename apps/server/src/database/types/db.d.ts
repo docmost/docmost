@@ -434,6 +434,7 @@ export interface Bases {
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
+  schemaVersion: Generated<number>;
 }
 
 export interface BaseProperties {
@@ -443,10 +444,14 @@ export interface BaseProperties {
   type: string;
   position: string;
   typeOptions: Json | null;
+  pendingType: string | null;
+  pendingTypeOptions: Json | null;
   isPrimary: Generated<boolean>;
   workspaceId: string;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
+  schemaVersion: Generated<number>;
+  deletedAt: Timestamp | null;
 }
 
 export interface BaseRows {
@@ -460,6 +465,8 @@ export interface BaseRows {
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
+  searchText: string | null;
+  searchTsv: string | null;
 }
 
 export interface BaseViews {

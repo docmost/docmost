@@ -92,6 +92,14 @@ import { GeneralQueueProcessor } from './processors/general-queue.processor';
         attempts: 3,
       },
     }),
+    BullModule.registerQueue({
+      name: QueueName.BASE_QUEUE,
+      defaultJobOptions: {
+        attempts: 2,
+        removeOnComplete: { count: 200 },
+        removeOnFail: { count: 100 },
+      },
+    }),
   ],
   exports: [BullModule],
   providers: [GeneralQueueProcessor],

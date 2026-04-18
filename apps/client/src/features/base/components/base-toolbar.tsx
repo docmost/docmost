@@ -11,7 +11,8 @@ import {
   IBaseRow,
   IBaseView,
   ViewSortConfig,
-  ViewFilterConfig,
+  FilterCondition,
+  FilterGroup,
 } from "@/features/base/types/base.types";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
 import { ViewTabs } from "@/features/base/components/views/view-tabs";
@@ -54,7 +55,16 @@ export function BaseToolbar({
   const updateViewMutation = useUpdateViewMutation();
 
   const sorts = activeView?.config?.sorts ?? [];
-  const filters = activeView?.config?.filters ?? [];
+  // Stored view config uses the engine's filter tree. The popover edits
+  // an AND-only flat list; we unwrap the top-level group's children when
+  // reading and rewrap on save.
+  const conditions = useMemo<FilterCondition[]>(() => {
+    const filter = activeView?.config?.filter;
+    if (!filter || filter.op !== "and") return [];
+    return filter.children.filter(
+      (c): c is FilterCondition => !("children" in c),
+    );
+  }, [activeView?.config?.filter]);
 
   const hiddenFieldCount = useMemo(() => {
     const cols = table.getAllLeafColumns().filter((col) => col.id !== "__row_number");
@@ -74,12 +84,17 @@ export function BaseToolbar({
   );
 
   const handleFiltersChange = useCallback(
-    (newFilters: ViewFilterConfig[]) => {
+    (newConditions: FilterCondition[]) => {
       if (!activeView) return;
+      const filter: FilterGroup | undefined =
+        newConditions.length > 0
+          ? { op: "and", children: newConditions }
+          : undefined;
+      const { filter: _drop, ...rest } = activeView.config ?? {};
       updateViewMutation.mutate({
         viewId: activeView.id,
         baseId: base.id,
-        config: { ...activeView.config, filters: newFilters },
+        config: filter ? { ...rest, filter } : rest,
       });
     },
     [activeView, base.id, updateViewMutation],
@@ -99,7 +114,7 @@ export function BaseToolbar({
         <ViewFilterConfigPopover
           opened={filterOpened}
           onClose={() => setFilterOpened(false)}
-          filters={filters}
+          conditions={conditions}
           properties={base.properties}
           onChange={handleFiltersChange}
         >
@@ -107,11 +122,11 @@ export function BaseToolbar({
             <ActionIcon
               variant="subtle"
               size="sm"
-              color={filters.length > 0 ? "blue" : "gray"}
+              color={conditions.length > 0 ? "blue" : "gray"}
               onClick={() => openToolbar("filter")}
             >
               <IconFilter size={16} />
-              {filters.length > 0 && (
+              {conditions.length > 0 && (
                 <Badge
                   size="xs"
                   circle
@@ -127,7 +142,7 @@ export function BaseToolbar({
                     fontSize: 9,
                   }}
                 >
-                  {filters.length}
+                  {conditions.length}
                 </Badge>
               )}
             </ActionIcon>

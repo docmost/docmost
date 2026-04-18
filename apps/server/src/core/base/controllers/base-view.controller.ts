@@ -54,7 +54,11 @@ export class BaseViewController {
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(@Body() dto: UpdateViewDto, @AuthUser() user: User) {
+  async update(
+    @Body() dto: UpdateViewDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -65,12 +69,16 @@ export class BaseViewController {
       throw new ForbiddenException();
     }
 
-    return this.baseViewService.update(dto);
+    return this.baseViewService.update(dto, workspace.id, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() dto: DeleteViewDto, @AuthUser() user: User) {
+  async delete(
+    @Body() dto: DeleteViewDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -81,12 +89,16 @@ export class BaseViewController {
       throw new ForbiddenException();
     }
 
-    await this.baseViewService.delete(dto);
+    await this.baseViewService.delete(dto, workspace.id, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('list')
-  async list(@Body() dto: BaseIdDto, @AuthUser() user: User) {
+  async list(
+    @Body() dto: BaseIdDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -97,6 +109,6 @@ export class BaseViewController {
       throw new ForbiddenException();
     }
 
-    return this.baseViewService.listByBaseId(dto.baseId);
+    return this.baseViewService.listByBaseId(dto.baseId, workspace.id);
   }
 }

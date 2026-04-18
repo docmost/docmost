@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
@@ -11,6 +12,7 @@ import { BaseViewRepo } from '@docmost/db/repos/base/base-view.repo';
 import { CreateRowDto } from '../dto/create-row.dto';
 import {
   UpdateRowDto,
+  DeleteRowDto,
   ListRowsDto,
   ReorderRowDto,
 } from '../dto/update-row.dto';
@@ -22,6 +24,21 @@ import {
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { BaseProperty } from '@docmost/db/types/entity.types';
+import {
+  FilterNode,
+  PropertySchema,
+  SearchSpec,
+  filterGroupSchema,
+  searchSchema,
+  validateFilterTree,
+} from '../engine';
+import { EventName } from '../../../common/events/event.contants';
+import {
+  BaseRowCreatedEvent,
+  BaseRowDeletedEvent,
+  BaseRowReorderedEvent,
+  BaseRowUpdatedEvent,
+} from '../events/base-events';
 
 @Injectable()
 export class BaseRowService {
@@ -30,19 +47,24 @@ export class BaseRowService {
     private readonly baseRowRepo: BaseRowRepo,
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseViewRepo: BaseViewRepo,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateRowDto) {
     let position: string;
 
     if (dto.afterRowId) {
-      const afterRow = await this.baseRowRepo.findById(dto.afterRowId);
+      const afterRow = await this.baseRowRepo.findById(dto.afterRowId, {
+        workspaceId,
+      });
       if (!afterRow || afterRow.baseId !== dto.baseId) {
         throw new BadRequestException('Invalid afterRowId');
       }
       position = generateJitteredKeyBetween(afterRow.position, null);
     } else {
-      const lastPosition = await this.baseRowRepo.getLastPosition(dto.baseId);
+      const lastPosition = await this.baseRowRepo.getLastPosition(dto.baseId, {
+        workspaceId,
+      });
       position = generateJitteredKeyBetween(lastPosition, null);
     }
 
@@ -52,68 +74,117 @@ export class BaseRowService {
       validatedCells = this.validateCells(dto.cells, properties);
     }
 
-    return this.baseRowRepo.insertRow({
+    const created = await this.baseRowRepo.insertRow({
       baseId: dto.baseId,
       cells: validatedCells as any,
       position,
       creatorId: userId,
       workspaceId,
     });
+
+    const event: BaseRowCreatedEvent = {
+      baseId: dto.baseId,
+      workspaceId,
+      actorId: userId,
+      requestId: dto.requestId ?? null,
+      row: created,
+    };
+    this.eventEmitter.emit(EventName.BASE_ROW_CREATED, event);
+
+    return created;
   }
 
-  async getRowInfo(rowId: string, baseId: string) {
-    const row = await this.baseRowRepo.findById(rowId);
+  async getRowInfo(rowId: string, baseId: string, workspaceId: string) {
+    const row = await this.baseRowRepo.findById(rowId, { workspaceId });
     if (!row || row.baseId !== baseId) {
       throw new NotFoundException('Row not found');
     }
     return row;
   }
 
-  async update(dto: UpdateRowDto, userId?: string) {
-    const row = await this.baseRowRepo.findById(dto.rowId);
+  async update(dto: UpdateRowDto, workspaceId: string, userId?: string) {
+    const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
+    const validatedCells = this.validateCells(dto.cells, properties);
+
+    const updated = await this.baseRowRepo.updateCells(
+      dto.rowId,
+      validatedCells,
+      {
+        baseId: dto.baseId,
+        workspaceId,
+        actorId: userId,
+      },
+    );
+
+    if (!updated) {
+      throw new NotFoundException('Row not found');
+    }
+
+    const event: BaseRowUpdatedEvent = {
+      baseId: dto.baseId,
+      workspaceId,
+      actorId: userId ?? null,
+      requestId: dto.requestId ?? null,
+      rowId: dto.rowId,
+      patch: dto.cells,
+      updatedCells: validatedCells,
+    };
+    this.eventEmitter.emit(EventName.BASE_ROW_UPDATED, event);
+
+    return updated;
+  }
+
+  async delete(dto: DeleteRowDto, workspaceId: string, userId?: string) {
+    const row = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
     if (!row || row.baseId !== dto.baseId) {
       throw new NotFoundException('Row not found');
     }
 
-    const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
-    const validatedCells = this.validateCells(dto.cells, properties);
+    await this.baseRowRepo.softDelete(dto.rowId, {
+      baseId: dto.baseId,
+      workspaceId,
+    });
 
-    await this.baseRowRepo.updateCells(dto.rowId, validatedCells, userId);
-
-    return this.baseRowRepo.findById(dto.rowId);
+    const event: BaseRowDeletedEvent = {
+      baseId: dto.baseId,
+      workspaceId,
+      actorId: userId ?? null,
+      requestId: dto.requestId ?? null,
+      rowId: dto.rowId,
+    };
+    this.eventEmitter.emit(EventName.BASE_ROW_DELETED, event);
   }
 
-  async delete(rowId: string, baseId: string) {
-    const row = await this.baseRowRepo.findById(rowId);
-    if (!row || row.baseId !== baseId) {
-      throw new NotFoundException('Row not found');
-    }
-
-    await this.baseRowRepo.softDelete(rowId);
-  }
-
-  async list(dto: ListRowsDto, pagination: PaginationOptions) {
-    const hasFilters = dto.filters && dto.filters.length > 0;
-    const hasSorts = dto.sorts && dto.sorts.length > 0;
-
-    if (!hasFilters && !hasSorts) {
-      return this.baseRowRepo.findByBaseId(dto.baseId, pagination);
-    }
-
+  async list(
+    dto: ListRowsDto,
+    pagination: PaginationOptions,
+    workspaceId: string,
+  ) {
     const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
-    const propertyTypeMap = new Map(properties.map((p) => [p.id, p.type]));
-
-    return this.baseRowRepo.findByBaseIdFiltered(
-      dto.baseId,
-      dto.filters ?? [],
-      dto.sorts ?? [],
-      propertyTypeMap,
-      pagination,
+    const schema: PropertySchema = new Map(
+      properties.map((p) => [p.id, p]),
     );
+
+    const filter = this.normaliseFilter(dto);
+    const search = this.normaliseSearch(dto.search);
+    const sorts = dto.sorts?.map((s) => ({
+      propertyId: s.propertyId,
+      direction: s.direction,
+    }));
+
+    return this.baseRowRepo.list({
+      baseId: dto.baseId,
+      workspaceId,
+      filter,
+      sorts,
+      search,
+      schema,
+      pagination,
+    });
   }
 
-  async reorder(dto: ReorderRowDto) {
-    const row = await this.baseRowRepo.findById(dto.rowId);
+  async reorder(dto: ReorderRowDto, workspaceId: string, userId?: string) {
+    const row = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
     if (!row || row.baseId !== dto.baseId) {
       throw new NotFoundException('Row not found');
     }
@@ -124,7 +195,52 @@ export class BaseRowService {
       throw new BadRequestException('Invalid position value');
     }
 
-    await this.baseRowRepo.updatePosition(dto.rowId, dto.position);
+    await this.baseRowRepo.updatePosition(dto.rowId, dto.position, {
+      baseId: dto.baseId,
+      workspaceId,
+    });
+
+    const event: BaseRowReorderedEvent = {
+      baseId: dto.baseId,
+      workspaceId,
+      actorId: userId ?? null,
+      requestId: dto.requestId ?? null,
+      rowId: dto.rowId,
+      position: dto.position,
+    };
+    this.eventEmitter.emit(EventName.BASE_ROW_REORDERED, event);
+  }
+
+  // --- private helpers ------------------------------------------------
+
+  private normaliseFilter(dto: ListRowsDto): FilterNode | undefined {
+    if (!dto.filter) return undefined;
+
+    const parsed = filterGroupSchema.safeParse(dto.filter);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Invalid filter tree',
+        issues: parsed.error.issues,
+      });
+    }
+    try {
+      validateFilterTree(parsed.data);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+    return parsed.data;
+  }
+
+  private normaliseSearch(raw: unknown): SearchSpec | undefined {
+    if (raw == null) return undefined;
+    const parsed = searchSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Invalid search spec',
+        issues: parsed.error.issues,
+      });
+    }
+    return parsed.data;
   }
 
   private validateCells(

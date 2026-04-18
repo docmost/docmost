@@ -1,5 +1,16 @@
-import { IsNotEmpty, IsObject, IsOptional, IsString, IsUUID, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+// `filter` / `search` shapes are validated by the engine's Zod schemas
+// at the service boundary (`core/base/engine/schema.zod.ts`).
 
 export class UpdateRowDto {
   @IsUUID()
@@ -10,6 +21,10 @@ export class UpdateRowDto {
 
   @IsObject()
   cells: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }
 
 export class DeleteRowDto {
@@ -18,6 +33,10 @@ export class DeleteRowDto {
 
   @IsUUID()
   baseId: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }
 
 export class RowIdDto {
@@ -28,25 +47,12 @@ export class RowIdDto {
   baseId: string;
 }
 
-class FilterDto {
-  @IsUUID()
-  propertyId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  operator: string;
-
-  @IsOptional()
-  value?: unknown;
-}
-
 class SortDto {
   @IsUUID()
   propertyId: string;
 
-  @IsString()
-  @IsNotEmpty()
-  direction: string;
+  @IsIn(['asc', 'desc'])
+  direction: 'asc' | 'desc';
 }
 
 export class ListRowsDto {
@@ -57,17 +63,22 @@ export class ListRowsDto {
   @IsUUID()
   viewId?: string;
 
+  // Compound filter tree. Shape validated by the engine's Zod schema at
+  // the service boundary.
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => FilterDto)
-  filters?: FilterDto[];
+  @IsObject()
+  filter?: unknown;
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SortDto)
   sorts?: SortDto[];
+
+  // `{ query, mode? }` — Zod-validated at the service boundary.
+  @IsOptional()
+  @IsObject()
+  search?: unknown;
 }
 
 export class ReorderRowDto {
@@ -80,4 +91,8 @@ export class ReorderRowDto {
   @IsString()
   @IsNotEmpty()
   position: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
 }

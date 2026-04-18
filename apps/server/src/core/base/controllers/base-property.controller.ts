@@ -52,12 +52,16 @@ export class BasePropertyController {
       throw new ForbiddenException();
     }
 
-    return this.basePropertyService.create(workspace.id, dto);
+    return this.basePropertyService.create(workspace.id, dto, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('update')
-  async update(@Body() dto: UpdatePropertyDto, @AuthUser() user: User) {
+  async update(
+    @Body() dto: UpdatePropertyDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -68,12 +72,16 @@ export class BasePropertyController {
       throw new ForbiddenException();
     }
 
-    return this.basePropertyService.update(dto);
+    return this.basePropertyService.update(dto, workspace.id, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('delete')
-  async delete(@Body() dto: DeletePropertyDto, @AuthUser() user: User) {
+  async delete(
+    @Body() dto: DeletePropertyDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -84,12 +92,16 @@ export class BasePropertyController {
       throw new ForbiddenException();
     }
 
-    await this.basePropertyService.delete(dto);
+    await this.basePropertyService.delete(dto, workspace.id, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('reorder')
-  async reorder(@Body() dto: ReorderPropertyDto, @AuthUser() user: User) {
+  async reorder(
+    @Body() dto: ReorderPropertyDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const base = await this.baseRepo.findById(dto.baseId);
     if (!base) {
       throw new NotFoundException('Base not found');
@@ -100,6 +112,6 @@ export class BasePropertyController {
       throw new ForbiddenException();
     }
 
-    await this.basePropertyService.reorder(dto);
+    await this.basePropertyService.reorder(dto, workspace.id, user.id);
   }
 }
