@@ -67,7 +67,15 @@ export function BaseToolbar({
       const target = e.target as HTMLElement | null;
       if (!target) return;
       if (toolbarRightRef.current?.contains(target)) return;
+      // Ignore clicks that land inside any Mantine popover dropdown
+      // (role=dialog), any Select/Combobox dropdown (role=listbox, the
+      // container; option elements have role=option), or anything
+      // rendered into Mantine's shared portal node. Without these, a
+      // nested Select inside the popover would close the parent.
       if (target.closest('[role="dialog"]')) return;
+      if (target.closest('[role="listbox"]')) return;
+      if (target.closest('[role="option"]')) return;
+      if (target.closest("[data-mantine-shared-portal-node]")) return;
       closeAll();
     };
     const keyHandler = (e: KeyboardEvent) => {
