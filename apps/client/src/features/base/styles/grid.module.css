@@ -298,27 +298,34 @@
 }
 
 .rowNumberCellInner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  position: relative;
   width: 100%;
   height: 100%;
-  padding: 0 6px;
 }
 
-.rowNumberIndex {
-  display: inline;
+.rowNumberIndex,
+.rowNumberCheckbox {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.rowNumberCheckbox,
+.rowNumberCheckbox {
+  display: none;
+}
+
 .rowNumberDragHandle {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
   display: none;
   align-items: center;
   justify-content: center;
-}
-
-.rowNumberDragHandle {
   color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
   cursor: grab;
 }
@@ -327,7 +334,7 @@
   cursor: grabbing;
 }
 
-/* On hover, hide the index and show drag handle + checkbox */
+/* On row hover: swap index for checkbox, reveal drag handle */
 .row:hover .rowNumberIndex {
   display: none;
 }
@@ -336,9 +343,8 @@
   display: inline-flex;
 }
 
-/* When selected, checkbox always visible; index + drag handle hidden */
-.rowSelected .rowNumberIndex,
-.rowSelected .rowNumberDragHandle {
+/* Selected row: checkbox always visible, drag handle still only on hover */
+.rowSelected .rowNumberIndex {
   display: none;
 }
 .rowSelected .rowNumberCheckbox {
