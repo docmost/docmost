@@ -8,6 +8,7 @@ import { BaseService } from './services/base.service';
 import { BasePropertyService } from './services/base-property.service';
 import { BaseRowService } from './services/base-row.service';
 import { BaseViewService } from './services/base-view.service';
+import { BaseCsvExportService } from './services/base-csv-export.service';
 import { BaseQueueProcessor } from './processors/base-queue.processor';
 import { BaseWsService } from './realtime/base-ws.service';
 import { BaseWsConsumers } from './realtime/base-ws-consumers';
@@ -27,6 +28,7 @@ import { QueueName } from '../../integrations/queue/constants';
     BasePropertyService,
     BaseRowService,
     BaseViewService,
+    BaseCsvExportService,
     BaseQueueProcessor,
     BasePresenceService,
     BaseWsService,
