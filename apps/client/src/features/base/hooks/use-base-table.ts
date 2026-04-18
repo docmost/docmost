@@ -258,13 +258,21 @@ export function useBaseTable(
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(derivedColumnOrder);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(derivedColumnVisibility);
 
+  // Re-seed from server only when the user switches views. Within the same
+  // view, local state is the source of truth — the debounced persist flushes
+  // it. Without this guard, any ws-driven `invalidateQueries(["bases", baseId])`
+  // or concurrent view mutation lands a new `derivedColumnVisibility`
+  // reference and the effect would overwrite a pending hide/reorder toggle
+  // before `persistViewConfig` has a chance to flush it.
+  const lastSyncedViewIdRef = useRef<string | undefined>(activeView?.id);
   useEffect(() => {
-    setColumnOrder(derivedColumnOrder);
-  }, [derivedColumnOrder]);
-
-  useEffect(() => {
-    setColumnVisibility(derivedColumnVisibility);
-  }, [derivedColumnVisibility]);
+    const currentViewId = activeView?.id;
+    if (currentViewId !== lastSyncedViewIdRef.current) {
+      lastSyncedViewIdRef.current = currentViewId;
+      setColumnOrder(derivedColumnOrder);
+      setColumnVisibility(derivedColumnVisibility);
+    }
+  }, [activeView?.id, derivedColumnOrder, derivedColumnVisibility]);
 
   const columnPinning = useMemo(
     () => buildColumnPinning(properties),
