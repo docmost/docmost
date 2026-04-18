@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { Loader, Text, Stack } from "@mantine/core";
+import { Text, Stack } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IconDatabase } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,7 @@ import { useBaseTable } from "@/features/base/hooks/use-base-table";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import { GridContainer } from "@/features/base/components/grid/grid-container";
 import { BaseToolbar } from "@/features/base/components/base-toolbar";
+import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
 import classes from "@/features/base/styles/grid.module.css";
 
 type BaseTableProps = {
@@ -155,11 +156,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
   );
 
   if (baseLoading || rowsLoading) {
-    return (
-      <div className={classes.loadingOverlay}>
-        <Loader size="md" />
-      </div>
-    );
+    return <BaseTableSkeleton />;
   }
 
   if (baseError) {

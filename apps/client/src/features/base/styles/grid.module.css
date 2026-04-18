@@ -287,13 +287,6 @@
   gap: var(--mantine-spacing-xs);
 }
 
-.loadingOverlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--mantine-spacing-xl);
-}
-
 .primaryCell {
   font-weight: 500;
 }
