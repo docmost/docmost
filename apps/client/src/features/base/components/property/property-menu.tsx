@@ -194,8 +194,20 @@ export function PropertyMenuContent({
             value={renameValue}
             onChange={(e) => setRenameValue(e.currentTarget.value)}
             onKeyDown={handleRenameKeyDown}
-            onBlur={commitRename}
           />
+          <Divider />
+          <Group justify="flex-end" gap="xs">
+            <Button variant="default" size="xs" onClick={onClose}>
+              {t("Cancel")}
+            </Button>
+            <Button
+              size="xs"
+              onClick={handleRenameAndClose}
+              disabled={!renameValue.trim() || renameValue.trim() === property.name}
+            >
+              {t("Save")}
+            </Button>
+          </Group>
         </Stack>
       )}
       {(panel === "options" || panel === "confirmDiscard") && (
