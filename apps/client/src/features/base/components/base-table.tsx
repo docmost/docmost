@@ -44,8 +44,13 @@ export function BaseTable({ baseId }: BaseTableProps) {
 
   const activeFilter = activeView?.config?.filter;
   const activeSorts = activeView?.config?.sorts;
+  // Hold the rows query until `base` has loaded. Otherwise the query
+  // fires once with `activeFilter` / `activeSorts` still undefined
+  // (a "bland" list request), then fires a second time as soon as the
+  // active view's config resolves — doubling network traffic on every
+  // base open for any view that has sort or filter.
   const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useBaseRowsQuery(baseId, activeFilter, activeSorts);
+    useBaseRowsQuery(base ? baseId : undefined, activeFilter, activeSorts);
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
