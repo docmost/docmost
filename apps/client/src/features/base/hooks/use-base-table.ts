@@ -267,12 +267,57 @@ export function useBaseTable(
   const lastSyncedViewIdRef = useRef<string | undefined>(activeView?.id);
   useEffect(() => {
     const currentViewId = activeView?.id;
+
+    // View switch → full re-seed from the server's stored config.
     if (currentViewId !== lastSyncedViewIdRef.current) {
       lastSyncedViewIdRef.current = currentViewId;
       setColumnOrder(derivedColumnOrder);
       setColumnVisibility(derivedColumnVisibility);
+      return;
     }
-  }, [activeView?.id, derivedColumnOrder, derivedColumnVisibility]);
+
+    // Same view — preserve user toggles, but reconcile the id set:
+    // append properties that were just created, drop properties that
+    // were deleted. Without this, creating a new column leaves it
+    // invisible to `table.getState().columnOrder` / `gridTemplateColumns`,
+    // and the grid's scrollWidth never grows to include it.
+    const validIds = new Set<string>(["__row_number"]);
+    for (const p of properties) validIds.add(p.id);
+
+    setColumnOrder((prev) => {
+      const prevSet = new Set(prev);
+      const kept = prev.filter((id) => validIds.has(id));
+      const appended = derivedColumnOrder.filter(
+        (id) => !prevSet.has(id) && validIds.has(id),
+      );
+      if (appended.length === 0 && kept.length === prev.length) return prev;
+      return [...kept, ...appended];
+    });
+
+    setColumnVisibility((prev) => {
+      let changed = false;
+      const next: VisibilityState = {};
+      for (const [id, visible] of Object.entries(prev)) {
+        if (validIds.has(id)) {
+          next[id] = visible;
+        } else {
+          changed = true;
+        }
+      }
+      for (const id of derivedColumnOrder) {
+        if (!(id in next)) {
+          next[id] = derivedColumnVisibility[id] ?? true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [
+    activeView?.id,
+    derivedColumnOrder,
+    derivedColumnVisibility,
+    properties,
+  ]);
 
   const columnPinning = useMemo(
     () => buildColumnPinning(properties),
