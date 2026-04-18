@@ -138,6 +138,15 @@ export function ViewFieldVisibility({
                     checked={isVisible}
                     disabled={!canHide}
                     onChange={() => {}}
+                    // The Switch's <label> default-action synthesizes a
+                    // second click on its hidden <input> after the user
+                    // clicks the track. Without preventDefault, both clicks
+                    // bubble to the parent UnstyledButton and fire
+                    // handleToggle twice (hide then immediately unhide,
+                    // net zero). `preventDefault` cancels the synthesized
+                    // second click while letting the first one bubble so
+                    // UnstyledButton's onClick fires exactly once.
+                    onClick={(e) => e.preventDefault()}
                     styles={{ track: { cursor: canHide ? "pointer" : "not-allowed" } }}
                   />
                 </UnstyledButton>
