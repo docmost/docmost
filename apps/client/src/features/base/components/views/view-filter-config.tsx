@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Popover,
   Stack,
@@ -8,6 +8,7 @@ import {
   ActionIcon,
   Text,
   UnstyledButton,
+  Button,
 } from "@mantine/core";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import {
@@ -173,18 +174,69 @@ export function ViewFilterConfigPopover({
     label: p.name,
   }));
 
-  const handleAdd = useCallback(() => {
+  const [draft, setDraft] = useState<FilterCondition | null>(null);
+
+  useEffect(() => {
+    if (!opened) setDraft(null);
+  }, [opened]);
+
+  const handleStartDraft = useCallback(() => {
     const firstProperty = properties[0];
     if (!firstProperty) return;
     const validOperators = getOperatorsForType(firstProperty.type);
     const defaultOperator = validOperators.includes("contains")
       ? ("contains" as FilterOperator)
       : validOperators[0];
-    onChange([
-      ...conditions,
-      { propertyId: firstProperty.id, op: defaultOperator },
-    ]);
-  }, [conditions, properties, onChange]);
+    setDraft({ propertyId: firstProperty.id, op: defaultOperator });
+  }, [properties]);
+
+  const handleSaveDraft = useCallback(() => {
+    if (!draft) return;
+    onChange([...conditions, draft]);
+    setDraft(null);
+  }, [draft, conditions, onChange]);
+
+  const handleCancelDraft = useCallback(() => {
+    setDraft(null);
+  }, []);
+
+  const handleDraftPropertyChange = useCallback(
+    (propertyId: string | null) => {
+      if (!propertyId || !draft) return;
+      const newProperty = properties.find((p) => p.id === propertyId);
+      if (!newProperty) {
+        setDraft({ ...draft, propertyId });
+        return;
+      }
+      const validOperators = getOperatorsForType(newProperty.type);
+      const currentOperatorValid = validOperators.includes(draft.op);
+      setDraft({
+        ...draft,
+        propertyId,
+        op: currentOperatorValid ? draft.op : validOperators[0],
+        value: currentOperatorValid ? draft.value : undefined,
+      });
+    },
+    [draft, properties],
+  );
+
+  const handleDraftOperatorChange = useCallback(
+    (operator: string | null) => {
+      if (!operator || !draft) return;
+      const op = operator as FilterOperator;
+      const needsValue = !NO_VALUE_OPERATORS.includes(op);
+      setDraft({ ...draft, op, value: needsValue ? draft.value : undefined });
+    },
+    [draft],
+  );
+
+  const handleDraftValueChange = useCallback(
+    (value: string) => {
+      if (!draft) return;
+      setDraft({ ...draft, value: value || undefined });
+    },
+    [draft],
+  );
 
   const handleRemove = useCallback(
     (index: number) => {
@@ -265,7 +317,7 @@ export function ViewFilterConfigPopover({
             {t("Filter by")}
           </Text>
 
-          {conditions.length === 0 && (
+          {conditions.length === 0 && !draft && (
             <Text size="xs" c="dimmed">
               {t("No filters applied")}
             </Text>
@@ -322,20 +374,70 @@ export function ViewFilterConfigPopover({
             );
           })}
 
-          <UnstyledButton
-            onClick={handleAdd}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "4px 0",
-              fontSize: "var(--mantine-font-size-xs)",
-              color: "var(--mantine-color-blue-6)",
-            }}
-          >
-            <IconPlus size={14} />
-            {t("Add filter")}
-          </UnstyledButton>
+          {draft && (() => {
+            const needsValue = !NO_VALUE_OPERATORS.includes(draft.op);
+            const property = properties.find((p) => p.id === draft.propertyId);
+            const validOperators = property
+              ? getOperatorsForType(property.type)
+              : OPERATORS.map((op) => op.value);
+            const operatorOptions = OPERATORS.filter((op) =>
+              validOperators.includes(op.value),
+            ).map((op) => ({ value: op.value, label: t(op.labelKey) }));
+
+            return (
+              <Stack gap={6}>
+                <Group gap="xs" wrap="nowrap">
+                  <Select
+                    size="xs"
+                    data={propertyOptions}
+                    value={draft.propertyId}
+                    onChange={handleDraftPropertyChange}
+                    style={{ flex: 1 }}
+                  />
+                  <Select
+                    size="xs"
+                    data={operatorOptions}
+                    value={draft.op}
+                    onChange={handleDraftOperatorChange}
+                    w={130}
+                  />
+                  {needsValue && (
+                    <FilterValueInput
+                      condition={draft}
+                      property={property}
+                      onChange={handleDraftValueChange}
+                      t={t}
+                    />
+                  )}
+                </Group>
+                <Group justify="flex-end" gap="xs">
+                  <Button variant="default" size="xs" onClick={handleCancelDraft}>
+                    {t("Cancel")}
+                  </Button>
+                  <Button size="xs" onClick={handleSaveDraft}>
+                    {t("Save")}
+                  </Button>
+                </Group>
+              </Stack>
+            );
+          })()}
+
+          {!draft && (
+            <UnstyledButton
+              onClick={handleStartDraft}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 0",
+                fontSize: "var(--mantine-font-size-xs)",
+                color: "var(--mantine-color-blue-6)",
+              }}
+            >
+              <IconPlus size={14} />
+              {t("Add filter")}
+            </UnstyledButton>
+          )}
         </Stack>
       </Popover.Dropdown>
     </Popover>
