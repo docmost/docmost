@@ -21,6 +21,8 @@ import { editingCellAtom, activePropertyMenuAtom, propertyMenuDirtyAtom, propert
 import { useColumnResize } from "@/features/base/hooks/use-column-resize";
 import { useGridKeyboardNav } from "@/features/base/hooks/use-grid-keyboard-nav";
 import { useRowDrag } from "@/features/base/hooks/use-row-drag";
+import { useRowSelection } from "@/features/base/hooks/use-row-selection";
+import { useDeleteSelectedRows } from "@/features/base/hooks/use-delete-selected-rows";
 import { GridHeader } from "./grid-header";
 import { GridRow } from "./grid-row";
 import { AddRowButton } from "./add-row-button";
@@ -65,6 +67,9 @@ export function GridContainer({
   const propertyMenuDirtyRef = useRef(propertyMenuDirty);
   propertyMenuDirtyRef.current = propertyMenuDirty;
   const closeRequestCounterRef = useRef(0);
+
+  const { selectionCount, clear: clearSelection } = useRowSelection();
+  const { deleteSelected } = useDeleteSelectedRows(baseId ?? "");
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -112,6 +117,30 @@ export function GridContainer({
       onFetchNextPage();
     }
   }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, onFetchNextPage]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !baseId) return;
+    const handler = (e: KeyboardEvent) => {
+      if (editingCell) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (!active || !el.contains(active)) return;
+      const tag = active.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || active.isContentEditable) {
+        return;
+      }
+      if (e.key === "Escape" && selectionCount > 0) {
+        clearSelection();
+        return;
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectionCount > 0) {
+        e.preventDefault();
+        void deleteSelected();
+      }
+    };
+    el.addEventListener("keydown", handler);
+    return () => el.removeEventListener("keydown", handler);
+  }, [editingCell, selectionCount, clearSelection, deleteSelected, baseId]);
 
   const gridTemplateColumns = useMemo(() => {
     const visibleColumns = table.getVisibleLeafColumns();
