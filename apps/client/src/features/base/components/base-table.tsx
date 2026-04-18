@@ -186,6 +186,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
       />
       <GridContainer
         table={table}
+        properties={base.properties}
         onCellUpdate={handleCellUpdate}
         onAddRow={handleAddRow}
         baseId={baseId}

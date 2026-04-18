@@ -46,16 +46,15 @@ const typeIcons: Record<string, typeof IconLetterT> = {
 
 type GridHeaderCellProps = {
   header: Header<IBaseRow, unknown>;
+  property: IBaseProperty | undefined;
   loadedRowIds: string[];
 };
 
 export const GridHeaderCell = memo(function GridHeaderCell({
   header,
+  property,
   loadedRowIds,
 }: GridHeaderCellProps) {
-  const property = header.column.columnDef.meta?.property as
-    | IBaseProperty
-    | undefined;
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;

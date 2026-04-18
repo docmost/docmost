@@ -16,7 +16,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { IBaseRow, EditingCell } from "@/features/base/types/base.types";
+import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
 import { editingCellAtom, activePropertyMenuAtom, propertyMenuDirtyAtom, propertyMenuCloseRequestAtom } from "@/features/base/atoms/base-atoms";
 import { useColumnResize } from "@/features/base/hooks/use-column-resize";
 import { useGridKeyboardNav } from "@/features/base/hooks/use-grid-keyboard-nav";
@@ -34,6 +34,7 @@ const OVERSCAN = 10;
 
 type GridContainerProps = {
   table: Table<IBaseRow>;
+  properties: IBaseProperty[];
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   onAddRow?: () => void;
   baseId?: string;
@@ -47,6 +48,7 @@ type GridContainerProps = {
 
 export function GridContainer({
   table,
+  properties,
   onCellUpdate,
   onAddRow,
   baseId,
@@ -240,6 +242,7 @@ export function GridContainer({
               table={table}
               baseId={baseId}
               columnOrder={table.getState().columnOrder}
+              properties={properties}
               loadedRowIds={rowIds}
               onPropertyCreated={handlePropertyCreated}
             />
