@@ -14,6 +14,7 @@ import { CreateRowDto } from '../dto/create-row.dto';
 import {
   UpdateRowDto,
   DeleteRowDto,
+  DeleteRowsDto,
   RowIdDto,
   ListRowsDto,
   ReorderRowDto,
@@ -116,6 +117,26 @@ export class BaseRowController {
     }
 
     await this.baseRowService.delete(dto, workspace.id, user.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('delete-many')
+  async deleteMany(
+    @Body() dto: DeleteRowsDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Edit, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    await this.baseRowService.deleteMany(dto, workspace.id, user.id);
   }
 
   @HttpCode(HttpStatus.OK)
