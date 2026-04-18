@@ -8,6 +8,7 @@ import {
 import { useWorkspaceMembersQuery } from "@/features/workspace/queries/workspace-query";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import cellClasses from "@/features/base/styles/cells.module.css";
+import { useListKeyboardNav } from "@/features/base/hooks/use-list-keyboard-nav";
 
 type CellPersonProps = {
   value: unknown;
@@ -60,6 +61,8 @@ export function CellPerson({
       )
     : members;
 
+  const nav = useListKeyboardNav(filteredMembers.length, [search, isEditing]);
+
   const handleSelect = useCallback(
     (memberId: string) => {
       if (allowMultiple) {
@@ -99,13 +102,21 @@ export function CellPerson({
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
+        return;
+      }
+      if (nav.handleNavKey(e)) return;
+      if (e.key === "Enter") {
+        if (nav.activeIndex < 0 || nav.activeIndex >= filteredMembers.length) return;
+        e.preventDefault();
+        handleSelect(filteredMembers[nav.activeIndex].id);
+        return;
       }
       if (e.key === "Backspace" && search === "" && personIds.length > 0) {
         e.preventDefault();
         handleRemove(personIds[personIds.length - 1]);
       }
     },
-    [onCancel, search, personIds, handleRemove],
+    [onCancel, nav, filteredMembers, handleSelect, search, personIds, handleRemove],
   );
 
   const selectedSet = new Set(personIds);
@@ -170,25 +181,40 @@ export function CellPerson({
             </div>
           )}
           <div className={cellClasses.selectDropdown}>
-            {filteredMembers.map((member) => (
-              <div
-                key={member.id}
-                className={`${cellClasses.selectOption} ${
-                  selectedSet.has(member.id) ? cellClasses.selectOptionActive : ""
-                }`}
-                onClick={() => handleSelect(member.id)}
-              >
-                <CustomAvatar
-                  avatarUrl={member.avatarUrl}
-                  name={member.name}
-                  size={24}
-                  radius="xl"
-                />
-                <span className={cellClasses.personOptionName}>
-                  {member.name}
-                </span>
-              </div>
-            ))}
+            {filteredMembers.map((member, idx) => {
+              const isSelected = selectedSet.has(member.id);
+              const isKeyboardActive = idx === nav.activeIndex;
+              const className = [
+                cellClasses.selectOption,
+                isSelected ? cellClasses.selectOptionActive : "",
+                isKeyboardActive ? cellClasses.selectOptionKeyboardActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <div
+                  key={member.id}
+                  ref={nav.setOptionRef(idx)}
+                  className={className}
+                  onMouseEnter={() => nav.setActiveIndex(idx)}
+                  onMouseDown={(e) => {
+                    // Keep focus on the search input so click doesn't blur + close popover.
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSelect(member.id)}
+                >
+                  <CustomAvatar
+                    avatarUrl={member.avatarUrl}
+                    name={member.name}
+                    size={24}
+                    radius="xl"
+                  />
+                  <span className={cellClasses.personOptionName}>
+                    {member.name}
+                  </span>
+                </div>
+              );
+            })}
             {filteredMembers.length === 0 && (
               <div className={cellClasses.personDropdownHint}>
                 No members found
