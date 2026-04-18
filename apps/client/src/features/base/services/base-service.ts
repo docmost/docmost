@@ -71,7 +71,7 @@ export async function listBases(
   spaceId: string,
   params?: { cursor?: string; limit?: number },
 ): Promise<IPagination<IBase>> {
-  const req = await api.post("/bases/list", { spaceId, ...params });
+  const req = await api.post("/bases", { spaceId, ...params });
   return req.data;
 }
 
@@ -143,7 +143,7 @@ export async function listRows(
     search?: SearchSpec;
   },
 ): Promise<IPagination<IBaseRow>> {
-  const req = await api.post("/bases/rows/list", { baseId, ...params });
+  const req = await api.post("/bases/rows", { baseId, ...params });
   return req.data;
 }
 
@@ -168,6 +168,6 @@ export async function deleteView(data: DeleteViewInput): Promise<void> {
 }
 
 export async function listViews(baseId: string): Promise<IBaseView[]> {
-  const req = await api.post<IBaseView[]>("/bases/views/list", { baseId });
+  const req = await api.post<IBaseView[]>("/bases/views", { baseId });
   return req.data;
 }

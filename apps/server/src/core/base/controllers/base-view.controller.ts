@@ -93,7 +93,7 @@ export class BaseViewController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list')
+  @Post()
   async list(
     @Body() dto: BaseIdDto,
     @AuthUser() user: User,

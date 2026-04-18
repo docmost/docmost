@@ -100,7 +100,7 @@ export class BaseController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list')
+  @Post()
   async list(
     @Body() dto: SpaceIdDto,
     @Body() pagination: PaginationOptions,

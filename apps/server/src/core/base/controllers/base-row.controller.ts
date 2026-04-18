@@ -140,7 +140,7 @@ export class BaseRowController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('list')
+  @Post()
   async list(
     @Body() dto: ListRowsDto,
     @Body() pagination: PaginationOptions,
