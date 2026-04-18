@@ -242,6 +242,7 @@ export function GridContainer({
               table={table}
               baseId={baseId}
               columnOrder={table.getState().columnOrder}
+              columnVisibility={table.getState().columnVisibility}
               properties={properties}
               loadedRowIds={rowIds}
               onPropertyCreated={handlePropertyCreated}
@@ -262,6 +263,7 @@ export function GridContainer({
                 rowIndex={virtualRow.index}
                 onCellUpdate={onCellUpdate}
                 orderedRowIds={rowIds}
+                columnVisibility={table.getState().columnVisibility}
                 dragHandlers={
                   onRowReorder
                     ? {

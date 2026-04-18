@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Row } from "@tanstack/react-table";
+import { Row, VisibilityState } from "@tanstack/react-table";
 import { IBaseRow } from "@/features/base/types/base.types";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import { GridCell } from "./grid-cell";
@@ -21,6 +21,7 @@ type GridRowProps = {
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   dragHandlers?: RowDragHandlers;
   orderedRowIds: string[];
+  columnVisibility: VisibilityState;
 };
 
 export const GridRow = memo(function GridRow({
@@ -29,6 +30,8 @@ export const GridRow = memo(function GridRow({
   onCellUpdate,
   dragHandlers,
   orderedRowIds,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  columnVisibility: _columnVisibility,
 }: GridRowProps) {
   const isSelected = useRowSelection().isSelected(row.id);
   const handleDragStart = useCallback(

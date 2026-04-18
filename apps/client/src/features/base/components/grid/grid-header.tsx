@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { Table, ColumnOrderState } from "@tanstack/react-table";
+import { Table, ColumnOrderState, VisibilityState } from "@tanstack/react-table";
 import { IBaseRow, IBaseProperty } from "@/features/base/types/base.types";
 import { GridHeaderCell } from "./grid-header-cell";
 import { CreatePropertyPopover } from "@/features/base/components/property/create-property-popover";
@@ -11,6 +11,7 @@ type GridHeaderProps = {
   // Passed explicitly to break memo when columns change
   // (table ref is stable from useReactTable, so memo won't fire without these)
   columnOrder: ColumnOrderState;
+  columnVisibility: VisibilityState;
   properties: IBaseProperty[];
   loadedRowIds: string[];
   onPropertyCreated?: () => void;
@@ -21,6 +22,8 @@ export const GridHeader = memo(function GridHeader({
   baseId,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   columnOrder: _columnOrder,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  columnVisibility: _columnVisibility,
   properties,
   loadedRowIds,
   onPropertyCreated,
