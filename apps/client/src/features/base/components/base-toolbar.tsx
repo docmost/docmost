@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { ActionIcon, Tooltip, Badge } from "@mantine/core";
 import { Table } from "@tanstack/react-table";
 import {
@@ -50,6 +50,32 @@ export function BaseToolbar({
   const [filterOpened, setFilterOpened] = useState(false);
   const [fieldsOpened, setFieldsOpened] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const toolbarRightRef = useRef<HTMLDivElement>(null);
+
+  // Mantine `<Popover>`'s built-in `closeOnClickOutside` does not fire
+  // reliably for the toolbar popovers (same issue that drove the property
+  // menu to use a custom listener in `grid-container.tsx`). Close any open
+  // toolbar popover when a mousedown lands outside the toolbar cluster
+  // AND outside any open Mantine dropdown (marked `role="dialog"`).
+  useEffect(() => {
+    if (!sortOpened && !filterOpened && !fieldsOpened) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (toolbarRightRef.current?.contains(target)) return;
+      if (target.closest('[role="dialog"]')) return;
+      setSortOpened(false);
+      setFilterOpened(false);
+      setFieldsOpened(false);
+    };
+    const id = setTimeout(() => {
+      document.addEventListener("mousedown", handler);
+    }, 0);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("mousedown", handler);
+    };
+  }, [sortOpened, filterOpened, fieldsOpened]);
 
   const handleExport = useCallback(async () => {
     if (exporting) return;
@@ -137,7 +163,7 @@ export function BaseToolbar({
         onAddView={onAddView}
       />
 
-      <div className={classes.toolbarRight}>
+      <div className={classes.toolbarRight} ref={toolbarRightRef}>
         <Tooltip label={t("Export CSV")}>
           <ActionIcon
             variant="subtle"
