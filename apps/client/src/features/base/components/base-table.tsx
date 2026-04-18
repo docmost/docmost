@@ -17,6 +17,7 @@ import { useReorderRowMutation } from "@/features/base/queries/base-row-query";
 import { useCreateViewMutation } from "@/features/base/queries/base-view-query";
 import { activeViewIdAtom } from "@/features/base/atoms/base-atoms";
 import { useBaseTable } from "@/features/base/hooks/use-base-table";
+import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import { GridContainer } from "@/features/base/components/grid/grid-container";
 import { BaseToolbar } from "@/features/base/components/base-toolbar";
 import classes from "@/features/base/styles/grid.module.css";
@@ -55,6 +56,11 @@ export function BaseTable({ baseId }: BaseTableProps) {
       setActiveViewId(activeView.id);
     }
   }, [activeView, activeViewId, setActiveViewId]);
+
+  const { clear: clearSelection } = useRowSelection();
+  useEffect(() => {
+    clearSelection();
+  }, [baseId, activeView?.id, clearSelection]);
 
   const rows = useMemo(() => {
     const flat = flattenRows(rowsData);
