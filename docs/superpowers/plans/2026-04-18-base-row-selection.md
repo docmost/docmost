@@ -802,7 +802,7 @@ type RowNumberHeaderCellProps = {
 export const RowNumberHeaderCell = memo(function RowNumberHeaderCell({
   loadedRowIds,
 }: RowNumberHeaderCellProps) {
-  const { selectedIds, selectionCount, toggleAll } = useRowSelection();
+  const { selectedIds, toggleAll } = useRowSelection();
 
   const { checked, indeterminate } = useMemo(() => {
     if (loadedRowIds.length === 0) {
@@ -840,7 +840,7 @@ export const RowNumberHeaderCell = memo(function RowNumberHeaderCell({
 });
 ```
 
-Note: the hook call ensures this re-renders on selection change. `selectionCount` is unused directly but kept because the hook return is shared.
+Note: reading `selectedIds` from the hook ensures this re-renders on selection change.
 
 - [ ] **Step 3: Wire into `grid-header-cell.tsx`**
 
