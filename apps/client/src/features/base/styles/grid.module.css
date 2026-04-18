@@ -321,7 +321,7 @@
 .rowNumberDragHandle {
   position: absolute;
   top: 50%;
-  left: 6px;
+  left: 2px;
   transform: translateY(-50%);
   display: none;
   align-items: center;
