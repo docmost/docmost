@@ -123,7 +123,22 @@ export function useBaseSocket(baseId: string | undefined): void {
 
       switch (event.operation) {
         case "base:row:created": {
-          queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
+          const e = event as BaseRowCreated;
+          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+            { queryKey: ["base-rows", baseId] },
+            (old) => {
+              if (!old) return old;
+              const lastPageIndex = old.pages.length - 1;
+              return {
+                ...old,
+                pages: old.pages.map((page, index) =>
+                  index === lastPageIndex
+                    ? { ...page, items: [...page.items, e.row] }
+                    : page,
+                ),
+              };
+            },
+          );
           break;
         }
         case "base:row:updated": {
