@@ -187,6 +187,7 @@ function SearchAndReplaceDialog({ editor, editable = true }: PageFindDialogDialo
       position={{ top: 90, right: 50 }}
       withBorder
       transitionProps={{ transition: "slide-down" }}
+      aria-label={t("Find and replace")}
     >
       <Stack gap="xs">
         <Flex align="center" gap="xs">

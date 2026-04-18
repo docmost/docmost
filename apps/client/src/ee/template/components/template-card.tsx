@@ -56,6 +56,7 @@ export default function TemplateCard({
                     color="gray"
                     className={classes.menuTarget}
                     onClick={(e) => e.stopPropagation()}
+                    aria-label={t("Template menu")}
                   >
                     <IconDots size={16} />
                   </ActionIcon>

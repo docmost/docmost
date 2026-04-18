@@ -168,7 +168,11 @@ export default function AllSpacesList({
                       <WatchButton spaceId={space.id} watchedIds={watchedIds} size={16} />
                       <Menu position="bottom-end">
                         <Menu.Target>
-                          <ActionIcon variant="subtle" color="gray">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={t("Space menu")}
+                          >
                             <IconDots size={16} />
                           </ActionIcon>
                         </Menu.Target>

@@ -19,6 +19,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { extractPageSlugId } from "@/lib";
 import { useMediaQuery } from "@mantine/hooks";
+import { useTranslation } from "react-i18next";
 
 function getTitle(name: string, icon: string) {
   if (icon) {
@@ -28,6 +29,7 @@ function getTitle(name: string, icon: string) {
 }
 
 export default function Breadcrumb() {
+  const { t } = useTranslation();
   const treeData = useAtomValue(treeDataAtom);
   const [breadcrumbNodes, setBreadcrumbNodes] = useState<
     SpaceTreeNode[] | null
@@ -115,7 +117,11 @@ export default function Breadcrumb() {
           key="hidden-nodes"
         >
           <Popover.Target>
-            <ActionIcon color="gray" variant="transparent">
+            <ActionIcon
+              color="gray"
+              variant="transparent"
+              aria-label={t("Show hidden breadcrumbs")}
+            >
               <IconDots size={20} stroke={2} />
             </ActionIcon>
           </Popover.Target>
@@ -144,8 +150,12 @@ export default function Breadcrumb() {
           key="mobile-hidden-nodes"
         >
           <Popover.Target>
-            <Tooltip label="Breadcrumbs">
-              <ActionIcon color="gray" variant="transparent">
+            <Tooltip label={t("Breadcrumbs")}>
+              <ActionIcon
+                color="gray"
+                variant="transparent"
+                aria-label={t("Breadcrumbs")}
+              >
                 <IconCornerDownRightDouble size={20} stroke={2} />
               </ActionIcon>
             </Tooltip>

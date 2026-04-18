@@ -86,7 +86,15 @@ const CommandList = ({
   }, [selectedIndex]);
 
   return flatItems.length > 0 ? (
-    <Paper id="slash-command" shadow="md" p="xs" withBorder>
+    <Paper
+      id="slash-command"
+      shadow="md"
+      p="xs"
+      withBorder
+      role="listbox"
+      aria-label={t("Slash commands")}
+      aria-activedescendant={`slash-command-option-${selectedIndex}`}
+    >
       <ScrollArea
         viewportRef={viewportRef}
         h={350}
@@ -95,7 +103,7 @@ const CommandList = ({
         overscrollBehavior="contain"
       >
         {Object.entries(items).map(([category, categoryItems]) => (
-          <div key={category}>
+          <div key={category} role="group" aria-label={category}>
             <Text c="dimmed" mb={4} fw={500} tt="capitalize">
               {category}
             </Text>
@@ -103,13 +111,16 @@ const CommandList = ({
               <UnstyledButton
                 data-item-index={index}
                 key={index}
+                id={`slash-command-option-${index}`}
+                role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => selectItem(index)}
                 className={clsx(classes.menuBtn, {
                   [classes.selectedItem]: index === selectedIndex,
                 })}
               >
                 <Group>
-                  <ActionIcon variant="default" component="div">
+                  <ActionIcon variant="default" component="div" aria-hidden="true">
                     <item.icon size={18} />
                   </ActionIcon>
 

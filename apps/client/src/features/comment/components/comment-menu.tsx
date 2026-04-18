@@ -46,7 +46,11 @@ function CommentMenu({
   return (
     <Menu shadow="md" width={200}>
       <Menu.Target>
-        <ActionIcon variant="default" style={{ border: "none" }}>
+        <ActionIcon
+          variant="default"
+          style={{ border: "none" }}
+          aria-label={t("Comment menu")}
+        >
           <IconDots size={20} stroke={2} />
         </ActionIcon>
       </Menu.Target>

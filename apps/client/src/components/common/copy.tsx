@@ -25,6 +25,7 @@ export default function CopyTextButton({ text, size }: CopyProps) {
             variant="subtle"
             onClick={copy}
             size={size}
+            aria-label={copied ? t("Copied") : t("Copy")}
           >
             {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
           </ActionIcon>

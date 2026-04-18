@@ -157,6 +157,9 @@ export const NodeSelector: FC<NodeSelectorProps> = ({
             radius="0"
             rightSection={<IconChevronDown size={16} />}
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={t("Turn into")}
+            aria-haspopup="menu"
+            aria-expanded={isOpen}
           >
             {t(activeItem?.name)}
           </Button>

@@ -38,6 +38,7 @@ export function PageVerificationModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      aria-label={status === "none" ? t("Set up verification") : t("Verify page")}
       title={
         <Group gap="xs">
           <IconShieldCheck

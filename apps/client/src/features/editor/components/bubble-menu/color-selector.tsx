@@ -172,6 +172,9 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
               fontWeight: 500,
               fontSize: rem(16),
             }}
+            aria-label={t("Text color")}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
           >
             A
           </Button>
@@ -186,20 +189,32 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 {t("Text color")}
               </Text>
               <SimpleGrid cols={5} spacing="xs">
-                {TEXT_COLORS.map(({ name, color }, index) => (
+                {TEXT_COLORS.map(({ name, color }, index) => {
+                  const applyTextColor = () => {
+                    if (name === "Default") {
+                      editor.commands.unsetColor();
+                    } else {
+                      editor
+                        .chain()
+                        .focus()
+                        .setColor(color || "")
+                        .run();
+                    }
+                    setIsOpen(false);
+                  };
+                  return (
                   <Tooltip key={index} label={t(name)} withArrow>
                     <Box
-                      onClick={() => {
-                        if (name === "Default") {
-                          editor.commands.unsetColor();
-                        } else {
-                          editor
-                            .chain()
-                            .focus()
-                            .setColor(color || "")
-                            .run();
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t(name)}
+                      aria-pressed={!!editorState[`text_${color}`]}
+                      onClick={applyTextColor}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          applyTextColor();
                         }
-                        setIsOpen(false);
                       }}
                       style={{
                         width: rem(28),
@@ -221,7 +236,8 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       A
                     </Box>
                   </Tooltip>
-                ))}
+                  );
+                })}
               </SimpleGrid>
             </Box>
 
@@ -230,23 +246,35 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                 {t("Highlight color")}
               </Text>
               <SimpleGrid cols={5} spacing="xs">
-                {HIGHLIGHT_COLORS.map(({ name, color }, index) => (
+                {HIGHLIGHT_COLORS.map(({ name, color }, index) => {
+                  const applyHighlight = () => {
+                    if (name === "Default") {
+                      editor.commands.unsetHighlight();
+                    } else {
+                      editor
+                        .chain()
+                        .focus()
+                        .toggleMark("highlight", {
+                          color: color || "",
+                          colorName: name.toLowerCase() || "",
+                        })
+                        .run();
+                    }
+                    setIsOpen(false);
+                  };
+                  return (
                   <Tooltip key={index} label={t(name)} withArrow>
                     <Box
-                      onClick={() => {
-                        if (name === "Default") {
-                          editor.commands.unsetHighlight();
-                        } else {
-                          editor
-                            .chain()
-                            .focus()
-                            .toggleMark("highlight", {
-                              color: color || "",
-                              colorName: name.toLowerCase() || "",
-                            })
-                            .run();
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t(name)}
+                      aria-pressed={!!editorState[`highlight_${color}`]}
+                      onClick={applyHighlight}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          applyHighlight();
                         }
-                        setIsOpen(false);
                       }}
                       style={{
                         width: rem(28),
@@ -274,7 +302,8 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
                       )}
                     </Box>
                   </Tooltip>
-                ))}
+                  );
+                })}
               </SimpleGrid>
             </Box>
 
