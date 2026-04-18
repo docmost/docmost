@@ -10,7 +10,11 @@ const api: AxiosInstance = axios.create({
 api.interceptors.response.use(
   (response) => {
     // we need the response headers for these endpoints
-    const exemptEndpoints = ["/api/pages/export", "/api/spaces/export"];
+    const exemptEndpoints = [
+      "/api/pages/export",
+      "/api/spaces/export",
+      "/api/bases/export-csv",
+    ];
     if (response.request.responseURL) {
       const path = new URL(response.request.responseURL)?.pathname;
       if (path && exemptEndpoints.includes(path)) {
