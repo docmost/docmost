@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { InfiniteData, useMutation } from "@tanstack/react-query";
 import {
   createProperty,
   updateProperty,
@@ -8,6 +8,7 @@ import {
 import {
   IBase,
   IBaseProperty,
+  IBaseRow,
   CreatePropertyInput,
   UpdatePropertyInput,
   DeletePropertyInput,
@@ -17,6 +18,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
+import { IPagination } from "@/lib/types";
 
 export function useCreatePropertyMutation() {
   const { t } = useTranslation();
@@ -100,9 +102,23 @@ export function useDeletePropertyMutation() {
         },
       );
 
-      queryClient.invalidateQueries({
-        queryKey: ["base-rows", variables.baseId],
-      });
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", variables.baseId] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((row) => {
+                if (!(variables.propertyId in row.cells)) return row;
+                const { [variables.propertyId]: _, ...rest } = row.cells;
+                return { ...row, cells: rest };
+              }),
+            })),
+          };
+        },
+      );
     },
     onError: () => {
       notifications.show({
