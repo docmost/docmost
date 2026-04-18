@@ -181,6 +181,12 @@ export function buildViewConfigFromTable(
   base: ViewConfig | undefined,
   overrides: Partial<ViewConfig> = {},
 ): ViewConfig {
+  // Guard against corrupted persisted configs — if `base` ever comes
+  // back as something other than a plain object (e.g. a jsonb-stored
+  // string `"{}"` from a buggy seed), spreading it would iterate its
+  // characters into keys `0`, `1`, … and poison the config forever.
+  const safeBase =
+    base && typeof base === "object" && !Array.isArray(base) ? base : {};
   const state = table.getState();
 
   const sorts = state.sorting.map((s) => ({
@@ -200,7 +206,7 @@ export function buildViewConfigFromTable(
     .map(([id]) => id);
 
   return {
-    ...base,
+    ...safeBase,
     sorts,
     propertyWidths,
     propertyOrder,
