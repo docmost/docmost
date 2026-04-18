@@ -17,6 +17,10 @@ const CHOICE_COLORS = [
   "blue", "cyan", "teal", "green", "lime", "yellow", "orange",
 ];
 
+type NavItem =
+  | { kind: "choice"; choice: Choice }
+  | { kind: "add" };
+
 type CellSelectProps = {
   value: unknown;
   property: IBaseProperty;
@@ -77,10 +81,6 @@ export function CellSelect({
     [choices.length],
   );
 
-  type NavItem =
-    | { kind: "choice"; choice: Choice }
-    | { kind: "add" };
-
   const navItems = useMemo<NavItem[]>(
     () => [
       ...filteredChoices.map((c) => ({ kind: "choice" as const, choice: c })),
@@ -138,6 +138,7 @@ export function CellSelect({
   );
 
   if (isEditing) {
+    const addOptionIdx = filteredChoices.length;
     return (
       <Popover
         opened
@@ -198,31 +199,28 @@ export function CellSelect({
                 </div>
               );
             })}
-            {showAddOption && (() => {
-              const idx = filteredChoices.length;
-              return (
-                <div
-                  ref={setOptionRef(idx)}
-                  className={clsx(
-                    cellClasses.addOptionRow,
-                    idx === activeIndex && cellClasses.selectOptionKeyboardActive,
-                  )}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                  }}
-                  onClick={handleAddOption}
+            {showAddOption && (
+              <div
+                ref={setOptionRef(addOptionIdx)}
+                className={clsx(
+                  cellClasses.addOptionRow,
+                  addOptionIdx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                )}
+                onMouseEnter={() => setActiveIndex(addOptionIdx)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                onClick={handleAddOption}
+              >
+                <span className={cellClasses.addOptionLabel}>Add option:</span>
+                <span
+                  className={cellClasses.badge}
+                  style={choiceColor(addOptionColor)}
                 >
-                  <span className={cellClasses.addOptionLabel}>Add option:</span>
-                  <span
-                    className={cellClasses.badge}
-                    style={choiceColor(addOptionColor)}
-                  >
-                    {trimmedSearch}
-                  </span>
-                </div>
-              );
-            })()}
+                  {trimmedSearch}
+                </span>
+              </div>
+            )}
           </div>
         </Popover.Dropdown>
       </Popover>
