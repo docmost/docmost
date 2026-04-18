@@ -13,6 +13,7 @@ import { CreateRowDto } from '../dto/create-row.dto';
 import {
   UpdateRowDto,
   DeleteRowDto,
+  DeleteRowsDto,
   ListRowsDto,
   ReorderRowDto,
 } from '../dto/update-row.dto';
@@ -38,6 +39,7 @@ import {
   BaseRowDeletedEvent,
   BaseRowReorderedEvent,
   BaseRowUpdatedEvent,
+  BaseRowsDeletedEvent,
 } from '../events/base-events';
 
 @Injectable()
@@ -153,6 +155,34 @@ export class BaseRowService {
       rowId: dto.rowId,
     };
     this.eventEmitter.emit(EventName.BASE_ROW_DELETED, event);
+  }
+
+  async deleteMany(
+    dto: DeleteRowsDto,
+    workspaceId: string,
+    userId?: string,
+  ): Promise<void> {
+    const rows = await this.baseRowRepo.findByIds(dto.rowIds, { workspaceId });
+    if (rows.length !== dto.rowIds.length) {
+      throw new NotFoundException('One or more rows not found');
+    }
+    if (rows.some((r) => r.baseId !== dto.baseId)) {
+      throw new NotFoundException('Row does not belong to base');
+    }
+
+    await this.baseRowRepo.softDeleteMany(dto.rowIds, {
+      baseId: dto.baseId,
+      workspaceId,
+    });
+
+    const event: BaseRowsDeletedEvent = {
+      baseId: dto.baseId,
+      workspaceId,
+      actorId: userId ?? null,
+      requestId: dto.requestId ?? null,
+      rowIds: dto.rowIds,
+    };
+    this.eventEmitter.emit(EventName.BASE_ROWS_DELETED, event);
   }
 
   async list(
