@@ -23,6 +23,8 @@ import {
   IconUserEdit,
 } from "@tabler/icons-react";
 import { PropertyMenuContent } from "@/features/base/components/property/property-menu";
+import { RowNumberHeaderCell } from "./row-number-header-cell";
+import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import classes from "@/features/base/styles/grid.module.css";
 
 const typeIcons: Record<string, typeof IconLetterT> = {
@@ -44,10 +46,12 @@ const typeIcons: Record<string, typeof IconLetterT> = {
 
 type GridHeaderCellProps = {
   header: Header<IBaseRow, unknown>;
+  loadedRowIds: string[];
 };
 
 export const GridHeaderCell = memo(function GridHeaderCell({
   header,
+  loadedRowIds,
 }: GridHeaderCellProps) {
   const property = header.column.columnDef.meta?.property as
     | IBaseProperty
@@ -55,6 +59,8 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;
+  const { selectionCount } = useRowSelection();
+  const hasSelection = selectionCount > 0;
 
   const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtom) as unknown as [string | null, (val: string | null) => void];
   const menuOpened = activePropertyMenu === header.column.id;
@@ -118,7 +124,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   return (
     <div
       ref={combinedRef}
-      className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""}`}
+      className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
       style={{
         ...(isPinned ? { left: pinOffset } : {}),
         ...(isRowNumber ? {} : { cursor: "pointer" }),
@@ -129,7 +135,7 @@ export const GridHeaderCell = memo(function GridHeaderCell({
       {...(isSortableDisabled ? {} : listeners)}
     >
       {isRowNumber ? (
-        flexRender(header.column.columnDef.header, header.getContext())
+        <RowNumberHeaderCell loadedRowIds={loadedRowIds} />
       ) : (
         <div className={classes.headerCellContent}>
           {TypeIcon && (

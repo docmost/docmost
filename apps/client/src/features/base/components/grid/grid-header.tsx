@@ -11,6 +11,7 @@ type GridHeaderProps = {
   // Passed explicitly to break memo when columns change
   // (table ref is stable from useReactTable, so memo won't fire without this)
   columnOrder: ColumnOrderState;
+  loadedRowIds: string[];
   onPropertyCreated?: () => void;
 };
 
@@ -19,6 +20,7 @@ export const GridHeader = memo(function GridHeader({
   baseId,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   columnOrder: _columnOrder,
+  loadedRowIds,
   onPropertyCreated,
 }: GridHeaderProps) {
   const headerGroups = table.getHeaderGroups();
@@ -26,7 +28,7 @@ export const GridHeader = memo(function GridHeader({
   return (
     <div className={classes.headerRow} role="row">
       {headerGroups[0]?.headers.map((header) => (
-        <GridHeaderCell key={header.id} header={header} />
+        <GridHeaderCell key={header.id} header={header} loadedRowIds={loadedRowIds} />
       ))}
       {baseId && (
         <CreatePropertyPopover

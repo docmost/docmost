@@ -347,3 +347,30 @@
 .rowSelected .cell {
   background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
 }
+
+.rowNumberHeaderInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.rowNumberHeaderHash {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  font-size: var(--mantine-font-size-xs);
+}
+
+.rowNumberHeaderCheckbox {
+  display: none;
+}
+
+.headerCell:hover .rowNumberHeaderHash,
+.hasSelection .rowNumberHeaderHash {
+  display: none;
+}
+
+.headerCell:hover .rowNumberHeaderCheckbox,
+.hasSelection .rowNumberHeaderCheckbox {
+  display: inline-flex;
+}

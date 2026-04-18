@@ -210,6 +210,7 @@ export function GridContainer({
               table={table}
               baseId={baseId}
               columnOrder={table.getState().columnOrder}
+              loadedRowIds={rowIds}
               onPropertyCreated={handlePropertyCreated}
             />
           </SortableContext>
