@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAtomValue } from "jotai";
+import { useAtomValue, getDefaultStore } from "jotai";
 import { useQueryClient, InfiniteData } from "@tanstack/react-query";
 import { socketAtom } from "@/features/websocket/atoms/socket-atom";
 import {
@@ -7,6 +7,7 @@ import {
   IBaseRow,
   IBaseView,
 } from "@/features/base/types/base.types";
+import { selectedRowIdsAtom } from "@/features/base/atoms/base-atoms";
 import { IPagination } from "@/lib/types";
 
 type BaseRowCreated = {
@@ -28,6 +29,13 @@ type BaseRowDeleted = {
   operation: "base:row:deleted";
   baseId: string;
   rowId: string;
+  requestId?: string | null;
+};
+
+type BaseRowsDeleted = {
+  operation: "base:rows:deleted";
+  baseId: string;
+  rowIds: string[];
   requestId?: string | null;
 };
 
@@ -65,6 +73,7 @@ type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
   | BaseRowDeleted
+  | BaseRowsDeleted
   | BaseRowReordered
   | BasePropertyEvent
   | BaseViewEvent
@@ -173,6 +182,41 @@ export function useBaseSocket(baseId: string | undefined): void {
                     })),
                   },
           );
+          const store = getDefaultStore();
+          const current = store.get(selectedRowIdsAtom);
+          if (current.has(e.rowId)) {
+            const next = new Set(current);
+            next.delete(e.rowId);
+            store.set(selectedRowIdsAtom, next);
+          }
+          break;
+        }
+        case "base:rows:deleted": {
+          const e = event as BaseRowsDeleted;
+          const removeSet = new Set(e.rowIds);
+          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+            { queryKey: ["base-rows", baseId] },
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                pages: old.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((row) => !removeSet.has(row.id)),
+                })),
+              };
+            },
+          );
+          const store = getDefaultStore();
+          const current = store.get(selectedRowIdsAtom);
+          if (current.size > 0) {
+            let changed = false;
+            const next = new Set(current);
+            for (const id of e.rowIds) {
+              if (next.delete(id)) changed = true;
+            }
+            if (changed) store.set(selectedRowIdsAtom, next);
+          }
           break;
         }
         case "base:row:reordered": {
