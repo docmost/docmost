@@ -11,6 +11,7 @@ type ViewFieldVisibilityProps = {
   opened: boolean;
   onClose: () => void;
   table: Table<IBaseRow>;
+  properties: IBaseProperty[];
   onPersist: () => void;
   children: React.ReactNode;
 };
@@ -19,6 +20,7 @@ export function ViewFieldVisibility({
   opened,
   onClose,
   table,
+  properties,
   onPersist,
   children,
 }: ViewFieldVisibilityProps) {
@@ -28,7 +30,7 @@ export function ViewFieldVisibility({
     return table
       .getAllLeafColumns()
       .filter((col) => col.id !== "__row_number");
-  }, [table]);
+  }, [table, properties]);
 
   const allVisible = columns.every((col) => col.getIsVisible());
   const noneVisible = columns.filter((col) => col.getCanHide()).every((col) => !col.getIsVisible());

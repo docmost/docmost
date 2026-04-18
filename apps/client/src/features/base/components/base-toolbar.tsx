@@ -263,6 +263,7 @@ export function BaseToolbar({
           opened={fieldsOpened}
           onClose={() => setFieldsOpened(false)}
           table={table}
+          properties={base.properties}
           onPersist={onPersistViewConfig}
         >
           <Tooltip label={t("Hide fields")}>
