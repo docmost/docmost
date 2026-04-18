@@ -227,6 +227,7 @@ export function GridContainer({
                 row={row}
                 rowIndex={virtualRow.index}
                 onCellUpdate={onCellUpdate}
+                orderedRowIds={rowIds}
                 dragHandlers={
                   onRowReorder
                     ? {

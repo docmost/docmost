@@ -296,3 +296,54 @@
 .primaryCell {
   font-weight: 500;
 }
+
+.rowNumberCellInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+}
+
+.rowNumberIndex {
+  display: inline;
+}
+
+.rowNumberCheckbox,
+.rowNumberDragHandle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.rowNumberDragHandle {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  cursor: grab;
+}
+
+.rowNumberDragHandle:active {
+  cursor: grabbing;
+}
+
+/* On hover, hide the index and show drag handle + checkbox */
+.row:hover .rowNumberIndex {
+  display: none;
+}
+.row:hover .rowNumberCheckbox,
+.row:hover .rowNumberDragHandle {
+  display: inline-flex;
+}
+
+/* When selected, checkbox always visible; index + drag handle hidden */
+.rowSelected .rowNumberIndex,
+.rowSelected .rowNumberDragHandle {
+  display: none;
+}
+.rowSelected .rowNumberCheckbox {
+  display: inline-flex;
+}
+.rowSelected .cell {
+  background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
+}

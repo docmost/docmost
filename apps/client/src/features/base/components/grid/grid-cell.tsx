@@ -18,6 +18,7 @@ import { CellFile } from "@/features/base/components/cells/cell-file";
 import { CellCreatedAt } from "@/features/base/components/cells/cell-created-at";
 import { CellLastEditedAt } from "@/features/base/components/cells/cell-last-edited-at";
 import { CellLastEditedBy } from "@/features/base/components/cells/cell-last-edited-by";
+import { RowNumberCell } from "./row-number-cell";
 import classes from "@/features/base/styles/grid.module.css";
 
 type CellComponentProps = {
@@ -59,6 +60,7 @@ type GridCellProps = {
   rowIndex: number;
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   rowDragProps?: RowDragProps;
+  orderedRowIds?: string[];
 };
 
 export const GridCell = memo(function GridCell({
@@ -66,6 +68,7 @@ export const GridCell = memo(function GridCell({
   rowIndex,
   onCellUpdate,
   rowDragProps,
+  orderedRowIds,
 }: GridCellProps) {
   const property = cell.column.columnDef.meta?.property;
   const isRowNumber = cell.column.id === "__row_number";
@@ -107,16 +110,14 @@ export const GridCell = memo(function GridCell({
 
   if (isRowNumber) {
     return (
-      <div
-        className={`${classes.cell} ${classes.rowNumberCell} ${isPinned ? classes.cellPinned : ""} ${rowDragProps ? classes.rowNumberDraggable : ""}`}
-        style={{
-          ...(isPinned ? { left: pinOffset } : {}),
-        }}
-        draggable={rowDragProps?.draggable}
-        onDragStart={rowDragProps?.onDragStart}
-      >
-        {rowIndex + 1}
-      </div>
+      <RowNumberCell
+        rowId={rowId}
+        rowIndex={rowIndex}
+        orderedRowIds={orderedRowIds ?? []}
+        isPinned={Boolean(isPinned)}
+        pinOffset={pinOffset}
+        rowDragProps={rowDragProps}
+      />
     );
   }
 

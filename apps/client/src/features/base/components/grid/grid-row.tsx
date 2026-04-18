@@ -1,6 +1,7 @@
 import { memo, useCallback } from "react";
 import { Row } from "@tanstack/react-table";
 import { IBaseRow } from "@/features/base/types/base.types";
+import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import { GridCell } from "./grid-cell";
 import classes from "@/features/base/styles/grid.module.css";
 
@@ -19,6 +20,7 @@ type GridRowProps = {
   rowIndex: number;
   onCellUpdate: (rowId: string, propertyId: string, value: unknown) => void;
   dragHandlers?: RowDragHandlers;
+  orderedRowIds: string[];
 };
 
 export const GridRow = memo(function GridRow({
@@ -26,7 +28,9 @@ export const GridRow = memo(function GridRow({
   rowIndex,
   onCellUpdate,
   dragHandlers,
+  orderedRowIds,
 }: GridRowProps) {
+  const isSelected = useRowSelection().isSelected(row.id);
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
       e.dataTransfer.effectAllowed = "move";
@@ -51,7 +55,7 @@ export const GridRow = memo(function GridRow({
 
   return (
     <div
-      className={`${classes.row} ${dragHandlers?.isDragging ? classes.rowDragging : ""} ${dropIndicatorClass}`}
+      className={`${classes.row} ${dragHandlers?.isDragging ? classes.rowDragging : ""} ${dropIndicatorClass} ${isSelected ? classes.rowSelected : ""}`}
       role="row"
       onDragOver={handleDragOver}
       onDrop={(e) => {
@@ -68,6 +72,7 @@ export const GridRow = memo(function GridRow({
             cell={cell}
             rowIndex={rowIndex}
             onCellUpdate={onCellUpdate}
+            orderedRowIds={orderedRowIds}
             rowDragProps={
               isRowNumber && dragHandlers
                 ? {
