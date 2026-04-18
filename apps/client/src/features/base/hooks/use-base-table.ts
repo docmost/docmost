@@ -222,6 +222,12 @@ export function useBaseTable(
 ): UseBaseTableResult {
   const updateViewMutation = useUpdateViewMutation();
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // While a local edit is pending (debounce scheduled OR mutation in
+  // flight), the reconcile effect preserves local state so we don't
+  // stomp the user's in-flight toggle. When no local edit is pending,
+  // the effect adopts server state — that's what makes remote updates
+  // (another client hiding a column) actually show up on this client.
+  const [hasPendingEdit, setHasPendingEdit] = useState(false);
 
   // `base?.properties ?? []` minted a fresh `[]` every render while the
   // base query was loading, which invalidated every downstream memo and
@@ -276,47 +282,55 @@ export function useBaseTable(
       return;
     }
 
-    // Same view — preserve user toggles, but reconcile the id set:
-    // append properties that were just created, drop properties that
-    // were deleted. Without this, creating a new column leaves it
-    // invisible to `table.getState().columnOrder` / `gridTemplateColumns`,
-    // and the grid's scrollWidth never grows to include it.
+    // Same view. If a local edit is pending (user just toggled and
+    // the debounce hasn't flushed yet, or the mutation is in flight),
+    // preserve local state — only reconcile the id set so that newly
+    // created columns show up and deleted columns drop out without
+    // stomping the user's toggle. If nothing local is pending, adopt
+    // the server's state — this is what lets remote updates from
+    // other clients show up here.
     const validIds = new Set<string>(["__row_number"]);
     for (const p of properties) validIds.add(p.id);
 
-    setColumnOrder((prev) => {
-      const prevSet = new Set(prev);
-      const kept = prev.filter((id) => validIds.has(id));
-      const appended = derivedColumnOrder.filter(
-        (id) => !prevSet.has(id) && validIds.has(id),
-      );
-      if (appended.length === 0 && kept.length === prev.length) return prev;
-      return [...kept, ...appended];
-    });
+    if (hasPendingEdit) {
+      setColumnOrder((prev) => {
+        const prevSet = new Set(prev);
+        const kept = prev.filter((id) => validIds.has(id));
+        const appended = derivedColumnOrder.filter(
+          (id) => !prevSet.has(id) && validIds.has(id),
+        );
+        if (appended.length === 0 && kept.length === prev.length) return prev;
+        return [...kept, ...appended];
+      });
 
-    setColumnVisibility((prev) => {
-      let changed = false;
-      const next: VisibilityState = {};
-      for (const [id, visible] of Object.entries(prev)) {
-        if (validIds.has(id)) {
-          next[id] = visible;
-        } else {
-          changed = true;
+      setColumnVisibility((prev) => {
+        let changed = false;
+        const next: VisibilityState = {};
+        for (const [id, visible] of Object.entries(prev)) {
+          if (validIds.has(id)) {
+            next[id] = visible;
+          } else {
+            changed = true;
+          }
         }
-      }
-      for (const id of derivedColumnOrder) {
-        if (!(id in next)) {
-          next[id] = derivedColumnVisibility[id] ?? true;
-          changed = true;
+        for (const id of derivedColumnOrder) {
+          if (!(id in next)) {
+            next[id] = derivedColumnVisibility[id] ?? true;
+            changed = true;
+          }
         }
-      }
-      return changed ? next : prev;
-    });
+        return changed ? next : prev;
+      });
+    } else {
+      setColumnOrder(derivedColumnOrder);
+      setColumnVisibility(derivedColumnVisibility);
+    }
   }, [
     activeView?.id,
     derivedColumnOrder,
     derivedColumnVisibility,
     properties,
+    hasPendingEdit,
   ]);
 
   const columnPinning = useMemo(
@@ -355,9 +369,23 @@ export function useBaseTable(
       clearTimeout(persistTimerRef.current);
     }
 
+    setHasPendingEdit(true);
+
     persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null;
       const config = buildViewConfigFromTable(table, activeView.config);
-      updateViewMutation.mutate({ viewId: activeView.id, baseId: base.id, config });
+      updateViewMutation.mutate(
+        { viewId: activeView.id, baseId: base.id, config },
+        {
+          onSettled: () => {
+            // Don't clear if the user has already scheduled another
+            // debounce while this one was in flight.
+            if (persistTimerRef.current === null) {
+              setHasPendingEdit(false);
+            }
+          },
+        },
+      );
     }, 300);
   }, [activeView, base, table, updateViewMutation]);
 
