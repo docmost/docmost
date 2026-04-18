@@ -3,6 +3,7 @@
   overflow: auto;
   flex: 1;
   min-height: 0;
+  padding-left: 6px;
 }
 
 .grid {
@@ -321,7 +322,7 @@
 .rowNumberDragHandle {
   position: absolute;
   top: 50%;
-  left: 0;
+  left: -6px;
   transform: translateY(-50%);
   display: none;
   align-items: center;
