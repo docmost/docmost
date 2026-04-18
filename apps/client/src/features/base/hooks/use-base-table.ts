@@ -25,7 +25,7 @@ import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
 const DEFAULT_COLUMN_WIDTH = 180;
 const MIN_COLUMN_WIDTH = 80;
 const MAX_COLUMN_WIDTH = 600;
-const ROW_NUMBER_COLUMN_WIDTH = 50;
+const ROW_NUMBER_COLUMN_WIDTH = 64;
 
 export const SYSTEM_PROPERTY_TYPES = new Set(["createdAt", "lastEditedAt", "lastEditedBy"]);
 
