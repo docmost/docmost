@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ActionIcon, Button, Transition } from "@mantine/core";
+import { Transition } from "@mantine/core";
 import { IconTrash, IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
@@ -23,28 +23,27 @@ export const SelectionActionBar = memo(function SelectionActionBar({
     <Transition mounted={isOpen} transition="slide-up" duration={150}>
       {(styles) => (
         <div className={classes.selectionActionBarWrapper} style={styles}>
-          <div className={classes.selectionActionBar}>
+          <div className={classes.selectionActionBar} role="toolbar">
             <span className={classes.selectionActionBarCount}>
               {t("{{count}} selected", { count: selectionCount })}
             </span>
-            <Button
-              size="xs"
-              color="red"
-              variant="light"
-              leftSection={<IconTrash size={14} />}
-              loading={isPending}
+            <button
+              type="button"
+              className={classes.selectionActionBarDelete}
+              disabled={isPending}
               onClick={() => void deleteSelected()}
             >
+              <IconTrash size={14} />
               {t("Delete")}
-            </Button>
-            <ActionIcon
-              size="sm"
-              variant="subtle"
+            </button>
+            <button
+              type="button"
+              className={classes.selectionActionBarClose}
               onClick={clear}
               aria-label={t("Clear selection")}
             >
               <IconX size={14} />
-            </ActionIcon>
+            </button>
           </div>
         </div>
       )}
