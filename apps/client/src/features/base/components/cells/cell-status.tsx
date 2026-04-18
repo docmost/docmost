@@ -165,6 +165,7 @@ export function CellStatus({
                       )}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onMouseDown={(e) => {
+                        // Keep focus on the search input so click doesn't blur + close popover.
                         e.preventDefault();
                       }}
                       onClick={() => handleSelect(choice)}
