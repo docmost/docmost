@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
+import clsx from "clsx";
 import {
   IBaseProperty,
   PersonTypeOptions,
@@ -61,7 +62,8 @@ export function CellPerson({
       )
     : members;
 
-  const nav = useListKeyboardNav(filteredMembers.length, [search, isEditing]);
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
+    useListKeyboardNav(filteredMembers.length, [search, isEditing]);
 
   const handleSelect = useCallback(
     (memberId: string) => {
@@ -104,11 +106,11 @@ export function CellPerson({
         onCancel();
         return;
       }
-      if (nav.handleNavKey(e)) return;
+      if (handleNavKey(e)) return;
       if (e.key === "Enter") {
-        if (nav.activeIndex < 0 || nav.activeIndex >= filteredMembers.length) return;
+        if (activeIndex < 0 || activeIndex >= filteredMembers.length) return;
         e.preventDefault();
-        handleSelect(filteredMembers[nav.activeIndex].id);
+        handleSelect(filteredMembers[activeIndex].id);
         return;
       }
       if (e.key === "Backspace" && search === "" && personIds.length > 0) {
@@ -116,7 +118,7 @@ export function CellPerson({
         handleRemove(personIds[personIds.length - 1]);
       }
     },
-    [onCancel, nav, filteredMembers, handleSelect, search, personIds, handleRemove],
+    [onCancel, handleNavKey, activeIndex, filteredMembers, handleSelect, search, personIds, handleRemove],
   );
 
   const selectedSet = new Set(personIds);
@@ -183,20 +185,16 @@ export function CellPerson({
           <div className={cellClasses.selectDropdown}>
             {filteredMembers.map((member, idx) => {
               const isSelected = selectedSet.has(member.id);
-              const isKeyboardActive = idx === nav.activeIndex;
-              const className = [
-                cellClasses.selectOption,
-                isSelected ? cellClasses.selectOptionActive : "",
-                isKeyboardActive ? cellClasses.selectOptionKeyboardActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
               return (
                 <div
                   key={member.id}
-                  ref={nav.setOptionRef(idx)}
-                  className={className}
-                  onMouseEnter={() => nav.setActiveIndex(idx)}
+                  ref={setOptionRef(idx)}
+                  className={clsx(
+                    cellClasses.selectOption,
+                    isSelected && cellClasses.selectOptionActive,
+                    idx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                  )}
+                  onMouseEnter={() => setActiveIndex(idx)}
                   onMouseDown={(e) => {
                     // Keep focus on the search input so click doesn't blur + close popover.
                     e.preventDefault();
