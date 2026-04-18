@@ -2,8 +2,7 @@ import { memo, useCallback, useRef } from "react";
 import { Header, flexRender } from "@tanstack/react-table";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Loader, Popover, Tooltip } from "@mantine/core";
-import { useTranslation } from "react-i18next";
+import { Popover } from "@mantine/core";
 import { useAtom } from "jotai";
 import { IBaseRow, IBaseProperty, EditingCell } from "@/features/base/types/base.types";
 import { activePropertyMenuAtom, propertyMenuDirtyAtom, editingCellAtom } from "@/features/base/atoms/base-atoms";
@@ -50,14 +49,12 @@ type GridHeaderCellProps = {
 export const GridHeaderCell = memo(function GridHeaderCell({
   header,
 }: GridHeaderCellProps) {
-  const { t } = useTranslation();
   const property = header.column.columnDef.meta?.property as
     | IBaseProperty
     | undefined;
   const isRowNumber = header.column.id === "__row_number";
   const isPinned = header.column.getIsPinned();
   const pinOffset = isPinned ? header.column.getStart("left") : undefined;
-  const isConverting = !!property?.pendingType;
 
   const [activePropertyMenu, setActivePropertyMenu] = useAtom(activePropertyMenuAtom) as unknown as [string | null, (val: string | null) => void];
   const menuOpened = activePropertyMenu === header.column.id;
@@ -141,20 +138,6 @@ export const GridHeaderCell = memo(function GridHeaderCell({
           <span className={classes.headerCellName}>
             {flexRender(header.column.columnDef.header, header.getContext())}
           </span>
-          {isConverting && (
-            <Tooltip
-              label={t("Converting to {{type}}…", {
-                type: property?.pendingType,
-              })}
-              withArrow
-            >
-              <Loader
-                size={12}
-                color="gray"
-                className={classes.headerConvertingSpinner}
-              />
-            </Tooltip>
-          )}
         </div>
       )}
       {header.column.getCanResize() && (

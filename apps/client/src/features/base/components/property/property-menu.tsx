@@ -14,20 +14,16 @@ import {
   IconTrash,
   IconPencil,
   IconChevronRight,
-  IconTransform,
   IconSettings,
 } from "@tabler/icons-react";
-import {
-  IBaseProperty,
-  BasePropertyType,
-} from "@/features/base/types/base.types";
+import { IBaseProperty } from "@/features/base/types/base.types";
 import { useAtom } from "jotai";
 import { propertyMenuCloseRequestAtom } from "@/features/base/atoms/base-atoms";
 import {
   useUpdatePropertyMutation,
   useDeletePropertyMutation,
 } from "@/features/base/queries/base-property-query";
-import { PropertyTypePicker } from "./property-type-picker";
+import { propertyTypes } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
 import { useTranslation } from "react-i18next";
 import { isSystemPropertyType } from "@/features/base/hooks/use-base-table";
@@ -40,7 +36,7 @@ type PropertyMenuContentProps = {
   onDirtyChange?: (dirty: boolean) => void;
 };
 
-type MenuPanel = "main" | "rename" | "changeType" | "options" | "confirmDelete" | "confirmDiscard";
+type MenuPanel = "main" | "rename" | "options" | "confirmDelete" | "confirmDiscard";
 
 export function PropertyMenuContent({
   property,
@@ -113,20 +109,6 @@ export function PropertyMenuContent({
     [handleRenameAndClose, onClose],
   );
 
-  const handleTypeChange = useCallback(
-    (type: BasePropertyType) => {
-      if (type !== property.type) {
-        updatePropertyMutation.mutate({
-          propertyId: property.id,
-          baseId: property.baseId,
-          type,
-        });
-      }
-      onClose();
-    },
-    [property, updatePropertyMutation, onClose],
-  );
-
   const handleOptionsUpdate = useCallback(
     (typeOptions: Record<string, unknown>) => {
       updatePropertyMutation.mutate({
@@ -197,7 +179,6 @@ export function PropertyMenuContent({
         <MainPanel
           property={property}
           onRename={() => setPanel("rename")}
-          onChangeType={() => setPanel("changeType")}
           onOptions={() => setPanel("options")}
           onDelete={() => setPanel("confirmDelete")}
         />
@@ -216,13 +197,6 @@ export function PropertyMenuContent({
             onBlur={commitRename}
           />
         </Stack>
-      )}
-      {panel === "changeType" && (
-        <TypePanel
-          currentType={property.type}
-          onSelect={handleTypeChange}
-          onBack={() => setPanel("main")}
-        />
       )}
       {(panel === "options" || panel === "confirmDiscard") && (
         <Stack gap="xs" p="sm" style={panel === "confirmDiscard" ? { display: "none" } : undefined}>
@@ -343,13 +317,11 @@ function MenuItem({
 function MainPanel({
   property,
   onRename,
-  onChangeType,
   onOptions,
   onDelete,
 }: {
   property: IBaseProperty;
   onRename: () => void;
-  onChangeType: () => void;
   onOptions: () => void;
   onDelete: () => void;
 }) {
@@ -365,6 +337,9 @@ function MainPanel({
     property.type === "number" ||
     property.type === "date");
 
+  const typeDef = propertyTypes.find((pt) => pt.type === property.type);
+  const TypeIcon = typeDef?.icon;
+
   return (
     <Stack gap={0} p={4}>
       <MenuItem
@@ -373,12 +348,16 @@ function MainPanel({
         onClick={onRename}
       />
       {!isSystem && (
-        <MenuItem
-          icon={<IconTransform size={14} />}
-          label={t("Change type")}
-          rightIcon={<IconChevronRight size={14} />}
-          onClick={onChangeType}
-        />
+        <Stack gap={4} px="sm" py={6}>
+          <Text size="xs" c="dimmed">{t("Type")}</Text>
+          <TextInput
+            size="xs"
+            value={typeDef ? t(typeDef.labelKey) : property.type}
+            disabled
+            leftSection={TypeIcon ? <TypeIcon size={14} /> : null}
+            readOnly
+          />
+        </Stack>
       )}
       {hasOptions && (
         <MenuItem
@@ -403,41 +382,3 @@ function MainPanel({
   );
 }
 
-function TypePanel({
-  currentType,
-  onSelect,
-  onBack,
-}: {
-  currentType: BasePropertyType;
-  onSelect: (type: BasePropertyType) => void;
-  onBack: () => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <Stack gap={0} p={4}>
-      <Group gap="xs" px="sm" py={6}>
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          size="xs"
-          onClick={onBack}
-        >
-          <IconChevronRight
-            size={14}
-            style={{ transform: "rotate(180deg)" }}
-          />
-        </ActionIcon>
-        <Text size="xs" fw={600} c="dimmed">
-          {t("Change type")}
-        </Text>
-      </Group>
-      <ScrollArea.Autosize mah={300}>
-        <PropertyTypePicker
-          onSelect={onSelect}
-          currentType={currentType}
-        />
-      </ScrollArea.Autosize>
-    </Stack>
-  );
-}

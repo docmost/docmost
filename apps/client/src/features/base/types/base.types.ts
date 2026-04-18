@@ -217,7 +217,6 @@ export type UpdatePropertyInput = {
   propertyId: string;
   baseId: string;
   name?: string;
-  type?: BasePropertyType;
   typeOptions?: TypeOptions;
   requestId?: string;
 };
