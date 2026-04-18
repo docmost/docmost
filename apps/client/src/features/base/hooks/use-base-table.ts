@@ -172,6 +172,44 @@ function buildColumnPinning(
   };
 }
 
+// Serializes the live react-table state into a persisted ViewConfig.
+// Sort/filter toolbar mutations and the debounced `persistViewConfig`
+// both go through this so a direct mutation (e.g. adding a sort) can't
+// clobber a pending hide/reorder/resize by reading stale `activeView.config`.
+export function buildViewConfigFromTable(
+  table: Table<IBaseRow>,
+  base: ViewConfig | undefined,
+  overrides: Partial<ViewConfig> = {},
+): ViewConfig {
+  const state = table.getState();
+
+  const sorts = state.sorting.map((s) => ({
+    propertyId: s.id,
+    direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+  }));
+
+  const propertyWidths: Record<string, number> = {};
+  Object.entries(state.columnSizing).forEach(([id, width]) => {
+    if (id !== "__row_number") propertyWidths[id] = width;
+  });
+
+  const propertyOrder = state.columnOrder.filter((id) => id !== "__row_number");
+
+  const hiddenPropertyIds = Object.entries(state.columnVisibility)
+    .filter(([id, visible]) => id !== "__row_number" && !visible)
+    .map(([id]) => id);
+
+  return {
+    ...base,
+    sorts,
+    propertyWidths,
+    propertyOrder,
+    hiddenPropertyIds,
+    visiblePropertyIds: undefined,
+    ...overrides,
+  };
+}
+
 export type UseBaseTableResult = {
   table: Table<IBaseRow>;
   persistViewConfig: () => void;
@@ -265,42 +303,8 @@ export function useBaseTable(
     }
 
     persistTimerRef.current = setTimeout(() => {
-      const state = table.getState();
-
-      const sorts = state.sorting.map((s) => ({
-        propertyId: s.id,
-        direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
-      }));
-
-      const propertyWidths: Record<string, number> = {};
-      Object.entries(state.columnSizing).forEach(([id, width]) => {
-        if (id !== "__row_number") {
-          propertyWidths[id] = width;
-        }
-      });
-
-      const propertyOrder = state.columnOrder.filter(
-        (id) => id !== "__row_number",
-      );
-
-      const hiddenPropertyIds = Object.entries(state.columnVisibility)
-        .filter(([id, visible]) => id !== "__row_number" && !visible)
-        .map(([id]) => id);
-
-      const config: ViewConfig = {
-        ...activeView.config,
-        sorts,
-        propertyWidths,
-        propertyOrder,
-        hiddenPropertyIds,
-        visiblePropertyIds: undefined,
-      };
-
-      updateViewMutation.mutate({
-        viewId: activeView.id,
-        baseId: base.id,
-        config,
-      });
+      const config = buildViewConfigFromTable(table, activeView.config);
+      updateViewMutation.mutate({ viewId: activeView.id, baseId: base.id, config });
     }, 300);
   }, [activeView, base, table, updateViewMutation]);
 
