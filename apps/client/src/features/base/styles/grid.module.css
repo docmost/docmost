@@ -355,6 +355,11 @@
   background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6));
 }
 
+.row.rowSelected:hover .cell,
+.row.rowSelected:hover .cellPinned {
+  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
+}
+
 .rowNumberHeaderInner {
   display: flex;
   align-items: center;
