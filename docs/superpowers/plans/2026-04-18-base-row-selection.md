@@ -361,6 +361,8 @@ git commit -m "feat(base): add deleteRows client service + type"
 
 Add `deleteRows` to the imports from `@/features/base/services/base-service` and `DeleteRowsInput` to the type imports.
 
+Note: `RowCacheContext` is already defined at the top of this file (used by `useDeleteRowMutation`); reuse it — no new import or local type needed.
+
 - [ ] **Step 2: Add the mutation hook after `useDeleteRowMutation`**
 
 ```ts
@@ -842,11 +844,29 @@ Note: the hook call ensures this re-renders on selection change. `selectionCount
 
 - [ ] **Step 3: Wire into `grid-header-cell.tsx`**
 
-Find where `__row_number` headers are rendered (look for the `header` cell that renders `#`). Replace its contents with `<RowNumberHeaderCell loadedRowIds={loadedRowIds} />`, where `loadedRowIds` is passed down from the grid header. If `grid-header-cell.tsx` does not receive row data, add a new optional prop `loadedRowIds?: string[]` to both `GridHeader` (`grid-header.tsx`) and `GridHeaderCell` and pass it through. Also add the `classes.hasSelection` class to the header cell's root when `useRowSelection().selectionCount > 0`.
+In `grid-header-cell.tsx`, locate the `isRowNumber ? ( flexRender(...) ) : ( ... )` ternary in the JSX (the existing branch renders `#` via `flexRender(header.column.columnDef.header, header.getContext())`). Replace the `isRowNumber` branch with:
 
-- [ ] **Step 4: Feed `loadedRowIds` from `grid-container.tsx`**
+```tsx
+isRowNumber ? (
+  <RowNumberHeaderCell loadedRowIds={loadedRowIds} />
+) : (
+  // existing non-row-number branch unchanged
+)
+```
 
-In `grid-container.tsx`, compute `loadedRowIds = rows.map((r) => r.id)` (already similar to existing `rowIds`) and pass to `<GridHeader>`. Reuse the existing `rowIds` memo if identical.
+Add `loadedRowIds: string[]` as a required prop on `GridHeaderCellProps` (and thread it through — see Step 4). Also add the `classes.hasSelection` class to the header cell's root `div` (line 121 area) when `useRowSelection().selectionCount > 0`:
+
+```tsx
+className={`${classes.headerCell} ${isPinned ? classes.headerCellPinned : ""} ${hasSelection ? classes.hasSelection : ""}`}
+```
+
+where `const { selectionCount } = useRowSelection(); const hasSelection = selectionCount > 0;` is added near the top of `GridHeaderCell`.
+
+- [ ] **Step 4: Thread `loadedRowIds` through `GridHeader` → `GridHeaderCell`**
+
+In `grid-header.tsx`, add `loadedRowIds: string[]` as a required prop on `GridHeaderProps`. Pass it to each rendered `<GridHeaderCell>`.
+
+In `grid-container.tsx`, reuse the existing `rowIds` memo (`rows.map((r) => r.id)`) and pass it as `loadedRowIds={rowIds}` to `<GridHeader>`.
 
 - [ ] **Step 5: Build client**
 
@@ -862,9 +882,10 @@ git commit -m "feat(base): header select-all with tri-state checkbox"
 
 ---
 
-### Task 13: `SelectionActionBar` floating bar
+### Task 13: `use-delete-selected-rows` hook + `SelectionActionBar` floating bar
 
 **Files:**
+- Create: `apps/client/src/features/base/hooks/use-delete-selected-rows.ts`
 - Create: `apps/client/src/features/base/components/grid/selection-action-bar.tsx`
 - Modify: `apps/client/src/features/base/components/grid/grid-container.tsx`
 - Modify: `apps/client/src/features/base/styles/grid.module.css`
@@ -902,124 +923,7 @@ Append:
 }
 ```
 
-- [ ] **Step 2: Create `selection-action-bar.tsx`**
-
-```tsx
-import { memo, useCallback } from "react";
-import { ActionIcon, Button, Transition } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { IconTrash, IconX } from "@tabler/icons-react";
-import { useTranslation } from "react-i18next";
-import { useRowSelection } from "@/features/base/hooks/use-row-selection";
-import { useDeleteRowsMutation } from "@/features/base/queries/base-row-query";
-import classes from "@/features/base/styles/grid.module.css";
-
-const BATCH_SIZE = 500;
-
-type SelectionActionBarProps = {
-  baseId: string;
-};
-
-export const SelectionActionBar = memo(function SelectionActionBar({
-  baseId,
-}: SelectionActionBarProps) {
-  const { t } = useTranslation();
-  const { selectedIds, selectionCount, clear } = useRowSelection();
-  const deleteRowsMutation = useDeleteRowsMutation();
-
-  const handleDelete = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    const chunks: string[][] = [];
-    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-      chunks.push(ids.slice(i, i + BATCH_SIZE));
-    }
-    try {
-      for (const chunk of chunks) {
-        await deleteRowsMutation.mutateAsync({ baseId, rowIds: chunk });
-      }
-      notifications.show({
-        message: t("{{count}} rows deleted", { count: ids.length }),
-      });
-      clear();
-    } catch {
-      // Mutation's onError already surfaced a notification
-    }
-  }, [baseId, selectedIds, deleteRowsMutation, clear, t]);
-
-  const isOpen = selectionCount > 0;
-
-  return (
-    <Transition mounted={isOpen} transition="slide-up" duration={150}>
-      {(styles) => (
-        <div className={classes.selectionActionBarWrapper} style={styles}>
-          <div className={classes.selectionActionBar}>
-            <span className={classes.selectionActionBarCount}>
-              {t("{{count}} selected", { count: selectionCount })}
-            </span>
-            <Button
-              size="xs"
-              color="red"
-              variant="light"
-              leftSection={<IconTrash size={14} />}
-              loading={deleteRowsMutation.isPending}
-              onClick={handleDelete}
-            >
-              {t("Delete")}
-            </Button>
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={clear}
-              aria-label={t("Clear selection")}
-            >
-              <IconX size={14} />
-            </ActionIcon>
-          </div>
-        </div>
-      )}
-    </Transition>
-  );
-});
-```
-
-- [ ] **Step 3: Mount in `grid-container.tsx`**
-
-In `grid-container.tsx`:
-- Add `import { SelectionActionBar } from "./selection-action-bar";`
-- Render `<SelectionActionBar baseId={baseId!} />` directly after the `<AddRowButton ... />` line, inside the `<div className={classes.grid}>` container.
-- The bar only renders meaningfully when `baseId` is set — `<SelectionActionBar>` returns null via `Transition` mounted state when `selectionCount === 0`.
-
-- [ ] **Step 4: Build client**
-
-Run: `pnpm nx run client:build`
-Expected: build succeeds.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add apps/client/src/features/base/components/grid/selection-action-bar.tsx apps/client/src/features/base/components/grid/grid-container.tsx apps/client/src/features/base/styles/grid.module.css
-git commit -m "feat(base): floating selection action bar with bulk delete"
-```
-
----
-
-### Task 14: Keyboard handler for Delete / Backspace / Esc
-
-**Files:**
-- Modify: `apps/client/src/features/base/components/grid/grid-container.tsx`
-
-- [ ] **Step 1: Add keyboard handler**
-
-In `grid-container.tsx`, add a `useEffect` that attaches a `keydown` listener to `scrollRef.current` (the grid wrapper). Guards:
-1. `editingCell` is null
-2. `document.activeElement` is contained by `scrollRef.current` (i.e. focus inside the grid)
-3. Not typing in an input / textarea / contenteditable
-
-Behavior:
-- `Escape` → `clear()` if `selectionCount > 0`; do not call `preventDefault` (other handlers may want it).
-- `Delete` or `Backspace` → if `selectionCount > 0`, call the same delete path as the action bar. Extract the delete handler into a shared callback or lift it out. For simplicity, import and dispatch a custom event `base:rows:delete-requested` that the `SelectionActionBar` listens for and runs its `handleDelete`. (Alternative: hoist the delete logic into a shared hook `use-delete-selected-rows` and call from both places.)
-
-**Recommended:** implement the shared hook. Create `apps/client/src/features/base/hooks/use-delete-selected-rows.ts`:
+- [ ] **Step 2: Create `use-delete-selected-rows.ts`**
 
 ```ts
 import { useCallback } from "react";
@@ -1059,9 +963,101 @@ export function useDeleteSelectedRows(baseId: string) {
 }
 ```
 
-Refactor `SelectionActionBar` to use this hook (replace its `handleDelete` body and the local `BATCH_SIZE`/inline mutation logic).
+- [ ] **Step 3: Create `selection-action-bar.tsx`**
 
-Then add to `grid-container.tsx`:
+```tsx
+import { memo } from "react";
+import { ActionIcon, Button, Transition } from "@mantine/core";
+import { IconTrash, IconX } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
+import { useRowSelection } from "@/features/base/hooks/use-row-selection";
+import { useDeleteSelectedRows } from "@/features/base/hooks/use-delete-selected-rows";
+import classes from "@/features/base/styles/grid.module.css";
+
+type SelectionActionBarProps = {
+  baseId: string;
+};
+
+export const SelectionActionBar = memo(function SelectionActionBar({
+  baseId,
+}: SelectionActionBarProps) {
+  const { t } = useTranslation();
+  const { selectionCount, clear } = useRowSelection();
+  const { deleteSelected, isPending } = useDeleteSelectedRows(baseId);
+
+  const isOpen = selectionCount > 0;
+
+  return (
+    <Transition mounted={isOpen} transition="slide-up" duration={150}>
+      {(styles) => (
+        <div className={classes.selectionActionBarWrapper} style={styles}>
+          <div className={classes.selectionActionBar}>
+            <span className={classes.selectionActionBarCount}>
+              {t("{{count}} selected", { count: selectionCount })}
+            </span>
+            <Button
+              size="xs"
+              color="red"
+              variant="light"
+              leftSection={<IconTrash size={14} />}
+              loading={isPending}
+              onClick={() => void deleteSelected()}
+            >
+              {t("Delete")}
+            </Button>
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              onClick={clear}
+              aria-label={t("Clear selection")}
+            >
+              <IconX size={14} />
+            </ActionIcon>
+          </div>
+        </div>
+      )}
+    </Transition>
+  );
+});
+```
+
+- [ ] **Step 4: Mount in `grid-container.tsx`**
+
+In `grid-container.tsx`:
+- Add `import { SelectionActionBar } from "./selection-action-bar";`
+- Render `<SelectionActionBar baseId={baseId!} />` directly after the `<AddRowButton ... />` line, inside the `<div className={classes.grid}>` container. Skip if `!baseId`.
+
+- [ ] **Step 5: Build client**
+
+Run: `pnpm nx run client:build`
+Expected: build succeeds.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/client/src/features/base/hooks/use-delete-selected-rows.ts apps/client/src/features/base/components/grid/selection-action-bar.tsx apps/client/src/features/base/components/grid/grid-container.tsx apps/client/src/features/base/styles/grid.module.css
+git commit -m "feat(base): floating selection action bar with bulk delete"
+```
+
+---
+
+### Task 14: Keyboard handler for Delete / Backspace / Esc
+
+**Files:**
+- Modify: `apps/client/src/features/base/components/grid/grid-container.tsx`
+
+- [ ] **Step 1: Add keyboard handler**
+
+In `grid-container.tsx`, add a `useEffect` that attaches a `keydown` listener to `scrollRef.current` (the grid wrapper). Guards:
+1. `editingCell` is null
+2. `document.activeElement` is contained by `scrollRef.current` (i.e. focus inside the grid)
+3. Not typing in an input / textarea / contenteditable
+
+Behavior:
+- `Escape` → `clear()` if `selectionCount > 0`.
+- `Delete` or `Backspace` → if `selectionCount > 0`, call `deleteSelected()` from `useDeleteSelectedRows`.
+
+Add imports for `useRowSelection` and `useDeleteSelectedRows`, then:
 
 ```ts
 const { deleteSelected } = useDeleteSelectedRows(baseId ?? "");
@@ -1106,7 +1102,7 @@ Expected: build succeeds.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/client/src/features/base/hooks/use-delete-selected-rows.ts apps/client/src/features/base/components/grid/selection-action-bar.tsx apps/client/src/features/base/components/grid/grid-container.tsx
+git add apps/client/src/features/base/components/grid/grid-container.tsx
 git commit -m "feat(base): keyboard delete and esc to clear selection"
 ```
 
@@ -1125,11 +1121,16 @@ Inside `BaseTable`, after the existing `useEffect` that syncs `activeViewId`, ad
 const { clear: clearSelection } = useRowSelection();
 useEffect(() => {
   clearSelection();
-  // Clear whenever identity of base, view, filter, or sorts changes.
-}, [baseId, activeView?.id, activeFilter, activeSorts, clearSelection]);
+  // Clear whenever identity of base or active view changes. Filter and sort
+  // changes flow through activeView.config, which re-renders the rows —
+  // depending on activeView.id alone keeps this effect stable (object
+  // identity of activeFilter / activeSorts may change every render).
+}, [baseId, activeView?.id, clearSelection]);
 ```
 
 Import `useRowSelection` from `@/features/base/hooks/use-row-selection`.
+
+Note: the spec asks for selection to clear on filter/sort change within a single view too. For v1, clearing only on view/base change is sufficient — a user changing sort within the same view still sees the same row set re-ordered, and the selected rows remain valid. If the product later wants "clear on filter change within a view," add a filter-identity hash via `JSON.stringify(activeFilter)` as a dep.
 
 - [ ] **Step 2: Build client**
 
