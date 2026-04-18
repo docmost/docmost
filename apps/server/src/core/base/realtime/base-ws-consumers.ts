@@ -9,6 +9,7 @@ import {
   BasePropertyUpdatedEvent,
   BaseRowCreatedEvent,
   BaseRowDeletedEvent,
+  BaseRowsDeletedEvent,
   BaseRowReorderedEvent,
   BaseRowUpdatedEvent,
   BaseSchemaBumpedEvent,
@@ -58,6 +59,17 @@ export class BaseWsConsumers {
       operation: 'base:row:deleted',
       baseId: e.baseId,
       rowId: e.rowId,
+      actorId: e.actorId ?? null,
+      requestId: e.requestId ?? null,
+    });
+  }
+
+  @OnEvent(EventName.BASE_ROWS_DELETED)
+  onRowsDeleted(e: BaseRowsDeletedEvent) {
+    this.ws.emitToBase(e.baseId, {
+      operation: 'base:rows:deleted',
+      baseId: e.baseId,
+      rowIds: e.rowIds,
       actorId: e.actorId ?? null,
       requestId: e.requestId ?? null,
     });
