@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover, TextInput } from "@mantine/core";
+import clsx from "clsx";
 import {
   IBaseProperty,
   SelectTypeOptions,
@@ -9,6 +10,7 @@ import { choiceColor } from "@/features/base/components/cells/choice-color";
 import { useUpdatePropertyMutation } from "@/features/base/queries/base-property-query";
 import { v7 as uuid7 } from "uuid";
 import cellClasses from "@/features/base/styles/cells.module.css";
+import { useListKeyboardNav } from "@/features/base/hooks/use-list-keyboard-nav";
 
 const CHOICE_COLORS = [
   "gray", "red", "pink", "grape", "violet", "indigo",
@@ -75,6 +77,21 @@ export function CellSelect({
     [choices.length],
   );
 
+  type NavItem =
+    | { kind: "choice"; choice: Choice }
+    | { kind: "add" };
+
+  const navItems = useMemo<NavItem[]>(
+    () => [
+      ...filteredChoices.map((c) => ({ kind: "choice" as const, choice: c })),
+      ...(showAddOption ? [{ kind: "add" as const }] : []),
+    ],
+    [filteredChoices, showAddOption],
+  );
+
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
+    useListKeyboardNav(navItems.length, [search, isEditing, showAddOption]);
+
   const handleAddOption = useCallback(() => {
     if (!trimmedSearch) return;
     const newChoice: Choice = {
@@ -100,13 +117,24 @@ export function CellSelect({
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
+        return;
       }
-      if (e.key === "Enter" && showAddOption) {
-        e.preventDefault();
-        handleAddOption();
+      if (handleNavKey(e)) return;
+      if (e.key === "Enter") {
+        if (activeIndex >= 0 && activeIndex < navItems.length) {
+          e.preventDefault();
+          const item = navItems[activeIndex];
+          if (item.kind === "choice") handleSelect(item.choice);
+          else handleAddOption();
+          return;
+        }
+        if (showAddOption) {
+          e.preventDefault();
+          handleAddOption();
+        }
       }
     },
-    [onCancel, showAddOption, handleAddOption],
+    [onCancel, handleNavKey, activeIndex, navItems, handleSelect, handleAddOption, showAddOption],
   );
 
   if (isEditing) {
@@ -143,36 +171,58 @@ export function CellSelect({
             mb={4}
           />
           <div className={cellClasses.selectDropdown}>
-            {filteredChoices.map((choice) => (
-              <div
-                key={choice.id}
-                className={`${cellClasses.selectOption} ${
-                  choice.id === selectedId ? cellClasses.selectOptionActive : ""
-                }`}
-                onClick={() => handleSelect(choice)}
-              >
-                <span
-                  className={cellClasses.badge}
-                  style={choiceColor(choice.color)}
+            {filteredChoices.map((choice, idx) => {
+              const isSelected = choice.id === selectedId;
+              return (
+                <div
+                  key={choice.id}
+                  ref={setOptionRef(idx)}
+                  className={clsx(
+                    cellClasses.selectOption,
+                    isSelected && cellClasses.selectOptionActive,
+                    idx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                  )}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onMouseDown={(e) => {
+                    // Keep focus on the search input so click doesn't blur + close popover.
+                    e.preventDefault();
+                  }}
+                  onClick={() => handleSelect(choice)}
                 >
-                  {choice.name}
-                </span>
-              </div>
-            ))}
-            {showAddOption && (
-              <div
-                className={cellClasses.addOptionRow}
-                onClick={handleAddOption}
-              >
-                <span className={cellClasses.addOptionLabel}>Add option:</span>
-                <span
-                  className={cellClasses.badge}
-                  style={choiceColor(addOptionColor)}
+                  <span
+                    className={cellClasses.badge}
+                    style={choiceColor(choice.color)}
+                  >
+                    {choice.name}
+                  </span>
+                </div>
+              );
+            })}
+            {showAddOption && (() => {
+              const idx = filteredChoices.length;
+              return (
+                <div
+                  ref={setOptionRef(idx)}
+                  className={clsx(
+                    cellClasses.addOptionRow,
+                    idx === activeIndex && cellClasses.selectOptionKeyboardActive,
+                  )}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                  onClick={handleAddOption}
                 >
-                  {trimmedSearch}
-                </span>
-              </div>
-            )}
+                  <span className={cellClasses.addOptionLabel}>Add option:</span>
+                  <span
+                    className={cellClasses.badge}
+                    style={choiceColor(addOptionColor)}
+                  >
+                    {trimmedSearch}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         </Popover.Dropdown>
       </Popover>
