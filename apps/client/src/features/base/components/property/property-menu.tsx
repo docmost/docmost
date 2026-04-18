@@ -50,8 +50,11 @@ export function PropertyMenuContent({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [optionsDirty, setOptionsDirty] = useState(false);
   const pendingActionRef = useRef<"back" | "close" | null>(null);
+  const sourcePanelRef = useRef<"rename" | "options" | null>(null);
   const [closeRequest] = useAtom(propertyMenuCloseRequestAtom) as unknown as [number];
   const closeRequestRef = useRef(closeRequest);
+
+  const renameDirty = renameValue !== property.name;
 
   const updatePropertyMutation = useUpdatePropertyMutation();
   const deletePropertyMutation = useDeletePropertyMutation();
@@ -70,13 +73,21 @@ export function PropertyMenuContent({
     }
   }, [panel]);
 
-  const handleOptionsDirtyChange = useCallback(
-    (dirty: boolean) => {
-      setOptionsDirty(dirty);
-      onDirtyChange?.(dirty);
-    },
-    [onDirtyChange],
-  );
+  const handleOptionsDirtyChange = useCallback((dirty: boolean) => {
+    setOptionsDirty(dirty);
+  }, []);
+
+  // Single dirty signal to the outside — reflects whichever panel is
+  // currently accumulating unsaved work. Keeps rename and options in
+  // lockstep with the `propertyMenuDirtyAtom` so the grid-container's
+  // outside-click handler and the header's ESC handler both prompt
+  // "Unsaved changes" consistently.
+  useEffect(() => {
+    const dirty =
+      (panel === "rename" && renameDirty) ||
+      (panel === "options" && optionsDirty);
+    onDirtyChange?.(dirty);
+  }, [panel, renameDirty, optionsDirty, onDirtyChange]);
 
   const commitRename = useCallback(() => {
     const trimmed = renameValue.trim();
@@ -94,6 +105,20 @@ export function PropertyMenuContent({
     onClose();
   }, [commitRename, onClose]);
 
+  const requestClose = useCallback(() => {
+    if (panel === "rename" && renameDirty) {
+      sourcePanelRef.current = "rename";
+      pendingActionRef.current = "close";
+      setPanel("confirmDiscard");
+    } else if (panel === "options" && optionsDirty) {
+      sourcePanelRef.current = "options";
+      pendingActionRef.current = "close";
+      setPanel("confirmDiscard");
+    } else {
+      onClose();
+    }
+  }, [panel, renameDirty, optionsDirty, onClose]);
+
   const handleRenameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       e.stopPropagation();
@@ -103,10 +128,10 @@ export function PropertyMenuContent({
       }
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        requestClose();
       }
     },
-    [handleRenameAndClose, onClose],
+    [handleRenameAndClose, requestClose],
   );
 
   const handleOptionsUpdate = useCallback(
@@ -131,21 +156,13 @@ export function PropertyMenuContent({
 
   const handleOptionsBack = useCallback(() => {
     if (optionsDirty) {
+      sourcePanelRef.current = "options";
       pendingActionRef.current = "back";
       setPanel("confirmDiscard");
     } else {
       setPanel("main");
     }
   }, [optionsDirty]);
-
-  const requestClose = useCallback(() => {
-    if (panel === "options" && optionsDirty) {
-      pendingActionRef.current = "close";
-      setPanel("confirmDiscard");
-    } else {
-      onClose();
-    }
-  }, [panel, optionsDirty, onClose]);
 
   useEffect(() => {
     if (closeRequest !== closeRequestRef.current) {
@@ -158,19 +175,22 @@ export function PropertyMenuContent({
 
   const handleConfirmDiscard = useCallback(() => {
     setOptionsDirty(false);
-    onDirtyChange?.(false);
+    setRenameValue(property.name);
     const action = pendingActionRef.current;
     pendingActionRef.current = null;
+    sourcePanelRef.current = null;
     if (action === "back") {
       setPanel("main");
     } else {
       onClose();
     }
-  }, [onClose, onDirtyChange]);
+  }, [property.name, onClose]);
 
   const handleCancelDiscard = useCallback(() => {
+    const source = sourcePanelRef.current ?? "options";
     pendingActionRef.current = null;
-    setPanel("options");
+    sourcePanelRef.current = null;
+    setPanel(source);
   }, []);
 
   return (
@@ -197,7 +217,7 @@ export function PropertyMenuContent({
           />
           <Divider />
           <Group justify="flex-end" gap="xs">
-            <Button variant="default" size="xs" onClick={onClose}>
+            <Button variant="default" size="xs" onClick={requestClose}>
               {t("Cancel")}
             </Button>
             <Button
