@@ -138,15 +138,16 @@ export function ViewFieldVisibility({
                     checked={isVisible}
                     disabled={!canHide}
                     onChange={() => {}}
-                    // The Switch's <label> default-action synthesizes a
-                    // second click on its hidden <input> after the user
-                    // clicks the track. Without preventDefault, both clicks
-                    // bubble to the parent UnstyledButton and fire
-                    // handleToggle twice (hide then immediately unhide,
-                    // net zero). `preventDefault` cancels the synthesized
-                    // second click while letting the first one bubble so
-                    // UnstyledButton's onClick fires exactly once.
-                    onClick={(e) => e.preventDefault()}
+                    // Mantine's Switch spreads `onClick` onto its hidden
+                    // <input>. When the user clicks the visible track, the
+                    // label's default action synthesizes a second click on
+                    // that input — both clicks bubble to the parent
+                    // UnstyledButton and fire handleToggle twice (hide then
+                    // immediately unhide, net zero). stopPropagation here
+                    // blocks ONLY the synthesized input click from reaching
+                    // UnstyledButton; the original track click still bubbles
+                    // normally, so handleToggle fires exactly once.
+                    onClick={(e) => e.stopPropagation()}
                     styles={{ track: { cursor: canHide ? "pointer" : "not-allowed" } }}
                   />
                 </UnstyledButton>
