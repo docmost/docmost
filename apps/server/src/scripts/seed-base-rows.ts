@@ -6,7 +6,7 @@ import postgres from 'postgres';
 import { v7 as uuid7 } from 'uuid';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 
-const TOTAL_ROWS = 1500;
+const TOTAL_ROWS = Number(process.env.TOTAL_ROWS) || 1500;
 const BATCH_SIZE = 2000;
 
 const envFilePath = path.resolve(process.cwd(), '..', '..', '.env');
@@ -167,7 +167,8 @@ function buildCellGenerator(property: any): CellGenerator | null {
 
 async function createBase(workspaceId: string, spaceId: string, creatorId: string | null): Promise<string> {
   const baseId = uuid7();
-  const baseName = `Seed Base ${new Date().toISOString().slice(0, 16)}`;
+  const rowCountLabel = TOTAL_ROWS >= 1000 ? `${Math.round(TOTAL_ROWS / 1000)}K` : `${TOTAL_ROWS}`;
+  const baseName = `Seed Base ${rowCountLabel} rows`;
 
   await db.insertInto('bases').values({
     id: baseId,
