@@ -52,28 +52,35 @@ export function BaseToolbar({
   const [exporting, setExporting] = useState(false);
   const toolbarRightRef = useRef<HTMLDivElement>(null);
 
-  // Mantine `<Popover>`'s built-in `closeOnClickOutside` does not fire
-  // reliably for the toolbar popovers (same issue that drove the property
-  // menu to use a custom listener in `grid-container.tsx`). Close any open
-  // toolbar popover when a mousedown lands outside the toolbar cluster
-  // AND outside any open Mantine dropdown (marked `role="dialog"`).
+  // Mantine `<Popover>`'s built-in dismiss handlers don't fire reliably
+  // for the toolbar popovers (same issue that drove the property menu to
+  // use custom listeners in `grid-container.tsx`). Close any open toolbar
+  // popover on outside mousedown AND on ESC.
   useEffect(() => {
     if (!sortOpened && !filterOpened && !fieldsOpened) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-      if (toolbarRightRef.current?.contains(target)) return;
-      if (target.closest('[role="dialog"]')) return;
+    const closeAll = () => {
       setSortOpened(false);
       setFilterOpened(false);
       setFieldsOpened(false);
     };
+    const mouseHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (toolbarRightRef.current?.contains(target)) return;
+      if (target.closest('[role="dialog"]')) return;
+      closeAll();
+    };
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeAll();
+    };
     const id = setTimeout(() => {
-      document.addEventListener("mousedown", handler);
+      document.addEventListener("mousedown", mouseHandler);
     }, 0);
+    document.addEventListener("keydown", keyHandler);
     return () => {
       clearTimeout(id);
-      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("mousedown", mouseHandler);
+      document.removeEventListener("keydown", keyHandler);
     };
   }, [sortOpened, filterOpened, fieldsOpened]);
 
