@@ -239,6 +239,14 @@
   background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-blue-9));
 }
 
+.selectOptionKeyboardActive {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+}
+
+.selectOptionActive.selectOptionKeyboardActive {
+  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-8));
+}
+
 .selectCategoryLabel {
   font-size: 11px;
   font-weight: 600;
