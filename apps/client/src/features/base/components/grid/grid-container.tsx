@@ -60,6 +60,14 @@ export function GridContainer({
   onFetchNextPage,
 }: GridContainerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Records the `rows.length` at which we last triggered a page fetch.
+  // The trigger effect re-runs on every render (its `virtualItems` dep
+  // has a new identity each call) and can't rely on `isFetchingNextPage`
+  // alone: once a page commits, `isFetchingNextPage` flips to false for
+  // one render, the "near bottom" condition still holds because the
+  // virtualizer anchors on the old scroll position, and we'd fire again.
+  // Gating on `rows.length` guarantees at most one fire per new page.
+  const lastTriggeredRowsLenRef = useRef(0);
   const rows = table.getRowModel().rows;
 
   const [editingCell, setEditingCell] = useAtom(editingCellAtom) as unknown as [EditingCell, (val: EditingCell) => void];
@@ -115,10 +123,21 @@ export function GridContainer({
     if (!hasNextPage || isFetchingNextPage || !onFetchNextPage) return;
     const lastItem = virtualItems[virtualItems.length - 1];
     if (!lastItem) return;
-    if (lastItem.index >= rows.length - OVERSCAN * 2) {
-      onFetchNextPage();
-    }
+    if (lastItem.index < rows.length - OVERSCAN * 2) return;
+    if (rows.length <= lastTriggeredRowsLenRef.current) return;
+    lastTriggeredRowsLenRef.current = rows.length;
+    onFetchNextPage();
   }, [virtualItems, rows.length, hasNextPage, isFetchingNextPage, onFetchNextPage]);
+
+  useEffect(() => {
+    // When the underlying row set shrinks (filter changed, sort toggled,
+    // view switched) or resets to zero, we're on a fresh pagination
+    // sequence — un-gate the trigger so the first page triggers a
+    // potential next fetch correctly.
+    if (rows.length === 0 || rows.length < lastTriggeredRowsLenRef.current) {
+      lastTriggeredRowsLenRef.current = 0;
+    }
+  }, [rows.length]);
 
   useEffect(() => {
     const el = scrollRef.current;
