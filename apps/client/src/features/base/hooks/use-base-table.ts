@@ -185,7 +185,11 @@ export function useBaseTable(
   const updateViewMutation = useUpdateViewMutation();
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const properties = base?.properties ?? [];
+  // `base?.properties ?? []` minted a fresh `[]` every render while the
+  // base query was loading, which invalidated every downstream memo and
+  // tripped the setState-in-useEffect pairs below → "Maximum update
+  // depth exceeded". Memoize so the identity is stable.
+  const properties = useMemo(() => base?.properties ?? [], [base?.properties]);
   const viewConfig = activeView?.config;
 
   const columns = useMemo(
