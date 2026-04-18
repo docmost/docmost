@@ -59,6 +59,21 @@ export class BaseRowRepo {
       .executeTakeFirst()) as BaseRow | undefined;
   }
 
+  async findByIds(
+    rowIds: string[],
+    opts: WorkspaceOpts,
+  ): Promise<BaseRow[]> {
+    if (rowIds.length === 0) return [];
+    const db = dbOrTx(this.db, opts.trx);
+    return (await db
+      .selectFrom('baseRows')
+      .select(BASE_ROW_COLUMNS)
+      .where('id', 'in', rowIds)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null)
+      .execute()) as BaseRow[];
+  }
+
   async list(opts: {
     baseId: string;
     workspaceId: string;
@@ -211,6 +226,26 @@ export class BaseRowRepo {
       .updateTable('baseRows')
       .set({ deletedAt: new Date() })
       .where('id', '=', rowId)
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null)
+      .execute();
+  }
+
+  async softDeleteMany(
+    rowIds: string[],
+    opts: {
+      baseId: string;
+      workspaceId: string;
+      trx?: KyselyTransaction;
+    },
+  ): Promise<void> {
+    if (rowIds.length === 0) return;
+    const db = dbOrTx(this.db, opts.trx);
+    await db
+      .updateTable('baseRows')
+      .set({ deletedAt: new Date() })
+      .where('id', 'in', rowIds)
       .where('baseId', '=', opts.baseId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
