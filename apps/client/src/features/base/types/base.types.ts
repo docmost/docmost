@@ -254,6 +254,12 @@ export type DeleteRowInput = {
   requestId?: string;
 };
 
+export type DeleteRowsInput = {
+  baseId: string;
+  rowIds: string[];
+  requestId?: string;
+};
+
 export type ReorderRowInput = {
   rowId: string;
   baseId: string;

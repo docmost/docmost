@@ -13,6 +13,7 @@ import {
   CreateRowInput,
   UpdateRowInput,
   DeleteRowInput,
+  DeleteRowsInput,
   ReorderRowInput,
   CreateViewInput,
   UpdateViewInput,
@@ -104,6 +105,10 @@ export async function updateRow(data: UpdateRowInput): Promise<IBaseRow> {
 
 export async function deleteRow(data: DeleteRowInput): Promise<void> {
   await api.post("/bases/rows/delete", data);
+}
+
+export async function deleteRows(data: DeleteRowsInput): Promise<void> {
+  await api.post("/bases/rows/delete-many", data);
 }
 
 export async function listRows(
