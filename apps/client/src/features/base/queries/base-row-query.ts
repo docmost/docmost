@@ -7,6 +7,7 @@ import {
   createRow,
   updateRow,
   deleteRow,
+  deleteRows,
   listRows,
   reorderRow,
 } from "@/features/base/services/base-service";
@@ -15,6 +16,7 @@ import {
   CreateRowInput,
   UpdateRowInput,
   DeleteRowInput,
+  DeleteRowsInput,
   ReorderRowInput,
   FilterNode,
   SearchSpec,
@@ -214,6 +216,50 @@ export function useDeleteRowMutation() {
       }
       notifications.show({
         message: t("Failed to delete row"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useDeleteRowsMutation() {
+  const { t } = useTranslation();
+  return useMutation<void, Error, DeleteRowsInput, RowCacheContext>({
+    mutationFn: (data) => deleteRows({ ...data, requestId: newRequestId() }),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({
+        queryKey: ["base-rows", variables.baseId],
+      });
+
+      const snapshots = queryClient.getQueriesData<
+        InfiniteData<IPagination<IBaseRow>>
+      >({ queryKey: ["base-rows", variables.baseId] });
+
+      const removeSet = new Set(variables.rowIds);
+      queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+        { queryKey: ["base-rows", variables.baseId] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.filter((row) => !removeSet.has(row.id)),
+            })),
+          };
+        },
+      );
+
+      return { snapshots };
+    },
+    onError: (_, __, context) => {
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      notifications.show({
+        message: t("Failed to delete rows"),
         color: "red",
       });
     },
