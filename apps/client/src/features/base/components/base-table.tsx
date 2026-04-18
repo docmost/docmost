@@ -65,8 +65,20 @@ export function BaseTable({ baseId }: BaseTableProps) {
 
   const rows = useMemo(() => {
     const flat = flattenRows(rowsData);
-    return flat.sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
-  }, [rowsData]);
+    // When a sort is active, the server returns rows in the requested
+    // sort order via keyset pagination. Re-sorting by `position` on the
+    // client would override that with fractional-index order — visibly
+    // breaking the sort as more pages load. Only apply the position
+    // sort when no view sort is active (where it keeps
+    // optimistically-created and ws-pushed rows in place without a
+    // refetch).
+    if (activeSorts && activeSorts.length > 0) {
+      return flat;
+    }
+    return flat.sort((a, b) =>
+      a.position < b.position ? -1 : a.position > b.position ? 1 : 0,
+    );
+  }, [rowsData, activeSorts]);
 
   const { table, persistViewConfig } = useBaseTable(base, rows, activeView);
 
