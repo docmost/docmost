@@ -5,7 +5,9 @@ import {
   IconSortAscending,
   IconFilter,
   IconEye,
+  IconDownload,
 } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import {
   IBase,
   IBaseRow,
@@ -15,6 +17,7 @@ import {
   FilterGroup,
 } from "@/features/base/types/base.types";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
+import { exportBaseToCsv } from "@/features/base/services/base-service";
 import { ViewTabs } from "@/features/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/features/base/components/views/view-sort-config";
 import { ViewFilterConfigPopover } from "@/features/base/components/views/view-filter-config";
@@ -45,6 +48,22 @@ export function BaseToolbar({
   const [sortOpened, setSortOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
   const [fieldsOpened, setFieldsOpened] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportBaseToCsv(base.id);
+    } catch (err) {
+      notifications.show({
+        color: "red",
+        message: t("Failed to export CSV"),
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [base.id, exporting, t]);
 
   const openToolbar = useCallback((panel: "sort" | "filter" | "fields") => {
     setSortOpened(panel === "sort" ? (v) => !v : false);
@@ -111,6 +130,18 @@ export function BaseToolbar({
       />
 
       <div className={classes.toolbarRight}>
+        <Tooltip label={t("Export CSV")}>
+          <ActionIcon
+            variant="subtle"
+            size="sm"
+            color="gray"
+            loading={exporting}
+            onClick={handleExport}
+          >
+            <IconDownload size={16} />
+          </ActionIcon>
+        </Tooltip>
+
         <ViewFilterConfigPopover
           opened={filterOpened}
           onClose={() => setFilterOpened(false)}
