@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Popover,
   Stack,
@@ -7,8 +7,9 @@ import {
   ActionIcon,
   Text,
   UnstyledButton,
+  Button,
 } from "@mantine/core";
-import { IconPlus, IconTrash, IconSortAscending } from "@tabler/icons-react";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import {
   IBaseProperty,
   ViewSortConfig,
@@ -33,6 +34,12 @@ export function ViewSortConfigPopover({
   children,
 }: ViewSortConfigProps) {
   const { t } = useTranslation();
+  const [draft, setDraft] = useState<ViewSortConfig | null>(null);
+
+  // Discard any half-configured draft when the popover closes.
+  useEffect(() => {
+    if (!opened) setDraft(null);
+  }, [opened]);
 
   const propertyOptions = properties.map((p) => ({
     value: p.id,
@@ -44,12 +51,22 @@ export function ViewSortConfigPopover({
     { value: "desc", label: t("Descending") },
   ];
 
-  const handleAdd = useCallback(() => {
+  const handleStartDraft = useCallback(() => {
     const usedIds = new Set(sorts.map((s) => s.propertyId));
     const available = properties.find((p) => !usedIds.has(p.id));
     if (!available) return;
-    onChange([...sorts, { propertyId: available.id, direction: "asc" }]);
-  }, [sorts, properties, onChange]);
+    setDraft({ propertyId: available.id, direction: "asc" });
+  }, [sorts, properties]);
+
+  const handleSaveDraft = useCallback(() => {
+    if (!draft) return;
+    onChange([...sorts, draft]);
+    setDraft(null);
+  }, [draft, sorts, onChange]);
+
+  const handleCancelDraft = useCallback(() => {
+    setDraft(null);
+  }, []);
 
   const handleRemove = useCallback(
     (index: number) => {
@@ -82,6 +99,8 @@ export function ViewSortConfigPopover({
     [sorts, onChange],
   );
 
+  const canAddMore = properties.length > sorts.length + (draft ? 1 : 0);
+
   return (
     <Popover
       opened={opened}
@@ -99,7 +118,7 @@ export function ViewSortConfigPopover({
             {t("Sort by")}
           </Text>
 
-          {sorts.length === 0 && (
+          {sorts.length === 0 && !draft && (
             <Text size="xs" c="dimmed">
               {t("No sorts applied")}
             </Text>
@@ -132,20 +151,63 @@ export function ViewSortConfigPopover({
             </Group>
           ))}
 
-          <UnstyledButton
-            onClick={handleAdd}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "4px 0",
-              fontSize: "var(--mantine-font-size-xs)",
-              color: "var(--mantine-color-blue-6)",
-            }}
-          >
-            <IconPlus size={14} />
-            {t("Add sort")}
-          </UnstyledButton>
+          {draft && (
+            <Stack gap={6}>
+              <Group gap="xs" wrap="nowrap">
+                <Select
+                  size="xs"
+                  data={propertyOptions}
+                  value={draft.propertyId}
+                  onChange={(val) =>
+                    val && setDraft({ ...draft, propertyId: val })
+                  }
+                  style={{ flex: 1 }}
+                />
+                <Select
+                  size="xs"
+                  data={directionOptions}
+                  value={draft.direction}
+                  onChange={(val) =>
+                    val &&
+                    setDraft({
+                      ...draft,
+                      direction: val as "asc" | "desc",
+                    })
+                  }
+                  w={110}
+                />
+              </Group>
+              <Group justify="flex-end" gap="xs">
+                <Button
+                  variant="default"
+                  size="xs"
+                  onClick={handleCancelDraft}
+                >
+                  {t("Cancel")}
+                </Button>
+                <Button size="xs" onClick={handleSaveDraft}>
+                  {t("Save")}
+                </Button>
+              </Group>
+            </Stack>
+          )}
+
+          {!draft && canAddMore && (
+            <UnstyledButton
+              onClick={handleStartDraft}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 0",
+                fontSize: "var(--mantine-font-size-xs)",
+                color: "var(--mantine-color-blue-6)",
+              }}
+            >
+              <IconPlus size={14} />
+              {t("Add sort")}
+            </UnstyledButton>
+          )}
         </Stack>
       </Popover.Dropdown>
     </Popover>
