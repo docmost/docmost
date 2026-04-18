@@ -68,6 +68,9 @@ export function ViewFieldVisibility({
       position="bottom-end"
       shadow="md"
       width={260}
+      trapFocus
+      closeOnEscape
+      closeOnClickOutside
       withinPortal
     >
       <Popover.Target>{children}</Popover.Target>
