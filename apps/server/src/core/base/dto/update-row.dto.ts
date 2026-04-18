@@ -6,6 +6,8 @@ import {
   IsString,
   IsUUID,
   IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -91,6 +93,21 @@ export class ReorderRowDto {
   @IsString()
   @IsNotEmpty()
   position: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
+}
+
+export class DeleteRowsDto {
+  @IsUUID()
+  baseId: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @IsUUID('all', { each: true })
+  rowIds: string[];
 
   @IsOptional()
   @IsString()
