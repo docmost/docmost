@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { Header, flexRender } from "@tanstack/react-table";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -105,6 +105,21 @@ export const GridHeaderCell = memo(function GridHeaderCell({
   const handleMenuClose = useCallback(() => {
     setActivePropertyMenu(null);
   }, [setActivePropertyMenu]);
+
+  // Mantine's built-in `closeOnEscape` only fires when focus is inside the
+  // dropdown, but opening the property menu (clicking the header) leaves
+  // focus on the header itself. Add a document-level ESC handler that
+  // closes the menu when it's open and not dirty.
+  useEffect(() => {
+    if (!menuOpened) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (propertyMenuDirty) return;
+      handleMenuClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [menuOpened, propertyMenuDirty, handleMenuClose]);
 
   const TypeIcon = property ? typeIcons[property.type] : undefined;
 
