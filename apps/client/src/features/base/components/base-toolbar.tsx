@@ -17,6 +17,7 @@ import {
   FilterGroup,
 } from "@/features/base/types/base.types";
 import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
+import { buildViewConfigFromTable } from "@/features/base/hooks/use-base-table";
 import { exportBaseToCsv } from "@/features/base/services/base-service";
 import { ViewTabs } from "@/features/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/features/base/components/views/view-sort-config";
@@ -93,13 +94,16 @@ export function BaseToolbar({
   const handleSortsChange = useCallback(
     (newSorts: ViewSortConfig[]) => {
       if (!activeView) return;
+      const config = buildViewConfigFromTable(table, activeView.config, {
+        sorts: newSorts,
+      });
       updateViewMutation.mutate({
         viewId: activeView.id,
         baseId: base.id,
-        config: { ...activeView.config, sorts: newSorts },
+        config,
       });
     },
-    [activeView, base.id, updateViewMutation],
+    [activeView, base.id, table, updateViewMutation],
   );
 
   const handleFiltersChange = useCallback(
@@ -109,14 +113,18 @@ export function BaseToolbar({
         newConditions.length > 0
           ? { op: "and", children: newConditions }
           : undefined;
-      const { filter: _drop, ...rest } = activeView.config ?? {};
+      // `filter: undefined` in overrides removes the filter key; the helper's
+      // spread-then-overrides order means `undefined` wins over any base filter.
+      const config = buildViewConfigFromTable(table, activeView.config, {
+        filter,
+      });
       updateViewMutation.mutate({
         viewId: activeView.id,
         baseId: base.id,
-        config: filter ? { ...rest, filter } : rest,
+        config,
       });
     },
-    [activeView, base.id, updateViewMutation],
+    [activeView, base.id, table, updateViewMutation],
   );
 
   return (
