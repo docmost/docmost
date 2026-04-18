@@ -6,13 +6,17 @@ import {
   HttpStatus,
   NotFoundException,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { BaseService } from '../services/base.service';
+import { BaseCsvExportService } from '../services/base-csv-export.service';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { CreateBaseDto } from '../dto/create-base.dto';
 import { UpdateBaseDto } from '../dto/update-base.dto';
 import { BaseIdDto } from '../dto/base.dto';
+import { ExportBaseCsvDto } from '../dto/export-base.dto';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -30,6 +34,7 @@ import { SpaceIdDto } from '../../space/dto/space-id.dto';
 export class BaseController {
   constructor(
     private readonly baseService: BaseService,
+    private readonly baseCsvExportService: BaseCsvExportService,
     private readonly baseRepo: BaseRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
@@ -107,5 +112,30 @@ export class BaseController {
     }
 
     return this.baseService.listBySpaceId(dto.spaceId, pagination);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('export-csv')
+  async exportCsv(
+    @Body() dto: ExportBaseCsvDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Res() res: FastifyReply,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    await this.baseCsvExportService.streamBaseAsCsv(
+      dto.baseId,
+      workspace.id,
+      res,
+    );
   }
 }
