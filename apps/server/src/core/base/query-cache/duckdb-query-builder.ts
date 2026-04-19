@@ -563,6 +563,11 @@ function buildKeyset(
   // Mirrors cursor-pagination.ts `applyCursor`: builds the lexicographic
   // OR-chain from tail to head, wrapping each step as
   // `(fi > v) OR (fi = v AND <tail>)`.
+  //
+  // Param binding is positional (1-based `?`). Placeholders appear
+  // left-to-right in the final SQL as: leg0(head), leg0(tie), leg1(head),
+  // leg1(tie), ..., legN(head). We therefore collect the per-leg params
+  // first, then flatten in head→tail order at the end.
   type Leg = { key: string; expression: string; direction: 'asc' | 'desc' };
   const legs: Leg[] = [
     ...sortBuilds.map((s) => ({
@@ -574,25 +579,37 @@ function buildKeyset(
     { key: 'id', expression: 'id', direction: 'asc' },
   ];
 
+  // Skip legs whose key is absent from afterKeys (shouldn't happen for
+  // well-formed cursors, but keeps the builder defensive).
+  const usable = legs.filter((l) => l.key in afterKeys);
+  if (usable.length === 0) return 'TRUE';
+
+  // legParams[i] = [value, value?] — one push for the head `>` or `<`,
+  // one more push for the tie `=` on every leg except the last.
+  const legParams: unknown[][] = [];
   let expr = '';
-  for (let i = legs.length - 1; i >= 0; i--) {
-    const leg = legs[i];
-    if (!(leg.key in afterKeys)) continue;
+  for (let i = usable.length - 1; i >= 0; i--) {
+    const leg = usable[i];
     const value = afterKeys[leg.key];
     const cmp = leg.direction === 'asc' ? '>' : '<';
 
-    params.push(value);
     const head = `${leg.expression} ${cmp} ?`;
 
     if (!expr) {
+      legParams[i] = [value];
       expr = head;
       continue;
     }
-    params.push(value);
+    legParams[i] = [value, value];
     const tie = `${leg.expression} = ?`;
     expr = `(${head} OR (${tie} AND ${expr}))`;
   }
-  return expr || 'TRUE';
+
+  // Flatten legs in head→tail (placeholder) order.
+  for (const values of legParams) {
+    for (const v of values) params.push(v);
+  }
+  return expr;
 }
 
 // --- utilities ---------------------------------------------------------

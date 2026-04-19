@@ -4,6 +4,9 @@ import type { BaseProperty } from '@docmost/db/types/entity.types';
 
 export const SYSTEM_COLUMNS: ColumnSpec[] = [
   { column: 'id', ddlType: 'VARCHAR', indexable: false },
+  { column: 'base_id', ddlType: 'VARCHAR', indexable: false },
+  { column: 'workspace_id', ddlType: 'VARCHAR', indexable: false },
+  { column: 'creator_id', ddlType: 'VARCHAR', indexable: false },
   { column: 'position', ddlType: 'VARCHAR', indexable: true },
   { column: 'created_at', ddlType: 'TIMESTAMPTZ', indexable: true },
   { column: 'updated_at', ddlType: 'TIMESTAMPTZ', indexable: true },

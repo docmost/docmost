@@ -128,6 +128,21 @@ export class BaseRowRepo {
     });
   }
 
+  async countActiveRows(
+    baseId: string,
+    opts: WorkspaceOpts,
+  ): Promise<number> {
+    const db = dbOrTx(this.db, opts.trx);
+    const row = await db
+      .selectFrom('baseRows')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('baseId', '=', baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null)
+      .executeTakeFirst();
+    return Number(row?.count ?? 0);
+  }
+
   async getLastPosition(
     baseId: string,
     opts: WorkspaceOpts,
