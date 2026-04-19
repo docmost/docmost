@@ -14,9 +14,13 @@ import { BaseWsService } from './realtime/base-ws.service';
 import { BaseWsConsumers } from './realtime/base-ws-consumers';
 import { BasePresenceService } from './realtime/base-presence.service';
 import { QueueName } from '../../integrations/queue/constants';
+import { BaseQueryCacheModule } from './query-cache/query-cache.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: QueueName.BASE_QUEUE })],
+  imports: [
+    BullModule.registerQueue({ name: QueueName.BASE_QUEUE }),
+    BaseQueryCacheModule,
+  ],
   controllers: [
     BaseController,
     BasePropertyController,
