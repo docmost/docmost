@@ -27,6 +27,8 @@ export type LoadedCollection = {
   instance: DuckDBInstance;
   connection: DuckDBConnection;
   lastAccessedAt: number;
+  // cached; set by loader, maintained by applyChange
+  rowCount: number;
 };
 
 export type ChangeEnvelope =

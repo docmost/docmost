@@ -279,6 +279,13 @@ export class BaseQueryCacheService
     return this.collections.size;
   }
 
+  // Production-facing fast path for the router: returns the resident
+  // collection without triggering a load. Used to avoid a per-request
+  // Postgres COUNT when the cached rowCount already answers the question.
+  peek(baseId: string): LoadedCollection | undefined {
+    return this.collections.get(baseId);
+  }
+
   /*
    * Apply a change envelope received from Redis pub/sub to the local
    * collection (if any). Rows that target bases not resident on this node
@@ -300,12 +307,15 @@ export class BaseQueryCacheService
           return;
         case 'row-upsert':
           await this.upsertRow(collection, env.row);
+          await this.refreshRowCount(collection);
           return;
         case 'row-delete':
           await this.deleteRow(collection, env.rowId);
+          await this.refreshRowCount(collection);
           return;
         case 'rows-delete':
           for (const id of env.rowIds) await this.deleteRow(collection, id);
+          await this.refreshRowCount(collection);
           return;
         case 'row-reorder':
           await this.updatePosition(collection, env.rowId, env.position);
@@ -318,6 +328,19 @@ export class BaseQueryCacheService
       );
       if (error.stack) this.logger.warn(error.stack);
       await this.invalidate(env.baseId);
+    }
+  }
+
+  private async refreshRowCount(collection: LoadedCollection): Promise<void> {
+    try {
+      const res = await collection.connection.runAndReadAll(
+        'SELECT count(*) AS c FROM rows',
+      );
+      const row = res.getRowObjects()[0] as { c: bigint | number };
+      collection.rowCount = Number(row.c);
+    } catch {
+      // swallow — stale rowCount drifts at most by the size of the burst; the
+      // next reload-from-Postgres or pubsub event corrects it.
     }
   }
 

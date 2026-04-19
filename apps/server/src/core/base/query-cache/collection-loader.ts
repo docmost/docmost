@@ -117,6 +117,13 @@ export class CollectionLoader {
         `Loaded ${rowCount} rows for base ${baseId} (schemaVersion=${schemaVersion})`,
       );
 
+      const countResult = await connection.runAndReadAll(
+        'SELECT count(*) AS c FROM rows',
+      );
+      const cachedRowCount = Number(
+        (countResult.getRowObjects()[0] as { c: bigint | number }).c,
+      );
+
       return {
         baseId,
         schemaVersion,
@@ -124,6 +131,7 @@ export class CollectionLoader {
         instance,
         connection,
         lastAccessedAt: Date.now(),
+        rowCount: cachedRowCount,
       };
     } catch (err) {
       if (appender) {
