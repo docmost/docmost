@@ -4,6 +4,7 @@ import {
   Container,
   Head,
   Html,
+  Link,
   Row,
   Section,
   Text,
@@ -42,37 +43,45 @@ interface EmailButtonProps {
 
 export function EmailButton({ href, children }: EmailButtonProps) {
   return (
-    <table
-      role="presentation"
-      cellPadding="0"
-      cellSpacing="0"
-      style={{ margin: '0 0 15px 15px' }}
-    >
-      <tr>
-        <td
-          style={{
-            backgroundColor: buttonStyle.backgroundColor,
-            borderRadius: buttonStyle.borderRadius,
-            textAlign: 'center' as const,
-          }}
-        >
-          <a
-            href={href}
-            target="_blank"
+    <>
+      <table
+        role="presentation"
+        cellPadding="0"
+        cellSpacing="0"
+        style={{ margin: '0 0 15px 15px' }}
+      >
+        <tr>
+          <td
             style={{
-              color: buttonStyle.color,
-              fontFamily: buttonStyle.fontFamily,
-              fontSize: buttonStyle.fontSize,
-              textDecoration: 'none',
-              display: 'inline-block',
-              padding: '8px 16px',
+              backgroundColor: buttonStyle.backgroundColor,
+              borderRadius: buttonStyle.borderRadius,
+              textAlign: 'center' as const,
             }}
           >
-            {children}
-          </a>
-        </td>
-      </tr>
-    </table>
+            <a
+              href={href}
+              target="_blank"
+              style={{
+                color: buttonStyle.color,
+                fontFamily: buttonStyle.fontFamily,
+                fontSize: buttonStyle.fontSize,
+                textDecoration: 'none',
+                display: 'inline-block',
+                padding: '8px 16px',
+              }}
+            >
+              {children}
+            </a>
+          </td>
+        </tr>
+      </table>
+      <Text style={{ fontSize: '12px', color: '#706a7b', margin: '0 0 15px 15px' }}>
+        If the button above does not work, copy and paste this link into your browser:{' '}
+        <Link href={href} style={{ color: '#706a7b', wordBreak: 'break-all' }}>
+          {href}
+        </Link>
+      </Text>
+    </>
   );
 }
 
