@@ -28,14 +28,17 @@ import { ChangeEnvelope } from './query-cache.types';
 @Injectable()
 export class BaseQueryCacheWriteConsumer {
   private readonly logger = new Logger(BaseQueryCacheWriteConsumer.name);
-  private readonly redis: Redis;
+  private _redis: Redis | null = null;
 
   constructor(
     private readonly redisService: RedisService,
     private readonly configProvider: QueryCacheConfigProvider,
     private readonly baseRowRepo: BaseRowRepo,
-  ) {
-    this.redis = this.redisService.getOrThrow();
+  ) {}
+
+  private get redis(): Redis {
+    if (!this._redis) this._redis = this.redisService.getOrThrow();
+    return this._redis;
   }
 
   @OnEvent(EventName.BASE_ROW_CREATED)
@@ -116,9 +119,11 @@ export class BaseQueryCacheWriteConsumer {
   @OnEvent(EventName.BASE_PROPERTY_CREATED)
   async onPropertyCreated(e: BasePropertyCreatedEvent): Promise<void> {
     if (!this.configProvider.config.enabled) return;
-    // Property creation doesn't carry a schemaVersion in its payload; use 0
-    // so applyChange always treats it as stale relative to the resident
-    // collection (which has schemaVersion >= 1) and triggers invalidation.
+    // Property CREATED / DELETED events don't carry a schemaVersion. Use
+    // Number.MAX_SAFE_INTEGER as a sentinel so `applyChange`'s
+    // `envVersion > cachedVersion` check unconditionally invalidates — any
+    // real schemaVersion will be smaller. A follow-up could plumb the real
+    // schemaVersion through the event payload and drop the sentinel.
     await this.publish(e.baseId, {
       kind: 'schema-invalidate',
       baseId: e.baseId,
