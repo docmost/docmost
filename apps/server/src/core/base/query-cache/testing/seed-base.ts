@@ -56,7 +56,12 @@ export type SeededBase = {
     notes: string;
     created: string;
     lastEdited: string;
+    // Generic aliases used by parity tests.
+    text: string;
+    number: string;
+    date: string;
   };
+  statusChoiceIds: string[];
 };
 
 const SKIP_TYPES = new Set([
@@ -342,7 +347,14 @@ export async function seedBase(opts: SeedBaseOptions): Promise<SeededBase> {
     notes: byName.get('Notes')!,
     created: byName.get('Created')!,
     lastEdited: byName.get('Last Edited')!,
+    text: byName.get('Title')!,
+    number: byName.get('Estimate')!,
+    date: byName.get('Due Date')!,
   };
+
+  const statusProp = insertedProperties.find((p) => p.name === 'Status');
+  const statusChoiceIds: string[] =
+    (statusProp?.type_options?.choices ?? []).map((c: any) => c.id);
 
   const generators: Array<{ propertyId: string; generate: CellGenerator }> = [];
   for (const prop of insertedProperties) {
@@ -382,7 +394,7 @@ export async function seedBase(opts: SeedBaseOptions): Promise<SeededBase> {
     await db.insertInto('base_rows').values(rowsBatch).execute();
   }
 
-  return { baseId, propertyIds };
+  return { baseId, propertyIds, statusChoiceIds };
 }
 
 export async function deleteSeededBase(
