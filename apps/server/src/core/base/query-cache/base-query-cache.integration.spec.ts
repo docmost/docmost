@@ -53,6 +53,9 @@ class FakeEnvService {
   getBaseQueryCacheWarmTopN() {
     return 0;
   }
+  getBaseQueryCacheDebug() {
+    return false;
+  }
   getRedisUrl() {
     return REDIS_URL;
   }
@@ -117,6 +120,9 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
     }
     getBaseQueryCacheWarmTopN() {
       return 0;
+    }
+    getBaseQueryCacheDebug() {
+      return false;
     }
     getRedisUrl() {
       return REDIS_URL;
@@ -752,6 +758,9 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
     }
     getBaseQueryCacheWarmTopN() {
       return 5;
+    }
+    getBaseQueryCacheDebug() {
+      return false;
     }
     getRedisUrl() {
       return REDIS_URL;
