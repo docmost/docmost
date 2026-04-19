@@ -306,10 +306,10 @@ export class EnvironmentService {
   }
 
   getBaseQueryCacheEnabled(): boolean {
-    return (
-      this.configService.get<string>('BASE_QUERY_CACHE_ENABLED', 'false') ===
-      'true'
-    );
+    const enabled = this.configService
+      .get<string>('BASE_QUERY_CACHE_ENABLED', 'false')
+      .toLowerCase();
+    return enabled === 'true';
   }
 
   getBaseQueryCacheMinRows(): number {
