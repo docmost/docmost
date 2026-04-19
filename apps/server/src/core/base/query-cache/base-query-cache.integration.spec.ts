@@ -94,6 +94,180 @@ async function isRedisReachable(): Promise<boolean> {
   }
 }
 
+describeIntegration('BaseQueryCacheService LRU eviction', () => {
+  @Injectable()
+  class TinyCapEnvService {
+    getDatabaseURL() {
+      return INTEGRATION_DB_URL!;
+    }
+    getDatabaseMaxPool() {
+      return 5;
+    }
+    getNodeEnv() {
+      return 'test';
+    }
+    getBaseQueryCacheEnabled() {
+      return true;
+    }
+    getBaseQueryCacheMinRows() {
+      return 1;
+    }
+    getBaseQueryCacheMaxCollections() {
+      return 2;
+    }
+    getBaseQueryCacheWarmTopN() {
+      return 0;
+    }
+    getRedisUrl() {
+      return REDIS_URL;
+    }
+  }
+
+  let moduleRef: TestingModule;
+  let cache: BaseQueryCacheService;
+  let basePropertyRepo: BasePropertyRepo;
+  let dbHandle: DbHandle;
+  let workspaceId: string;
+  let spaceId: string;
+  let creatorUserId: string | null;
+  const seededBaseIds: string[] = [];
+
+  beforeAll(async () => {
+    process.env.DATABASE_URL = INTEGRATION_DB_URL;
+
+    moduleRef = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        KyselyModule.forRoot({
+          dialect: new PostgresJSDialect({
+            postgres: (postgres as any)(
+              normalizePostgresUrl(INTEGRATION_DB_URL!),
+              {
+                max: 5,
+                onnotice: () => {},
+                types: {
+                  bigint: {
+                    to: 20,
+                    from: [20, 1700],
+                    serialize: (value: number) => value.toString(),
+                    parse: (value: string) => Number.parseInt(value),
+                  },
+                },
+              },
+            ),
+          }),
+          plugins: [new CamelCasePlugin()],
+        }),
+        EventEmitterModule.forRoot(),
+      ],
+      providers: [
+        { provide: EnvironmentService, useClass: TinyCapEnvService },
+        QueryCacheConfigProvider,
+        BaseRepo,
+        BasePropertyRepo,
+        BaseRowRepo,
+        BaseViewRepo,
+        CollectionLoader,
+        BaseQueryCacheService,
+        DbHandle,
+      ],
+    }).compile();
+
+    cache = moduleRef.get(BaseQueryCacheService);
+    basePropertyRepo = moduleRef.get(BasePropertyRepo);
+    dbHandle = moduleRef.get(DbHandle);
+
+    const workspace = await dbHandle.db
+      .selectFrom('workspaces')
+      .select(['id'])
+      .limit(1)
+      .executeTakeFirstOrThrow();
+    workspaceId = workspace.id;
+
+    const space = await dbHandle.db
+      .selectFrom('spaces')
+      .select(['id'])
+      .where('workspaceId', '=', workspaceId)
+      .limit(1)
+      .executeTakeFirstOrThrow();
+    spaceId = space.id;
+
+    const user = await dbHandle.db
+      .selectFrom('users')
+      .select('id')
+      .limit(1)
+      .executeTakeFirst();
+    creatorUserId = user?.id ?? null;
+
+    for (let i = 0; i < 3; i++) {
+      const { baseId } = await seedBase({
+        db: dbHandle.db as any,
+        workspaceId,
+        spaceId,
+        creatorUserId,
+        rows: 100,
+        name: `cache-evict-${i}-${Date.now()}`,
+      });
+      seededBaseIds.push(baseId);
+    }
+  }, 120_000);
+
+  afterAll(async () => {
+    for (const id of seededBaseIds) {
+      await deleteSeededBase(dbHandle.db as any, id);
+    }
+    if (moduleRef) {
+      await moduleRef.close();
+    }
+  }, 60_000);
+
+  it(
+    'evicts the least-recently-used collection when maxCollections is exceeded',
+    async () => {
+      const [firstId, secondId, thirdId] = seededBaseIds;
+
+      const loadOnce = async (baseId: string) => {
+        const properties = await basePropertyRepo.findByBaseId(baseId);
+        const schema: PropertySchema = new Map(
+          properties.map((p) => [p.id, p]),
+        );
+        const estimateProp = properties.find((p) => p.name === 'Estimate');
+        if (!estimateProp) throw new Error('Estimate property not found');
+        // Route through ensureLoaded via a query that uses the cache path.
+        const page = await cache.list(baseId, workspaceId, {
+          sorts: [{ propertyId: estimateProp.id, direction: 'asc' }],
+          schema,
+          pagination: { limit: 10 } as any,
+        });
+        return page;
+      };
+
+      await loadOnce(firstId);
+      // Small delay so lastAccessedAt differs across loads and LRU is deterministic.
+      await new Promise((r) => setTimeout(r, 5));
+      await loadOnce(secondId);
+      await new Promise((r) => setTimeout(r, 5));
+      await loadOnce(thirdId);
+
+      expect(cache.residentSize()).toBe(2);
+      expect(cache.isResident(firstId)).toBe(false);
+      expect(cache.isResident(secondId)).toBe(true);
+      expect(cache.isResident(thirdId)).toBe(true);
+
+      // Reload the evicted base — should rebuild cleanly.
+      const reloaded = await loadOnce(firstId);
+      expect(reloaded.items.length).toBeGreaterThan(0);
+      expect(cache.residentSize()).toBe(2);
+      expect(cache.isResident(firstId)).toBe(true);
+      // The least-recently-accessed of the two survivors (secondId) should
+      // now be the one evicted.
+      expect(cache.isResident(secondId)).toBe(false);
+      expect(cache.isResident(thirdId)).toBe(true);
+    },
+    60_000,
+  );
+});
+
 describeIntegration('BaseQueryCacheService integration', () => {
   let moduleRef: TestingModule;
   let cache: BaseQueryCacheService;

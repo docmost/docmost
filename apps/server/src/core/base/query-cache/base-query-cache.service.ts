@@ -170,6 +170,17 @@ export class BaseQueryCacheService
     this.collections.delete(baseId);
   }
 
+  // Test-only introspection of the resident cache. Used by the LRU eviction
+  // integration spec to assert which collections are currently loaded without
+  // reaching into the private `collections` map.
+  isResident(baseId: string): boolean {
+    return this.collections.has(baseId);
+  }
+
+  residentSize(): number {
+    return this.collections.size;
+  }
+
   /*
    * Apply a change envelope received from Redis pub/sub to the local
    * collection (if any). Rows that target bases not resident on this node
