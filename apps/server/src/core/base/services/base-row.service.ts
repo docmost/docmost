@@ -44,6 +44,7 @@ import {
   BaseRowUpdatedEvent,
   BaseRowsDeletedEvent,
 } from '../events/base-events';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 @Injectable()
 export class BaseRowService {
@@ -57,6 +58,7 @@ export class BaseRowService {
     private readonly eventEmitter: EventEmitter2,
     private readonly queryRouter: BaseQueryRouter,
     private readonly queryCache: BaseQueryCacheService,
+    private readonly env: EnvironmentService,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateRowDto) {
@@ -197,6 +199,9 @@ export class BaseRowService {
     pagination: PaginationOptions,
     workspaceId: string,
   ) {
+    const debug = this.env.getBaseQueryCacheDebug();
+    const tStart = debug ? Date.now() : 0;
+
     const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
     const schema: PropertySchema = new Map(
       properties.map((p) => [p.id, p]),
@@ -209,6 +214,7 @@ export class BaseRowService {
       direction: s.direction,
     }));
 
+    const tRouter = debug ? Date.now() : 0;
     const decision = await this.queryRouter.decide({
       baseId: dto.baseId,
       workspaceId,
@@ -216,26 +222,48 @@ export class BaseRowService {
       sorts,
       search,
     });
+    const routerMs = debug ? Date.now() - tRouter : 0;
+
+    let resultPath: 'cache' | 'postgres' | 'fallback' = 'postgres';
 
     if (decision === 'cache') {
       try {
-        return await this.queryCache.list(dto.baseId, workspaceId, {
+        const tCache = debug ? Date.now() : 0;
+        const result = await this.queryCache.list(dto.baseId, workspaceId, {
           filter,
           sorts,
           search,
           schema,
           pagination,
         });
+        const cacheMs = debug ? Date.now() - tCache : 0;
+        resultPath = 'cache';
+        if (debug) {
+          console.log(
+            '[cache-perf]',
+            JSON.stringify({
+              path: resultPath,
+              baseId: dto.baseId.slice(0, 8),
+              totalMs: Date.now() - tStart,
+              routerMs,
+              cacheMs,
+              rows: result.items.length,
+            }),
+          );
+        }
+        return result;
       } catch (err) {
         const error = err as Error;
         this.logger.warn(
           `Cache list failed for base ${dto.baseId}, falling back to Postgres: ${error.message}`,
         );
         if (error.stack) this.logger.warn(error.stack);
+        resultPath = 'fallback';
       }
     }
 
-    return this.baseRowRepo.list({
+    const tPg = debug ? Date.now() : 0;
+    const result = await this.baseRowRepo.list({
       baseId: dto.baseId,
       workspaceId,
       filter,
@@ -244,6 +272,21 @@ export class BaseRowService {
       schema,
       pagination,
     });
+    const pgMs = debug ? Date.now() - tPg : 0;
+    if (debug) {
+      console.log(
+        '[cache-perf]',
+        JSON.stringify({
+          path: resultPath,
+          baseId: dto.baseId.slice(0, 8),
+          totalMs: Date.now() - tStart,
+          routerMs,
+          pgMs,
+          rows: result.items.length,
+        }),
+      );
+    }
+    return result;
   }
 
   async reorder(dto: ReorderRowDto, workspaceId: string, userId?: string) {

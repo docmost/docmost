@@ -33,6 +33,7 @@ import {
   ColumnSpec,
   LoadedCollection,
 } from './query-cache.types';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
 
 export type CacheListOpts = {
   filter?: FilterNode;
@@ -55,6 +56,7 @@ export class BaseQueryCacheService
     private readonly baseRepo: BaseRepo,
     private readonly collectionLoader: CollectionLoader,
     @Optional() private readonly redisService: RedisService | null = null,
+    @Optional() private readonly env: EnvironmentService | null = null,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -130,7 +132,12 @@ export class BaseQueryCacheService
     workspaceId: string,
     opts: CacheListOpts,
   ): Promise<CursorPaginationResult<BaseRow>> {
+    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
+    const tStart = debug ? Date.now() : 0;
+
+    const tEnsure = debug ? Date.now() : 0;
     const collection = await this.ensureLoaded(baseId, workspaceId);
+    const ensureMs = debug ? Date.now() - tEnsure : 0;
 
     const sortBuilds: SortBuild[] =
       opts.sorts && opts.sorts.length > 0
@@ -178,19 +185,37 @@ export class BaseQueryCacheService
       }
     }
 
+    const tExec = debug ? Date.now() : 0;
     const reader = await prepared.runAndReadAll();
     const duckRows = reader.getRowObjectsJS();
+    const execMs = debug ? Date.now() - tExec : 0;
 
     const hasNextPage = duckRows.length > opts.pagination.limit;
     if (hasNextPage) duckRows.pop();
 
     if (duckRows.length === 0) {
+      if (debug) {
+        console.log(
+          '[cache-perf]',
+          JSON.stringify({
+            phase: 'cache.list',
+            baseId: baseId.slice(0, 8),
+            totalMs: Date.now() - tStart,
+            ensureMs,
+            execMs,
+            shapeMs: 0,
+            rows: 0,
+          }),
+        );
+      }
       return emptyCursorPaginationResult<BaseRow>(opts.pagination.limit);
     }
 
+    const tShape = debug ? Date.now() : 0;
     const items = duckRows.map((r) =>
       shapeBaseRow(r, collection.columns, sortBuilds),
     );
+    const shapeMs = debug ? Date.now() - tShape : 0;
 
     const endRow = duckRows[duckRows.length - 1];
     const startRow = duckRows[0];
@@ -208,6 +233,21 @@ export class BaseQueryCacheService
     const hasPrevPage = !!opts.pagination.cursor;
     const nextCursor = hasNextPage ? encodeFromRow(endRow) : null;
     const prevCursor = hasPrevPage ? encodeFromRow(startRow) : null;
+
+    if (debug) {
+      console.log(
+        '[cache-perf]',
+        JSON.stringify({
+          phase: 'cache.list',
+          baseId: baseId.slice(0, 8),
+          totalMs: Date.now() - tStart,
+          ensureMs,
+          execMs,
+          shapeMs,
+          rows: items.length,
+        }),
+      );
+    }
 
     return {
       items,
@@ -354,11 +394,14 @@ export class BaseQueryCacheService
     baseId: string,
     workspaceId: string,
   ): Promise<LoadedCollection> {
+    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
     // TODO(task-7): remove per-request findById once pub/sub invalidation
     // keeps collections in sync with schema bumps.
     const existing = this.collections.get(baseId);
 
+    const tFind = debug ? Date.now() : 0;
     const base = await this.baseRepo.findById(baseId);
+    const findMs = debug ? Date.now() - tFind : 0;
     if (!base) {
       throw new Error(`Base ${baseId} not found`);
     }
@@ -367,6 +410,16 @@ export class BaseQueryCacheService
     if (existing && existing.schemaVersion === freshVersion) {
       existing.lastAccessedAt = Date.now();
       this.recordAccess(baseId);
+      if (debug) {
+        console.log(
+          '[cache-perf]',
+          JSON.stringify({
+            phase: 'ensureLoaded.hit',
+            baseId: baseId.slice(0, 8),
+            findMs,
+          }),
+        );
+      }
       return existing;
     }
 
@@ -382,6 +435,7 @@ export class BaseQueryCacheService
       return loaded;
     }
 
+    const tLoad = debug ? Date.now() : 0;
     const promise = (async () => {
       try {
         const { maxCollections } = this.configProvider.config;
@@ -397,7 +451,19 @@ export class BaseQueryCacheService
     })();
     this.inFlightLoads.set(baseId, promise);
     const loaded = await promise;
+    const loadMs = debug ? Date.now() - tLoad : 0;
     this.recordAccess(baseId);
+    if (debug) {
+      console.log(
+        '[cache-perf]',
+        JSON.stringify({
+          phase: 'ensureLoaded.miss',
+          baseId: baseId.slice(0, 8),
+          findMs,
+          loadMs,
+        }),
+      );
+    }
     return loaded;
   }
 

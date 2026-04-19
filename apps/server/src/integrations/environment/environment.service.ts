@@ -335,4 +335,12 @@ export class EnvironmentService {
       10,
     );
   }
+
+  getBaseQueryCacheDebug(): boolean {
+    return (
+      this.configService
+        .get<string>('BASE_QUERY_CACHE_DEBUG', 'false')
+        .toLowerCase() === 'true'
+    );
+  }
 }
