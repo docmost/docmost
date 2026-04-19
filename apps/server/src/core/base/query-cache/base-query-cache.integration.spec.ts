@@ -569,3 +569,200 @@ describeIntegration('BaseQueryCacheService integration', () => {
     60_000,
   );
 });
+
+describeIntegration('BaseQueryCacheService warm-up on boot', () => {
+  @Injectable()
+  class WarmUpEnvService {
+    getDatabaseURL() {
+      return INTEGRATION_DB_URL!;
+    }
+    getDatabaseMaxPool() {
+      return 5;
+    }
+    getNodeEnv() {
+      return 'test';
+    }
+    getBaseQueryCacheEnabled() {
+      return true;
+    }
+    getBaseQueryCacheMinRows() {
+      return 100;
+    }
+    getBaseQueryCacheMaxCollections() {
+      return 5;
+    }
+    getBaseQueryCacheWarmTopN() {
+      return 5;
+    }
+    getRedisUrl() {
+      return REDIS_URL;
+    }
+  }
+
+  async function buildModule(): Promise<TestingModule> {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        KyselyModule.forRoot({
+          dialect: new PostgresJSDialect({
+            postgres: (postgres as any)(
+              normalizePostgresUrl(INTEGRATION_DB_URL!),
+              {
+                max: 5,
+                onnotice: () => {},
+                types: {
+                  bigint: {
+                    to: 20,
+                    from: [20, 1700],
+                    serialize: (value: number) => value.toString(),
+                    parse: (value: string) => Number.parseInt(value),
+                  },
+                },
+              },
+            ),
+          }),
+          plugins: [new CamelCasePlugin()],
+        }),
+        EventEmitterModule.forRoot(),
+        RedisModule.forRoot({
+          readyLog: false,
+          config: { host: '127.0.0.1', port: 6379 },
+        }),
+      ],
+      providers: [
+        { provide: EnvironmentService, useClass: WarmUpEnvService },
+        QueryCacheConfigProvider,
+        BaseRepo,
+        BasePropertyRepo,
+        BaseRowRepo,
+        BaseViewRepo,
+        CollectionLoader,
+        BaseQueryCacheService,
+        DbHandle,
+      ],
+    }).compile();
+    await moduleRef.init();
+    return moduleRef;
+  }
+
+  let firstModule: TestingModule | null = null;
+  let secondModule: TestingModule | null = null;
+  let seededBaseId: string | null = null;
+  let redisReachable = false;
+  let probeRedis: Redis | null = null;
+
+  beforeAll(async () => {
+    process.env.DATABASE_URL = INTEGRATION_DB_URL;
+    process.env.REDIS_URL = REDIS_URL;
+    redisReachable = await isRedisReachable();
+    if (!redisReachable) return;
+
+    probeRedis = new Redis(REDIS_URL, { maxRetriesPerRequest: 1 });
+    // Scrub any stale state from prior runs so zrevrange returns only the
+    // ids this test records.
+    await probeRedis.del('base-query-cache:recent');
+
+    firstModule = await buildModule();
+    const dbHandle = firstModule.get(DbHandle);
+
+    const workspace = await dbHandle.db
+      .selectFrom('workspaces')
+      .select(['id'])
+      .limit(1)
+      .executeTakeFirstOrThrow();
+    const space = await dbHandle.db
+      .selectFrom('spaces')
+      .select(['id'])
+      .where('workspaceId', '=', workspace.id)
+      .limit(1)
+      .executeTakeFirstOrThrow();
+    const user = await dbHandle.db
+      .selectFrom('users')
+      .select('id')
+      .limit(1)
+      .executeTakeFirst();
+
+    const seed = await seedBase({
+      db: dbHandle.db as any,
+      workspaceId: workspace.id,
+      spaceId: space.id,
+      creatorUserId: user?.id ?? null,
+      rows: 200,
+      name: `cache-warmup-${Date.now()}`,
+    });
+    seededBaseId = seed.baseId;
+  }, 180_000);
+
+  afterAll(async () => {
+    if (firstModule && seededBaseId) {
+      const dbHandle = firstModule.get(DbHandle);
+      await deleteSeededBase(dbHandle.db as any, seededBaseId);
+    }
+    if (firstModule) await firstModule.close();
+    if (secondModule) await secondModule.close();
+    if (probeRedis) {
+      try {
+        await probeRedis.del('base-query-cache:recent');
+      } catch {}
+      probeRedis.disconnect();
+    }
+  }, 60_000);
+
+  it(
+    'records access in redis and warms the collection on boot',
+    async () => {
+      if (!redisReachable) {
+        console.warn('Skipping warm-up test: Redis not reachable');
+        return;
+      }
+      const baseId = seededBaseId!;
+      const cache = firstModule!.get(BaseQueryCacheService);
+      const basePropertyRepo = firstModule!.get(BasePropertyRepo);
+      const dbHandle = firstModule!.get(DbHandle);
+
+      const workspace = await dbHandle.db
+        .selectFrom('workspaces')
+        .select(['id'])
+        .limit(1)
+        .executeTakeFirstOrThrow();
+      const workspaceId = workspace.id;
+
+      const properties = await basePropertyRepo.findByBaseId(baseId);
+      const schema: PropertySchema = new Map(properties.map((p) => [p.id, p]));
+
+      await cache.list(baseId, workspaceId, {
+        schema,
+        pagination: { limit: 10 } as any,
+      });
+
+      // recordAccess is fire-and-forget; give the ZADD time to round-trip.
+      await new Promise((r) => setTimeout(r, 200));
+
+      const recent = await probeRedis!.zrevrange(
+        'base-query-cache:recent',
+        0,
+        0,
+      );
+      expect(recent).toEqual([baseId]);
+
+      // Simulate a fresh boot: close the current service, build a new module,
+      // and assert warm-up populates the collection without calling list().
+      await firstModule!.close();
+      firstModule = null;
+
+      secondModule = await buildModule();
+      const cache2 = secondModule.get(BaseQueryCacheService);
+
+      // onApplicationBootstrap is called by moduleRef.init() above; but to be
+      // explicit about the warm-up path we assert residency directly.
+      expect(cache2.isResident(baseId)).toBe(true);
+
+      const page = await cache2.list(baseId, workspaceId, {
+        schema,
+        pagination: { limit: 10 } as any,
+      });
+      expect(page.items.length).toBe(10);
+    },
+    120_000,
+  );
+});

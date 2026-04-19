@@ -3,7 +3,10 @@ import {
   Logger,
   OnApplicationBootstrap,
   OnModuleDestroy,
+  Optional,
 } from '@nestjs/common';
+import { RedisService } from '@nestjs-labs/nestjs-ioredis';
+import type { Redis } from 'ioredis';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { BaseRow } from '@docmost/db/types/entity.types';
 import {
@@ -51,13 +54,68 @@ export class BaseQueryCacheService
     private readonly configProvider: QueryCacheConfigProvider,
     private readonly baseRepo: BaseRepo,
     private readonly collectionLoader: CollectionLoader,
+    @Optional() private readonly redisService: RedisService | null = null,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const { enabled } = this.configProvider.config;
-    this.logger.log(
-      `BaseQueryCacheService bootstrapped (enabled=${enabled}).`,
-    );
+    const { enabled, warmTopN } = this.configProvider.config;
+    if (!enabled) return;
+    const redis = this.tryGetRedisClient();
+    if (!redis) return;
+    try {
+      const ids = await redis.zrevrange(
+        'base-query-cache:recent',
+        0,
+        warmTopN - 1,
+      );
+      for (const baseId of ids) {
+        try {
+          const base = await this.baseRepo.findById(baseId);
+          if (!base) continue;
+          await this.ensureLoaded(baseId, base.workspaceId);
+        } catch (err) {
+          this.logger.debug(
+            `warm-up skipped ${baseId}: ${(err as Error).message}`,
+          );
+        }
+      }
+      this.logger.log(`Warmed ${ids.length} collections on boot`);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.warn(`Warm-up failed: ${error.message}`);
+      if (error.stack) this.logger.warn(error.stack);
+    }
+  }
+
+  private tryGetRedisClient(): Redis | null {
+    if (!this.redisService) return null;
+    try {
+      return this.redisService.getOrNil();
+    } catch {
+      return null;
+    }
+  }
+
+  private recordAccess(baseId: string): void {
+    if (!this.configProvider.config.enabled) return;
+    const redis = this.tryGetRedisClient();
+    if (!redis) return;
+    const nowMs = Date.now();
+    const maxKeep = this.configProvider.config.maxCollections * 10;
+    void (async () => {
+      try {
+        await redis.zadd('base-query-cache:recent', nowMs, baseId);
+        await redis.zremrangebyrank(
+          'base-query-cache:recent',
+          0,
+          -(maxKeep + 1),
+        );
+      } catch (err) {
+        this.logger.debug(
+          `recordAccess failed for ${baseId}: ${(err as Error).message}`,
+        );
+      }
+    })();
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -308,6 +366,7 @@ export class BaseQueryCacheService
 
     if (existing && existing.schemaVersion === freshVersion) {
       existing.lastAccessedAt = Date.now();
+      this.recordAccess(baseId);
       return existing;
     }
 
@@ -317,7 +376,11 @@ export class BaseQueryCacheService
     }
 
     const inFlight = this.inFlightLoads.get(baseId);
-    if (inFlight) return inFlight;
+    if (inFlight) {
+      const loaded = await inFlight;
+      this.recordAccess(baseId);
+      return loaded;
+    }
 
     const promise = (async () => {
       try {
@@ -333,7 +396,9 @@ export class BaseQueryCacheService
       }
     })();
     this.inFlightLoads.set(baseId, promise);
-    return promise;
+    const loaded = await promise;
+    this.recordAccess(baseId);
+    return loaded;
   }
 
   private evictLru(): void {
