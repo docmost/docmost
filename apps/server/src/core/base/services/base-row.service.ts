@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
@@ -9,6 +10,8 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseViewRepo } from '@docmost/db/repos/base/base-view.repo';
+import { BaseQueryRouter } from '../query-cache/base-query-router';
+import { BaseQueryCacheService } from '../query-cache/base-query-cache.service';
 import { CreateRowDto } from '../dto/create-row.dto';
 import {
   UpdateRowDto,
@@ -44,12 +47,16 @@ import {
 
 @Injectable()
 export class BaseRowService {
+  private readonly logger = new Logger(BaseRowService.name);
+
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly baseRowRepo: BaseRowRepo,
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseViewRepo: BaseViewRepo,
     private readonly eventEmitter: EventEmitter2,
+    private readonly queryRouter: BaseQueryRouter,
+    private readonly queryCache: BaseQueryCacheService,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateRowDto) {
@@ -201,6 +208,31 @@ export class BaseRowService {
       propertyId: s.propertyId,
       direction: s.direction,
     }));
+
+    const decision = await this.queryRouter.decide({
+      baseId: dto.baseId,
+      workspaceId,
+      filter,
+      sorts,
+      search,
+    });
+
+    if (decision === 'cache') {
+      try {
+        return await this.queryCache.list(dto.baseId, workspaceId, {
+          filter,
+          sorts,
+          search,
+          schema,
+          pagination,
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Cache list failed for base ${dto.baseId}, falling back to Postgres`,
+          err as Error,
+        );
+      }
+    }
 
     return this.baseRowRepo.list({
       baseId: dto.baseId,
