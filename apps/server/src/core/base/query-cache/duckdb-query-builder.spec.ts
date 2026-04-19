@@ -78,4 +78,84 @@ describe('buildDuckDbListQuery', () => {
     expect(sql).toMatch(/search_text ILIKE \?/);
     expect(params).toContain('%hello%');
   });
+
+  it('renders multi-select any filter with json_contains and to_json binding', () => {
+    const multiProp = {
+      id: '00000000-0000-0000-0000-000000000010',
+      type: BasePropertyType.MULTI_SELECT,
+      typeOptions: {},
+    } as any;
+    const cols = buildColumnSpecs([multiProp]);
+    const choiceA = 'choice-uuid-aaa';
+    const choiceB = 'choice-uuid-bbb';
+    const { sql, params } = buildDuckDbListQuery({
+      columns: cols,
+      filter: {
+        op: 'and',
+        children: [{ propertyId: multiProp.id, op: 'any', value: [choiceA, choiceB] }],
+      },
+      pagination: { limit: 100 },
+    });
+    expect(sql).toMatch(/json_contains\("[0-9a-f-]+", to_json\(\?\)\)/);
+    expect(sql).not.toMatch(/json_array_contains/);
+    expect(params).toContain(choiceA);
+    expect(params).toContain(choiceB);
+  });
+
+  it('renders nested AND/OR groups with correct parentheses', () => {
+    const { sql } = buildDuckDbListQuery({
+      columns,
+      filter: {
+        op: 'or',
+        children: [
+          { op: 'and', children: [{ propertyId: numericProp.id, op: 'gt', value: 1 }] },
+          { op: 'and', children: [{ propertyId: textProp.id, op: 'eq', value: 'x' }] },
+        ],
+      },
+      pagination: { limit: 100 },
+    });
+    expect(sql).toMatch(/\(\(.+\) OR \(.+\)\)/);
+  });
+
+  it('handles empty filter group without emitting WHERE on it', () => {
+    const { sql, params } = buildDuckDbListQuery({
+      columns,
+      filter: { op: 'and', children: [] },
+      pagination: { limit: 100 },
+    });
+    // either WHERE clause elided entirely, or group becomes TRUE
+    expect(sql).toMatch(/deleted_at IS NULL/);
+    expect(params).toEqual([]);
+  });
+
+  it('renders multi-sort keyset with s0, s1, position, id chain', () => {
+    const { sql } = buildDuckDbListQuery({
+      columns,
+      sorts: [
+        { propertyId: numericProp.id, direction: 'asc' },
+        { propertyId: textProp.id, direction: 'desc' },
+      ],
+      pagination: {
+        limit: 10,
+        afterKeys: { s0: 10, s1: 'abc', position: 'A0', id: '00000000-0000-0000-0000-0000000000aa' },
+      },
+    });
+    expect(sql).toMatch(/AS s0/);
+    expect(sql).toMatch(/AS s1/);
+    expect(sql).toMatch(/ORDER BY s0 ASC, s1 DESC, position ASC, id ASC/);
+    expect(sql).toMatch(/s0 > \?/);
+    expect(sql).toMatch(/s1 < \?/); // desc → less-than
+  });
+
+  it('renders text isEmpty as IS NULL OR = empty-string', () => {
+    const { sql } = buildDuckDbListQuery({
+      columns,
+      filter: {
+        op: 'and',
+        children: [{ propertyId: textProp.id, op: 'isEmpty' }],
+      },
+      pagination: { limit: 10 },
+    });
+    expect(sql).toMatch(new RegExp(`"${textProp.id}" IS NULL`));
+  });
 });

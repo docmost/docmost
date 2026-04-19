@@ -387,21 +387,21 @@ function arrayOfIdsCondition(
     case 'any': {
       const arr = asStringArray(val);
       if (arr.length === 0) return 'FALSE';
-      const legs = arr.map(() => `json_array_contains(${colRef}, ?)`);
+      const legs = arr.map(() => jsonArrayContains(colRef, '?'));
       for (const v of arr) params.push(v);
       return `(${legs.join(' OR ')})`;
     }
     case 'all': {
       const arr = asStringArray(val);
       if (arr.length === 0) return 'TRUE';
-      const legs = arr.map(() => `json_array_contains(${colRef}, ?)`);
+      const legs = arr.map(() => jsonArrayContains(colRef, '?'));
       for (const v of arr) params.push(v);
       return `(${legs.join(' AND ')})`;
     }
     case 'none': {
       const arr = asStringArray(val);
       if (arr.length === 0) return 'TRUE';
-      const legs = arr.map(() => `json_array_contains(${colRef}, ?)`);
+      const legs = arr.map(() => jsonArrayContains(colRef, '?'));
       for (const v of arr) params.push(v);
       return `(${colRef} IS NULL OR NOT (${legs.join(' OR ')}))`;
     }
@@ -611,6 +611,10 @@ function indexColumns(columns: ColumnSpec[]): ColumnIndex {
 
 function quoteIdent(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
+}
+
+function jsonArrayContains(colRef: string, paramPlaceholder: string): string {
+  return `json_contains(${colRef}, to_json(${paramPlaceholder}))`;
 }
 
 function asStringArray(val: unknown): string[] {
