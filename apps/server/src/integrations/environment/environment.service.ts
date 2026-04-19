@@ -320,6 +320,9 @@ export class EnvironmentService {
   }
 
   getBaseQueryCacheMaxCollections(): number {
+    // Default is intentionally low (50) because a single-node self-host with
+    // ~100 MB per collection can pin ~5 GB RSS at the cap. SaaS/larger
+    // deployments can raise via env.
     return parseInt(
       this.configService.get<string>('BASE_QUERY_CACHE_MAX_COLLECTIONS', '50'),
       10,
