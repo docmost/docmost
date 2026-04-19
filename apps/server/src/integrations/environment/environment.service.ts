@@ -304,4 +304,32 @@ export class EnvironmentService {
   getClickHouseUrl(): string {
     return this.configService.get<string>('CLICKHOUSE_URL');
   }
+
+  getBaseQueryCacheEnabled(): boolean {
+    return (
+      this.configService.get<string>('BASE_QUERY_CACHE_ENABLED', 'false') ===
+      'true'
+    );
+  }
+
+  getBaseQueryCacheMinRows(): number {
+    return parseInt(
+      this.configService.get<string>('BASE_QUERY_CACHE_MIN_ROWS', '25000'),
+      10,
+    );
+  }
+
+  getBaseQueryCacheMaxCollections(): number {
+    return parseInt(
+      this.configService.get<string>('BASE_QUERY_CACHE_MAX_COLLECTIONS', '50'),
+      10,
+    );
+  }
+
+  getBaseQueryCacheWarmTopN(): number {
+    return parseInt(
+      this.configService.get<string>('BASE_QUERY_CACHE_WARM_TOP_N', '50'),
+      10,
+    );
+  }
 }
