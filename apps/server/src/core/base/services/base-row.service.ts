@@ -227,10 +227,11 @@ export class BaseRowService {
           pagination,
         });
       } catch (err) {
+        const error = err as Error;
         this.logger.warn(
-          `Cache list failed for base ${dto.baseId}, falling back to Postgres`,
-          err as Error,
+          `Cache list failed for base ${dto.baseId}, falling back to Postgres: ${error.message}`,
         );
+        if (error.stack) this.logger.warn(error.stack);
       }
     }
 

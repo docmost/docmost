@@ -29,9 +29,8 @@ export class BaseQueryRouter {
     const hasSearch = !!args.search;
     if (!hasFilter && !hasSorts && !hasSearch) return 'postgres';
 
-    // v1: any search stays on Postgres. Trgm search also stays on Postgres
-    // until the loader populates `search_text`; re-evaluate after that lands.
-    if (args.search) return 'postgres';
+    // v1: any search stays on Postgres — loader doesn't populate search_text yet.
+    if (hasSearch) return 'postgres';
 
     const count = await this.baseRowRepo.countActiveRows(args.baseId, {
       workspaceId: args.workspaceId,
