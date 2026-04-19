@@ -40,6 +40,7 @@ export class BaseQueryCacheService
 {
   private readonly logger = new Logger(BaseQueryCacheService.name);
   private readonly collections = new Map<string, LoadedCollection>();
+  private readonly inFlightLoads = new Map<string, Promise<LoadedCollection>>();
 
   constructor(
     private readonly configProvider: QueryCacheConfigProvider,
@@ -168,6 +169,8 @@ export class BaseQueryCacheService
     baseId: string,
     workspaceId: string,
   ): Promise<LoadedCollection> {
+    // TODO(task-7): remove per-request findById once pub/sub invalidation
+    // keeps collections in sync with schema bumps.
     const existing = this.collections.get(baseId);
 
     const base = await this.baseRepo.findById(baseId);
@@ -186,14 +189,24 @@ export class BaseQueryCacheService
       this.collections.delete(baseId);
     }
 
-    const { maxCollections } = this.configProvider.config;
-    if (this.collections.size >= maxCollections) {
-      this.evictLru();
-    }
+    const inFlight = this.inFlightLoads.get(baseId);
+    if (inFlight) return inFlight;
 
-    const loaded = await this.collectionLoader.load(baseId, workspaceId);
-    this.collections.set(baseId, loaded);
-    return loaded;
+    const promise = (async () => {
+      try {
+        const { maxCollections } = this.configProvider.config;
+        if (this.collections.size >= maxCollections) {
+          this.evictLru();
+        }
+        const loaded = await this.collectionLoader.load(baseId, workspaceId);
+        this.collections.set(baseId, loaded);
+        return loaded;
+      } finally {
+        this.inFlightLoads.delete(baseId);
+      }
+    })();
+    this.inFlightLoads.set(baseId, promise);
+    return promise;
   }
 
   private evictLru(): void {
@@ -228,10 +241,10 @@ export class BaseQueryCacheService
 }
 
 // Convert a DuckDB row object back into the BaseRow JSON shape. The builder
-// projects `cells` as a json_object keyed by property id; typed columns
-// (DOUBLE, BOOLEAN, TIMESTAMPTZ) round-trip as JS primitives / Date objects.
-// We reconstruct `cells` directly from the per-property columns so the JSON
-// payload matches what Postgres returns.
+// projects one column per user property; typed columns (DOUBLE, BOOLEAN,
+// TIMESTAMPTZ) round-trip as JS primitives / Date objects. We reconstruct
+// `cells` directly from the per-property columns so the JSON payload matches
+// what Postgres returns.
 function shapeBaseRow(
   raw: Record<string, unknown>,
   specs: ColumnSpec[],

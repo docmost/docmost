@@ -38,89 +38,113 @@ export class CollectionLoader {
 
     const instance = await DuckDBInstance.create(':memory:');
     const connection = await instance.connect();
+    let appender: Awaited<ReturnType<typeof connection.createAppender>> | null =
+      null;
 
-    const ddl = `CREATE TABLE rows (${specs
-      .map((s) => `${quoteIdent(s.column)} ${s.ddlType}`)
-      .join(', ')}, PRIMARY KEY (${quoteIdent('id')}))`;
-    await connection.run(ddl);
+    try {
+      const ddl = `CREATE TABLE rows (${specs
+        .map((s) => `${quoteIdent(s.column)} ${s.ddlType}`)
+        .join(', ')}, PRIMARY KEY (${quoteIdent('id')}))`;
+      await connection.run(ddl);
 
-    const appender = await connection.createAppender('rows');
+      appender = await connection.createAppender('rows');
 
-    let rowCount = 0;
-    for await (const chunk of this.baseRowRepo.streamByBaseId(baseId, {
-      workspaceId,
-      chunkSize: 5000,
-    })) {
-      for (const row of chunk) {
-        for (const spec of specs) {
-          const raw = readFromRow(row, spec);
-          if (raw == null) {
-            appender.appendNull();
-            continue;
-          }
-          switch (spec.ddlType) {
-            case 'VARCHAR':
-              appender.appendVarchar(String(raw));
-              break;
-            case 'DOUBLE': {
-              const n = Number(raw);
-              if (Number.isNaN(n)) {
-                this.logger.debug(
-                  `Malformed number for ${spec.column} on row ${row.id}`,
-                );
-                appender.appendNull();
+      let rowCount = 0;
+      for await (const chunk of this.baseRowRepo.streamByBaseId(baseId, {
+        workspaceId,
+        chunkSize: 5000,
+      })) {
+        for (const row of chunk) {
+          for (const spec of specs) {
+            const raw = readFromRow(row, spec);
+            if (raw == null) {
+              appender.appendNull();
+              continue;
+            }
+            switch (spec.ddlType) {
+              case 'VARCHAR':
+                appender.appendVarchar(String(raw));
+                break;
+              case 'DOUBLE': {
+                const n = Number(raw);
+                if (Number.isNaN(n)) {
+                  this.logger.debug(
+                    `Malformed number for ${spec.column} on row ${row.id}`,
+                  );
+                  appender.appendNull();
+                  break;
+                }
+                appender.appendDouble(n);
                 break;
               }
-              appender.appendDouble(n);
-              break;
-            }
-            case 'BOOLEAN':
-              appender.appendBoolean(Boolean(raw));
-              break;
-            case 'TIMESTAMPTZ': {
-              const d = raw instanceof Date ? raw : new Date(String(raw));
-              if (Number.isNaN(d.getTime())) {
-                this.logger.debug(
-                  `Malformed timestamp for ${spec.column} on row ${row.id}`,
-                );
-                appender.appendNull();
+              case 'BOOLEAN':
+                appender.appendBoolean(Boolean(raw));
+                break;
+              case 'TIMESTAMPTZ': {
+                const d = raw instanceof Date ? raw : new Date(String(raw));
+                if (Number.isNaN(d.getTime())) {
+                  this.logger.debug(
+                    `Malformed timestamp for ${spec.column} on row ${row.id}`,
+                  );
+                  appender.appendNull();
+                  break;
+                }
+                appender.appendVarchar(d.toISOString());
                 break;
               }
-              appender.appendVarchar(d.toISOString());
-              break;
+              case 'JSON':
+                appender.appendVarchar(JSON.stringify(raw));
+                break;
             }
-            case 'JSON':
-              appender.appendVarchar(JSON.stringify(raw));
-              break;
           }
+          appender.endRow();
+          rowCount++;
         }
-        appender.endRow();
-        rowCount++;
       }
-    }
-    appender.flushSync();
-    appender.closeSync();
+      appender.flushSync();
+      appender.closeSync();
+      appender = null;
 
-    for (const spec of specs) {
-      if (!spec.indexable) continue;
-      const safe = spec.column.replace(/[^a-zA-Z0-9_]/g, '_');
-      await connection.run(
-        `CREATE INDEX ${quoteIdent(`idx_${safe}`)} ON rows (${quoteIdent(spec.column)})`,
+      for (const spec of specs) {
+        if (!spec.indexable) continue;
+        const safe = spec.column.replace(/[^a-zA-Z0-9_]/g, '_');
+        await connection.run(
+          `CREATE INDEX ${quoteIdent(`idx_${safe}`)} ON rows (${quoteIdent(spec.column)})`,
+        );
+      }
+
+      this.logger.debug(
+        `Loaded ${rowCount} rows for base ${baseId} (schemaVersion=${schemaVersion})`,
       );
+
+      return {
+        baseId,
+        schemaVersion,
+        columns: specs,
+        instance,
+        connection,
+        lastAccessedAt: Date.now(),
+      };
+    } catch (err) {
+      if (appender) {
+        try {
+          appender.closeSync();
+        } catch {
+          // swallow — best-effort cleanup
+        }
+      }
+      try {
+        connection.closeSync();
+      } catch {
+        // swallow — best-effort cleanup
+      }
+      try {
+        instance.closeSync();
+      } catch {
+        // swallow — best-effort cleanup
+      }
+      throw err;
     }
-
-    this.logger.debug(
-      `Loaded ${rowCount} rows for base ${baseId} (schemaVersion=${schemaVersion})`,
-    );
-
-    return {
-      baseId,
-      schemaVersion,
-      columns: specs,
-      instance,
-      connection,
-      lastAccessedAt: Date.now(),
-    };
   }
 }
 

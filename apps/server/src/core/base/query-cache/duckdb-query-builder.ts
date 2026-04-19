@@ -97,11 +97,9 @@ export function buildDuckDbListQuery(
 // --- select projection -------------------------------------------------
 
 function buildSelect(index: ColumnIndex, sortBuilds: SortBuild[]): string[] {
-  const cellsJson = buildCellsJson(index.userColumns);
   const parts: string[] = [
     'id',
     'base_id',
-    `${cellsJson} AS cells`,
     'position',
     'creator_id',
     'last_updated_by_id',
@@ -110,20 +108,13 @@ function buildSelect(index: ColumnIndex, sortBuilds: SortBuild[]): string[] {
     'updated_at',
     'deleted_at',
   ];
+  for (const col of index.userColumns) {
+    parts.push(quoteIdent(col.column));
+  }
   for (const sb of sortBuilds) {
     parts.push(`${sb.expression} AS ${sb.key}`);
   }
   return parts;
-}
-
-function buildCellsJson(userColumns: ColumnSpec[]): string {
-  if (userColumns.length === 0) return `'{}'::JSON`;
-  const entries: string[] = [];
-  for (const col of userColumns) {
-    entries.push(`'${col.column}'`);
-    entries.push(quoteIdent(col.column));
-  }
-  return `json_object(${entries.join(', ')})`;
 }
 
 // --- filter ------------------------------------------------------------
