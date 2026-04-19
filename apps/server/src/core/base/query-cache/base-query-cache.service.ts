@@ -24,7 +24,12 @@ import {
 import { QueryCacheConfigProvider } from './query-cache.config';
 import { CollectionLoader } from './collection-loader';
 import { buildDuckDbListQuery } from './duckdb-query-builder';
-import { ColumnSpec, LoadedCollection } from './query-cache.types';
+import { BasePropertyType } from '../base.schemas';
+import {
+  ChangeEnvelope,
+  ColumnSpec,
+  LoadedCollection,
+} from './query-cache.types';
 
 export type CacheListOpts = {
   filter?: FilterNode;
@@ -165,6 +170,117 @@ export class BaseQueryCacheService
     this.collections.delete(baseId);
   }
 
+  /*
+   * Apply a change envelope received from Redis pub/sub to the local
+   * collection (if any). Rows that target bases not resident on this node
+   * are ignored — the next `list` call will load them fresh from Postgres.
+   * If any patch step throws (e.g. schema drift between this node and the
+   * publisher) we eagerly invalidate so the next `list` rebuilds cleanly
+   * rather than serving partial state.
+   */
+  async applyChange(env: ChangeEnvelope): Promise<void> {
+    const collection = this.collections.get(env.baseId);
+    if (!collection) return;
+
+    try {
+      switch (env.kind) {
+        case 'schema-invalidate':
+          if (env.schemaVersion > collection.schemaVersion) {
+            await this.invalidate(env.baseId);
+          }
+          return;
+        case 'row-upsert':
+          await this.upsertRow(collection, env.row);
+          return;
+        case 'row-delete':
+          await this.deleteRow(collection, env.rowId);
+          return;
+        case 'rows-delete':
+          for (const id of env.rowIds) await this.deleteRow(collection, id);
+          return;
+        case 'row-reorder':
+          await this.updatePosition(collection, env.rowId, env.position);
+          return;
+      }
+    } catch (err) {
+      const error = err as Error;
+      this.logger.warn(
+        `applyChange failed for ${env.baseId}; invalidating: ${error.message}`,
+      );
+      if (error.stack) this.logger.warn(error.stack);
+      await this.invalidate(env.baseId);
+    }
+  }
+
+  private async upsertRow(
+    collection: LoadedCollection,
+    row: Record<string, unknown>,
+  ): Promise<void> {
+    const specs = collection.columns;
+    const columnList = specs.map((s) => quoteIdent(s.column)).join(', ');
+    const placeholders = specs.map(() => '?').join(', ');
+    const sql = `INSERT OR REPLACE INTO rows (${columnList}) VALUES (${placeholders})`;
+
+    const prepared = await collection.connection.prepare(sql);
+    for (let i = 0; i < specs.length; i++) {
+      const spec = specs[i];
+      const oneBased = i + 1;
+      const raw = readFromRowEvent(row, spec);
+      if (raw == null) {
+        prepared.bindNull(oneBased);
+        continue;
+      }
+      switch (spec.ddlType) {
+        case 'VARCHAR':
+          prepared.bindVarchar(oneBased, String(raw));
+          break;
+        case 'DOUBLE': {
+          const n = Number(raw);
+          if (Number.isNaN(n)) prepared.bindNull(oneBased);
+          else prepared.bindDouble(oneBased, n);
+          break;
+        }
+        case 'BOOLEAN':
+          prepared.bindBoolean(oneBased, Boolean(raw));
+          break;
+        case 'TIMESTAMPTZ': {
+          const d = raw instanceof Date ? raw : new Date(String(raw));
+          if (Number.isNaN(d.getTime())) prepared.bindNull(oneBased);
+          else prepared.bindVarchar(oneBased, d.toISOString());
+          break;
+        }
+        case 'JSON':
+          prepared.bindVarchar(oneBased, JSON.stringify(raw));
+          break;
+      }
+    }
+    await prepared.run();
+  }
+
+  private async deleteRow(
+    collection: LoadedCollection,
+    rowId: string,
+  ): Promise<void> {
+    const prepared = await collection.connection.prepare(
+      'DELETE FROM rows WHERE id = ?',
+    );
+    prepared.bindVarchar(1, rowId);
+    await prepared.run();
+  }
+
+  private async updatePosition(
+    collection: LoadedCollection,
+    rowId: string,
+    position: string,
+  ): Promise<void> {
+    const prepared = await collection.connection.prepare(
+      'UPDATE rows SET position = ? WHERE id = ?',
+    );
+    prepared.bindVarchar(1, position);
+    prepared.bindVarchar(2, rowId);
+    await prepared.run();
+  }
+
   private async ensureLoaded(
     baseId: string,
     workspaceId: string,
@@ -303,4 +419,57 @@ function normaliseCellValue(value: unknown, spec: ColumnSpec): unknown {
 function toDate(value: unknown): Date {
   if (value instanceof Date) return value;
   return new Date(String(value));
+}
+
+// System property type → system column on base_rows (mirrors the map in
+// collection-loader.ts). Kept local to avoid a circular import.
+const SYSTEM_PROPERTY_COLUMN_LOOKUP: Record<string, string> = {
+  [BasePropertyType.CREATED_AT]: 'createdAt',
+  [BasePropertyType.LAST_EDITED_AT]: 'updatedAt',
+  [BasePropertyType.LAST_EDITED_BY]: 'lastUpdatedById',
+};
+
+// Mirror of collection-loader's `readFromRow`, but keyed off a generic event
+// payload (which may be camelCase JSON because it came over EventEmitter /
+// Redis rather than straight from Kysely — both shapes round-trip through
+// here). The function tolerates both the wire shape and the repo shape.
+function readFromRowEvent(
+  row: Record<string, unknown>,
+  spec: ColumnSpec,
+): unknown {
+  switch (spec.column) {
+    case 'id':
+      return row.id;
+    case 'base_id':
+      return row.baseId ?? row.base_id;
+    case 'workspace_id':
+      return row.workspaceId ?? row.workspace_id;
+    case 'creator_id':
+      return row.creatorId ?? row.creator_id;
+    case 'position':
+      return row.position;
+    case 'created_at':
+      return row.createdAt ?? row.created_at;
+    case 'updated_at':
+      return row.updatedAt ?? row.updated_at;
+    case 'last_updated_by_id':
+      return row.lastUpdatedById ?? row.last_updated_by_id;
+    case 'deleted_at':
+      return null;
+    case 'search_text':
+      return '';
+  }
+
+  const prop = spec.property;
+  if (!prop) return null;
+
+  const sysColumn = SYSTEM_PROPERTY_COLUMN_LOOKUP[prop.type];
+  if (sysColumn) return row[sysColumn] ?? null;
+
+  const cells = (row.cells as Record<string, unknown> | null) ?? {};
+  return cells[prop.id] ?? null;
+}
+
+function quoteIdent(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
 }
