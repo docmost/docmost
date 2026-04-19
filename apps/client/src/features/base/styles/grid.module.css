@@ -1,6 +1,7 @@
 .gridWrapper {
   position: relative;
   overflow: auto;
+  overflow-anchor: none;
   flex: 1;
   min-height: 0;
   padding-left: 6px;

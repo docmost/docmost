@@ -60,13 +60,6 @@ export function GridContainer({
   onFetchNextPage,
 }: GridContainerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Records the `rows.length` at which we last triggered a page fetch.
-  // The trigger effect re-runs on every render (its `virtualItems` dep
-  // has a new identity each call) and can't rely on `isFetchingNextPage`
-  // alone: once a page commits, `isFetchingNextPage` flips to false for
-  // one render, the "near bottom" condition still holds because the
-  // virtualizer anchors on the old scroll position, and we'd fire again.
-  // Gating on `rows.length` guarantees at most one fire per new page.
   const lastTriggeredRowsLenRef = useRef(0);
   const rows = table.getRowModel().rows;
 
