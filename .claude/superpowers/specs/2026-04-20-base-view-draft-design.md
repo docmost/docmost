@@ -81,26 +81,54 @@ export type BaseViewDraft = {
 
 Both `filter` and `sorts` are optional, independently. An absent field means "inherit baseline for that axis". That matters because a user who's only dirtied sorts but not filters should see the baseline filter unchanged if the baseline's filter later shifts.
 
-Serialized as JSON via `JSON.stringify` / `JSON.parse`. No schema validation on read — if the parse fails or the shape looks wrong, the hook drops it silently and falls back to baseline.
+Serialized as JSON by Jotai's `atomWithStorage` (which JSON-stringifies on write and parses on read). No schema validation on read — if the parse fails or the shape looks wrong, Jotai yields `null` and the hook falls back to baseline.
 
 ## Client architecture
 
-### New hook: `useViewDraft`
+### Storage atom family
+
+**File:** `apps/client/src/features/base/atoms/view-draft-atom.ts`
+
+Follow the existing Jotai storage pattern in [home-tab-atom.ts](../../../apps/client/src/features/home/atoms/home-tab-atom.ts) and [auth-tokens-atom.ts](../../../apps/client/src/features/auth/atoms/auth-tokens-atom.ts) — `atomWithStorage` is the codebase convention for localStorage-backed state. Since our key is dynamic per (user, base, view), pair it with `atomFamily` from `jotai/utils`:
+
+```ts
+import { atomFamily, atomWithStorage } from "jotai/utils";
+import { BaseViewDraft } from "@/features/base/types/base.types";
+
+export type ViewDraftKey = {
+  userId: string;
+  baseId: string;
+  viewId: string;
+};
+
+const keyFor = (k: ViewDraftKey) =>
+  `docmost:base-view-draft:v1:${k.userId}:${k.baseId}:${k.viewId}`;
+
+export const viewDraftAtomFamily = atomFamily(
+  (k: ViewDraftKey) =>
+    atomWithStorage<BaseViewDraft | null>(keyFor(k), null),
+  (a, b) =>
+    a.userId === b.userId && a.baseId === b.baseId && a.viewId === b.viewId,
+);
+```
+
+`atomWithStorage` handles JSON serialization, cross-tab sync via the `storage` event, and SSR-safe lazy reads out of the box — no hand-rolled `localStorage.getItem/setItem` or `window.addEventListener("storage", ...)` needed. The comparator passed as `atomFamily`'s second argument ensures the same (user, base, view) triple always resolves to the same atom instance, so React Query-style object identity issues don't cause atoms to be recreated per render.
+
+### Hook: `useViewDraft`
 
 **File:** `apps/client/src/features/base/hooks/use-view-draft.ts`
+
+Thin wrapper that binds the atom family to the rendering layer, adds the passthrough-when-undefined guard, and derives `effectiveFilter` / `effectiveSorts` / `isDirty` / `buildPromotedConfig` from the atom's value:
 
 ```ts
 export type ViewDraftState = {
   draft: BaseViewDraft | null;
-  // The filter/sorts that should actually drive the table and row query.
-  // `draft.X ?? baseline.X` — i.e. draft wins per-axis, baseline fills gaps.
   effectiveFilter: FilterGroup | undefined;
   effectiveSorts: ViewSortConfig[] | undefined;
   isDirty: boolean;
   setFilter: (filter: FilterGroup | undefined) => void;
   setSorts: (sorts: ViewSortConfig[] | undefined) => void;
   reset: () => void;
-  // Used by the Save handler — returns the composed config to pass to updateView.
   buildPromotedConfig: (baseline: ViewConfig) => ViewConfig;
 };
 
@@ -115,19 +143,19 @@ export function useViewDraft(args: {
 
 **Behavior:**
 
-1. Compute the storage key `docmost:base-view-draft:v1:{userId}:{baseId}:{viewId}`. If any of the three ids is undefined, the hook returns a "passthrough" state (`draft=null`, `isDirty=false`, all setters no-op, effective* falls through to baseline).
-2. On mount and whenever the key changes, read the value from `localStorage` and `JSON.parse`. Invalid or missing → `draft=null`.
-3. `setFilter` / `setSorts` merge into the current draft, write to `localStorage`, update React state. An update that sets both axes back to `undefined` (i.e. no local divergence remaining) **removes the key entirely** rather than writing an empty `{}` — this keeps `isDirty` clean when the user manually undoes all their changes.
-4. `reset` is `localStorage.removeItem(key)` + `setDraft(null)`.
-5. `isDirty` is computed as: any draft key present, AND `!shallowEqualFilter(draft.filter, baselineFilter) || !shallowEqualSorts(draft.sorts, baselineSorts)`. The "orphan" rule (draft values matching baseline → banner hidden) is enforced here; see "Dirty check".
-6. Subscribes to `window.addEventListener("storage", ...)` with a callback that re-reads on matching key changes from other tabs (see "Cross-tab sync").
-7. Writes use a synchronous `localStorage.setItem` — no debouncing. localStorage writes are cheap and the filter/sort popovers commit in discrete user actions (clicking Save inside the popover), not keystroke-by-keystroke.
-8. `buildPromotedConfig(baseline)` returns `{ ...baseline, filter: draft?.filter ?? baseline.filter, sorts: draft?.sorts ?? baseline.sorts }`. Used by the Save handler to compose the `updateView` payload — preserves everything else about the baseline (widths, order, etc.) and only overwrites the two axes the draft may have diverged on.
+1. If any of `userId / baseId / viewId` is undefined → return a passthrough state (`draft=null`, `isDirty=false`, setters no-op, `effective*` fall through to baseline). Guards the initial-load window where auth / activeView hasn't resolved yet.
+2. Otherwise, `useAtom(viewDraftAtomFamily({ userId, baseId, viewId }))` gives `[draft, setDraft]`. Jotai reads from localStorage on first access and writes on every set.
+3. `setFilter(next)` and `setSorts(next)` compute `merged = { ...(draft ?? {}), [axis]: next, updatedAt: new Date().toISOString() }`. If the result has both `filter` and `sorts` back to `undefined` (the user cleared all local divergence), call `setDraft(RESET)` instead of writing an empty object. (`RESET` is `jotai/utils`' sentinel — it removes the key from localStorage.) This keeps "orphan" drafts from lingering.
+4. `reset()` is `setDraft(RESET)`.
+5. `isDirty` is `draft !== null && (!shallowEqualFilter(draft.filter, baselineFilter) || !shallowEqualSorts(draft.sorts, baselineSorts))`. Note the per-axis `??` fallback doesn't appear here because `null/undefined` is the "no local divergence" signal for that axis; only a defined-and-different value counts as dirty.
+6. `buildPromotedConfig(baseline)` returns `{ ...baseline, filter: draft?.filter ?? baseline.filter, sorts: draft?.sorts ?? baseline.sorts }`. Preserves all non-draft config fields (widths, order, visibility) and only overwrites the two axes that may have diverged.
 
 **Return composition:**
 
 - `effectiveFilter = draft?.filter ?? baselineFilter`
 - `effectiveSorts = draft?.sorts ?? baselineSorts`
+
+**Cross-tab sync is free.** `atomWithStorage` subscribes to the `storage` event internally — a filter change in tab A triggers a re-render in tab B with no extra code. No manual listener required.
 
 ### Integration into `useBaseTable` and `base-table.tsx`
 
@@ -316,33 +344,11 @@ The `useSpaceQuery`/`useSpaceAbility` pair follows the same pattern as [use-hist
 
 ## Cross-tab sync
 
-The draft hook subscribes to the browser `storage` event:
+Inherited from `atomWithStorage`. Its internal subscription to the `storage` event re-notifies any Jotai-connected component on other tabs when the matching localStorage key changes, triggering a re-render with the new draft value. No hand-rolled listener in `useViewDraft`.
 
-```ts
-useEffect(() => {
-  const handler = (e: StorageEvent) => {
-    if (e.key !== storageKey) return;
-    // e.newValue is the serialized draft or null if the key was removed.
-    if (e.newValue === null) {
-      setDraftState(null);
-    } else {
-      try {
-        setDraftState(JSON.parse(e.newValue));
-      } catch {
-        setDraftState(null);
-      }
-    }
-  };
-  window.addEventListener("storage", handler);
-  return () => window.removeEventListener("storage", handler);
-}, [storageKey]);
-```
+React Query's row cache is keyed by `(baseId, filter, sorts, search)` — when the updated draft flows through `effectiveFilter` / `effectiveSorts` on the other tab, the row query refetches as a fresh infinite query via the normal path.
 
-The `storage` event fires in *other* tabs of the same origin when this tab writes (not in the writing tab itself), which is exactly what we need: the writing tab already updated its own state synchronously inside `setFilter`/`setSorts`, and the subscription catches the echo elsewhere.
-
-No explicit rebroadcast is required — `localStorage.setItem` in the source tab triggers the storage event in every other tab automatically. The hook in those tabs re-parses and re-renders the table with updated draft values. React Query's row cache keyed by `(baseId, filter, sorts, search)` rehydrates the new filter/sort as a fresh infinite query, so rows reload via the normal path.
-
-Edge case: two tabs editing simultaneously — both writes land in localStorage, each emits a storage event to the other, and the most recent write wins. This is acceptable given the single-user scope (multi-tab same-user).
+Edge case: two tabs editing simultaneously — both writes land in localStorage, last-write-wins (same-user scope, acceptable).
 
 ## Save flow (pseudocode)
 
@@ -412,8 +418,8 @@ Per [CLAUDE.md](../../../CLAUDE.md), the client has no test infrastructure (no `
 - **`reset` clears both state and storage.**
 - **Draft values equal to baseline → `isDirty === false` without clearing storage.** Set baseline to `B`, set draft filter to `B`, assert `isDirty === false` and `localStorage.getItem(key)` is still non-null (no eager GC).
 - **Baseline change while draft exists.** Baseline shifts from `B1` to `B2`, draft filter is `X`. Effective filter stays `X`, `isDirty` stays `true`. Then baseline shifts again to `X` — `isDirty` flips to `false` without draft being cleared.
-- **Cross-tab storage event.** Dispatch `new StorageEvent('storage', { key, newValue: JSON.stringify(newDraft) })`, assert hook state picks up the new draft. Dispatch with `newValue: null` and assert hook resets to `null`.
-- **Malformed storage value.** Seed localStorage with garbage → hook reads `draft=null`, `isDirty=false`, table receives baseline.
+- **Cross-tab propagation (integration-level, not strictly a unit test).** `atomWithStorage` handles the `storage` event internally; the only thing our hook contributes is the derivation of `effectiveFilter` / `effectiveSorts` / `isDirty` from the atom value. A single assertion that writing to the atom value in one `Provider` context reflects in another suffices.
+- **Malformed storage value.** Seed localStorage with garbage under the computed key → `atomWithStorage` yields `null`, hook reports `draft=null`, `isDirty=false`, table receives baseline.
 - **`userId` missing → passthrough.** All setters are no-ops, `isDirty=false`, effective = baseline.
 
 ### Manual QA checklist
