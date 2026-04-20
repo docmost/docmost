@@ -8,6 +8,10 @@ import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 import { useBaseSocket } from "@/features/base/hooks/use-base-socket";
 import {
+  FilterGroup,
+  ViewSortConfig,
+} from "@/features/base/types/base.types";
+import {
   useBaseRowsQuery,
   flattenRows,
 } from "@/features/base/queries/base-row-query";
@@ -179,6 +183,20 @@ export function BaseTable({ baseId }: BaseTableProps) {
     persistViewConfig();
   }, [persistViewConfig]);
 
+  const handleDraftSortsChange = useCallback(
+    (sorts: ViewSortConfig[] | undefined) => {
+      setDraftSorts(sorts && sorts.length > 0 ? sorts : undefined);
+    },
+    [setDraftSorts],
+  );
+
+  const handleDraftFiltersChange = useCallback(
+    (filter: FilterGroup | undefined) => {
+      setDraftFilter(filter);
+    },
+    [setDraftFilter],
+  );
+
   const handleRowReorder = useCallback(
     (rowId: string, targetRowId: string, dropPosition: "above" | "below") => {
       const remainingRows = rows.filter((r) => r.id !== rowId);
@@ -235,12 +253,14 @@ export function BaseTable({ baseId }: BaseTableProps) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <BaseToolbar
         base={base}
-        activeView={activeView}
+        activeView={effectiveView}
         views={views}
         table={table}
         onViewChange={handleViewChange}
         onAddView={handleAddView}
         onPersistViewConfig={persistViewConfig}
+        onDraftSortsChange={handleDraftSortsChange}
+        onDraftFiltersChange={handleDraftFiltersChange}
       />
       <GridContainer
         table={table}

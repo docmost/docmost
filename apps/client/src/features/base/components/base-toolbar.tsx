@@ -16,8 +16,6 @@ import {
   FilterCondition,
   FilterGroup,
 } from "@/features/base/types/base.types";
-import { useUpdateViewMutation } from "@/features/base/queries/base-view-query";
-import { buildViewConfigFromTable } from "@/features/base/hooks/use-base-table";
 import { exportBaseToCsv } from "@/features/base/services/base-service";
 import { ViewTabs } from "@/features/base/components/views/view-tabs";
 import { ViewSortConfigPopover } from "@/features/base/components/views/view-sort-config";
@@ -28,12 +26,18 @@ import classes from "@/features/base/styles/grid.module.css";
 
 type BaseToolbarProps = {
   base: IBase;
+  // Effective view — baseline merged with any local draft. Badge counts
+  // and sort/filter popover seed data read from this. The real baseline
+  // only enters via `onDraftSortsChange` / `onDraftFiltersChange`
+  // callbacks defined by the parent.
   activeView: IBaseView | undefined;
   views: IBaseView[];
   table: Table<IBaseRow>;
   onViewChange: (viewId: string) => void;
   onAddView?: () => void;
   onPersistViewConfig: () => void;
+  onDraftSortsChange: (sorts: ViewSortConfig[] | undefined) => void;
+  onDraftFiltersChange: (filter: FilterGroup | undefined) => void;
 };
 
 export function BaseToolbar({
@@ -44,6 +48,8 @@ export function BaseToolbar({
   onViewChange,
   onAddView,
   onPersistViewConfig,
+  onDraftSortsChange,
+  onDraftFiltersChange,
 }: BaseToolbarProps) {
   const { t } = useTranslation();
   const [sortOpened, setSortOpened] = useState(false);
@@ -113,8 +119,6 @@ export function BaseToolbar({
     setFieldsOpened(panel === "fields" ? (v) => !v : false);
   }, []);
 
-  const updateViewMutation = useUpdateViewMutation();
-
   const sorts = activeView?.config?.sorts ?? [];
   // Stored view config uses the engine's filter tree. The popover edits
   // an AND-only flat list; we unwrap the top-level group's children when
@@ -134,38 +138,24 @@ export function BaseToolbar({
 
   const handleSortsChange = useCallback(
     (newSorts: ViewSortConfig[]) => {
-      if (!activeView) return;
-      const config = buildViewConfigFromTable(table, activeView.config, {
-        sorts: newSorts,
-      });
-      updateViewMutation.mutate({
-        viewId: activeView.id,
-        baseId: base.id,
-        config,
-      });
+      // Normalize empty to undefined so the draft hook can drop the `sorts`
+      // axis (and remove its localStorage entry when both axes go clean).
+      onDraftSortsChange(newSorts.length > 0 ? newSorts : undefined);
     },
-    [activeView, base.id, table, updateViewMutation],
+    [onDraftSortsChange],
   );
 
   const handleFiltersChange = useCallback(
     (newConditions: FilterCondition[]) => {
-      if (!activeView) return;
+      // Wrap the AND-flat popover output into the engine's FilterGroup shape.
+      // Pass `undefined` to drop the filter axis from the draft entirely.
       const filter: FilterGroup | undefined =
         newConditions.length > 0
           ? { op: "and", children: newConditions }
           : undefined;
-      // `filter: undefined` in overrides removes the filter key; the helper's
-      // spread-then-overrides order means `undefined` wins over any base filter.
-      const config = buildViewConfigFromTable(table, activeView.config, {
-        filter,
-      });
-      updateViewMutation.mutate({
-        viewId: activeView.id,
-        baseId: base.id,
-        config,
-      });
+      onDraftFiltersChange(filter);
     },
-    [activeView, base.id, table, updateViewMutation],
+    [onDraftFiltersChange],
   );
 
   return (
