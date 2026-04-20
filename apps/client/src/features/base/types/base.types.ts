@@ -299,3 +299,14 @@ export type UpdatePropertyResult = {
   // when the job finished migrating cells.
   jobId: string | null;
 };
+
+// Local-first draft of filter / sort tweaks for a single view, stored in
+// localStorage scoped to (userId, baseId, viewId). An absent `filter` or
+// `sorts` field means "inherit the baseline for that axis". See
+// `.claude/superpowers/specs/2026-04-20-base-view-draft-design.md`.
+export type BaseViewDraft = {
+  filter?: FilterGroup;
+  sorts?: ViewSortConfig[];
+  // ISO timestamp written on each put; diagnostic only, not read by logic.
+  updatedAt: string;
+};
