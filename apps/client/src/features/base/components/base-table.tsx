@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { Text, Stack } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
 import { IconDatabase } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -18,14 +19,24 @@ import {
 import { useUpdateRowMutation } from "@/features/base/queries/base-row-query";
 import { useCreateRowMutation } from "@/features/base/queries/base-row-query";
 import { useReorderRowMutation } from "@/features/base/queries/base-row-query";
-import { useCreateViewMutation } from "@/features/base/queries/base-view-query";
+import {
+  useCreateViewMutation,
+  useUpdateViewMutation,
+} from "@/features/base/queries/base-view-query";
 import { activeViewIdAtom } from "@/features/base/atoms/base-atoms";
 import { useBaseTable } from "@/features/base/hooks/use-base-table";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
 import useCurrentUser from "@/features/user/hooks/use-current-user";
 import { useViewDraft } from "@/features/base/hooks/use-view-draft";
+import { useSpaceQuery } from "@/features/space/queries/space-query";
+import { useSpaceAbility } from "@/features/space/permissions/use-space-ability";
+import {
+  SpaceCaslAction,
+  SpaceCaslSubject,
+} from "@/features/space/permissions/permissions.type";
 import { GridContainer } from "@/features/base/components/grid/grid-container";
 import { BaseToolbar } from "@/features/base/components/base-toolbar";
+import { BaseViewDraftBanner } from "@/features/base/components/base-view-draft-banner";
 import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
 import classes from "@/features/base/styles/grid.module.css";
 
@@ -90,6 +101,17 @@ export function BaseTable({ baseId }: BaseTableProps) {
   // source of truth once drafts are involved.
   const activeFilter = effectiveFilter;
   const activeSorts = effectiveSorts;
+
+  // `useSpaceQuery` is guarded by `enabled: !!spaceId` internally, so
+  // passing `""` when `base` hasn't loaded yet is safe. See
+  // use-history-restore.tsx for the same pattern.
+  const { data: space } = useSpaceQuery(base?.spaceId ?? "");
+  const spaceAbility = useSpaceAbility(space?.membership?.permissions);
+  const canSave = spaceAbility.can(
+    SpaceCaslAction.Edit,
+    SpaceCaslSubject.Base,
+  );
+
   // Hold the rows query until `base` has loaded. Otherwise the query
   // fires once with `activeFilter` / `activeSorts` still undefined
   // (a "bland" list request), then fires a second time as soon as the
@@ -102,6 +124,7 @@ export function BaseTable({ baseId }: BaseTableProps) {
   const createRowMutation = useCreateRowMutation();
   const reorderRowMutation = useReorderRowMutation();
   const createViewMutation = useCreateViewMutation();
+  const updateViewMutation = useUpdateViewMutation();
 
   useEffect(() => {
     if (activeView && activeViewId !== activeView.id) {
@@ -197,6 +220,34 @@ export function BaseTable({ baseId }: BaseTableProps) {
     [setDraftFilter],
   );
 
+  const handleSaveDraft = useCallback(async () => {
+    if (!activeView || !base) return;
+    // `buildPromotedConfig` preserves all non-draft baseline fields
+    // (widths/order/visibility) and only overwrites filter/sorts when the
+    // draft has divergent values.
+    const config = buildPromotedConfig(activeView.config);
+    try {
+      await updateViewMutation.mutateAsync({
+        viewId: activeView.id,
+        baseId: base.id,
+        config,
+      });
+      resetDraft();
+      notifications.show({ message: t("View updated for everyone") });
+    } catch {
+      // `useUpdateViewMutation` already shows a red toast on error and
+      // rolls back the optimistic cache; keep the draft so the user can
+      // retry without re-typing.
+    }
+  }, [
+    activeView,
+    base,
+    buildPromotedConfig,
+    resetDraft,
+    t,
+    updateViewMutation,
+  ]);
+
   const handleRowReorder = useCallback(
     (rowId: string, targetRowId: string, dropPosition: "above" | "below") => {
       const remainingRows = rows.filter((r) => r.id !== rowId);
@@ -251,6 +302,13 @@ export function BaseTable({ baseId }: BaseTableProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <BaseViewDraftBanner
+        isDirty={isDirty}
+        canSave={canSave}
+        onReset={resetDraft}
+        onSave={handleSaveDraft}
+        saving={updateViewMutation.isPending}
+      />
       <BaseToolbar
         base={base}
         activeView={effectiveView}
