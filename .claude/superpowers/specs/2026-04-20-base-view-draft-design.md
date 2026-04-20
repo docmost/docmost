@@ -65,7 +65,7 @@ docmost:base-view-draft:v1:{userId}:{baseId}:{viewId}
 
 - Namespace prefix `docmost:base-view-draft:` keeps us from colliding with other consumers.
 - `v1` is the schema version so a future breaking change can shed old entries by skipping.
-- `{userId}` scopes drafts so a shared-device login-swap doesn't leak drafts across accounts. `userId` comes from `useAtomValue(userAtom)` ([current-user-atom.ts:11-25](../../../apps/client/src/features/user/atoms/current-user-atom.ts)).
+- `{userId}` scopes drafts so a shared-device login-swap doesn't leak drafts across accounts. `userId` comes from the existing `useCurrentUser()` hook (returns `{ data: ICurrentUser }` — read `user?.user.id`), the same helper used by other authenticated client code.
 - `{baseId}` and `{viewId}` together uniquely identify which table state the draft applies to.
 
 ### Value shape
@@ -122,6 +122,7 @@ export function useViewDraft(args: {
 5. `isDirty` is computed as: any draft key present, AND `!shallowEqualFilter(draft.filter, baselineFilter) || !shallowEqualSorts(draft.sorts, baselineSorts)`. The "orphan" rule (draft values matching baseline → banner hidden) is enforced here; see "Dirty check".
 6. Subscribes to `window.addEventListener("storage", ...)` with a callback that re-reads on matching key changes from other tabs (see "Cross-tab sync").
 7. Writes use a synchronous `localStorage.setItem` — no debouncing. localStorage writes are cheap and the filter/sort popovers commit in discrete user actions (clicking Save inside the popover), not keystroke-by-keystroke.
+8. `buildPromotedConfig(baseline)` returns `{ ...baseline, filter: draft?.filter ?? baseline.filter, sorts: draft?.sorts ?? baseline.sorts }`. Used by the Save handler to compose the `updateView` payload — preserves everything else about the baseline (widths, order, etc.) and only overwrites the two axes the draft may have diverged on.
 
 **Return composition:**
 
@@ -168,11 +169,16 @@ const { data: rowsData, ... } = useBaseRowsQuery(
   effectiveSorts,
 );
 
-// Table is seeded from effectiveView.
-const { table, persistViewConfig } = useBaseTable(base, rows, effectiveView);
+// Table is seeded from effectiveView for rendering, but the auto-persist
+// write-path uses the real `activeView.config` as the baseline so draft
+// filter/sort values can never leak into a column-layout save.
+// See "Filter & sort write-path changes" below for the exact mechanism.
+const { table, persistViewConfig } = useBaseTable(base, rows, effectiveView, {
+  baselineConfig: activeView?.config,
+});
 ```
 
-The server-roundtrip `persistViewConfig` keeps being called for column layout changes — it reads from `activeView.config` via `buildViewConfigFromTable`, and we pass it `activeView` (not `effectiveView`) to make sure a pending layout write doesn't accidentally bake the draft filter into the server baseline. See next subsection.
+The server-roundtrip `persistViewConfig` keeps being called for column layout changes. It reads from `baselineConfig` — never from the effective/draft state — so a pending layout write cannot bake draft filter/sort values into the server baseline. See the next subsection for the exact implementation.
 
 ### Filter & sort write-path changes
 
@@ -238,6 +244,8 @@ where `activeView` in that callsite is the **real** activeView (not the effectiv
 Simplest refactor: give `useBaseTable` an optional `baselineConfig?: ViewConfig` argument. If omitted (existing callers), behave as today. If provided, `persistViewConfig` uses `baselineConfig` for sort/filter overrides. `base-table.tsx` passes `activeView.config` as the baseline and the effective-wrapped view as the active.
 
 This keeps `useBaseTable`'s own responsibilities tidy and makes the "drafts don't leak into the layout write-path" rule explicit.
+
+**Note on `useBaseTable`'s re-seed effect:** A draft edit changes `effectiveView.config.filter/sorts`, which propagates through the `derivedColumnOrder` / `derivedColumnVisibility` memos and re-fires the sync effect at [use-base-table.ts:280](../../../apps/client/src/features/base/hooks/use-base-table.ts). This is harmless because (a) `activeView.id` is unchanged, so the full re-seed branch doesn't trigger, and (b) the `hasPendingEdit` branch preserves live column state when no layout mutation is pending, and adopts derived values otherwise — those derived values are still driven by the same `properties`, so they're content-equal. No action required, but worth naming so the implementer doesn't chase a non-issue.
 
 ## Banner component
 
