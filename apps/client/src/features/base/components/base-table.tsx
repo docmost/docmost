@@ -18,6 +18,8 @@ import { useCreateViewMutation } from "@/features/base/queries/base-view-query";
 import { activeViewIdAtom } from "@/features/base/atoms/base-atoms";
 import { useBaseTable } from "@/features/base/hooks/use-base-table";
 import { useRowSelection } from "@/features/base/hooks/use-row-selection";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
+import { useViewDraft } from "@/features/base/hooks/use-view-draft";
 import { GridContainer } from "@/features/base/components/grid/grid-container";
 import { BaseToolbar } from "@/features/base/components/base-toolbar";
 import { BaseTableSkeleton } from "@/features/base/components/base-table-skeleton";
@@ -42,8 +44,48 @@ export function BaseTable({ baseId }: BaseTableProps) {
     return views.find((v) => v.id === activeViewId) ?? views[0];
   }, [views, activeViewId]);
 
-  const activeFilter = activeView?.config?.filter;
-  const activeSorts = activeView?.config?.sorts;
+  const { data: currentUser } = useCurrentUser();
+  const {
+    draft: _draft,
+    effectiveFilter,
+    effectiveSorts,
+    isDirty,
+    setFilter: setDraftFilter,
+    setSorts: setDraftSorts,
+    reset: resetDraft,
+    buildPromotedConfig,
+  } = useViewDraft({
+    userId: currentUser?.user.id,
+    baseId,
+    viewId: activeView?.id,
+    baselineFilter: activeView?.config?.filter,
+    baselineSorts: activeView?.config?.sorts,
+  });
+
+  // Render view: baseline merged with any local draft. Passed to
+  // `useBaseTable` (for table state seeding) and to the toolbar (for badge
+  // counts). The real `activeView` is still used as the auto-persist
+  // baseline so drafts can't leak into column-layout writes.
+  const effectiveView = useMemo(
+    () =>
+      activeView
+        ? {
+            ...activeView,
+            config: {
+              ...activeView.config,
+              filter: effectiveFilter,
+              sorts: effectiveSorts,
+            },
+          }
+        : undefined,
+    [activeView, effectiveFilter, effectiveSorts],
+  );
+
+  // Effective values drive the row query and the client-side position
+  // sort guard below. The old `activeView.config` reads are no longer the
+  // source of truth once drafts are involved.
+  const activeFilter = effectiveFilter;
+  const activeSorts = effectiveSorts;
   // Hold the rows query until `base` has loaded. Otherwise the query
   // fires once with `activeFilter` / `activeSorts` still undefined
   // (a "bland" list request), then fires a second time as soon as the
@@ -85,7 +127,9 @@ export function BaseTable({ baseId }: BaseTableProps) {
     );
   }, [rowsData, activeSorts]);
 
-  const { table, persistViewConfig } = useBaseTable(base, rows, activeView);
+  const { table, persistViewConfig } = useBaseTable(base, rows, effectiveView, {
+    baselineConfig: activeView?.config,
+  });
 
   const handleCellUpdate = useCallback(
     (rowId: string, propertyId: string, value: unknown) => {
