@@ -221,10 +221,21 @@ export type UseBaseTableResult = {
   persistViewConfig: () => void;
 };
 
+export type UseBaseTableOptions = {
+  // When provided, `persistViewConfig` uses this as the authoritative
+  // filter/sorts for the server write. The table's live sorting state is
+  // ignored for that axis so a locally-drafted sort/filter (kept in
+  // `activeView.config` for rendering purposes) cannot leak into the
+  // auto-persist column-layout path. Optional to preserve existing
+  // callers that pass the real baseline as `activeView`.
+  baselineConfig?: ViewConfig;
+};
+
 export function useBaseTable(
   base: IBase | undefined,
   rows: IBaseRow[],
   activeView: IBaseView | undefined,
+  opts: UseBaseTableOptions = {},
 ): UseBaseTableResult {
   const updateViewMutation = useUpdateViewMutation();
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -379,7 +390,15 @@ export function useBaseTable(
 
     persistTimerRef.current = setTimeout(() => {
       persistTimerRef.current = null;
-      const config = buildViewConfigFromTable(table, activeView.config);
+      // `baseline` is the server-side-of-truth config. When the caller has
+      // wrapped `activeView` with draft filter/sort values for render, they
+      // pass the pre-wrap config here so we never round-trip drafts through
+      // the column-layout auto-save path.
+      const baseline = opts.baselineConfig ?? activeView.config;
+      const config = buildViewConfigFromTable(table, baseline, {
+        sorts: baseline?.sorts,
+        filter: baseline?.filter,
+      });
       updateViewMutation.mutate(
         { viewId: activeView.id, baseId: base.id, config },
         {
@@ -393,7 +412,7 @@ export function useBaseTable(
         },
       );
     }, 300);
-  }, [activeView, base, table, updateViewMutation]);
+  }, [activeView, base, table, updateViewMutation, opts.baselineConfig]);
 
   return { table, persistViewConfig };
 }
