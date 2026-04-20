@@ -102,21 +102,26 @@ const CommandList = ({
         scrollbarSize={8}
         overscrollBehavior="contain"
       >
-        {Object.entries(items).map(([category, categoryItems]) => (
+        {(() => {
+          let flatIndex = -1;
+          return Object.entries(items).map(([category, categoryItems]) => (
           <div key={category} role="group" aria-label={category}>
             <Text c="dimmed" mb={4} fw={500} tt="capitalize">
               {category}
             </Text>
-            {categoryItems.map((item: SlashMenuItemType, index: number) => (
+            {categoryItems.map((item: SlashMenuItemType) => {
+              flatIndex += 1;
+              const itemIndex = flatIndex;
+              return (
               <UnstyledButton
-                data-item-index={index}
-                key={index}
-                id={`slash-command-option-${index}`}
+                data-item-index={itemIndex}
+                key={itemIndex}
+                id={`slash-command-option-${itemIndex}`}
                 role="option"
-                aria-selected={index === selectedIndex}
-                onClick={() => selectItem(index)}
+                aria-selected={itemIndex === selectedIndex}
+                onClick={() => selectItem(itemIndex)}
                 className={clsx(classes.menuBtn, {
-                  [classes.selectedItem]: index === selectedIndex,
+                  [classes.selectedItem]: itemIndex === selectedIndex,
                 })}
               >
                 <Group>
@@ -135,9 +140,11 @@ const CommandList = ({
                   </div>
                 </Group>
               </UnstyledButton>
-            ))}
+              );
+            })}
           </div>
-        ))}
+          ));
+        })()}
       </ScrollArea>
     </Paper>
   ) : null;
