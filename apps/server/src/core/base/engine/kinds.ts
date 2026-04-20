@@ -9,6 +9,7 @@ export const PropertyKind = {
   MULTI: 'multi',
   PERSON: 'person',
   FILE: 'file',
+  PAGE: 'page',
   SYS_USER: 'sys_user',
 } as const;
 
@@ -37,6 +38,8 @@ export function propertyKind(type: string): PropertyKindValue | null {
       return PropertyKind.PERSON;
     case BasePropertyType.FILE:
       return PropertyKind.FILE;
+    case BasePropertyType.PAGE:
+      return PropertyKind.PAGE;
     case BasePropertyType.LAST_EDITED_BY:
       return PropertyKind.SYS_USER;
     default:

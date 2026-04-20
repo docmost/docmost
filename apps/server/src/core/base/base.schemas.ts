@@ -9,6 +9,7 @@ export const BasePropertyType = {
   DATE: 'date',
   PERSON: 'person',
   FILE: 'file',
+  PAGE: 'page',
   CHECKBOX: 'checkbox',
   URL: 'url',
   EMAIL: 'email',
@@ -114,6 +115,7 @@ const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
   [BasePropertyType.DATE]: dateTypeOptionsSchema,
   [BasePropertyType.PERSON]: personTypeOptionsSchema,
   [BasePropertyType.FILE]: emptyTypeOptionsSchema,
+  [BasePropertyType.PAGE]: emptyTypeOptionsSchema,
   [BasePropertyType.CHECKBOX]: checkboxTypeOptionsSchema,
   [BasePropertyType.URL]: urlTypeOptionsSchema,
   [BasePropertyType.EMAIL]: emailTypeOptionsSchema,
@@ -159,6 +161,7 @@ const cellValueSchemaMap: Partial<Record<BasePropertyTypeValue, z.ZodType>> = {
     fileSize: z.number().optional(),
     filePath: z.string().optional(),
   })),
+  [BasePropertyType.PAGE]: z.uuid(),
   [BasePropertyType.CHECKBOX]: z.boolean(),
   [BasePropertyType.URL]: z.url(),
   [BasePropertyType.EMAIL]: z.email(),
@@ -192,6 +195,7 @@ export type CellConversionContext = {
   fromTypeOptions?: unknown;
   userNames?: Map<string, string>;
   attachmentNames?: Map<string, string>;
+  pageTitles?: Map<string, string>;
 };
 
 function resolveChoiceName(
@@ -256,6 +260,16 @@ export function attemptCellConversion(
         .filter((v): v is string => typeof v === 'string' && v.length > 0);
       return { converted: true, value: parts.join(', ') };
     }
+    if (fromType === BasePropertyType.PAGE && typeof value === 'string') {
+      const title = ctx.pageTitles?.get(value);
+      return { converted: true, value: title ?? '' };
+    }
+  }
+
+  // Page cells only accept a page UUID. Free text / other IDs can't be
+  // coerced into a valid page reference — drop to null.
+  if (toType === BasePropertyType.PAGE && fromType !== BasePropertyType.PAGE) {
+    return { converted: true, value: null };
   }
 
   const targetSchema = cellValueSchemaMap[toType];

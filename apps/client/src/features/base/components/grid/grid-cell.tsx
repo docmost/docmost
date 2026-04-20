@@ -15,6 +15,7 @@ import { CellUrl } from "@/features/base/components/cells/cell-url";
 import { CellEmail } from "@/features/base/components/cells/cell-email";
 import { CellPerson } from "@/features/base/components/cells/cell-person";
 import { CellFile } from "@/features/base/components/cells/cell-file";
+import { CellPage } from "@/features/base/components/cells/cell-page";
 import { CellCreatedAt } from "@/features/base/components/cells/cell-created-at";
 import { CellLastEditedAt } from "@/features/base/components/cells/cell-last-edited-at";
 import { CellLastEditedBy } from "@/features/base/components/cells/cell-last-edited-by";
@@ -45,6 +46,7 @@ const cellComponents: Record<
   email: CellEmail,
   person: CellPerson,
   file: CellFile,
+  page: CellPage,
   createdAt: CellCreatedAt,
   lastEditedAt: CellLastEditedAt,
   lastEditedBy: CellLastEditedBy,

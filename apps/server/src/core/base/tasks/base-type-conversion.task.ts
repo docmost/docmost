@@ -159,6 +159,16 @@ async function buildCtx(
         .execute();
       ctx.attachmentNames = new Map(rows.map((a) => [a.id, a.fileName]));
     }
+  } else if (fromType === BasePropertyType.PAGE) {
+    const ids = collectIds(chunk, propertyId);
+    if (ids.size > 0) {
+      const rows = await db
+        .selectFrom('pages')
+        .select(['id', 'title'])
+        .where('id', 'in', Array.from(ids))
+        .execute();
+      ctx.pageTitles = new Map(rows.map((p) => [p.id, p.title ?? '']));
+    }
   }
 
   return ctx;

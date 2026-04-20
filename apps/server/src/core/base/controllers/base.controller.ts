@@ -12,11 +12,13 @@ import {
 import { FastifyReply } from 'fastify';
 import { BaseService } from '../services/base.service';
 import { BaseCsvExportService } from '../services/base-csv-export.service';
+import { BasePageResolverService } from '../services/base-page-resolver.service';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { CreateBaseDto } from '../dto/create-base.dto';
 import { UpdateBaseDto } from '../dto/update-base.dto';
 import { BaseIdDto } from '../dto/base.dto';
 import { ExportBaseCsvDto } from '../dto/export-base.dto';
+import { ResolvePagesDto } from '../dto/resolve-pages.dto';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -35,6 +37,7 @@ export class BaseController {
   constructor(
     private readonly baseService: BaseService,
     private readonly baseCsvExportService: BaseCsvExportService,
+    private readonly basePageResolverService: BasePageResolverService,
     private readonly baseRepo: BaseRepo,
     private readonly spaceAbility: SpaceAbilityFactory,
   ) {}
@@ -137,5 +140,20 @@ export class BaseController {
       workspace.id,
       res,
     );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('pages/resolve')
+  async resolvePages(
+    @Body() dto: ResolvePagesDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const items = await this.basePageResolverService.resolvePages(
+      dto.pageIds,
+      workspace.id,
+      user.id,
+    );
+    return { items };
   }
 }

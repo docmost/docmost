@@ -66,6 +66,8 @@ function buildCondition(
       return personCondition(eb, cond, prop);
     case PropertyKind.FILE:
       return arrayOfIdsCondition(eb, cond);
+    case PropertyKind.PAGE:
+      return pageCondition(eb, cond);
     default:
       return FALSE;
   }
@@ -286,6 +288,48 @@ function personCondition(
       const arr = asStringArray(val);
       if (arr.length === 0) return FALSE;
       return eb(expr as any, 'in', arr);
+    }
+    default:
+      return FALSE;
+  }
+}
+
+function pageCondition(eb: Eb, cond: Condition): Expression<SqlBool> {
+  // Page cells store a single page uuid as text. Shape matches selectCondition.
+  const expr = textCell(cond.propertyId);
+  const val = cond.value;
+  switch (cond.op) {
+    case 'isEmpty':
+      return eb.or([
+        eb(expr as any, 'is', null),
+        eb(expr as any, '=', ''),
+      ]);
+    case 'isNotEmpty':
+      return eb.and([
+        eb(expr as any, 'is not', null),
+        eb(expr as any, '!=', ''),
+      ]);
+    case 'eq':
+      return val == null ? FALSE : eb(expr as any, '=', String(val));
+    case 'neq':
+      return val == null
+        ? FALSE
+        : eb.or([
+            eb(expr as any, 'is', null),
+            eb(expr as any, '!=', String(val)),
+          ]);
+    case 'any': {
+      const arr = asStringArray(val);
+      if (arr.length === 0) return FALSE;
+      return eb(expr as any, 'in', arr);
+    }
+    case 'none': {
+      const arr = asStringArray(val);
+      if (arr.length === 0) return TRUE;
+      return eb.or([
+        eb(expr as any, 'is', null),
+        eb(expr as any, 'not in', arr),
+      ]);
     }
     default:
       return FALSE;

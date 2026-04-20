@@ -7,6 +7,7 @@ export type BasePropertyType =
   | 'date'
   | 'person'
   | 'file'
+  | 'page'
   | 'checkbox'
   | 'url'
   | 'email'
@@ -63,6 +64,8 @@ export type PersonTypeOptions = {
   allowMultiple?: boolean;
 };
 
+export type PageTypeOptions = Record<string, never>;
+
 export type TypeOptions =
   | SelectTypeOptions
   | NumberTypeOptions
@@ -72,6 +75,7 @@ export type TypeOptions =
   | UrlTypeOptions
   | EmailTypeOptions
   | PersonTypeOptions
+  | PageTypeOptions
   | Record<string, unknown>;
 
 export type IBaseProperty = {

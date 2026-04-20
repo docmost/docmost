@@ -138,40 +138,68 @@ export class BaseCsvExportService {
     chunk: Array<{ cells: unknown; lastUpdatedById: string | null }>,
     properties: Array<{ id: string; type: string }>,
   ): Promise<CellCsvContext> {
+    const ctx: CellCsvContext = {};
+
     const needsUsers = properties.some(
       (p) =>
         p.type === BasePropertyType.PERSON ||
         p.type === BasePropertyType.LAST_EDITED_BY,
     );
-    if (!needsUsers) return {};
 
-    const userIds = new Set<string>();
-    const personPropIds = properties
-      .filter((p) => p.type === BasePropertyType.PERSON)
-      .map((p) => p.id);
+    if (needsUsers) {
+      const userIds = new Set<string>();
+      const personPropIds = properties
+        .filter((p) => p.type === BasePropertyType.PERSON)
+        .map((p) => p.id);
 
-    for (const row of chunk) {
-      if (row.lastUpdatedById) userIds.add(row.lastUpdatedById);
-      const cells = (row.cells ?? {}) as Record<string, unknown>;
-      for (const pid of personPropIds) {
-        const v = cells[pid];
-        if (typeof v === 'string') userIds.add(v);
-        else if (Array.isArray(v)) {
-          for (const id of v) if (typeof id === 'string') userIds.add(id);
+      for (const row of chunk) {
+        if (row.lastUpdatedById) userIds.add(row.lastUpdatedById);
+        const cells = (row.cells ?? {}) as Record<string, unknown>;
+        for (const pid of personPropIds) {
+          const v = cells[pid];
+          if (typeof v === 'string') userIds.add(v);
+          else if (Array.isArray(v)) {
+            for (const id of v) if (typeof id === 'string') userIds.add(id);
+          }
         }
+      }
+
+      if (userIds.size > 0) {
+        const rows = await this.db
+          .selectFrom('users')
+          .select(['id', 'name', 'email'])
+          .where('id', 'in', Array.from(userIds))
+          .execute();
+        ctx.userNames = new Map(
+          rows.map((u) => [u.id, u.name || u.email || '']),
+        );
       }
     }
 
-    if (userIds.size === 0) return {};
+    const pagePropIds = properties
+      .filter((p) => p.type === BasePropertyType.PAGE)
+      .map((p) => p.id);
 
-    const rows = await this.db
-      .selectFrom('users')
-      .select(['id', 'name', 'email'])
-      .where('id', 'in', Array.from(userIds))
-      .execute();
+    if (pagePropIds.length > 0) {
+      const pageIds = new Set<string>();
+      for (const row of chunk) {
+        const cells = (row.cells ?? {}) as Record<string, unknown>;
+        for (const pid of pagePropIds) {
+          const v = cells[pid];
+          if (typeof v === 'string' && v.length > 0) pageIds.add(v);
+        }
+      }
 
-    return {
-      userNames: new Map(rows.map((u) => [u.id, u.name || u.email || ''])),
-    };
+      if (pageIds.size > 0) {
+        const rows = await this.db
+          .selectFrom('pages')
+          .select(['id', 'title'])
+          .where('id', 'in', Array.from(pageIds))
+          .execute();
+        ctx.pageTitles = new Map(rows.map((p) => [p.id, p.title ?? '']));
+      }
+    }
+
+    return ctx;
   }
 }

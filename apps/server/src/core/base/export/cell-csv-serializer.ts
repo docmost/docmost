@@ -2,6 +2,7 @@ import { BasePropertyType, BasePropertyTypeValue } from '../base.schemas';
 
 export type CellCsvContext = {
   userNames?: Map<string, string>;
+  pageTitles?: Map<string, string>;
 };
 
 type PropertyLike = {
@@ -80,6 +81,10 @@ export function serializeCellForCsv(
 
     case BasePropertyType.LAST_EDITED_BY:
       return resolveUser(value, ctx);
+
+    case BasePropertyType.PAGE:
+      if (typeof value !== 'string') return '';
+      return ctx.pageTitles?.get(value) ?? '';
 
     default:
       return typeof value === 'object' ? JSON.stringify(value) : String(value);

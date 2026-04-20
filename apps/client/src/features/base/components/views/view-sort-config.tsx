@@ -41,7 +41,11 @@ export function ViewSortConfigPopover({
     if (!opened) setDraft(null);
   }, [opened]);
 
-  const propertyOptions = properties.map((p) => ({
+  // Page properties store a UUID; sorting by raw UUID is unhelpful and
+  // title-based sort would require a join. Hide until we support it properly.
+  const sortableProperties = properties.filter((p) => p.type !== "page");
+
+  const propertyOptions = sortableProperties.map((p) => ({
     value: p.id,
     label: p.name,
   }));
@@ -53,10 +57,10 @@ export function ViewSortConfigPopover({
 
   const handleStartDraft = useCallback(() => {
     const usedIds = new Set(sorts.map((s) => s.propertyId));
-    const available = properties.find((p) => !usedIds.has(p.id));
+    const available = sortableProperties.find((p) => !usedIds.has(p.id));
     if (!available) return;
     setDraft({ propertyId: available.id, direction: "asc" });
-  }, [sorts, properties]);
+  }, [sorts, sortableProperties]);
 
   const handleSaveDraft = useCallback(() => {
     if (!draft) return;
@@ -99,7 +103,8 @@ export function ViewSortConfigPopover({
     [sorts, onChange],
   );
 
-  const canAddMore = properties.length > sorts.length + (draft ? 1 : 0);
+  const canAddMore =
+    sortableProperties.length > sorts.length + (draft ? 1 : 0);
 
   return (
     <Popover

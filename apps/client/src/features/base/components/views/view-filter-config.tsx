@@ -65,6 +65,8 @@ function getOperatorsForType(type: string): FilterOperator[] {
       return ["eq", "neq", "any", "none", "isEmpty", "isNotEmpty"];
     case "file":
       return ["isEmpty", "isNotEmpty"];
+    case "page":
+      return ["isEmpty", "isNotEmpty"];
     default:
       return ["eq", "neq", "isEmpty", "isNotEmpty"];
   }

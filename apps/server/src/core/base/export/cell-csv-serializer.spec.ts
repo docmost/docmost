@@ -87,4 +87,16 @@ describe('serializeCellForCsv', () => {
     expect(serializeCellForCsv(prop, 'u2', { userNames })).toBe('Bob');
     expect(serializeCellForCsv(prop, 'missing', { userNames })).toBe('');
   });
+
+  it('page resolves via pageTitles', () => {
+    const pageTitles = new Map([
+      ['p1', 'Launch plan'],
+      ['p2', 'Retro notes'],
+    ]);
+    const prop = p(BasePropertyType.PAGE);
+    expect(serializeCellForCsv(prop, 'p1', { pageTitles })).toBe('Launch plan');
+    expect(serializeCellForCsv(prop, 'missing', { pageTitles })).toBe('');
+    expect(serializeCellForCsv(prop, 'p1', {})).toBe('');
+    expect(serializeCellForCsv(prop, 123, { pageTitles })).toBe('');
+  });
 });
