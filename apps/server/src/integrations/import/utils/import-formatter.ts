@@ -5,6 +5,7 @@ import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
 import slugify from '@sindresorhus/slugify';
+import { normalizeTableColumnWidths } from './table-utils';
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {
@@ -82,6 +83,8 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
+  normalizeTableColumnWidths($, $root);
+
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
     const url = $el.attr('href')!;
