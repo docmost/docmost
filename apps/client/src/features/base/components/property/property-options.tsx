@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Stack, NumberInput, Select, Switch, Text } from "@mantine/core";
 import {
   IBaseProperty,
@@ -88,7 +88,7 @@ function SelectOptions({
   hideButtons?: boolean;
 }) {
   const options = property.typeOptions as SelectTypeOptions | undefined;
-  const choices = options?.choices ?? [];
+  const choices = useMemo(() => options?.choices ?? [], [options?.choices]);
 
   const handleSave = useCallback(
     (newChoices: Choice[]) => {
@@ -127,7 +127,7 @@ function StatusOptions({
   hideButtons?: boolean;
 }) {
   const options = property.typeOptions as SelectTypeOptions | undefined;
-  const choices = options?.choices ?? [];
+  const choices = useMemo(() => options?.choices ?? [], [options?.choices]);
 
   const handleSave = useCallback(
     (newChoices: Choice[]) => {
