@@ -40,6 +40,8 @@ FROM gcr.io/distroless/nodejs22-debian12:nonroot AS installer
 
 WORKDIR /app
 
+ENV NODE_ENV=production
+
 COPY --from=builder --chown=nonroot:nonroot /app/runtime/ /app/
 COPY --from=builder --chown=nonroot:nonroot /app/apps/client/dist /app/apps/client/dist
 
