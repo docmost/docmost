@@ -23,8 +23,12 @@ import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { useTranslation } from "react-i18next";
+import { usePageNameModal } from "@/features/page/hooks/use-page-name-modal.tsx";
 
 export function useTreeMutation<T>(spaceId: string) {
+  const { t } = useTranslation();
+  const { openPageNameModal } = usePageNameModal();
   const [data, setData] = useAtom(treeDataAtom);
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
@@ -35,13 +39,48 @@ export function useTreeMutation<T>(spaceId: string) {
   const { spaceSlug } = useParams();
   const { pageSlug } = useParams();
   const emit = useQueryEmit();
+  const commitTreeData = () => {
+    setData([...tree.data]);
+  };
 
-  const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
-    const payload: { spaceId: string; parentPageId?: string } = {
+  const createNode = async ({
+    parentId,
+    index,
+    nodeType,
+    title,
+  }: {
+    parentId: string | null;
+    index?: number;
+    nodeType: "page" | "folder";
+    title?: string;
+  }) => {
+    const payload: {
+      spaceId: string;
+      parentPageId?: string;
+      nodeType?: "page" | "folder";
+      title?: string;
+    } = {
       spaceId: spaceId,
+      nodeType,
     };
+
+    if (nodeType === "folder" && !title) {
+      title =
+        (await openPageNameModal({
+          title: t("New folder"),
+          initialValue: t("untitled"),
+          confirmLabel: t("Create"),
+        })) ?? undefined;
+      if (!title) {
+        return null;
+      }
+    }
+
     if (parentId) {
       payload.parentPageId = parentId;
+    }
+    if (title) {
+      payload.title = title;
     }
 
     let createdPage: IPage;
@@ -54,7 +93,8 @@ export function useTreeMutation<T>(spaceId: string) {
     const data = {
       id: createdPage.id,
       slugId: createdPage.slugId,
-      name: "",
+      nodeType: createdPage.nodeType ?? nodeType,
+      name: createdPage.title || (nodeType === "folder" ? t("untitled") : ""),
       position: createdPage.position,
       spaceId: createdPage.spaceId,
       parentPageId: createdPage.parentPageId,
@@ -71,7 +111,7 @@ export function useTreeMutation<T>(spaceId: string) {
     index = lastIndex;
 
     tree.create({ parentId, index, data });
-    setData(tree.data);
+    commitTreeData();
 
     setTimeout(() => {
       emit({
@@ -85,13 +125,35 @@ export function useTreeMutation<T>(spaceId: string) {
       });
     }, 50);
 
-    const pageUrl = buildPageUrl(
-      spaceSlug,
-      createdPage.slugId,
-      createdPage.title
-    );
-    navigate(pageUrl);
+    if (nodeType === "page") {
+      const pageUrl = buildPageUrl(
+        spaceSlug,
+        createdPage.slugId,
+        createdPage.title
+      );
+      navigate(pageUrl);
+    }
     return data;
+  };
+
+  const renameNode = async (id: string, name: string) => {
+    tree.update({ id, changes: { name } as any });
+    commitTreeData();
+
+    try {
+      await updatePageMutation.mutateAsync({ pageId: id, title: name });
+    } catch (error) {
+      console.error("Error updating page title:", error);
+    }
+  };
+
+  const onCreate: CreateHandler<T> = async ({ parentId, index, type }) => {
+    const nodeType = type === "internal" ? "folder" : "page";
+    return createNode({
+      parentId,
+      index,
+      nodeType,
+    });
   };
 
   const onMove: MoveHandler<T> = async (args: {
@@ -168,7 +230,7 @@ export function useTreeMutation<T>(spaceId: string) {
       }
     }
 
-    setData(tree.data);
+    commitTreeData();
 
     const payload: IMovePage = {
       pageId: draggedNodeId,
@@ -182,6 +244,7 @@ export function useTreeMutation<T>(spaceId: string) {
     const pageData = {
       id: nodeData.id,
       slugId: nodeData.slugId,
+      nodeType: nodeData.nodeType,
       title: nodeData.name,
       icon: nodeData.icon,
       position: newPosition,
@@ -215,14 +278,7 @@ export function useTreeMutation<T>(spaceId: string) {
   };
 
   const onRename: RenameHandler<T> = ({ name, id }) => {
-    tree.update({ id, changes: { name } as any });
-    setData(tree.data);
-
-    try {
-      updatePageMutation.mutateAsync({ pageId: id, title: name });
-    } catch (error) {
-      console.error("Error updating page title:", error);
-    }
+    renameNode(id, name);
   };
 
   const isPageInNode = (
@@ -252,7 +308,7 @@ export function useTreeMutation<T>(spaceId: string) {
       }
 
       tree.drop({ id: args.ids[0] });
-      setData(tree.data);
+      commitTreeData();
 
       if (pageSlug && isPageInNode(node, pageSlug.split("-")[1])) {
         navigate(getSpaceUrl(spaceSlug));
@@ -271,5 +327,5 @@ export function useTreeMutation<T>(spaceId: string) {
   };
 
   const controllers = { onMove, onRename, onCreate, onDelete };
-  return { data, setData, controllers } as const;
+  return { data, setData, controllers, createNode, renameNode } as const;
 }

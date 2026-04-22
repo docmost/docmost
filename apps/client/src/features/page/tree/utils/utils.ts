@@ -18,6 +18,7 @@ export function buildTree(pages: IPage[]): SpaceTreeNode[] {
     pageMap[page.id] = {
       id: page.id,
       slugId: page.slugId,
+      nodeType: page.nodeType ?? "page",
       name: page.title,
       icon: page.icon,
       position: page.position,
@@ -181,6 +182,29 @@ export function appendNodeChildren(
           ? { ...newChild, children: existing.children }
           : newChild;
       });
+
+      const isSameChildren =
+        (node.children?.length ?? 0) === merged.length &&
+        (node.children ?? []).every((currentChild, index) => {
+          const nextChild = merged[index];
+          return (
+            currentChild.id === nextChild?.id &&
+            currentChild.slugId === nextChild?.slugId &&
+            currentChild.nodeType === nextChild?.nodeType &&
+            currentChild.name === nextChild?.name &&
+            currentChild.icon === nextChild?.icon &&
+            currentChild.position === nextChild?.position &&
+            currentChild.spaceId === nextChild?.spaceId &&
+            currentChild.parentPageId === nextChild?.parentPageId &&
+            currentChild.hasChildren === nextChild?.hasChildren &&
+            currentChild.canEdit === nextChild?.canEdit &&
+            currentChild.children === nextChild?.children
+          );
+        });
+
+      if (isSameChildren) {
+        return node;
+      }
 
       return {
         ...node,

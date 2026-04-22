@@ -12,6 +12,7 @@ import {
   IconEye,
   IconEyeOff,
   IconFileExport,
+  IconFolderPlus,
   IconHome,
   IconPlus,
   IconSearch,
@@ -74,6 +75,10 @@ export function SpaceSidebar() {
   }
 
   function handleCreatePage() {
+    tree?.create({ parentId: null, type: "leaf", index: 0 });
+  }
+
+  function handleCreateFolder() {
     tree?.create({ parentId: null, type: "internal", index: 0 });
   }
 
@@ -153,24 +158,45 @@ export function SpaceSidebar() {
               SpaceCaslAction.Manage,
               SpaceCaslSubject.Page,
             ) && (
-              <UnstyledButton
-                className={classes.menu}
-                onClick={() => {
-                  handleCreatePage();
-                  if (mobileSidebarOpened) {
-                    toggleMobileSidebar();
-                  }
-                }}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconPlus
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("New page")}</span>
-                </div>
-              </UnstyledButton>
+              <>
+                <UnstyledButton
+                  className={classes.menu}
+                  onClick={() => {
+                    handleCreatePage();
+                    if (mobileSidebarOpened) {
+                      toggleMobileSidebar();
+                    }
+                  }}
+                >
+                  <div className={classes.menuItemInner}>
+                    <IconPlus
+                      size={18}
+                      className={classes.menuItemIcon}
+                      stroke={2}
+                    />
+                    <span>{t("New page")}</span>
+                  </div>
+                </UnstyledButton>
+
+                <UnstyledButton
+                  className={classes.menu}
+                  onClick={() => {
+                    handleCreateFolder();
+                    if (mobileSidebarOpened) {
+                      toggleMobileSidebar();
+                    }
+                  }}
+                >
+                  <div className={classes.menuItemInner}>
+                    <IconFolderPlus
+                      size={18}
+                      className={classes.menuItemIcon}
+                      stroke={2}
+                    />
+                    <span>{t("New folder")}</span>
+                  </div>
+                </UnstyledButton>
+              </>
             )}
           </div>
         </div>
@@ -195,16 +221,33 @@ export function SpaceSidebar() {
                 SpaceCaslAction.Manage,
                 SpaceCaslSubject.Page,
               ) && (
-                <Tooltip label={t("Create page")} withArrow position="right">
-                  <ActionIcon
-                    variant="default"
-                    size={18}
-                    onClick={handleCreatePage}
-                    aria-label={t("Create page")}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </Tooltip>
+                <>
+                  <Tooltip label={t("Create folder")} withArrow position="right">
+                    <ActionIcon
+                      variant="transparent"
+                      c="gray"
+                      size={20}
+                      className={classes.headerAction}
+                      onClick={handleCreateFolder}
+                      aria-label={t("Create folder")}
+                    >
+                      <IconFolderPlus size={16} stroke={1.8} />
+                    </ActionIcon>
+                  </Tooltip>
+
+                  <Tooltip label={t("Create page")} withArrow position="right">
+                    <ActionIcon
+                      variant="transparent"
+                      c="gray"
+                      size={20}
+                      className={classes.headerAction}
+                      onClick={handleCreatePage}
+                      aria-label={t("Create page")}
+                    >
+                      <IconPlus size={16} stroke={1.8} />
+                    </ActionIcon>
+                  </Tooltip>
+                </>
               )}
             </Group>
           </Group>
@@ -280,11 +323,13 @@ function SpaceMenu({
         <Menu.Target>
           <Tooltip label={t("Space menu")} withArrow position="top">
             <ActionIcon
-              variant="default"
-              size={18}
+              variant="transparent"
+              c="gray"
+              size={20}
+              className={classes.headerAction}
               aria-label={t("Space menu")}
             >
-              <IconDots />
+              <IconDots size={16} stroke={1.8} />
             </ActionIcon>
           </Tooltip>
         </Menu.Target>

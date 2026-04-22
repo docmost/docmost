@@ -3,11 +3,12 @@ import { ISpace } from "@/features/space/types/space.types.ts";
 export interface IPage {
   id: string;
   slugId: string;
+  nodeType: "page" | "folder";
   title: string;
   content: string;
   icon: string;
   coverPhoto: string;
-  parentPageId: string;
+  parentPageId: string | null;
   creatorId: string;
   spaceId: string;
   workspaceId: string;
@@ -80,8 +81,9 @@ export interface SidebarPagesParams {
 
 export interface IPageInput {
   pageId: string;
+  nodeType?: "page" | "folder";
   title: string;
-  parentPageId: string;
+  parentPageId: string | null;
   icon: string;
   coverPhoto: string;
   position: string;

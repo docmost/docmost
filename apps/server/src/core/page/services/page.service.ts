@@ -91,6 +91,7 @@ export class PageService {
     workspaceId: string,
     createPageDto: CreatePageDto,
   ): Promise<Page> {
+    const nodeType = createPageDto.nodeType ?? 'page';
     let parentPageId = undefined;
 
     // check if parent page exists
@@ -114,7 +115,7 @@ export class PageService {
     let textContent = undefined;
     let ydoc = undefined;
 
-    if (createPageDto?.content && createPageDto?.format) {
+    if (nodeType === 'page' && createPageDto?.content && createPageDto?.format) {
       const prosemirrorJson = await this.parseProsemirrorContent(
         createPageDto.content,
         createPageDto.format,
@@ -128,6 +129,7 @@ export class PageService {
     const page = await this.pageRepo.insertPage({
       slugId: generateSlugId(),
       title: createPageDto.title,
+      nodeType,
       position: await this.nextPagePosition(
         createPageDto.spaceId,
         parentPageId,
@@ -234,6 +236,9 @@ export class PageService {
       updatePageDto.operation &&
       updatePageDto.format
     ) {
+      if (page.nodeType === 'folder') {
+        throw new BadRequestException('Folders do not support document content');
+      }
       await this.updatePageContent(
         page.id,
         updatePageDto.content,
@@ -283,6 +288,7 @@ export class PageService {
         'slugId',
         'title',
         'icon',
+        'nodeType',
         'position',
         'parentPageId',
         'spaceId',
@@ -785,6 +791,7 @@ export class PageService {
             'slugId',
             'title',
             'icon',
+            'nodeType',
             'position',
             'parentPageId',
             'spaceId',
@@ -800,6 +807,7 @@ export class PageService {
                 'p.slugId',
                 'p.title',
                 'p.icon',
+                'p.nodeType',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',

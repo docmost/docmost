@@ -8,6 +8,7 @@ import {
 import { Transform } from 'class-transformer';
 
 export type ContentFormat = 'json' | 'markdown' | 'html';
+export type PageNodeType = 'page' | 'folder';
 
 export class CreatePageDto {
   @IsOptional()
@@ -21,6 +22,11 @@ export class CreatePageDto {
   @IsOptional()
   @IsString()
   parentPageId?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value?.toLowerCase() ?? 'page')
+  @IsIn(['page', 'folder'])
+  nodeType?: PageNodeType;
 
   @IsUUID()
   spaceId: string;

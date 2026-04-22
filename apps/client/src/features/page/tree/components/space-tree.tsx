@@ -23,9 +23,12 @@ import {
   IconChevronRight,
   IconCopy,
   IconDotsVertical,
+  IconFolder,
+  IconFolderPlus,
   IconFileDescription,
   IconFileExport,
   IconLink,
+  IconPencil,
   IconPlus,
   IconPointFilled,
   IconStar,
@@ -64,6 +67,7 @@ import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
+import { usePageNameModal } from "@/features/page/hooks/use-page-name-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import MovePageModal from "../../components/move-page-modal.tsx";
@@ -78,13 +82,23 @@ interface SpaceTreeProps {
   readOnly: boolean;
 }
 
+interface NodeProps extends NodeRendererProps<any> {
+  createNode: (args: {
+    parentId: string | null;
+    index?: number;
+    nodeType: "page" | "folder";
+    title?: string;
+  }) => Promise<SpaceTreeNode | null>;
+  renameNode: (id: string, name: string) => Promise<void>;
+}
+
 const openTreeNodesAtom = atom<OpenMap>({});
 
 export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { t } = useTranslation();
   const { pageSlug } = useParams();
-  const { data, setData, controllers } =
-    useTreeMutation<TreeApi<SpaceTreeNode>>(spaceId);
+  const { data, setData, controllers, createNode, renameNode } =
+    useTreeMutation<SpaceTreeNode>(spaceId);
   const {
     data: pagesData,
     hasNextPage,
@@ -255,7 +269,11 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
               ? true
               : ({ parentNode }) => parentNode?.data?.canEdit === false
           }
-          disableEdit={readOnly ? true : (data) => data.canEdit === false}
+          disableEdit={
+            readOnly
+              ? true
+              : (data) => data.canEdit === false
+          }
           {...controllers}
           width={width}
           height={rootElement.current.clientHeight}
@@ -278,52 +296,52 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           }}
           initialOpenState={openTreeNodes}
         >
-          {Node}
+          {(props) => (
+            <Node
+              {...props}
+              createNode={createNode}
+              renameNode={renameNode}
+            />
+          )}
         </Tree>
       )}
     </div>
   );
 }
 
-function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
+function Node({
+  node,
+  style,
+  dragHandle,
+  tree,
+  createNode,
+  renameNode,
+}: NodeProps) {
   const { t } = useTranslation();
   const updatePageMutation = useUpdatePageMutation();
   const [treeData, setTreeData] = useAtom(treeDataAtom);
   const [, appendChildren] = useAtom(appendNodeChildrenAtom);
   const emit = useQueryEmit();
   const { spaceSlug } = useParams();
-  const timerRef = useRef(null);
+  const isLoadingChildrenRef = useRef(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+  const isFolder = node.data.nodeType === "folder";
 
-  const prefetchPage = () => {
-    timerRef.current = setTimeout(async () => {
-      const page = await queryClient.fetchQuery({
-        queryKey: ["pages", node.data.id],
-        queryFn: () => getPageById({ pageId: node.data.id }),
-        staleTime: 5 * 60 * 1000,
-      });
-      if (page?.slugId) {
-        queryClient.setQueryData(["pages", page.slugId], page);
-      }
-    }, 150);
-  };
-
-  const cancelPagePrefetch = () => {
-    if (timerRef.current) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
+  useEffect(() => {
+    if (node.isEditing && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
     }
-  };
+  }, [node.isEditing]);
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
-    if (!node.data.hasChildren) return;
-    // in conflict with use-query-subscription.ts => case "addTreeNode","moveTreeNode" etc with websocket
-    // if (node.data.children && node.data.children.length > 0) {
-    //   return;
-    // }
+    if (!node.data.hasChildren || node.children.length > 0) return;
+    if (isLoadingChildrenRef.current) return;
 
     try {
+      isLoadingChildrenRef.current = true;
       const params: SidebarPagesParams = {
         pageId: node.data.id,
         spaceId: node.data.spaceId,
@@ -337,6 +355,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
       });
     } catch (error) {
       console.error("Failed to fetch children:", error);
+    } finally {
+      isLoadingChildrenRef.current = false;
     }
   }
 
@@ -396,104 +416,218 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
   }
 
   const pageUrl = buildPageUrl(spaceSlug, node.data.slugId, node.data.name);
-
-  return (
+  const nodeContent = (
     <>
+      <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
+
+      <div
+        ref={dragHandle as any}
+        onClick={handleEmojiIconClick}
+        style={{ marginRight: "4px" }}
+      >
+        <EmojiPicker
+          onEmojiSelect={handleEmojiSelect}
+          icon={
+            node.data.icon ? (
+              node.data.icon
+            ) : isFolder ? (
+              <IconFolder size="18" />
+            ) : (
+              <IconFileDescription size="18" />
+            )
+          }
+          readOnly={
+            tree.props.disableEdit === true || node.data.canEdit === false
+          }
+          removeEmojiAction={handleRemoveEmoji}
+        />
+      </div>
+
+      {node.isEditing ? (
+        <input
+          ref={editInputRef}
+          className={classes.editInput}
+          defaultValue={node.data.name || t("untitled")}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onBlur={() => node.reset()}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              node.reset();
+              return;
+            }
+
+            if (e.key === "Enter") {
+              node.submit(e.currentTarget.value.trim() || node.data.name || "");
+            }
+          }}
+        />
+      ) : (
+        <span className={classes.text}>{node.data.name || t("untitled")}</span>
+      )}
+
+      <div className={classes.actions}>
+        <NodeMenu
+          createNode={createNode}
+          node={node}
+          treeApi={tree}
+          spaceId={node.data.spaceId}
+          renameNode={renameNode}
+        />
+
+        {tree.props.disableEdit !== true && node.data.canEdit !== false && (
+          <CreateNode
+            createNode={createNode}
+            node={node}
+            treeApi={tree}
+            onExpandTree={() => handleLoadChildren(node)}
+          />
+        )}
+      </div>
+    </>
+  );
+
+  if (isFolder) {
+    return (
       <Box
         style={style}
         className={clsx(classes.node, node.state)}
-        component={Link}
-        to={pageUrl}
+        component="div"
         // @ts-ignore
         ref={dragHandle}
-        onClick={() => {
-          if (mobileSidebarOpened) {
-            toggleMobileSidebar();
-          }
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          node.toggle();
+          handleLoadChildren(node);
         }}
-        onMouseEnter={prefetchPage}
-        onMouseLeave={cancelPagePrefetch}
       >
-        <PageArrow node={node} onExpandTree={() => handleLoadChildren(node)} />
-
-        <div onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
-          <EmojiPicker
-            onEmojiSelect={handleEmojiSelect}
-            icon={
-              node.data.icon ? (
-                node.data.icon
-              ) : (
-                <IconFileDescription size="18" />
-              )
-            }
-            readOnly={
-              tree.props.disableEdit === true || node.data.canEdit === false
-            }
-            removeEmojiAction={handleRemoveEmoji}
-          />
-        </div>
-
-        <span className={classes.text}>{node.data.name || t("untitled")}</span>
-
-        <div className={classes.actions}>
-          <NodeMenu node={node} treeApi={tree} spaceId={node.data.spaceId} />
-
-          {tree.props.disableEdit !== true && node.data.canEdit !== false && (
-            <CreateNode
-              node={node}
-              treeApi={tree}
-              onExpandTree={() => handleLoadChildren(node)}
-            />
-          )}
-        </div>
+        {nodeContent}
       </Box>
-    </>
+    );
+  }
+
+  return (
+    <Box
+      style={style}
+      className={clsx(classes.node, node.state)}
+      component={Link}
+      to={pageUrl}
+      // @ts-ignore
+      ref={dragHandle}
+      onClick={() => {
+        if (mobileSidebarOpened) {
+          toggleMobileSidebar();
+        }
+      }}
+    >
+      {nodeContent}
+    </Box>
   );
 }
 
 interface CreateNodeProps {
+  createNode: (args: {
+    parentId: string | null;
+    index?: number;
+    nodeType: "page" | "folder";
+    title?: string;
+  }) => Promise<SpaceTreeNode | null>;
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
   onExpandTree?: () => void;
 }
 
-function CreateNode({ node, treeApi, onExpandTree }: CreateNodeProps) {
-  function handleCreate() {
+function CreateNode({ createNode, node, treeApi, onExpandTree }: CreateNodeProps) {
+  const { t } = useTranslation();
+
+  async function handleCreate(type: "page" | "folder" = "page") {
     if (node.data.hasChildren && node.children.length === 0) {
-      node.toggle();
-      onExpandTree();
+      if (!node.isOpen) {
+        node.open();
+      }
+      await onExpandTree?.();
 
       setTimeout(() => {
-        treeApi?.create({ type: "internal", parentId: node.id, index: 0 });
+        createNode({
+          parentId: node.id,
+          index: 0,
+          nodeType: type,
+        });
       }, 500);
     } else {
-      treeApi?.create({ type: "internal", parentId: node.id });
+      await createNode({
+        parentId: node.id,
+        nodeType: type,
+      });
     }
   }
 
   return (
-    <ActionIcon
-      variant="transparent"
-      c="gray"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCreate();
-      }}
-    >
-      <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
-    </ActionIcon>
+    <Menu shadow="md" width={180} withinPortal>
+      <Menu.Target>
+        <ActionIcon
+          variant="transparent"
+          c="gray"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <IconPlus style={{ width: rem(20), height: rem(20) }} stroke={2} />
+        </ActionIcon>
+      </Menu.Target>
+
+      <Menu.Dropdown>
+        <Menu.Item
+          leftSection={<IconPlus size={16} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("page");
+          }}
+        >
+          {t("New page")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconFolderPlus size={16} />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCreate("folder");
+          }}
+        >
+          {t("New folder")}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
 interface NodeMenuProps {
+  createNode: (args: {
+    parentId: string | null;
+    index?: number;
+    nodeType: "page" | "folder";
+    title?: string;
+  }) => Promise<SpaceTreeNode | null>;
   node: NodeApi<SpaceTreeNode>;
   treeApi: TreeApi<SpaceTreeNode>;
   spaceId: string;
+  renameNode: (id: string, name: string) => Promise<void>;
 }
 
-function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
+function NodeMenu({
+  createNode,
+  node,
+  treeApi,
+  spaceId,
+  renameNode,
+}: NodeMenuProps) {
   const { t } = useTranslation();
+  const { openPageNameModal } = usePageNameModal();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
@@ -513,6 +647,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
   const addFavorite = useAddFavoriteMutation();
   const removeFavorite = useRemoveFavoriteMutation();
   const isFavorited = favoriteIds.has(node.data.id);
+  const isFolder = node.data.nodeType === "folder";
 
   const handleCopyLink = () => {
     const pageUrl =
@@ -541,6 +676,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
       const treeNodeData: SpaceTreeNode = {
         id: duplicatedPage.id,
         slugId: duplicatedPage.slugId,
+        nodeType: duplicatedPage.nodeType ?? "page",
         name: duplicatedPage.title,
         position: duplicatedPage.position,
         spaceId: duplicatedPage.spaceId,
@@ -586,7 +722,7 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
 
   return (
     <>
-      <Menu shadow="md" width={200}>
+      <Menu shadow="md" width={200} withinPortal>
         <Menu.Target>
           <ActionIcon
             variant="transparent"
@@ -604,16 +740,18 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Item
-            leftSection={<IconLink size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleCopyLink();
-            }}
-          >
-            {t("Copy link")}
-          </Menu.Item>
+          {!isFolder && (
+            <Menu.Item
+              leftSection={<IconLink size={16} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCopyLink();
+              }}
+            >
+              {t("Copy link")}
+            </Menu.Item>
+          )}
 
           <Menu.Item
             leftSection={isFavorited ? <IconStarFilled size={16} /> : <IconStar size={16} />}
@@ -630,30 +768,77 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
             {isFavorited ? t("Remove from favorites") : t("Add to favorites")}
           </Menu.Item>
 
-          <Menu.Item
-            leftSection={<IconFileExport size={16} />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openExportModal();
-            }}
-          >
-            {t("Export page")}
-          </Menu.Item>
+          {!isFolder && (
+            <Menu.Item
+              leftSection={<IconFileExport size={16} />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openExportModal();
+              }}
+            >
+              {t("Export page")}
+            </Menu.Item>
+          )}
 
           {treeApi.props.disableEdit !== true &&
             node.data.canEdit !== false && (
               <>
                 <Menu.Item
-                  leftSection={<IconCopy size={16} />}
-                  onClick={(e) => {
+                  leftSection={<IconPencil size={16} />}
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleDuplicatePage();
+                    const newName = await openPageNameModal({
+                      title: isFolder ? t("Rename folder") : t("Rename page"),
+                      initialValue: node.data.name || t("untitled"),
+                      confirmLabel: t("Save"),
+                    });
+
+                    if (!newName) {
+                      return;
+                    }
+
+                    await renameNode(node.id, newName);
                   }}
                 >
-                  {t("Duplicate")}
+                  {t("Rename")}
                 </Menu.Item>
+
+                <Menu.Item
+                  leftSection={<IconFolderPlus size={16} />}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await createNode({ parentId: node.id, nodeType: "folder" });
+                  }}
+                >
+                  {t("New folder")}
+                </Menu.Item>
+
+                <Menu.Item
+                  leftSection={<IconPlus size={16} />}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await createNode({ parentId: node.id, nodeType: "page" });
+                  }}
+                >
+                  {t("New page")}
+                </Menu.Item>
+
+                {!isFolder && (
+                  <Menu.Item
+                    leftSection={<IconCopy size={16} />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDuplicatePage();
+                    }}
+                  >
+                    {t("Duplicate")}
+                  </Menu.Item>
+                )}
 
                 <Menu.Item
                   leftSection={<IconArrowRight size={16} />}
@@ -666,16 +851,18 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
                   {t("Move")}
                 </Menu.Item>
 
-                <Menu.Item
-                  leftSection={<IconCopy size={16} />}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openCopyPageModal();
-                  }}
-                >
-                  {t("Copy to space")}
-                </Menu.Item>
+                {!isFolder && (
+                  <Menu.Item
+                    leftSection={<IconCopy size={16} />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openCopyPageModal();
+                    }}
+                  >
+                    {t("Copy to space")}
+                  </Menu.Item>
+                )}
 
                 <Menu.Divider />
                 <Menu.Item
@@ -702,19 +889,23 @@ function NodeMenu({ node, treeApi, spaceId }: NodeMenuProps) {
         open={movePageModalOpened}
       />
 
-      <CopyPageModal
-        pageId={node.id}
-        currentSpaceSlug={spaceSlug}
-        onClose={closeCopySpaceModal}
-        open={copyPageModalOpened}
-      />
+      {!isFolder && (
+        <>
+          <CopyPageModal
+            pageId={node.id}
+            currentSpaceSlug={spaceSlug}
+            onClose={closeCopySpaceModal}
+            open={copyPageModalOpened}
+          />
 
-      <ExportModal
-        type="page"
-        id={node.id}
-        open={exportOpened}
-        onClose={closeExportModal}
-      />
+          <ExportModal
+            type="page"
+            id={node.id}
+            open={exportOpened}
+            onClose={closeExportModal}
+          />
+        </>
+      )}
     </>
   );
 }

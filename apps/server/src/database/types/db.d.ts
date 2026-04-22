@@ -256,6 +256,7 @@ export interface Pages {
   id: Generated<string>;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
+  nodeType: Generated<string>;
   parentPageId: string | null;
   position: string | null;
   slugId: string;

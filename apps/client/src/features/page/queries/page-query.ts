@@ -179,6 +179,7 @@ export function useRestorePageMutation() {
         const nodeData: SpaceTreeNode = {
           id: restoredPage.id,
           slugId: restoredPage.slugId,
+          nodeType: restoredPage.nodeType,
           name: restoredPage.title || "Untitled",
           icon: restoredPage.icon,
           position: restoredPage.position,
@@ -330,6 +331,7 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
     hasChildren: data.hasChildren,
     icon: data.icon,
     id: data.id,
+    nodeType: data.nodeType,
     parentPageId: data.parentPageId,
     position: data.position,
     slugId: data.slugId,

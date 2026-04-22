@@ -74,6 +74,15 @@
     margin-bottom: rem(5px);
 }
 
+.headerAction {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+
+    &:hover {
+        background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+        color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+    }
+}
+
 .pageLink {
     display: block;
     padding: rem(8px) var(--mantine-spacing-xs);
