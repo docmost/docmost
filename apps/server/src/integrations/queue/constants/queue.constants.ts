@@ -30,6 +30,7 @@ export enum QueueJob {
   FIRST_PAYMENT_EMAIL = 'first-payment-email',
 
   IMPORT_TASK = 'import-task',
+  CONFLUENCE_API_IMPORT = 'confluence-api-import-task',
   EXPORT_TASK = 'export-task',
 
   SEARCH_INDEX_PAGE = 'search-index-page',

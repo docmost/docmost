@@ -18,6 +18,7 @@ export interface ConfluenceApiImports {
   warnings: Generated<Json>;
   currentPhase: string | null;
   cancelled: Generated<boolean>;
+  spaceKeys: Generated<Json>;
   workspaceId: string;
   creatorId: string | null;
   createdAt: Generated<Timestamp>;

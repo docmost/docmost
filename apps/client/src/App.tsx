@@ -45,6 +45,7 @@ import TemplateEditor from "@/ee/template/pages/template-editor";
 import FavoritesPage from "@/pages/favorites/favorites-page";
 import AiChat from "@/ee/ai-chat/pages/ai-chat.tsx";
 import VerifyEmail from "@/ee/pages/verify-email.tsx";
+import ConfluenceImportPage from "@/ee/confluence-import/pages/confluence-import.tsx";
 
 export default function App() {
   const { t } = useTranslation();
@@ -123,6 +124,10 @@ export default function App() {
             <Route path={"ai/mcp"} element={<AiSettings />} />
             <Route path={"audit"} element={<AuditLogs />} />
             <Route path={"verifications"} element={<VerifiedPages />} />
+            <Route
+              path={"import/confluence"}
+              element={<ConfluenceImportPage />}
+            />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

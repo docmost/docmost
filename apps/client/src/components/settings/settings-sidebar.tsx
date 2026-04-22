@@ -15,6 +15,7 @@ import {
   IconSparkles,
   IconHistory,
   IconShieldCheck,
+  IconFileImport,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./settings.module.css";
@@ -123,6 +124,13 @@ const groupedData: DataGroup[] = [
         feature: Feature.AUDIT_LOGS,
         role: "owner",
         env: "selfhosted",
+      },
+      {
+        label: "Import",
+        icon: IconFileImport,
+        path: "/settings/import/confluence",
+        feature: Feature.CONFLUENCE_IMPORT,
+        role: "admin",
       },
     ],
   },

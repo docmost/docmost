@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ['docmost.nz'],
       proxy: {
         "/api": {
           target: APP_URL,
