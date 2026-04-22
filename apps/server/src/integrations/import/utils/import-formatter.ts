@@ -52,9 +52,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  notionFormatter($, $root);
-  xwikiFormatter($, $root);
-  defaultHtmlFormatter($, $root);
+  normalizeImportHtml($, $root);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -72,6 +70,23 @@ export async function formatImportHtml(opts: {
     backlinks,
     pageIcon: pageIcon || undefined,
   };
+}
+
+/**
+ * Contextless HTML cleanup shared by every import path.
+ * - notionFormatter: no-op on non-Notion HTML (class-selector-based).
+ * - xwikiFormatter: no-op on non-XWiki HTML (looks for #xwikicontent).
+ * - defaultHtmlFormatter: table column widths + provider auto-embeds.
+ *
+ * Does NOT run rewriteInternalLinksToMentionHtml — that requires zip context.
+ */
+export function normalizeImportHtml(
+  $: CheerioAPI,
+  $root: Cheerio<any>,
+): void {
+  notionFormatter($, $root);
+  xwikiFormatter($, $root);
+  defaultHtmlFormatter($, $root);
 }
 
 export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
