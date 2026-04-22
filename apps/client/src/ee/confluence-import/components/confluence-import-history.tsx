@@ -21,24 +21,44 @@ import { formattedDate } from "@/lib/time";
 import NoTableResults from "@/components/common/no-table-results";
 import { useConfluenceImportsQuery } from "@/ee/confluence-import/queries/confluence-import-queries";
 
+const BADGE_STYLES = {
+  root: { flexShrink: 0 },
+  label: { overflow: "visible" as const },
+};
+
 function statusBadge(status: ConfluenceImportStatus, cancelled: boolean) {
   if (cancelled) {
     return (
-      <Badge color="gray" variant="light" leftSection={<IconX size={12} />}>
+      <Badge
+        color="gray"
+        variant="light"
+        leftSection={<IconX size={12} />}
+        styles={BADGE_STYLES}
+      >
         Cancelled
       </Badge>
     );
   }
   if (status === "processing") {
     return (
-      <Badge color="blue" variant="light" leftSection={<Loader size={10} />}>
+      <Badge
+        color="blue"
+        variant="light"
+        leftSection={<Loader size={10} />}
+        styles={BADGE_STYLES}
+      >
         Running
       </Badge>
     );
   }
   if (status === "success") {
     return (
-      <Badge color="teal" variant="light" leftSection={<IconCheck size={12} />}>
+      <Badge
+        color="teal"
+        variant="light"
+        leftSection={<IconCheck size={12} />}
+        styles={BADGE_STYLES}
+      >
         Completed
       </Badge>
     );
@@ -48,6 +68,7 @@ function statusBadge(status: ConfluenceImportStatus, cancelled: boolean) {
       color="red"
       variant="light"
       leftSection={<IconAlertCircle size={12} />}
+      styles={BADGE_STYLES}
     >
       Failed
     </Badge>
