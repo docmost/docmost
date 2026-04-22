@@ -210,6 +210,7 @@ export class AuthController {
     const authToken = await this.authService.oauthLogin({
       email: profile.email,
       name: profile.name,
+      avatarUrl: profile.avatarUrl,
       workspaceId: workspace.id,
     });
 

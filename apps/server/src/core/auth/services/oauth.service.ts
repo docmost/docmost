@@ -8,6 +8,7 @@ const OAUTH_CONFIG_TTL_MS = 5 * 60 * 1000;
 type OAuthProfile = {
   email: string;
   name?: string;
+  avatarUrl?: string;
 };
 
 @Injectable()
@@ -81,10 +82,14 @@ export class OauthService {
       this.getClaimValue(userInfo?.preferred_username) ??
       this.getClaimValue(idTokenClaims?.name) ??
       this.getClaimValue(idTokenClaims?.preferred_username);
+    const avatarUrl =
+      this.getClaimValue(userInfo?.picture) ??
+      this.getClaimValue(idTokenClaims?.picture);
 
     return {
       email,
       name,
+      avatarUrl,
     };
   }
 

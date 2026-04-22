@@ -128,6 +128,7 @@ export class AuthService {
   async oauthLogin(opts: {
     email: string;
     name?: string;
+    avatarUrl?: string;
     workspaceId: string;
   }) {
     if (!this.environmentService.isOAuthEnabled()) {
@@ -142,6 +143,7 @@ export class AuthService {
     return this.loginWithExternalIdentity({
       email,
       name: opts.name,
+      avatarUrl: opts.avatarUrl,
       workspaceId: opts.workspaceId,
       autoProvision: this.environmentService.isOAuthAutoProvisionEnabled(),
       source: `oauth:${this.environmentService.getOAuthProvider()}`,
@@ -378,6 +380,7 @@ export class AuthService {
   private async loginWithExternalIdentity(opts: {
     email: string;
     name?: string;
+    avatarUrl?: string;
     workspaceId: string;
     autoProvision: boolean;
     source: string;
@@ -394,12 +397,22 @@ export class AuthService {
         {
           email: opts.email,
           name: opts.name?.trim() || opts.email.split('@')[0],
+          avatarUrl: opts.avatarUrl,
           password: randomBytes(48).toString('base64url'),
           emailVerifiedAt: new Date(),
           role: UserRole.MEMBER,
         } as any,
         opts.workspaceId,
       );
+    }
+
+    if (opts.avatarUrl && user.avatarUrl !== opts.avatarUrl) {
+      await this.userRepo.updateUser(
+        { avatarUrl: opts.avatarUrl },
+        user.id,
+        opts.workspaceId,
+      );
+      user.avatarUrl = opts.avatarUrl;
     }
 
     if (isUserDisabled(user)) {
