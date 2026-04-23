@@ -7,7 +7,8 @@ export * from "./parser";
 export * from "./resolver";
 export * from "./typecheck";
 export * from "./format";
-export { registry, register } from "./functions/registry";
-export type { FormulaFn } from "./functions/registry";
+import "./functions/index"; // side-effect: populate registry
+export { registry, register } from "./functions/index";
+export type { FormulaFn } from "./functions/index";
 export * from "./graph";
 export * from "./eval";

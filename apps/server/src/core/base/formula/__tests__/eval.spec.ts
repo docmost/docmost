@@ -45,8 +45,7 @@ describe("evaluate", () => {
   });
 });
 
-// TODO: unskip after Task 15 wires the function registry with round/concat.
-describe.skip("evaluate with registered functions", () => {
+describe("evaluate with registered functions", () => {
   it("invokes registered functions", () => {
     expect(run('round(1.6)', {})).toBe(2);
     expect(run('concat("a", "b", "c")', {})).toBe("abc");

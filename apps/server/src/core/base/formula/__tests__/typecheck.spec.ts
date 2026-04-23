@@ -1,4 +1,3 @@
-// TODO: unskip after Task 15 lands date functions and populates the registry.
 import { parseRaw, resolve, typecheck, registry } from "@docmost/base-formula/server";
 import type { FormulaAST } from "@docmost/base-formula/server";
 
@@ -9,7 +8,7 @@ const mk = (src: string, propTypes: Record<string, "number" | "string" | "boolea
   return { ast: resolved.ast, typeMap };
 };
 
-describe.skip("typecheck", () => {
+describe("typecheck", () => {
   it("infers number for arithmetic", () => {
     const { ast, typeMap } = mk('prop("Price") * 2', { Price: "number" });
     expect(typecheck(ast, typeMap, registry).resultType).toBe("number");
