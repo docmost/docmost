@@ -32,6 +32,7 @@ import { EnvironmentService } from '../../../integrations/environment/environmen
 export class PostgresExtensionService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PostgresExtensionService.name);
   private ready = false;
+  private bootstrapFailure: string | null = null;
 
   constructor(
     private readonly config: QueryCacheConfigProvider,
@@ -64,9 +65,10 @@ export class PostgresExtensionService implements OnApplicationBootstrap {
       // app: the cache service handles this by falling through to Postgres
       // when `isReady()` returns false (see `CollectionLoader.load`).
       this.ready = false;
+      this.bootstrapFailure = error.message;
     } finally {
-      await conn.closeSync();
-      await bootstrap.closeSync();
+      conn.closeSync();
+      bootstrap.closeSync();
     }
   }
 
@@ -83,8 +85,11 @@ export class PostgresExtensionService implements OnApplicationBootstrap {
    */
   async configureOnConnection(conn: DuckDBConnection): Promise<void> {
     if (!this.ready) {
+      const reason = this.bootstrapFailure
+        ? `: ${this.bootstrapFailure}`
+        : '';
       throw new Error(
-        'PostgresExtensionService not ready — check bootstrap logs',
+        `PostgresExtensionService not ready${reason}. Check bootstrap logs.`,
       );
     }
 

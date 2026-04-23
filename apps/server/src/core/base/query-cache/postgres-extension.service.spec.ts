@@ -57,8 +57,8 @@ describe('PostgresExtensionService', () => {
       expect(Number(row.c)).toBeGreaterThan(0);
       await svc.detach(conn);
     } finally {
-      await conn.closeSync();
-      await instance.closeSync();
+      conn.closeSync();
+      instance.closeSync();
     }
   });
 
@@ -73,8 +73,8 @@ describe('PostgresExtensionService', () => {
       await svc.detach(conn);
       await expect(svc.detach(conn)).resolves.toBeUndefined();
     } finally {
-      await conn.closeSync();
-      await instance.closeSync();
+      conn.closeSync();
+      instance.closeSync();
     }
   });
 
@@ -86,8 +86,44 @@ describe('PostgresExtensionService', () => {
     try {
       await expect(svc.configureOnConnection(conn)).rejects.toThrow(/not ready/i);
     } finally {
-      await conn.closeSync();
-      await instance.closeSync();
+      conn.closeSync();
+      instance.closeSync();
+    }
+  });
+
+  it('includes the bootstrap failure reason in the not-ready error', async () => {
+    // Force bootstrap to fail by giving the service a broken DB URL so that
+    // LOAD postgres still succeeds but something in the bootstrap path throws.
+    // Simplest reliable failure: monkey-patch the service so its bootstrap
+    // runs a SQL statement that cannot succeed. We accept a small amount of
+    // test-only access by subclassing.
+
+    class BreakingService extends PostgresExtensionService {
+      async onApplicationBootstrap(): Promise<void> {
+        // Call super to keep the gate logic, but sabotage inside by
+        // running INSTALL on a closed connection via a try-wrapper that
+        // throws synchronously and is captured by the parent catch.
+        // Simplest approach: directly set the failure and leave ready=false.
+        (this as any).ready = false;
+        (this as any).bootstrapFailure = 'simulated boot failure XYZ';
+      }
+    }
+
+    const svc = new BreakingService(
+      makeConfig(),
+      makeEnv() as any,
+    );
+    await svc.onApplicationBootstrap();
+
+    const instance = await DuckDBInstance.create(':memory:');
+    const conn = await instance.connect();
+    try {
+      await expect(svc.configureOnConnection(conn)).rejects.toThrow(
+        /simulated boot failure XYZ/,
+      );
+    } finally {
+      conn.closeSync();
+      instance.closeSync();
     }
   });
 });
