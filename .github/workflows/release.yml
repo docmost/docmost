@@ -12,6 +12,10 @@ on:
       target_repository:
         description: "Mirror GitHub repository in owner/name format"
         required: false
+      deploy_after_release:
+        description: "Run 1Panel compose update after pushing the image"
+        required: false
+        default: "true"
 
 permissions:
   contents: write
@@ -22,6 +26,8 @@ env:
   TARGET_REPOSITORY: ${{ inputs.target_repository || github.repository }}
   RELEASE_TOKEN: ${{ secrets.GITHUB_MIRROR_TOKEN || github.token }}
   IMAGE_NAME: ghcr.io/${{ github.repository }}
+  DEPLOY_AFTER_RELEASE: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy_after_release != 'false' }}
+  ONEPANEL_CLI_VERSION: ${{ vars.ONEPANEL_CLI_VERSION || 'v0.1.6' }}
 
 jobs:
   release:
@@ -125,3 +131,47 @@ jobs:
               --title "${VERSION}" \
               --generate-notes
           fi
+
+      - name: Resolve deployment image tags
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && vars.ONEPANEL_BASE_URL != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        env:
+          OVERRIDE_IMAGE_NAME: ${{ vars.ONEPANEL_IMAGE_NAME }}
+        run: |
+          deploy_image_name="${OVERRIDE_IMAGE_NAME:-${IMAGE_NAME}}"
+          to_image="${deploy_image_name}:${VERSION}"
+
+          {
+            echo "TO_IMAGE=${to_image}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Download 1Panel CLI
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && vars.ONEPANEL_BASE_URL != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        run: |
+          curl -fsSL \
+            -o /usr/local/bin/1panel-cli \
+            "https://github.com/kalicyh/1Panel-cli/releases/download/${ONEPANEL_CLI_VERSION}/1panel-cli-x86_64-unknown-linux-musl"
+          chmod +x /usr/local/bin/1panel-cli
+          /usr/local/bin/1panel-cli --help >/dev/null
+
+      - name: Deploy updated image to 1Panel
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && vars.ONEPANEL_BASE_URL != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        env:
+          ONEPANEL_BASE_URL: ${{ vars.ONEPANEL_BASE_URL }}
+          ONEPANEL_API_KEY: ${{ secrets.ONEPANEL_API_KEY }}
+          ONEPANEL_COMPOSE_NAME: ${{ vars.ONEPANEL_COMPOSE_NAME }}
+          ONEPANEL_COMPOSE_PATH: ${{ vars.ONEPANEL_COMPOSE_PATH }}
+        run: |
+          /usr/local/bin/1panel-cli deploy-compose-update \
+            --base-url "${ONEPANEL_BASE_URL}" \
+            --api-key "${ONEPANEL_API_KEY}" \
+            --compose-name "${ONEPANEL_COMPOSE_NAME}" \
+            --compose-path "${ONEPANEL_COMPOSE_PATH}" \
+            --to-image "${TO_IMAGE}" \
+            --apply
+
+      - name: Skip 1Panel deployment when config is missing
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && (vars.ONEPANEL_BASE_URL == '' || vars.ONEPANEL_COMPOSE_NAME == '' || vars.ONEPANEL_COMPOSE_PATH == '' || secrets.ONEPANEL_API_KEY == '') }}
+        run: |
+          echo "Skipping 1Panel deployment because required GitHub variables or secrets are missing."
+          echo "Required vars: ONEPANEL_BASE_URL, ONEPANEL_COMPOSE_NAME, ONEPANEL_COMPOSE_PATH"
+          echo "Required secret: ONEPANEL_API_KEY"

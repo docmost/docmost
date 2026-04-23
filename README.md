@@ -14,6 +14,23 @@
 
 To get started with Docmost, please refer to our [documentation](https://docmost.com/docs) or try our [cloud version](https://docmost.com/pricing) .
 
+## Release automation
+
+Pushing a tag like `v1.0.3` triggers [`.github/workflows/release.yml`](.github/workflows/release.yml). The workflow will:
+
+- build and push `ghcr.io/<owner>/<repo>:v1.0.3`
+- push the tag to the mirror repository and create/update a GitHub release
+- optionally call `1panel-cli deploy-compose-update` to update the compose app in 1Panel
+
+To enable the 1Panel deployment step, configure these repository settings in GitHub Actions:
+
+- Variable `ONEPANEL_BASE_URL`: for example `https://nz.com`
+- Variable `ONEPANEL_COMPOSE_NAME`: for example `wiki`
+- Variable `ONEPANEL_COMPOSE_PATH`: for example `/opt/1panel/docker/compose/wiki/docker-compose.yml`
+- Optional variable `ONEPANEL_IMAGE_NAME`: override the image name used for deployment, for example `ghcr.io/ssigpoy/docmost`
+- Optional variable `ONEPANEL_CLI_VERSION`: defaults to `v0.1.6`
+- Secret `ONEPANEL_API_KEY`: the 1Panel API key
+
 ## Features
 
 - Real-time collaboration
