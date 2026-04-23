@@ -73,8 +73,6 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ !contains(env.VERSION, '-') }}
             type=raw,value=${{ env.VERSION }}
-            type=raw,value=${{ github.ref_name }}
-            type=sha
 
       - name: Build and push GHCR image
         uses: docker/build-push-action@v6
