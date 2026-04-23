@@ -32,6 +32,10 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      ONEPANEL_HOST: ${{ secrets.ONEPANEL_HOST }}
+      ONEPANEL_PORT: ${{ secrets.ONEPANEL_PORT }}
+      ONEPANEL_API_KEY: ${{ secrets.ONEPANEL_API_KEY }}
     steps:
       - name: Validate configuration
         run: |
@@ -133,7 +137,7 @@ jobs:
           fi
 
       - name: Resolve deployment image tags
-        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && secrets.ONEPANEL_HOST != '' && secrets.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && env.ONEPANEL_HOST != '' && env.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && env.ONEPANEL_API_KEY != '' }}
         env:
           OVERRIDE_IMAGE_NAME: ${{ vars.ONEPANEL_IMAGE_NAME }}
         run: |
@@ -145,7 +149,7 @@ jobs:
           } >> "${GITHUB_ENV}"
 
       - name: Download 1Panel CLI
-        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && secrets.ONEPANEL_HOST != '' && secrets.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && env.ONEPANEL_HOST != '' && env.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && env.ONEPANEL_API_KEY != '' }}
         run: |
           curl -fsSL \
             -o /usr/local/bin/1panel-cli \
@@ -154,11 +158,8 @@ jobs:
           /usr/local/bin/1panel-cli --help >/dev/null
 
       - name: Deploy updated image to 1Panel
-        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && secrets.ONEPANEL_HOST != '' && secrets.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && secrets.ONEPANEL_API_KEY != '' }}
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && env.ONEPANEL_HOST != '' && env.ONEPANEL_PORT != '' && vars.ONEPANEL_COMPOSE_NAME != '' && vars.ONEPANEL_COMPOSE_PATH != '' && env.ONEPANEL_API_KEY != '' }}
         env:
-          ONEPANEL_HOST: ${{ secrets.ONEPANEL_HOST }}
-          ONEPANEL_PORT: ${{ secrets.ONEPANEL_PORT }}
-          ONEPANEL_API_KEY: ${{ secrets.ONEPANEL_API_KEY }}
           ONEPANEL_COMPOSE_NAME: ${{ vars.ONEPANEL_COMPOSE_NAME }}
           ONEPANEL_COMPOSE_PATH: ${{ vars.ONEPANEL_COMPOSE_PATH }}
         run: |
@@ -172,7 +173,7 @@ jobs:
             --apply
 
       - name: Skip 1Panel deployment when config is missing
-        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && (secrets.ONEPANEL_HOST == '' || secrets.ONEPANEL_PORT == '' || vars.ONEPANEL_COMPOSE_NAME == '' || vars.ONEPANEL_COMPOSE_PATH == '' || secrets.ONEPANEL_API_KEY == '') }}
+        if: ${{ env.DEPLOY_AFTER_RELEASE == 'true' && (env.ONEPANEL_HOST == '' || env.ONEPANEL_PORT == '' || vars.ONEPANEL_COMPOSE_NAME == '' || vars.ONEPANEL_COMPOSE_PATH == '' || env.ONEPANEL_API_KEY == '') }}
         run: |
           echo "Skipping 1Panel deployment because required GitHub variables or secrets are missing."
           echo "Required vars: ONEPANEL_COMPOSE_NAME, ONEPANEL_COMPOSE_PATH"
