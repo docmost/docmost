@@ -343,4 +343,23 @@ export class EnvironmentService {
         .toLowerCase() === 'true'
     );
   }
+
+  getBaseQueryCacheMemoryLimit(): string {
+    // Per-DuckDB-instance memory ceiling. DuckDB accepts human-readable sizes:
+    // '32MB', '128MB', '1GB'. Default keeps a single instance from
+    // monopolising the heap if a runaway query needs to spill.
+    return this.configService.get<string>(
+      'BASE_QUERY_CACHE_MEMORY_LIMIT',
+      '64MB',
+    );
+  }
+
+  getBaseQueryCacheThreads(): number {
+    // Per-DuckDB-instance thread budget. Defaults to 2 so multiple concurrent
+    // instances don't fight for every core on a shared host.
+    return parseInt(
+      this.configService.get<string>('BASE_QUERY_CACHE_THREADS', '2'),
+      10,
+    );
+  }
 }

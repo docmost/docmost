@@ -6,6 +6,8 @@ export type QueryCacheConfig = {
   minRows: number;
   maxCollections: number;
   warmTopN: number;
+  memoryLimit: string;
+  threads: number;
 };
 
 @Injectable()
@@ -17,6 +19,8 @@ export class QueryCacheConfigProvider {
       minRows: env.getBaseQueryCacheMinRows(),
       maxCollections: env.getBaseQueryCacheMaxCollections(),
       warmTopN: env.getBaseQueryCacheWarmTopN(),
+      memoryLimit: env.getBaseQueryCacheMemoryLimit(),
+      threads: env.getBaseQueryCacheThreads(),
     };
   }
 }
