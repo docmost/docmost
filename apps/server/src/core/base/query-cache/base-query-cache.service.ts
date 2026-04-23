@@ -27,6 +27,7 @@ import {
 import { QueryCacheConfigProvider } from './query-cache.config';
 import { CollectionLoader } from './collection-loader';
 import { buildDuckDbListQuery } from './duckdb-query-builder';
+import { DuckDbRuntime } from './duckdb-runtime';
 import { BasePropertyType } from '../base.schemas';
 import {
   ChangeEnvelope,
@@ -55,6 +56,7 @@ export class BaseQueryCacheService
     private readonly configProvider: QueryCacheConfigProvider,
     private readonly baseRepo: BaseRepo,
     private readonly collectionLoader: CollectionLoader,
+    private readonly runtime: DuckDbRuntime,
     @Optional() private readonly redisService: RedisService | null = null,
     @Optional() private readonly env: EnvironmentService | null = null,
   ) {}
@@ -62,8 +64,14 @@ export class BaseQueryCacheService
   async onApplicationBootstrap(): Promise<void> {
     const { enabled, warmTopN } = this.configProvider.config;
     if (!enabled) return;
+    if (!this.runtime.isReady()) {
+      this.logger.warn('runtime not ready; skipping warm-up');
+      return;
+    }
+
     const redis = this.tryGetRedisClient();
     if (!redis) return;
+
     try {
       const ids = await redis.zrevrange(
         'base-query-cache:recent',
@@ -89,41 +97,10 @@ export class BaseQueryCacheService
     }
   }
 
-  private tryGetRedisClient(): Redis | null {
-    if (!this.redisService) return null;
-    try {
-      return this.redisService.getOrNil();
-    } catch {
-      return null;
-    }
-  }
-
-  private recordAccess(baseId: string): void {
-    if (!this.configProvider.config.enabled) return;
-    const redis = this.tryGetRedisClient();
-    if (!redis) return;
-    const nowMs = Date.now();
-    const maxKeep = this.configProvider.config.maxCollections * 10;
-    void (async () => {
-      try {
-        await redis.zadd('base-query-cache:recent', nowMs, baseId);
-        await redis.zremrangebyrank(
-          'base-query-cache:recent',
-          0,
-          -(maxKeep + 1),
-        );
-      } catch (err) {
-        this.logger.debug(
-          `recordAccess failed for ${baseId}: ${(err as Error).message}`,
-        );
-      }
-    })();
-  }
-
   async onModuleDestroy(): Promise<void> {
-    for (const [, collection] of this.collections) {
-      this.closeCollection(collection);
-    }
+    // The runtime owns the instance/connection lifecycle; we just clear
+    // our metadata. DETACH is a no-op during shutdown because the instance
+    // is closing anyway.
     this.collections.clear();
   }
 
@@ -133,6 +110,7 @@ export class BaseQueryCacheService
     opts: CacheListOpts,
   ): Promise<CursorPaginationResult<BaseRow>> {
     const debug = this.env?.getBaseQueryCacheDebug() ?? false;
+    const trace = this.env?.getBaseQueryCacheTrace?.() ?? false;
     const tStart = debug ? Date.now() : 0;
 
     const tEnsure = debug ? Date.now() : 0;
@@ -143,9 +121,7 @@ export class BaseQueryCacheService
       opts.sorts && opts.sorts.length > 0
         ? buildSorts(opts.sorts, opts.schema)
         : [];
-
     const cursor = makeCursor(sortBuilds, CURSOR_TAIL_KEYS);
-
     const sortFieldKeys = sortBuilds.map((s) => s.key);
     const allFieldKeys = [...sortFieldKeys, 'position', 'id'];
 
@@ -164,42 +140,45 @@ export class BaseQueryCacheService
         limit: opts.pagination.limit,
         afterKeys: afterKeys as any,
       },
+      schema: collection.schema,
     });
 
-    if (this.env?.getBaseQueryCacheTrace?.() ?? false) {
+    if (trace) {
       console.log(
         '[cache-trace]',
         JSON.stringify({
           phase: 'query.sql',
           baseId: baseId.slice(0, 8),
+          schema: collection.schema,
           sql,
           params,
         }),
       );
     }
 
-    const prepared = await collection.connection.prepare(sql);
-    for (let i = 0; i < params.length; i++) {
-      const p = params[i];
-      const oneBased = i + 1;
-      if (p === null || p === undefined) {
-        prepared.bindNull(oneBased);
-      } else if (typeof p === 'string') {
-        prepared.bindVarchar(oneBased, p);
-      } else if (typeof p === 'number') {
-        prepared.bindDouble(oneBased, p);
-      } else if (typeof p === 'boolean') {
-        prepared.bindBoolean(oneBased, p);
-      } else if (p instanceof Date) {
-        prepared.bindVarchar(oneBased, p.toISOString());
-      } else {
-        prepared.bindVarchar(oneBased, JSON.stringify(p));
-      }
-    }
-
     const tExec = debug ? Date.now() : 0;
-    const reader = await prepared.runAndReadAll();
-    const duckRows = reader.getRowObjectsJS();
+    const duckRows = await this.runtime.withReader(async (conn) => {
+      const prepared = await conn.prepare(sql);
+      for (let i = 0; i < params.length; i++) {
+        const p = params[i];
+        const oneBased = i + 1;
+        if (p === null || p === undefined) {
+          prepared.bindNull(oneBased);
+        } else if (typeof p === 'string') {
+          prepared.bindVarchar(oneBased, p);
+        } else if (typeof p === 'number') {
+          prepared.bindDouble(oneBased, p);
+        } else if (typeof p === 'boolean') {
+          prepared.bindBoolean(oneBased, p);
+        } else if (p instanceof Date) {
+          prepared.bindVarchar(oneBased, p.toISOString());
+        } else {
+          prepared.bindVarchar(oneBased, JSON.stringify(p));
+        }
+      }
+      const reader = await prepared.runAndReadAll();
+      return reader.getRowObjectsJS();
+    });
     const execMs = debug ? Date.now() - tExec : 0;
 
     const hasNextPage = duckRows.length > opts.pagination.limit;
@@ -231,12 +210,9 @@ export class BaseQueryCacheService
 
     const endRow = duckRows[duckRows.length - 1];
     const startRow = duckRows[0];
-
     const encodeFromRow = (raw: Record<string, unknown>): string => {
       const entries: Array<[string, unknown]> = [];
-      for (const sb of sortBuilds) {
-        entries.push([sb.key, raw[sb.key]]);
-      }
+      for (const sb of sortBuilds) entries.push([sb.key, raw[sb.key]]);
       entries.push(['position', raw.position]);
       entries.push(['id', raw.id]);
       return cursor.encodeCursor(entries);
@@ -276,13 +252,10 @@ export class BaseQueryCacheService
   async invalidate(baseId: string): Promise<void> {
     const collection = this.collections.get(baseId);
     if (!collection) return;
-    this.closeCollection(collection);
+    await this.runtime.detachBase(collection.schema);
     this.collections.delete(baseId);
   }
 
-  // Test-only introspection of the resident cache. Used by the LRU eviction
-  // integration spec to assert which collections are currently loaded without
-  // reaching into the private `collections` map.
   isResident(baseId: string): boolean {
     return this.collections.has(baseId);
   }
@@ -291,48 +264,38 @@ export class BaseQueryCacheService
     return this.collections.size;
   }
 
-  // Production-facing fast path for the router: returns the resident
-  // collection without triggering a load. Used to avoid a per-request
-  // Postgres COUNT when the cached rowCount already answers the question.
   peek(baseId: string): LoadedCollection | undefined {
     return this.collections.get(baseId);
   }
 
-  // Returns the memory footprint of every currently resident collection.
   residencySnapshot(): Array<{
     baseId: string;
+    schema: string;
     rows: number;
-    heapMb: number;
-    spilledMb: number;
+    approxMb: number;
   }> {
     const out: Array<{
       baseId: string;
+      schema: string;
       rows: number;
-      heapMb: number;
-      spilledMb: number;
+      approxMb: number;
     }> = [];
     for (const [baseId, c] of this.collections) {
       out.push({
         baseId,
+        schema: c.schema,
         rows: c.rowCount,
-        heapMb: +(c.heapBytes / (1024 * 1024)).toFixed(1),
-        spilledMb: +(c.spilledBytes / (1024 * 1024)).toFixed(1),
+        approxMb: +(c.approxBytes / (1024 * 1024)).toFixed(1),
       });
     }
     return out;
   }
 
-  /*
-   * Apply a change envelope received from Redis pub/sub to the local
-   * collection (if any). Rows that target bases not resident on this node
-   * are ignored — the next `list` call will load them fresh from Postgres.
-   * If any patch step throws (e.g. schema drift between this node and the
-   * publisher) we eagerly invalidate so the next `list` rebuilds cleanly
-   * rather than serving partial state.
-   */
   async applyChange(env: ChangeEnvelope): Promise<void> {
+    const trace = this.env?.getBaseQueryCacheTrace?.() ?? false;
     const collection = this.collections.get(env.baseId);
-    if (this.env?.getBaseQueryCacheTrace?.() ?? false) {
+
+    if (trace) {
       console.log(
         '[cache-trace]',
         JSON.stringify({
@@ -343,6 +306,7 @@ export class BaseQueryCacheService
         }),
       );
     }
+
     if (!collection) return;
 
     try {
@@ -378,16 +342,95 @@ export class BaseQueryCacheService
     }
   }
 
-  private async refreshRowCount(collection: LoadedCollection): Promise<void> {
-    try {
-      const res = await collection.connection.runAndReadAll(
-        'SELECT count(*) AS c FROM rows',
+  private async ensureLoaded(
+    baseId: string,
+    workspaceId: string,
+  ): Promise<LoadedCollection> {
+    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
+    const existing = this.collections.get(baseId);
+
+    const tFind = debug ? Date.now() : 0;
+    const base = await this.baseRepo.findById(baseId);
+    const findMs = debug ? Date.now() - tFind : 0;
+    if (!base) throw new Error(`Base ${baseId} not found`);
+    const freshVersion = (base as any).schemaVersion ?? 1;
+
+    if (existing && existing.schemaVersion === freshVersion) {
+      existing.lastAccessedAt = Date.now();
+      this.recordAccess(baseId);
+      if (debug) {
+        console.log(
+          '[cache-perf]',
+          JSON.stringify({
+            phase: 'ensureLoaded.hit',
+            baseId: baseId.slice(0, 8),
+            findMs,
+          }),
+        );
+      }
+      return existing;
+    }
+
+    if (existing) {
+      await this.runtime.detachBase(existing.schema);
+      this.collections.delete(baseId);
+    }
+
+    const inFlight = this.inFlightLoads.get(baseId);
+    if (inFlight) {
+      const loaded = await inFlight;
+      this.recordAccess(baseId);
+      return loaded;
+    }
+
+    const tLoad = debug ? Date.now() : 0;
+    const promise = (async () => {
+      try {
+        const { maxCollections } = this.configProvider.config;
+        if (this.collections.size >= maxCollections) {
+          await this.evictLru();
+        }
+        const loaded = await this.collectionLoader.load(baseId, workspaceId);
+        this.collections.set(baseId, loaded);
+        return loaded;
+      } finally {
+        this.inFlightLoads.delete(baseId);
+      }
+    })();
+    this.inFlightLoads.set(baseId, promise);
+    const loaded = await promise;
+    const loadMs = debug ? Date.now() - tLoad : 0;
+    this.recordAccess(baseId);
+    if (debug) {
+      console.log(
+        '[cache-perf]',
+        JSON.stringify({
+          phase: 'ensureLoaded.miss',
+          baseId: baseId.slice(0, 8),
+          findMs,
+          loadMs,
+          rows: loaded.rowCount,
+          approxMb: +(loaded.approxBytes / (1024 * 1024)).toFixed(1),
+        }),
       );
-      const row = res.getRowObjects()[0] as { c: bigint | number };
-      collection.rowCount = Number(row.c);
-    } catch {
-      // swallow — stale rowCount drifts at most by the size of the burst; the
-      // next reload-from-Postgres or pubsub event corrects it.
+    }
+    return loaded;
+  }
+
+  private async evictLru(): Promise<void> {
+    let oldestKey: string | null = null;
+    let oldestTime = Number.POSITIVE_INFINITY;
+    for (const [key, col] of this.collections) {
+      if (col.lastAccessedAt < oldestTime) {
+        oldestTime = col.lastAccessedAt;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) {
+      const col = this.collections.get(oldestKey)!;
+      await this.runtime.detachBase(col.schema);
+      this.collections.delete(oldestKey);
+      this.logger.debug(`Evicted LRU collection ${oldestKey}`);
     }
   }
 
@@ -398,9 +441,10 @@ export class BaseQueryCacheService
     const specs = collection.columns;
     const columnList = specs.map((s) => quoteIdent(s.column)).join(', ');
     const placeholders = specs.map(() => '?').join(', ');
-    const sql = `INSERT OR REPLACE INTO rows (${columnList}) VALUES (${placeholders})`;
+    const sql = `INSERT OR REPLACE INTO ${collection.schema}.rows (${columnList}) VALUES (${placeholders})`;
 
-    const prepared = await collection.connection.prepare(sql);
+    const writer = this.runtime.getWriter();
+    const prepared = await writer.prepare(sql);
     for (let i = 0; i < specs.length; i++) {
       const spec = specs[i];
       const oneBased = i + 1;
@@ -440,8 +484,9 @@ export class BaseQueryCacheService
     collection: LoadedCollection,
     rowId: string,
   ): Promise<void> {
-    const prepared = await collection.connection.prepare(
-      'DELETE FROM rows WHERE id = ?',
+    const writer = this.runtime.getWriter();
+    const prepared = await writer.prepare(
+      `DELETE FROM ${collection.schema}.rows WHERE id = ?`,
     );
     prepared.bindVarchar(1, rowId);
     await prepared.run();
@@ -452,239 +497,133 @@ export class BaseQueryCacheService
     rowId: string,
     position: string,
   ): Promise<void> {
-    const prepared = await collection.connection.prepare(
-      'UPDATE rows SET position = ? WHERE id = ?',
+    const writer = this.runtime.getWriter();
+    const prepared = await writer.prepare(
+      `UPDATE ${collection.schema}.rows SET position = ? WHERE id = ?`,
     );
     prepared.bindVarchar(1, position);
     prepared.bindVarchar(2, rowId);
     await prepared.run();
   }
 
-  private async ensureLoaded(
-    baseId: string,
-    workspaceId: string,
-  ): Promise<LoadedCollection> {
-    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
-    // TODO(task-7): remove per-request findById once pub/sub invalidation
-    // keeps collections in sync with schema bumps.
-    const existing = this.collections.get(baseId);
-
-    const tFind = debug ? Date.now() : 0;
-    const base = await this.baseRepo.findById(baseId);
-    const findMs = debug ? Date.now() - tFind : 0;
-    if (!base) {
-      throw new Error(`Base ${baseId} not found`);
+  private async refreshRowCount(collection: LoadedCollection): Promise<void> {
+    try {
+      const res = await this.runtime.getWriter().runAndReadAll(
+        `SELECT count(*) AS c FROM ${collection.schema}.rows`,
+      );
+      const row = res.getRowObjects()[0] as { c: bigint | number };
+      collection.rowCount = Number(row.c);
+    } catch {
+      // stale rowCount self-corrects on next reload
     }
-    const freshVersion = (base as any).schemaVersion ?? 1;
+  }
 
-    if (existing && existing.schemaVersion === freshVersion) {
-      existing.lastAccessedAt = Date.now();
-      this.recordAccess(baseId);
-      if (debug) {
-        console.log(
-          '[cache-perf]',
-          JSON.stringify({
-            phase: 'ensureLoaded.hit',
-            baseId: baseId.slice(0, 8),
-            findMs,
-          }),
+  private recordAccess(baseId: string): void {
+    if (!this.configProvider.config.enabled) return;
+    const redis = this.tryGetRedisClient();
+    if (!redis) return;
+    const nowMs = Date.now();
+    const maxKeep = this.configProvider.config.maxCollections * 10;
+    void (async () => {
+      try {
+        await redis.zadd('base-query-cache:recent', nowMs, baseId);
+        await redis.zremrangebyrank(
+          'base-query-cache:recent',
+          0,
+          -(maxKeep + 1),
+        );
+      } catch (err) {
+        this.logger.debug(
+          `recordAccess failed for ${baseId}: ${(err as Error).message}`,
         );
       }
-      return existing;
-    }
-
-    if (existing) {
-      this.closeCollection(existing);
-      this.collections.delete(baseId);
-    }
-
-    const inFlight = this.inFlightLoads.get(baseId);
-    if (inFlight) {
-      const loaded = await inFlight;
-      this.recordAccess(baseId);
-      return loaded;
-    }
-
-    const tLoad = debug ? Date.now() : 0;
-    const promise = (async () => {
-      try {
-        const { maxCollections } = this.configProvider.config;
-        if (this.collections.size >= maxCollections) {
-          this.evictLru();
-        }
-        const loaded = await this.collectionLoader.load(baseId, workspaceId);
-        this.collections.set(baseId, loaded);
-        return loaded;
-      } finally {
-        this.inFlightLoads.delete(baseId);
-      }
     })();
-    this.inFlightLoads.set(baseId, promise);
-    const loaded = await promise;
-    const loadMs = debug ? Date.now() - tLoad : 0;
-    this.recordAccess(baseId);
-    if (debug) {
-      console.log(
-        '[cache-perf]',
-        JSON.stringify({
-          phase: 'ensureLoaded.miss',
-          baseId: baseId.slice(0, 8),
-          findMs,
-          loadMs,
-          rows: loaded.rowCount,
-          heapMb: +(loaded.heapBytes / (1024 * 1024)).toFixed(1),
-          spilledMb: +(loaded.spilledBytes / (1024 * 1024)).toFixed(1),
-        }),
-      );
-    }
-    return loaded;
   }
 
-  private evictLru(): void {
-    let oldestKey: string | null = null;
-    let oldestTime = Number.POSITIVE_INFINITY;
-    for (const [key, col] of this.collections) {
-      if (col.lastAccessedAt < oldestTime) {
-        oldestTime = col.lastAccessedAt;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey) {
-      const col = this.collections.get(oldestKey)!;
-      this.closeCollection(col);
-      this.collections.delete(oldestKey);
-      this.logger.debug(`Evicted LRU collection ${oldestKey}`);
-    }
-  }
-
-  private closeCollection(collection: LoadedCollection): void {
+  private tryGetRedisClient(): Redis | null {
+    if (!this.redisService) return null;
     try {
-      collection.connection.closeSync();
-    } catch (err) {
-      this.logger.warn(`Failed to close connection: ${(err as Error).message}`);
-    }
-    try {
-      collection.instance.closeSync();
-    } catch (err) {
-      this.logger.warn(`Failed to close instance: ${(err as Error).message}`);
+      return this.redisService.getOrNil();
+    } catch {
+      return null;
     }
   }
 }
 
-// Convert a DuckDB row object back into the BaseRow JSON shape. The builder
-// projects one column per user property; typed columns (DOUBLE, BOOLEAN,
-// TIMESTAMPTZ) round-trip as JS primitives / Date objects. We reconstruct
-// `cells` directly from the per-property columns so the JSON payload matches
-// what Postgres returns.
+function quoteIdent(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+/*
+ * Convert a DuckDB row object back to the BaseRow JSON shape returned to
+ * API callers. Kept inline (not exported) because it's a pure derivation
+ * from the ColumnSpec list.
+ */
 function shapeBaseRow(
   raw: Record<string, unknown>,
   specs: ColumnSpec[],
-  _sortBuilds: SortBuild[],
+  sortBuilds: SortBuild[],
 ): BaseRow {
   const cells: Record<string, unknown> = {};
   for (const spec of specs) {
-    if (!spec.property) continue; // system columns handled below
-    const v = raw[spec.column];
-    cells[spec.property.id] = normaliseCellValue(v, spec);
+    if (!spec.property) continue;
+    const val = raw[spec.column];
+    if (val == null) continue;
+    if (spec.ddlType === 'JSON' && typeof val === 'string') {
+      try {
+        cells[spec.property.id] = JSON.parse(val);
+      } catch {
+        cells[spec.property.id] = val;
+      }
+    } else {
+      cells[spec.property.id] = val;
+    }
   }
-
   return {
-    id: String(raw.id),
-    baseId: String(raw.base_id),
-    cells: cells as any,
-    position: String(raw.position),
-    creatorId: raw.creator_id == null ? null : String(raw.creator_id),
-    lastUpdatedById:
-      raw.last_updated_by_id == null ? null : String(raw.last_updated_by_id),
-    workspaceId: String(raw.workspace_id),
-    createdAt: toDate(raw.created_at),
-    updatedAt: toDate(raw.updated_at),
-    deletedAt: raw.deleted_at == null ? null : toDate(raw.deleted_at),
+    id: raw.id as string,
+    baseId: raw.base_id as string,
+    workspaceId: raw.workspace_id as string,
+    creatorId: raw.creator_id as string,
+    position: raw.position as string,
+    createdAt: coerceDate(raw.created_at),
+    updatedAt: coerceDate(raw.updated_at),
+    lastUpdatedById: raw.last_updated_by_id as string,
+    deletedAt: null,
+    cells,
   } as BaseRow;
 }
 
-function normaliseCellValue(value: unknown, spec: ColumnSpec): unknown {
-  if (value == null) return null;
-  switch (spec.ddlType) {
-    case 'VARCHAR':
-      return String(value);
-    case 'DOUBLE':
-      return typeof value === 'number' ? value : Number(value);
-    case 'BOOLEAN':
-      return Boolean(value);
-    case 'TIMESTAMPTZ': {
-      if (value instanceof Date) return value.toISOString();
-      return String(value);
-    }
-    case 'JSON': {
-      if (typeof value === 'string') {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    }
-    default:
-      return value;
-  }
+function coerceDate(v: unknown): Date {
+  if (v instanceof Date) return v;
+  if (typeof v === 'string') return new Date(v);
+  return new Date(0);
 }
 
-function toDate(value: unknown): Date {
-  if (value instanceof Date) return value;
-  return new Date(String(value));
-}
-
-// System property type → system column on base_rows (mirrors the map in
-// collection-loader.ts). Kept local to avoid a circular import.
-const SYSTEM_PROPERTY_COLUMN_LOOKUP: Record<string, string> = {
-  [BasePropertyType.CREATED_AT]: 'createdAt',
-  [BasePropertyType.LAST_EDITED_AT]: 'updatedAt',
-  [BasePropertyType.LAST_EDITED_BY]: 'lastUpdatedById',
-};
-
-// Mirror of collection-loader's `readFromRow`, but keyed off a generic event
-// payload (which may be camelCase JSON because it came over EventEmitter /
-// Redis rather than straight from Kysely — both shapes round-trip through
-// here). The function tolerates both the wire shape and the repo shape.
 function readFromRowEvent(
   row: Record<string, unknown>,
   spec: ColumnSpec,
 ): unknown {
   switch (spec.column) {
-    case 'id':
-      return row.id;
-    case 'base_id':
-      return row.baseId ?? row.base_id;
-    case 'workspace_id':
-      return row.workspaceId ?? row.workspace_id;
-    case 'creator_id':
-      return row.creatorId ?? row.creator_id;
-    case 'position':
-      return row.position;
-    case 'created_at':
-      return row.createdAt ?? row.created_at;
-    case 'updated_at':
-      return row.updatedAt ?? row.updated_at;
-    case 'last_updated_by_id':
-      return row.lastUpdatedById ?? row.last_updated_by_id;
-    case 'deleted_at':
-      return null;
-    case 'search_text':
-      return '';
+    case 'id':                 return row.id ?? null;
+    case 'base_id':            return row.baseId ?? row.base_id ?? null;
+    case 'workspace_id':       return row.workspaceId ?? row.workspace_id ?? null;
+    case 'creator_id':         return row.creatorId ?? row.creator_id ?? null;
+    case 'position':           return row.position ?? null;
+    case 'created_at':         return row.createdAt ?? row.created_at ?? null;
+    case 'updated_at':         return row.updatedAt ?? row.updated_at ?? null;
+    case 'last_updated_by_id': return row.lastUpdatedById ?? row.last_updated_by_id ?? null;
+    case 'deleted_at':         return null;
+    case 'search_text':        return '';
   }
-
   const prop = spec.property;
   if (!prop) return null;
-
-  const sysColumn = SYSTEM_PROPERTY_COLUMN_LOOKUP[prop.type];
-  if (sysColumn) return row[sysColumn] ?? null;
-
+  if (
+    prop.type === BasePropertyType.CREATED_AT ||
+    prop.type === BasePropertyType.LAST_EDITED_AT ||
+    prop.type === BasePropertyType.LAST_EDITED_BY
+  ) {
+    return null;
+  }
   const cells = (row.cells as Record<string, unknown> | null) ?? {};
   return cells[prop.id] ?? null;
-}
-
-function quoteIdent(name: string): string {
-  return `"${name.replace(/"/g, '""')}"`;
 }

@@ -1,4 +1,3 @@
-import type { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import type { BaseProperty } from '@docmost/db/types/entity.types';
 
 export type DuckDbColumnType =
@@ -9,31 +8,37 @@ export type DuckDbColumnType =
   | 'JSON';
 
 export type ColumnSpec = {
-  // The uuid of the property (user-defined props) or a stable literal
-  // ('id', 'position', 'created_at', 'updated_at', 'last_updated_by_id',
-  //  'deleted_at', 'search_text') for system columns.
+  /*
+   * The uuid of the property (user-defined props) or a stable literal
+   * ('id', 'position', 'created_at', 'updated_at', 'last_updated_by_id',
+   *  'deleted_at', 'search_text') for system columns.
+   */
   column: string;
   ddlType: DuckDbColumnType;
   indexable: boolean;
-  // For user-defined props we keep the source BaseProperty so callers can
-  // resolve the extraction rule from JSON.
   property?: Pick<BaseProperty, 'id' | 'type' | 'typeOptions'>;
 };
 
+/*
+ * A base held in the shared DuckDB instance. Instead of owning a
+ * `DuckDBInstance` and `DuckDBConnection`, it now just remembers the schema
+ * name of its attached in-memory database. The runtime owns the actual
+ * connections; this is pure metadata.
+ */
 export type LoadedCollection = {
   baseId: string;
+  schema: string;       // e.g. "b_019c69a51d847985a7f68ee2871d8669"
   schemaVersion: number;
   columns: ColumnSpec[];
-  instance: DuckDBInstance;
-  connection: DuckDBConnection;
   lastAccessedAt: number;
-  // cached; set by loader, maintained by applyChange
   rowCount: number;
-  // Memory stats captured immediately after load. Static until next
-  // explicit refresh — see `BaseQueryCacheService.refreshMemoryStats` if you
-  // need up-to-date figures after many applyChange() mutations.
-  heapBytes: number;
-  spilledBytes: number;
+  /*
+   * Estimated in-memory footprint, in bytes. DuckDB does not expose
+   * per-attached-db memory accounting, so this is a rough heuristic
+   * computed at load time: rowCount × columns.length × ~64 bytes. Used
+   * for cache-size reporting; not for eviction decisions.
+   */
+  approxBytes: number;
 };
 
 export type ChangeEnvelope =
