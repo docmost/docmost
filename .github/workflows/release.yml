@@ -18,7 +18,8 @@ permissions:
 
 env:
   VERSION: ${{ inputs.version || github.ref_name }}
-  TARGET_REPOSITORY: ${{ inputs.target_repository || vars.GITHUB_MIRROR_REPOSITORY }}
+  TARGET_REPOSITORY: ${{ inputs.target_repository || github.repository }}
+  RELEASE_TOKEN: ${{ secrets.GITHUB_MIRROR_TOKEN || github.token }}
 
 jobs:
   release:
@@ -27,11 +28,7 @@ jobs:
       - name: Validate configuration
         run: |
           if [ -z "${TARGET_REPOSITORY}" ]; then
-            echo "vars.GITHUB_MIRROR_REPOSITORY is not set and no workflow_dispatch target_repository was provided."
-            exit 1
-          fi
-          if [ -z "${{ secrets.GITHUB_MIRROR_TOKEN }}" ]; then
-            echo "secrets.GITHUB_MIRROR_TOKEN is not set."
+            echo "Unable to determine target repository."
             exit 1
           fi
 
@@ -53,7 +50,7 @@ jobs:
 
       - name: Configure mirror remote
         run: |
-          git remote add mirror "https://x-access-token:${{ secrets.GITHUB_MIRROR_TOKEN }}@github.com/${TARGET_REPOSITORY}.git"
+          git remote add mirror "https://x-access-token:${RELEASE_TOKEN}@github.com/${TARGET_REPOSITORY}.git"
           git remote -v
 
       - name: Push branches to mirror
@@ -64,7 +61,7 @@ jobs:
 
       - name: Create or update GitHub release in mirror
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_MIRROR_TOKEN }}
+          GH_TOKEN: ${{ env.RELEASE_TOKEN }}
         run: |
           if gh release view "${VERSION}" --repo "${TARGET_REPOSITORY}" >/dev/null 2>&1; then
             gh release edit "${VERSION}" \
