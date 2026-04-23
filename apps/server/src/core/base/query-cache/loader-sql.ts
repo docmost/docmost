@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import { ColumnSpec } from './query-cache.types';
 
 /*
@@ -40,10 +42,10 @@ export function buildLoaderSql(
   baseId: string,
   workspaceId: string,
 ): string {
-  if (!UUID.test(baseId)) {
+  if (!isValidUUID(baseId)) {
     throw new Error(`Invalid base id "${baseId}"`);
   }
-  if (!UUID.test(workspaceId)) {
+  if (!isValidUUID(workspaceId)) {
     throw new Error(`Invalid workspace id "${workspaceId}"`);
   }
   const projections = specs.map((spec) => projectionFor(spec));
@@ -116,10 +118,8 @@ function validateColumnName(name: string): void {
   }
 }
 
-const UUID =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 function validateUuid(s: string): void {
-  if (!UUID.test(s)) {
+  if (!isValidUUID(s)) {
     throw new Error(`Invalid property UUID "${s}"`);
   }
 }
