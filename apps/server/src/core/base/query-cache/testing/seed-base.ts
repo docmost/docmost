@@ -1,6 +1,34 @@
 import type { Kysely } from 'kysely';
+import { randomBytes } from 'node:crypto';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { v7 as uuid7 } from 'uuid';
+
+// Minimal RFC 9562 uuid7. We inline instead of importing `uuid@13` because
+// that package is ESM-only and this module is loaded by jest (CommonJS) in
+// the integration spec.
+function uuid7(): string {
+  const now = BigInt(Date.now());
+  const bytes = randomBytes(16);
+  bytes[0] = Number((now >> 40n) & 0xffn);
+  bytes[1] = Number((now >> 32n) & 0xffn);
+  bytes[2] = Number((now >> 24n) & 0xffn);
+  bytes[3] = Number((now >> 16n) & 0xffn);
+  bytes[4] = Number((now >> 8n) & 0xffn);
+  bytes[5] = Number(now & 0xffn);
+  bytes[6] = (bytes[6] & 0x0f) | 0x70; // version 7
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+  const hex = bytes.toString('hex');
+  return (
+    hex.slice(0, 8) +
+    '-' +
+    hex.slice(8, 12) +
+    '-' +
+    hex.slice(12, 16) +
+    '-' +
+    hex.slice(16, 20) +
+    '-' +
+    hex.slice(20, 32)
+  );
+}
 
 export type SeedBaseOptions = {
   db: Kysely<any>;

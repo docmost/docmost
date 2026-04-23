@@ -6,8 +6,8 @@ import { PostgresJSDialect } from 'kysely-postgres-js';
 import * as postgres from 'postgres';
 import { Injectable } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { randomBytes } from 'node:crypto';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
-import { v7 as uuid7 } from 'uuid';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseRowRepo } from '@docmost/db/repos/base/base-row.repo';
@@ -77,6 +77,33 @@ function normalizePostgresUrl(url: string): string {
 }
 
 const describeIntegration = INTEGRATION_DB_URL ? describe : describe.skip;
+
+// Inline uuid7 so the spec file doesn't need to import the esm-only uuid
+// package. Same pattern as seed-base.ts.
+function uuid7(): string {
+  const now = BigInt(Date.now());
+  const bytes = randomBytes(16);
+  bytes[0] = Number((now >> 40n) & 0xffn);
+  bytes[1] = Number((now >> 32n) & 0xffn);
+  bytes[2] = Number((now >> 24n) & 0xffn);
+  bytes[3] = Number((now >> 16n) & 0xffn);
+  bytes[4] = Number((now >> 8n) & 0xffn);
+  bytes[5] = Number(now & 0xffn);
+  bytes[6] = (bytes[6] & 0x0f) | 0x70;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString('hex');
+  return (
+    hex.slice(0, 8) +
+    '-' +
+    hex.slice(8, 12) +
+    '-' +
+    hex.slice(12, 16) +
+    '-' +
+    hex.slice(16, 20) +
+    '-' +
+    hex.slice(20, 32)
+  );
+}
 
 // Deterministic PRNG (mulberry32) for reproducible seeds across runs.
 function makeRng(seed: number): () => number {
