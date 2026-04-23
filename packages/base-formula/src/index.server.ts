@@ -1,2 +1,3 @@
 // Server-side public surface: everything in client + evaluator + registry.
-export {};
+export * from "./ast";
+export * from "./types";
