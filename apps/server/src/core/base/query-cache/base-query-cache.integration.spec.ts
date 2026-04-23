@@ -65,6 +65,9 @@ class FakeEnvService {
   getBaseQueryCacheThreads() {
     return 2;
   }
+  getBaseQueryCacheTempDirectory() {
+    return require('node:os').tmpdir() + '/docmost-duckdb-test';
+  }
   getRedisUrl() {
     return REDIS_URL;
   }
@@ -452,6 +455,9 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
     }
     getBaseQueryCacheThreads() {
       return 2;
+    }
+    getBaseQueryCacheTempDirectory() {
+      return require('node:os').tmpdir() + '/docmost-duckdb-test';
     }
     getRedisUrl() {
       return REDIS_URL;
@@ -1100,6 +1106,9 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
     }
     getBaseQueryCacheThreads() {
       return 2;
+    }
+    getBaseQueryCacheTempDirectory() {
+      return require('node:os').tmpdir() + '/docmost-duckdb-test';
     }
     getRedisUrl() {
       return REDIS_URL;

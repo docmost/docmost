@@ -9,6 +9,7 @@ export type QueryCacheConfig = {
   memoryLimit: string;
   threads: number;
   trace: boolean;
+  tempDirectory: string;
 };
 
 @Injectable()
@@ -23,6 +24,7 @@ export class QueryCacheConfigProvider {
       memoryLimit: env.getBaseQueryCacheMemoryLimit(),
       threads: env.getBaseQueryCacheThreads(),
       trace: env.getBaseQueryCacheTrace(),
+      tempDirectory: env.getBaseQueryCacheTempDirectory(),
     };
   }
 }

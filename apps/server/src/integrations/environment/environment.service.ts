@@ -354,11 +354,26 @@ export class EnvironmentService {
 
   getBaseQueryCacheMemoryLimit(): string {
     // Per-DuckDB-instance memory ceiling. DuckDB accepts human-readable sizes:
-    // '32MB', '128MB', '1GB'. Default keeps a single instance from
-    // monopolising the heap if a runaway query needs to spill.
+    // '256MB', '1GB', etc. Default 512MB is sized for bases up to ~300K rows
+    // with moderate schemas without spilling. DuckDB automatically spills
+    // to `temp_directory` when this is exceeded, so over-allocating is
+    // cheap — the risk is under-sizing.
     return this.configService.get<string>(
       'BASE_QUERY_CACHE_MEMORY_LIMIT',
-      '64MB',
+      '512MB',
+    );
+  }
+
+  getBaseQueryCacheTempDirectory(): string {
+    // Directory DuckDB uses to spill pages when an instance exceeds its
+    // memory_limit. Defaults to the system temp dir plus a namespace so
+    // different processes don't collide. Setting this explicitly is what
+    // enables spill-to-disk on `:memory:` instances — without it, DuckDB
+    // OOMs at memory_limit instead of paging.
+    const defaultPath = `${require('node:os').tmpdir()}/docmost-duckdb-cache`;
+    return this.configService.get<string>(
+      'BASE_QUERY_CACHE_TEMP_DIR',
+      defaultPath,
     );
   }
 

@@ -36,15 +36,33 @@ export class CollectionLoader {
     const properties = await this.basePropertyRepo.findByBaseId(baseId);
     const specs = buildColumnSpecs(properties);
 
-    const { memoryLimit, threads } = this.config.config;
+    const { memoryLimit, threads, tempDirectory } = this.config.config;
+
+    // Ensure the temp directory exists so DuckDB can spill to it.
+    // Swallow errors — if creation fails, DuckDB will fail its own sanity
+    // check and we'll log that instead of crashing here.
+    try {
+      const fs = require('node:fs');
+      fs.mkdirSync(tempDirectory, { recursive: true });
+    } catch {
+      /* swallow */
+    }
+
     const instance = await DuckDBInstance.create(':memory:', {
       memory_limit: memoryLimit,
       threads: String(threads),
+      temp_directory: tempDirectory,
     });
     const connection = await instance.connect();
 
     try {
       await this.pgExtension.configureOnConnection(connection);
+
+      // Disable insertion-order preservation during bulk load — DuckDB's docs
+      // explicitly recommend this for memory-pressure on large inserts. Our
+      // loader doesn't depend on the insertion order (we sort via indexes
+      // or keyset cursors later), so this is free memory savings.
+      await connection.run('SET preserve_insertion_order = false');
 
       // Bulk load via CREATE TABLE AS SELECT. JSONB extraction happens
       // server-side via the base_cell_* helpers; DuckDB streams typed
