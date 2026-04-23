@@ -15,11 +15,13 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 env:
   VERSION: ${{ inputs.version || github.ref_name }}
   TARGET_REPOSITORY: ${{ inputs.target_repository || github.repository }}
   RELEASE_TOKEN: ${{ secrets.GITHUB_MIRROR_TOKEN || github.token }}
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   release:
@@ -52,6 +54,37 @@ jobs:
         run: |
           git remote add mirror "https://x-access-token:${RELEASE_TOKEN}@github.com/${TARGET_REPOSITORY}.git"
           git remote -v
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ !contains(env.VERSION, '-') }}
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=${{ github.ref_name }}
+            type=sha
+
+      - name: Build and push GHCR image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Push branches to mirror
         run: git push mirror 'refs/heads/*:refs/heads/*'
