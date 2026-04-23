@@ -27,7 +27,7 @@ env:
   RELEASE_TOKEN: ${{ secrets.GITHUB_MIRROR_TOKEN || github.token }}
   IMAGE_NAME: ghcr.io/${{ github.repository }}
   DEPLOY_AFTER_RELEASE: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy_after_release != 'false' }}
-  ONEPANEL_CLI_VERSION: ${{ vars.ONEPANEL_CLI_VERSION || 'v0.1.6' }}
+  ONEPANEL_CLI_VERSION: ${{ vars.ONEPANEL_CLI_VERSION || 'v0.1.7' }}
 
 jobs:
   release:
@@ -169,7 +169,6 @@ jobs:
             --api-key "${ONEPANEL_API_KEY}" \
             --compose-name "${ONEPANEL_COMPOSE_NAME}" \
             --compose-path "${ONEPANEL_COMPOSE_PATH}" \
-            --service "wiki" \
             --to-image "${TO_IMAGE}" \
             --apply
 
