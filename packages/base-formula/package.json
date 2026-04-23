@@ -1,0 +1,27 @@
+{
+  "name": "@docmost/base-formula",
+  "homepage": "https://docmost.com",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --watch"
+  },
+  "main": "dist/index.server.js",
+  "module": "./src/index.server.ts",
+  "exports": {
+    "./client": {
+      "types": "./src/index.client.ts",
+      "default": "./src/index.client.ts"
+    },
+    "./server": {
+      "types": "./src/index.server.ts",
+      "default": "./src/index.server.ts"
+    },
+    ".": {
+      "types": "./src/index.server.ts",
+      "default": "./src/index.server.ts"
+    }
+  },
+  "types": "src/index.server.ts",
+  "dependencies": {}
+}

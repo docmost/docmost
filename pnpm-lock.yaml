@@ -843,6 +843,8 @@ importers:
         specifier: ^8.57.1
         version: 8.57.1(eslint@9.39.4(jiti@2.4.2))(typescript@5.9.3)
 
+  packages/base-formula: {}
+
   packages/editor-ext:
     dependencies:
       marked:
