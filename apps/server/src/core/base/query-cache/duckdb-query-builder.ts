@@ -12,6 +12,7 @@ import { ColumnSpec } from './query-cache.types';
 export type AfterKeys = Record<string, unknown>;
 
 export type DuckDbListQueryOpts = {
+  schema: string;
   columns: ColumnSpec[];
   filter?: FilterNode;
   sorts?: SortSpec[];
@@ -54,6 +55,10 @@ const SYSTEM_COLUMN_DUCK: Record<string, 'created_at' | 'updated_at' | 'last_upd
 export function buildDuckDbListQuery(
   opts: DuckDbListQueryOpts,
 ): DuckDbListQuery {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(opts.schema)) {
+    throw new Error(`Invalid schema name "${opts.schema}"`);
+  }
+  const rowsTable = `${opts.schema}.rows`;
   const index = indexColumns(opts.columns);
   const params: unknown[] = [];
 
@@ -86,7 +91,7 @@ export function buildDuckDbListQuery(
 
   const sql =
     `SELECT ${selectParts.join(', ')}` +
-    ` FROM rows` +
+    ` FROM ${rowsTable}` +
     ` WHERE ${whereClauses.join(' AND ')}` +
     ` ORDER BY ${orderByParts.join(', ')}` +
     ` LIMIT ${opts.pagination.limit + 1}`;

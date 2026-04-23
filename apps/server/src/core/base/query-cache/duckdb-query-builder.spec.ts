@@ -2,6 +2,8 @@ import { buildColumnSpecs } from './column-types';
 import { buildDuckDbListQuery } from './duckdb-query-builder';
 import { BasePropertyType } from '../base.schemas';
 
+const SCHEMA = 'b_019c69a3dd4770148b87ec8f1675aaaa';
+
 const numericProp = {
   id: '00000000-0000-0000-0000-000000000001',
   type: BasePropertyType.NUMBER,
@@ -18,10 +20,11 @@ const columns = buildColumnSpecs([numericProp, textProp]);
 describe('buildDuckDbListQuery', () => {
   it('renders no-filter, no-sort, no-search as live-rows-paginated-by-position', () => {
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       pagination: { limit: 100 },
     });
-    expect(sql).toMatch(/FROM rows/);
+    expect(sql).toContain(`FROM ${SCHEMA}.rows`);
     expect(sql).toMatch(/deleted_at IS NULL/);
     expect(sql).toMatch(/ORDER BY position ASC, id ASC/);
     expect(sql).toMatch(/LIMIT 101/);
@@ -30,6 +33,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders numeric gt filter with parameterized value', () => {
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       filter: {
         op: 'and',
@@ -43,6 +47,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders text contains with ILIKE and escaped wildcards', () => {
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       filter: {
         op: 'and',
@@ -56,6 +61,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders sort with sentinel wrapping and cursor keyset', () => {
     const { sql } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       sorts: [{ propertyId: numericProp.id, direction: 'asc' }],
       pagination: {
@@ -71,6 +77,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders search in trgm mode as ILIKE on search_text', () => {
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       search: { mode: 'trgm', query: 'hello' },
       pagination: { limit: 10 },
@@ -89,6 +96,7 @@ describe('buildDuckDbListQuery', () => {
     const choiceA = 'choice-uuid-aaa';
     const choiceB = 'choice-uuid-bbb';
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns: cols,
       filter: {
         op: 'and',
@@ -104,6 +112,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders nested AND/OR groups with correct parentheses', () => {
     const { sql } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       filter: {
         op: 'or',
@@ -119,6 +128,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('handles empty filter group without emitting WHERE on it', () => {
     const { sql, params } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       filter: { op: 'and', children: [] },
       pagination: { limit: 100 },
@@ -130,6 +140,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders multi-sort keyset with s0, s1, position, id chain', () => {
     const { sql } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       sorts: [
         { propertyId: numericProp.id, direction: 'asc' },
@@ -149,6 +160,7 @@ describe('buildDuckDbListQuery', () => {
 
   it('renders text isEmpty as IS NULL OR = empty-string', () => {
     const { sql } = buildDuckDbListQuery({
+      schema: SCHEMA,
       columns,
       filter: {
         op: 'and',
@@ -157,5 +169,15 @@ describe('buildDuckDbListQuery', () => {
       pagination: { limit: 10 },
     });
     expect(sql).toMatch(new RegExp(`"${textProp.id}" IS NULL`));
+  });
+
+  it('rejects invalid schema name', () => {
+    expect(() =>
+      buildDuckDbListQuery({
+        schema: 'bad name',
+        columns: [],
+        pagination: { limit: 10 },
+      }),
+    ).toThrow(/invalid schema/i);
   });
 });
