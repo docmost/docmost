@@ -52,7 +52,9 @@ describe('buildLoaderSql', () => {
       ...sys,
       { column: prop!.id, ddlType: 'DOUBLE', indexable: true, property: prop },
     ]);
-    expect(sql).toContain(`base_cell_numeric(cells, '019c69a3-dd47-7014-8b87-ec8f167577bb'::uuid)`);
+    expect(sql).toContain(
+      `base_cell_numeric(cells, '019c69a3-dd47-7014-8b87-ec8f167577bb'::uuid) AS "019c69a3-dd47-7014-8b87-ec8f167577bb"`,
+    );
   });
 
   it('maps DATE -> base_cell_timestamptz', () => {
@@ -61,7 +63,9 @@ describe('buildLoaderSql', () => {
       ...sys,
       { column: prop!.id, ddlType: 'TIMESTAMPTZ', indexable: true, property: prop },
     ]);
-    expect(sql).toContain(`base_cell_timestamptz(cells, '019c69a3-dd47-7014-8b87-ec8f167577cc'::uuid)`);
+    expect(sql).toContain(
+      `base_cell_timestamptz(cells, '019c69a3-dd47-7014-8b87-ec8f167577cc'::uuid) AS "019c69a3-dd47-7014-8b87-ec8f167577cc"`,
+    );
   });
 
   it('maps CHECKBOX -> base_cell_bool', () => {
@@ -70,7 +74,9 @@ describe('buildLoaderSql', () => {
       ...sys,
       { column: prop!.id, ddlType: 'BOOLEAN', indexable: true, property: prop },
     ]);
-    expect(sql).toContain(`base_cell_bool(cells, '019c69a3-dd47-7014-8b87-ec8f167577dd'::uuid)`);
+    expect(sql).toContain(
+      `base_cell_bool(cells, '019c69a3-dd47-7014-8b87-ec8f167577dd'::uuid) AS "019c69a3-dd47-7014-8b87-ec8f167577dd"`,
+    );
   });
 
   it('maps MULTI_SELECT (JSON) -> raw jsonb cast to text', () => {
@@ -79,7 +85,9 @@ describe('buildLoaderSql', () => {
       ...sys,
       { column: prop!.id, ddlType: 'JSON', indexable: false, property: prop },
     ]);
-    expect(sql).toContain(`(cells -> '019c69a3-dd47-7014-8b87-ec8f167577ee')::text`);
+    expect(sql).toContain(
+      `(cells -> '019c69a3-dd47-7014-8b87-ec8f167577ee')::text AS "019c69a3-dd47-7014-8b87-ec8f167577ee"`,
+    );
   });
 
   it('rejects invalid column names (defense-in-depth against quoting bugs)', () => {
