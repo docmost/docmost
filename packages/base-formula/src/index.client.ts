@@ -7,4 +7,5 @@ export * from "./tokenizer";
 export * from "./parser";
 export * from "./resolver";
 export * from "./typecheck";
+export * from "./format";
 export type { FormulaFn } from "./functions/registry";
