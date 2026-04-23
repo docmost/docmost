@@ -8,6 +8,7 @@ import {
   IBaseView,
 } from "@/features/base/types/base.types";
 import { selectedRowIdsAtom } from "@/features/base/atoms/base-atoms";
+import { formulaRecomputeAtom } from "@/features/base/atoms/formula-recompute-atom";
 import { IPagination } from "@/lib/types";
 
 type BaseRowCreated = {
@@ -69,12 +70,39 @@ type BaseViewEvent = {
   viewId?: string;
 };
 
+type BaseRowsUpdated = {
+  operation: "base:rows:updated";
+  baseId: string;
+  rowIds: string[];
+  propertyIds: string[];
+  requestId?: string | null;
+};
+
+type BaseFormulaRecomputeStarted = {
+  operation: "base:formula:recompute:started";
+  baseId: string;
+  propertyIds: string[];
+  jobId: string;
+};
+
+type BaseFormulaRecomputeCompleted = {
+  operation: "base:formula:recompute:completed";
+  baseId: string;
+  propertyIds: string[];
+  jobId: string;
+  processed: number;
+  errored: number;
+};
+
 type BaseInboundEvent =
   | BaseRowCreated
   | BaseRowUpdated
   | BaseRowDeleted
   | BaseRowsDeleted
   | BaseRowReordered
+  | BaseRowsUpdated
+  | BaseFormulaRecomputeStarted
+  | BaseFormulaRecomputeCompleted
   | BasePropertyEvent
   | BaseViewEvent
   | { operation: string; baseId: string };
@@ -238,6 +266,32 @@ export function useBaseSocket(baseId: string | undefined): void {
                     })),
                   },
           );
+          break;
+        }
+        case "base:rows:updated": {
+          // Formula recompute wrote new cell values on the server. The event
+          // only carries row IDs, so invalidate the rows query to refetch.
+          queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
+          break;
+        }
+        case "base:formula:recompute:started": {
+          const e = event as BaseFormulaRecomputeStarted;
+          const store = getDefaultStore();
+          store.set(formulaRecomputeAtom, {
+            ...store.get(formulaRecomputeAtom),
+            [e.jobId]: e.propertyIds,
+          });
+          break;
+        }
+        case "base:formula:recompute:completed": {
+          const e = event as BaseFormulaRecomputeCompleted;
+          const store = getDefaultStore();
+          const current = store.get(formulaRecomputeAtom);
+          if (e.jobId in current) {
+            const next = { ...current };
+            delete next[e.jobId];
+            store.set(formulaRecomputeAtom, next);
+          }
           break;
         }
         case "base:property:created":
