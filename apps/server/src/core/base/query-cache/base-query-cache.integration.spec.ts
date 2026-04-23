@@ -193,6 +193,8 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
       ],
     }).compile();
 
+    await moduleRef.init();
+
     cache = moduleRef.get(BaseQueryCacheService);
     basePropertyRepo = moduleRef.get(BasePropertyRepo);
     dbHandle = moduleRef.get(DbHandle);
