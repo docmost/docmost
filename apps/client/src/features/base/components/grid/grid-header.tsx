@@ -48,6 +48,7 @@ export const GridHeader = memo(function GridHeader({
       {baseId && (
         <CreatePropertyPopover
           baseId={baseId}
+          properties={properties}
           onPropertyCreated={onPropertyCreated}
         />
       )}

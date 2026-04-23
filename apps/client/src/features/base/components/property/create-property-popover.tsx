@@ -21,10 +21,12 @@ import {
 import { useCreatePropertyMutation } from "@/features/base/queries/base-property-query";
 import { PropertyTypePicker, propertyTypes } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
+import { FormulaEditor } from "../formula/formula-editor";
 import classes from "@/features/base/styles/grid.module.css";
 
 type CreatePropertyPopoverProps = {
   baseId: string;
+  properties?: IBaseProperty[];
   onPropertyCreated?: () => void;
 };
 
@@ -42,7 +44,7 @@ const typesWithOptions = new Set<BasePropertyType>([
   "person",
 ]);
 
-export function CreatePropertyPopover({ baseId, onPropertyCreated }: CreatePropertyPopoverProps) {
+export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }: CreatePropertyPopoverProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const [panel, setPanel] = useState<Panel>("typePicker");
@@ -231,7 +233,34 @@ export function CreatePropertyPopover({ baseId, onPropertyCreated }: CreatePrope
               />
             </Stack>
           )}
-          {(panel === "configure" || panel === "confirmDiscard") && (
+          {panel === "configure" && selectedType === "formula" && (
+            <Stack gap={0} p="sm">
+              <FormulaEditor
+                properties={properties ?? []}
+                editingPropertyId={null}
+                onCancel={handleBackToTypePicker}
+                onSave={(source, ast, resultType, dependencies) => {
+                  createPropertyMutation.mutate(
+                    {
+                      baseId,
+                      name: name.trim() || t("Formula"),
+                      type: "formula",
+                      typeOptions: {
+                        source,
+                        ast,
+                        resultType,
+                        dependencies,
+                        astVersion: 1,
+                      } as TypeOptions,
+                    },
+                    { onSuccess: () => onPropertyCreated?.() },
+                  );
+                  handleClose();
+                }}
+              />
+            </Stack>
+          )}
+          {(panel === "configure" || panel === "confirmDiscard") && selectedType !== "formula" && (
             <Stack gap={0} p="sm" style={panel === "confirmDiscard" ? { display: "none" } : undefined}>
               <TextInput
                 ref={nameInputRef}
