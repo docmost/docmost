@@ -12,3 +12,10 @@ export type FormulaFn = {
 };
 
 export const registry: Map<string, FormulaFn> = new Map();
+
+export function register(fn: FormulaFn): void {
+  if (registry.has(fn.name)) {
+    throw new Error(`Duplicate formula function: ${fn.name}`);
+  }
+  registry.set(fn.name, fn);
+}

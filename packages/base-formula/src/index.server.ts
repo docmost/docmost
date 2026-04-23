@@ -7,6 +7,6 @@ export * from "./parser";
 export * from "./resolver";
 export * from "./typecheck";
 export * from "./format";
-export { registry } from "./functions/registry";
+export { registry, register } from "./functions/registry";
 export type { FormulaFn } from "./functions/registry";
 export * from "./graph";
