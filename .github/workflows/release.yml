@@ -169,6 +169,7 @@ jobs:
             --api-key "${ONEPANEL_API_KEY}" \
             --compose-name "${ONEPANEL_COMPOSE_NAME}" \
             --compose-path "${ONEPANEL_COMPOSE_PATH}" \
+            --service "docmost" \
             --to-image "${TO_IMAGE}" \
             --apply
 
