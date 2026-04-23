@@ -16,6 +16,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { BaseQueryCacheService } from './base-query-cache.service';
 import { QueryCacheConfigProvider } from './query-cache.config';
 import { CollectionLoader } from './collection-loader';
+import { PostgresExtensionService } from './postgres-extension.service';
 import { BaseQueryCacheWriteConsumer } from './base-query-cache.write-consumer';
 import { BaseQueryCacheSubscriber } from './base-query-cache.subscriber';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
@@ -55,6 +56,12 @@ class FakeEnvService {
   }
   getBaseQueryCacheDebug() {
     return false;
+  }
+  getBaseQueryCacheMemoryLimit() {
+    return '64MB';
+  }
+  getBaseQueryCacheThreads() {
+    return 2;
   }
   getRedisUrl() {
     return REDIS_URL;
@@ -124,6 +131,12 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
     getBaseQueryCacheDebug() {
       return false;
     }
+    getBaseQueryCacheMemoryLimit() {
+      return '64MB';
+    }
+    getBaseQueryCacheThreads() {
+      return 2;
+    }
     getRedisUrl() {
       return REDIS_URL;
     }
@@ -169,6 +182,7 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
       providers: [
         { provide: EnvironmentService, useClass: TinyCapEnvService },
         QueryCacheConfigProvider,
+        PostgresExtensionService,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,
@@ -323,6 +337,7 @@ describeIntegration('BaseQueryCacheService integration', () => {
     const providers: any[] = [
       { provide: EnvironmentService, useClass: FakeEnvService },
       QueryCacheConfigProvider,
+      PostgresExtensionService,
       BaseRepo,
       BasePropertyRepo,
       BaseRowRepo,
@@ -762,6 +777,12 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
     getBaseQueryCacheDebug() {
       return false;
     }
+    getBaseQueryCacheMemoryLimit() {
+      return '64MB';
+    }
+    getBaseQueryCacheThreads() {
+      return 2;
+    }
     getRedisUrl() {
       return REDIS_URL;
     }
@@ -800,6 +821,7 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
       providers: [
         { provide: EnvironmentService, useClass: WarmUpEnvService },
         QueryCacheConfigProvider,
+        PostgresExtensionService,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,
