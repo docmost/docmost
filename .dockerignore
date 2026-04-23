@@ -12,3 +12,4 @@ nginx
 docmost-gitea-oauth.tar
 .tmp-deploy-test
 .tmp-deploy-noopt
+.tmp-image-inspect

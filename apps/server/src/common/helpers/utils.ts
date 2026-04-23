@@ -1,5 +1,5 @@
 import * as path from 'path';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { sanitize } from 'sanitize-filename-ts';
 import { FastifyRequest } from 'fastify';
 import { Readable, Transform } from 'stream';
