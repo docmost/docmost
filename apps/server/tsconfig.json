@@ -22,7 +22,13 @@
     "paths": {
       "@docmost/db/*": ["./src/database/*"],
       "@docmost/transactional/*": ["./src/integrations/transactional/*"],
-      "@docmost/ee/*": ["./src/ee/*"]
+      "@docmost/ee/*": ["./src/ee/*"],
+      "@docmost/base-formula/server": [
+        "../../packages/base-formula/src/index.server.ts"
+      ],
+      "@docmost/base-formula/client": [
+        "../../packages/base-formula/src/index.client.ts"
+      ]
     }
   }
 }

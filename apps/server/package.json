@@ -174,7 +174,9 @@
     "moduleNameMapper": {
       "^@docmost/db/(.*)$": "<rootDir>/database/$1",
       "^@docmost/transactional/(.*)$": "<rootDir>/integrations/transactional/$1",
-      "^@docmost/ee/(.*)$": "<rootDir>/ee/$1"
+      "^@docmost/ee/(.*)$": "<rootDir>/ee/$1",
+      "^@docmost/base-formula/server$": "<rootDir>/../../../packages/base-formula/src/index.server.ts",
+      "^@docmost/base-formula/client$": "<rootDir>/../../../packages/base-formula/src/index.client.ts"
     }
   }
 }

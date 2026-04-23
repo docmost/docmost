@@ -2,3 +2,4 @@
 export * from "./ast";
 export * from "./types";
 export * from "./error";
+export * from "./tokenizer";
