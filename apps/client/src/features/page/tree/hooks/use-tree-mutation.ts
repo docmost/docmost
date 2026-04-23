@@ -24,11 +24,9 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { useTranslation } from "react-i18next";
-import { usePageNameModal } from "@/features/page/hooks/use-page-name-modal.tsx";
 
 export function useTreeMutation<T>(spaceId: string) {
   const { t } = useTranslation();
-  const { openPageNameModal } = usePageNameModal();
   const [data, setData] = useAtom(treeDataAtom);
   const tree = useMemo(() => new SimpleTree<SpaceTreeNode>(data), [data]);
   const createPageMutation = useCreatePageMutation();
@@ -65,15 +63,7 @@ export function useTreeMutation<T>(spaceId: string) {
     };
 
     if (nodeType === "folder" && !title) {
-      title =
-        (await openPageNameModal({
-          title: t("New folder"),
-          initialValue: t("untitled"),
-          confirmLabel: t("Create"),
-        })) ?? undefined;
-      if (!title) {
-        return null;
-      }
+      title = t("untitled");
     }
 
     if (parentId) {

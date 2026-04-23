@@ -67,7 +67,6 @@ import { notifications } from "@mantine/notifications";
 import { getAppUrl } from "@/lib/config.ts";
 import { extractPageSlugId } from "@/lib";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
-import { usePageNameModal } from "@/features/page/hooks/use-page-name-modal.tsx";
 import { useTranslation } from "react-i18next";
 import ExportModal from "@/components/common/export-modal";
 import MovePageModal from "../../components/move-page-modal.tsx";
@@ -89,6 +88,7 @@ interface NodeProps extends NodeRendererProps<any> {
     nodeType: "page" | "folder";
     title?: string;
   }) => Promise<SpaceTreeNode | null>;
+  isRootReady: boolean;
   renameNode: (id: string, name: string) => Promise<void>;
 }
 
@@ -300,6 +300,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
             <Node
               {...props}
               createNode={createNode}
+              isRootReady={isRootReady}
               renameNode={renameNode}
             />
           )}
@@ -315,6 +316,7 @@ function Node({
   dragHandle,
   tree,
   createNode,
+  isRootReady,
   renameNode,
 }: NodeProps) {
   const { t } = useTranslation();
@@ -330,11 +332,11 @@ function Node({
   const isFolder = node.data.nodeType === "folder";
 
   useEffect(() => {
-    if (node.isEditing && editInputRef.current) {
+    if (isRootReady && node.isEditing && editInputRef.current) {
       editInputRef.current.focus();
       editInputRef.current.select();
     }
-  }, [node.isEditing]);
+  }, [isRootReady, node.isEditing]);
 
   async function handleLoadChildren(node: NodeApi<SpaceTreeNode>) {
     if (!node.data.hasChildren || node.children.length > 0) return;
@@ -452,7 +454,15 @@ function Node({
             e.preventDefault();
             e.stopPropagation();
           }}
-          onBlur={() => node.reset()}
+          onBlur={(e) => {
+            const value = e.currentTarget.value.trim();
+            if (!value) {
+              node.reset();
+              return;
+            }
+
+            node.submit(value);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               node.reset();
@@ -555,13 +565,21 @@ function CreateNode({ createNode, node, treeApi, onExpandTree }: CreateNodeProps
           parentId: node.id,
           index: 0,
           nodeType: type,
+        }).then((createdNode) => {
+          if (createdNode && type === "folder") {
+            treeApi.edit(createdNode.id);
+          }
         });
       }, 500);
     } else {
-      await createNode({
+      const createdNode = await createNode({
         parentId: node.id,
         nodeType: type,
       });
+
+      if (createdNode && type === "folder") {
+        treeApi.edit(createdNode.id);
+      }
     }
   }
 
@@ -627,7 +645,6 @@ function NodeMenu({
   renameNode,
 }: NodeMenuProps) {
   const { t } = useTranslation();
-  const { openPageNameModal } = usePageNameModal();
   const clipboard = useClipboard({ timeout: 500 });
   const { spaceSlug } = useParams();
   const { openDeleteModal } = useDeletePageModal();
@@ -786,20 +803,10 @@ function NodeMenu({
               <>
                 <Menu.Item
                   leftSection={<IconPencil size={16} />}
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const newName = await openPageNameModal({
-                      title: isFolder ? t("Rename folder") : t("Rename page"),
-                      initialValue: node.data.name || t("untitled"),
-                      confirmLabel: t("Save"),
-                    });
-
-                    if (!newName) {
-                      return;
-                    }
-
-                    await renameNode(node.id, newName);
+                    treeApi.edit(node.id);
                   }}
                 >
                   {t("Rename")}
