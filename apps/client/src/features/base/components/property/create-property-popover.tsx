@@ -236,6 +236,7 @@ export function CreatePropertyPopover({ baseId, onPropertyCreated }: CreatePrope
               <TextInput
                 ref={nameInputRef}
                 size="xs"
+                label={t("Name")}
                 placeholder={selectedTypeLabel}
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
