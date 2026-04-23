@@ -10,6 +10,7 @@ export type QueryCacheConfig = {
   threads: number;
   trace: boolean;
   tempDirectory: string;
+  readerPoolSize: number;
 };
 
 @Injectable()
@@ -25,6 +26,7 @@ export class QueryCacheConfigProvider {
       threads: env.getBaseQueryCacheThreads(),
       trace: env.getBaseQueryCacheTrace(),
       tempDirectory: env.getBaseQueryCacheTempDirectory(),
+      readerPoolSize: env.getBaseQueryCacheReaderPoolSize(),
     };
   }
 }

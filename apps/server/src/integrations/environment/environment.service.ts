@@ -385,4 +385,20 @@ export class EnvironmentService {
       10,
     );
   }
+
+  getBaseQueryCacheReaderPoolSize(): number {
+    // Number of reader connections held open against the shared DuckDB
+    // instance. Reads are dispatched via `withReader()` which checks out a
+    // connection, runs the query, returns it. Bigger pool = more concurrent
+    // reads without serialization, at the cost of per-connection overhead
+    // (each connection carries its own catalog snapshot + prepared-statement
+    // cache ~= 300 KB).
+    //
+    // Default 4 matches libuv's default thread-pool size. Raise to 8+ if
+    // you see p99 list latency correlate with concurrent request volume.
+    return parseInt(
+      this.configService.get<string>('BASE_QUERY_CACHE_READER_POOL_SIZE', '4'),
+      10,
+    );
+  }
 }
