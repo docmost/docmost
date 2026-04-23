@@ -3,6 +3,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
 import { BaseWsService } from './base-ws.service';
 import {
+  BaseFormulaRecomputeCompletedEvent,
+  BaseFormulaRecomputeStartedEvent,
   BasePropertyCreatedEvent,
   BasePropertyDeletedEvent,
   BasePropertyReorderedEvent,
@@ -10,6 +12,7 @@ import {
   BaseRowCreatedEvent,
   BaseRowDeletedEvent,
   BaseRowsDeletedEvent,
+  BaseRowsUpdatedEvent,
   BaseRowReorderedEvent,
   BaseRowUpdatedEvent,
   BaseSchemaBumpedEvent,
@@ -172,6 +175,42 @@ export class BaseWsConsumers {
       operation: 'base:schema:bumped',
       baseId: e.baseId,
       schemaVersion: e.schemaVersion,
+    });
+  }
+
+  @OnEvent(EventName.BASE_ROWS_UPDATED)
+  onRowsUpdated(e: BaseRowsUpdatedEvent) {
+    this.ws.emitToBase(e.baseId, {
+      operation: 'base:rows:updated',
+      baseId: e.baseId,
+      rowIds: e.rowIds,
+      propertyIds: e.propertyIds,
+      actorId: e.actorId ?? null,
+      requestId: e.requestId ?? null,
+    });
+  }
+
+  @OnEvent(EventName.BASE_FORMULA_RECOMPUTE_STARTED)
+  onFormulaRecomputeStarted(e: BaseFormulaRecomputeStartedEvent) {
+    this.ws.emitToBase(e.baseId, {
+      operation: 'base:formula:recompute:started',
+      baseId: e.baseId,
+      propertyIds: e.propertyIds,
+      jobId: e.jobId,
+      actorId: e.actorId ?? null,
+    });
+  }
+
+  @OnEvent(EventName.BASE_FORMULA_RECOMPUTE_COMPLETED)
+  onFormulaRecomputeCompleted(e: BaseFormulaRecomputeCompletedEvent) {
+    this.ws.emitToBase(e.baseId, {
+      operation: 'base:formula:recompute:completed',
+      baseId: e.baseId,
+      propertyIds: e.propertyIds,
+      jobId: e.jobId,
+      processed: e.processed,
+      errored: e.errored,
+      actorId: e.actorId ?? null,
     });
   }
 }
