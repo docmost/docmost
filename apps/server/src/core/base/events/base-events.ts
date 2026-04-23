@@ -46,3 +46,20 @@ export type BaseViewUpdatedEvent = BaseEventBase & { view: BaseView };
 export type BaseViewDeletedEvent = BaseEventBase & { viewId: string };
 
 export type BaseSchemaBumpedEvent = BaseEventBase & { schemaVersion: number };
+
+export type BaseRowsUpdatedEvent = BaseEventBase & {
+  rowIds: string[];
+  propertyIds: string[];
+};
+
+export type BaseFormulaRecomputeStartedEvent = BaseEventBase & {
+  propertyIds: string[];
+  jobId: string;
+};
+
+export type BaseFormulaRecomputeCompletedEvent = BaseEventBase & {
+  propertyIds: string[];
+  jobId: string;
+  processed: number;
+  errored: number;
+};
