@@ -41,6 +41,7 @@ import {
   BaseRowUpdatedEvent,
   BaseRowsDeletedEvent,
 } from '../events/base-events';
+import { FormulaService } from '../formula/formula.service';
 
 @Injectable()
 export class BaseRowService {
@@ -50,6 +51,7 @@ export class BaseRowService {
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseViewRepo: BaseViewRepo,
     private readonly eventEmitter: EventEmitter2,
+    private readonly formulaService: FormulaService,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateRowDto) {
@@ -70,15 +72,29 @@ export class BaseRowService {
       position = generateJitteredKeyBetween(lastPosition, null);
     }
 
+    const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
+
     let validatedCells: Record<string, unknown> = {};
     if (dto.cells && Object.keys(dto.cells).length > 0) {
-      const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
       validatedCells = this.validateCells(dto.cells, properties);
     }
 
+    // On create, treat every user-provided cell plus every formula property
+    // as dirty. The formula patch is merged into the cells we persist.
+    const dirtyProps = Object.keys(validatedCells);
+    const formulaPatch = this.formulaService.evaluateInline({
+      properties,
+      row: validatedCells,
+      dirtyProps: [
+        ...dirtyProps,
+        ...properties.filter((p) => p.type === 'formula').map((p) => p.id),
+      ],
+    });
+    const finalCells = { ...validatedCells, ...formulaPatch };
+
     const created = await this.baseRowRepo.insertRow({
       baseId: dto.baseId,
-      cells: validatedCells as any,
+      cells: finalCells as any,
       position,
       creatorId: userId,
       workspaceId,
@@ -108,9 +124,21 @@ export class BaseRowService {
     const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
     const validatedCells = this.validateCells(dto.cells, properties);
 
+    const existing = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
+    const mergedRow = {
+      ...((existing?.cells as Record<string, unknown>) ?? {}),
+      ...validatedCells,
+    };
+    const formulaPatch = this.formulaService.evaluateInline({
+      properties,
+      row: mergedRow,
+      dirtyProps: Object.keys(validatedCells),
+    });
+    const finalCells = { ...validatedCells, ...formulaPatch };
+
     const updated = await this.baseRowRepo.updateCells(
       dto.rowId,
-      validatedCells,
+      finalCells,
       {
         baseId: dto.baseId,
         workspaceId,
@@ -129,7 +157,7 @@ export class BaseRowService {
       requestId: dto.requestId ?? null,
       rowId: dto.rowId,
       patch: dto.cells,
-      updatedCells: validatedCells,
+      updatedCells: finalCells,
     };
     this.eventEmitter.emit(EventName.BASE_ROW_UPDATED, event);
 
