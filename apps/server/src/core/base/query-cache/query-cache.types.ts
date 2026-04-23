@@ -29,6 +29,11 @@ export type LoadedCollection = {
   lastAccessedAt: number;
   // cached; set by loader, maintained by applyChange
   rowCount: number;
+  // Memory stats captured immediately after load. Static until next
+  // explicit refresh — see `BaseQueryCacheService.refreshMemoryStats` if you
+  // need up-to-date figures after many applyChange() mutations.
+  heapBytes: number;
+  spilledBytes: number;
 };
 
 export type ChangeEnvelope =

@@ -298,6 +298,30 @@ export class BaseQueryCacheService
     return this.collections.get(baseId);
   }
 
+  // Returns the memory footprint of every currently resident collection.
+  residencySnapshot(): Array<{
+    baseId: string;
+    rows: number;
+    heapMb: number;
+    spilledMb: number;
+  }> {
+    const out: Array<{
+      baseId: string;
+      rows: number;
+      heapMb: number;
+      spilledMb: number;
+    }> = [];
+    for (const [baseId, c] of this.collections) {
+      out.push({
+        baseId,
+        rows: c.rowCount,
+        heapMb: +(c.heapBytes / (1024 * 1024)).toFixed(1),
+        spilledMb: +(c.spilledBytes / (1024 * 1024)).toFixed(1),
+      });
+    }
+    return out;
+  }
+
   /*
    * Apply a change envelope received from Redis pub/sub to the local
    * collection (if any). Rows that target bases not resident on this node
@@ -507,6 +531,9 @@ export class BaseQueryCacheService
           baseId: baseId.slice(0, 8),
           findMs,
           loadMs,
+          rows: loaded.rowCount,
+          heapMb: +(loaded.heapBytes / (1024 * 1024)).toFixed(1),
+          spilledMb: +(loaded.spilledBytes / (1024 * 1024)).toFixed(1),
         }),
       );
     }

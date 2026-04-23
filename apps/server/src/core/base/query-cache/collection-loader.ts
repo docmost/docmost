@@ -113,8 +113,22 @@ export class CollectionLoader {
         (countResult.getRowObjects()[0] as { c: bigint | number }).c,
       );
 
+      const memoryResult = await connection.runAndReadAll(
+        `SELECT
+           COALESCE(sum(memory_usage_bytes), 0)::BIGINT AS used_bytes,
+           COALESCE(sum(temporary_storage_bytes), 0)::BIGINT AS spilled_bytes
+         FROM duckdb_memory()`,
+      );
+      const mem = memoryResult.getRowObjects()[0] as {
+        used_bytes: bigint | number;
+        spilled_bytes: bigint | number;
+      };
+      const heapBytes = Number(mem.used_bytes);
+      const spilledBytes = Number(mem.spilled_bytes);
+
       this.logger.debug(
-        `Loaded ${rowCount} rows for base ${baseId} (schemaVersion=${schemaVersion})`,
+        `Loaded ${rowCount} rows for base ${baseId} ` +
+          `(schemaVersion=${schemaVersion}, heap=${fmtMb(heapBytes)}MB, spilled=${fmtMb(spilledBytes)}MB)`,
       );
 
       return {
@@ -125,6 +139,8 @@ export class CollectionLoader {
         connection,
         lastAccessedAt: Date.now(),
         rowCount,
+        heapBytes,
+        spilledBytes,
       };
     } catch (err) {
       try {
@@ -149,4 +165,8 @@ export class CollectionLoader {
 
 function quoteIdent(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
+}
+
+function fmtMb(bytes: number): string {
+  return (bytes / (1024 * 1024)).toFixed(1);
 }
