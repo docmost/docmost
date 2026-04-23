@@ -13,7 +13,8 @@ export type BasePropertyType =
   | 'email'
   | 'createdAt'
   | 'lastEditedAt'
-  | 'lastEditedBy';
+  | 'lastEditedBy'
+  | 'formula';
 
 export type Choice = {
   id: string;
@@ -310,3 +311,11 @@ export type BaseViewDraft = {
   // ISO timestamp written on each put; diagnostic only, not read by logic.
   updatedAt: string;
 };
+
+export type {
+  FormulaTypeOptions,
+  FormulaResultType,
+  ErrorCell as FormulaErrorCell,
+  ErrorCode as FormulaErrorCode,
+} from "@docmost/base-formula/client";
+export { isErrorCell as isFormulaErrorCell } from "@docmost/base-formula/client";

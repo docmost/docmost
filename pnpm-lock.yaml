@@ -261,6 +261,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@18.3.1)
+      '@docmost/base-formula':
+        specifier: workspace:*
+        version: link:../../packages/base-formula
       '@docmost/editor-ext':
         specifier: workspace:*
         version: link:../../packages/editor-ext
