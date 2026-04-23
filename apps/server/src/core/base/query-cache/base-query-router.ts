@@ -27,6 +27,8 @@ export class BaseQueryRouter {
   async decide(args: RouteDecideArgs): Promise<RouteDecision> {
     const { enabled, minRows } = this.configProvider.config;
     const trace = this.configProvider.config.trace ?? false;
+    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
+    const tStart = debug ? Date.now() : 0;
 
     const emit = (route: RouteDecision, reason: string): RouteDecision => {
       if (trace) {
@@ -57,9 +59,10 @@ export class BaseQueryRouter {
 
     // Fast path: if the collection is already resident, read the cached
     // row count instead of running a Postgres COUNT on every request.
+    const tPeek = debug ? Date.now() : 0;
     const resident = this.cacheService.peek(args.baseId);
+    const peekMs = debug ? Date.now() - tPeek : 0;
     if (resident) {
-      const debug = this.env?.getBaseQueryCacheDebug() ?? false;
       if (debug) {
         console.log(
           '[cache-perf]',
@@ -68,6 +71,8 @@ export class BaseQueryRouter {
             baseId: args.baseId.slice(0, 8),
             count: resident.rowCount,
             minRows,
+            ms: peekMs,
+            totalMs: Date.now() - tStart,
           }),
         );
       }
@@ -83,7 +88,6 @@ export class BaseQueryRouter {
       );
     }
 
-    const debug = this.env?.getBaseQueryCacheDebug() ?? false;
     const tCount = debug ? Date.now() : 0;
     const count = await this.baseRowRepo.countActiveRows(args.baseId, {
       workspaceId: args.workspaceId,
@@ -97,6 +101,8 @@ export class BaseQueryRouter {
           countMs: Date.now() - tCount,
           count,
           minRows,
+          ms: Date.now() - tCount,
+          totalMs: Date.now() - tStart,
         }),
       );
     }
