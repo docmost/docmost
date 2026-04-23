@@ -2,36 +2,61 @@ import { ColumnSpec } from './query-cache.types';
 
 /*
  * Pure SQL builder for the cold-load query executed by DuckDB's postgres
- * extension against `pg.base_rows`. Parameterized by
- *   $1 = baseId (uuid), $2 = workspaceId (uuid)
- * Callers bind via prepared statements.
+ * extension against the attached Postgres database.
+ *
+ * The outer statement is a DuckDB `CREATE TABLE ... AS SELECT * FROM
+ * postgres_query('pg', $pgsql$ ... $pgsql$)`. `postgres_query` ships the
+ * raw inner SQL to Postgres and returns typed rows; this is the only way
+ * to invoke custom Postgres UDFs (`base_cell_text`, etc.) because DuckDB's
+ * postgres extension does not push unknown scalar functions down — it
+ * would otherwise try to evaluate them locally and fail.
  *
  * Design notes:
+ *
+ *   - Inside `postgres_query`, the table is native `base_rows` (no `pg.`
+ *     schema prefix — that prefix is DuckDB's ATTACH alias, not visible
+ *     to Postgres).
  *
  *   - Every SYSTEM_COLUMN maps directly onto a column in `base_rows`.
  *     UUID columns cast to text so they land in DuckDB's VARCHAR column.
  *
  *   - User columns delegate to the Postgres helper functions defined in
  *     migration 20260417T120000 (`base_cell_text`, `base_cell_numeric`,
- *     `base_cell_timestamptz`, `base_cell_bool`). These run on the
- *     Postgres side — DuckDB ships the full SELECT through the extension;
- *     JSONB extraction never touches DuckDB.
+ *     `base_cell_timestamptz`, `base_cell_bool`).
  *
  *   - JSON columns (multi-select, file, multi-person) are passed as raw JSON
  *     text (`(cells -> 'uuid')::text`). DuckDB's JSON column accepts that.
+ *
+ *   - `baseId` and `workspaceId` are interpolated directly as single-quoted
+ *     UUID literals inside the inner SQL. They are UUID-validated before
+ *     interpolation; UUID-shape is the only thing that makes inlining safe.
  *
  *   - Identifiers are validated before interpolation. `ColumnSpec.column` is
  *     always a UUID or snake_case system name; the regex catches any
  *     programming mistake that would otherwise break SQL quoting.
  */
-export function buildLoaderSql(specs: ColumnSpec[]): string {
+export function buildLoaderSql(
+  specs: ColumnSpec[],
+  baseId: string,
+  workspaceId: string,
+): string {
+  if (!UUID.test(baseId)) {
+    throw new Error(`Invalid base id "${baseId}"`);
+  }
+  if (!UUID.test(workspaceId)) {
+    throw new Error(`Invalid workspace id "${workspaceId}"`);
+  }
   const projections = specs.map((spec) => projectionFor(spec));
   return [
     'CREATE TABLE rows AS',
-    'SELECT',
-    '  ' + projections.join(',\n  '),
-    'FROM pg.base_rows',
-    'WHERE base_id = $1::uuid AND workspace_id = $2::uuid AND deleted_at IS NULL',
+    "SELECT * FROM postgres_query('pg', $pgsql$",
+    '  SELECT',
+    '    ' + projections.join(',\n    '),
+    '  FROM base_rows',
+    `  WHERE base_id = '${baseId}'::uuid`,
+    `    AND workspace_id = '${workspaceId}'::uuid`,
+    '    AND deleted_at IS NULL',
+    '$pgsql$)',
   ].join('\n');
 }
 
