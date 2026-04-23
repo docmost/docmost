@@ -19,6 +19,7 @@ import { CellPage } from "@/features/base/components/cells/cell-page";
 import { CellCreatedAt } from "@/features/base/components/cells/cell-created-at";
 import { CellLastEditedAt } from "@/features/base/components/cells/cell-last-edited-at";
 import { CellLastEditedBy } from "@/features/base/components/cells/cell-last-edited-by";
+import { CellFormula } from "@/features/base/components/cells/cell-formula";
 import { RowNumberCell } from "./row-number-cell";
 import classes from "@/features/base/styles/grid.module.css";
 
@@ -50,6 +51,7 @@ const cellComponents: Record<
   createdAt: CellCreatedAt,
   lastEditedAt: CellLastEditedAt,
   lastEditedBy: CellLastEditedBy,
+  formula: CellFormula,
 };
 
 type RowDragProps = {
