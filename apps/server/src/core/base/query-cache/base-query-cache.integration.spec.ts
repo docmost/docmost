@@ -16,7 +16,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { BaseQueryCacheService } from './base-query-cache.service';
 import { QueryCacheConfigProvider } from './query-cache.config';
 import { CollectionLoader } from './collection-loader';
-import { PostgresExtensionService } from './postgres-extension.service';
+import { DuckDbRuntime } from './duckdb-runtime';
 import { BaseQueryCacheWriteConsumer } from './base-query-cache.write-consumer';
 import { BaseQueryCacheSubscriber } from './base-query-cache.subscriber';
 import { BaseQueryRouter } from './base-query-router';
@@ -67,6 +67,9 @@ class FakeEnvService {
   }
   getBaseQueryCacheTempDirectory() {
     return require('node:os').tmpdir() + '/docmost-duckdb-test';
+  }
+  getBaseQueryCacheReaderPoolSize() {
+    return 2;
   }
   getRedisUrl() {
     return REDIS_URL;
@@ -140,7 +143,7 @@ describeIntegration('kill switch: BASE_QUERY_CACHE_ENABLED=false', () => {
   let spaceId: string;
   let creatorUserId: string | null;
   let seededBaseId: string | null = null;
-  let pgExtension: PostgresExtensionService;
+  let runtime: DuckDbRuntime;
   let router: BaseQueryRouter;
   let rowService: BaseRowService;
   let basePropertyRepo: BasePropertyRepo;
@@ -186,7 +189,7 @@ describeIntegration('kill switch: BASE_QUERY_CACHE_ENABLED=false', () => {
         { provide: EnvironmentService, useClass: DisabledEnvService },
         { provide: RedisService, useValue: mockRedisService },
         QueryCacheConfigProvider,
-        PostgresExtensionService,
+        DuckDbRuntime,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,
@@ -202,11 +205,11 @@ describeIntegration('kill switch: BASE_QUERY_CACHE_ENABLED=false', () => {
     }).compile();
 
     // Use .init() so onApplicationBootstrap runs. Under the flag-off config
-    // every bootstrap hook (extension install, warm-up, subscriber psubscribe)
+    // every bootstrap hook (runtime bootstrap, warm-up, subscriber psubscribe)
     // must short-circuit.
     await moduleRef.init();
 
-    pgExtension = moduleRef.get(PostgresExtensionService);
+    runtime = moduleRef.get(DuckDbRuntime);
     router = moduleRef.get(BaseQueryRouter);
     rowService = moduleRef.get(BaseRowService);
     basePropertyRepo = moduleRef.get(BasePropertyRepo);
@@ -267,13 +270,13 @@ describeIntegration('kill switch: BASE_QUERY_CACHE_ENABLED=false', () => {
   });
 
   it(
-    'never creates a DuckDB instance and never installs the extension',
+    'never creates a DuckDB instance and never bootstraps the runtime',
     async () => {
       // Bootstrap has already run via moduleRef.init() in beforeAll. If any
       // bootstrap hook forgot to gate on the feature flag, DuckDBInstance.create
       // would have fired at least once.
       expect(duckdbCreateSpy).toHaveBeenCalledTimes(0);
-      expect(pgExtension.isReady()).toBe(false);
+      expect(runtime.isReady()).toBe(false);
 
       const properties = await basePropertyRepo.findByBaseId(seededBaseId!);
       const estimateProp = properties.find((p) => p.name === 'Estimate');
@@ -459,6 +462,9 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
     getBaseQueryCacheTempDirectory() {
       return require('node:os').tmpdir() + '/docmost-duckdb-test';
     }
+    getBaseQueryCacheReaderPoolSize() {
+      return 2;
+    }
     getRedisUrl() {
       return REDIS_URL;
     }
@@ -504,7 +510,7 @@ describeIntegration('BaseQueryCacheService LRU eviction', () => {
       providers: [
         { provide: EnvironmentService, useClass: TinyCapEnvService },
         QueryCacheConfigProvider,
-        PostgresExtensionService,
+        DuckDbRuntime,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,
@@ -661,7 +667,7 @@ describeIntegration('BaseQueryCacheService integration', () => {
     const providers: any[] = [
       { provide: EnvironmentService, useClass: FakeEnvService },
       QueryCacheConfigProvider,
-      PostgresExtensionService,
+      DuckDbRuntime,
       BaseRepo,
       BasePropertyRepo,
       BaseRowRepo,
@@ -1110,6 +1116,9 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
     getBaseQueryCacheTempDirectory() {
       return require('node:os').tmpdir() + '/docmost-duckdb-test';
     }
+    getBaseQueryCacheReaderPoolSize() {
+      return 2;
+    }
     getRedisUrl() {
       return REDIS_URL;
     }
@@ -1148,7 +1157,7 @@ describeIntegration('BaseQueryCacheService warm-up on boot', () => {
       providers: [
         { provide: EnvironmentService, useClass: WarmUpEnvService },
         QueryCacheConfigProvider,
-        PostgresExtensionService,
+        DuckDbRuntime,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,

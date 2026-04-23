@@ -16,7 +16,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import { BaseQueryCacheService, CacheListOpts } from './base-query-cache.service';
 import { QueryCacheConfigProvider } from './query-cache.config';
 import { CollectionLoader } from './collection-loader';
-import { PostgresExtensionService } from './postgres-extension.service';
+import { DuckDbRuntime } from './duckdb-runtime';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
 import { FilterNode, PropertySchema, SortSpec } from '../engine';
 
@@ -52,6 +52,9 @@ class ParityEnvService {
     return '128MB';
   }
   getBaseQueryCacheThreads() {
+    return 2;
+  }
+  getBaseQueryCacheReaderPoolSize() {
     return 2;
   }
   getRedisUrl() {
@@ -424,7 +427,7 @@ describeIntegration('BaseQueryCacheService ↔ Postgres parity matrix', () => {
       providers: [
         { provide: EnvironmentService, useClass: ParityEnvService },
         QueryCacheConfigProvider,
-        PostgresExtensionService,
+        DuckDbRuntime,
         BaseRepo,
         BasePropertyRepo,
         BaseRowRepo,
