@@ -44,6 +44,8 @@ import {
   BaseSchemaBumpedEvent,
 } from '../events/base-events';
 import { processBaseTypeConversion } from '../tasks/base-type-conversion.task';
+import { FormulaService } from '../formula/formula.service';
+import { BaseFormulaGraph } from '@docmost/base-formula/server';
 
 /*
  * Types whose cell values are IDs referencing external records. Converting
@@ -80,13 +82,33 @@ export class BasePropertyService {
     private readonly baseRepo: BaseRepo,
     @InjectQueue(QueueName.BASE_QUEUE) private readonly baseQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
+    private readonly formulaService: FormulaService,
   ) {}
 
   async create(workspaceId: string, dto: CreatePropertyDto, actorId?: string) {
     const type = dto.type as BasePropertyTypeValue;
-    const validatedTypeOptions = dto.typeOptions
-      ? parseTypeOptionsOrThrow(type, dto.typeOptions)
-      : parseTypeOptionsOrThrow(type, {});
+
+    let validatedTypeOptions: unknown;
+    if (type === 'formula') {
+      const sourceCandidate = (dto.typeOptions as any)?.source;
+      if (typeof sourceCandidate !== 'string') {
+        throw new BadRequestException('formula.source is required');
+      }
+      const existing = await this.basePropertyRepo.findByBaseId(dto.baseId);
+      const compiled = this.formulaService.compile(sourceCandidate, existing);
+      const candidate = {
+        id: 'pending',
+        type: 'formula',
+        typeOptions: compiled,
+      } as any;
+      const cycle = this.formulaService.detectCycle(candidate, existing);
+      if (cycle) throw new BadRequestException({ code: 'CYCLE', path: cycle });
+      validatedTypeOptions = compiled;
+    } else {
+      validatedTypeOptions = dto.typeOptions
+        ? parseTypeOptionsOrThrow(type, dto.typeOptions)
+        : parseTypeOptionsOrThrow(type, {});
+    }
 
     const lastPosition = await this.basePropertyRepo.getLastPosition(
       dto.baseId,
@@ -117,6 +139,16 @@ export class BasePropertyService {
       property: created,
     };
     this.eventEmitter.emit(EventName.BASE_PROPERTY_CREATED, event);
+
+    if (created.type === 'formula') {
+      await this.formulaService.enqueueRecompute({
+        baseId: created.baseId,
+        workspaceId,
+        propertyIds: [created.id],
+        reason: 'formula_created',
+        actorId: actorId ?? null,
+      });
+    }
 
     return created;
   }
@@ -173,6 +205,36 @@ export class BasePropertyService {
     const oldTypeOptions = property.typeOptions;
     const newType = (dto.type ?? property.type) as BasePropertyTypeValue;
 
+    // --- Formula-specific type-option compilation ---------------------------
+    // If the update is a formula (either staying a formula and editing source,
+    // or converting TO formula), compile the source, cycle-check, and replace
+    // `dto.typeOptions` with the canonical FormulaTypeOptions.
+    const isFormulaTarget = newType === 'formula';
+    const sourceChanged =
+      isFormulaTarget &&
+      typeof (dto.typeOptions as any)?.source === 'string' &&
+      (dto.typeOptions as any).source !==
+        (property.typeOptions as any)?.source;
+
+    if (isFormulaTarget && (isTypeChange || sourceChanged)) {
+      const sourceCandidate = (dto.typeOptions as any)?.source;
+      if (typeof sourceCandidate !== 'string') {
+        throw new BadRequestException('formula.source is required');
+      }
+      const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+      const compiled = this.formulaService.compile(sourceCandidate, allProps);
+      const candidate = {
+        id: property.id,
+        type: 'formula' as const,
+        typeOptions: compiled,
+      } as any;
+      const cycle = this.formulaService.detectCycle(candidate, allProps);
+      if (cycle) throw new BadRequestException({ code: 'CYCLE', path: cycle });
+      // Normalize dto.typeOptions to the compiled envelope so the rest of
+      // update() flows through Path 1 without further parsing.
+      dto.typeOptions = compiled as any;
+    }
+
     let validatedTypeOptions = property.typeOptions;
     if (dto.typeOptions !== undefined) {
       validatedTypeOptions = parseTypeOptionsOrThrow(
@@ -207,6 +269,32 @@ export class BasePropertyService {
           await this.baseRepo.bumpSchemaVersion(dto.baseId, trx);
         }
       });
+
+      if (newType === 'formula' && (isTypeChange || sourceChanged)) {
+        await this.formulaService.enqueueRecompute({
+          baseId: dto.baseId,
+          workspaceId,
+          propertyIds: [dto.propertyId],
+          reason: isTypeChange ? 'formula_created' : 'formula_edited',
+          actorId: actorId ?? null,
+        });
+      }
+
+      if (isTypeChange && newType !== 'formula') {
+        const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+        const graph = new BaseFormulaGraph(allProps);
+        const affected = graph.affectedFormulas([dto.propertyId]);
+        if (affected.length > 0) {
+          await this.formulaService.enqueueRecompute({
+            baseId: dto.baseId,
+            workspaceId,
+            propertyIds: affected,
+            reason: 'dep_type_changed',
+            actorId: actorId ?? null,
+          });
+        }
+      }
+
       return this.loadAndEmit(dto, workspaceId, actorId, null);
     }
 
@@ -385,6 +473,12 @@ export class BasePropertyService {
       throw new BadRequestException('Cannot delete the primary property');
     }
 
+    // Compute dependents BEFORE the delete — once soft-deleted the graph
+    // wouldn't include them.
+    const allProps = await this.basePropertyRepo.findByBaseId(dto.baseId);
+    const graph = new BaseFormulaGraph(allProps);
+    const affected = graph.affectedFormulas([dto.propertyId]);
+
     // Soft-delete so queries filter the property out immediately, then
     // enqueue cell-gc to scrub cell keys and hard-delete. If the enqueue
     // fails, revert the soft-delete so the property isn't orphaned.
@@ -428,6 +522,16 @@ export class BasePropertyService {
       propertyId: dto.propertyId,
     };
     this.eventEmitter.emit(EventName.BASE_PROPERTY_DELETED, event);
+
+    if (affected.length > 0) {
+      await this.formulaService.enqueueRecompute({
+        baseId: dto.baseId,
+        workspaceId,
+        propertyIds: affected,
+        reason: 'dep_deleted',
+        actorId: actorId ?? null,
+      });
+    }
   }
 
   async reorder(
