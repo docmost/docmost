@@ -17,6 +17,7 @@ import {
   IconUserEdit,
   IconCheck,
   IconSearch,
+  IconMathFunction,
 } from "@tabler/icons-react";
 import { BasePropertyType } from "@/features/base/types/base.types";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,7 @@ const propertyTypes: {
   { type: "createdAt", icon: IconClockPlus, labelKey: "Created at" },
   { type: "lastEditedAt", icon: IconClockEdit, labelKey: "Last edited at" },
   { type: "lastEditedBy", icon: IconUserEdit, labelKey: "Last edited by" },
+  { type: "formula", icon: IconMathFunction, labelKey: "Formula" },
 ];
 
 type PropertyTypePickerProps = {
