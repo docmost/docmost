@@ -56,8 +56,28 @@ jobs:
       - name: Push branches to mirror
         run: git push mirror 'refs/heads/*:refs/heads/*'
 
-      - name: Push tags to mirror
-        run: git push mirror 'refs/tags/*:refs/tags/*'
+      - name: Push release tag to mirror
+        run: |
+          local_commit="$(git rev-list -n 1 "${VERSION}")"
+          remote_tag_object="$(git ls-remote --tags mirror "refs/tags/${VERSION}" | awk '{print $1}')"
+          remote_tag_commit="$(git ls-remote --tags mirror "refs/tags/${VERSION}^{}" | awk '{print $1}')"
+
+          if [ -z "${remote_tag_object}" ]; then
+            git push mirror "refs/tags/${VERSION}:refs/tags/${VERSION}"
+            exit 0
+          fi
+
+          remote_commit="${remote_tag_commit:-$remote_tag_object}"
+
+          if [ "${local_commit}" = "${remote_commit}" ]; then
+            echo "Tag ${VERSION} already exists on ${TARGET_REPOSITORY} and points to the same commit. Skipping push."
+            exit 0
+          fi
+
+          echo "Tag ${VERSION} already exists on ${TARGET_REPOSITORY}, but points to a different commit."
+          echo "Local commit:  ${local_commit}"
+          echo "Remote commit: ${remote_commit}"
+          exit 1
 
       - name: Create or update GitHub release in mirror
         env:
