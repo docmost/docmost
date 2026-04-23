@@ -7,21 +7,21 @@
     "dev": "tsc --watch"
   },
   "main": "dist/index.server.js",
-  "module": "./src/index.server.ts",
+  "module": "./dist/index.server.js",
   "exports": {
     "./client": {
-      "types": "./src/index.client.ts",
-      "default": "./src/index.client.ts"
+      "types": "./dist/index.client.d.ts",
+      "default": "./dist/index.client.js"
     },
     "./server": {
-      "types": "./src/index.server.ts",
-      "default": "./src/index.server.ts"
+      "types": "./dist/index.server.d.ts",
+      "default": "./dist/index.server.js"
     },
     ".": {
-      "types": "./src/index.server.ts",
-      "default": "./src/index.server.ts"
+      "types": "./dist/index.server.d.ts",
+      "default": "./dist/index.server.js"
     }
   },
-  "types": "src/index.server.ts",
+  "types": "dist/index.server.d.ts",
   "dependencies": {}
 }
