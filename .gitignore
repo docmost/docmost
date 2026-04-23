@@ -1,6 +1,7 @@
 .env
 .env.dev
 .env.prod
+.env.development.local
 data
 # compiled output
 /dist

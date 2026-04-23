@@ -28,7 +28,7 @@ export function useCommentsQuery(params: ICommentParams) {
       getPageComments({ pageId: params.pageId, cursor: pageParam, limit: 100 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+      lastPage.meta?.hasNextPage ? lastPage.meta.nextCursor : undefined,
     enabled: !!params.pageId,
   });
 

@@ -27,7 +27,7 @@ export function useGetTemplatesQuery(params?: { spaceId?: string }) {
       getTemplates({ spaceId, cursor: pageParam, limit: 30 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+      lastPage.meta?.hasNextPage ? lastPage.meta.nextCursor : undefined,
   });
 }
 

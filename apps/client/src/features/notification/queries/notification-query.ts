@@ -21,7 +21,7 @@ export function useNotificationsQuery(type?: string) {
     queryFn: ({ pageParam }) => getNotifications({ cursor: pageParam, type }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+      lastPage.meta?.hasNextPage ? lastPage.meta.nextCursor : undefined,
     staleTime: 0,
     gcTime: 0,
     placeholderData: keepPreviousData,

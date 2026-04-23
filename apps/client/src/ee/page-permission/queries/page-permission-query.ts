@@ -44,7 +44,7 @@ export function usePagePermissionsQuery(pageId: string) {
     placeholderData: keepPreviousData,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
+      lastPage.meta?.hasNextPage ? lastPage.meta.nextCursor : undefined,
   });
 }
 
