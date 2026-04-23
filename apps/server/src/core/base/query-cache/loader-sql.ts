@@ -1,44 +1,27 @@
 import { ColumnSpec } from './query-cache.types';
 
 /*
- * Pure SQL builder for the cold-load query executed by DuckDB's postgres
- * extension against the attached Postgres database.
+ * Pure SQL builder for the cold-load query executed against the process-wide
+ * DuckDB instance. The resulting SQL creates `<schema>.rows` inside the
+ * attached in-memory database for the base, populated from Postgres via the
+ * `postgres_query` function:
  *
- * The outer statement is a DuckDB `CREATE TABLE ... AS SELECT * FROM
- * postgres_query('pg', $pgsql$ ... $pgsql$)`. `postgres_query` ships the
- * raw inner SQL to Postgres and returns typed rows; this is the only way
- * to invoke custom Postgres UDFs (`base_cell_text`, etc.) because DuckDB's
- * postgres extension does not push unknown scalar functions down — it
- * would otherwise try to evaluate them locally and fail.
+ *   CREATE TABLE <schema>.rows AS
+ *     SELECT * FROM postgres_query('pg', $pgsql$ ... $pgsql$);
  *
- * Design notes:
+ * The inner SQL uses the Postgres helper functions (`base_cell_text`,
+ * `base_cell_numeric`, `base_cell_timestamptz`, `base_cell_bool`) so JSONB
+ * extraction happens server-side.
  *
- *   - Inside `postgres_query`, the table is native `base_rows` (no `pg.`
- *     schema prefix — that prefix is DuckDB's ATTACH alias, not visible
- *     to Postgres).
- *
- *   - Every SYSTEM_COLUMN maps directly onto a column in `base_rows`.
- *     UUID columns cast to text so they land in DuckDB's VARCHAR column.
- *
- *   - User columns delegate to the Postgres helper functions defined in
- *     migration 20260417T120000 (`base_cell_text`, `base_cell_numeric`,
- *     `base_cell_timestamptz`, `base_cell_bool`).
- *
- *   - JSON columns (multi-select, file, multi-person) are passed as raw JSON
- *     text (`(cells -> 'uuid')::text`). DuckDB's JSON column accepts that.
- *
- *   - `baseId` and `workspaceId` are interpolated directly as single-quoted
- *     UUID literals inside the inner SQL. They are UUID-validated before
- *     interpolation; UUID-shape is the only thing that makes inlining safe.
- *
- *   - Identifiers are validated before interpolation. `ColumnSpec.column` is
- *     always a UUID or snake_case system name; the regex catches any
- *     programming mistake that would otherwise break SQL quoting.
+ * Callers must pass a validated `schema` name (use `baseSchemaName()`).
+ * Schema, baseId, and workspaceId are interpolated after validation: schema
+ * is regex-checked and baseId/workspaceId are UUID-validated.
  */
 export function buildLoaderSql(
   specs: ColumnSpec[],
   baseId: string,
   workspaceId: string,
+  schema: string,
 ): string {
   if (!UUID.test(baseId)) {
     throw new Error(`Invalid base id "${baseId}"`);
@@ -46,9 +29,11 @@ export function buildLoaderSql(
   if (!UUID.test(workspaceId)) {
     throw new Error(`Invalid workspace id "${workspaceId}"`);
   }
+  validateSchema(schema);
+
   const projections = specs.map((spec) => projectionFor(spec));
   return [
-    'CREATE TABLE rows AS',
+    `CREATE TABLE ${schema}.rows AS`,
     "SELECT * FROM postgres_query('pg', $pgsql$",
     '  SELECT',
     '    ' + projections.join(',\n    '),
@@ -64,7 +49,6 @@ function projectionFor(spec: ColumnSpec): string {
   validateColumnName(spec.column);
   const qid = `"${spec.column}"`;
 
-  // System columns — fixed mapping onto base_rows.
   switch (spec.column) {
     case 'id':                 return 'id::text AS id';
     case 'base_id':            return 'base_id::text AS base_id';
@@ -78,7 +62,6 @@ function projectionFor(spec: ColumnSpec): string {
     case 'search_text':        return "''::VARCHAR AS search_text";
   }
 
-  // User columns.
   const prop = spec.property;
   if (!prop) {
     throw new Error(
@@ -87,11 +70,12 @@ function projectionFor(spec: ColumnSpec): string {
   }
 
   const id = prop.id;
-  validateUuid(id);
+  if (!UUID.test(id)) {
+    throw new Error(`Invalid property UUID "${id}"`);
+  }
 
   switch (spec.ddlType) {
     case 'VARCHAR':
-      // TEXT, URL, EMAIL, SELECT, STATUS, single-PERSON all map to VARCHAR.
       return `base_cell_text(cells, '${id}'::uuid) AS ${qid}`;
     case 'DOUBLE':
       return `base_cell_numeric(cells, '${id}'::uuid) AS ${qid}`;
@@ -100,7 +84,6 @@ function projectionFor(spec: ColumnSpec): string {
     case 'BOOLEAN':
       return `base_cell_bool(cells, '${id}'::uuid) AS ${qid}`;
     case 'JSON':
-      // MULTI_SELECT / FILE / multi-PERSON.
       return `(cells -> '${id}')::text AS ${qid}`;
     default: {
       const _never: never = spec.ddlType;
@@ -109,6 +92,9 @@ function projectionFor(spec: ColumnSpec): string {
   }
 }
 
+const UUID =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 const VALID_COL = /^[a-zA-Z0-9_\-]+$/;
 function validateColumnName(name: string): void {
   if (!VALID_COL.test(name)) {
@@ -116,10 +102,9 @@ function validateColumnName(name: string): void {
   }
 }
 
-const UUID =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-function validateUuid(s: string): void {
-  if (!UUID.test(s)) {
-    throw new Error(`Invalid property UUID "${s}"`);
+const VALID_SCHEMA = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+function validateSchema(name: string): void {
+  if (!VALID_SCHEMA.test(name)) {
+    throw new Error(`Invalid schema name "${name}"`);
   }
 }
