@@ -16,12 +16,14 @@ export const BasePropertyType = {
   CREATED_AT: 'createdAt',
   LAST_EDITED_AT: 'lastEditedAt',
   LAST_EDITED_BY: 'lastEditedBy',
+  FORMULA: 'formula',
 } as const;
 
 const SYSTEM_PROPERTY_TYPES: Set<string> = new Set([
   BasePropertyType.CREATED_AT,
   BasePropertyType.LAST_EDITED_AT,
   BasePropertyType.LAST_EDITED_BY,
+  BasePropertyType.FORMULA,
 ]);
 
 export function isSystemPropertyType(type: string): boolean {
@@ -106,6 +108,21 @@ export const personTypeOptionsSchema = z
 
 export const emptyTypeOptionsSchema = z.object({}).passthrough();
 
+// AST is treated as an opaque JSON tree by the server at this layer — the
+// shape is enforced at the formula package's parser, not at Zod. The Zod
+// schema validates only the envelope so a malformed blob can't corrupt the
+// column. Depth/content validation belongs to FormulaService.
+export const formulaTypeOptionsSchema = z
+  .object({
+    source: z.string().min(1).max(8192),
+    ast: z.any(),
+    resultType: z.enum(['number', 'string', 'boolean', 'date', 'null']),
+    dependencies: z.array(z.uuid()),
+    astVersion: z.literal(1),
+    formatOptions: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
 const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
   [BasePropertyType.TEXT]: textTypeOptionsSchema,
   [BasePropertyType.NUMBER]: numberTypeOptionsSchema,
@@ -122,6 +139,7 @@ const typeOptionsSchemaMap: Record<BasePropertyTypeValue, z.ZodType> = {
   [BasePropertyType.CREATED_AT]: emptyTypeOptionsSchema,
   [BasePropertyType.LAST_EDITED_AT]: emptyTypeOptionsSchema,
   [BasePropertyType.LAST_EDITED_BY]: emptyTypeOptionsSchema,
+  [BasePropertyType.FORMULA]: formulaTypeOptionsSchema,
 };
 
 export function validateTypeOptions(
