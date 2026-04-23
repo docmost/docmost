@@ -166,6 +166,18 @@ export class BaseQueryCacheService
       },
     });
 
+    if (this.env?.getBaseQueryCacheTrace?.() ?? false) {
+      console.log(
+        '[cache-trace]',
+        JSON.stringify({
+          phase: 'query.sql',
+          baseId: baseId.slice(0, 8),
+          sql,
+          params,
+        }),
+      );
+    }
+
     const prepared = await collection.connection.prepare(sql);
     for (let i = 0; i < params.length; i++) {
       const p = params[i];
@@ -296,6 +308,17 @@ export class BaseQueryCacheService
    */
   async applyChange(env: ChangeEnvelope): Promise<void> {
     const collection = this.collections.get(env.baseId);
+    if (this.env?.getBaseQueryCacheTrace?.() ?? false) {
+      console.log(
+        '[cache-trace]',
+        JSON.stringify({
+          phase: 'pubsub.apply',
+          baseId: env.baseId.slice(0, 8),
+          kind: env.kind,
+          resident: !!collection,
+        }),
+      );
+    }
     if (!collection) return;
 
     try {

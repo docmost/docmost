@@ -50,6 +50,17 @@ export class CollectionLoader {
       // server-side via the base_cell_* helpers; DuckDB streams typed
       // columns over COPY BINARY into its vectorized insert path.
       const sql = buildLoaderSql(specs, baseId, workspaceId);
+      if (this.config.config.trace) {
+        console.log(
+          '[cache-trace]',
+          JSON.stringify({
+            phase: 'loader.sql',
+            baseId,
+            length: sql.length,
+            sql,
+          }),
+        );
+      }
       await connection.run(sql);
 
       // Release the PG connection held by the ATTACH — we're done with
@@ -60,9 +71,21 @@ export class CollectionLoader {
       for (const spec of specs) {
         if (!spec.indexable) continue;
         const safe = spec.column.replace(/[^a-zA-Z0-9_]/g, '_');
+        const tIdx = this.config.config.trace ? Date.now() : 0;
         await connection.run(
           `CREATE INDEX ${quoteIdent(`idx_${safe}`)} ON rows (${quoteIdent(spec.column)})`,
         );
+        if (this.config.config.trace) {
+          console.log(
+            '[cache-trace]',
+            JSON.stringify({
+              phase: 'loader.index',
+              baseId,
+              column: spec.column,
+              ms: Date.now() - tIdx,
+            }),
+          );
+        }
       }
 
       const countResult = await connection.runAndReadAll(

@@ -344,6 +344,14 @@ export class EnvironmentService {
     );
   }
 
+  getBaseQueryCacheTrace(): boolean {
+    return (
+      this.configService
+        .get<string>('BASE_QUERY_CACHE_TRACE', 'false')
+        .toLowerCase() === 'true'
+    );
+  }
+
   getBaseQueryCacheMemoryLimit(): string {
     // Per-DuckDB-instance memory ceiling. DuckDB accepts human-readable sizes:
     // '32MB', '128MB', '1GB'. Default keeps a single instance from

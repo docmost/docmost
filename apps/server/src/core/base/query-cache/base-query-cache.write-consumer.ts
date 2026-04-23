@@ -146,6 +146,21 @@ export class BaseQueryCacheWriteConsumer {
     envelope: ChangeEnvelope,
   ): Promise<void> {
     const channel = `base-query-cache:changes:${baseId}`;
+    if (this.configProvider.config.trace) {
+      console.log(
+        '[cache-trace]',
+        JSON.stringify({
+          phase: 'pubsub.publish',
+          baseId,
+          kind: envelope.kind,
+          // Include the row id or similar short discriminator where meaningful,
+          // but don't dump the full envelope — it can be large (row-upsert ships
+          // the whole row).
+          ...('rowId' in envelope ? { rowId: envelope.rowId } : {}),
+          ...('rowIds' in envelope ? { rowCount: envelope.rowIds.length } : {}),
+        }),
+      );
+    }
     try {
       await this.redis.publish(channel, JSON.stringify(envelope));
     } catch (err) {

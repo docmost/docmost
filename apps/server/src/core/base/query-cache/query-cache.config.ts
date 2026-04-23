@@ -8,6 +8,7 @@ export type QueryCacheConfig = {
   warmTopN: number;
   memoryLimit: string;
   threads: number;
+  trace: boolean;
 };
 
 @Injectable()
@@ -21,6 +22,7 @@ export class QueryCacheConfigProvider {
       warmTopN: env.getBaseQueryCacheWarmTopN(),
       memoryLimit: env.getBaseQueryCacheMemoryLimit(),
       threads: env.getBaseQueryCacheThreads(),
+      trace: env.getBaseQueryCacheTrace(),
     };
   }
 }

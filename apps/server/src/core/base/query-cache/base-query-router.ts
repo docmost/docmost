@@ -26,15 +26,34 @@ export class BaseQueryRouter {
 
   async decide(args: RouteDecideArgs): Promise<RouteDecision> {
     const { enabled, minRows } = this.configProvider.config;
-    if (!enabled) return 'postgres';
+    const trace = this.configProvider.config.trace ?? false;
+
+    const emit = (route: RouteDecision, reason: string): RouteDecision => {
+      if (trace) {
+        console.log(
+          '[cache-trace]',
+          JSON.stringify({
+            phase: 'router.decision',
+            baseId: args.baseId,
+            route,
+            reason,
+          }),
+        );
+      }
+      return route;
+    };
+
+    if (!enabled) return emit('postgres', 'flag disabled');
 
     const hasFilter = !!args.filter;
     const hasSorts = !!args.sorts && args.sorts.length > 0;
     const hasSearch = !!args.search;
-    if (!hasFilter && !hasSorts && !hasSearch) return 'postgres';
+    if (!hasFilter && !hasSorts && !hasSearch) {
+      return emit('postgres', 'no filter/sort/search');
+    }
 
     // v1: any search stays on Postgres — loader doesn't populate search_text yet.
-    if (hasSearch) return 'postgres';
+    if (hasSearch) return emit('postgres', 'search requires postgres');
 
     // Fast path: if the collection is already resident, read the cached
     // row count instead of running a Postgres COUNT on every request.
@@ -52,8 +71,16 @@ export class BaseQueryRouter {
           }),
         );
       }
-      if (resident.rowCount < minRows) return 'postgres';
-      return 'cache';
+      if (resident.rowCount < minRows) {
+        return emit(
+          'postgres',
+          `rowCount=${resident.rowCount} below MIN_ROWS=${minRows}`,
+        );
+      }
+      return emit(
+        'cache',
+        `qualified: rowCount=${resident.rowCount}, hasFilter=${hasFilter}, hasSort=${hasSorts}`,
+      );
     }
 
     const debug = this.env?.getBaseQueryCacheDebug() ?? false;
@@ -73,8 +100,13 @@ export class BaseQueryRouter {
         }),
       );
     }
-    if (count < minRows) return 'postgres';
+    if (count < minRows) {
+      return emit('postgres', `rowCount=${count} below MIN_ROWS=${minRows}`);
+    }
 
-    return 'cache';
+    return emit(
+      'cache',
+      `qualified: rowCount=${count}, hasFilter=${hasFilter}, hasSort=${hasSorts}`,
+    );
   }
 }
