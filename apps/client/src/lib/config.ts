@@ -43,6 +43,18 @@ export function isCloud(): boolean {
   return castToBoolean(getConfigValue("CLOUD"));
 }
 
+export function isOAuthEnabled(): boolean {
+  return castToBoolean(getConfigValue("OAUTH_ENABLED"));
+}
+
+export function getOAuthProvider(): string {
+  return getConfigValue("OAUTH_PROVIDER", "gitea");
+}
+
+export function isForwardAuthEnabled(): boolean {
+  return castToBoolean(getConfigValue("FORWARD_AUTH_ENABLED"));
+}
+
 export function getAvatarUrl(
   avatarUrl: string,
   type: AvatarIconType = AvatarIconType.AVATAR,

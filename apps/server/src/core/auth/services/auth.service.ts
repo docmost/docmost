@@ -40,6 +40,9 @@ import {
   IAuditService,
 } from '../../../integrations/audit/audit.service';
 import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { UserRole } from '../../../common/helpers/types/permission';
+import { randomBytes } from 'node:crypto';
+import { isEmail } from 'class-validator';
 
 @Injectable()
 export class AuthService {
@@ -95,6 +98,55 @@ export class AuthService {
     });
 
     return this.sessionService.createSessionAndToken(user);
+  }
+
+  async forwardAuthLogin(opts: {
+    email?: string;
+    name?: string;
+    workspaceId: string;
+  }) {
+    if (!this.environmentService.isForwardAuthEnabled()) {
+      throw new UnauthorizedException();
+    }
+
+    const email = opts.email?.trim().toLowerCase();
+    if (!email || !isEmail(email)) {
+      throw new UnauthorizedException('Forward auth email is missing');
+    }
+
+    return this.loginWithExternalIdentity({
+      email,
+      name: opts.name,
+      workspaceId: opts.workspaceId,
+      autoProvision:
+        this.environmentService.isForwardAuthAutoProvisionEnabled(),
+      source: 'forward-auth',
+      userMissingMessage: 'Forward auth user does not exist in this workspace',
+    });
+  }
+
+  async oauthLogin(opts: {
+    email: string;
+    name?: string;
+    workspaceId: string;
+  }) {
+    if (!this.environmentService.isOAuthEnabled()) {
+      throw new UnauthorizedException();
+    }
+
+    const email = opts.email?.trim().toLowerCase();
+    if (!email || !isEmail(email)) {
+      throw new UnauthorizedException('OAuth email is missing');
+    }
+
+    return this.loginWithExternalIdentity({
+      email,
+      name: opts.name,
+      workspaceId: opts.workspaceId,
+      autoProvision: this.environmentService.isOAuthAutoProvisionEnabled(),
+      source: `oauth:${this.environmentService.getOAuthProvider()}`,
+      userMissingMessage: 'OAuth user does not exist in this workspace',
+    });
   }
 
   async register(createUserDto: CreateUserDto, workspaceId: string) {
@@ -321,5 +373,48 @@ export class AuthService {
       workspaceId,
     );
     return { token };
+  }
+
+  private async loginWithExternalIdentity(opts: {
+    email: string;
+    name?: string;
+    workspaceId: string;
+    autoProvision: boolean;
+    source: string;
+    userMissingMessage: string;
+  }) {
+    let user = await this.userRepo.findByEmail(opts.email, opts.workspaceId);
+
+    if (!user) {
+      if (!opts.autoProvision) {
+        throw new UnauthorizedException(opts.userMissingMessage);
+      }
+
+      user = await this.signupService.signup(
+        {
+          email: opts.email,
+          name: opts.name?.trim() || opts.email.split('@')[0],
+          password: randomBytes(48).toString('base64url'),
+          emailVerifiedAt: new Date(),
+          role: UserRole.MEMBER,
+        } as any,
+        opts.workspaceId,
+      );
+    }
+
+    if (isUserDisabled(user)) {
+      throw new UnauthorizedException();
+    }
+
+    await this.userRepo.updateLastLogin(user.id, opts.workspaceId);
+
+    this.auditService.log({
+      event: AuditEvent.USER_LOGIN,
+      resourceType: AuditResource.USER,
+      resourceId: user.id,
+      metadata: { source: opts.source },
+    });
+
+    return this.sessionService.createSessionAndToken(user);
   }
 }

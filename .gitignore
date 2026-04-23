@@ -41,3 +41,11 @@ lerna-debug.log*
 .nx
 .nx/installation
 .nx/cache
+.codex-run
+docmost-gitea-oauth.tar
+.tmp-deploy-test/
+.tmp-deploy-noopt/
+apps/server/.tmp-deploy-test/
+apps/server/.tmp-deploy-noopt/
+*.pem
+docker-compose.deploy.yml

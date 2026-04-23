@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
     CLOUD,
     SUBDOMAIN_HOST,
     COLLAB_URL,
+    FORWARD_AUTH_ENABLED,
     BILLING_TRIAL_DAYS,
     POSTHOG_HOST,
     POSTHOG_KEY,
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
         CLOUD,
         SUBDOMAIN_HOST,
         COLLAB_URL,
+        FORWARD_AUTH_ENABLED,
         BILLING_TRIAL_DAYS,
         POSTHOG_HOST,
         POSTHOG_KEY,
@@ -55,6 +57,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: "0.0.0.0",
       proxy: {
         "/api": {
           target: APP_URL,

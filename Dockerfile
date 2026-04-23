@@ -11,37 +11,20 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
+RUN pnpm --filter server deploy --prod --legacy --no-optional /app/runtime
+RUN cp -R /app/apps/server/dist /app/runtime/dist \
+    && rm -rf /app/runtime/src /app/runtime/test \
+    && rm -f /app/runtime/.dockerignore /app/runtime/.prettierrc /app/runtime/eslint.config.mjs /app/runtime/nest-cli.json /app/runtime/README.md /app/runtime/tsconfig.build.json /app/runtime/tsconfig.json \
+    && rm -rf /app/runtime/node_modules/@docmost/editor-ext/src \
+    && rm -rf /app/runtime/node_modules/@docmost/editor-ext/node_modules \
+    && rm -f /app/runtime/node_modules/@docmost/editor-ext/.prettierrc /app/runtime/node_modules/@docmost/editor-ext/README.md /app/runtime/node_modules/@docmost/editor-ext/tsconfig.json
 
 FROM base AS installer
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl bash \
-  && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-# Copy apps
-COPY --from=builder /app/apps/server/dist /app/apps/server/dist
-COPY --from=builder /app/apps/client/dist /app/apps/client/dist
-COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
-
-# Copy packages
-COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
-COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
-
-# Copy root package files
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/pnpm*.yaml /app/
-COPY --from=builder /app/.npmrc /app/.npmrc
-
-# Copy patches
-COPY --from=builder /app/patches /app/patches
-
-RUN chown -R node:node /app
-
-USER node
-
-RUN pnpm install --frozen-lockfile --prod
+COPY --from=builder --chown=node:node /app/runtime/ /app/
+COPY --from=builder --chown=node:node /app/apps/client/dist /app/apps/client/dist
 
 RUN mkdir -p /app/data/storage
 
@@ -49,4 +32,6 @@ VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+USER node
+
+CMD ["node", "dist/main"]

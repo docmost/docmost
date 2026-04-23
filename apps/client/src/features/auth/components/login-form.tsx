@@ -22,11 +22,11 @@ import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/worksp
 import { Error404 } from "@/components/ui/error-404.tsx";
 import React from "react";
 import { AuthLayout } from "./auth-layout.tsx";
+import { getOAuthProvider, isOAuthEnabled } from "@/lib/config.ts";
+import { IconBrandGit } from "@tabler/icons-react";
 
 const formSchema = z.object({
-  email: z
-    .email()
-    .min(1, { message: "email is required" }),
+  email: z.email().min(1, { message: "email is required" }),
   password: z.string().min(1, { message: "Password is required" }),
 });
 type FormValues = z.infer<typeof formSchema>;
@@ -54,8 +54,18 @@ export function LoginForm() {
     await signIn(data);
   }
 
+  function onOAuthLogin() {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect") || "/home";
+    const loginParams = new URLSearchParams({ redirect });
+    window.location.href = `/api/auth/oauth/login?${loginParams.toString()}`;
+  }
+
+  const oauthProvider = getOAuthProvider();
+  const isGiteaOauthEnabled = isOAuthEnabled() && oauthProvider === "gitea";
+
   if (isDataLoading) {
-   return null;
+    return null;
   }
 
   if (isError && error?.["response"]?.status === 404) {
@@ -71,6 +81,18 @@ export function LoginForm() {
           </Title>
 
           <SsoLogin />
+
+          {isGiteaOauthEnabled && (
+            <Button
+              onClick={onOAuthLogin}
+              leftSection={<IconBrandGit size={16} />}
+              variant="default"
+              fullWidth
+              mb={data?.enforceSso ? 0 : "md"}
+            >
+              Continue with Gitea
+            </Button>
+          )}
 
           {!data?.enforceSso && (
             <>

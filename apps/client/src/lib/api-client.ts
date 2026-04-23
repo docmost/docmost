@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import APP_ROUTE from "@/lib/app-route.ts";
-import { isCloud } from "@/lib/config.ts";
+import { isCloud, isForwardAuthEnabled } from "@/lib/config.ts";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
@@ -66,6 +66,7 @@ function redirectToLogin() {
   const exemptPaths = [
     APP_ROUTE.AUTH.LOGIN,
     APP_ROUTE.AUTH.SIGNUP,
+    APP_ROUTE.AUTH.SETUP,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
     APP_ROUTE.AUTH.MFA_CHALLENGE,
@@ -74,6 +75,12 @@ function redirectToLogin() {
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     const redirectTo = window.location.pathname;
+    if (isForwardAuthEnabled()) {
+      const params = new URLSearchParams({ redirect: redirectTo });
+      window.location.href = `/api/auth/forward-auth/login?${params.toString()}`;
+      return;
+    }
+
     if (redirectTo === APP_ROUTE.HOME) {
       window.location.href = APP_ROUTE.AUTH.LOGIN;
     } else {

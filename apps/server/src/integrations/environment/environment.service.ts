@@ -75,6 +75,95 @@ export class EnvironmentService {
     return new Date(Date.now() + msUntilExpiry);
   }
 
+  isOAuthEnabled(): boolean {
+    return (
+      this.configService.get<string>('OAUTH_ENABLED', 'false').toLowerCase() ===
+      'true'
+    );
+  }
+
+  getOAuthProvider(): string {
+    return this.configService
+      .get<string>('OAUTH_PROVIDER', 'gitea')
+      .toLowerCase();
+  }
+
+  getOAuthClientId(): string {
+    return this.configService.get<string>('OAUTH_CLIENT_ID');
+  }
+
+  getOAuthClientSecret(): string {
+    return this.configService.get<string>('OAUTH_CLIENT_SECRET');
+  }
+
+  getOAuthIssuerUrl(): string {
+    return this.configService.get<string>('OAUTH_ISSUER_URL');
+  }
+
+  getOAuthCallbackUrl(): string {
+    return this.configService.get<string>('OAUTH_CALLBACK_URL');
+  }
+
+  isOAuthAutoProvisionEnabled(): boolean {
+    return (
+      this.configService
+        .get<string>('OAUTH_AUTO_PROVISION', 'false')
+        .toLowerCase() === 'true'
+    );
+  }
+
+  isForwardAuthEnabled(): boolean {
+    return (
+      this.configService
+        .get<string>('FORWARD_AUTH_ENABLED', 'false')
+        .toLowerCase() === 'true'
+    );
+  }
+
+  isForwardAuthAutoProvisionEnabled(): boolean {
+    return (
+      this.configService
+        .get<string>('FORWARD_AUTH_AUTO_PROVISION', 'false')
+        .toLowerCase() === 'true'
+    );
+  }
+
+  getForwardAuthEmailHeader(): string {
+    return this.configService.get<string>(
+      'FORWARD_AUTH_EMAIL_HEADER',
+      'remote-email',
+    );
+  }
+
+  getForwardAuthNameHeader(): string {
+    return this.configService.get<string>(
+      'FORWARD_AUTH_NAME_HEADER',
+      'remote-name',
+    );
+  }
+
+  getForwardAuthUserHeader(): string {
+    return this.configService.get<string>(
+      'FORWARD_AUTH_USER_HEADER',
+      'remote-user',
+    );
+  }
+
+  getForwardAuthSecret(): string {
+    return this.configService.get<string>('FORWARD_AUTH_SECRET');
+  }
+
+  getForwardAuthSecretHeader(): string {
+    return this.configService.get<string>(
+      'FORWARD_AUTH_SECRET_HEADER',
+      'x-forward-auth-secret',
+    );
+  }
+
+  getOAuthScopes(): string {
+    return 'openid profile email';
+  }
+
   getGotenbergUrl(): string | undefined {
     return this.configService.get<string>('GOTENBERG_URL');
   }

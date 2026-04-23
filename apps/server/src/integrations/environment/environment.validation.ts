@@ -61,6 +61,74 @@ export class EnvironmentVariables {
   CLOUD: boolean;
 
   @IsOptional()
+  @IsIn(['true', 'false'])
+  @IsString()
+  FORWARD_AUTH_ENABLED: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @IsString()
+  OAUTH_ENABLED: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsIn(['gitea'])
+  @IsString()
+  OAUTH_PROVIDER: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsString()
+  @IsNotEmpty()
+  OAUTH_CLIENT_ID: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsString()
+  @IsNotEmpty()
+  OAUTH_CLIENT_SECRET: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  OAUTH_ISSUER_URL: string;
+
+  @IsOptional()
+  @ValidateIf((obj) => obj.OAUTH_ENABLED === 'true')
+  @IsUrl({ protocols: ['http', 'https'], require_tld: false })
+  OAUTH_CALLBACK_URL: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @IsString()
+  OAUTH_AUTO_PROVISION: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  @IsString()
+  FORWARD_AUTH_AUTO_PROVISION: string;
+
+  @IsOptional()
+  @IsString()
+  FORWARD_AUTH_EMAIL_HEADER: string;
+
+  @IsOptional()
+  @IsString()
+  FORWARD_AUTH_NAME_HEADER: string;
+
+  @IsOptional()
+  @IsString()
+  FORWARD_AUTH_USER_HEADER: string;
+
+  @IsOptional()
+  @IsString()
+  FORWARD_AUTH_SECRET: string;
+
+  @IsOptional()
+  @IsString()
+  FORWARD_AUTH_SECRET_HEADER: string;
+
+  @IsOptional()
   @IsUrl(
     { protocols: [], require_tld: true },
     {

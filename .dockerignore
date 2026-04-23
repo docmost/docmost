@@ -4,3 +4,11 @@ dist
 /data
 .env*
 .nx
+.codex-run
+.github
+authelia
+docs
+nginx
+docmost-gitea-oauth.tar
+.tmp-deploy-test
+.tmp-deploy-noopt

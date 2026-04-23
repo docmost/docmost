@@ -3,7 +3,7 @@ import {
   LocalStorageConfig,
   StorageOption,
 } from '../interfaces';
-import { dirname, resolve, sep } from 'path';
+import { join, dirname } from 'path';
 import * as fs from 'fs-extra';
 import { Readable } from 'stream';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -17,12 +17,7 @@ export class LocalDriver implements StorageDriver {
   }
 
   private _fullPath(filePath: string): string {
-    const storageRoot = resolve(this.config.storagePath);
-    const fullPath = resolve(storageRoot, filePath);
-    if (fullPath !== storageRoot && !fullPath.startsWith(storageRoot + sep)) {
-      throw new Error('Invalid file path');
-    }
-    return fullPath;
+    return join(this.config.storagePath, filePath);
   }
 
   async upload(filePath: string, file: Buffer | Readable): Promise<void> {

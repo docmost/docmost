@@ -39,8 +39,6 @@ import {
 } from '../../common/helpers/prosemirror/utils';
 import { htmlToMarkdown } from '@docmost/editor-ext';
 
-type AllowedAttachment = { id: string; fileName: string; filePath: string };
-
 @Injectable()
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
@@ -274,12 +272,6 @@ export class ExportService {
 
     computeLocalPath(tree, format, null, '', slugIdToPath);
 
-    // Batch resolve attachments once for the whole export so we only run the
-    // owning-page view check a single time, regardless of page count.
-    const allowedAttachments = includeAttachments
-      ? await this.resolveAccessibleAttachments(tree, userId, ignorePermissions)
-      : new Map<string, AllowedAttachment>();
-
     const stack: { folder: JSZip; parentPageId: string | null }[] = [
       { folder: zip, parentPageId: null },
     ];
@@ -309,7 +301,7 @@ export class ExportService {
         );
 
         if (includeAttachments) {
-          await this.zipAttachments(updatedJsonContent, folder, allowedAttachments);
+          await this.zipAttachments(updatedJsonContent, page.spaceId, folder);
           updatedJsonContent =
             updateAttachmentUrlsToLocalPaths(updatedJsonContent);
         }
@@ -355,80 +347,31 @@ export class ExportService {
     zip.file('docmost-metadata.json', JSON.stringify(metadata, null, 2));
   }
 
-  async zipAttachments(
-    prosemirrorJson: any,
-    zip: JSZip,
-    allowed: Map<string, AllowedAttachment>,
-  ) {
+  async zipAttachments(prosemirrorJson: any, spaceId: string, zip: JSZip) {
     const attachmentIds = getAttachmentIds(prosemirrorJson);
 
-    await Promise.all(
-      attachmentIds.map(async (id) => {
-        const attachment = allowed.get(id);
-        if (!attachment) return;
-        try {
-          const fileBuffer = await this.storageService.read(
-            attachment.filePath,
-          );
-          const filePath = `/files/${attachment.id}/${attachment.fileName}`;
-          zip.file(filePath, fileBuffer);
-        } catch (err) {
-          this.logger.debug(`Attachment export error ${attachment.id}`, err);
-        }
-      }),
-    );
-  }
+    if (attachmentIds.length > 0) {
+      const attachments = await this.db
+        .selectFrom('attachments')
+        .select(['id', 'fileName', 'filePath'])
+        .where('id', 'in', attachmentIds)
+        .where('spaceId', '=', spaceId)
+        .execute();
 
-  private async resolveAccessibleAttachments(
-    tree: PageExportTree,
-    userId: string | undefined,
-    ignorePermissions: boolean,
-  ): Promise<Map<string, AllowedAttachment>> {
-    const allAttachmentIds = new Set<string>();
-    let spaceId: string | undefined;
-    for (const siblings of Object.values(tree)) {
-      for (const page of siblings) {
-        if (!spaceId) spaceId = page.spaceId;
-        for (const id of getAttachmentIds(getProsemirrorContent(page.content))) {
-          allAttachmentIds.add(id);
-        }
-      }
-    }
-
-    if (allAttachmentIds.size === 0 || !spaceId) {
-      return new Map();
-    }
-
-    const attachments = await this.db
-      .selectFrom('attachments')
-      .select(['id', 'fileName', 'filePath', 'pageId'])
-      .where('id', 'in', [...allAttachmentIds])
-      .where('spaceId', '=', spaceId)
-      .execute();
-
-    let visible = attachments;
-    if (!ignorePermissions && userId) {
-      const ownerPageIds = [
-        ...new Set(
-          attachments
-            .map((a) => a.pageId)
-            .filter((id): id is string => !!id),
-        ),
-      ];
-      const accessible = ownerPageIds.length
-        ? await this.pagePermissionRepo.filterAccessiblePageIds({
-            pageIds: ownerPageIds,
-            userId,
-            spaceId,
-          })
-        : [];
-      const accessibleSet = new Set(accessible);
-      visible = attachments.filter(
-        (a) => a.pageId && accessibleSet.has(a.pageId),
+      await Promise.all(
+        attachments.map(async (attachment) => {
+          try {
+            const fileBuffer = await this.storageService.read(
+              attachment.filePath,
+            );
+            const filePath = `/files/${attachment.id}/${attachment.fileName}`;
+            zip.file(filePath, fileBuffer);
+          } catch (err) {
+            this.logger.debug(`Attachment export error ${attachment.id}`, err);
+          }
+        }),
       );
     }
-
-    return new Map(visible.map((a) => [a.id, a]));
   }
 
   async turnPageMentionsToLinks(
