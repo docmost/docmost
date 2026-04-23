@@ -137,3 +137,20 @@ export interface IBaseCellGcJob {
   propertyId: string;
   workspaceId: string;
 }
+
+export interface IBaseFormulaRecomputeJob {
+  baseId: string;
+  workspaceId: string;
+  propertyIds: string[]; // formula properties to recompute
+  reason:
+    | 'formula_created'
+    | 'formula_edited'
+    | 'dep_type_changed'
+    | 'dep_deleted'
+    | 'bulk_import'
+    | 'manual';
+  actorId?: string | null;
+  // When set, scope recompute to these row IDs instead of the whole base.
+  // Used by the bulk-write path (> FORMULA_INLINE_ROW_THRESHOLD).
+  rowIds?: string[];
+}

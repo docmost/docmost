@@ -15,6 +15,8 @@ import { BaseWsService } from './realtime/base-ws.service';
 import { BaseWsConsumers } from './realtime/base-ws-consumers';
 import { BasePresenceService } from './realtime/base-presence.service';
 import { QueueName } from '../../integrations/queue/constants';
+import { FormulaService } from './formula/formula.service';
+import { FormulaLockService } from './formula/formula-lock';
 
 @Module({
   imports: [BullModule.registerQueue({ name: QueueName.BASE_QUEUE })],
@@ -35,6 +37,8 @@ import { QueueName } from '../../integrations/queue/constants';
     BasePresenceService,
     BaseWsService,
     BaseWsConsumers,
+    FormulaService,
+    FormulaLockService,
   ],
   exports: [
     BaseService,
@@ -43,6 +47,8 @@ import { QueueName } from '../../integrations/queue/constants';
     BaseViewService,
     BaseWsService,
     BasePresenceService,
+    FormulaService,
+    FormulaLockService,
   ],
 })
 export class BaseModule {}
