@@ -20,7 +20,7 @@ Pushing a tag like `v1.0.3` triggers [`.github/workflows/release.yml`](.github/w
 
 - build and push `ghcr.io/<owner>/<repo>:v1.0.3`
 - push the tag to the mirror repository and create/update a GitHub release
-- optionally call `1panel-cli deploy-compose-update` to update the `docmost` service image in 1Panel
+- optionally call `1panel-cli deploy-compose-update` to update the `wiki` service image in 1Panel
 
 To enable the 1Panel deployment step, configure these repository settings in GitHub Actions:
 
