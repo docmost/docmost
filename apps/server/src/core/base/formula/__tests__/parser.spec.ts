@@ -1,4 +1,4 @@
-import { parseRaw } from "@docmost/base-formula/server";
+import { parseRaw, resolve } from "@docmost/base-formula/server";
 import type { RawFormulaAST } from "@docmost/base-formula/server";
 
 describe("parseRaw", () => {
@@ -110,5 +110,54 @@ describe("parseRaw", () => {
   it("throws when prop() has wrong arity", () => {
     expect(() => parseRaw('prop("A", "B")')).toThrow();
     expect(() => parseRaw("prop()")).toThrow();
+  });
+});
+
+describe("resolve", () => {
+  const names = new Map([
+    ["Price", "prop_price"],
+    ["Qty", "prop_qty"],
+  ]);
+
+  it("replaces propName with prop (id)", () => {
+    const raw = parseRaw('prop("Price")');
+    const out = resolve(raw, names);
+    expect(out.ast).toEqual({ t: "prop", id: "prop_price" });
+    expect(out.dependencies).toEqual(["prop_price"]);
+  });
+
+  it("walks into nested structures", () => {
+    const raw = parseRaw('prop("Price") * prop("Qty")');
+    const out = resolve(raw, names);
+    expect(out.ast).toEqual({
+      t: "op", op: "*", args: [
+        { t: "prop", id: "prop_price" },
+        { t: "prop", id: "prop_qty" },
+      ],
+    });
+    expect([...out.dependencies].sort()).toEqual(["prop_price", "prop_qty"]);
+  });
+
+  it("dedupes dependencies", () => {
+    const raw = parseRaw('prop("Price") + prop("Price")');
+    const out = resolve(raw, names);
+    expect(out.dependencies).toEqual(["prop_price"]);
+  });
+
+  it("throws UNKNOWN_PROPERTY with a span", () => {
+    const raw = parseRaw('prop("Nope")');
+    try {
+      resolve(raw, names);
+      fail("expected throw");
+    } catch (e: any) {
+      expect(e.errors[0].code).toBe("UNKNOWN_PROPERTY");
+      expect(e.errors[0].message).toContain("Nope");
+    }
+  });
+
+  it("handles if/and/or/call", () => {
+    const raw = parseRaw('if(prop("Price") > 0, prop("Qty"), 0)');
+    const out = resolve(raw, names);
+    expect(out.ast.t).toBe("if");
   });
 });

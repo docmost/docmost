@@ -4,3 +4,4 @@ export * from "./types";
 export * from "./error";
 export * from "./tokenizer";
 export * from "./parser";
+export * from "./resolver";
