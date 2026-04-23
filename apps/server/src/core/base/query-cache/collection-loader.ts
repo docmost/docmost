@@ -85,6 +85,12 @@ export class CollectionLoader {
       // Postgres; all subsequent queries run purely against the local table.
       await this.pgExtension.detach(connection);
 
+      // CREATE TABLE AS copies data but not constraints. Re-declare the primary
+      // key so INSERT OR REPLACE (used by applyChange.upsertRow) has a conflict
+      // target. This also backs id lookups with an implicit index, speeding up
+      // per-row upsert/delete.
+      await connection.run('ALTER TABLE rows ADD PRIMARY KEY (id)');
+
       // Build ART indexes on indexable columns.
       for (const spec of specs) {
         if (!spec.indexable) continue;
