@@ -462,6 +462,47 @@ export function invalidateOnUpdatePage(
   });
 }
 
+function sortByPosition<T extends Partial<IPage>>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const aPosition = a.position ?? "";
+    const bPosition = b.position ?? "";
+    if (aPosition < bPosition) return -1;
+    if (aPosition > bPosition) return 1;
+    return 0;
+  });
+}
+
+function upsertSortedItems(
+  data: InfiniteData<IPagination<IPage>> | InfiniteData<IPagination<Partial<IPage>>>,
+  item: Partial<IPage>,
+  extraSlot = false,
+) {
+  const pageSizes = data.pages.map((page) => page.items.length);
+  const flattened = data.pages.flatMap((page) => page.items);
+  const deduped = flattened.filter((existing) => existing.id !== item.id);
+  const sorted = sortByPosition([...deduped, item]);
+  const adjustedPageSizes = [...pageSizes];
+
+  if (extraSlot && adjustedPageSizes.length > 0) {
+    adjustedPageSizes[adjustedPageSizes.length - 1] += 1;
+  }
+
+  let offset = 0;
+  return {
+    ...data,
+    pages: data.pages.map((page, index) => {
+      const size = adjustedPageSizes[index];
+      const items = sorted.slice(offset, offset + size);
+      offset += size;
+
+      return {
+        ...page,
+        items,
+      };
+    }),
+  };
+}
+
 export function updateCacheOnMovePage(
   spaceId: string,
   pageId: string,
@@ -469,6 +510,23 @@ export function updateCacheOnMovePage(
   newParentId: string | null,
   pageData: Partial<IPage>,
 ) {
+  if (oldParentId === newParentId) {
+    const queryKey =
+      newParentId === null
+        ? ["root-sidebar-pages", spaceId]
+        : ["sidebar-pages", { pageId: newParentId, spaceId }];
+
+    queryClient.setQueryData<InfiniteData<IPagination<Partial<IPage>>>>(
+      queryKey,
+      (old) => {
+        if (!old) return old;
+        return upsertSortedItems(old, pageData);
+      },
+    );
+
+    return;
+  }
+
   // Remove page from old parent's cache
   const oldQueryKey =
     oldParentId === null
@@ -538,25 +596,7 @@ export function updateCacheOnMovePage(
     newQueryKey,
     (old) => {
       if (!old) return old;
-
-      // Check if page already exists in new location
-      const exists = old.pages.some((page) =>
-        page.items.some((item) => item.id === pageId),
-      );
-      if (exists) return old;
-
-      return {
-        ...old,
-        pages: old.pages.map((page, index) => {
-          if (index === old.pages.length - 1) {
-            return {
-              ...page,
-              items: [...page.items, pageData],
-            };
-          }
-          return page;
-        }),
-      };
+      return upsertSortedItems(old, pageData, true);
     },
   );
 
@@ -611,5 +651,11 @@ export function invalidateOnDeletePage(pageId: string) {
   //update recent changes
   queryClient.invalidateQueries({
     queryKey: ["recent-changes"],
+  });
+
+  queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === "root-sidebar-pages" ||
+      query.queryKey[0] === "sidebar-pages",
   });
 }

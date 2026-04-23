@@ -108,6 +108,8 @@ export class PageService {
         throw new NotFoundException('Parent page not found');
       }
 
+      this.assertCanContainChildren(parentPage);
+
       parentPageId = parentPage.id;
     }
 
@@ -760,6 +762,8 @@ export class PageService {
     } else {
       // changing the page's parent
       if (dto.parentPageId) {
+        await this.assertNoCircularMove(movedPage.id, dto.parentPageId);
+
         const parentPage = await this.pageRepo.findById(dto.parentPageId);
         if (
           !parentPage ||
@@ -768,6 +772,8 @@ export class PageService {
         ) {
           throw new NotFoundException('Parent page not found');
         }
+
+        this.assertCanContainChildren(parentPage);
         parentPageId = parentPage.id;
       }
     }
@@ -779,6 +785,31 @@ export class PageService {
       },
       dto.pageId,
     );
+  }
+
+  private assertCanContainChildren(page: Page) {
+    if (page.nodeType !== 'folder') {
+      throw new BadRequestException('Only folders can contain child items');
+    }
+  }
+
+  private async assertNoCircularMove(
+    pageId: string,
+    targetParentPageId: string,
+  ) {
+    if (pageId === targetParentPageId) {
+      throw new BadRequestException('A page cannot be moved into itself');
+    }
+
+    const movedSubtree = await this.pageRepo.getPageAndDescendants(pageId, {
+      includeContent: false,
+    });
+
+    if (movedSubtree.some((page) => page.id === targetParentPageId)) {
+      throw new BadRequestException(
+        'A page cannot be moved into one of its descendants',
+      );
+    }
   }
 
   async getPageBreadCrumbs(childPageId: string) {

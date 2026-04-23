@@ -267,7 +267,11 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
           disableDrop={
             readOnly
               ? true
-              : ({ parentNode }) => parentNode?.data?.canEdit === false
+              : ({ parentNode }) =>
+                  parentNode?.data?.canEdit === false ||
+                  (parentNode != null &&
+                    !parentNode.isRoot &&
+                    parentNode.data?.nodeType !== "folder")
           }
           disableEdit={
             readOnly
@@ -487,14 +491,16 @@ function Node({
           renameNode={renameNode}
         />
 
-        {tree.props.disableEdit !== true && node.data.canEdit !== false && (
+        {isFolder &&
+          tree.props.disableEdit !== true &&
+          node.data.canEdit !== false && (
           <CreateNode
             createNode={createNode}
             node={node}
             treeApi={tree}
             onExpandTree={() => handleLoadChildren(node)}
           />
-        )}
+          )}
       </div>
     </>
   );
@@ -812,27 +818,31 @@ function NodeMenu({
                   {t("Rename")}
                 </Menu.Item>
 
-                <Menu.Item
-                  leftSection={<IconFolderPlus size={16} />}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await createNode({ parentId: node.id, nodeType: "folder" });
-                  }}
-                >
-                  {t("New folder")}
-                </Menu.Item>
+                {isFolder && (
+                  <Menu.Item
+                    leftSection={<IconFolderPlus size={16} />}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      await createNode({ parentId: node.id, nodeType: "folder" });
+                    }}
+                  >
+                    {t("New folder")}
+                  </Menu.Item>
+                )}
 
-                <Menu.Item
-                  leftSection={<IconPlus size={16} />}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await createNode({ parentId: node.id, nodeType: "page" });
-                  }}
-                >
-                  {t("New page")}
-                </Menu.Item>
+                {isFolder && (
+                  <Menu.Item
+                    leftSection={<IconPlus size={16} />}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      await createNode({ parentId: node.id, nodeType: "page" });
+                    }}
+                  >
+                    {t("New page")}
+                  </Menu.Item>
+                )}
 
                 {!isFolder && (
                   <Menu.Item

@@ -24,6 +24,7 @@ import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getSpaceUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import { useTranslation } from "react-i18next";
+import { notifications } from "@mantine/notifications";
 
 export function useTreeMutation<T>(spaceId: string) {
   const { t } = useTranslation();
@@ -67,6 +68,10 @@ export function useTreeMutation<T>(spaceId: string) {
     }
 
     if (parentId) {
+      const parentNode = tree.find(parentId);
+      if (parentNode?.data.nodeType !== "folder") {
+        throw new Error("Only folders can contain child items");
+      }
       payload.parentPageId = parentId;
     }
     if (title) {
@@ -154,6 +159,8 @@ export function useTreeMutation<T>(spaceId: string) {
     index: number;
   }) => {
     const draggedNodeId = args.dragIds[0];
+    const previousTreeData = JSON.parse(JSON.stringify(data)) as SpaceTreeNode[];
+    const previousParent = args.dragNodes[0].parent;
 
     tree.move({
       id: draggedNodeId,
@@ -201,7 +208,6 @@ export function useTreeMutation<T>(spaceId: string) {
       changes: { position: newPosition } as any,
     });
 
-    const previousParent = args.dragNodes[0].parent;
     if (
       previousParent.id !== args.parentId &&
       previousParent.id !== "__REACT_ARBORIST_INTERNAL_ROOT__"
@@ -263,6 +269,12 @@ export function useTreeMutation<T>(spaceId: string) {
         });
       }, 50);
     } catch (error) {
+      const errorMessage = (error as any)?.response?.data?.message;
+      setData(previousTreeData);
+      notifications.show({
+        message: errorMessage || t("Failed to move page"),
+        color: "red",
+      });
       console.error("Error moving page:", error);
     }
   };
@@ -297,7 +309,22 @@ export function useTreeMutation<T>(spaceId: string) {
         return;
       }
 
+      const previousParent = node.parent;
       tree.drop({ id: args.ids[0] });
+
+      if (
+        previousParent &&
+        previousParent.id !== "__REACT_ARBORIST_INTERNAL_ROOT__"
+      ) {
+        const updatedParent = tree.find(previousParent.id);
+        if (updatedParent && updatedParent.children.length === 0) {
+          tree.update({
+            id: updatedParent.id,
+            changes: { ...updatedParent.data, hasChildren: false } as any,
+          });
+        }
+      }
+
       commitTreeData();
 
       if (pageSlug && isPageInNode(node, pageSlug.split("-")[1])) {
