@@ -49,11 +49,8 @@ export class CollectionLoader {
       // Bulk load via CREATE TABLE AS SELECT. JSONB extraction happens
       // server-side via the base_cell_* helpers; DuckDB streams typed
       // columns over COPY BINARY into its vectorized insert path.
-      const sql = buildLoaderSql(specs);
-      const prepared = await connection.prepare(sql);
-      prepared.bindVarchar(1, baseId);
-      prepared.bindVarchar(2, workspaceId);
-      await prepared.run();
+      const sql = buildLoaderSql(specs, baseId, workspaceId);
+      await connection.run(sql);
 
       // Release the PG connection held by the ATTACH — we're done with
       // Postgres; all subsequent queries run purely against the local table.
