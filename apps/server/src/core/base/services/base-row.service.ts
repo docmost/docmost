@@ -1,3 +1,6 @@
+// TODO(formula): when bulk create/update is added, consult FormulaService.inlineThreshold
+// and enqueue a BASE_FORMULA_RECOMPUTE job with reason: "bulk_import" for the
+// affected row IDs when above threshold; inline-eval below.
 import {
   BadRequestException,
   Injectable,
