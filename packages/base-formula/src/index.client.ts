@@ -6,3 +6,5 @@ export * from "./error";
 export * from "./tokenizer";
 export * from "./parser";
 export * from "./resolver";
+export * from "./typecheck";
+export type { FormulaFn } from "./functions/registry";
