@@ -11,7 +11,7 @@
   "exports": {
     "./client": {
       "types": "./dist/index.client.d.ts",
-      "default": "./dist/index.client.js"
+      "default": "./src/index.client.ts"
     },
     "./server": {
       "types": "./dist/index.server.d.ts",
