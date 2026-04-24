@@ -143,6 +143,7 @@ export class BaseRepo {
         .selectFrom('baseProperties')
         .selectAll('baseProperties')
         .whereRef('baseProperties.baseId', '=', 'bases.id')
+        .where('baseProperties.deletedAt', 'is', null)
         .orderBy('baseProperties.position', 'asc'),
     ).as('properties');
   }
