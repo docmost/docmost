@@ -93,13 +93,13 @@ export function FormulaEditor({
           )}
         </Group>
 
-        <Stack gap={8} px="md" py="sm">
+        <Stack gap={6} px={14} pt={10} pb={8}>
           <FormulaInput
             value={source}
             onChange={setSource}
             hasError={parseState.state === "error"}
           />
-          <Group justify="space-between" gap={8} mih={18}>
+          <Group justify="space-between" gap={8} mih={16}>
             {parseState.state === "error" ? (
               <Group gap={6} c="red.7">
                 <IconAlertTriangle size={12} />
@@ -125,7 +125,7 @@ export function FormulaEditor({
 
         <Divider />
 
-        <Stack gap={10} px="md" py="sm">
+        <Stack gap={8} px={14} pt={10} pb={10}>
           <PropertyChipRow
             properties={properties.filter((p) => p.id !== editingPropertyId)}
             onInsert={(name) => insertAtEnd(`prop("${name}")`)}
@@ -134,7 +134,7 @@ export function FormulaEditor({
 
         <Divider />
 
-        <Stack gap={8} px="md" py="sm">
+        <Stack gap={6} px={14} pt={10} pb={10}>
           <Text size="xs" fw={600} c="gray.7">
             Functions
           </Text>

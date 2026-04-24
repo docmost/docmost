@@ -31,11 +31,18 @@ export function FunctionPalette({
       onChange={setOpen}
       variant="contained"
       radius="md"
+      chevronSize={14}
       styles={{
-        item: { borderColor: "var(--mantine-color-gray-3)" },
-        control: { padding: "9px 12px" },
-        label: { fontSize: 13, fontWeight: 500, textTransform: "capitalize" },
-        content: { padding: "8px 10px 12px" },
+        item: { borderColor: "var(--mantine-color-gray-2)" },
+        control: { padding: "7px 12px", minHeight: 0 },
+        label: {
+          padding: 0,
+          fontSize: 13,
+          fontWeight: 600,
+          textTransform: "capitalize",
+        },
+        content: { padding: "6px 10px 10px" },
+        panel: { background: "var(--mantine-color-gray-0)" },
       }}
     >
       {CATEGORIES.map((cat) => {
@@ -59,8 +66,8 @@ export function FunctionPalette({
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 3,
-                        padding: "3px 9px",
+                        gap: 4,
+                        padding: "4px 10px",
                         borderRadius: 5,
                         fontFamily:
                           "ui-monospace, SFMono-Regular, Menlo, 'JetBrains Mono', monospace",
