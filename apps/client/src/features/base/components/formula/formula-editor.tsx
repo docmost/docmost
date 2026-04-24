@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Divider,
@@ -45,6 +45,8 @@ export function FormulaEditor({
   onCancel,
 }: Props) {
   const [source, setSource] = useState(initialSource);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCursorRef = useRef<number | null>(null);
   const parseState = useFormulaParser(
     source,
     properties,
@@ -52,8 +54,36 @@ export function FormulaEditor({
     registry,
   );
   const canSave = parseState.state === "ok" && !disabled;
-  const insertAtEnd = (snippet: string) =>
-    setSource((s) => `${s}${s ? " " : ""}${snippet}`);
+
+  // After a palette insert mutates `source`, wait for React to flush the
+  // new value into the textarea, then focus + restore the cursor. Using
+  // useEffect (not RAF) guarantees the DOM update ran first.
+  useEffect(() => {
+    if (pendingCursorRef.current === null) return;
+    const pos = pendingCursorRef.current;
+    pendingCursorRef.current = null;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.focus();
+    ta.setSelectionRange(pos, pos);
+  }, [source]);
+
+  const insertAtCursor = (snippet: string, cursorOffsetFromEnd = 0) => {
+    const ta = textareaRef.current;
+    const start = ta?.selectionStart ?? source.length;
+    const end = ta?.selectionEnd ?? source.length;
+    const before = source.slice(0, start);
+    const after = source.slice(end);
+    // Add a space separator when inserting after content that would
+    // otherwise mash against the snippet (e.g. `2` + `prop("A")`).
+    const prev = before.slice(-1);
+    const needsSpace = prev !== "" && !/[\s(,]/.test(prev);
+    const prefix = needsSpace ? " " : "";
+    const next = before + prefix + snippet + after;
+    pendingCursorRef.current =
+      before.length + prefix.length + snippet.length - cursorOffsetFromEnd;
+    setSource(next);
+  };
 
   return (
     <Paper
@@ -97,6 +127,7 @@ export function FormulaEditor({
 
         <Stack gap={6} px={14} pt={10} pb={8}>
           <FormulaInput
+            ref={textareaRef}
             value={source}
             onChange={setSource}
             hasError={parseState.state === "error"}
@@ -130,7 +161,7 @@ export function FormulaEditor({
         <Stack gap={8} px={14} pt={10} pb={10}>
           <PropertyChipRow
             properties={properties.filter((p) => p.id !== editingPropertyId)}
-            onInsert={(name) => insertAtEnd(`prop("${name}")`)}
+            onInsert={(name) => insertAtCursor(`prop("${name}")`)}
           />
         </Stack>
 
@@ -142,7 +173,7 @@ export function FormulaEditor({
           </Text>
           <FunctionPalette
             registry={registry}
-            onInsert={(name) => insertAtEnd(`${name}()`)}
+            onInsert={(name) => insertAtCursor(`${name}()`, 1)}
           />
         </Stack>
 
