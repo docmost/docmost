@@ -25,6 +25,7 @@ type Props = {
   editingPropertyId: string | null;
   initialSource?: string;
   name?: string;
+  disabled?: boolean;
   onSave: (
     source: string,
     ast: unknown,
@@ -39,6 +40,7 @@ export function FormulaEditor({
   editingPropertyId,
   initialSource = "",
   name,
+  disabled = false,
   onSave,
   onCancel,
 }: Props) {
@@ -49,7 +51,7 @@ export function FormulaEditor({
     editingPropertyId,
     registry,
   );
-  const canSave = parseState.state === "ok";
+  const canSave = parseState.state === "ok" && !disabled;
   const insertAtEnd = (snippet: string) =>
     setSource((s) => `${s}${s ? " " : ""}${snippet}`);
 

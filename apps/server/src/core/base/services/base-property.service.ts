@@ -88,6 +88,8 @@ export class BasePropertyService {
   async create(workspaceId: string, dto: CreatePropertyDto, actorId?: string) {
     const type = dto.type as BasePropertyTypeValue;
 
+    await this.ensureNameUnique(dto.baseId, dto.name);
+
     let validatedTypeOptions: unknown;
     if (type === 'formula') {
       const sourceCandidate = (dto.typeOptions as any)?.source;
@@ -190,6 +192,10 @@ export class BasePropertyService {
 
     if (property.baseId !== dto.baseId) {
       throw new BadRequestException('Property does not belong to this base');
+    }
+
+    if (dto.name !== undefined) {
+      await this.ensureNameUnique(dto.baseId, dto.name, dto.propertyId);
     }
 
     // Block concurrent type changes — the worker still owns the previous
@@ -418,6 +424,27 @@ export class BasePropertyService {
    * has to happen after the outer transaction commits so socket consumers
    * never race ahead of visibility.
    */
+  private async ensureNameUnique(
+    baseId: string,
+    candidate: string,
+    excludePropertyId?: string,
+  ): Promise<void> {
+    const trimmed = candidate.trim();
+    if (!trimmed) return;
+    const existing = await this.basePropertyRepo.findByBaseId(baseId);
+    const lower = trimmed.toLowerCase();
+    const clash = existing.find(
+      (p) =>
+        p.id !== excludePropertyId &&
+        p.name.trim().toLowerCase() === lower,
+    );
+    if (clash) {
+      throw new BadRequestException(
+        `A property named "${trimmed}" already exists in this base`,
+      );
+    }
+  }
+
   private async loadAndEmit(
     dto: UpdatePropertyDto,
     workspaceId: string,

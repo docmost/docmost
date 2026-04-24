@@ -66,6 +66,14 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
     return name.trim().length > 0 || Object.keys(typeOptions).length > 0;
   }, [name, typeOptions]);
 
+  const nameTaken = useMemo(() => {
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) return false;
+    return (properties ?? []).some(
+      (p) => p.name.trim().toLowerCase() === trimmed,
+    );
+  }, [name, properties]);
+
   const resetState = useCallback(() => {
     setPanel("typePicker");
     setSelectedType(null);
@@ -112,7 +120,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
   }, [panel]);
 
   const handleCreate = useCallback(() => {
-    if (!selectedType) return;
+    if (!selectedType || nameTaken) return;
     const finalName = name.trim() || selectedTypeLabel;
     createPropertyMutation.mutate(
       {
@@ -130,7 +138,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
       },
     );
     handleClose();
-  }, [selectedType, name, selectedTypeLabel, typeOptions, baseId, createPropertyMutation, handleClose, onPropertyCreated]);
+  }, [selectedType, nameTaken, name, selectedTypeLabel, typeOptions, baseId, createPropertyMutation, handleClose, onPropertyCreated]);
 
   const handleBackToTypePicker = useCallback(() => {
     setPanel("typePicker");
@@ -242,13 +250,16 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                 placeholder={selectedTypeLabel}
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
+                error={nameTaken ? t("A property with this name already exists") : undefined}
               />
               <FormulaEditor
                 properties={properties ?? []}
                 editingPropertyId={null}
                 name={name.trim() || undefined}
                 onCancel={handleBackToTypePicker}
+                disabled={nameTaken}
                 onSave={(source, ast, resultType, dependencies) => {
+                  if (nameTaken) return;
                   createPropertyMutation.mutate(
                     {
                       baseId,
@@ -279,6 +290,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
                 onKeyDown={handleNameKeyDown}
+                error={nameTaken ? t("A property with this name already exists") : undefined}
                 mb="xs"
               />
               <UnstyledButton
@@ -316,7 +328,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                 <Button variant="default" size="xs" onClick={attemptClose}>
                   {t("Cancel")}
                 </Button>
-                <Button size="xs" onClick={handleCreate}>
+                <Button size="xs" onClick={handleCreate} disabled={nameTaken}>
                   {t("Create field")}
                 </Button>
               </Group>
