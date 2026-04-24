@@ -91,7 +91,13 @@ export function useViewDraft(args: UseViewDraftArgs): ViewDraftState {
       if (!ready) return;
       const current = storedDraft ?? null;
       const mergedFilter = current?.filter;
-      const mergedSorts = next;
+      // If the baseline has sorts, clearing to `undefined` would fall back
+      // to the baseline in effectiveSorts. Persist an empty array instead
+      // so the draft explicitly overrides the baseline with no sorts.
+      const mergedSorts =
+        next === undefined && baselineSorts !== undefined && baselineSorts.length > 0
+          ? []
+          : next;
       if (mergedFilter === undefined && (mergedSorts === undefined || mergedSorts === null)) {
         setDraft(RESET);
         return;
@@ -102,7 +108,7 @@ export function useViewDraft(args: UseViewDraftArgs): ViewDraftState {
         updatedAt: new Date().toISOString(),
       });
     },
-    [ready, storedDraft, setDraft],
+    [ready, storedDraft, setDraft, baselineSorts],
   );
 
   const reset = useCallback(() => {
