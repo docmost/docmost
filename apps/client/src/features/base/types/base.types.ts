@@ -239,6 +239,21 @@ export type ReorderPropertyInput = {
   requestId?: string;
 };
 
+export type CountRowsInput = {
+  baseId: string;
+  filter?: FilterNode;
+  search?: SearchSpec;
+  // When true the server returns an exact (but capped) count. Otherwise
+  // a cheap EXPLAIN-plan estimate. Paired with `capped` on the result.
+  exact?: boolean;
+};
+
+export type CountRowsResult = {
+  value: number;
+  exact: boolean;
+  capped: boolean;
+};
+
 export type CreateRowInput = {
   baseId: string;
   cells?: Record<string, unknown>;

@@ -1,6 +1,7 @@
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   InfiniteData,
 } from "@tanstack/react-query";
 import {
@@ -10,6 +11,7 @@ import {
   deleteRows,
   listRows,
   reorderRow,
+  countRows,
 } from "@/features/base/services/base-service";
 import {
   IBaseRow,
@@ -21,6 +23,7 @@ import {
   FilterNode,
   SearchSpec,
   ViewSortConfig,
+  CountRowsResult,
 } from "@/features/base/types/base.types";
 import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
@@ -274,6 +277,35 @@ export function useDeleteRowsMutation() {
         color: "red",
       });
     },
+  });
+}
+
+/*
+ * Row count for the current view. Fires in parallel with `useBaseRowsQuery`
+ * — doesn't block first paint. Keyed by filter + search so an independent
+ * view with a different filter gets its own cached count; `exact` is part
+ * of the key so a "show exact" toggle doesn't clobber the estimate cache.
+ */
+export function useBaseRowsCountQuery(
+  baseId: string | undefined,
+  filter?: FilterNode,
+  search?: SearchSpec,
+  exact = false,
+) {
+  const activeFilter = normalizeFilter(filter);
+  const activeSearch = search?.query ? search : undefined;
+
+  return useQuery<CountRowsResult>({
+    queryKey: ["base-rows-count", baseId, activeFilter, activeSearch, exact],
+    queryFn: () =>
+      countRows({
+        baseId: baseId!,
+        filter: activeFilter,
+        search: activeSearch,
+        exact,
+      }),
+    enabled: !!baseId,
+    staleTime: 30 * 1000,
   });
 }
 

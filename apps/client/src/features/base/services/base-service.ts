@@ -23,6 +23,8 @@ import {
   FilterNode,
   SearchSpec,
   ViewSortConfig,
+  CountRowsInput,
+  CountRowsResult,
 } from "@/features/base/types/base.types";
 import { IPagination } from "@/lib/types";
 
@@ -149,6 +151,13 @@ export async function listRows(
 
 export async function reorderRow(data: ReorderRowInput): Promise<void> {
   await api.post("/bases/rows/reorder", data);
+}
+
+export async function countRows(
+  data: CountRowsInput,
+): Promise<CountRowsResult> {
+  const req = await api.post<CountRowsResult>("/bases/rows/count", data);
+  return req.data;
 }
 
 // --- Views ---

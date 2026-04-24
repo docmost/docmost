@@ -19,6 +19,7 @@ import {
   DeleteRowsDto,
   ListRowsDto,
   ReorderRowDto,
+  CountRowsDto,
 } from '../dto/update-row.dto';
 import {
   BasePropertyTypeValue,
@@ -45,6 +46,12 @@ import {
   BaseRowsDeletedEvent,
 } from '../events/base-events';
 import { FormulaService } from '../formula/formula.service';
+
+// Cap for `count({ exact: true })`. Beyond this we return `capped: true` and
+// the UI shows "N+". Chosen so a cell-wise scan stays well under 100ms on
+// the existing `idx_base_rows_cells_gin_path_ops` index; callers that need
+// true totals should fall back to `exact: false` (planner estimate).
+const EXACT_COUNT_CAP = 10_000;
 
 @Injectable()
 export class BaseRowService {
@@ -244,6 +251,39 @@ export class BaseRowService {
     });
   }
 
+  async count(dto: CountRowsDto, workspaceId: string) {
+    const properties = await this.basePropertyRepo.findByBaseId(dto.baseId);
+    const schema: PropertySchema = new Map(properties.map((p) => [p.id, p]));
+
+    const filter = this.normaliseFilter({ filter: dto.filter });
+    const search = this.normaliseSearch(dto.search);
+
+    if (dto.exact) {
+      const { value, capped } = await this.baseRowRepo.countExact({
+        baseId: dto.baseId,
+        workspaceId,
+        filter,
+        search,
+        schema,
+        cap: EXACT_COUNT_CAP,
+      });
+      return { value, exact: true as const, capped };
+    }
+
+    const estimate = await this.baseRowRepo.countEstimate({
+      baseId: dto.baseId,
+      workspaceId,
+      filter,
+      search,
+      schema,
+    });
+    return {
+      value: estimate ?? 0,
+      exact: false as const,
+      capped: false,
+    };
+  }
+
   async reorder(dto: ReorderRowDto, workspaceId: string, userId?: string) {
     const row = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
     if (!row || row.baseId !== dto.baseId) {
@@ -274,7 +314,7 @@ export class BaseRowService {
 
   // --- private helpers ------------------------------------------------
 
-  private normaliseFilter(dto: ListRowsDto): FilterNode | undefined {
+  private normaliseFilter(dto: { filter?: unknown }): FilterNode | undefined {
     if (!dto.filter) return undefined;
 
     const parsed = filterGroupSchema.safeParse(dto.filter);

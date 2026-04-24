@@ -18,6 +18,7 @@ import {
   RowIdDto,
   ListRowsDto,
   ReorderRowDto,
+  CountRowsDto,
 } from '../dto/update-row.dto';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { AuthWorkspace } from '../../../common/decorators/auth-workspace.decorator';
@@ -158,6 +159,26 @@ export class BaseRowController {
     }
 
     return this.baseRowService.list(dto, pagination, workspace.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('count')
+  async count(
+    @Body() dto: CountRowsDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const base = await this.baseRepo.findById(dto.baseId);
+    if (!base) {
+      throw new NotFoundException('Base not found');
+    }
+
+    const ability = await this.spaceAbility.createForUser(user, base.spaceId);
+    if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Base)) {
+      throw new ForbiddenException();
+    }
+
+    return this.baseRowService.count(dto, workspace.id);
   }
 
   @HttpCode(HttpStatus.OK)

@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsNotEmpty,
   IsObject,
@@ -81,6 +82,25 @@ export class ListRowsDto {
   @IsOptional()
   @IsObject()
   search?: unknown;
+}
+
+export class CountRowsDto {
+  @IsUUID()
+  baseId: string;
+
+  @IsOptional()
+  @IsObject()
+  filter?: unknown;
+
+  @IsOptional()
+  @IsObject()
+  search?: unknown;
+
+  // Opt-in for an exact (but capped) count. Default is an EXPLAIN-plan
+  // estimate — cheap and good enough for "≈ N rows" headers.
+  @IsOptional()
+  @IsBoolean()
+  exact?: boolean;
 }
 
 export class ReorderRowDto {

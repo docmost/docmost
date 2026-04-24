@@ -11,12 +11,14 @@ import {
   CursorPaginationResult,
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
-import { sql, SqlBool } from 'kysely';
+import { CompiledQuery, sql, SqlBool } from 'kysely';
 import {
   FilterNode,
   PropertySchema,
   SearchSpec,
   SortSpec,
+  buildSearch,
+  buildWhere,
   runListQuery,
 } from '../../../core/base/engine';
 
@@ -126,6 +128,109 @@ export class BaseRowRepo {
       schema: opts.schema,
       pagination: opts.pagination,
     });
+  }
+
+  /*
+   * EXPLAIN-based row estimate for the same predicate shape `list` uses.
+   * Doesn't execute the query — ~1ms even on large bases. Returns `null`
+   * when the plan JSON is unexpected. Caller treats the number as
+   * approximate; planner accuracy depends on fresh stats (ANALYZE).
+   */
+  async countEstimate(opts: {
+    baseId: string;
+    workspaceId: string;
+    filter?: FilterNode;
+    search?: SearchSpec;
+    schema: PropertySchema;
+    trx?: KyselyTransaction;
+  }): Promise<number | null> {
+    const db = dbOrTx(this.db, opts.trx);
+
+    let qb = db
+      .selectFrom('baseRows')
+      .select(sql<number>`1`.as('x'))
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null);
+
+    if (opts.search) {
+      const spec = opts.search;
+      qb = qb.where((eb) => buildSearch(eb, spec));
+    }
+    if (opts.filter) {
+      const filter = opts.filter;
+      const schema = opts.schema;
+      qb = qb.where((eb) => buildWhere(eb, filter, schema));
+    }
+
+    // Embedding `qb` inside a `sql` template would wrap it in parens as a
+    // subquery, which PG rejects after EXPLAIN. Splice the raw SQL + reuse
+    // the compiled parameters via a hand-built CompiledQuery instead.
+    const compiled = qb.compile();
+    const explain: CompiledQuery = {
+      ...compiled,
+      sql: `EXPLAIN (FORMAT JSON) ${compiled.sql}`,
+    };
+    const res = await db.executeQuery<{ 'QUERY PLAN': unknown }>(explain);
+
+    // `QUERY PLAN` is a json column — postgres.js auto-parses it into an
+    // array. Fall back to JSON.parse for drivers that return it as text.
+    let plan = (res.rows[0] as any)?.['QUERY PLAN'];
+    if (typeof plan === 'string') {
+      try {
+        plan = JSON.parse(plan);
+      } catch {
+        return null;
+      }
+    }
+    const n = Array.isArray(plan) ? plan[0]?.Plan?.['Plan Rows'] : undefined;
+    return typeof n === 'number' ? Math.max(0, Math.round(n)) : null;
+  }
+
+  /*
+   * Capped exact count. Wraps the filtered scan in a `LIMIT cap + 1`
+   * subquery so PG stops touching rows once we've proven the filter
+   * matches more than `cap` — callers render "cap+" in the UI instead.
+   */
+  async countExact(opts: {
+    baseId: string;
+    workspaceId: string;
+    filter?: FilterNode;
+    search?: SearchSpec;
+    schema: PropertySchema;
+    cap: number;
+    trx?: KyselyTransaction;
+  }): Promise<{ value: number; capped: boolean }> {
+    const db = dbOrTx(this.db, opts.trx);
+
+    let inner = db
+      .selectFrom('baseRows')
+      .select(sql<number>`1`.as('x'))
+      .where('baseId', '=', opts.baseId)
+      .where('workspaceId', '=', opts.workspaceId)
+      .where('deletedAt', 'is', null);
+
+    if (opts.search) {
+      const spec = opts.search;
+      inner = inner.where((eb) => buildSearch(eb, spec));
+    }
+    if (opts.filter) {
+      const filter = opts.filter;
+      const schema = opts.schema;
+      inner = inner.where((eb) => buildWhere(eb, filter, schema));
+    }
+
+    inner = inner.limit(opts.cap + 1);
+    const compiled = inner.compile();
+    const wrapped: CompiledQuery = {
+      ...compiled,
+      sql: `SELECT count(*)::text AS n FROM (${compiled.sql}) AS t`,
+    };
+    const res = await db.executeQuery<{ n: string }>(wrapped);
+
+    const n = Number(res.rows[0]?.n ?? 0);
+    if (n > opts.cap) return { value: opts.cap, capped: true };
+    return { value: n, capped: false };
   }
 
   async getLastPosition(
