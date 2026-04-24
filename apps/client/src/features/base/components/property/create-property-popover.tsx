@@ -206,7 +206,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
         onClose={noop}
         position="bottom-start"
         shadow="md"
-        width={320}
+        width={selectedType === "formula" ? 460 : 320}
         withinPortal
       >
         <Popover.Target>
@@ -246,6 +246,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
               <FormulaEditor
                 properties={properties ?? []}
                 editingPropertyId={null}
+                name={name.trim() || undefined}
                 onCancel={handleBackToTypePicker}
                 onSave={(source, ast, resultType, dependencies) => {
                   createPropertyMutation.mutate(

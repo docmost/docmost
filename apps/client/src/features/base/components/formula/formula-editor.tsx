@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { Button, Divider, Group, Paper, Stack, Text } from "@mantine/core";
+import {
+  Button,
+  Divider,
+  Group,
+  Kbd,
+  Paper,
+  Stack,
+  Text,
+} from "@mantine/core";
+import {
+  IconAlertTriangle,
+  IconMathFunction,
+  IconPointFilled,
+} from "@tabler/icons-react";
 import { registry } from "@docmost/base-formula/client";
 import { FormulaInput } from "./formula-input";
 import { PropertyChipRow } from "./property-chip-row";
@@ -11,6 +24,7 @@ type Props = {
   properties: IBaseProperty[];
   editingPropertyId: string | null;
   initialSource?: string;
+  name?: string;
   onSave: (
     source: string,
     ast: unknown,
@@ -24,6 +38,7 @@ export function FormulaEditor({
   properties,
   editingPropertyId,
   initialSource = "",
+  name,
   onSave,
   onCancel,
 }: Props) {
@@ -35,48 +50,136 @@ export function FormulaEditor({
     registry,
   );
   const canSave = parseState.state === "ok";
-
   const insertAtEnd = (snippet: string) =>
     setSource((s) => `${s}${s ? " " : ""}${snippet}`);
 
   return (
-    <Paper p="md" withBorder>
-      <Stack gap="sm">
-        <Text fw={500}>Formula</Text>
-        <FormulaInput
-          value={source}
-          onChange={setSource}
-          error={parseState.state === "error" ? parseState : undefined}
-          resultType={parseState.state === "ok" ? parseState.resultType : undefined}
-        />
-        <Divider />
-        <Text size="sm" c="dimmed">Properties</Text>
-        <PropertyChipRow
-          properties={properties.filter((p) => p.id !== editingPropertyId)}
-          onInsert={(name) => insertAtEnd(`prop("${name}")`)}
-        />
-        <Divider />
-        <Text size="sm" c="dimmed">Functions</Text>
-        <FunctionPalette
-          registry={registry}
-          onInsert={(name) => insertAtEnd(`${name}()`)}
-        />
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={onCancel}>Cancel</Button>
-          <Button
-            disabled={!canSave}
-            onClick={() => {
-              if (parseState.state !== "ok") return;
-              onSave(
-                source,
-                parseState.ast,
-                parseState.resultType,
-                parseState.dependencies,
-              );
+    <Paper
+      withBorder
+      radius="md"
+      shadow="sm"
+      p={0}
+      style={{ overflow: "hidden" }}
+    >
+      <Stack gap={0}>
+        <Group
+          gap={10}
+          px="md"
+          py={12}
+          style={{
+            borderBottom: "1px solid var(--mantine-color-gray-2)",
+          }}
+        >
+          <div
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              display: "grid",
+              placeItems: "center",
+              background: "var(--mantine-color-blue-0)",
+              color: "var(--mantine-color-blue-6)",
             }}
           >
-            Save
-          </Button>
+            <IconMathFunction size={14} />
+          </div>
+          <Text size="sm" fw={600}>
+            Formula
+          </Text>
+          {name && (
+            <Text size="sm" c="dimmed">
+              · {name}
+            </Text>
+          )}
+        </Group>
+
+        <Stack gap={8} px="md" py="sm">
+          <FormulaInput
+            value={source}
+            onChange={setSource}
+            hasError={parseState.state === "error"}
+          />
+          <Group justify="space-between" gap={8} mih={18}>
+            {parseState.state === "error" ? (
+              <Group gap={6} c="red.7">
+                <IconAlertTriangle size={12} />
+                <Text size="xs">{parseState.message}</Text>
+              </Group>
+            ) : parseState.state === "ok" ? (
+              <Group gap={6} c="dimmed">
+                <IconPointFilled size={10} color="var(--mantine-color-teal-6)" />
+                <Text size="xs">
+                  Returns{" "}
+                  <Text span fw={600} c="gray.8">
+                    {parseState.resultType}
+                  </Text>
+                </Text>
+              </Group>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Click a property or function below to insert.
+              </Text>
+            )}
+          </Group>
+        </Stack>
+
+        <Divider />
+
+        <Stack gap={10} px="md" py="sm">
+          <PropertyChipRow
+            properties={properties.filter((p) => p.id !== editingPropertyId)}
+            onInsert={(name) => insertAtEnd(`prop("${name}")`)}
+          />
+        </Stack>
+
+        <Divider />
+
+        <Stack gap={8} px="md" py="sm">
+          <Text size="xs" fw={600} c="gray.7">
+            Functions
+          </Text>
+          <FunctionPalette
+            registry={registry}
+            onInsert={(name) => insertAtEnd(`${name}()`)}
+          />
+        </Stack>
+
+        <Group
+          justify="space-between"
+          px="md"
+          py={10}
+          style={{
+            borderTop: "1px solid var(--mantine-color-gray-2)",
+            background: "var(--mantine-color-gray-0)",
+          }}
+        >
+          <Group gap={6}>
+            <Kbd>⌘</Kbd>
+            <Kbd>↵</Kbd>
+            <Text size="xs" c="dimmed">
+              to save
+            </Text>
+          </Group>
+          <Group gap={8}>
+            <Button variant="subtle" size="xs" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              disabled={!canSave}
+              onClick={() => {
+                if (parseState.state !== "ok") return;
+                onSave(
+                  source,
+                  parseState.ast,
+                  parseState.resultType,
+                  parseState.dependencies,
+                );
+              }}
+            >
+              Save
+            </Button>
+          </Group>
         </Group>
       </Stack>
     </Paper>
