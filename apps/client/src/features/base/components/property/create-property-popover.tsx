@@ -74,6 +74,23 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
     );
   }, [name, properties]);
 
+  // When the user leaves Name blank, fall back to the type label — and if
+  // that's already taken, suffix `n` until we find one that's free
+  // ("Text", "Text 1", "Text 2", …). Mirrors how other tools auto-number
+  // default field names.
+  const fallbackName = useMemo(() => {
+    const base = selectedTypeLabel || "Field";
+    const existing = new Set(
+      (properties ?? []).map((p) => p.name.trim().toLowerCase()),
+    );
+    if (!existing.has(base.toLowerCase())) return base;
+    for (let i = 1; i < 1000; i++) {
+      const candidate = `${base} ${i}`;
+      if (!existing.has(candidate.toLowerCase())) return candidate;
+    }
+    return `${base} ${Date.now()}`;
+  }, [selectedTypeLabel, properties]);
+
   const resetState = useCallback(() => {
     setPanel("typePicker");
     setSelectedType(null);
@@ -121,7 +138,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
 
   const handleCreate = useCallback(() => {
     if (!selectedType || nameTaken) return;
-    const finalName = name.trim() || selectedTypeLabel;
+    const finalName = name.trim() || fallbackName;
     createPropertyMutation.mutate(
       {
         baseId,
@@ -138,7 +155,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
       },
     );
     handleClose();
-  }, [selectedType, nameTaken, name, selectedTypeLabel, typeOptions, baseId, createPropertyMutation, handleClose, onPropertyCreated]);
+  }, [selectedType, nameTaken, name, fallbackName, typeOptions, baseId, createPropertyMutation, handleClose, onPropertyCreated]);
 
   const handleBackToTypePicker = useCallback(() => {
     setPanel("typePicker");
@@ -247,7 +264,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                 ref={nameInputRef}
                 size="xs"
                 label={t("Name")}
-                placeholder={selectedTypeLabel}
+                placeholder={fallbackName}
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
                 error={nameTaken ? t("A property with this name already exists") : undefined}
@@ -263,7 +280,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                   createPropertyMutation.mutate(
                     {
                       baseId,
-                      name: name.trim() || t("Formula"),
+                      name: name.trim() || fallbackName,
                       type: "formula",
                       typeOptions: {
                         source,
@@ -286,7 +303,7 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
                 ref={nameInputRef}
                 size="xs"
                 label={t("Name")}
-                placeholder={selectedTypeLabel}
+                placeholder={fallbackName}
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
                 onKeyDown={handleNameKeyDown}
