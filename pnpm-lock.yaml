@@ -718,6 +718,9 @@ importers:
       typesense:
         specifier: ^3.0.5
         version: 3.0.5(@babel/runtime@7.29.2)
+      undici:
+        specifier: 7.24.0
+        version: 7.24.0
       ws:
         specifier: 8.20.0
         version: 8.20.0
@@ -4001,6 +4004,7 @@ packages:
   '@react-email/components@1.0.10':
     resolution: {integrity: sha512-r/BnqfAjr3apcvn/NDx2DqNRD5BP5wZLRdjn2IVHXjt4KmQ5RHWSCAvFiXAzRHys1BWQ2zgIc7cpWePUcAl+nw==}
     engines: {node: '>=20.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
 
