@@ -143,7 +143,7 @@ export class BaseController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('pages/resolve')
+  @Post('pages/expand')
   async resolvePages(
     @Body() dto: ResolvePagesDto,
     @AuthUser() user: User,

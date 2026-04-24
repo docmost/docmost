@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import api from "@/lib/api-client";
+import { expandPagesBatched } from "./page-expand-loader";
 
 export type ResolvedPage = {
   id: string;
@@ -13,11 +13,13 @@ export type ResolvedPage = {
 
 async function resolvePages(pageIds: string[]): Promise<ResolvedPage[]> {
   if (pageIds.length === 0) return [];
-  const res = await api.post<{ items: ResolvedPage[] }>(
-    "/bases/pages/resolve",
-    { pageIds },
-  );
-  return res.data.items;
+  const map = await expandPagesBatched(pageIds);
+  const out: ResolvedPage[] = [];
+  for (const id of pageIds) {
+    const p = map.get(id);
+    if (p) out.push(p);
+  }
+  return out;
 }
 
 // Stable, sorted, deduped list so the query key is consistent across renders
@@ -46,7 +48,7 @@ export function useResolvedPages(
   const normalized = useMemo(() => normalize(pageIds), [pageIds]);
 
   const { data, isSuccess, isLoading } = useQuery({
-    queryKey: ["bases", "pages", "resolve", normalized],
+    queryKey: ["bases", "pages", "expand", normalized],
     queryFn: () => resolvePages(normalized),
     enabled: normalized.length > 0,
     staleTime: 30_000,
