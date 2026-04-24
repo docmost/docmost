@@ -234,7 +234,15 @@ export function CreatePropertyPopover({ baseId, properties, onPropertyCreated }:
             </Stack>
           )}
           {panel === "configure" && selectedType === "formula" && (
-            <Stack gap={0} p="sm">
+            <Stack gap="xs" p="sm">
+              <TextInput
+                ref={nameInputRef}
+                size="xs"
+                label={t("Name")}
+                placeholder={selectedTypeLabel}
+                value={name}
+                onChange={(e) => setName(e.currentTarget.value)}
+              />
               <FormulaEditor
                 properties={properties ?? []}
                 editingPropertyId={null}

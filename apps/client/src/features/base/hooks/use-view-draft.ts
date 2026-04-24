@@ -64,7 +64,14 @@ export function useViewDraft(args: UseViewDraftArgs): ViewDraftState {
     (next: FilterGroup | undefined) => {
       if (!ready) return;
       const current = storedDraft ?? null;
-      const mergedFilter = next;
+      // If the baseline has a filter, clearing to `undefined` would fall
+      // back to the baseline in effectiveFilter. Persist an empty AND-group
+      // instead so the draft explicitly overrides the baseline with no
+      // predicates.
+      const mergedFilter =
+        next === undefined && baselineFilter !== undefined
+          ? ({ op: "and", children: [] } as FilterGroup)
+          : next;
       const mergedSorts = current?.sorts;
       if (mergedFilter === undefined && (mergedSorts === undefined || mergedSorts === null)) {
         setDraft(RESET);
@@ -76,7 +83,7 @@ export function useViewDraft(args: UseViewDraftArgs): ViewDraftState {
         updatedAt: new Date().toISOString(),
       });
     },
-    [ready, storedDraft, setDraft],
+    [ready, storedDraft, setDraft, baselineFilter],
   );
 
   const setSorts = useCallback(

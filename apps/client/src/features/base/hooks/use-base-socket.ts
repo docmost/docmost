@@ -269,9 +269,31 @@ export function useBaseSocket(baseId: string | undefined): void {
           break;
         }
         case "base:rows:updated": {
-          // Formula recompute wrote new cell values on the server. The event
-          // only carries row IDs, so invalidate the rows query to refetch.
-          queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
+          const e = event as BaseRowsUpdated;
+          // Only refetch if the batch touches rows currently in cache.
+          // Uncached pages will fetch fresh when the user scrolls to them,
+          // so invalidating on batches the user can't see is wasted work —
+          // formula backfills on a large base emit one batch event per 500
+          // rows, so this also drops ~Nrows/500 redundant refetches.
+          const updatedIds = new Set(e.rowIds);
+          const caches = queryClient.getQueriesData<
+            InfiniteData<IPagination<IBaseRow>>
+          >({ queryKey: ["base-rows", baseId] });
+          let touchesCache = false;
+          outer: for (const [, data] of caches) {
+            if (!data) continue;
+            for (const page of data.pages) {
+              for (const row of page.items) {
+                if (updatedIds.has(row.id)) {
+                  touchesCache = true;
+                  break outer;
+                }
+              }
+            }
+          }
+          if (touchesCache) {
+            queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
+          }
           break;
         }
         case "base:formula:recompute:started": {
