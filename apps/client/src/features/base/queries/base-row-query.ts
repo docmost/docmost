@@ -32,6 +32,17 @@ type RowCacheContext = {
   snapshots: [readonly unknown[], InfiniteData<IPagination<IBaseRow>> | undefined][];
 };
 
+// An empty group filter (`{op: 'and', children: []}`) is the draft-layer's
+// explicit "override baseline with no predicates" marker — see
+// use-view-draft.ts. It carries no server-side meaning (buildWhere maps it
+// to TRUE), so strip it at the query boundary to keep request payloads
+// clean and cache keys stable when the user resets filters.
+function normalizeFilter(filter: FilterNode | undefined): FilterNode | undefined {
+  if (!filter) return undefined;
+  if ('children' in filter && filter.children.length === 0) return undefined;
+  return filter;
+}
+
 // Generate a fresh requestId and pre-register it as outbound so the
 // incoming socket echo is suppressed by `useBaseSocket`.
 function newRequestId(): string {
@@ -50,7 +61,7 @@ export function useBaseRowsQuery(
   sorts?: ViewSortConfig[],
   search?: SearchSpec,
 ) {
-  const activeFilter = filter ?? undefined;
+  const activeFilter = normalizeFilter(filter);
   const activeSorts = sorts?.length ? sorts : undefined;
   const activeSearch = search?.query ? search : undefined;
 
