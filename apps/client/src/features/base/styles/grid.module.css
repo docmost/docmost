@@ -16,13 +16,24 @@
 }
 
 .headerRow {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
+  /* `display: contents` removes the wrapper from layout while keeping the
+   * `role="row"` for accessibility. Header cells become direct grid items
+   * of `.grid`, so their containing block is the full-height table — a
+   * prerequisite for `position: sticky` on `.headerCell` to actually
+   * travel the length of the scroll. With a subgrid wrapper here, sticky
+   * was constrained to the 34px header row and scrolled away. */
+  display: contents;
 }
 
 .headerCell {
-  position: relative;
+  /* Sticky to the top of the gridWrapper scroll viewport so the column
+   * header row stays visible while the user scrolls rows underneath.
+   * z-index 2 lifts it above non-pinned body cells (default 0); the
+   * pinned variant below bumps to 3 so the corner cell stays above
+   * pinned body cells (z-index 1) at the top-left intersection. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -51,8 +62,11 @@
 }
 
 .headerCellPinned {
-  position: sticky;
-  z-index: 2;
+  /* Sticks both vertically (inherited top: 0) and horizontally (left
+   * offset set inline by tanstack-table's column-pinning), so the row-
+   * number / primary-property column stays visible at the top-left
+   * corner regardless of scroll axis. */
+  z-index: 3;
   background-color: light-dark(
     var(--mantine-color-gray-0),
     var(--mantine-color-dark-6)
@@ -236,6 +250,12 @@
 }
 
 .addColumnButton {
+  /* Sits at the trailing edge of the header row — match the sticky-top
+   * behaviour of `.headerCell` so it doesn't drift away when the grid
+   * scrolls vertically. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
