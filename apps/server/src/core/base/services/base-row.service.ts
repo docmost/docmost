@@ -30,6 +30,7 @@ import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { BaseProperty } from '@docmost/db/types/entity.types';
 import {
+  Condition,
   FilterNode,
   PropertySchema,
   SearchSpec,
@@ -258,7 +259,14 @@ export class BaseRowService {
     const filter = this.normaliseFilter({ filter: dto.filter });
     const search = this.normaliseSearch(dto.search);
 
-    if (dto.exact) {
+    // Planner estimates are untrustworthy for ILIKE / FTS predicates on
+    // jsonb-extracted cells — PG falls back to a default selectivity and
+    // returns numbers off by orders of magnitude. Auto-escalate such
+    // requests to the capped-exact path even when the caller asked for
+    // an estimate.
+    const useExact = dto.exact || requiresExactCount(filter, search);
+
+    if (useExact) {
       const { value, capped } = await this.baseRowRepo.countExact({
         baseId: dto.baseId,
         workspaceId,
@@ -392,4 +400,31 @@ export class BaseRowService {
 
     return validatedCells;
   }
+}
+
+// Any filter op whose SQL is ILIKE-based, or a present search term. The
+// PG planner has no stats for `cells->>'uuid' ILIKE '%x%'` / `search_text
+// ILIKE` / `search_tsv @@` and falls back to a default selectivity, so
+// EXPLAIN Plan Rows is worthless here — route to the capped-exact count.
+const FUZZY_OPS: ReadonlySet<string> = new Set([
+  'contains',
+  'ncontains',
+  'startsWith',
+  'endsWith',
+]);
+
+function requiresExactCount(
+  filter: FilterNode | undefined,
+  search: SearchSpec | undefined,
+): boolean {
+  if (search) return true;
+  if (!filter) return false;
+  return filterHasFuzzyOp(filter);
+}
+
+function filterHasFuzzyOp(node: FilterNode): boolean {
+  if ('children' in node) {
+    return node.children.some(filterHasFuzzyOp);
+  }
+  return FUZZY_OPS.has((node as Condition).op);
 }
