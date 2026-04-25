@@ -14,6 +14,7 @@ import {
 } from "@/features/base/types/base.types";
 import {
   useBaseRowsQuery,
+  useBaseRowsCountQuery,
   flattenRows,
 } from "@/features/base/queries/base-row-query";
 import { useUpdateRowMutation } from "@/features/base/queries/base-row-query";
@@ -119,6 +120,18 @@ export function BaseTable({ baseId }: BaseTableProps) {
   // base open for any view that has sort or filter.
   const { data: rowsData, isLoading: rowsLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useBaseRowsQuery(base ? baseId : undefined, activeFilter, activeSorts);
+
+  // Fire the count request alongside the rows query. Not rendered yet —
+  // this mounts the query so its cache is warm for when the toolbar
+  // consumes it. Gate on `currentUser` too so `useViewDraft` has had a
+  // chance to hydrate the persisted draft from localStorage; otherwise
+  // the first post-refresh count would race ahead of the user's saved
+  // filter and fire with baseline-only (or nothing).
+  const canFetchCount = !!base && !!currentUser;
+  useBaseRowsCountQuery(
+    canFetchCount ? baseId : undefined,
+    activeFilter,
+  );
 
   const updateRowMutation = useUpdateRowMutation();
   const createRowMutation = useCreateRowMutation();
