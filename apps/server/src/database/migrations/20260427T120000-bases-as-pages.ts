@@ -45,6 +45,8 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('type', 'varchar', (col) => col.notNull())
     .addColumn('position', 'varchar', (col) => col.notNull())
     .addColumn('type_options', 'jsonb')
+    .addColumn('pending_type', 'varchar')
+    .addColumn('pending_type_options', 'jsonb')
     .addColumn('is_primary', 'boolean', (col) =>
       col.notNull().defaultTo(false),
     )
