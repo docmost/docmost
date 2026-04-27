@@ -13,14 +13,14 @@ import { IPagination } from "@/lib/types";
 
 type BaseRowCreated = {
   operation: "base:row:created";
-  baseId: string;
+  pageId: string;
   row: IBaseRow;
   requestId?: string | null;
 };
 
 type BaseRowUpdated = {
   operation: "base:row:updated";
-  baseId: string;
+  pageId: string;
   rowId: string;
   updatedCells: Record<string, unknown>;
   requestId?: string | null;
@@ -28,21 +28,21 @@ type BaseRowUpdated = {
 
 type BaseRowDeleted = {
   operation: "base:row:deleted";
-  baseId: string;
+  pageId: string;
   rowId: string;
   requestId?: string | null;
 };
 
 type BaseRowsDeleted = {
   operation: "base:rows:deleted";
-  baseId: string;
+  pageId: string;
   rowIds: string[];
   requestId?: string | null;
 };
 
 type BaseRowReordered = {
   operation: "base:row:reordered";
-  baseId: string;
+  pageId: string;
   rowId: string;
   position: string;
   requestId?: string | null;
@@ -54,7 +54,7 @@ type BasePropertyEvent = {
     | "base:property:updated"
     | "base:property:deleted"
     | "base:property:reordered";
-  baseId: string;
+  pageId: string;
   property?: IBaseProperty;
   propertyId?: string;
   requestId?: string | null;
@@ -65,14 +65,14 @@ type BaseViewEvent = {
     | "base:view:created"
     | "base:view:updated"
     | "base:view:deleted";
-  baseId: string;
+  pageId: string;
   view?: IBaseView;
   viewId?: string;
 };
 
 type BaseRowsUpdated = {
   operation: "base:rows:updated";
-  baseId: string;
+  pageId: string;
   rowIds: string[];
   propertyIds: string[];
   requestId?: string | null;
@@ -80,14 +80,14 @@ type BaseRowsUpdated = {
 
 type BaseFormulaRecomputeStarted = {
   operation: "base:formula:recompute:started";
-  baseId: string;
+  pageId: string;
   propertyIds: string[];
   jobId: string;
 };
 
 type BaseFormulaRecomputeCompleted = {
   operation: "base:formula:recompute:completed";
-  baseId: string;
+  pageId: string;
   propertyIds: string[];
   jobId: string;
   processed: number;
@@ -105,7 +105,7 @@ type BaseInboundEvent =
   | BaseFormulaRecomputeCompleted
   | BasePropertyEvent
   | BaseViewEvent
-  | { operation: string; baseId: string };
+  | { operation: string; pageId: string };
 
 /*
  * Module-level set of requestIds we've just sent to the server. When the
@@ -126,24 +126,24 @@ export function markRequestIdOutbound(requestId: string): void {
 }
 
 /*
- * Realtime bridge for a single base. Joins the server's `base-{baseId}`
+ * Realtime bridge for a single base. Joins the server's `base-{pageId}`
  * room on mount, leaves on unmount, and reconciles the React Query caches
- * (`["base-rows", baseId, ...]` and `["bases", baseId]`) when events
+ * (`["base-rows", pageId, ...]` and `["bases", pageId]`) when events
  * arrive from other clients.
  */
-export function useBaseSocket(baseId: string | undefined): void {
+export function useBaseSocket(pageId: string | undefined): void {
   const socket = useAtomValue(socketAtom);
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!socket || !baseId) return;
+    if (!socket || !pageId) return;
 
-    socket.emit("message", { operation: "base:subscribe", baseId });
+    socket.emit("message", { operation: "base:subscribe", pageId });
 
     const handler = (raw: unknown) => {
       if (!raw || typeof raw !== "object") return;
       const event = raw as BaseInboundEvent;
-      if (event.baseId !== baseId) return;
+      if (event.pageId !== pageId) return;
 
       const requestId = (event as any).requestId as string | undefined;
       if (requestId && outboundRequestIds.has(requestId)) {
@@ -155,7 +155,7 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:row:created": {
           const e = event as BaseRowCreated;
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", baseId] },
+            { queryKey: ["base-rows", pageId] },
             (old) => {
               if (!old) return old;
               const lastPageIndex = old.pages.length - 1;
@@ -174,7 +174,7 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:row:updated": {
           const e = event as BaseRowUpdated;
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", baseId] },
+            { queryKey: ["base-rows", pageId] },
             (old) =>
               !old
                 ? old
@@ -198,7 +198,7 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:row:deleted": {
           const e = event as BaseRowDeleted;
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", baseId] },
+            { queryKey: ["base-rows", pageId] },
             (old) =>
               !old
                 ? old
@@ -223,7 +223,7 @@ export function useBaseSocket(baseId: string | undefined): void {
           const e = event as BaseRowsDeleted;
           const removeSet = new Set(e.rowIds);
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", baseId] },
+            { queryKey: ["base-rows", pageId] },
             (old) => {
               if (!old) return old;
               return {
@@ -250,7 +250,7 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:row:reordered": {
           const e = event as BaseRowReordered;
           queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-            { queryKey: ["base-rows", baseId] },
+            { queryKey: ["base-rows", pageId] },
             (old) =>
               !old
                 ? old
@@ -278,7 +278,7 @@ export function useBaseSocket(baseId: string | undefined): void {
           const updatedIds = new Set(e.rowIds);
           const caches = queryClient.getQueriesData<
             InfiniteData<IPagination<IBaseRow>>
-          >({ queryKey: ["base-rows", baseId] });
+          >({ queryKey: ["base-rows", pageId] });
           let touchesCache = false;
           outer: for (const [, data] of caches) {
             if (!data) continue;
@@ -292,7 +292,7 @@ export function useBaseSocket(baseId: string | undefined): void {
             }
           }
           if (touchesCache) {
-            queryClient.invalidateQueries({ queryKey: ["base-rows", baseId] });
+            queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
           }
           break;
         }
@@ -325,9 +325,9 @@ export function useBaseSocket(baseId: string | undefined): void {
         case "base:view:deleted": {
           // Schema/metadata events only touch the base's `properties` /
           // `views`, not the cell data — so we invalidate just
-          // `["bases", baseId]` here. Row reconciliation is handled
+          // `["bases", pageId]` here. Row reconciliation is handled
           // per-event by the row cases above.
-          queryClient.invalidateQueries({ queryKey: ["bases", baseId] });
+          queryClient.invalidateQueries({ queryKey: ["bases", pageId] });
           break;
         }
         default:
@@ -339,7 +339,7 @@ export function useBaseSocket(baseId: string | undefined): void {
 
     return () => {
       socket.off("message", handler);
-      socket.emit("message", { operation: "base:unsubscribe", baseId });
+      socket.emit("message", { operation: "base:unsubscribe", pageId });
     };
-  }, [socket, baseId, queryClient]);
+  }, [socket, pageId, queryClient]);
 }

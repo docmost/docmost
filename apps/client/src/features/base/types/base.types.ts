@@ -81,7 +81,7 @@ export type TypeOptions =
 
 export type IBaseProperty = {
   id: string;
-  baseId: string;
+  pageId: string;
   name: string;
   type: BasePropertyType;
   position: string;
@@ -99,7 +99,7 @@ export type IBaseProperty = {
 
 export type IBaseRow = {
   id: string;
-  baseId: string;
+  pageId: string;
   cells: Record<string, unknown>;
   position: string;
   creatorId: string;
@@ -165,7 +165,7 @@ export type ViewConfig = {
 
 export type IBaseView = {
   id: string;
-  baseId: string;
+  pageId: string;
   name: string;
   type: 'table' | 'kanban' | 'calendar';
   config: ViewConfig;
@@ -204,14 +204,14 @@ export type CreateBaseInput = {
 };
 
 export type UpdateBaseInput = {
-  baseId: string;
+  pageId: string;
   name?: string;
   description?: string;
   icon?: string;
 };
 
 export type CreatePropertyInput = {
-  baseId: string;
+  pageId: string;
   name: string;
   type: BasePropertyType;
   typeOptions?: TypeOptions;
@@ -220,7 +220,7 @@ export type CreatePropertyInput = {
 
 export type UpdatePropertyInput = {
   propertyId: string;
-  baseId: string;
+  pageId: string;
   name?: string;
   typeOptions?: TypeOptions;
   requestId?: string;
@@ -228,19 +228,19 @@ export type UpdatePropertyInput = {
 
 export type DeletePropertyInput = {
   propertyId: string;
-  baseId: string;
+  pageId: string;
   requestId?: string;
 };
 
 export type ReorderPropertyInput = {
   propertyId: string;
-  baseId: string;
+  pageId: string;
   position: string;
   requestId?: string;
 };
 
 export type CountRowsInput = {
-  baseId: string;
+  pageId: string;
   filter?: FilterNode;
   search?: SearchSpec;
   // When true the server returns an exact (but capped) count. Otherwise
@@ -255,7 +255,7 @@ export type CountRowsResult = {
 };
 
 export type CreateRowInput = {
-  baseId: string;
+  pageId: string;
   cells?: Record<string, unknown>;
   afterRowId?: string;
   requestId?: string;
@@ -263,32 +263,32 @@ export type CreateRowInput = {
 
 export type UpdateRowInput = {
   rowId: string;
-  baseId: string;
+  pageId: string;
   cells: Record<string, unknown>;
   requestId?: string;
 };
 
 export type DeleteRowInput = {
   rowId: string;
-  baseId: string;
+  pageId: string;
   requestId?: string;
 };
 
 export type DeleteRowsInput = {
-  baseId: string;
+  pageId: string;
   rowIds: string[];
   requestId?: string;
 };
 
 export type ReorderRowInput = {
   rowId: string;
-  baseId: string;
+  pageId: string;
   position: string;
   requestId?: string;
 };
 
 export type CreateViewInput = {
-  baseId: string;
+  pageId: string;
   name: string;
   type?: 'table' | 'kanban' | 'calendar';
   config?: ViewConfig;
@@ -296,7 +296,7 @@ export type CreateViewInput = {
 
 export type UpdateViewInput = {
   viewId: string;
-  baseId: string;
+  pageId: string;
   name?: string;
   type?: 'table' | 'kanban' | 'calendar';
   config?: ViewConfig;
@@ -304,7 +304,7 @@ export type UpdateViewInput = {
 
 export type DeleteViewInput = {
   viewId: string;
-  baseId: string;
+  pageId: string;
 };
 
 export type UpdatePropertyResult = {

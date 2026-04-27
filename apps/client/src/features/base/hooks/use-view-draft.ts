@@ -11,7 +11,7 @@ import { viewDraftAtomFamily } from "@/features/base/atoms/view-draft-atom";
 
 export type UseViewDraftArgs = {
   userId: string | undefined;
-  baseId: string | undefined;
+  pageId: string | undefined;
   viewId: string | undefined;
   baselineFilter: FilterGroup | undefined;
   baselineSorts: ViewSortConfig[] | undefined;
@@ -43,18 +43,18 @@ function sortsEq(
 }
 
 export function useViewDraft(args: UseViewDraftArgs): ViewDraftState {
-  const { userId, baseId, viewId, baselineFilter, baselineSorts } = args;
-  const ready = !!(userId && baseId && viewId);
+  const { userId, pageId, viewId, baselineFilter, baselineSorts } = args;
+  const ready = !!(userId && pageId && viewId);
 
   // Always mount an atom with a stable shape so hook order is consistent.
   // When not ready we still feed a key, but we won't read/write it.
   const atomKey = useMemo(
     () => ({
       userId: userId ?? "",
-      baseId: baseId ?? "",
+      pageId: pageId ?? "",
       viewId: viewId ?? "",
     }),
-    [userId, baseId, viewId],
+    [userId, pageId, viewId],
   );
   const [storedDraft, setDraft] = useAtom(viewDraftAtomFamily(atomKey));
 

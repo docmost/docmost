@@ -8,7 +8,7 @@ import { useDeleteRowsMutation } from "@/features/base/queries/base-row-query";
 
 const BATCH_SIZE = 500;
 
-export function useDeleteSelectedRows(baseId: string) {
+export function useDeleteSelectedRows(pageId: string) {
   const { t } = useTranslation();
   const { selectedIds, clear } = useRowSelection();
   const mutation = useDeleteRowsMutation();
@@ -21,7 +21,7 @@ export function useDeleteSelectedRows(baseId: string) {
       }
       try {
         for (const chunk of chunks) {
-          await mutation.mutateAsync({ baseId, rowIds: chunk });
+          await mutation.mutateAsync({ pageId, rowIds: chunk });
         }
         notifications.show({
           message: t("{{count}} rows deleted", { count: ids.length }),
@@ -31,7 +31,7 @@ export function useDeleteSelectedRows(baseId: string) {
         // mutation onError already shows notification
       }
     },
-    [baseId, mutation, clear, t],
+    [pageId, mutation, clear, t],
   );
 
   const deleteSelected = useCallback(() => {

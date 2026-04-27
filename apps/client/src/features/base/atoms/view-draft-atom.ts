@@ -3,12 +3,12 @@ import { BaseViewDraft } from "@/features/base/types/base.types";
 
 export type ViewDraftKey = {
   userId: string;
-  baseId: string;
+  pageId: string;
   viewId: string;
 };
 
 export const viewDraftStorageKey = (k: ViewDraftKey) =>
-  `docmost:base-view-draft:v1:${k.userId}:${k.baseId}:${k.viewId}`;
+  `docmost:base-view-draft:v1:${k.userId}:${k.pageId}:${k.viewId}`;
 
 // `atomWithStorage` handles JSON serialization, cross-tab sync via the
 // `storage` event, and lazy first-read out of the box. `atomFamily`'s
@@ -18,5 +18,5 @@ export const viewDraftAtomFamily = atomFamily(
   (k: ViewDraftKey) =>
     atomWithStorage<BaseViewDraft | null>(viewDraftStorageKey(k), null),
   (a, b) =>
-    a.userId === b.userId && a.baseId === b.baseId && a.viewId === b.viewId,
+    a.userId === b.userId && a.pageId === b.pageId && a.viewId === b.viewId,
 );

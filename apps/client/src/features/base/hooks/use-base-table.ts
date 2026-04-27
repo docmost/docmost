@@ -400,7 +400,7 @@ export function useBaseTable(
         filter: baseline?.filter,
       });
       updateViewMutation.mutate(
-        { viewId: activeView.id, baseId: base.id, config },
+        { viewId: activeView.id, pageId: base.id, config },
         {
           onSettled: () => {
             // Don't clear if the user has already scheduled another
