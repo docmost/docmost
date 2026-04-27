@@ -72,7 +72,7 @@
     "ms": "3.0.0-canary.1",
     "qrcode": "^1.5.4",
     "rfc6902": "5.2.0",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "y-indexeddb": "^9.0.12",
     "y-prosemirror": "1.3.7",
     "yjs": "^13.6.30"
@@ -128,11 +128,12 @@
       "yaml@>=2.0.0 <2.8.3": "2.8.3",
       "path-to-regexp@^8": "8.4.0",
       "brace-expansion@^5": "5.0.5",
-      "@xmldom/xmldom": "0.8.12",
+      "@xmldom/xmldom": "0.8.13",
       "handlebars": "4.7.9",
       "axios": "1.15.0",
       "langsmith": "0.5.19",
-      "follow-redirects": "1.16.0"
+      "follow-redirects": "1.16.0",
+      "protobufjs":  "7.5.5"
     },
     "neverBuiltDependencies": []
   }
