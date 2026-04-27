@@ -3,18 +3,13 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -30,15 +25,40 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface AiChatMessages {
+  chatId: string;
+  content: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  metadata: Json | null;
+  role: string;
+  toolCalls: Json | null;
+  tsv: string | null;
+  updatedAt: Generated<Timestamp>;
+  userId: string | null;
+  workspaceId: string;
+}
+
+export interface AiChats {
+  createdAt: Generated<Timestamp>;
+  creatorId: string;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  title: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
 export interface ApiKeys {
   createdAt: Generated<Timestamp>;
+  creatorId: string;
   deletedAt: Timestamp | null;
   expiresAt: Timestamp | null;
   id: Generated<string>;
   lastUsedAt: Timestamp | null;
   name: string | null;
   updatedAt: Generated<Timestamp>;
-  creatorId: string;
   workspaceId: string;
 }
 
@@ -93,25 +113,25 @@ export interface AuthProviders {
   createdAt: Generated<Timestamp>;
   creatorId: string | null;
   deletedAt: Timestamp | null;
+  groupSync: Generated<boolean>;
   id: Generated<string>;
   isEnabled: Generated<boolean>;
-  groupSync: Generated<boolean>;
   ldapBaseDn: string | null;
   ldapBindDn: string | null;
   ldapBindPassword: string | null;
+  ldapConfig: Json | null;
   ldapTlsCaCert: string | null;
   ldapTlsEnabled: Generated<boolean | null>;
   ldapUrl: string | null;
   ldapUserAttributes: Json | null;
   ldapUserSearchFilter: string | null;
-  ldapConfig: Json | null;
-  settings: Json | null;
   name: string;
   oidcClientId: string | null;
   oidcClientSecret: string | null;
   oidcIssuer: string | null;
   samlCertificate: string | null;
   samlUrl: string | null;
+  settings: Json | null;
   type: string;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
@@ -122,6 +142,51 @@ export interface Backlinks {
   id: Generated<string>;
   sourcePageId: string;
   targetPageId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseProperties {
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  isPrimary: Generated<boolean>;
+  name: string;
+  pageId: string;
+  pendingType: string | null;
+  pendingTypeOptions: Json | null;
+  position: string;
+  schemaVersion: Generated<number>;
+  type: string;
+  typeOptions: Json | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseRows {
+  cells: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  id: Generated<string>;
+  lastUpdatedById: string | null;
+  pageId: string;
+  position: string;
+  searchText: string | null;
+  searchTsv: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface BaseViews {
+  config: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  name: string;
+  pageId: string;
+  position: string;
+  type: Generated<string>;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }
@@ -176,14 +241,14 @@ export interface Comments {
 }
 
 export interface Favorites {
+  createdAt: Generated<Timestamp>;
   id: Generated<string>;
-  userId: string;
   pageId: string | null;
   spaceId: string | null;
   templateId: string | null;
   type: string;
+  userId: string;
   workspaceId: string;
-  createdAt: Generated<Timestamp>;
 }
 
 export interface FileTasks {
@@ -226,6 +291,67 @@ export interface GroupUsers {
   userId: string;
 }
 
+export interface Labels {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  name: string;
+  type: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface Notifications {
+  actorId: string | null;
+  archivedAt: Timestamp | null;
+  commentId: string | null;
+  createdAt: Generated<Timestamp>;
+  data: Json | null;
+  emailedAt: Timestamp | null;
+  id: Generated<string>;
+  pageId: string | null;
+  pageVerificationId: string | null;
+  readAt: Timestamp | null;
+  spaceId: string | null;
+  type: string;
+  userId: string;
+  workspaceId: string;
+}
+
+export interface PageAccess {
+  accessLevel: string;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  id: Generated<string>;
+  pageId: string;
+  spaceId: string;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+}
+
+export interface PageEmbeddings {
+  chunkIndex: Int8 | null;
+  chunkLength: Int8 | null;
+  chunkStart: Int8 | null;
+  chunkText: string | null;
+  createdAt: Generated<Timestamp>;
+  deletedAt: Timestamp | null;
+  embedding: string;
+  id: Generated<string>;
+  metadata: Generated<Json | null>;
+  modelDimensions: Int8 | null;
+  modelName: string | null;
+  pageId: string;
+  spaceId: string;
+  updatedAt: Generated<Timestamp | null>;
+  workspaceId: string;
+}
+
+export interface PageHierarchy {
+  ancestorId: string;
+  depth: Generated<number>;
+  descendantId: string;
+}
+
 export interface PageHistory {
   content: Json | null;
   contributorIds: Generated<string[] | null>;
@@ -244,7 +370,26 @@ export interface PageHistory {
   workspaceId: string;
 }
 
+export interface PageLabels {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  labelId: string;
+  pageId: string;
+}
+
+export interface PagePermissions {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  groupId: string | null;
+  id: Generated<string>;
+  pageAccessId: string;
+  role: string;
+  updatedAt: Generated<Timestamp>;
+  userId: string | null;
+}
+
 export interface Pages {
+  baseSchemaVersion: Generated<number>;
   content: Json | null;
   contributorIds: Generated<string[] | null>;
   coverPhoto: string | null;
@@ -254,6 +399,7 @@ export interface Pages {
   deletedById: string | null;
   icon: string | null;
   id: Generated<string>;
+  isBase: Generated<boolean>;
   isLocked: Generated<boolean>;
   lastUpdatedById: string | null;
   parentPageId: string | null;
@@ -266,6 +412,39 @@ export interface Pages {
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
   ydoc: Buffer | null;
+}
+
+export interface PageVerifications {
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  data: Json | null;
+  expiresAt: Timestamp | null;
+  id: Generated<string>;
+  mode: string | null;
+  pageId: string;
+  periodAmount: number | null;
+  periodUnit: string | null;
+  rejectedAt: Timestamp | null;
+  rejectedById: string | null;
+  rejectionComment: string | null;
+  requestedAt: Timestamp | null;
+  requestedById: string | null;
+  spaceId: string;
+  status: string | null;
+  type: Generated<string>;
+  updatedAt: Generated<Timestamp>;
+  verifiedAt: Timestamp | null;
+  verifiedById: string | null;
+  workspaceId: string;
+}
+
+export interface PageVerifiers {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  isPrimary: Generated<boolean>;
+  pageVerificationId: string;
+  userId: string;
 }
 
 export interface Shares {
@@ -310,6 +489,25 @@ export interface Spaces {
   workspaceId: string;
 }
 
+export interface Templates {
+  collaboratorIds: string[] | null;
+  content: Json | null;
+  createdAt: Generated<Timestamp>;
+  creatorId: string | null;
+  deletedAt: Timestamp | null;
+  description: string | null;
+  icon: string | null;
+  id: Generated<string>;
+  lastUpdatedById: string | null;
+  spaceId: string | null;
+  textContent: string | null;
+  title: string | null;
+  tsv: string | null;
+  updatedAt: Generated<Timestamp>;
+  workspaceId: string;
+  ydoc: Buffer | null;
+}
+
 export interface UserMfa {
   backupCodes: string[] | null;
   createdAt: Generated<Timestamp>;
@@ -329,12 +527,12 @@ export interface Users {
   deletedAt: Timestamp | null;
   email: string;
   emailVerifiedAt: Timestamp | null;
+  hasGeneratedPassword: Generated<boolean | null>;
   id: Generated<string>;
   invitedById: string | null;
   lastActiveAt: Timestamp | null;
   lastLoginAt: Timestamp | null;
   locale: string | null;
-  hasGeneratedPassword: Generated<boolean | null>;
   name: string | null;
   password: string | null;
   role: string | null;
@@ -342,6 +540,21 @@ export interface Users {
   timezone: string | null;
   updatedAt: Generated<Timestamp>;
   workspaceId: string | null;
+}
+
+export interface UserSessions {
+  createdAt: Generated<Timestamp>;
+  deviceName: string | null;
+  expiresAt: Timestamp;
+  geoLocation: string | null;
+  id: Generated<string>;
+  ipAddress: string | null;
+  lastActiveAt: Generated<Timestamp>;
+  metadata: Json | null;
+  revokedAt: Timestamp | null;
+  userAgent: string | null;
+  userId: string;
+  workspaceId: string;
 }
 
 export interface UserTokens {
@@ -353,6 +566,18 @@ export interface UserTokens {
   usedAt: Timestamp | null;
   userId: string;
   workspaceId: string | null;
+}
+
+export interface Watchers {
+  addedById: string | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  mutedAt: Timestamp | null;
+  pageId: string | null;
+  spaceId: string;
+  type: string;
+  userId: string;
+  workspaceId: string;
 }
 
 export interface WorkspaceInvitations {
@@ -368,8 +593,7 @@ export interface WorkspaceInvitations {
 }
 
 export interface Workspaces {
-  auditRetentionDays: Generated<number>;
-  trashRetentionDays: Generated<number>;
+  auditRetentionDays: Int8 | null;
   billingEmail: string | null;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
@@ -389,239 +613,40 @@ export interface Workspaces {
   settings: Json | null;
   status: string | null;
   stripeCustomerId: string | null;
+  trashRetentionDays: Int8 | null;
   trialEndAt: Timestamp | null;
   updatedAt: Generated<Timestamp>;
 }
 
-export interface Notifications {
-  id: Generated<string>;
-  userId: string;
-  workspaceId: string;
-  type: string;
-  actorId: string | null;
-  pageId: string | null;
-  spaceId: string | null;
-  commentId: string | null;
-  pageVerificationId: string | null;
-  data: Json | null;
-  readAt: Timestamp | null;
-  emailedAt: Timestamp | null;
-  archivedAt: Timestamp | null;
-  createdAt: Generated<Timestamp>;
-}
-
-export interface Watchers {
-  id: Generated<string>;
-  userId: string;
-  pageId: string | null;
-  spaceId: string;
-  workspaceId: string;
-  type: string;
-  addedById: string | null;
-  mutedAt: Timestamp | null;
-  createdAt: Generated<Timestamp>;
-}
-
-export interface Bases {
-  id: Generated<string>;
-  name: string;
-  description: string | null;
-  icon: string | null;
-  pageId: string | null;
-  spaceId: string;
-  workspaceId: string;
-  creatorId: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-  schemaVersion: Generated<number>;
-}
-
-export interface BaseProperties {
-  id: Generated<string>;
-  baseId: string;
-  name: string;
-  type: string;
-  position: string;
-  typeOptions: Json | null;
-  pendingType: string | null;
-  pendingTypeOptions: Json | null;
-  isPrimary: Generated<boolean>;
-  workspaceId: string;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  schemaVersion: Generated<number>;
-  deletedAt: Timestamp | null;
-}
-
-export interface BaseRows {
-  id: Generated<string>;
-  baseId: string;
-  cells: Generated<Json>;
-  position: string;
-  creatorId: string | null;
-  lastUpdatedById: string | null;
-  workspaceId: string;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-  searchText: string | null;
-  searchTsv: string | null;
-}
-
-export interface BaseViews {
-  id: Generated<string>;
-  baseId: string;
-  name: string;
-  type: Generated<string>;
-  position: string;
-  config: Generated<Json>;
-  workspaceId: string;
-  creatorId: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-}
-
-export interface PageAccess {
-  id: Generated<string>;
-  pageId: string;
-  workspaceId: string;
-  spaceId: string;
-  accessLevel: string;
-  creatorId: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-}
-
-export interface PagePermissions {
-  id: Generated<string>;
-  pageAccessId: string;
-  userId: string | null;
-  groupId: string | null;
-  role: string;
-  addedById: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-}
-
-export interface PageVerifications {
-  id: Generated<string>;
-  pageId: string;
-  workspaceId: string;
-  spaceId: string;
-  type: Generated<string>;
-  status: string | null;
-  mode: string | null;
-  periodAmount: number | null;
-  periodUnit: string | null;
-  verifiedAt: Timestamp | null;
-  verifiedById: string | null;
-  expiresAt: Timestamp | null;
-  requestedAt: Timestamp | null;
-  requestedById: string | null;
-  rejectedAt: Timestamp | null;
-  rejectedById: string | null;
-  rejectionComment: string | null;
-  data: Json | null;
-  creatorId: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-}
-
-export interface PageVerifiers {
-  id: Generated<string>;
-  pageVerificationId: string;
-  userId: string;
-  isPrimary: Generated<boolean>;
-  addedById: string | null;
-  createdAt: Generated<Timestamp>;
-}
-
-export interface Templates {
-  id: Generated<string>;
-  title: string | null;
-  description: string | null;
-  content: Json | null;
-  ydoc: Buffer | null;
-  icon: string | null;
-  spaceId: string | null;
-  workspaceId: string;
-  creatorId: string | null;
-  lastUpdatedById: string | null;
-  collaboratorIds: string[] | null;
-  textContent: string | null;
-  tsv: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-}
-
-export interface AiChats {
-  id: Generated<string>;
-  workspaceId: string;
-  creatorId: string;
-  title: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-}
-
-export interface AiChatMessages {
-  id: Generated<string>;
-  chatId: string;
-  workspaceId: string;
-  userId: string | null;
-  role: string;
-  content: string | null;
-  toolCalls: Json | null;
-  metadata: Json | null;
-  tsv: string | null;
-  createdAt: Generated<Timestamp>;
-  updatedAt: Generated<Timestamp>;
-  deletedAt: Timestamp | null;
-}
-
-export interface UserSessions {
-  id: Generated<string>;
-  userId: string;
-  workspaceId: string;
-  deviceName: string | null;
-  userAgent: string | null;
-  ipAddress: string | null;
-  geoLocation: string | null;
-  metadata: Json | null;
-  lastActiveAt: Generated<Timestamp>;
-  expiresAt: Timestamp;
-  revokedAt: Timestamp | null;
-  createdAt: Generated<Timestamp>;
-}
-
 export interface DB {
-  aiChats: AiChats;
   aiChatMessages: AiChatMessages;
+  aiChats: AiChats;
   apiKeys: ApiKeys;
   attachments: Attachments;
   audit: Audit;
-  baseProperties: BaseProperties;
-  baseRows: BaseRows;
-  baseViews: BaseViews;
-  bases: Bases;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
   backlinks: Backlinks;
+  baseProperties: BaseProperties;
+  baseRows: BaseRows;
+  baseViews: BaseViews;
   billing: Billing;
   comments: Comments;
   favorites: Favorites;
   fileTasks: FileTasks;
   groups: Groups;
   groupUsers: GroupUsers;
+  labels: Labels;
   notifications: Notifications;
   pageAccess: PageAccess;
-  pagePermissions: PagePermissions;
+  pageEmbeddings: PageEmbeddings;
+  pageHierarchy: PageHierarchy;
   pageHistory: PageHistory;
+  pageLabels: PageLabels;
+  pagePermissions: PagePermissions;
+  pages: Pages;
   pageVerifications: PageVerifications;
   pageVerifiers: PageVerifiers;
-  pages: Pages;
   shares: Shares;
   spaceMembers: SpaceMembers;
   spaces: Spaces;
