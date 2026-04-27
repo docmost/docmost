@@ -30,6 +30,7 @@ import {
   IconPointFilled,
   IconStar,
   IconStarFilled,
+  IconTable,
   IconTrash,
 } from "@tabler/icons-react";
 import {
@@ -422,6 +423,8 @@ function Node({ node, style, dragHandle, tree }: NodeRendererProps<any>) {
             icon={
               node.data.icon ? (
                 node.data.icon
+              ) : node.data.isBase ? (
+                <IconTable size={18} />
               ) : (
                 <IconFileDescription size="18" />
               )
