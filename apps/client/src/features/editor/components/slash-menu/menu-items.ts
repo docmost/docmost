@@ -55,6 +55,13 @@ import {
 import api from "@/lib/api-client";
 import { notifications } from "@mantine/notifications";
 import type { Editor } from "@tiptap/core";
+import type { InfiniteData } from "@tanstack/react-query";
+import { queryClient } from "@/main";
+import type {
+  IBase,
+  IBaseRow,
+} from "@/features/base/types/base.types";
+import type { IPagination } from "@/lib/types";
 
 // Resolve the position of a baseEmbed placeholder by its pendingKey.
 // Used by the Database slash command to patch in the real pageId once
@@ -530,9 +537,39 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .run();
 
         try {
-          const res = await api.post<{ id: string }>("/bases/inline-embed", {
+          // The create endpoint returns the full base (properties +
+          // views), not just an id — see base.service.ts `create`. Type
+          // it as IBase so we can seed the React Query cache below.
+          const res = await api.post<IBase>("/bases/inline-embed", {
             parentPageId,
           });
+
+          // Seed the caches BaseTable will read on mount so it doesn't
+          // render its own (10-row) skeleton between our placeholder
+          // and the actual content. Without this seeding the wrapper
+          // would grow to ~436px during BaseTable's load and shrink to
+          // ~112px once the rows resolve — on a short doc the shrink
+          // pushes scrollY past the new doc bottom and the browser
+          // clamps to 0, which is the "jump to top" the user reported.
+          queryClient.setQueryData<IBase>(["bases", res.data.id], res.data);
+          queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
+            ["base-rows", res.data.id, undefined, undefined, undefined],
+            {
+              pages: [
+                {
+                  items: [],
+                  meta: {
+                    limit: 100,
+                    hasNextPage: false,
+                    hasPrevPage: false,
+                    nextCursor: null,
+                    prevCursor: null,
+                  },
+                },
+              ],
+              pageParams: [undefined],
+            },
+          );
 
           const pos = findBaseEmbedPlaceholderPos(editor, pendingKey);
           if (pos === null) return;

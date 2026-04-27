@@ -74,9 +74,14 @@ export function BaseEmbedView({ node }: NodeViewProps) {
   let content: React.ReactNode;
   if (pendingKey) {
     // Slash command inserted the embed and is awaiting the server's
-    // assigned pageId — render the same skeleton BaseTable shows on
-    // its own initial load so the swap is visually a no-op.
-    content = <BaseTableSkeleton />;
+    // assigned pageId. Render with `rows={0}` so the placeholder
+    // matches the height of the eventual empty base shell — anything
+    // taller would shrink hundreds of px on swap, and on a short doc
+    // the browser would clamp scrollY (looks like "page jumps to top
+    // of editor" when the create response lands). The slash command
+    // also prefills the React Query cache so BaseTable mounts with
+    // baseLoading/rowsLoading already false and skips its own skeleton.
+    content = <BaseTableSkeleton rows={0} />;
   } else if (!pageId) {
     content = (
       <Box p="md">
