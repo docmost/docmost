@@ -74,7 +74,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^15.13.0",
     "optics-ts": "^2.4.1",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.12",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
     "prettier": "^3.8.1",
