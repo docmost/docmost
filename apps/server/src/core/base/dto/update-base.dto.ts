@@ -2,7 +2,7 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateBaseDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()

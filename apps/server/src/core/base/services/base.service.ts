@@ -91,7 +91,7 @@ export class BaseService {
   }
 
   async update(dto: UpdateBaseDto) {
-    const base = await this.baseRepo.findById(dto.baseId);
+    const base = await this.baseRepo.findById(dto.pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
@@ -101,10 +101,10 @@ export class BaseService {
         ...(dto.name !== undefined && { title: dto.name }),
         ...(dto.icon !== undefined && { icon: dto.icon }),
       },
-      dto.baseId,
+      dto.pageId,
     );
 
-    return this.baseRepo.findById(dto.baseId);
+    return this.baseRepo.findById(dto.pageId);
   }
 
   async delete(baseId: string) {

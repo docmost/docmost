@@ -2,7 +2,7 @@ import { IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateRowDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsObject()

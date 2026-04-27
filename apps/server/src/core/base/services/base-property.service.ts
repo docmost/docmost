@@ -88,7 +88,7 @@ export class BasePropertyService {
   async create(workspaceId: string, dto: CreatePropertyDto, actorId?: string) {
     const type = dto.type as BasePropertyTypeValue;
 
-    await this.ensureNameUnique(dto.baseId, dto.name);
+    await this.ensureNameUnique(dto.pageId, dto.name);
 
     let validatedTypeOptions: unknown;
     if (type === 'formula') {
@@ -96,7 +96,7 @@ export class BasePropertyService {
       if (typeof sourceCandidate !== 'string') {
         throw new BadRequestException('formula.source is required');
       }
-      const existing = await this.basePropertyRepo.findByPageId(dto.baseId);
+      const existing = await this.basePropertyRepo.findByPageId(dto.pageId);
       const compiled = this.formulaService.compile(sourceCandidate, existing);
       const candidate = {
         id: 'pending',
@@ -113,14 +113,14 @@ export class BasePropertyService {
     }
 
     const lastPosition = await this.basePropertyRepo.getLastPosition(
-      dto.baseId,
+      dto.pageId,
     );
     const position = generateJitteredKeyBetween(lastPosition, null);
 
     const created = await executeTx(this.db, async (trx) => {
       const row = await this.basePropertyRepo.insertProperty(
         {
-          pageId: dto.baseId,
+          pageId: dto.pageId,
           name: dto.name,
           type: dto.type,
           position,
@@ -129,12 +129,12 @@ export class BasePropertyService {
         },
         trx,
       );
-      await this.baseRepo.bumpSchemaVersion(dto.baseId, trx);
+      await this.baseRepo.bumpSchemaVersion(dto.pageId, trx);
       return row;
     });
 
     const event: BasePropertyCreatedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: null,
@@ -190,12 +190,12 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.pageId !== dto.baseId) {
+    if (property.pageId !== dto.pageId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 
     if (dto.name !== undefined) {
-      await this.ensureNameUnique(dto.baseId, dto.name, dto.propertyId);
+      await this.ensureNameUnique(dto.pageId, dto.name, dto.propertyId);
     }
 
     // Block concurrent type changes — the worker still owns the previous
@@ -227,7 +227,7 @@ export class BasePropertyService {
       if (typeof sourceCandidate !== 'string') {
         throw new BadRequestException('formula.source is required');
       }
-      const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
+      const allProps = await this.basePropertyRepo.findByPageId(dto.pageId);
       const compiled = this.formulaService.compile(sourceCandidate, allProps);
       const candidate = {
         id: property.id,
@@ -272,13 +272,13 @@ export class BasePropertyService {
         );
         if (isTypeChange) {
           await this.basePropertyRepo.bumpSchemaVersion(dto.propertyId, trx);
-          await this.baseRepo.bumpSchemaVersion(dto.baseId, trx);
+          await this.baseRepo.bumpSchemaVersion(dto.pageId, trx);
         }
       });
 
       if (newType === 'formula' && (isTypeChange || sourceChanged)) {
         await this.formulaService.enqueueRecompute({
-          baseId: dto.baseId,
+          baseId: dto.pageId,
           workspaceId,
           propertyIds: [dto.propertyId],
           reason: isTypeChange ? 'formula_created' : 'formula_edited',
@@ -287,12 +287,12 @@ export class BasePropertyService {
       }
 
       if (isTypeChange && newType !== 'formula') {
-        const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
+        const allProps = await this.basePropertyRepo.findByPageId(dto.pageId);
         const graph = new BaseFormulaGraph(allProps);
         const affected = graph.affectedFormulas([dto.propertyId]);
         if (affected.length > 0) {
           await this.formulaService.enqueueRecompute({
-            baseId: dto.baseId,
+            baseId: dto.pageId,
             workspaceId,
             propertyIds: affected,
             reason: 'dep_type_changed',
@@ -306,7 +306,7 @@ export class BasePropertyService {
 
     // --- Path 2 or 3: cell rewrite needed -------------------------------
     const conversionPayload: IBaseTypeConversionJob = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       propertyId: dto.propertyId,
       workspaceId,
       fromType: oldType,
@@ -322,7 +322,7 @@ export class BasePropertyService {
     // property set on 12 rows is trivial to convert inline; the previous
     // count-all-live-rows check was routing those to the worker.
     const rowsToConvert = await this.countRowsToConvert(
-      dto.baseId,
+      dto.pageId,
       workspaceId,
       dto.propertyId,
     );
@@ -356,11 +356,11 @@ export class BasePropertyService {
           trx,
         );
         await this.basePropertyRepo.bumpSchemaVersion(dto.propertyId, trx);
-        return this.baseRepo.bumpSchemaVersion(dto.baseId, trx);
+        return this.baseRepo.bumpSchemaVersion(dto.pageId, trx);
       });
       tick('inline-tx-done');
       const bumpEvent: BaseSchemaBumpedEvent = {
-        baseId: dto.baseId,
+        baseId: dto.pageId,
         workspaceId,
         actorId: actorId ?? null,
         requestId: null,
@@ -454,7 +454,7 @@ export class BasePropertyService {
     const updated = await this.basePropertyRepo.findById(dto.propertyId);
     if (updated) {
       const event: BasePropertyUpdatedEvent = {
-        baseId: dto.baseId,
+        baseId: dto.pageId,
         workspaceId,
         actorId: actorId ?? null,
         requestId: dto.requestId ?? null,
@@ -492,7 +492,7 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.pageId !== dto.baseId) {
+    if (property.pageId !== dto.pageId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 
@@ -502,7 +502,7 @@ export class BasePropertyService {
 
     // Compute dependents BEFORE the delete — once soft-deleted the graph
     // wouldn't include them.
-    const allProps = await this.basePropertyRepo.findByPageId(dto.baseId);
+    const allProps = await this.basePropertyRepo.findByPageId(dto.pageId);
     const graph = new BaseFormulaGraph(allProps);
     const affected = graph.affectedFormulas([dto.propertyId]);
 
@@ -511,11 +511,11 @@ export class BasePropertyService {
     // fails, revert the soft-delete so the property isn't orphaned.
     await executeTx(this.db, async (trx) => {
       await this.basePropertyRepo.softDelete(dto.propertyId, trx);
-      await this.baseRepo.bumpSchemaVersion(dto.baseId, trx);
+      await this.baseRepo.bumpSchemaVersion(dto.pageId, trx);
     });
 
     const payload: IBaseCellGcJob = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       propertyId: dto.propertyId,
       workspaceId,
     };
@@ -542,7 +542,7 @@ export class BasePropertyService {
     }
 
     const event: BasePropertyDeletedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: dto.requestId ?? null,
@@ -552,7 +552,7 @@ export class BasePropertyService {
 
     if (affected.length > 0) {
       await this.formulaService.enqueueRecompute({
-        baseId: dto.baseId,
+        baseId: dto.pageId,
         workspaceId,
         propertyIds: affected,
         reason: 'dep_deleted',
@@ -571,7 +571,7 @@ export class BasePropertyService {
       throw new NotFoundException('Property not found');
     }
 
-    if (property.pageId !== dto.baseId) {
+    if (property.pageId !== dto.pageId) {
       throw new BadRequestException('Property does not belong to this base');
     }
 
@@ -580,7 +580,7 @@ export class BasePropertyService {
     });
 
     const event: BasePropertyReorderedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: dto.requestId ?? null,

@@ -36,13 +36,13 @@ export class BaseViewService {
       validatedConfig = result.data;
     }
 
-    const lastPosition = await this.baseViewRepo.getLastPosition(dto.baseId, {
+    const lastPosition = await this.baseViewRepo.getLastPosition(dto.pageId, {
       workspaceId,
     });
     const position = generateJitteredKeyBetween(lastPosition, null);
 
     const created = await this.baseViewRepo.insertView({
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       name: dto.name,
       type: dto.type ?? 'table',
       position,
@@ -52,7 +52,7 @@ export class BaseViewService {
     });
 
     const event: BaseViewCreatedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId,
       requestId: null,
@@ -69,7 +69,7 @@ export class BaseViewService {
       throw new NotFoundException('View not found');
     }
 
-    if (view.pageId !== dto.baseId) {
+    if (view.pageId !== dto.pageId) {
       throw new BadRequestException('View does not belong to this base');
     }
 
@@ -101,7 +101,7 @@ export class BaseViewService {
 
     if (updated) {
       const event: BaseViewUpdatedEvent = {
-        baseId: dto.baseId,
+        baseId: dto.pageId,
         workspaceId,
         actorId: userId ?? null,
         requestId: null,
@@ -119,11 +119,11 @@ export class BaseViewService {
       throw new NotFoundException('View not found');
     }
 
-    if (view.pageId !== dto.baseId) {
+    if (view.pageId !== dto.pageId) {
       throw new BadRequestException('View does not belong to this base');
     }
 
-    const viewCount = await this.baseViewRepo.countByPageId(dto.baseId, {
+    const viewCount = await this.baseViewRepo.countByPageId(dto.pageId, {
       workspaceId,
     });
     if (viewCount <= 1) {
@@ -133,7 +133,7 @@ export class BaseViewService {
     await this.baseViewRepo.deleteView(dto.viewId, { workspaceId });
 
     const event: BaseViewDeletedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: null,

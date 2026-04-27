@@ -10,7 +10,7 @@ import { BASE_PROPERTY_TYPES } from '../base.schemas';
 
 export class CreatePropertyDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsString()
   @IsNotEmpty()

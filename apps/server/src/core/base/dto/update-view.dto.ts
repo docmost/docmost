@@ -12,7 +12,7 @@ export class UpdateViewDto {
   viewId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()
@@ -33,5 +33,5 @@ export class DeleteViewDto {
   viewId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 }

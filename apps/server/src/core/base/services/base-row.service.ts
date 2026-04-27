@@ -72,18 +72,18 @@ export class BaseRowService {
       const afterRow = await this.baseRowRepo.findById(dto.afterRowId, {
         workspaceId,
       });
-      if (!afterRow || afterRow.pageId !== dto.baseId) {
+      if (!afterRow || afterRow.pageId !== dto.pageId) {
         throw new BadRequestException('Invalid afterRowId');
       }
       position = generateJitteredKeyBetween(afterRow.position, null);
     } else {
-      const lastPosition = await this.baseRowRepo.getLastPosition(dto.baseId, {
+      const lastPosition = await this.baseRowRepo.getLastPosition(dto.pageId, {
         workspaceId,
       });
       position = generateJitteredKeyBetween(lastPosition, null);
     }
 
-    const properties = await this.basePropertyRepo.findByPageId(dto.baseId);
+    const properties = await this.basePropertyRepo.findByPageId(dto.pageId);
 
     let validatedCells: Record<string, unknown> = {};
     if (dto.cells && Object.keys(dto.cells).length > 0) {
@@ -104,7 +104,7 @@ export class BaseRowService {
     const finalCells = { ...validatedCells, ...formulaPatch };
 
     const created = await this.baseRowRepo.insertRow({
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       cells: finalCells as any,
       position,
       creatorId: userId,
@@ -112,7 +112,7 @@ export class BaseRowService {
     });
 
     const event: BaseRowCreatedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId,
       requestId: dto.requestId ?? null,
@@ -132,7 +132,7 @@ export class BaseRowService {
   }
 
   async update(dto: UpdateRowDto, workspaceId: string, userId?: string) {
-    const properties = await this.basePropertyRepo.findByPageId(dto.baseId);
+    const properties = await this.basePropertyRepo.findByPageId(dto.pageId);
     const validatedCells = this.validateCells(dto.cells, properties);
 
     const existing = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
@@ -151,7 +151,7 @@ export class BaseRowService {
       dto.rowId,
       finalCells,
       {
-        pageId: dto.baseId,
+        pageId: dto.pageId,
         workspaceId,
         actorId: userId,
       },
@@ -162,7 +162,7 @@ export class BaseRowService {
     }
 
     const event: BaseRowUpdatedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -177,17 +177,17 @@ export class BaseRowService {
 
   async delete(dto: DeleteRowDto, workspaceId: string, userId?: string) {
     const row = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
-    if (!row || row.pageId !== dto.baseId) {
+    if (!row || row.pageId !== dto.pageId) {
       throw new NotFoundException('Row not found');
     }
 
     await this.baseRowRepo.softDelete(dto.rowId, {
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       workspaceId,
     });
 
     const event: BaseRowDeletedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -205,17 +205,17 @@ export class BaseRowService {
     if (rows.length !== dto.rowIds.length) {
       throw new NotFoundException('One or more rows not found');
     }
-    if (rows.some((r) => r.pageId !== dto.baseId)) {
+    if (rows.some((r) => r.pageId !== dto.pageId)) {
       throw new NotFoundException('Row does not belong to base');
     }
 
     await this.baseRowRepo.softDeleteMany(dto.rowIds, {
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       workspaceId,
     });
 
     const event: BaseRowsDeletedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -229,7 +229,7 @@ export class BaseRowService {
     pagination: PaginationOptions,
     workspaceId: string,
   ) {
-    const properties = await this.basePropertyRepo.findByPageId(dto.baseId);
+    const properties = await this.basePropertyRepo.findByPageId(dto.pageId);
     const schema: PropertySchema = new Map(
       properties.map((p) => [p.id, p]),
     );
@@ -242,7 +242,7 @@ export class BaseRowService {
     }));
 
     return this.baseRowRepo.list({
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       workspaceId,
       filter,
       sorts,
@@ -253,7 +253,7 @@ export class BaseRowService {
   }
 
   async count(dto: CountRowsDto, workspaceId: string) {
-    const properties = await this.basePropertyRepo.findByPageId(dto.baseId);
+    const properties = await this.basePropertyRepo.findByPageId(dto.pageId);
     const schema: PropertySchema = new Map(properties.map((p) => [p.id, p]));
 
     const filter = this.normaliseFilter({ filter: dto.filter });
@@ -268,7 +268,7 @@ export class BaseRowService {
 
     if (useExact) {
       const { value, capped } = await this.baseRowRepo.countExact({
-        pageId: dto.baseId,
+        pageId: dto.pageId,
         workspaceId,
         filter,
         search,
@@ -279,7 +279,7 @@ export class BaseRowService {
     }
 
     const estimate = await this.baseRowRepo.countEstimate({
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       workspaceId,
       filter,
       search,
@@ -294,7 +294,7 @@ export class BaseRowService {
 
   async reorder(dto: ReorderRowDto, workspaceId: string, userId?: string) {
     const row = await this.baseRowRepo.findById(dto.rowId, { workspaceId });
-    if (!row || row.pageId !== dto.baseId) {
+    if (!row || row.pageId !== dto.pageId) {
       throw new NotFoundException('Row not found');
     }
 
@@ -305,12 +305,12 @@ export class BaseRowService {
     }
 
     await this.baseRowRepo.updatePosition(dto.rowId, dto.position, {
-      pageId: dto.baseId,
+      pageId: dto.pageId,
       workspaceId,
     });
 
     const event: BaseRowReorderedEvent = {
-      baseId: dto.baseId,
+      baseId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,

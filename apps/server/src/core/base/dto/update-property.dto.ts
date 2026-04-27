@@ -12,7 +12,7 @@ export class UpdatePropertyDto {
   propertyId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()
@@ -43,7 +43,7 @@ export class DeletePropertyDto {
   propertyId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()
@@ -55,7 +55,7 @@ export class ReorderPropertyDto {
   propertyId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsString()
   @IsNotEmpty()

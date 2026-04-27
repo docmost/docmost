@@ -9,7 +9,7 @@ import {
 
 export class CreateViewDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsString()
   @IsNotEmpty()

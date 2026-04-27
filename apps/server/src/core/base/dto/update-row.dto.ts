@@ -20,7 +20,7 @@ export class UpdateRowDto {
   rowId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsObject()
   cells: Record<string, unknown>;
@@ -35,7 +35,7 @@ export class DeleteRowDto {
   rowId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsString()
@@ -47,7 +47,7 @@ export class RowIdDto {
   rowId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 }
 
 class SortDto {
@@ -60,7 +60,7 @@ class SortDto {
 
 export class ListRowsDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsUUID()
@@ -86,7 +86,7 @@ export class ListRowsDto {
 
 export class CountRowsDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsOptional()
   @IsObject()
@@ -108,7 +108,7 @@ export class ReorderRowDto {
   rowId: string;
 
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsString()
   @IsNotEmpty()
@@ -121,7 +121,7 @@ export class ReorderRowDto {
 
 export class DeleteRowsDto {
   @IsUUID()
-  baseId: string;
+  pageId: string;
 
   @IsArray()
   @ArrayMinSize(1)
