@@ -17,8 +17,8 @@ export const TREE_EVENTS = new Set([
   'refetchRootTreeNodeEvent',
 ]);
 
-export function getBaseRoomName(baseId: string): string {
-  return `base-${baseId}`;
+export function getBaseRoomName(pageId: string): string {
+  return `base-${pageId}`;
 }
 
 export const BASE_INBOUND_EVENTS = new Set([

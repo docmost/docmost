@@ -195,17 +195,17 @@ export class AttachmentController {
       throw new BadRequestException('Failed to upload file');
     }
 
-    const baseId = file.fields?.baseId?.value;
+    const pageId = file.fields?.pageId?.value;
 
-    if (!baseId) {
-      throw new BadRequestException('baseId is required');
+    if (!pageId) {
+      throw new BadRequestException('pageId is required');
     }
 
-    if (!isValidUUID(baseId)) {
-      throw new BadRequestException('Invalid baseId');
+    if (!isValidUUID(pageId)) {
+      throw new BadRequestException('Invalid pageId');
     }
 
-    const base = await this.baseRepo.findById(baseId);
+    const base = await this.baseRepo.findById(pageId);
 
     if (!base) {
       throw new NotFoundException('Base not found');
