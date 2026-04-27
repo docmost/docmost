@@ -1,0 +1,9 @@
+.ProseMirror {
+  .node-baseEmbed {
+    /* Suppress the default ProseMirror atom-node selection outline —
+     * the embed reads as a document block, not a focused widget. */
+    &.ProseMirror-selectednode {
+      outline: none;
+    }
+  }
+}
