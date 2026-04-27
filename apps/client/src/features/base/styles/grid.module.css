@@ -1,3 +1,73 @@
+.tableScrollport {
+  /* Standalone-only vertical scrollport that wraps the StickyBand and
+   * BodyGrid. Inline embeds skip this wrapper entirely — the page is
+   * the vertical scroll container in that mode. Owns the panel frame
+   * (border + radius), which used to live on .grid. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  padding-left: 6px;
+  /* Bottom breathing room so the last row doesn't sit flush against
+   * the panel border. The horizontal scrollbar that needs clearance
+   * lives on .bodyGrid (also with padding-bottom: 6px). */
+  padding-bottom: 6px;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+}
+
+.stickyBand {
+  /* The single sticky element. Anchors automatically — to the
+   * .tableScrollport in standalone, to the page in inline. The
+   * --sticky-band-top var is set on inline embed wrappers to clear
+   * the fixed PageHeader; standalone leaves it unset (resolves to 0
+   * relative to the scrollport). */
+  position: sticky;
+  top: var(--sticky-band-top, 0);
+  z-index: 10;
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.headerGrid {
+  /* Display grid sized to the parent container; the explicit
+   * gridTemplateColumns string from grid-container.tsx may total wider
+   * than the container, in which case the tracks overflow horizontally.
+   * overflow-x: hidden clips them; scrollLeft is set programmatically
+   * by useHorizontalScrollSync to mirror the body. Inline embeds extend
+   * the visible width into the AppShell margins via --embed-extend-*;
+   * standalone leaves those vars unset (calc resolves to 0). */
+  display: grid;
+  overflow-x: hidden;
+  margin-left: calc(-1 * var(--embed-extend-l, 0px));
+  margin-right: calc(-1 * var(--embed-extend-r, 0px));
+  padding-left: var(--embed-grid-pad-left, 0);
+  padding-right: var(--embed-grid-pad-right, 0);
+}
+
+.bodyGrid {
+  /* Same shape as .headerGrid, but overflow-x: auto so the horizontal
+   * scrollbar lives here. Vertical scroll is owned by .tableScrollport
+   * (standalone) or the page (inline) — there's no internal vertical
+   * scroll on .bodyGrid in either mode. */
+  display: grid;
+  overflow-x: auto;
+  margin-left: calc(-1 * var(--embed-extend-l, 0px));
+  margin-right: calc(-1 * var(--embed-extend-r, 0px));
+  padding-left: var(--embed-grid-pad-left, 0);
+  padding-right: var(--embed-grid-pad-right, 0);
+  /* Match the existing .gridWrapper bottom-padding so the AddRowButton
+   * keeps clear of the horizontal scrollbar. */
+  padding-bottom: 6px;
+}
+
 .gridWrapper {
   position: relative;
   overflow: auto;
