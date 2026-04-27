@@ -32,7 +32,7 @@ type WorkspaceOpts = { workspaceId: string } & RepoOpts;
 // this constant.
 const BASE_ROW_COLUMNS = [
   'id',
-  'baseId',
+  'pageId',
   'cells',
   'position',
   'creatorId',
@@ -77,7 +77,7 @@ export class BaseRowRepo {
   }
 
   async list(opts: {
-    baseId: string;
+    pageId: string;
     workspaceId: string;
     filter?: FilterNode;
     sorts?: SortSpec[];
@@ -91,7 +91,7 @@ export class BaseRowRepo {
     const base = db
       .selectFrom('baseRows')
       .select(BASE_ROW_COLUMNS)
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null);
 
@@ -137,7 +137,7 @@ export class BaseRowRepo {
    * approximate; planner accuracy depends on fresh stats (ANALYZE).
    */
   async countEstimate(opts: {
-    baseId: string;
+    pageId: string;
     workspaceId: string;
     filter?: FilterNode;
     search?: SearchSpec;
@@ -149,7 +149,7 @@ export class BaseRowRepo {
     let qb = db
       .selectFrom('baseRows')
       .select(sql<number>`1`.as('x'))
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null);
 
@@ -193,7 +193,7 @@ export class BaseRowRepo {
    * matches more than `cap` — callers render "cap+" in the UI instead.
    */
   async countExact(opts: {
-    baseId: string;
+    pageId: string;
     workspaceId: string;
     filter?: FilterNode;
     search?: SearchSpec;
@@ -206,7 +206,7 @@ export class BaseRowRepo {
     let inner = db
       .selectFrom('baseRows')
       .select(sql<number>`1`.as('x'))
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null);
 
@@ -234,14 +234,14 @@ export class BaseRowRepo {
   }
 
   async getLastPosition(
-    baseId: string,
+    pageId: string,
     opts: WorkspaceOpts,
   ): Promise<string | null> {
     const db = dbOrTx(this.db, opts.trx);
     const result = await db
       .selectFrom('baseRows')
       .select('position')
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .orderBy(sql`position COLLATE "C"`, 'desc')
@@ -272,7 +272,7 @@ export class BaseRowRepo {
     rowId: string,
     patch: Record<string, unknown>,
     opts: {
-      baseId: string;
+      pageId: string;
       workspaceId: string;
       actorId?: string;
       trx?: KyselyTransaction;
@@ -291,7 +291,7 @@ export class BaseRowRepo {
         lastUpdatedById: opts.actorId ?? null,
       })
       .where('id', '=', rowId)
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .returning(BASE_ROW_COLUMNS)
@@ -302,7 +302,7 @@ export class BaseRowRepo {
     rowId: string,
     position: string,
     opts: {
-      baseId: string;
+      pageId: string;
       workspaceId: string;
       trx?: KyselyTransaction;
     },
@@ -312,7 +312,7 @@ export class BaseRowRepo {
       .updateTable('baseRows')
       .set({ position, updatedAt: new Date() })
       .where('id', '=', rowId)
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .execute();
@@ -321,7 +321,7 @@ export class BaseRowRepo {
   async softDelete(
     rowId: string,
     opts: {
-      baseId: string;
+      pageId: string;
       workspaceId: string;
       trx?: KyselyTransaction;
     },
@@ -331,7 +331,7 @@ export class BaseRowRepo {
       .updateTable('baseRows')
       .set({ deletedAt: new Date() })
       .where('id', '=', rowId)
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .execute();
@@ -340,7 +340,7 @@ export class BaseRowRepo {
   async softDeleteMany(
     rowIds: string[],
     opts: {
-      baseId: string;
+      pageId: string;
       workspaceId: string;
       trx?: KyselyTransaction;
     },
@@ -351,14 +351,14 @@ export class BaseRowRepo {
       .updateTable('baseRows')
       .set({ deletedAt: new Date() })
       .where('id', 'in', rowIds)
-      .where('baseId', '=', opts.baseId)
+      .where('pageId', '=', opts.pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .where('deletedAt', 'is', null)
       .execute();
   }
 
   async removeCellKey(
-    baseId: string,
+    pageId: string,
     propertyId: string,
     opts: WorkspaceOpts,
   ): Promise<void> {
@@ -369,7 +369,7 @@ export class BaseRowRepo {
         cells: sql`cells - ${propertyId}::text`,
         updatedAt: new Date(),
       })
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .execute();
   }
@@ -384,7 +384,7 @@ export class BaseRowRepo {
    * we don't drag 100k empty rows through Node just to rewrite a dozen.
    */
   async *streamByBaseId(
-    baseId: string,
+    pageId: string,
     opts: {
       workspaceId: string;
       chunkSize?: number;
@@ -401,7 +401,7 @@ export class BaseRowRepo {
       let qb = db
         .selectFrom('baseRows')
         .select(BASE_ROW_COLUMNS)
-        .where('baseId', '=', baseId)
+        .where('pageId', '=', pageId)
         .where('workspaceId', '=', opts.workspaceId)
         .where('deletedAt', 'is', null)
         .orderBy(sql`position COLLATE "C"`, 'asc')
@@ -443,7 +443,7 @@ export class BaseRowRepo {
   async batchUpdateCells(
     updates: Array<{ id: string; patch: Record<string, unknown> }>,
     opts: {
-      baseId: string;
+      pageId: string;
       workspaceId: string;
       actorId?: string;
       trx?: KyselyTransaction;
@@ -462,7 +462,7 @@ export class BaseRowRepo {
           last_updated_by_id = coalesce(${opts.actorId ?? null}, r.last_updated_by_id)
       FROM unnest(${ids}::uuid[], ${patches}::text[]) AS u(row_id, patch)
       WHERE r.id = u.row_id
-        AND r.base_id = ${opts.baseId}
+        AND r.page_id = ${opts.pageId}
         AND r.workspace_id = ${opts.workspaceId}
         AND r.deleted_at IS NULL
     `.execute(db);
