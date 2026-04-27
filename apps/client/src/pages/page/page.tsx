@@ -109,25 +109,34 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
         <MemoizedPageHeader readOnly={!canEdit} />
-        <div style={{ padding: "32px 24px 12px" }}>
-          <MemoizedTitleEditor
-            pageId={page.id}
-            slugId={page.slugId}
-            title={page.title}
-            spaceSlug={page.space?.slug ?? ""}
-            editable={canEdit}
-          />
-        </div>
         <div
           style={{
             flex: 1,
             minHeight: 0,
             display: "flex",
             flexDirection: "column",
-            paddingInline: 18,
+            paddingInline: 24,
           }}
         >
-          <BaseTable pageId={page.id} />
+          <div style={{ paddingTop: 32, paddingBottom: 12 }}>
+            <MemoizedTitleEditor
+              pageId={page.id}
+              slugId={page.slugId}
+              title={page.title}
+              spaceSlug={page.space?.slug ?? ""}
+              editable={canEdit}
+            />
+          </div>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <BaseTable pageId={page.id} />
+          </div>
         </div>
       </div>
     );
