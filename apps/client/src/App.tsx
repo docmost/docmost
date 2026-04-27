@@ -105,7 +105,7 @@ export default function App() {
             element={<Page />}
           />
 
-          <Route path={"/base/:baseId"} element={<BasePage />} />
+          <Route path={"/base/:pageId"} element={<BasePage />} />
 
           <Route path={"/settings"}>
             <Route path={"account/profile"} element={<AccountSettings />} />

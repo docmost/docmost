@@ -4,10 +4,10 @@ import { BaseTable } from "@/features/base/components/base-table";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
 export default function BasePage() {
-  const { baseId } = useParams<{ baseId: string }>();
-  const { data: base } = useBaseQuery(baseId);
+  const { pageId } = useParams<{ pageId: string }>();
+  const { data: base } = useBaseQuery(pageId);
 
-  if (!baseId) {
+  if (!pageId) {
     return (
       <Stack align="center" p="xl">
         <Text c="dimmed">No base ID provided</Text>
@@ -26,7 +26,7 @@ export default function BasePage() {
           {base.icon ? `${base.icon} ` : ""}{base.name}
         </Title>
       )}
-      <BaseTable baseId={baseId} />
+      <BaseTable pageId={pageId} />
     </Container>
   );
 }
