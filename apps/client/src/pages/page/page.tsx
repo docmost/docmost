@@ -109,7 +109,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           <title>{`${page?.icon || ""}  ${page?.title || t("untitled")}`}</title>
         </Helmet>
         <MemoizedPageHeader readOnly={!canEdit} />
-        <div style={{ padding: "32px 8px 8px" }}>
+        <div style={{ padding: "32px 24px 12px" }}>
           <MemoizedTitleEditor
             pageId={page.id}
             slugId={page.slugId}
@@ -124,6 +124,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             minHeight: 0,
             display: "flex",
             flexDirection: "column",
+            paddingInline: 18,
           }}
         >
           <BaseTable pageId={page.id} />
