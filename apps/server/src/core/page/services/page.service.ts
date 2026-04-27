@@ -15,7 +15,7 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { generateJitteredKeyBetween } from 'fractional-indexing-jittered';
 import { MovePageDto } from '../dto/move-page.dto';
 import { generateSlugId } from '../../../common/helpers';
@@ -90,6 +90,7 @@ export class PageService {
     userId: string,
     workspaceId: string,
     createPageDto: CreatePageDto,
+    trx?: KyselyTransaction,
   ): Promise<Page> {
     let parentPageId = undefined;
 
@@ -138,10 +139,11 @@ export class PageService {
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
+      isBase: createPageDto.isBase ?? false,
       content,
       textContent,
       ydoc,
-    });
+    }, trx);
 
     this.generalQueue
       .add(QueueJob.ADD_PAGE_WATCHERS, {

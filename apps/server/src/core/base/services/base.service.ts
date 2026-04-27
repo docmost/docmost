@@ -8,6 +8,8 @@ import { executeTx } from '@docmost/db/utils';
 import { BaseRepo } from '@docmost/db/repos/base/base.repo';
 import { BasePropertyRepo } from '@docmost/db/repos/base/base-property.repo';
 import { BaseViewRepo } from '@docmost/db/repos/base/base-view.repo';
+import { PageService } from '../../page/services/page.service';
+import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { CreateBaseDto } from '../dto/create-base.dto';
 import { UpdateBaseDto } from '../dto/update-base.dto';
 import { BasePropertyType } from '../base.schemas';
@@ -21,20 +23,22 @@ export class BaseService {
     private readonly baseRepo: BaseRepo,
     private readonly basePropertyRepo: BasePropertyRepo,
     private readonly baseViewRepo: BaseViewRepo,
+    private readonly pageService: PageService,
+    private readonly pageRepo: PageRepo,
   ) {}
 
   async create(userId: string, workspaceId: string, dto: CreateBaseDto) {
     return executeTx(this.db, async (trx) => {
-      const base = await this.baseRepo.insertBase(
+      const page = await this.pageService.create(
+        userId,
+        workspaceId,
         {
-          name: dto.name,
-          description: dto.description,
+          title: dto.name ?? 'Untitled',
           icon: dto.icon,
-          pageId: dto.pageId,
           spaceId: dto.spaceId,
-          workspaceId,
-          creatorId: userId,
-        },
+          parentPageId: dto.parentPageId,
+          isBase: true,
+        } as any,
         trx,
       );
 
@@ -42,7 +46,7 @@ export class BaseService {
 
       await this.basePropertyRepo.insertProperty(
         {
-          baseId: base.id,
+          pageId: page.id,
           name: 'Title',
           type: BasePropertyType.TEXT,
           position: firstPosition,
@@ -54,17 +58,18 @@ export class BaseService {
 
       await this.baseViewRepo.insertView(
         {
-          baseId: base.id,
-          name: 'Table View 1',
+          pageId: page.id,
+          name: 'Table',
           type: 'table',
           position: firstPosition,
+          config: {},
           workspaceId,
           creatorId: userId,
         },
         { trx },
       );
 
-      return this.baseRepo.findById(base.id, {
+      return this.baseRepo.findById(page.id, {
         includeProperties: true,
         includeViews: true,
         trx,
@@ -72,8 +77,8 @@ export class BaseService {
     });
   }
 
-  async getBaseInfo(baseId: string) {
-    const base = await this.baseRepo.findById(baseId, {
+  async getBaseInfo(pageId: string) {
+    const base = await this.baseRepo.findById(pageId, {
       includeProperties: true,
       includeViews: true,
     });
@@ -91,11 +96,13 @@ export class BaseService {
       throw new NotFoundException('Base not found');
     }
 
-    await this.baseRepo.updateBase(dto.baseId, {
-      ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.description !== undefined && { description: dto.description }),
-      ...(dto.icon !== undefined && { icon: dto.icon }),
-    });
+    await this.pageRepo.updatePage(
+      {
+        ...(dto.name !== undefined && { title: dto.name }),
+        ...(dto.icon !== undefined && { icon: dto.icon }),
+      },
+      dto.baseId,
+    );
 
     return this.baseRepo.findById(dto.baseId);
   }

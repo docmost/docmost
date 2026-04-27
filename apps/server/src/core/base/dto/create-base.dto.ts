@@ -1,22 +1,18 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateBaseDto {
   @IsString()
-  @IsNotEmpty()
-  name: string;
-
   @IsOptional()
-  @IsString()
-  description?: string;
+  name?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   icon?: string;
 
-  @IsOptional()
   @IsUUID()
-  pageId?: string;
+  spaceId!: string;
 
   @IsUUID()
-  spaceId: string;
+  @IsOptional()
+  parentPageId?: string;
 }

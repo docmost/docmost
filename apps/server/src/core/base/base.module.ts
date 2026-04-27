@@ -17,9 +17,13 @@ import { BasePresenceService } from './realtime/base-presence.service';
 import { QueueName } from '../../integrations/queue/constants';
 import { FormulaService } from './formula/formula.service';
 import { FormulaLockService } from './formula/formula-lock';
+import { PageModule } from '../page/page.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: QueueName.BASE_QUEUE })],
+  imports: [
+    BullModule.registerQueue({ name: QueueName.BASE_QUEUE }),
+    PageModule,
+  ],
   controllers: [
     BaseController,
     BasePropertyController,

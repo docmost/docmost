@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -24,6 +25,10 @@ export class CreatePageDto {
 
   @IsUUID()
   spaceId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isBase?: boolean;
 
   @IsOptional()
   content?: string | object;
