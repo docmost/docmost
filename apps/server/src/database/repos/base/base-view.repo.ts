@@ -30,42 +30,42 @@ export class BaseViewRepo {
   }
 
   async findByBaseId(
-    baseId: string,
+    pageId: string,
     opts: WorkspaceOpts,
   ): Promise<BaseView[]> {
     const db = dbOrTx(this.db, opts.trx);
     return db
       .selectFrom('baseViews')
       .selectAll()
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .orderBy('position', 'asc')
       .execute() as Promise<BaseView[]>;
   }
 
   async countByBaseId(
-    baseId: string,
+    pageId: string,
     opts: WorkspaceOpts,
   ): Promise<number> {
     const db = dbOrTx(this.db, opts.trx);
     const result = await db
       .selectFrom('baseViews')
       .select((eb) => eb.fn.countAll<number>().as('count'))
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .executeTakeFirstOrThrow();
     return Number(result.count);
   }
 
   async getLastPosition(
-    baseId: string,
+    pageId: string,
     opts: WorkspaceOpts,
   ): Promise<string | null> {
     const db = dbOrTx(this.db, opts.trx);
     const result = await db
       .selectFrom('baseViews')
       .select('position')
-      .where('baseId', '=', baseId)
+      .where('pageId', '=', pageId)
       .where('workspaceId', '=', opts.workspaceId)
       .orderBy(sql`position COLLATE "C"`, 'desc')
       .limit(1)
