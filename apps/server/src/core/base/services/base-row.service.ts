@@ -112,7 +112,7 @@ export class BaseRowService {
     });
 
     const event: BaseRowCreatedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId,
       requestId: dto.requestId ?? null,
@@ -162,7 +162,7 @@ export class BaseRowService {
     }
 
     const event: BaseRowUpdatedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -187,7 +187,7 @@ export class BaseRowService {
     });
 
     const event: BaseRowDeletedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -215,7 +215,7 @@ export class BaseRowService {
     });
 
     const event: BaseRowsDeletedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,
@@ -310,7 +310,7 @@ export class BaseRowService {
     });
 
     const event: BaseRowReorderedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: dto.requestId ?? null,

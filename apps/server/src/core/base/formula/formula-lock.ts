@@ -18,10 +18,10 @@ export class FormulaLockService {
    * Returns a release token on success, or null if the lock is held. Callers
    * must pass the token back to release() to prevent cross-holder releases.
    */
-  async acquire(baseId: string): Promise<string | null> {
+  async acquire(pageId: string): Promise<string | null> {
     const token = `${Date.now()}-${Math.random()}`;
     const ok = await this.redis.set(
-      LOCK_PREFIX + baseId,
+      LOCK_PREFIX + pageId,
       token,
       "PX",
       LOCK_TTL_MS,
@@ -30,7 +30,7 @@ export class FormulaLockService {
     return ok === "OK" ? token : null;
   }
 
-  async release(baseId: string, token: string): Promise<void> {
+  async release(pageId: string, token: string): Promise<void> {
     const lua = `
       if redis.call("GET", KEYS[1]) == ARGV[1] then
         return redis.call("DEL", KEYS[1])
@@ -38,7 +38,7 @@ export class FormulaLockService {
         return 0
       end
     `;
-    await this.redis.eval(lua, 1, LOCK_PREFIX + baseId, token);
+    await this.redis.eval(lua, 1, LOCK_PREFIX + pageId, token);
   }
 
   /*
@@ -46,11 +46,11 @@ export class FormulaLockService {
    * on timeout. Workers call this at job start — if acquisition times out
    * the job is retried by BullMQ.
    */
-  async acquireWait(baseId: string, opts: { timeoutMs: number; pollMs?: number }): Promise<string | null> {
+  async acquireWait(pageId: string, opts: { timeoutMs: number; pollMs?: number }): Promise<string | null> {
     const deadline = Date.now() + opts.timeoutMs;
     const poll = opts.pollMs ?? 500;
     while (Date.now() < deadline) {
-      const t = await this.acquire(baseId);
+      const t = await this.acquire(pageId);
       if (t) return t;
       await new Promise((r) => setTimeout(r, poll));
     }

@@ -52,7 +52,7 @@ export class BaseViewService {
     });
 
     const event: BaseViewCreatedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId,
       requestId: null,
@@ -101,7 +101,7 @@ export class BaseViewService {
 
     if (updated) {
       const event: BaseViewUpdatedEvent = {
-        baseId: dto.pageId,
+        pageId: dto.pageId,
         workspaceId,
         actorId: userId ?? null,
         requestId: null,
@@ -133,7 +133,7 @@ export class BaseViewService {
     await this.baseViewRepo.deleteView(dto.viewId, { workspaceId });
 
     const event: BaseViewDeletedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: userId ?? null,
       requestId: null,

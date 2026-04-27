@@ -31,16 +31,16 @@ export class BaseCsvExportService {
   ) {}
 
   async streamBaseAsCsv(
-    baseId: string,
+    pageId: string,
     workspaceId: string,
     reply: FastifyReply,
   ): Promise<void> {
-    const base = await this.baseRepo.findById(baseId);
+    const base = await this.baseRepo.findById(pageId);
     if (!base || base.workspaceId !== workspaceId) {
       throw new NotFoundException('Base not found');
     }
 
-    const properties = await this.basePropertyRepo.findByPageId(baseId);
+    const properties = await this.basePropertyRepo.findByPageId(pageId);
 
     const fileName = sanitize(base.title || 'base') + '.csv';
 
@@ -85,7 +85,7 @@ export class BaseCsvExportService {
     });
 
     try {
-      for await (const chunk of this.baseRowRepo.streamByPageId(baseId, {
+      for await (const chunk of this.baseRowRepo.streamByPageId(pageId, {
         workspaceId,
         chunkSize: CHUNK_SIZE,
       })) {
@@ -129,7 +129,7 @@ export class BaseCsvExportService {
       // trigger Nest's exception filter to try to send another
       // response, which Fastify rejects. Destroying the stringifier
       // cascades to `out` and signals EOF to the client.
-      this.logger.error(`csv export failed base=${baseId}`, err);
+      this.logger.error(`csv export failed base=${pageId}`, err);
       stringifier.destroy(err as Error);
     }
   }

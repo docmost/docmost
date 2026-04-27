@@ -21,15 +21,15 @@ export async function processBaseCellGc(
   basePropertyRepo: BasePropertyRepo,
   data: IBaseCellGcJob,
 ): Promise<void> {
-  const { baseId, propertyId, workspaceId } = data;
+  const { pageId, propertyId, workspaceId } = data;
 
   await executeTx(db, async (trx) => {
-    await baseRowRepo.removeCellKey(baseId, propertyId, {
+    await baseRowRepo.removeCellKey(pageId, propertyId, {
       workspaceId,
       trx,
     });
     await basePropertyRepo.hardDelete(propertyId, trx);
   });
 
-  logger.log(`cell-gc complete base=${baseId} prop=${propertyId}`);
+  logger.log(`cell-gc complete base=${pageId} prop=${propertyId}`);
 }

@@ -14,7 +14,7 @@ export type PresenceEntry = {
 };
 
 /*
- * Ephemeral per-base presence. No DB. `presence:base:{baseId}` is a Redis
+ * Ephemeral per-base presence. No DB. `presence:base:{pageId}` is a Redis
  * HASH keyed by userId with a JSON-serialised entry. Entries older than
  * PRESENCE_ENTRY_TTL_MS are filtered on read; the key itself is refreshed
  * with a longer Redis EXPIRE on every write so unused rooms drain on
@@ -30,10 +30,10 @@ export class BasePresenceService {
   }
 
   async setPresence(
-    baseId: string,
+    pageId: string,
     entry: PresenceEntry,
   ): Promise<void> {
-    const key = PRESENCE_KEY_PREFIX + baseId;
+    const key = PRESENCE_KEY_PREFIX + pageId;
     await this.redis
       .multi()
       .hset(key, entry.userId, JSON.stringify(entry))
@@ -41,13 +41,13 @@ export class BasePresenceService {
       .exec();
   }
 
-  async leave(baseId: string, userId: string): Promise<void> {
-    const key = PRESENCE_KEY_PREFIX + baseId;
+  async leave(pageId: string, userId: string): Promise<void> {
+    const key = PRESENCE_KEY_PREFIX + pageId;
     await this.redis.hdel(key, userId);
   }
 
-  async snapshot(baseId: string): Promise<PresenceEntry[]> {
-    const key = PRESENCE_KEY_PREFIX + baseId;
+  async snapshot(pageId: string): Promise<PresenceEntry[]> {
+    const key = PRESENCE_KEY_PREFIX + pageId;
     const raw = await this.redis.hgetall(key);
     const now = Date.now();
     const out: PresenceEntry[] = [];

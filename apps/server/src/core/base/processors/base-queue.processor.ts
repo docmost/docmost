@@ -69,7 +69,7 @@ export class BaseQueueProcessor
               trx,
             );
             await this.basePropertyRepo.bumpSchemaVersion(data.propertyId, trx);
-            const v = await this.baseRepo.bumpSchemaVersion(data.baseId, trx);
+            const v = await this.baseRepo.bumpSchemaVersion(data.pageId, trx);
             return { summary: s, schemaVersion: v };
           },
         );
@@ -80,7 +80,7 @@ export class BaseQueueProcessor
         const updated = await this.basePropertyRepo.findById(data.propertyId);
         if (updated) {
           const event: BasePropertyUpdatedEvent = {
-            baseId: data.baseId,
+            pageId: data.pageId,
             workspaceId: data.workspaceId,
             actorId: data.actorId ?? null,
             requestId: null,
@@ -90,7 +90,7 @@ export class BaseQueueProcessor
           this.eventEmitter.emit(EventName.BASE_PROPERTY_UPDATED, event);
         }
         this.emitSchemaBumped(
-          data.baseId,
+          data.pageId,
           data.workspaceId,
           schemaVersion,
           data.actorId,
@@ -106,24 +106,24 @@ export class BaseQueueProcessor
           data,
         );
         const schemaVersion = await this.baseRepo.bumpSchemaVersion(
-          data.baseId,
+          data.pageId,
         );
-        this.emitSchemaBumped(data.baseId, data.workspaceId, schemaVersion);
+        this.emitSchemaBumped(data.pageId, data.workspaceId, schemaVersion);
         return;
       }
       case QueueJob.BASE_FORMULA_RECOMPUTE: {
         const data = job.data as IBaseFormulaRecomputeJob;
-        const token = await this.formulaLock.acquireWait(data.baseId, {
+        const token = await this.formulaLock.acquireWait(data.pageId, {
           timeoutMs: 30_000,
         });
         if (!token) {
           throw new Error(
-            `formula recompute: lock acquire timeout for base ${data.baseId}`,
+            `formula recompute: lock acquire timeout for base ${data.pageId}`,
           );
         }
         try {
           this.eventEmitter.emit(EventName.BASE_FORMULA_RECOMPUTE_STARTED, {
-            baseId: data.baseId,
+            pageId: data.pageId,
             workspaceId: data.workspaceId,
             actorId: data.actorId ?? null,
             requestId: null,
@@ -140,7 +140,7 @@ export class BaseQueueProcessor
               progress: (processed) => job.updateProgress({ processed }),
               onBatch: async (batch) => {
                 this.eventEmitter.emit(EventName.BASE_ROWS_UPDATED, {
-                  baseId: data.baseId,
+                  pageId: data.pageId,
                   workspaceId: data.workspaceId,
                   actorId: null,
                   requestId: null,
@@ -152,10 +152,10 @@ export class BaseQueueProcessor
           );
 
           const schemaVersion = await this.baseRepo.bumpSchemaVersion(
-            data.baseId,
+            data.pageId,
           );
           this.eventEmitter.emit(EventName.BASE_SCHEMA_BUMPED, {
-            baseId: data.baseId,
+            pageId: data.pageId,
             workspaceId: data.workspaceId,
             actorId: data.actorId ?? null,
             requestId: null,
@@ -163,7 +163,7 @@ export class BaseQueueProcessor
           } satisfies BaseSchemaBumpedEvent);
 
           this.eventEmitter.emit(EventName.BASE_FORMULA_RECOMPUTE_COMPLETED, {
-            baseId: data.baseId,
+            pageId: data.pageId,
             workspaceId: data.workspaceId,
             actorId: data.actorId ?? null,
             requestId: null,
@@ -175,7 +175,7 @@ export class BaseQueueProcessor
 
           return result;
         } finally {
-          await this.formulaLock.release(data.baseId, token);
+          await this.formulaLock.release(data.pageId, token);
         }
       }
       default:
@@ -184,13 +184,13 @@ export class BaseQueueProcessor
   }
 
   private emitSchemaBumped(
-    baseId: string,
+    pageId: string,
     workspaceId: string,
     schemaVersion: number,
     actorId?: string,
   ): void {
     const event: BaseSchemaBumpedEvent = {
-      baseId,
+      pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: null,
@@ -220,7 +220,7 @@ export class BaseQueueProcessor
         const reverted = await this.basePropertyRepo.findById(data.propertyId);
         if (reverted) {
           const event: BasePropertyUpdatedEvent = {
-            baseId: data.baseId,
+            pageId: data.pageId,
             workspaceId: data.workspaceId,
             actorId: data.actorId ?? null,
             requestId: null,

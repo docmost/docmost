@@ -134,7 +134,7 @@ export class BasePropertyService {
     });
 
     const event: BasePropertyCreatedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: null,
@@ -144,7 +144,7 @@ export class BasePropertyService {
 
     if (created.type === 'formula') {
       await this.formulaService.enqueueRecompute({
-        baseId: created.pageId,
+        pageId: created.pageId,
         workspaceId,
         propertyIds: [created.id],
         reason: 'formula_created',
@@ -278,7 +278,7 @@ export class BasePropertyService {
 
       if (newType === 'formula' && (isTypeChange || sourceChanged)) {
         await this.formulaService.enqueueRecompute({
-          baseId: dto.pageId,
+          pageId: dto.pageId,
           workspaceId,
           propertyIds: [dto.propertyId],
           reason: isTypeChange ? 'formula_created' : 'formula_edited',
@@ -292,7 +292,7 @@ export class BasePropertyService {
         const affected = graph.affectedFormulas([dto.propertyId]);
         if (affected.length > 0) {
           await this.formulaService.enqueueRecompute({
-            baseId: dto.pageId,
+            pageId: dto.pageId,
             workspaceId,
             propertyIds: affected,
             reason: 'dep_type_changed',
@@ -306,7 +306,7 @@ export class BasePropertyService {
 
     // --- Path 2 or 3: cell rewrite needed -------------------------------
     const conversionPayload: IBaseTypeConversionJob = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       propertyId: dto.propertyId,
       workspaceId,
       fromType: oldType,
@@ -360,7 +360,7 @@ export class BasePropertyService {
       });
       tick('inline-tx-done');
       const bumpEvent: BaseSchemaBumpedEvent = {
-        baseId: dto.pageId,
+        pageId: dto.pageId,
         workspaceId,
         actorId: actorId ?? null,
         requestId: null,
@@ -454,7 +454,7 @@ export class BasePropertyService {
     const updated = await this.basePropertyRepo.findById(dto.propertyId);
     if (updated) {
       const event: BasePropertyUpdatedEvent = {
-        baseId: dto.pageId,
+        pageId: dto.pageId,
         workspaceId,
         actorId: actorId ?? null,
         requestId: dto.requestId ?? null,
@@ -515,7 +515,7 @@ export class BasePropertyService {
     });
 
     const payload: IBaseCellGcJob = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       propertyId: dto.propertyId,
       workspaceId,
     };
@@ -542,7 +542,7 @@ export class BasePropertyService {
     }
 
     const event: BasePropertyDeletedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: dto.requestId ?? null,
@@ -552,7 +552,7 @@ export class BasePropertyService {
 
     if (affected.length > 0) {
       await this.formulaService.enqueueRecompute({
-        baseId: dto.pageId,
+        pageId: dto.pageId,
         workspaceId,
         propertyIds: affected,
         reason: 'dep_deleted',
@@ -580,7 +580,7 @@ export class BasePropertyService {
     });
 
     const event: BasePropertyReorderedEvent = {
-      baseId: dto.pageId,
+      pageId: dto.pageId,
       workspaceId,
       actorId: actorId ?? null,
       requestId: dto.requestId ?? null,

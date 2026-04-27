@@ -37,7 +37,7 @@ export async function processBaseTypeConversion(
   },
 ): Promise<{ converted: number; cleared: number; total: number }> {
   const {
-    baseId,
+    pageId,
     propertyId,
     workspaceId,
     fromType,
@@ -59,7 +59,7 @@ export async function processBaseTypeConversion(
   // rewriting — everything else is already consistent with the new type
   // (empty value → empty value). Skips the full-table scan on bases
   // where the property was only ever set on a few rows.
-  for await (const chunk of baseRowRepo.streamByPageId(baseId, {
+  for await (const chunk of baseRowRepo.streamByPageId(pageId, {
     workspaceId,
     chunkSize: CHUNK_SIZE,
     trx,
@@ -105,7 +105,7 @@ export async function processBaseTypeConversion(
 
     if (updates.length > 0) {
       await baseRowRepo.batchUpdateCells(updates, {
-        pageId: baseId,
+        pageId,
         workspaceId,
         actorId,
         trx,
@@ -116,7 +116,7 @@ export async function processBaseTypeConversion(
   }
 
   logger.log(
-    `type-conversion ${fromType}→${toType} base=${baseId} prop=${propertyId} total=${total} converted=${converted} cleared=${cleared}`,
+    `type-conversion ${fromType}→${toType} base=${pageId} prop=${propertyId} total=${total} converted=${converted} cleared=${cleared}`,
   );
 
   return { converted, cleared, total };

@@ -30,8 +30,8 @@ export async function processBaseFormulaRecompute(
     trx?: KyselyTransaction;
   },
 ): Promise<{ processed: number; errored: number }> {
-  const { baseId, workspaceId, propertyIds, rowIds } = data;
-  const properties = await basePropertyRepo.findByPageId(baseId);
+  const { pageId, workspaceId, propertyIds, rowIds } = data;
+  const properties = await basePropertyRepo.findByPageId(pageId);
   const targets = properties.filter(
     (p) => p.type === "formula" && propertyIds.includes(p.id),
   );
@@ -46,7 +46,7 @@ export async function processBaseFormulaRecompute(
   let processed = 0;
   let errored = 0;
 
-  for await (const chunk of baseRowRepo.streamByPageId(baseId, {
+  for await (const chunk of baseRowRepo.streamByPageId(pageId, {
     workspaceId,
     chunkSize: CHUNK_SIZE,
     trx: opts?.trx,
@@ -90,7 +90,7 @@ export async function processBaseFormulaRecompute(
       // so passing actorId: undefined preserves last_updated_by_id while still
       // bumping updated_at — matches spec "only lastEditedAt moves".
       await baseRowRepo.batchUpdateCells(updates, {
-        pageId: baseId,
+        pageId,
         workspaceId,
         actorId: undefined,
         trx: opts?.trx,
@@ -102,7 +102,7 @@ export async function processBaseFormulaRecompute(
   }
 
   logger.log(
-    `formula-recompute base=${baseId} props=${propertyIds.join(",")} processed=${processed} errored=${errored}`,
+    `formula-recompute base=${pageId} props=${propertyIds.join(",")} processed=${processed} errored=${errored}`,
   );
   return { processed, errored };
 }

@@ -8,7 +8,7 @@ import { BaseProperty, BaseRow, BaseView } from '@docmost/db/types/entity.types'
  */
 
 type BaseEventBase = {
-  baseId: string;
+  pageId: string;
   workspaceId: string;
   actorId?: string | null;
   requestId?: string | null;

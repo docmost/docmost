@@ -115,7 +115,7 @@ export interface IApprovalRejectedNotificationJob {
 }
 
 export interface IBaseTypeConversionJob {
-  baseId: string;
+  pageId: string;
   propertyId: string;
   workspaceId: string;
   fromType: string;
@@ -133,13 +133,13 @@ export interface IBaseTypeConversionJob {
 }
 
 export interface IBaseCellGcJob {
-  baseId: string;
+  pageId: string;
   propertyId: string;
   workspaceId: string;
 }
 
 export interface IBaseFormulaRecomputeJob {
-  baseId: string;
+  pageId: string;
   workspaceId: string;
   propertyIds: string[]; // formula properties to recompute
   reason:

@@ -9,29 +9,29 @@ import { BasePresenceService, PresenceEntry } from './base-presence.service';
 
 /*
  * Inbound shapes from untrusted socket clients. Zod-validated at the
- * boundary so malformed payloads (non-uuid baseId, missing fields,
+ * boundary so malformed payloads (non-uuid pageId, missing fields,
  * oversized selection blobs) never reach the permission check or Redis.
  */
 const baseSubscribeSchema = z.object({
   operation: z.literal('base:subscribe'),
-  baseId: z.uuid(),
+  pageId: z.uuid(),
 });
 
 const baseUnsubscribeSchema = z.object({
   operation: z.literal('base:unsubscribe'),
-  baseId: z.uuid(),
+  pageId: z.uuid(),
 });
 
 const basePresenceSchema = z.object({
   operation: z.literal('base:presence'),
-  baseId: z.uuid(),
+  pageId: z.uuid(),
   cellId: z.string().max(200).optional().nullable(),
   selection: z.unknown().optional(),
 });
 
 const basePresenceLeaveSchema = z.object({
   operation: z.literal('base:presence:leave'),
-  baseId: z.uuid(),
+  pageId: z.uuid(),
 });
 
 const inboundSchema = z.union([
@@ -77,23 +77,23 @@ export class BaseWsService {
     const data = parsed.data;
     switch (data.operation) {
       case 'base:subscribe':
-        await this.subscribe(client, data.baseId);
+        await this.subscribe(client, data.pageId);
         return;
       case 'base:unsubscribe':
-        await this.unsubscribe(client, data.baseId);
+        await this.unsubscribe(client, data.pageId);
         return;
       case 'base:presence':
         await this.handlePresence(client, data);
         return;
       case 'base:presence:leave':
-        await this.handlePresenceLeave(client, data.baseId);
+        await this.handlePresenceLeave(client, data.pageId);
         return;
     }
   }
 
-  emitToBase(baseId: string, payload: BaseOutbound): void {
+  emitToBase(pageId: string, payload: BaseOutbound): void {
     if (!this.server) return;
-    this.server.to(getBaseRoomName(baseId)).emit('message', payload);
+    this.server.to(getBaseRoomName(pageId)).emit('message', payload);
   }
 
   /*
@@ -106,11 +106,11 @@ export class BaseWsService {
     const userId = client.data?.userId as string | undefined;
     const subs = this.subscriptionsFor(client);
     if (!userId || subs.size === 0) return;
-    for (const baseId of subs) {
-      await this.presence.leave(baseId, userId);
-      this.emitToBase(baseId, {
+    for (const pageId of subs) {
+      await this.presence.leave(pageId, userId);
+      this.emitToBase(pageId, {
         operation: 'base:presence:leave',
-        baseId,
+        pageId,
         userId,
       });
     }
@@ -119,22 +119,22 @@ export class BaseWsService {
 
   // --- private -------------------------------------------------------
 
-  private async subscribe(client: Socket, baseId: string): Promise<void> {
+  private async subscribe(client: Socket, pageId: string): Promise<void> {
     const userId = client.data?.userId as string | undefined;
     if (!userId) {
       client.emit('message', {
         operation: 'base:subscribe:error',
-        baseId,
+        pageId,
         reason: 'unauthenticated',
       });
       return;
     }
 
-    const base = await this.baseRepo.findById(baseId);
+    const base = await this.baseRepo.findById(pageId);
     if (!base) {
       client.emit('message', {
         operation: 'base:subscribe:error',
-        baseId,
+        pageId,
         reason: 'not_found',
       });
       return;
@@ -144,36 +144,36 @@ export class BaseWsService {
     if (!canRead) {
       client.emit('message', {
         operation: 'base:subscribe:error',
-        baseId,
+        pageId,
         reason: 'forbidden',
       });
       return;
     }
 
-    client.join(getBaseRoomName(baseId));
-    this.subscriptionsFor(client).add(baseId);
+    client.join(getBaseRoomName(pageId));
+    this.subscriptionsFor(client).add(pageId);
 
     // Send the current presence snapshot to just this client so their UI
     // can paint who's already editing what.
-    const snapshot = await this.presence.snapshot(baseId);
+    const snapshot = await this.presence.snapshot(pageId);
     client.emit('message', {
       operation: 'base:presence:snapshot',
-      baseId,
+      pageId,
       entries: snapshot,
     });
   }
 
-  private async unsubscribe(client: Socket, baseId: string): Promise<void> {
+  private async unsubscribe(client: Socket, pageId: string): Promise<void> {
     const userId = client.data?.userId as string | undefined;
     if (!userId) return;
 
-    client.leave(getBaseRoomName(baseId));
-    this.subscriptionsFor(client).delete(baseId);
+    client.leave(getBaseRoomName(pageId));
+    this.subscriptionsFor(client).delete(pageId);
 
-    await this.presence.leave(baseId, userId);
-    this.emitToBase(baseId, {
+    await this.presence.leave(pageId, userId);
+    this.emitToBase(pageId, {
       operation: 'base:presence:leave',
-      baseId,
+      pageId,
       userId,
     });
   }
@@ -184,7 +184,7 @@ export class BaseWsService {
   ): Promise<void> {
     const userId = client.data?.userId as string | undefined;
     if (!userId) return;
-    if (!client.rooms.has(getBaseRoomName(data.baseId))) return;
+    if (!client.rooms.has(getBaseRoomName(data.pageId))) return;
 
     const entry: PresenceEntry = {
       userId,
@@ -192,25 +192,25 @@ export class BaseWsService {
       selection: data.selection ?? null,
       ts: Date.now(),
     };
-    await this.presence.setPresence(data.baseId, entry);
+    await this.presence.setPresence(data.pageId, entry);
 
-    this.emitToBase(data.baseId, {
+    this.emitToBase(data.pageId, {
       operation: 'base:presence',
-      baseId: data.baseId,
+      pageId: data.pageId,
       ...entry,
     });
   }
 
   private async handlePresenceLeave(
     client: Socket,
-    baseId: string,
+    pageId: string,
   ): Promise<void> {
     const userId = client.data?.userId as string | undefined;
     if (!userId) return;
-    await this.presence.leave(baseId, userId);
-    this.emitToBase(baseId, {
+    await this.presence.leave(pageId, userId);
+    this.emitToBase(pageId, {
       operation: 'base:presence:leave',
-      baseId,
+      pageId,
       userId,
     });
   }

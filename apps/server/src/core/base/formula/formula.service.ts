@@ -113,13 +113,13 @@ export class FormulaService {
 
   /*
    * Enqueue a full recompute for the given formula property IDs on the given
-   * base. Reasons let the worker log why the job ran. Job ID includes baseId
+   * base. Reasons let the worker log why the job ran. Job ID includes pageId
    * so BullMQ will dedupe when the same base has multiple edits in flight —
    * see FormulaLock for the per-base Redis serialization.
    */
   async enqueueRecompute(args: IBaseFormulaRecomputeJob): Promise<void> {
     await this.queue.add(QueueJob.BASE_FORMULA_RECOMPUTE, args, {
-      jobId: `formula-recompute:${args.baseId}:${Date.now()}`,
+      jobId: `formula-recompute:${args.pageId}:${Date.now()}`,
       removeOnComplete: 1000,
       removeOnFail: 1000,
     });

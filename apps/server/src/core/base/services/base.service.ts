@@ -107,13 +107,13 @@ export class BaseService {
     return this.baseRepo.findById(dto.pageId);
   }
 
-  async delete(baseId: string) {
-    const base = await this.baseRepo.findById(baseId);
+  async delete(pageId: string) {
+    const base = await this.baseRepo.findById(pageId);
     if (!base) {
       throw new NotFoundException('Base not found');
     }
 
-    await this.baseRepo.softDelete(baseId);
+    await this.baseRepo.softDelete(pageId);
   }
 
   async listBySpaceId(spaceId: string, pagination: PaginationOptions) {

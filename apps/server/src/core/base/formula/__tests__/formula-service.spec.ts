@@ -5,7 +5,7 @@ const mkProp = (
   id: string, type: string, typeOptions: any = {},
   name = id,
 ): BaseProperty => ({
-  id, baseId: "base_1", name, type: type as any, position: "a",
+  id, pageId: "base_1", name, type: type as any, position: "a",
   typeOptions, isPrimary: false, workspaceId: "ws_1",
   createdAt: new Date(), updatedAt: new Date(),
   schemaVersion: 0, pendingType: null, pendingTypeOptions: null,
