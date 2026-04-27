@@ -4,40 +4,29 @@ import { useEffect, useRef } from "react";
 import { BaseTable } from "@/features/base/components/base-table";
 import { useBaseQuery } from "@/features/base/queries/base-query";
 
-const RIGHT_GUTTER = 16;
-const LEFT_GUTTER = 8;
+const SIDE_GUTTER = 8;
 
-// Measure how far we can extend the grid past the wrapper's natural
-// (parent-constrained) bounds, and write the values as CSS vars on the
-// wrapper so the descendant grid can consume them via margin.
+// Anchor directly to AppShell.Main (the <main> tag) for both sides.
+// This is the layout container that already accounts for the navbar's
+// width and sidebar collapse state — its left/right edges are exactly
+// where the embed should extend to.
 function applyExtension(wrapper: HTMLDivElement) {
   const rect = wrapper.getBoundingClientRect();
   if (rect.width === 0) return;
 
-  const extendRight = Math.max(
-    0,
-    window.innerWidth - rect.right - RIGHT_GUTTER,
-  );
+  const main = wrapper.closest("main") as HTMLElement | null;
+  const mainRect = main?.getBoundingClientRect();
 
-  // Find the leftmost the grid can reach: walk up the ancestor chain
-  // for the closest element wider than the wrapper. That ancestor's
-  // left edge (plus a small gutter) is our left target. This handles
-  // the sidebar-collapsed case naturally — the wider ancestor is
-  // AppShell.Main, whose left edge moves when the sidebar toggles.
-  let targetLeft = rect.left;
-  let cur: HTMLElement | null = wrapper.parentElement;
-  while (cur && cur !== document.body) {
-    const r = cur.getBoundingClientRect();
-    if (r.width > rect.width + 32) {
-      targetLeft = r.left + LEFT_GUTTER;
-      break;
-    }
-    cur = cur.parentElement;
-  }
+  const targetLeft = (mainRect?.left ?? 0) + SIDE_GUTTER;
+  const targetRight = mainRect
+    ? mainRect.right - SIDE_GUTTER
+    : window.innerWidth - SIDE_GUTTER;
+
   const extendLeft = Math.max(0, rect.left - targetLeft);
+  const extendRight = Math.max(0, targetRight - rect.right);
 
-  wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
   wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
+  wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
 }
 
 export function BaseEmbedView({ node }: NodeViewProps) {
@@ -54,17 +43,10 @@ export function BaseEmbedView({ node }: NodeViewProps) {
 
     const ro = new ResizeObserver(update);
     ro.observe(wrapper);
-    // Also observe an ancestor so sidebar collapse / window changes
-    // propagate even when the wrapper itself doesn't resize.
-    let cur: HTMLElement | null = wrapper.parentElement;
-    while (cur && cur !== document.body) {
-      const r = cur.getBoundingClientRect();
-      if (r.width > wrapper.getBoundingClientRect().width + 32) {
-        ro.observe(cur);
-        break;
-      }
-      cur = cur.parentElement;
-    }
+    // Sidebar collapse changes <main>'s left/width without resizing
+    // the wrapper itself, so observe <main> too.
+    const main = wrapper.closest("main");
+    if (main) ro.observe(main);
 
     window.addEventListener("resize", update);
     return () => {
